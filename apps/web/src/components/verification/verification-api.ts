@@ -5,9 +5,12 @@
 // identifier. The deposit of a piece (PUT …/evidence, DELETE …/evidence/:id, commit 19) sends the raw
 // bytes of ONE image: neither its declared type nor its name ever leaves the browser (08 RG85).
 import {
+  brandVerificationResponseSchema,
   creatorVerificationResponseSchema,
   verificationEvidenceResponseSchema,
   verificationRequestResponseSchema,
+  type BrandInternalDetails,
+  type BrandVerificationResponse,
   type CreatorVerificationLevel,
   type CreatorVerificationResponse,
   type VerificationEvidenceResponse,
@@ -94,6 +97,80 @@ export function removeVerificationEvidence(
   return callRelay(
     "DELETE",
     `${REQUESTS_PATH}/${requestId}/evidence/${evidenceId}`,
+    verificationRequestResponseSchema,
+  );
+}
+
+// --- A brand's own request, « Marque vérifiée » (06 RG46 to RG52; commit 20) -------------------------
+// ONE request at a time, named by the account of the session: no call carries an identifier. A brand
+// deposits no piece (EC-L2E-10); the answers are the badge, the request and its internal block.
+
+const BRAND_VERIFICATION_PATH = "/v1/me/brand-verification";
+const BRAND_REQUEST_PATH = `${BRAND_VERIFICATION_PATH}/request`;
+
+/** The badge of the brand, its latest request and its internal block (06 RG46, RG53). */
+export function readBrandVerification(): Promise<
+  RelayResult<BrandVerificationResponse>
+> {
+  return callRelay(
+    "GET",
+    BRAND_VERIFICATION_PATH,
+    brandVerificationResponseSchema,
+  );
+}
+
+/** The three internal fields, asked at the request and never before (06 RG47); the answer is the block as stored. */
+export function saveBrandInternalDetails(
+  details: BrandInternalDetails,
+): Promise<RelayResult<BrandVerificationResponse>> {
+  return callRelay(
+    "PUT",
+    `${BRAND_VERIFICATION_PATH}/internal-details`,
+    brandVerificationResponseSchema,
+    details,
+  );
+}
+
+/** Opens the request, its domain code issued with it (06 CA27); no domain, no request (CA26). */
+export function openBrandRequest(): Promise<
+  RelayResult<VerificationRequestResponse>
+> {
+  return callRelay(
+    "POST",
+    BRAND_REQUEST_PATH,
+    verificationRequestResponseSchema,
+  );
+}
+
+/** A new domain code on the draft: the former one is revoked in the same transaction (06 RG51). */
+export function renewBrandCode(): Promise<
+  RelayResult<VerificationRequestResponse>
+> {
+  return callRelay(
+    "POST",
+    `${BRAND_REQUEST_PATH}/code`,
+    verificationRequestResponseSchema,
+  );
+}
+
+/** "J'ai publié le code": the draft goes to the queue. */
+export function submitBrandRequest(): Promise<
+  RelayResult<VerificationRequestResponse>
+> {
+  return callRelay(
+    "POST",
+    `${BRAND_REQUEST_PATH}/submit`,
+    verificationRequestResponseSchema,
+  );
+}
+
+/** The request withdrawn, before any decision. */
+export function cancelBrandRequest(): Promise<
+  RelayResult<VerificationRequestResponse>
+> {
+  return callRelay(
+    "POST",
+    `${BRAND_REQUEST_PATH}/cancel`,
     verificationRequestResponseSchema,
   );
 }

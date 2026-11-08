@@ -45,7 +45,8 @@ export type LevelRow = {
   request: RowRequest | null;
 };
 
-function rowRequestOf(request: OwnRequest): RowRequest | null {
+/** The request of a level as its row shows it; the brand's one request reads the same way (commit 20). */
+export function rowRequestOf(request: OwnRequest): RowRequest | null {
   switch (request.status) {
     case "draft":
       return { kind: "started", request, since: request.createdAt };
@@ -617,7 +618,10 @@ export type FailureKey =
   | "duplicate"
   | "ownershipPrerequisite"
   | "missingEvidence"
-  | "evidenceCap";
+  | "evidenceCap"
+  | "websiteDomainRequired"
+  | "internalDetailsRequired"
+  | "detailsInvalid";
 
 export type Failure = {
   key: FailureKey;
@@ -635,6 +639,10 @@ export function failureOf(result: Failed): Failure {
   const has = (issue: string) => issues.includes(issue);
   if (result.code === "not_found") {
     return { key: "gone", retryAfterSeconds: null, reload: true };
+  }
+  if (result.code === "validation_failed") {
+    // a field of the internal block of a brand that the database refuses (06 RG46), never echoed
+    return { key: "detailsInvalid", retryAfterSeconds: null, reload: false };
   }
   if (result.code === "conflict") {
     if (has("retry_after")) {
@@ -675,6 +683,21 @@ export function failureOf(result: Failed): Failure {
     }
     if (has("evidence_cap")) {
       return { key: "evidenceCap", retryAfterSeconds: null, reload: true };
+    }
+    // a brand: no domain, no request (06 CA26); the block of RG47 is asked at the request
+    if (has("website_domain_required")) {
+      return {
+        key: "websiteDomainRequired",
+        retryAfterSeconds: null,
+        reload: false,
+      };
+    }
+    if (has("internal_details_required")) {
+      return {
+        key: "internalDetailsRequired",
+        retryAfterSeconds: null,
+        reload: false,
+      };
     }
     if (has("request_not_draft") || has("stale_token") || has("entry_closed")) {
       return { key: "notDraft", retryAfterSeconds: null, reload: true };

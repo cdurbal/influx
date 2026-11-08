@@ -4,8 +4,8 @@
 // blocks 1 to 3, saved by themselves, the score and what is missing in a sticky column (an
 // accordion and an action bar on a phone), the submit button never disabled and always explained.
 // The page of a brand: a creator reaches a page that does not exist, as the API answers (T14.3).
-// The logo (commit 12), the home card and the rail block (commit 13) and block 4 (L2E) are not
-// here. This file draws; the state is use-brand-profile.ts, the rules brand-profile-view.ts and
+// The logo (commit 12) and the home card and the rail block (commit 13) are not here; block 4
+// (L2E, commit 20) is BrandVerificationBlock. This file draws; the state is use-brand-profile.ts, the rules brand-profile-view.ts and
 // apps/api. No amount, rate, net or price (CLAUDE.md §2, D48, D78).
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -23,6 +23,8 @@ import { MemberButton } from "@/components/member/ui/MemberButton";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { ScoreGauge } from "@/components/member/ui/ScoreGauge";
+import type { ProfileLayer } from "@/components/member/ui/layer-badge-classes";
+import { BrandVerificationBlock } from "@/components/verification/BrandVerificationBlock";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import {
@@ -212,7 +214,7 @@ function LoadedProfile({
           <ProfileSection
             id="identity"
             title={t("section.identity")}
-            sectionLayer
+            layer="public"
             open={openSection === "identity"}
             onToggle={() => onOpenSection("identity")}
             disabled={!editable}
@@ -222,7 +224,7 @@ function LoadedProfile({
           <ProfileSection
             id="expectations"
             title={t("section.expectations")}
-            sectionLayer
+            layer="public"
             open={openSection === "expectations"}
             onToggle={() => onOpenSection("expectations")}
             disabled={!editable}
@@ -237,6 +239,17 @@ function LoadedProfile({
             disabled={!editable}
           >
             <ContactFields {...fields} />
+          </ProfileSection>
+          <ProfileSection
+            id="verification"
+            title={t("section.verification")}
+            layer="internal"
+            open={openSection === "verification"}
+            onToggle={() => onOpenSection("verification")}
+            // asking for the badge is not an edit of the profile: it stays open on a suspended one, the API decides
+            disabled={false}
+          >
+            <BrandVerificationBlock hasDomain={draft.website.trim() !== ""} />
           </ProfileSection>
           <SaveStatus
             save={state.save}
@@ -392,7 +405,7 @@ function ProfileProgress({
 function ProfileSection({
   id,
   title,
-  sectionLayer = false,
+  layer,
   open,
   onToggle,
   disabled,
@@ -400,7 +413,7 @@ function ProfileSection({
 }: {
   id: SectionId;
   title: string;
-  sectionLayer?: boolean;
+  layer?: ProfileLayer;
   open: boolean;
   onToggle: () => void;
   disabled: boolean;
@@ -434,9 +447,9 @@ function ProfileSection({
             />
           </button>
         </h2>
-        {sectionLayer ? (
-          <LayerBadge layer="public" label={t("layer.public")} />
-        ) : null}
+        {layer === undefined ? null : (
+          <LayerBadge layer={layer} label={t(`layer.${layer}`)} />
+        )}
       </div>
       <div id={panelId} className={sectionBodyClasses(open)}>
         <fieldset disabled={disabled} className={SECTION_FIELDSET_CLASSES}>

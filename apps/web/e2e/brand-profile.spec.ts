@@ -110,9 +110,10 @@ test("a brand fills its profile in French at 1 440 px: layers, caps, missing fie
   await expect(
     page.getByText(copy.layer.revealed, { exact: true }),
   ).toHaveCount(1);
+  // three internal fields of block 3, plus the label of block 4 (L2E, commit 20: the verification)
   await expect(
     page.getByText(copy.layer.internal, { exact: true }),
-  ).toHaveCount(3);
+  ).toHaveCount(4);
   for (const badge of await page
     .getByText(copy.layer.internal, { exact: true })
     .all()) {

@@ -157,6 +157,7 @@ describe("TD2.4: the active entry of each page", () => {
     accountProfile: "account",
     accountVerificationOwnership: "account",
     accountVerificationAudience: "account",
+    accountBrandVerification: "account",
     accountPreferences: "account",
     accountSessions: "account",
     accountData: "account",
@@ -389,6 +390,7 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     expect(PARENT_PAGES).toEqual({
       accountVerificationOwnership: "accountProfile",
       accountVerificationAudience: "accountProfile",
+      accountBrandVerification: "accountProfile",
     });
     expect(activePlaceOf("accountVerificationOwnership")).toEqual({
       entry: "account",
@@ -421,6 +423,26 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     });
     expect(ACCOUNT_PAGES).not.toContain("accountVerificationAudience");
     expect(isTermsExempt("accountVerificationAudience")).toBe(false);
+  });
+
+  it("addresses the brand verification below the profile too, in both languages, with no network in the address (L2E 20)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountBrandVerification).toEqual({
+      fr: "compte/profil/marque-verifiee",
+      en: "account/profile/verified-brand",
+    });
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountBrandVerification", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountBrandVerification",
+      );
+      expect(href).not.toContain("?");
+    }
+    expect(activePlaceOf("accountBrandVerification")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountBrandVerification");
+    expect(isTermsExempt("accountBrandVerification")).toBe(false);
   });
 
   it("reads a network code as the reference list writes it, and nothing else", () => {

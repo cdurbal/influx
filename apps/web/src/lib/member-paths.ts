@@ -17,6 +17,7 @@ export type MemberPage =
   | "accountProfile"
   | "accountVerificationOwnership"
   | "accountVerificationAudience"
+  | "accountBrandVerification"
   | "accountPreferences"
   | "accountSessions"
   | "accountData";
@@ -46,6 +47,12 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   accountVerificationAudience: {
     fr: "compte/profil/verification/audience",
     en: "account/profile/verification/audience",
+  },
+  // "Faire vérifier ma marque" (17 §4.2, M2 block 4; 06 RG49 to RG52; L2E, commit 20): the one request of a
+  // brand, a child of the profile; the badge is the account's, so no network and no query (modele.md §6).
+  accountBrandVerification: {
+    fr: "compte/profil/marque-verifiee",
+    en: "account/profile/verified-brand",
   },
   accountPreferences: { fr: "compte/preferences", en: "account/preferences" },
   accountSessions: { fr: "compte/sessions", en: "account/sessions" },
@@ -82,6 +89,7 @@ export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
 export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
   accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
   accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
+  accountBrandVerification: PROFILE_ACCOUNT_PAGE,
 };
 
 /** The name of the query parameter that carries the network of a verification journey (a reference-list code, never an identifier of an account). */

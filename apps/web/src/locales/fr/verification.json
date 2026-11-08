@@ -1,7 +1,8 @@
 {
   "meta": {
     "ownership": "Faire vérifier mon compte",
-    "audience": "Faire vérifier mon audience"
+    "audience": "Faire vérifier mon audience",
+    "brand": "Faire vérifier ma marque"
   },
   "verif": {
     "badge": {
@@ -14,7 +15,10 @@
         "help": "Chiffres constatés par INFLUX sur le tableau de bord {network}, période du {start} au {end}. INFLUX ne se prononce pas sur l'authenticité des abonnés."
       },
       "toRefresh": "Audience vérifiée le {date} — vérification à rafraîchir.",
-      "toReconfirm": "Compte vérifié le {date} — à reconfirmer après un changement d'identifiant."
+      "toReconfirm": "Compte vérifié le {date} — à reconfirmer après un changement d'identifiant.",
+      "brandVerified": {
+        "help": "INFLUX a constaté, à la date affichée, que cette marque contrôle son domaine et que son immatriculation existe dans un registre public. INFLUX ne se prononce ni sur sa solvabilité, ni sur la qualité de ses campagnes."
+      }
     },
     "figures": {
       "observed": "Constaté par INFLUX le {date}.",
@@ -320,6 +324,127 @@
       "until": "Ce badge arrive à échéance le {date}. Vous pourrez alors déposer une capture récente pour le conserver."
     }
   },
+  "brandBlock": {
+    "status": {
+      "none": "Badge « Marque vérifiée » : non demandé."
+    },
+    "affirms": "Ce que le badge affirme : le domaine de votre site vous appartient et votre société est immatriculée dans un registre public. Il n'affirme ni solvabilité, ni sérieux, ni qualité.",
+    "optional": "Le badge n'est pas nécessaire pour soumettre votre profil : le demander compte dans la complétude, sans rien promettre sur la validation ni sur la publication du profil.",
+    "noDomain": "Votre profil peut être publié sans domaine, mais le badge ne peut pas être demandé : renseignez d'abord le site de votre marque, dans « Identité publique ».",
+    "cta": {
+      "start": "Demander le badge",
+      "resume": "Reprendre la demande",
+      "restart": "Redemander le badge",
+      "refresh": "Rafraîchir le badge"
+    }
+  },
+  "brand": {
+    "title": "Faire vérifier ma marque",
+    "back": "Mon profil de marque",
+    "backPrefix": "Retour à",
+    "loading": "Chargement de la vérification…",
+    "unavailable": "Nous ne parvenons pas à afficher la vérification pour le moment. Rien n'est perdu : réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "steps": {
+      "affirm": "Ce que le badge affirme",
+      "publish": "Publier le code",
+      "follow": "Suivi"
+    },
+    "affirm": {
+      "title": "Ce que ce badge affirme",
+      "intro": "Quand un agent INFLUX aura contrôlé votre domaine et votre immatriculation, le badge « Marque vérifiée » affirme exactement deux choses, et pas une de plus.",
+      "items": {
+        "domain": "Que le domaine de votre site est contrôlé par votre marque : l'agent retrouve en ligne un code que vous publiez sur ce domaine.",
+        "registration": "Que l'immatriculation déclarée existe dans un registre public : l'agent la consulte lui-même."
+      },
+      "byHand": "Il est attribué à la main, par un agent INFLUX nommé, à une date donnée : la date s'affiche à côté du badge.",
+      "refresh": "Votre badge est à rafraîchir : une nouvelle demande donnera un badge daté du jour du nouveau contrôle.",
+      "not": {
+        "title": "Ce qu'il n'affirme pas",
+        "solvency": "Que votre marque est solvable ou qu'elle paiera.",
+        "serious": "Qu'elle est sérieuse.",
+        "experience": "Qu'elle a déjà travaillé avec des créateurs.",
+        "quality": "Que ses campagnes sont de qualité."
+      },
+      "preview": {
+        "title": "Ce que le badge affichera",
+        "example": "Exemple : la date affichée sera celle du contrôle.",
+        "never": "Jamais affichés : la raison sociale, le pays et le numéro d'immatriculation de votre société, le nom de l'agent, les notes internes."
+      },
+      "todo": "Pour l'obtenir, INFLUX vous donne un code à publier sur votre domaine, puis vous indiquez la raison sociale, le pays et le numéro d'immatriculation de votre société. Ces trois informations restent internes : un créateur ne les voit jamais.",
+      "continue": "J'ai compris, obtenir mon code",
+      "back": "Retour à mon profil de marque"
+    },
+    "publish": {
+      "title": "Publiez votre code",
+      "intro": "Publiez ce code sur votre domaine, de l'une des deux façons ci-dessous. Nous le retrouvons nous-mêmes en ligne.",
+      "ways": {
+        "title": "Choisissez l'une des deux façons",
+        "dns": {
+          "title": "Un enregistrement DNS",
+          "text": "Chez le gestionnaire de votre domaine, ajoutez un enregistrement de type TXT qui contient le code. Il peut mettre un moment à devenir visible."
+        },
+        "page": {
+          "title": "Une page de votre site",
+          "text": "Publiez sur votre domaine une page accessible sans connexion qui contient le code."
+        }
+      },
+      "public": "Le code doit pouvoir être lu sans connexion : s'il n'est pas visible publiquement, le domaine n'est pas contrôlé.",
+      "neverAsk": "INFLUX ne vous demandera jamais votre mot de passe, ni un accès à votre hébergement ou au gestionnaire de votre domaine.",
+      "screenshot": "Seul le code lu en ligne par l'agent compte : la capture d'écran d'un enregistrement ou d'une page ne vaut pas preuve.",
+      "submit": "J'ai publié le code, envoyer ma demande",
+      "sending": "Envoi en cours…"
+    },
+    "details": {
+      "title": "Votre société",
+      "intro": "Ces trois informations servent à contrôler l'immatriculation de votre société dans un registre public. Elles sont demandées maintenant, au moment de la demande du badge, et pas avant.",
+      "required": "Ce champ est obligatoire pour demander le badge.",
+      "legalName": {
+        "label": "Raison sociale",
+        "help": "Le nom légal de votre société, tel qu'il figure au registre : ce n'est pas forcément votre nom commercial."
+      },
+      "country": {
+        "label": "Pays d'immatriculation",
+        "help": "Le pays dont le registre public sera consulté."
+      },
+      "number": {
+        "label": "Numéro d'immatriculation",
+        "help": "Saisissez-le tel qu'il figure au registre de votre pays."
+      }
+    },
+    "sent": {
+      "title": "Demande envoyée",
+      "body": "Demande envoyée. Un agent INFLUX contrôlera votre domaine et votre immatriculation.",
+      "keepCode": "Laissez le code en place sur votre domaine jusqu'à ce que le contrôle soit enregistré. Vous pourrez alors le retirer.",
+      "state": "L'état de la demande est visible dans le bloc « Vérification » de votre profil de marque.",
+      "back": "Voir l'état sur mon profil de marque"
+    },
+    "done": {
+      "title": "Marque vérifiée",
+      "removeCode": "Le contrôle est enregistré : vous pouvez retirer le code de votre domaine.",
+      "until": "Ce badge arrive à échéance le {date}. Vous pourrez alors le rafraîchir.",
+      "back": "Voir mon profil de marque"
+    },
+    "failure": {
+      "alreadyVerified": "Votre marque est déjà vérifiée.",
+      "duplicate": "Une demande est déjà en cours depuis le {date}."
+    },
+    "refusal": {
+      "reason": {
+        "domain_code_not_found": "Nous n'avons trouvé le code ni dans les enregistrements DNS de votre domaine, ni sur une page de votre site.",
+        "registration_not_found": "Cette immatriculation est introuvable dans le registre public de votre pays.",
+        "registration_unverifiable_country": "Immatriculation non vérifiable dans ce pays : INFLUX n'y consulte encore aucun registre public gratuit. Vous pourrez redemander le badge dès qu'une source sera ajoutée.",
+        "name_mismatch": "La raison sociale saisie ne correspond pas à celle du registre.",
+        "account_unavailable": "Votre demande ne peut pas être traitée tant que votre compte est suspendu.",
+        "other": "Votre demande n'a pas pu être acceptée en l'état. Le message de l'équipe INFLUX :"
+      },
+      "next": {
+        "retryCode": "Vérifiez que le code est bien publié sur votre domaine, puis redemandez le badge : un nouveau code vous sera donné.",
+        "fixDetails": "Vérifiez la raison sociale, le pays et le numéro d'immatriculation, corrigez-les si besoin, puis redemandez le badge.",
+        "retryLater": "Revenez sur cet écran plus tard : le bouton « Redemander le badge » reste disponible."
+      }
+    }
+  },
   "failure": {
     "retryLater": "Une demande a été refusée il y a peu. Vous pourrez en faire une nouvelle dans {delay}.",
     "cap": "Plusieurs demandes ont été refusées ces derniers jours : une nouvelle demande n'est pas possible pour le moment.",
@@ -330,6 +455,9 @@
     "unavailable": "Le service ne répond pas. Rien n'est perdu : réessayez dans un instant.",
     "ownershipPrerequisite": "Faites d'abord vérifier la propriété de ce compte sur ce réseau.",
     "missingEvidence": "Déposez au moins une capture avant d'envoyer la demande.",
-    "evidenceCap": "Cette demande contient déjà le nombre maximal de captures : retirez-en une avant d'en ajouter."
+    "evidenceCap": "Cette demande contient déjà le nombre maximal de captures : retirez-en une avant d'en ajouter.",
+    "websiteDomainRequired": "Le badge ne peut pas être demandé sans domaine : renseignez d'abord le site de votre marque dans votre profil.",
+    "internalDetailsRequired": "Renseignez la raison sociale, le pays et le numéro d'immatriculation de votre société avant d'envoyer la demande.",
+    "detailsInvalid": "L'une des informations de votre société n'est pas acceptée. Vérifiez la raison sociale, le pays et le numéro d'immatriculation."
   }
 }

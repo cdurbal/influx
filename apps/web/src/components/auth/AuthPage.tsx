@@ -29,6 +29,7 @@ const PAGE_TITLES = {
   accountProfile: "account.meta.profile",
   accountVerificationOwnership: "verification.meta.ownership",
   accountVerificationAudience: "verification.meta.audience",
+  accountBrandVerification: "verification.meta.brand",
   accountPreferences: "account.meta.preferences",
   accountSessions: "account.meta.sessions",
   accountData: "account.meta.data",

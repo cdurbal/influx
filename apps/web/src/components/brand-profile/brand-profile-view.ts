@@ -316,12 +316,14 @@ export function afterSave(
 
 // --- Where each field stands -------------------------------------------------------------------
 
-export type SectionId = "identity" | "expectations" | "contact";
+export type SectionId =
+  "identity" | "expectations" | "contact" | "verification";
 
 export const SECTION_IDS: readonly SectionId[] = [
   "identity",
   "expectations",
   "contact",
+  "verification",
 ];
 
 const SECTION_OF_KEY: Readonly<Record<DraftKey, SectionId>> = {

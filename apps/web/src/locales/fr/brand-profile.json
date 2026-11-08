@@ -200,7 +200,8 @@
   "section": {
     "identity": "1. Identité publique",
     "expectations": "2. Ce que je cherche",
-    "contact": "3. Votre interlocuteur"
+    "contact": "3. Votre interlocuteur",
+    "verification": "4. Vérification"
   },
   "fields": {
     "companyName": {

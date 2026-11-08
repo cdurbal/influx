@@ -1,7 +1,8 @@
 {
   "meta": {
     "ownership": "Verify my account",
-    "audience": "Verify my audience"
+    "audience": "Verify my audience",
+    "brand": "Verify my brand"
   },
   "verif": {
     "badge": {
@@ -14,7 +15,10 @@
         "help": "Figures observed by INFLUX in the {network} native dashboard, period {start} to {end}. INFLUX makes no claim about follower authenticity."
       },
       "toRefresh": "Audience verified on {date} — verification needs refreshing.",
-      "toReconfirm": "Account verified on {date} — to be reconfirmed after a handle change."
+      "toReconfirm": "Account verified on {date} — to be reconfirmed after a handle change.",
+      "brandVerified": {
+        "help": "INFLUX checked, on the date shown, that this brand controls its domain and that its registration exists in a public register. INFLUX does not speak to its solvency or to the quality of its campaigns."
+      }
     },
     "figures": {
       "observed": "Observed by INFLUX on {date}.",
@@ -320,6 +324,127 @@
       "until": "This badge expires on {date}. You will then be able to upload a recent screenshot to keep it."
     }
   },
+  "brandBlock": {
+    "status": {
+      "none": "\"Brand verified\" badge: not requested."
+    },
+    "affirms": "What the badge states: the domain of your website belongs to you and your company is registered in a public register. It states nothing about solvency, seriousness or quality.",
+    "optional": "The badge is not needed to submit your profile: requesting it counts in the completeness, and promises nothing about the review or the publication of the profile.",
+    "noDomain": "Your profile can be published without a domain, but the badge cannot be requested: first fill in your brand's website, under \"Public identity\".",
+    "cta": {
+      "start": "Request the badge",
+      "resume": "Resume the request",
+      "restart": "Request the badge again",
+      "refresh": "Refresh the badge"
+    }
+  },
+  "brand": {
+    "title": "Verify my brand",
+    "back": "My brand profile",
+    "backPrefix": "Back to",
+    "loading": "Loading the verification…",
+    "unavailable": "We cannot display the verification right now. Nothing is lost: try again in a few minutes.",
+    "retry": "Try again",
+    "steps": {
+      "affirm": "What the badge states",
+      "publish": "Publish the code",
+      "follow": "Follow-up"
+    },
+    "affirm": {
+      "title": "What this badge states",
+      "intro": "Once an INFLUX agent has checked your domain and your registration, the \"Brand verified\" badge states exactly two things, and not one more.",
+      "items": {
+        "domain": "That the domain of your website is controlled by your brand: the agent finds online a code that you publish on that domain.",
+        "registration": "That the registration you declared exists in a public register: the agent looks it up himself."
+      },
+      "byHand": "It is granted by hand, by a named INFLUX agent, on a given date: the date is shown next to the badge.",
+      "refresh": "Your badge needs refreshing: a new request gives a badge dated the day of the new check.",
+      "not": {
+        "title": "What it does not state",
+        "solvency": "That your brand is solvent or that it will pay.",
+        "serious": "That it is serious.",
+        "experience": "That it has already worked with creators.",
+        "quality": "That its campaigns are of good quality."
+      },
+      "preview": {
+        "title": "What the badge will show",
+        "example": "Example: the date shown will be the day of the check.",
+        "never": "Never shown: your company's legal name, country and registration number, the agent's name, the internal notes."
+      },
+      "todo": "To obtain it, INFLUX gives you a code to publish on your domain, then you give your company's legal name, country and registration number. These three details stay internal: a creator never sees them.",
+      "continue": "I understand, get my code",
+      "back": "Back to my brand profile"
+    },
+    "publish": {
+      "title": "Publish your code",
+      "intro": "Publish this code on your domain, in one of the two ways below. We find it online ourselves.",
+      "ways": {
+        "title": "Choose one of the two ways",
+        "dns": {
+          "title": "A DNS record",
+          "text": "At your domain's registrar, add a TXT record that contains the code. It can take a while to become visible."
+        },
+        "page": {
+          "title": "A page of your website",
+          "text": "Publish on your domain a page, reachable without signing in, that contains the code."
+        }
+      },
+      "public": "The code must be readable without signing in: if it is not publicly visible, the domain is not controlled.",
+      "neverAsk": "INFLUX will never ask for your password, nor for access to your hosting or to your domain registrar.",
+      "screenshot": "Only the code the agent reads online counts: a screenshot of a record or of a page is not proof.",
+      "submit": "I published the code, send my request",
+      "sending": "Sending…"
+    },
+    "details": {
+      "title": "Your company",
+      "intro": "These three details are used to check your company's registration in a public register. They are asked now, when you request the badge, and not before.",
+      "required": "This field is required to request the badge.",
+      "legalName": {
+        "label": "Legal name",
+        "help": "Your company's legal name, as it appears in the register: not necessarily your trading name."
+      },
+      "country": {
+        "label": "Country of registration",
+        "help": "The country whose public register will be consulted."
+      },
+      "number": {
+        "label": "Registration number",
+        "help": "Enter it as it appears in your country's register."
+      }
+    },
+    "sent": {
+      "title": "Request sent",
+      "body": "Request sent. An INFLUX agent will check your domain and your registration.",
+      "keepCode": "Leave the code in place on your domain until the check is recorded. You can then remove it.",
+      "state": "The state of the request is shown in the \"Verification\" block of your brand profile.",
+      "back": "See the state on my brand profile"
+    },
+    "done": {
+      "title": "Brand verified",
+      "removeCode": "The check is recorded: you can remove the code from your domain.",
+      "until": "This badge expires on {date}. You can then refresh it.",
+      "back": "See my brand profile"
+    },
+    "failure": {
+      "alreadyVerified": "Your brand is already verified.",
+      "duplicate": "A request has already been open since {date}."
+    },
+    "refusal": {
+      "reason": {
+        "domain_code_not_found": "We found the code neither in your domain's DNS records nor on a page of your website.",
+        "registration_not_found": "This registration could not be found in your country's public register.",
+        "registration_unverifiable_country": "Registration cannot be checked in this country: INFLUX does not yet consult a free public register there. You can request the badge again once a source is added.",
+        "name_mismatch": "The legal name you entered does not match the register.",
+        "account_unavailable": "Your request cannot be processed while your account is suspended.",
+        "other": "Your request could not be accepted as it stands. The INFLUX team's message:"
+      },
+      "next": {
+        "retryCode": "Check that the code is published on your domain, then request the badge again: you will be given a new code.",
+        "fixDetails": "Check the legal name, the country and the registration number, correct them if needed, then request the badge again.",
+        "retryLater": "Come back to this screen later: the \"Request the badge again\" button stays available."
+      }
+    }
+  },
   "failure": {
     "retryLater": "A request was refused a short while ago. You will be able to make a new one in {delay}.",
     "cap": "Several requests were refused in the last days: a new request is not possible for the moment.",
@@ -330,6 +455,9 @@
     "unavailable": "The service is not answering. Nothing is lost: try again in a moment.",
     "ownershipPrerequisite": "Have the ownership of this account verified on this network first.",
     "missingEvidence": "Upload at least one screenshot before sending the request.",
-    "evidenceCap": "This request already holds the maximum number of screenshots: remove one before adding another."
+    "evidenceCap": "This request already holds the maximum number of screenshots: remove one before adding another.",
+    "websiteDomainRequired": "The badge cannot be requested without a domain: first fill in your brand's website in your profile.",
+    "internalDetailsRequired": "Fill in your company's legal name, country and registration number before sending the request.",
+    "detailsInvalid": "One of your company's details is not accepted. Check the legal name, the country and the registration number."
   }
 }

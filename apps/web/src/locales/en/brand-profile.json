@@ -200,7 +200,8 @@
   "section": {
     "identity": "1. Public identity",
     "expectations": "2. What I am looking for",
-    "contact": "3. Your contact person"
+    "contact": "3. Your contact person",
+    "verification": "4. Verification"
   },
   "fields": {
     "companyName": {
