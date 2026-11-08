@@ -4579,6 +4579,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|function|verification.grant_audience_verified(uuid,text,bigint,integer,bigint,integer,date,date,text,text)|EXECUTE",
   "influx_verification_definer|function|verification.grant_brand_verified(uuid,text,text,text,text,uuid,text)|EXECUTE",
   "influx_verification_definer|function|verification.lock_held_request(uuid,uuid)|EXECUTE",
+  // 0228 (L2F commit 02, L2ES-2): the one normalisation of a handle, SECURITY INVOKER, same owner
+  "influx_verification_definer|function|verification.normalize_handle(text)|EXECUTE",
   "influx_verification_definer|function|verification.open_request(uuid)|EXECUTE",
   "influx_verification_definer|function|verification.queue_decision(uuid,uuid,boolean)|EXECUTE",
   "influx_verification_definer|function|verification.read_evidence(uuid)|EXECUTE",

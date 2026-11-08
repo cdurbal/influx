@@ -149,6 +149,8 @@ async function newCreator(tx: Tx): Promise<Creator> {
   await tx`
     insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
     values (${id}, profiles.new_creator_alias(), 'FR')`;
+  // L2ES-2 (0228): the agent reads `${tag}_seen` on the instagram line, which declares it in capitals
+  // (the same handle once normalised; a raw string of its own, so the markers below stay distinct)
   const lines = await actAsMember(
     tx,
     "influx_creator",
@@ -158,7 +160,7 @@ async function newCreator(tx: Tx): Promise<Creator> {
         insert into profiles.creator_social_accounts
           (account_id, network_code, is_primary, handle, followers_count, posts_last_30_days,
            avg_comments_per_post)
-        values (${id}, 'instagram', true, ${`${tag}_insta`}, 120000, 14, 35),
+        values (${id}, 'instagram', true, ${`${tag.toUpperCase()}_SEEN`}, 120000, 14, 35),
                (${id}, 'tiktok', false, ${`${tag}_tok`}, 9000, 20, 12)
         returning id::text, network_code`,
   );

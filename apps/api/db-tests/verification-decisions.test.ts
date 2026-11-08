@@ -825,7 +825,12 @@ describe("CA13, CA30: the agent reads the code on line and types the handle; the
 
   it("L2E-D18: two accounts on one handle: the first finding wins, the second is refused, both escalated", async () => {
     const found = await scenario(async (tx) => {
+      // L2ES-2 (0228): a grant reads the handle its line declares. Line A declared the shared handle
+      // when it was verified, then changed it (the case of queue 6, L2F commit 08): the badge keeps
+      // the handle observed, and no other account declares it any more
+      await tx`update profiles.creator_social_accounts set handle = 'Shared.Handle' where id = ${lineA}`;
       const first = await accountVerifiedA(tx, "Shared.Handle");
+      await tx`update profiles.creator_social_accounts set handle = 't2_creator_a' where id = ${lineA}`;
       const [line] = await tx<{ id: string }[]>`
         insert into profiles.creator_social_accounts (account_id, network_code, handle)
         values (${creatorB}, 'instagram', 'shared.handle') returning id::text as id`;
@@ -890,6 +895,175 @@ describe("CA13, CA30: the agent reads the code on line and types the handle; the
       event_type: "verification.escalated",
       payload: { cause: "handle_already_verified" },
     });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L2F-D19 (L2ES-2, 0228; l2f fiche invariant 7): every grant compares the handle read with the
+// handle declared on the line, after one normalisation (edge spaces, leading `@`, case)
+// ---------------------------------------------------------------------------------------------
+
+describe("L2F-D19: the handle read is the handle declared on the line (L2ES-2)", () => {
+  it("« Compte vérifié »: case and `@` admitted, another handle or none refused, nothing written; the same call with the declared handle is granted", async () => {
+    const found = await scenario(async (tx) => {
+      const { request, code } = await pendingCreatorRequest(
+        tx,
+        creatorA,
+        lineA,
+        "instagram",
+        "account_verified",
+      );
+      const token = await claim(tx, request);
+      const other = await asInternal(tx, agentA, () =>
+        run(tx, GRANT_ACCOUNT, [
+          request,
+          token,
+          code,
+          "t2_creator_b",
+          null,
+          null,
+        ]),
+      );
+      const near = await asInternal(tx, agentA, () =>
+        run(tx, GRANT_ACCOUNT, [
+          request,
+          token,
+          code,
+          "t2_creator_a_",
+          null,
+          null,
+        ]),
+      );
+      const [finding] = await tx<
+        { observed: boolean; handle: string | null }[]
+      >`
+        select observed_at is not null as observed, observed_handle as handle
+          from verification.ownership_codes where request_id = ${request}`;
+      const [counted] = await tx<{ badges: number }[]>`
+        select count(*)::int as badges from verification.badges where request_id = ${request}`;
+      const pending = await requestOf(tx, request);
+      const linesBefore = await auditOf(tx, request);
+      // the control: same request, token and code; only the handle differs (case, `@`, spaces)
+      const granted = await asInternal(tx, agentA, () =>
+        rows<Granted>(tx, GRANT_ACCOUNT, [
+          request,
+          token,
+          code,
+          " @T2_Creator_A ",
+          null,
+          null,
+        ]),
+      );
+      const [badge] = await tx<{ handle: string }[]>`
+        select observed_handle_at_decision as handle
+          from verification.badges where request_id = ${request}`;
+
+      // a line without a handle is never granted, whatever is typed
+      const line = await tx<{ id: string }[]>`
+        insert into profiles.creator_social_accounts (account_id, network_code)
+        values (${creatorB}, 'tiktok') returning id::text as id`;
+      const bare = await pendingCreatorRequest(
+        tx,
+        creatorB,
+        line[0]?.id ?? "",
+        "tiktok",
+        "account_verified",
+      );
+      const bareToken = await claim(tx, bare.request);
+      const noHandle = await asInternal(tx, agentA, () =>
+        run(tx, GRANT_ACCOUNT, [
+          bare.request,
+          bareToken,
+          bare.code,
+          "anyone",
+          null,
+          null,
+        ]),
+      );
+      return {
+        other,
+        near,
+        finding,
+        counted,
+        pending,
+        linesBefore,
+        granted,
+        badge,
+        noHandle,
+        bareState: await requestOf(tx, bare.request),
+      };
+    });
+    const mismatch = refused(
+      INVALID_PARAMETER,
+      "observed_handle_mismatch",
+      "observed_handle_mismatch",
+    );
+    expect(found.other).toEqual(mismatch);
+    expect(found.near).toEqual(mismatch);
+    expect(found.noHandle).toEqual(mismatch);
+    // nothing written by a refused grant: no finding on the code, no badge, the request pending
+    expect(found.finding).toEqual({ observed: false, handle: null });
+    expect(found.counted?.badges).toBe(0);
+    expect(found.pending).toMatchObject({ status: "pending", decided: false });
+    expect(found.bareState).toMatchObject({
+      status: "pending",
+      decided: false,
+    });
+    expect(
+      found.linesBefore.filter((line) =>
+        /verification\.(granted|rejected)/.test(line.event_type),
+      ),
+    ).toEqual([]);
+    // the control is green: the refusal was the handle and nothing else
+    expect(found.granted[0]?.outcome).toBe("granted");
+    expect(found.badge?.handle).toBe("@T2_Creator_A");
+  });
+
+  it("« Audience vérifiée »: the handle read again is compared the same way; the control with the declared handle is granted", async () => {
+    const found = await scenario(async (tx) => {
+      await accountVerifiedA(tx);
+      const { request } = await pendingCreatorRequest(
+        tx,
+        creatorA,
+        lineA,
+        "instagram",
+        "audience_verified",
+      );
+      await activeEvidence(tx, request, creatorA);
+      const token = await claim(tx, request);
+      const typed = (handle: string) => [
+        request,
+        token,
+        38_000,
+        12,
+        40,
+        null,
+        day(-20),
+        day(-1),
+        handle,
+        null,
+      ];
+      const other = await asInternal(tx, agentA, () =>
+        run(tx, GRANT_AUDIENCE, typed("someone_else")),
+      );
+      const [counted] = await tx<{ badges: number }[]>`
+        select count(*)::int as badges from verification.badges where request_id = ${request}`;
+      const pending = await requestOf(tx, request);
+      const granted = await asInternal(tx, agentA, () =>
+        rows<Granted>(tx, GRANT_AUDIENCE, typed("@T2_CREATOR_A")),
+      );
+      return { other, counted, pending, granted };
+    });
+    expect(found.other).toEqual(
+      refused(
+        INVALID_PARAMETER,
+        "observed_handle_mismatch",
+        "observed_handle_mismatch",
+      ),
+    );
+    expect(found.counted?.badges).toBe(0);
+    expect(found.pending).toMatchObject({ status: "pending", decided: false });
+    expect(found.granted[0]?.outcome).toBe("granted");
   });
 });
 

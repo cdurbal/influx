@@ -487,7 +487,9 @@ async function verificationFixtures(
   server: Server,
   tag: string,
 ): Promise<{ creator: Marker[]; brand: Marker[] }> {
-  const observedHandle = `observed_t1_${tag}`;
+  // L2ES-2 (0228): the agent reads the handle the line declares (`pseudo_t1_${tag}`); he types it
+  // with its `@`, the raw form of his finding, which no member is ever served
+  const observedHandle = `@pseudo_t1_${tag}`;
   const observedFollowers = randomInt(51_000_000, 59_999_999);
   const observedComments = randomInt(1_000_000, 9_999_999);
 
