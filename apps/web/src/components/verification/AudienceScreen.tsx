@@ -354,7 +354,11 @@ function AffirmStep({
         <BadgeLine badge={journey.badge} network={network} />
       )}
       {journey.previous === null ? null : (
-        <RequestState state={journey.previous} />
+        // the first screen only follows an established ownership: a locked line shows no first screen (RG12)
+        <RequestState
+          state={journey.previous}
+          context={{ level: "audience_verified", ownershipEstablished: true }}
+        />
       )}
       {journey.refresh ? <p>{t("audience.affirm.refresh")}</p> : null}
       <p>{t("audience.affirm.todo", { network })}</p>
@@ -731,7 +735,10 @@ function SentStep({
       </h2>
       <p>{t("audience.sent.body")}</p>
       {request === null || since === null ? null : (
-        <RequestState state={{ kind: "requested", request, since }} />
+        <RequestState
+          state={{ kind: "requested", request, since }}
+          context={{ level: "audience_verified", ownershipEstablished: true }}
+        />
       )}
       <p className={MEMBER_FIELD_HELP_CLASSES}>{t("audience.sent.private")}</p>
       <p className={MEMBER_FIELD_HELP_CLASSES}>

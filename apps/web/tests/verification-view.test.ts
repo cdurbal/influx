@@ -11,6 +11,8 @@ import { fileURLToPath } from "node:url";
 import {
   CREATOR_REJECTION_REASON_CODES,
   VERIFICATION_EVIDENCE_REJECTIONS,
+  type CreatorRejectionReasonCode,
+  type CreatorVerificationLevel,
   type CreatorVerificationLine,
   type OwnBadge,
   type OwnEvidence,
@@ -46,6 +48,8 @@ import {
   ownershipJourneyOf,
   refusalViewOf,
   stepNumberOf,
+  type NextStep,
+  type RefusalContext,
 } from "@/components/verification/verification-view";
 import enVerification from "@/locales/en/verification.json";
 import frVerification from "@/locales/fr/verification.json";
@@ -240,36 +244,166 @@ describe("a refusal: its text and what the creator can do next (08 RG56, RG57)",
     message = "",
   ): OwnRefusal => ({ reasonCode, message, decidedAt: BADGE_AT });
 
-  it("gives every reason of the closed list a next step, and only the restartable ones reopen the journey", () => {
-    for (const code of CREATOR_REJECTION_REASON_CODES) {
-      const view = refusalViewOf(refusal(code));
+  // The next step of each reason, read from the level it was given at and, for the audience, from the
+  // ownership of the account (jalons/l2e, commit 25): on the ownership, a reason about a piece reopens the
+  // proof; on an audience whose ownership stands, it reopens the deposit; on an audience whose ownership
+  // does not, nothing can be deposited and the first step is the ownership (RG12).
+  type Expected = {
+    ownership: NextStep;
+    established: NextStep;
+    locked: NextStep;
+  };
+  const same = (next: NextStep): Expected => ({
+    ownership: next,
+    established: next,
+    locked: next,
+  });
+  const PIECE: Expected = {
+    ownership: "restartOwnership",
+    established: "redeposit",
+    locked: "askOwnershipFirst",
+  };
+  const EXPECTED: Readonly<Record<CreatorRejectionReasonCode, Expected>> = {
+    missing_evidence: PIECE,
+    evidence_too_old: PIECE,
+    evidence_unreadable: PIECE,
+    evidence_wrong_source: PIECE,
+    evidence_too_wide: PIECE,
+    ownership_not_proven: {
+      ownership: "restartOwnership",
+      established: "redeposit",
+      locked: "restartOwnership",
+    },
+    account_not_public: {
+      ownership: "makePublic",
+      established: "makePublic",
+      locked: "askOwnershipFirst",
+    },
+    ownership_prerequisite: PIECE,
+    evidence_inconsistent: {
+      ownership: "restartOwnership",
+      established: "contact",
+      locked: "contact",
+    },
+    evidence_suspected_forgery: same("contact"),
+    shared_account: same("contact"),
+    agency_managed: same("none"),
+    terms_breach: same("contact"),
+    minor: same("none"),
+    account_unavailable: same("contact"),
+    other: PIECE,
+  };
+  const OWNERSHIP: RefusalContext = { level: "account_verified" };
+  type Where = "ownership" | "established" | "locked";
+  const WHERE: Readonly<
+    Record<Where, { level: CreatorVerificationLevel; owned: boolean }>
+  > = {
+    ownership: { level: "account_verified", owned: false },
+    established: { level: "audience_verified", owned: true },
+    locked: { level: "audience_verified", owned: false },
+  };
+  const contextOf = (where: Where): RefusalContext =>
+    WHERE[where].level === "account_verified"
+      ? { level: "account_verified" }
+      : {
+          level: "audience_verified",
+          ownershipEstablished: WHERE[where].owned,
+        };
+  /** The button the row offers after the refusal, from the row's own function. */
+  const buttonOf = (code: CreatorRejectionReasonCode, where: Where) =>
+    WHERE[where].level === "account_verified"
+      ? ownershipActionOf(
+          levelRowOf(line([], [refused(code)]), "account_verified"),
+        )
+      : audienceActionOf(
+          levelRowOf(
+            line(WHERE[where].owned ? [OWNED] : [], [audienceRefused(code)]),
+            "audience_verified",
+          ),
+          WHERE[where].owned,
+        );
+  const CASES = CREATOR_REJECTION_REASON_CODES.flatMap((code) =>
+    (["ownership", "established", "locked"] as const).map(
+      (where) => [code, where] as const,
+    ),
+  );
+
+  it("tables every reason of the closed list, 16 reasons in three places", () => {
+    expect(Object.keys(EXPECTED).sort()).toEqual(
+      [...CREATOR_REJECTION_REASON_CODES].sort(),
+    );
+    expect(CASES).toHaveLength(48);
+  });
+
+  it.each(CASES)(
+    "%s given to the %s: the next step, the contact and the button",
+    (code, where) => {
+      const view = refusalViewOf(refusal(code), contextOf(where));
+      const next = EXPECTED[code][where];
       expect(view.reason).toBe(code);
-      expect(canRestartOwnership(view), code).toBe(
-        code === "ownership_not_proven" || code === "account_not_public",
+      expect(view.next).toBe(next);
+      // « contactez INFLUX » is said after the next step for `other` alone, and is the step itself elsewhere
+      expect(view.contactToo).toBe(code === "other");
+      // a button only where a new proof, a new deposit or the public account is the step
+      const opens =
+        WHERE[where].level === "account_verified"
+          ? next === "restartOwnership" || next === "makePublic"
+          : WHERE[where].owned &&
+            (next === "redeposit" || next === "makePublic");
+      expect(buttonOf(code, where), `${code} ${where}`).toBe(
+        opens ? "restart" : null,
       );
+      if (WHERE[where].level === "account_verified") {
+        expect(canRestartOwnership(view)).toBe(opens);
+      }
+    },
+  );
+
+  it("never offers a button for the reasons that point at the team or at no further request, wherever they were given", () => {
+    for (const code of [
+      "evidence_suspected_forgery",
+      "shared_account",
+      "terms_breach",
+      "account_unavailable",
+      "agency_managed",
+      "minor",
+    ] as const) {
+      for (const where of ["ownership", "established", "locked"] as const) {
+        expect(buttonOf(code, where), `${code} ${where}`).toBeNull();
+      }
     }
-    expect(refusalViewOf(refusal("agency_managed")).next).toBe("none");
-    expect(refusalViewOf(refusal("minor")).next).toBe("none");
+  });
+
+  it("never offers a button on an audience whose ownership does not stand, whatever the reason (RG12)", () => {
+    for (const code of CREATOR_REJECTION_REASON_CODES) {
+      expect(buttonOf(code, "locked"), code).toBeNull();
+    }
   });
 
   it("carries the agent's own words for the two reasons that have them, never for a typed one", () => {
     const words = "Votre profil montre un compte partagé avec une marque.";
-    expect(refusalViewOf(refusal("other", words)).agentMessage).toBe(words);
-    expect(refusalViewOf(refusal("terms_breach", words)).agentMessage).toBe(
+    expect(refusalViewOf(refusal("other", words), OWNERSHIP).agentMessage).toBe(
       words,
     );
+    expect(
+      refusalViewOf(refusal("terms_breach", words), OWNERSHIP).agentMessage,
+    ).toBe(words);
     // a typed reason has an empty message on the member's side (EC-L2E-12-2): the screen writes the text
     expect(
-      refusalViewOf(refusal("ownership_not_proven")).agentMessage,
+      refusalViewOf(refusal("ownership_not_proven"), OWNERSHIP).agentMessage,
     ).toBeNull();
     // a blank message is no message
-    expect(refusalViewOf(refusal("other", "   ")).agentMessage).toBeNull();
+    expect(
+      refusalViewOf(refusal("other", "   "), OWNERSHIP).agentMessage,
+    ).toBeNull();
   });
 
   it("reads a reason of the brands' list on a creator's request as `other`, never as a blank", () => {
-    const view = refusalViewOf(refusal("name_mismatch"));
+    const view = refusalViewOf(refusal("name_mismatch"), OWNERSHIP);
     expect(view.reason).toBe("other");
-    expect(view.next).toBe("contact");
+    // `other` gives the next step of its level, then says to contact INFLUX (08 RG57, signed in L2E-25)
+    expect(view.next).toBe("restartOwnership");
+    expect(view.contactToo).toBe(true);
   });
 
   it("has a text for every reason and every next step, in both languages", () => {
@@ -278,8 +412,14 @@ describe("a refusal: its text and what the creator can do next (08 RG56, RG57)",
         [...CREATOR_REJECTION_REASON_CODES].sort(),
       );
       for (const code of CREATOR_REJECTION_REASON_CODES) {
-        const { next } = refusalViewOf(refusal(code));
-        expect(Object.keys(texts.refusal.next), code).toContain(next);
+        for (const where of ["ownership", "established", "locked"] as const) {
+          const { next } = refusalViewOf(refusal(code), contextOf(where));
+          expect(Object.keys(texts.refusal.next), `${code} ${where}`).toContain(
+            next,
+          );
+        }
+        // the sentence that follows `other` is the contact one
+        expect(Object.keys(texts.refusal.next)).toContain("contact");
       }
     }
   });
@@ -391,6 +531,9 @@ describe("the one action of the ownership row", () => {
     );
     expect(action([], [refused("ownership_not_proven")])).toBe("restart");
     expect(action([], [refused("account_not_public")])).toBe("restart");
+    // a reason about a piece, given to an ownership that holds none, reopens the proof (L2E-25, C1)
+    expect(action([], [refused("missing_evidence")])).toBe("restart");
+    expect(action([], [refused("other", "x".repeat(30))])).toBe("restart");
     expect(action([], [refused("shared_account")])).toBeNull();
     expect(action([], [refused("minor")])).toBeNull();
   });
@@ -630,7 +773,7 @@ describe("the button of the audience row (08 RG12, RG57)", () => {
     ).toBeNull();
   });
 
-  it("offers a new deposit after a refusal that points at the evidence or at the account to make public, never after one that points elsewhere", () => {
+  it("offers a new deposit after a refusal that points at the evidence, at a proof already made or at the account to make public, never after one that points at the team", () => {
     const after = (reason: OwnRefusal["reasonCode"]) =>
       audienceActionOf(rowOf(line([OWNED], [audienceRefused(reason)])), true);
     for (const reason of [
@@ -640,11 +783,15 @@ describe("the button of the audience row (08 RG12, RG57)", () => {
       "evidence_wrong_source",
       "evidence_too_wide",
       "account_not_public",
+      // the ownership stands: what the refusal says about it points back at the deposit (L2E-25, C3, C4)
+      "ownership_not_proven",
+      "ownership_prerequisite",
+      "other",
     ] as const) {
       expect(after(reason), reason).toBe("restart");
     }
     for (const reason of [
-      "ownership_prerequisite",
+      "evidence_inconsistent",
       "evidence_suspected_forgery",
       "agency_managed",
       "minor",

@@ -166,6 +166,11 @@ export type NextStep =
   | "contact"
   | "none";
 
+/**
+ * What each reason says on its own, before the level and the ownership are read (08 RG57, last column).
+ * `nextStepOf` starts from it and moves only the reasons whose next step depends on where the refusal
+ * was given (L2E-25).
+ */
 const NEXT_STEP: Readonly<Record<CreatorRejectionReasonCode, NextStep>> = {
   missing_evidence: "redeposit",
   evidence_too_old: "redeposit",
@@ -195,22 +200,88 @@ function isCreatorReason(code: string): code is CreatorRejectionReasonCode {
   return (CREATOR_REJECTION_REASON_CODES as readonly string[]).includes(code);
 }
 
+/**
+ * The reasons that point at the team or at the end of the road, never at a new deposit or a new code:
+ * their next step is the same at both levels (contact INFLUX, or none).
+ */
+const HELD_BY_THE_TEAM: ReadonlySet<CreatorRejectionReasonCode> = new Set([
+  "evidence_suspected_forgery",
+  "shared_account",
+  "terms_breach",
+  "account_unavailable",
+  "agency_managed",
+  "minor",
+]);
+
+/** The reasons about a piece of evidence of the audience (08 RG57, the five that say « redéposer »). */
+const PIECE_REASONS: ReadonlySet<CreatorRejectionReasonCode> = new Set([
+  "missing_evidence",
+  "evidence_too_old",
+  "evidence_unreadable",
+  "evidence_wrong_source",
+  "evidence_too_wide",
+]);
+
+/**
+ * Where a refusal was given: the level of the row, and for the audience whether the ownership of the
+ * account is established on the line (08 RG12). The next step reads both: a reason about a piece, given to
+ * the ownership, has no piece to deposit and reopens the proof of ownership; given to an audience whose
+ * ownership stands, it reopens the deposit (jalons/l2e, commit 25).
+ */
+export type RefusalContext =
+  | { level: "account_verified" }
+  | { level: "audience_verified"; ownershipEstablished: boolean };
+
+function nextStepOf(
+  reason: CreatorRejectionReasonCode,
+  context: RefusalContext,
+): NextStep {
+  if (HELD_BY_THE_TEAM.has(reason)) {
+    return NEXT_STEP[reason];
+  }
+  if (context.level === "account_verified") {
+    // Every other reason reopens the proof; the account to make public stays its own step.
+    return reason === "account_not_public"
+      ? NEXT_STEP[reason]
+      : "restartOwnership";
+  }
+  if (!context.ownershipEstablished) {
+    // No deposit before the ownership (RG12): the next step is the proof, said, with no button on this row.
+    return reason === "ownership_not_proven" ||
+      reason === "evidence_inconsistent"
+      ? NEXT_STEP[reason]
+      : "askOwnershipFirst";
+  }
+  return PIECE_REASONS.has(reason) ||
+    reason === "ownership_not_proven" ||
+    reason === "ownership_prerequisite" ||
+    reason === "other"
+    ? "redeposit"
+    : NEXT_STEP[reason];
+}
+
 /** What a refusal says: the typed reason (a creator's list; any other code reads as `other`), the next step, the agent's words. */
 export type RefusalView = {
   reason: CreatorRejectionReasonCode;
   next: NextStep;
+  /** `other` gives the next step of its level, then says to contact INFLUX (08 RG57: the explanation is the agent's). */
+  contactToo: boolean;
   /** The agent's own message, only for the reasons that carry one and only when he wrote it (RG56). */
   agentMessage: string | null;
 };
 
-export function refusalViewOf(refusal: OwnRefusal): RefusalView {
+export function refusalViewOf(
+  refusal: OwnRefusal,
+  context: RefusalContext,
+): RefusalView {
   const reason = isCreatorReason(refusal.reasonCode)
     ? refusal.reasonCode
     : "other";
   const message = refusal.message.trim();
   return {
     reason,
-    next: NEXT_STEP[reason],
+    next: nextStepOf(reason, context),
+    contactToo: reason === "other",
     agentMessage:
       OWN_WORDS_REASONS.has(reason) && message !== "" ? refusal.message : null,
   };
@@ -218,8 +289,8 @@ export function refusalViewOf(refusal: OwnRefusal): RefusalView {
 
 /**
  * Whether a refusal leaves the ownership journey open again (a new code, a new request): the reasons
- * that point at the evidence of an audience, at the prerequisite, at the team or at no further
- * request do not. The delay of RG60 and the cap are said by the API when the request is asked.
+ * that point at the team or at no further request do not. The delay of RG60 and the cap are said by the
+ * API when the request is asked.
  */
 export function canRestartOwnership(view: RefusalView): boolean {
   return view.next === "restartOwnership" || view.next === "makePublic";
@@ -307,7 +378,9 @@ export function ownershipActionOf(row: LevelRow): RowAction | null {
     return "renew";
   }
   if (row.request?.kind === "refused") {
-    return canRestartOwnership(refusalViewOf(row.request.refusal))
+    return canRestartOwnership(
+      refusalViewOf(row.request.refusal, { level: "account_verified" }),
+    )
       ? "restart"
       : null;
   }
@@ -464,7 +537,12 @@ export function audienceActionOf(
     return "restart";
   }
   if (row.request?.kind === "refused") {
-    return canRestartAudience(refusalViewOf(row.request.refusal))
+    return canRestartAudience(
+      refusalViewOf(row.request.refusal, {
+        level: "audience_verified",
+        ownershipEstablished,
+      }),
+    )
       ? "restart"
       : null;
   }
@@ -474,7 +552,8 @@ export function audienceActionOf(
 /**
  * Whether a refusal leaves the audience journey open again: the evidence to deposit again, or the
  * account to make public for the time of the reading (08 RG38bis, the likeliest refusal of an audience;
- * L2EU-1: without it the creator is left with no button). The other reasons point elsewhere.
+ * L2EU-1: without it the creator is left with no button). The other reasons point at the team or at the
+ * ownership, which has its own row.
  */
 function canRestartAudience(view: RefusalView): boolean {
   return view.next === "redeposit" || view.next === "makePublic";

@@ -13,6 +13,7 @@ import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes"
 import {
   formatVerificationDate,
   refusalViewOf,
+  type RefusalContext,
   type RowRequest,
 } from "./verification-view";
 
@@ -20,9 +21,12 @@ const WAITING_CLASSES = "flex items-start gap-2 text-sm text-text-secondary";
 
 export function RequestState({
   state,
+  context,
   showPendingNote = true,
 }: {
   state: RowRequest;
+  /** Where a refusal was given: its next step reads the level and the ownership (jalons/l2e, commit 25). */
+  context: RefusalContext;
   /** « Nous répondons sous 1 jour ouvré » under a request sent: the journey writes it itself. */
   showPendingNote?: boolean;
 }) {
@@ -63,7 +67,7 @@ export function RequestState({
       </p>
     );
   }
-  const view = refusalViewOf(state.refusal);
+  const view = refusalViewOf(state.refusal, context);
   return (
     <ErrorNotice announce={false} className="text-left">
       <div
@@ -88,6 +92,9 @@ export function RequestState({
           </p>
         )}
         <p>{t(`refusal.next.${view.next}`)}</p>
+        {view.contactToo && view.next !== "contact" ? (
+          <p>{t("refusal.next.contact")}</p>
+        ) : null}
       </div>
     </ErrorNotice>
   );

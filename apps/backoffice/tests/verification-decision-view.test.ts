@@ -39,6 +39,7 @@ import {
   releaseStepOf,
   rejectCheck,
   rejectedNotice,
+  rejectionReasonsOf,
   stopsEverything,
   type Draft,
 } from "../src/components/verification-decision-view";
@@ -57,6 +58,7 @@ function viewOf(
     outcome?: VerificationOpenResponse["outcome"];
     status?: VerificationOpenResponse["entry"]["status"];
     level?: VerificationOpenResponse["entry"]["level"];
+    reasons?: VerificationReasonRow[];
     token?: string | null;
     claimExpiresAt?: string | null;
   } = {},
@@ -93,7 +95,7 @@ function viewOf(
       owner: null,
     },
     dossier: null,
-    reasons: [],
+    reasons: changes.reasons ?? [],
   });
 }
 
@@ -659,5 +661,71 @@ describe("giving the request back with work typed on the screen (L2EU-7)", () =>
     expect(t.release.keep).toBe("Garder la demande");
     expect(t.release.lead).toMatch(/perdu/);
     expect(t.shortcuts.release).toMatch(/confirmation/);
+  });
+});
+
+describe("the reasons offered on the ownership of an account (L2E-25; 08 RG57, RG59)", () => {
+  const reason = (code: string, position: number): VerificationReasonRow => ({
+    code: code as VerificationReasonRow["code"],
+    position,
+    requiresMemberMessage: false,
+    escalatesToAdmin: code === "evidence_suspected_forgery",
+    purgesEvidence: false,
+    message: "Un message.",
+    nextStep: null,
+  });
+  const PIECE_CODES = [
+    "missing_evidence",
+    "evidence_too_old",
+    "evidence_unreadable",
+    "evidence_wrong_source",
+    "evidence_too_wide",
+    "evidence_inconsistent",
+  ];
+  const ALL = [
+    ...PIECE_CODES,
+    "ownership_not_proven",
+    "account_not_public",
+    "evidence_suspected_forgery",
+    "other",
+  ].map((code, index) => reason(code, index + 1));
+
+  it("leaves out the six reasons about a piece on an ownership, and keeps the suspicion of a modified document", () => {
+    const offered = rejectionReasonsOf(
+      viewOf({ level: "account_verified", reasons: ALL }),
+    ).map((row) => row.code);
+    expect(offered).toEqual([
+      "ownership_not_proven",
+      "account_not_public",
+      "evidence_suspected_forgery",
+      "other",
+    ]);
+  });
+
+  it("offers the whole list the opening returned on an audience", () => {
+    const view = viewOf({ level: "audience_verified", reasons: ALL });
+    expect(rejectionReasonsOf(view)).toEqual(ALL);
+  });
+
+  it("refuses a reason about a piece on an ownership, and still takes the others", () => {
+    const view = viewOf({ level: "account_verified", reasons: ALL });
+    const offered = rejectionReasonsOf(view);
+    expect(
+      rejectCheck(
+        { ...EMPTY_DRAFT, reasonCode: "evidence_unreadable" },
+        offered,
+        TOKEN,
+      ),
+    ).toMatchObject({ ok: false, problem: { field: "reason" } });
+    expect(
+      rejectCheck(
+        { ...EMPTY_DRAFT, reasonCode: "evidence_suspected_forgery" },
+        offered,
+        TOKEN,
+      ),
+    ).toEqual({
+      ok: true,
+      body: { reviewToken: TOKEN, reasonCode: "evidence_suspected_forgery" },
+    });
   });
 });

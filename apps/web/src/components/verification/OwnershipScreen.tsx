@@ -281,7 +281,10 @@ function AffirmStep({
         <BadgeLine badge={journey.badge} network={network} />
       )}
       {journey.previous === null ? null : (
-        <RequestState state={journey.previous} />
+        <RequestState
+          state={journey.previous}
+          context={{ level: "account_verified" }}
+        />
       )}
       <p>{t("ownership.affirm.todo", { network })}</p>
       <p>{t("ownership.affirm.intro")}</p>
@@ -503,7 +506,12 @@ function ConfirmStep({
         {t("ownership.confirm.title")}
       </h2>
       <p>{t("ownership.confirm.body")}</p>
-      {requested === null ? null : <RequestState state={requested} />}
+      {requested === null ? null : (
+        <RequestState
+          state={requested}
+          context={{ level: "account_verified" }}
+        />
+      )}
       <Notice tone="info" announce={false}>
         {t("ownership.confirm.keepCode")}
       </Notice>

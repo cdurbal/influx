@@ -23,7 +23,14 @@ export function BrandRequestState({
   const t = useTranslations("verification");
   const locale = useLocale();
   if (state.kind !== "refused") {
-    return <RequestState state={state} showPendingNote={showPendingNote} />;
+    // only the waiting states are drawn by RequestState here: the refusal below is the brand's own
+    return (
+      <RequestState
+        state={state}
+        context={{ level: "account_verified" }}
+        showPendingNote={showPendingNote}
+      />
+    );
   }
   const view = brandRefusalViewOf(state.refusal);
   return (

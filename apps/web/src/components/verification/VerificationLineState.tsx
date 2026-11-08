@@ -104,6 +104,7 @@ export function VerificationLineState({
             <RowBody
               row={ownership}
               network={network}
+              ownershipEstablished={established}
               absent={t("line.absent.account")}
             />
             {missing !== null ? (
@@ -159,6 +160,7 @@ export function VerificationLineState({
             <RowBody
               row={audience}
               network={network}
+              ownershipEstablished={established}
               absent={
                 established
                   ? t("line.absent.audience")
@@ -206,10 +208,13 @@ export function VerificationLineState({
 function RowBody({
   row,
   network,
+  ownershipEstablished,
   absent,
 }: {
   row: LevelRow;
   network: string;
+  /** Whether the ownership stands on the line: a refusal of the audience reads it (RG12). */
+  ownershipEstablished: boolean;
   absent: string;
 }) {
   const shown = row.badge !== null || row.request !== null;
@@ -218,7 +223,16 @@ function RowBody({
       {row.badge === null ? null : (
         <BadgeLine badge={row.badge} network={network} />
       )}
-      {row.request === null ? null : <RequestState state={row.request} />}
+      {row.request === null ? null : (
+        <RequestState
+          state={row.request}
+          context={
+            row.level === "account_verified"
+              ? { level: "account_verified" }
+              : { level: "audience_verified", ownershipEstablished }
+          }
+        />
+      )}
       {shown ? null : <p className="text-sm text-text-secondary">{absent}</p>}
     </div>
   );

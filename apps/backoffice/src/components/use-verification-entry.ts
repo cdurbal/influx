@@ -57,6 +57,7 @@ import {
   refusalOf,
   rejectCheck,
   rejectedNotice,
+  rejectionReasonsOf,
   reopenNotice,
   whoOf,
   withClaimExpiry,
@@ -350,7 +351,7 @@ export function useVerificationEntry(
       }
       const checked = rejectCheck(
         draft,
-        view.reasons,
+        rejectionReasonsOf(view),
         view.reviewToken,
         whoOf(view),
       );

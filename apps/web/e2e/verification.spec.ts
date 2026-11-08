@@ -350,6 +350,30 @@ test("a creator proves the ownership of a network account in French, from the li
   );
   await expect(accountRow(page).locator("a")).toHaveCount(0);
 
+  // The agent refuses for a reason about a piece, which an ownership does not hold (`missing_evidence`
+  // leaves no delay, 0222): the sentence reopens the proof, « Redemander » leads back to the first screen,
+  // a new draft carries a new code and is sent at once (L2E-25, C1).
+  const [first] = await requestsOf(accountId);
+  await refuseAsAgent(first!.id, agent.accountId, "missing_evidence");
+  await page.reload();
+  await expect(
+    accountRow(page).locator('[data-reason="missing_evidence"]'),
+  ).toContainText(copy.refusal.next.restartOwnership);
+  await accountRow(page)
+    .getByRole("link", { name: new RegExp(copy.line.cta.restart) })
+    .click();
+  await page
+    .getByRole("button", { name: copy.ownership.affirm.continue })
+    .click();
+  await expect(code).toHaveText(/^INFLUX-[2-9A-HJKMNP-Z]{8}$/);
+  expect(await code.innerText()).not.toBe(draft?.code);
+  await page.getByRole("button", { name: copy.ownership.code.pasted }).click();
+  await expect(
+    page.getByRole("heading", { name: copy.ownership.confirm.title }),
+  ).toBeVisible();
+  expect((await requestsOf(accountId))[0]?.status).toBe("pending");
+  await page.getByRole("link", { name: copy.ownership.confirm.back }).click();
+
   // The agent refuses (the database writes what his door writes): the reason, its text, what to do next,
   // the way to ask again; asked again at once, the delay left is the real Retry-After (RG56, RG57, RG60).
   const [sent] = await requestsOf(accountId);

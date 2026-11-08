@@ -30,6 +30,7 @@ import {
   isAudience,
   isBrand,
   reexamineReasonsOf,
+  rejectionReasonsOf,
   whoOf,
   type Draft,
   type Problem,
@@ -285,7 +286,7 @@ export function VerificationDecision({
 
       {panel === "reject" ? (
         <VerificationReasonPicker
-          reasons={view.reasons}
+          reasons={rejectionReasonsOf(view)}
           who={whoOf(view)}
           draft={draft}
           problem={problem}

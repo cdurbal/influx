@@ -571,6 +571,33 @@ export function registryLinkOf(url: string): string | null {
   return profileLinkOf(url);
 }
 
+/**
+ * The reasons about a piece of evidence or about the coherence of the pieces: a request for « Compte
+ * vérifié » holds no piece (the code is read on the public profile, never from a capture, CA14), so the
+ * refusal of an ownership does not offer them (L2E-25). `evidence_suspected_forgery` stays (08 RG59).
+ */
+const PIECE_REASON_CODES: ReadonlySet<string> = new Set([
+  "missing_evidence",
+  "evidence_too_old",
+  "evidence_unreadable",
+  "evidence_wrong_source",
+  "evidence_too_wide",
+  "evidence_inconsistent",
+]);
+
+/**
+ * The reasons the agent can pick for a refusal, from the closed list the opening returned: on the
+ * ownership of an account, those about a piece are left out, and `rejectCheck` refuses a code that is not
+ * in what this returns. The database still holds the whole list; nothing here adds a reason.
+ */
+export function rejectionReasonsOf(
+  view: VerificationOpenResponse,
+): readonly VerificationReasonRow[] {
+  return view.entry.level === "account_verified"
+    ? view.reasons.filter((reason) => !PIECE_REASON_CODES.has(reason.code))
+    : view.reasons;
+}
+
 /** The reasons of the « à réexaminer » mark a request of this level may carry (the database holds one closed list). */
 export function reexamineReasonsOf(
   view: VerificationOpenResponse,
