@@ -23,6 +23,7 @@ import {
   createApiDatabase,
   type ApiDatabase,
 } from "../src/db/index.ts";
+import { verificationReasonPreview } from "../src/domains/verification/verification-email.ts";
 import type { ObjectStore, StorageOutcome } from "../src/platform/storage.ts";
 import { buildServer } from "../src/server.ts";
 import {
@@ -550,6 +551,8 @@ type Opened = {
     code: string;
     requiresMemberMessage: boolean;
     escalatesToAdmin: boolean;
+    message: string;
+    nextStep: string | null;
   }[];
 };
 
@@ -1232,6 +1235,23 @@ describe("the opening and the claim (RG43, RG64, CA39, CA40, 15 C1 to C4, A8, A9
     expect(body.reasons.map((reason) => reason.code)).not.toContain(
       "name_mismatch",
     );
+    // what the agent reads under a reason is the sentence of the e-mail in the language of the account
+    // (RG57; L2E-22): the creator is French, and each reason carries its sentence and its next step
+    for (const reason of body.reasons) {
+      expect(reason).toMatchObject({
+        message: verificationReasonPreview(
+          "fr",
+          "account_verified",
+          reason.code,
+        )?.message,
+        nextStep: verificationReasonPreview(
+          "fr",
+          "account_verified",
+          reason.code,
+        )?.nextStep,
+      });
+      expect(reason.message.length).toBeGreaterThan(0);
+    }
     expect(view.headers["cache-control"]).toBe("no-store");
     for (const secret of [
       String(DECLARED.followers),
@@ -2305,6 +2325,16 @@ describe("the brands view: domain code, register, reasons of its own (06 RG51, R
     const reasonCodes = view.reasons.map((reason) => reason.code);
     expect(reasonCodes).toContain("registration_not_found");
     expect(reasonCodes).not.toContain("evidence_too_old");
+    // the brand reads English: its sentences are the English ones of the e-mail (RG57)
+    expect(
+      view.reasons.find((reason) => reason.code === "name_mismatch")?.message,
+    ).toBe(
+      verificationReasonPreview("en", "brand_verified", "name_mismatch")
+        ?.message,
+    );
+    expect(
+      view.reasons.find((reason) => reason.code === "name_mismatch")?.message,
+    ).toMatch(/legal name/i);
     const grant = {
       reviewToken: view.reviewToken,
       observedCode: brand.code,

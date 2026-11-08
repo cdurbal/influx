@@ -93,9 +93,26 @@ import {
   type ReleaseEntryResponse,
 } from "@influx/contracts/backoffice-queues";
 import {
+  compareFiguresResponseSchema,
+  grantVerificationResponseSchema,
+  reexamineVerificationResponseSchema,
+  rejectVerificationResponseSchema,
   verificationEntriesResponseSchema,
+  verificationEvidenceReadResponseSchema,
+  verificationOpenResponseSchema,
+  type CompareFiguresRequest,
+  type CompareFiguresResponse,
+  type GrantAccountRequest,
+  type GrantAudienceRequest,
+  type GrantVerificationResponse,
+  type ReexamineVerificationRequest,
+  type ReexamineVerificationResponse,
+  type RejectVerificationRequest,
+  type RejectVerificationResponse,
   type VerificationEntriesResponse,
   type VerificationEntriesSearchBody,
+  type VerificationEvidenceReadResponse,
+  type VerificationOpenResponse,
   type VerificationQueueView,
 } from "@influx/contracts/verification";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
@@ -545,5 +562,129 @@ export function readBrandReviewLogo(
     entryLogoResponseSchema,
     undefined,
     { logo: idSegment(logoId) },
+  );
+}
+
+// --- Queue 4, one creator request (08 RG43 to RG55; l2e/modele.md §4, §6; L2E-22) -------------------
+
+const CREATOR_ENTRIES = VERIFICATION_ENTRIES.creators;
+
+/** Opening is claiming (08 RG43): the dossier of RG55, the version token, the closed reasons and what the member reads. */
+export function openVerificationCreatorEntry(
+  id: string,
+): Promise<RelayResult<VerificationOpenResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/open`,
+    verificationOpenResponseSchema,
+  );
+}
+
+/** Modele -19: the figures typed first, then the declared ones and the verdict of the gap come back. */
+export function compareVerificationFigures(
+  id: string,
+  body: CompareFiguresRequest,
+): Promise<RelayResult<CompareFiguresResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/compare`,
+    compareFiguresResponseSchema,
+    body,
+  );
+}
+
+export function grantVerificationAccount(
+  id: string,
+  body: GrantAccountRequest,
+): Promise<RelayResult<GrantVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/grant-account`,
+    grantVerificationResponseSchema,
+    body,
+  );
+}
+
+export function grantVerificationAudience(
+  id: string,
+  body: GrantAudienceRequest,
+): Promise<RelayResult<GrantVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/grant-audience`,
+    grantVerificationResponseSchema,
+    body,
+  );
+}
+
+export function rejectVerificationCreator(
+  id: string,
+  body: RejectVerificationRequest,
+): Promise<RelayResult<RejectVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/reject`,
+    rejectVerificationResponseSchema,
+    body,
+  );
+}
+
+/** « À réexaminer » (RG50): an internal reason, the request stays in the queue. */
+export function reexamineVerificationCreator(
+  id: string,
+  body: ReexamineVerificationRequest,
+): Promise<RelayResult<ReexamineVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/reexamine`,
+    reexamineVerificationResponseSchema,
+    body,
+  );
+}
+
+export function releaseVerificationCreator(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendVerificationCreatorClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseVerificationCreatorClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/**
+ * One piece of a request, by the id the dossier served (D82 (5), RG46, RG84): JSON (base64) drawn from a
+ * `blob:` URL. Each call is one nominative line of the register: the screen asks once per opening.
+ */
+export function readVerificationEvidence(
+  id: string,
+  evidenceId: string,
+): Promise<RelayResult<VerificationEvidenceReadResponse>> {
+  return callRelay(
+    "GET",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/evidence/${idSegment(evidenceId)}`,
+    verificationEvidenceReadResponseSchema,
   );
 }

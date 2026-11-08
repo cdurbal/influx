@@ -16,6 +16,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/queue-view-model.test.ts": 17,
   "tests/relay.test.ts": 5,
   "tests/route-models.test.ts": 1,
+  "tests/verification-decision-view.test.ts": 21,
   "tests/verification-queue-view.test.ts": 11,
   "tests/view-model.test.ts": 12,
 };

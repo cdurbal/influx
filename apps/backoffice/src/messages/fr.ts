@@ -1772,6 +1772,391 @@ export const messages = {
       help: "afficher ou masquer ce rappel",
     },
   },
+  /**
+   * L2E-22 (08 RG43 to RG55, RG56 to RG59, CA25 to CA33; 17b §3.7; modele §5): the decision screen of a
+   * creator's request, queue 4. The sentences sent to the creator are never written here: they come from
+   * apps/api with the reasons, from the very files of the e-mail (what the agent reads is what is sent).
+   * The labels of the closed lists are the « Motif » column of 08 RG57 and the reasons of modele §5.
+   */
+  verificationReview: {
+    titleCreator: (network: string, level: string) =>
+      `Vérification ${network} — ${level}`,
+    subtitle: (submittedAt: string) => `Demande déposée le ${submittedAt}`,
+    back: "Retour à la file",
+    loading: "Ouverture de la demande…",
+    errors: {
+      forbidden:
+        "Vous n’avez pas le droit d’ouvrir cette demande. La tentative a été enregistrée. Rôle requis : commercial ou administrateur.",
+      conflictOfInterest:
+        "Cette demande est celle d’un compte dont vous êtes le responsable : vous ne pouvez ni la lire ni la décider. Un autre commercial la traitera.",
+      notFound: "Cette demande n’existe pas ou n’est plus disponible.",
+      unavailable:
+        "La demande n’a pas pu être ouverte. Rien n’a été modifié. Réessayez dans quelques minutes.",
+    },
+    notices: {
+      heldByOther:
+        "Un collègue vient de prendre cette demande en charge : elle est maintenant en lecture seule. Votre saisie est conservée.",
+      lifted:
+        "Votre prise en charge a été levée par un administrateur. La demande est rouverte, relisez-la avant de décider. Votre saisie est conservée.",
+      notHeld:
+        "Votre prise en charge n’était plus valable. La demande est rouverte, relisez-la avant de décider. Votre saisie est conservée.",
+      stale:
+        "Le dossier a changé depuis votre lecture : il est relu ci-dessous et rien n’a été enregistré. Relisez-le, puis décidez de nouveau. Votre saisie est conservée.",
+      closed:
+        "Cette demande a été clôturée entre-temps : rien n’a été enregistré.",
+      accountUnavailable:
+        "Le compte n’est plus actif : rien n’a été enregistré. Refusez avec le motif « Compte suspendu ou en cours de suppression ».",
+      lifted_by_you: (holder: string) =>
+        `Le verrou de ${holder} est levé et vous avez pris la demande en charge.`,
+      liftedNoName:
+        "Le verrou est levé et vous avez pris la demande en charge.",
+    },
+    sections: {
+      request: "La demande",
+      evidence: "Les pièces",
+      procedure: "Ce qu’il faut constater",
+      record: "Ce que je constate",
+      comparison: "Écarts avec le déclaré",
+      decision: "Décision",
+    },
+    facts: {
+      creator: "Créateur",
+      country: "Pays",
+      language: "Langue du compte",
+      owner: "Responsable",
+      network: "Réseau",
+      level: "Niveau demandé",
+      handle: "Identifiant déclaré",
+      profile: "Profil public",
+      submitted: "Déposée le",
+      codeExpiry: "Le code à chercher expire le",
+    },
+    unset: "non renseigné",
+    noOwner: "aucun",
+    handleHelp:
+      "Pour retrouver le compte : jamais une valeur à recopier. Vous tapez ce que vous lisez.",
+    profileLink: "Ouvrir le profil public (nouvel onglet, sans être connecté)",
+    profileNoLink: "Aucun lien de profil public n’est enregistré.",
+    badges: {
+      title: "Badges déjà détenus",
+      none: "Aucun badge n’a encore été accordé sur ce compte.",
+      line: (
+        level: string,
+        network: string | null,
+        state: string,
+        at: string,
+      ) =>
+        `${level}${network === null ? "" : ` — ${network}`} · ${state} · accordé le ${at}`,
+      expires: (at: string) => `échéance le ${at}`,
+      states: {
+        active: "actif",
+        to_refresh: "à rafraîchir",
+        to_reconfirm: "à reconfirmer",
+        expired: "expiré",
+        revoked: "retiré",
+        replaced: "remplacé",
+      },
+    },
+    history: {
+      title: "Historique des demandes et des refus",
+      none: "Aucune demande antérieure sur ce compte.",
+      tableLabel: "Demandes antérieures de ce compte",
+      columns: {
+        level: "Niveau",
+        status: "État",
+        submitted: "Déposée le",
+        decided: "Décidée le",
+        reason: "Motif",
+      },
+      statuses: {
+        draft: "brouillon",
+        pending: "en file",
+        approved: "accordée",
+        rejected: "refusée",
+        cancelled: "annulée",
+        expired: "expirée",
+        closed: "close",
+      },
+      noReason: "—",
+    },
+    alerts: {
+      title: "Alertes",
+      none: "Aucune alerte sur cette demande.",
+      intro: "Les alertes informent : aucune ne bloque la décision.",
+      prior_rejections: (count: number) =>
+        `${count} ${count > 1 ? "refus antérieurs" : "refus antérieur"} sur ce réseau et ce niveau.`,
+      same_handle_elsewhere: (accounts: number) =>
+        accounts > 1
+          ? `${accounts} autres comptes déclarent le même identifiant.`
+          : "Un autre compte déclare le même identifiant.",
+      handle_verified_elsewhere:
+        "Cet identifiant porte déjà un badge sur un autre compte : un second constat est escaladé à un administrateur, sans badge.",
+    },
+    reexamineMark: (reason: string, since: string) =>
+      `À réexaminer : ${reason}, depuis ${since}.`,
+    procedure: {
+      admissibility:
+        "Avant tout : un compte suspendu ou en cours de suppression se refuse avec le motif « Compte suspendu ou en cours de suppression » ; un élément du dossier qui contredit la majorité arrête tout, avec le motif « Créateur mineur ».",
+      ownership: [
+        "Ouvrez le profil public du réseau dans un nouvel onglet, sans être connecté au réseau.",
+        "Cherchez le code INFLUX- suivi de huit signes dans la présentation du profil, publique et visible.",
+        "Tapez ci-dessous l’identifiant que vous voyez et le code que vous lisez : INFLUX compare lui-même le code à celui de la demande, il ne s’affiche jamais ici.",
+      ],
+      ownershipNever:
+        "Vous ne prolongez jamais, ne devinez jamais et ne contactez jamais le créateur hors de la plateforme. Code absent, différent ou profil inaccessible : refusez avec le motif qui correspond.",
+      audience: [
+        "La pièce montre le tableau de bord natif du réseau, pas un partage ni l’outil d’un tiers.",
+        "L’identifiant visible correspond à celui du compte, et la période affichée est lisible et récente.",
+        "La pièce ne montre aucune donnée de tiers au-delà des instructions de capture (sinon refus, et la pièce est supprimée) ni signe de retouche (sinon refus et escalade).",
+      ],
+      audiencePrerequisite:
+        "L’audience ne se constate que sur un compte déjà vérifié sur ce réseau : sans badge « Compte vérifié » sur la même ligne, le serveur refuse l’octroi.",
+    },
+    evidence: {
+      lead: "Chaque ouverture d’une pièce est enregistrée individuellement, à votre nom, une ligne par ouverture.",
+      none: "Aucune pièce n’a été déposée.",
+      noneSuggestion:
+        "Motif de refus suggéré : « Pièce absente ». Le refus n’est jamais automatique.",
+      pieceTitle: (at: number, total: number) => `Pièce ${at}/${total}`,
+      open: (at: number, total: number) =>
+        `Ouvrir la pièce ${at}/${total} (journalisée)`,
+      openedLine: (at: number, total: number) =>
+        `Pièce ${at}/${total} ouverte : cette ouverture est journalisée.`,
+      close: "Fermer la pièce",
+      loading: "Chargement de la pièce…",
+      alt: (at: number, total: number) =>
+        `Pièce ${at} sur ${total} déposée par le créateur, en lecture seule`,
+      dimensions: (width: number, height: number) => `${width} × ${height} px`,
+      readOnly:
+        "Image affichée ici seulement : elle n’est ni téléchargeable ni ouverte hors du backoffice.",
+      failed:
+        "Cette pièce n’a pas pu être lue. L’identifiant de la pièce est inconnu ou son fichier manque : refusez avec le motif « Pièce illisible, rognée ou incomplète » si elle est inutilisable.",
+      blocked:
+        "Les pièces ne peuvent pas être affichées. Le stockage ne répond pas pour l’instant.",
+      blockedGrant:
+        "Accorder est bloqué : on ne décide pas d’un badge sans avoir vu la pièce. Réessayez d’ouvrir la pièce, refusez avec un motif, ou marquez la demande « à réexaminer » (stockage indisponible).",
+      mustOpen:
+        "Ouvrez au moins une pièce avant d’accorder : on ne décide pas d’un badge sans avoir vu la pièce.",
+    },
+    record: {
+      lead: "Saisi par vous, jamais pré-rempli : vous tapez ce que vous lisez. Les chiffres déclarés par le créateur ne s’affichent qu’après votre saisie.",
+      handleAccount: "Identifiant constaté sur le profil",
+      handleAudience: "Identifiant constaté sur la pièce",
+      code: "Code lu sur le profil",
+      codeHelp: "INFLUX- suivi de huit signes, tel que vous le lisez.",
+      followers: "Abonnés constatés",
+      followersHelp: "Lus sur la pièce.",
+      periodLegend: "Période affichée sur la pièce",
+      periodStart: "Du",
+      periodEnd: "Au",
+      posts: "Publications des 30 derniers jours",
+      postsHelp: "Sur le profil public, ni stories ni directs.",
+      comments: "Commentaires moyens par publication",
+      commentsHelp: "Sur les 12 dernières publications, hors jeux-concours.",
+      engagement: "Engagement constaté (facultatif), en %",
+      engagementHelp: "Laissez vide s’il n’est pas lisible.",
+      today: "Date du constat : aujourd’hui (automatique).",
+      priority: "Les trois chiffres prioritaires, dans cet ordre",
+    },
+    problems: {
+      handle: "Saisissez l’identifiant que vous constatez.",
+      code: "Saisissez le code lu sur le profil : INFLUX- suivi de huit signes.",
+      codeShape:
+        "Ce n’est pas la forme d’un code INFLUX : INFLUX- suivi de huit signes, sans 0, 1, I, L ni O.",
+      codeMismatch:
+        "Le code saisi ne correspond pas à celui de cette demande. Relisez-le sur le profil ; s’il est absent ou différent, refusez avec le motif « Compte non prouvé ».",
+      handleInvalid:
+        "L’identifiant constaté est refusé : 100 caractères au plus.",
+      followers:
+        "Saisissez les abonnés constatés : un nombre entier, zéro admis.",
+      posts:
+        "Saisissez les publications des 30 derniers jours : un nombre entier, zéro admis.",
+      comments:
+        "Saisissez les commentaires moyens : un nombre entier, zéro admis.",
+      engagement:
+        "L’engagement est un pourcentage de 0 à 100, deux décimales au plus.",
+      period: "Saisissez les deux dates de la période affichée.",
+      periodOrder:
+        "La période doit commencer au plus tard le jour où elle finit.",
+      periodRefused:
+        "La période est refusée : elle ne doit pas finir dans le futur, et sa fin doit être assez récente. Sinon refusez avec le motif « Pièce trop ancienne ».",
+      figuresRefused: "Un des chiffres est refusé : relisez-les.",
+      prerequisite:
+        "Ce compte n’a pas de badge « Compte vérifié » sur ce réseau : l’audience ne peut pas être accordée. Refusez avec le motif « Audience demandée sans propriété établie ».",
+      missingEvidence:
+        "Aucune pièce active n’est attachée à la demande : refusez avec le motif « Pièce absente ».",
+      declaredFigures:
+        "Le créateur n’a pas déclaré ses chiffres sur cette ligne : le serveur ne peut rien comparer. Refusez avec un motif, ou marquez la demande « à réexaminer ».",
+      blocked:
+        "Le stockage des pièces ne répond pas : la décision est bloquée tant qu’une pièce n’a pas pu être vue.",
+    },
+    comparison: {
+      button: "Comparer avec le déclaré",
+      stale:
+        "Vos chiffres ont changé depuis la dernière comparaison : comparez de nouveau.",
+      lead: "Information interne : cet écart n’est jamais publié, jamais envoyé, et ne refuse rien.",
+      tableLabel: "Chiffres déclarés, constatés et écart",
+      columns: {
+        figure: "Chiffre",
+        declared: "Déclaré",
+        observed: "Constaté",
+        gap: "Écart",
+      },
+      figures: {
+        followers: "Abonnés",
+        postsLast30Days: "Publications (30 jours)",
+        avgComments: "Commentaires moyens",
+        engagementBp: "Engagement",
+      },
+      notDeclared: "non déclaré",
+      notTyped: "non saisi",
+      noGap: "aucun écart",
+      alert: (percent: number) =>
+        `Alerte interne : au moins un écart dépasse ${percent} %. Elle informe, elle ne refuse rien.`,
+      noAlert: (percent: number) => `Aucun écart ne dépasse ${percent} %.`,
+    },
+    decision: {
+      lead: "Deux issues : accorder, ou refuser avec un motif typé. « À réexaminer » laisse la demande dans la file et son ancienneté court. La décision porte sur le dossier affiché ici.",
+      readOnly:
+        "Lecture seule : la décision appartient à la personne qui a pris la demande en charge.",
+      release: "Je rends la main",
+      grantAccount: "Accorder « Compte vérifié »",
+      grantAudience: "Accorder « Audience vérifiée »",
+      reject: "Refuser avec motif",
+      reexamine: "À réexaminer",
+      comment: "Commentaire interne (facultatif, 1 000 caractères au plus)",
+      commentHelp:
+        "Visible des seuls agents INFLUX : jamais du créateur, ni dans l’e-mail.",
+      commentTooLong: "Le commentaire dépasse 1 000 caractères.",
+      busy: "Enregistrement…",
+      cancel: "Annuler",
+      expiryAudience:
+        "Le badge Audience périme : il est daté de la décision et devra être rafraîchi à son échéance (durée de validité en réglage, 90 jours au départ).",
+      expiryAccount: "Le badge « Compte vérifié » n’a pas d’échéance.",
+      notAffirm:
+        "Ce badge n’affirme ni l’authenticité des abonnés, ni la performance.",
+      grantTitle: "Accorder ce badge ?",
+      grantRecapAccount: (network: string, handle: string, language: string) =>
+        `Le badge « Compte vérifié » sera accordé pour ${network}, sur l’identifiant ${handle} que vous avez constaté, et le créateur en sera informé par e-mail, en ${language}.`,
+      grantRecapAudience: (
+        network: string,
+        handle: string,
+        figures: string,
+        language: string,
+      ) =>
+        `Le badge « Audience vérifiée » sera accordé pour ${network}, sur l’identifiant ${handle}, avec les chiffres que vous avez constatés : ${figures}. Le créateur en sera informé par e-mail, en ${language}.`,
+      figuresLine: (
+        followers: string,
+        posts: string,
+        comments: string,
+        start: string,
+        end: string,
+      ) =>
+        `${followers} abonnés, ${posts} publications sur 30 jours, ${comments} commentaires moyens, période du ${start} au ${end}`,
+      commentRecap: "Commentaire interne joint :",
+      grantConfirm: "Confirmer l’octroi",
+      reasonTitle: "Refuser cette demande",
+      reasonLegend: "Motif du refus (liste fermée)",
+      reasonRequired: "Choisissez un motif avant de refuser.",
+      reasonConfirm: "Refuser",
+      messageToCreator: "Message envoyé au créateur :",
+      nextStep: "Ce que le créateur pourra faire :",
+      nextStepNone: "Rien n’est ajouté.",
+      escalates:
+        "Ce motif est escaladé à un administrateur en plus du refus : c’est un signal sur le compte.",
+      purges: "La pièce est supprimée immédiatement.",
+      stop: "Ce motif arrête toute la procédure : aucun badge, aucun recours au MVP, et un administrateur est alerté. Vous ne poursuivez aucun examen.",
+      stopConfirm:
+        "Je confirme l’arrêt de la procédure pour un créateur mineur.",
+      stopRequired: "Confirmez l’arrêt avant de refuser pour ce motif.",
+      ownMessage: "Message au créateur (20 à 500 caractères, sans coordonnée)",
+      ownMessageHelp:
+        "Ce texte est envoyé tel quel au créateur, à la suite de la phrase ci-dessus.",
+      ownCount: (length: number, max: number, min: number) =>
+        `${length} / ${max} caractères (${min} au moins).`,
+      messageTooShort:
+        "Le message au créateur doit compter au moins 20 caractères.",
+      messageTooLong: "Le message au créateur dépasse 500 caractères.",
+      directContact:
+        "Le message contient une adresse, un numéro ou un lien : retirez-le, les coordonnées ne passent pas par ce message.",
+      invalidReason:
+        "Le motif choisi n’est pas valide. Choisissez-en un autre.",
+      invalidMessage:
+        "Le message au créateur est refusé : longueur ou contenu invalide.",
+      invalidComment:
+        "Le commentaire interne est refusé : 1 000 caractères au plus.",
+      reexamineTitle: "Marquer cette demande « à réexaminer »",
+      reexamineLead:
+        "Seulement quand l’examen est matériellement impossible du fait d’INFLUX ou d’un tiers. La demande reste dans la file, son ancienneté continue de courir, aucun commentaire n’est joint.",
+      reexamineLegend: "Motif interne (liste fermée)",
+      reexamineRequired: "Choisissez un motif interne avant de marquer.",
+      reexamineConfirm: "Marquer à réexaminer",
+      reexamineReasons: {
+        network_unreachable: "Réseau injoignable",
+        evidence_technical: "Pièce inexploitable techniquement",
+        registry_unavailable: "Registre public indisponible",
+        storage_unavailable: "Stockage indisponible",
+      },
+      grantedNotice: (level: string, network: string) =>
+        `${level} accordé pour ${network}. Le créateur en est informé par e-mail.`,
+      alreadyVerified:
+        "Cet identifiant porte déjà un badge sur un autre compte : aucun badge n’est accordé. Les deux demandes sont escaladées à un administrateur.",
+      refusedNotice: (network: string, reason: string) =>
+        `Demande ${network} refusée — ${reason}. Le créateur en est informé par e-mail.`,
+      closedNotice: (network: string, reason: string) =>
+        `Demande ${network} close — ${reason}. Le créateur en est informé par e-mail.`,
+      escalatedMark: "Elle est escaladée à un administrateur.",
+      reexaminedNotice: (network: string) =>
+        `Demande ${network} marquée « à réexaminer » : elle reste dans la file.`,
+      lateMark:
+        "Décision prise après l’échéance : elle est marquée comme telle.",
+      reasonLabels: {
+        missing_evidence: "Pièce absente",
+        evidence_too_old: "Pièce trop ancienne",
+        evidence_unreadable: "Pièce illisible, rognée ou incomplète",
+        evidence_wrong_source: "Source non acceptée",
+        evidence_too_wide: "Pièce non conforme aux instructions de capture",
+        ownership_not_proven: "Compte non prouvé",
+        account_not_public: "Compte non consultable publiquement",
+        ownership_prerequisite: "Audience demandée sans propriété établie",
+        evidence_inconsistent: "Incohérence entre les pièces",
+        evidence_suspected_forgery: "Soupçon de document modifié",
+        shared_account: "Compte partagé entre plusieurs personnes",
+        agency_managed: "Compte géré par une agence",
+        terms_breach: "Profil non conforme aux CGU",
+        minor: "Créateur mineur",
+        account_unavailable: "Compte suspendu ou en cours de suppression",
+        other: "Autre — message rédigé par vous",
+        domain_code_not_found: "Code introuvable sur le domaine",
+        registration_not_found: "Immatriculation introuvable",
+        registration_unverifiable_country:
+          "Immatriculation non vérifiable dans ce pays",
+        name_mismatch: "Raison sociale différente du registre",
+      } as Readonly<Record<string, string>>,
+    },
+    closed: {
+      approved: "Cette demande est close : le badge a été accordé.",
+      rejected: "Cette demande est close : elle a été refusée.",
+      closed: "Cette demande est close sans examen : compte indisponible.",
+      other: "Cette demande n’est plus en file.",
+      decidedBy: (name: string, at: string) => `Décidée par ${name}, le ${at}.`,
+      decidedAt: (at: string) => `Décidée le ${at}.`,
+      late: "Décision prise après l’échéance.",
+      reason: (reason: string) => `Motif : ${reason}.`,
+      message: "Texte du créateur ajouté au message :",
+      comment: "Commentaire interne :",
+    },
+    shortcuts: {
+      title: "Raccourcis de l’écran de décision",
+      button: "Raccourcis",
+      keys: "‹v› accorder (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      grant: "ouvrir le récapitulatif de l’octroi (n’accorde jamais seul)",
+      reject: "ouvrir le choix du motif (ne refuse jamais seul)",
+      release: "rendre la main et revenir à la file",
+      escape: "fermer le panneau en cours, sans perdre la saisie",
+      help: "afficher ou masquer ce rappel",
+    },
+  },
   /** The link of the queues to the "Santé technique" screen (15 §C, "file bloquée"): admins only. */
   servicesLink: {
     label: "État des services",

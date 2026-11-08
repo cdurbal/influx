@@ -14,7 +14,7 @@ export type ReviewLogoImage =
   { kind: "loading" } | { kind: "ready"; url: string } | { kind: "failed" };
 
 /** The bytes of a base64 string, as the API sends them (a string it checked, bounded to 1.4 MB). */
-function bytesOf(base64: string): Uint8Array<ArrayBuffer> {
+export function bytesOf(base64: string): Uint8Array<ArrayBuffer> {
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
   for (let at = 0; at < binary.length; at += 1) {

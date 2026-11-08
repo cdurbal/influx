@@ -46,6 +46,10 @@ import {
   type BackofficeContext,
 } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
+import {
+  verificationReasonPreview,
+  type VerificationEmailLevel,
+} from "../verification/verification-email.ts";
 import { isForbidden, unlessConflict } from "./action-guards.ts";
 import { registerVerificationQueueDecisionRoutes } from "./verification-queues-decision-routes.ts";
 import {
@@ -516,9 +520,22 @@ async function openedEntry(
       owner: view.account.owner,
     },
     dossier,
-    reasons: reasons.map((reason) => ({
-      ...reason,
-      code: reason.code as VerificationOpenResponse["reasons"][number]["code"],
-    })),
+    reasons: reasons.flatMap((reason) => {
+      // what the member will read for this reason (08 RG57), from the files of the e-mail itself
+      const preview = verificationReasonPreview(
+        view.account.preferredLanguage,
+        view.entry.level as VerificationEmailLevel,
+        reason.code,
+      );
+      return preview === null
+        ? []
+        : [
+            {
+              ...reason,
+              ...preview,
+              code: reason.code as VerificationOpenResponse["reasons"][number]["code"],
+            },
+          ];
+    }),
   };
 }

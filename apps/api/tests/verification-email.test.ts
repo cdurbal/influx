@@ -10,6 +10,7 @@ import {
   verificationLevelOf,
   verificationNetworkOf,
   verificationReasonOf,
+  verificationReasonPreview,
   type VerificationEmailInput,
   type VerificationReason,
 } from "../src/domains/verification/verification-email.ts";
@@ -144,6 +145,44 @@ describe("the closed lists, in both languages (08 RG57; 06 RG51, RG52; modele §
     expect(english.email.verificationDecision.reason.creator.minor).toBe(
       "INFLUX is for adults only: we cannot process your request.",
     );
+  });
+
+  it("the preview of the agent's screen is the sentence of the e-mail and its next step, in the language asked, and nothing outside the lists (L2E-22)", () => {
+    for (const locale of ["fr", "en"] as const) {
+      const decision = (locale === "fr" ? french : english).email
+        .verificationDecision;
+      for (const code of CREATOR_REASONS) {
+        const preview = verificationReasonPreview(
+          locale,
+          "audience_verified",
+          code,
+        );
+        expect(preview?.message).toBe(decision.reason.creator[code]);
+        expect(preview?.message.length).toBeGreaterThan(0);
+      }
+      for (const code of BRAND_REASONS) {
+        expect(
+          verificationReasonPreview(locale, "brand_verified", code)?.message,
+        ).toBe(decision.reason.brand[code]);
+      }
+      expect(
+        verificationReasonPreview(locale, "account_verified", "agency_managed")
+          ?.nextStep,
+      ).toBe(decision.nextStep.none);
+      expect(
+        verificationReasonPreview(
+          locale,
+          "brand_verified",
+          "registration_unverifiable_country",
+        )?.nextStep,
+      ).toBeNull();
+    }
+    expect(
+      verificationReasonPreview("fr", "brand_verified", "minor"),
+    ).toBeNull();
+    expect(
+      verificationReasonPreview("en", "audience_verified", "name_mismatch"),
+    ).toBeNull();
   });
 
   it("verificationReasonOf keeps the two populations apart and accepts nothing outside the lists", () => {

@@ -25,6 +25,7 @@ import type { Banner, ChainNotice } from "./queue-review-view";
 
 const t = messages.queueReview;
 
+/** The default list of the chain: queue 1 (queue 4 gives its own, L2E-22). */
 const LIST = "/files/profils-marque";
 
 /** A banner of the head of the screen: information is not an error (17b §2.4). */
@@ -88,11 +89,14 @@ export function ChainBanner({
   notice,
   empty,
   busy,
+  list = LIST,
   onCancel,
   onClose,
 }: {
   notice: ChainNotice;
   empty: boolean;
+  /** The list the chain belongs to (queue 1 unless said). */
+  list?: string;
   busy: boolean;
   onCancel: () => void;
   onClose: () => void;
@@ -112,14 +116,14 @@ export function ChainBanner({
       {empty ? (
         <>
           <p>{t.chain.empty}</p>
-          <Link href={LIST} className={`${SMALL_SECONDARY_CLASSES} self-start`}>
+          <Link href={list} className={`${SMALL_SECONDARY_CLASSES} self-start`}>
             {t.chain.emptyBack}
           </Link>
         </>
       ) : (
         <div className="flex flex-wrap gap-3">
           <Link
-            href={`${LIST}/${notice.decidedEntry}`}
+            href={`${list}/${notice.decidedEntry}`}
             className={SMALL_SECONDARY_CLASSES}
           >
             {t.chain.seeEntry}

@@ -898,6 +898,13 @@ export const verificationReasonRowSchema = z.strictObject({
   requiresMemberMessage: z.boolean(),
   escalatesToAdmin: z.boolean(),
   purgesEvidence: z.boolean(),
+  /**
+   * The sentence the member receives for this reason, in the language of the account, from the files of
+   * the e-mail (08 RG57; for `other` and `terms_breach` the agent's own text follows it), and what the
+   * member can do next (null when nothing is added): what the agent reads is what is sent (L2E-22).
+   */
+  message: z.string().min(1),
+  nextStep: z.string().min(1).nullable(),
 });
 export type VerificationReasonRow = z.infer<typeof verificationReasonRowSchema>;
 

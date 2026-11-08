@@ -1298,3 +1298,200 @@ test("an agent reads queue 4 as two lists, creators then brands: the overdue one
   await expect(page.getByText(/^Aucune demande en attente/)).toBeVisible();
   await expect(page.getByText(bo.queueList.error)).toHaveCount(0);
 });
+
+/** The audit lines of one subject, by event type: what the register keeps of a decision (RG84, RG99). */
+async function auditLinesOf(
+  subjectId: string,
+  eventType: string,
+): Promise<{ actor: string | null; payload: Record<string, unknown> }[]> {
+  return withSql(
+    (sql) => sql<{ actor: string | null; payload: Record<string, unknown> }[]>`
+      select actor_account_id::text as actor, payload
+        from audit.audit_events
+       where subject_id = ${subjectId} and event_type = ${eventType}`,
+  );
+}
+
+/** An ISO day, `daysAgo` days before today (UTC, as the database counts the freshness of a period). */
+function dayBefore(daysAgo: number): string {
+  return new Date(Date.now() - daysAgo * 86_400_000).toISOString().slice(0, 10);
+}
+
+test("an agent decides an audience request, from the creator's deposit to the dated badge: the piece opened and logged, nothing pre-filled, the gap only after the typing, a Storage that fails blocks the grant (08 RG43 à RG55, RG83, RG84, CA25, CA27, modele -19)", async ({
+  page,
+}) => {
+  const T = bo.verificationReview;
+  const copy = COPY.fr.own;
+  const network = COPY.fr.brand.reference.network.instagram;
+  const { accountId } = await seedMember(page, {
+    role: "creator",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await seedLines(accountId, false);
+  const colleague = await seedColleague("agent", "Noa");
+  await grantAsAgent(accountId, colleague.accountId);
+  await withSql(
+    (sql) => sql`
+      update profiles.creator_social_accounts
+         set followers_count = 86000, posts_last_30_days = 14, avg_comments_per_post = 137
+       where account_id = ${accountId} and network_code = 'instagram'`,
+  );
+
+  // The creator deposits a real image and sends the request, as commit 19 proved it screen by screen.
+  await open(page, `${AUDIENCE.fr}?network=instagram`);
+  await page
+    .getByRole("button", { name: copy.audience.affirm.continue })
+    .click();
+  await page.locator("input[type=file]").setInputFiles(EVIDENCE_FIXTURE);
+  await expect(page.locator("[data-piece]")).toHaveCount(1);
+  await page
+    .getByRole("button", { name: copy.audience.deposit.submit })
+    .click();
+  await expect(
+    page.getByRole("main").getByText(copy.audience.sent.body),
+  ).toBeVisible();
+  const [sent] = await audienceRequestsOf(accountId);
+  expect(sent).toMatchObject({ status: "pending", active: 1 });
+
+  // The agent opens it, which takes it in charge: the request, to find the account and never to copy.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const agent = await seedInternal(page, "agent", "Lou");
+  await page.goto(
+    `${BACKOFFICE_ORIGIN}/files/verifications-createurs/${sent!.id}`,
+  );
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: new RegExp(`^Vérification ${network} — Audience vérifiée`),
+    }),
+  ).toBeVisible();
+  const main = page.getByRole("main");
+  await expect(main).toContainText("camille_cuisine");
+  const link = main.getByRole("link", { name: T.profileLink });
+  await expect(link).toHaveAttribute(
+    "href",
+    "https://www.instagram.com/camille_cuisine",
+  );
+  await expect(link).toHaveAttribute("target", "_blank");
+  await expect(link).toHaveAttribute("rel", /noreferrer/);
+  await expect(main.getByText(T.procedure.audience[0]!)).toBeVisible();
+  // nothing the creator declared before the typing, nothing of a code, every field empty (CA25)
+  const before = await main.innerText();
+  expect(before).not.toMatch(/86[\s  ]?000|\b137\b|INFLUX-[2-9A-Z]{8}/);
+  expect(
+    await main
+      .locator('[id^="verification-record-"]')
+      .evaluateAll((fields) =>
+        fields.map((field) => (field as HTMLInputElement).value),
+      ),
+  ).toEqual(Array.from({ length: 7 }, () => ""));
+  await expect(main.locator("[data-comparison]")).toHaveCount(0);
+
+  // A Storage that does not answer: the cause is written and the grant waits (17b l. 1235, D82 (5)).
+  const piece =
+    "**/api/v1/bo/queues/verification-creators/entries/*/evidence/*";
+  await page.route(piece, (route) =>
+    route.fulfill({
+      status: 503,
+      contentType: "application/json",
+      body: JSON.stringify({
+        error: {
+          code: "service_unavailable",
+          message: "unavailable",
+          details: [{ path: "evidence", issue: "decision_blocked" }],
+        },
+      }),
+    }),
+  );
+  await page.getByRole("button", { name: T.evidence.open(1, 1) }).click();
+  await expect(main.getByText(T.evidence.blocked)).toBeVisible();
+  await page.getByRole("button", { name: T.decision.grantAudience }).click();
+  await expect(main.getByText(T.evidence.blockedGrant)).toBeVisible();
+  await page.unroute(piece);
+
+  // The piece, opened on request: drawn from a blob, one line of the register, never a link nor a download.
+  await page.getByRole("button", { name: T.evidence.open(1, 1) }).click();
+  const image = main.getByRole("img", { name: T.evidence.alt(1, 1) });
+  await expect(image).toBeVisible();
+  await expect(image).toHaveAttribute("src", /^blob:/);
+  // the CSP of the backoffice lets a blob: image through (`img-src 'self' blob:`): the pixels are there
+  await expect
+    .poll(() =>
+      image.evaluate((element) => (element as HTMLImageElement).naturalWidth),
+    )
+    .toBeGreaterThan(0);
+  await expect(main.getByText(T.evidence.openedLine(1, 1))).toBeVisible();
+  await expect(main.locator("a[download], a[href^='blob:']")).toHaveCount(0);
+  const viewed = await auditLinesOf(sent!.id, "verification.evidence_viewed");
+  expect(viewed).toHaveLength(1);
+  expect(viewed[0]?.actor).toBe(agent.accountId);
+  await expectNoAxeViolation(page, "verification decision, audience", {
+    wcag22: true,
+  });
+
+  // What the agent reads, he types; the declared figures and the gap come after, on his request (modele -19).
+  await page.getByLabel(T.record.handleAudience).fill("camille_cuisine");
+  await page.getByLabel(T.record.followers).fill("47 300");
+  await page.getByLabel(T.record.posts).fill("12");
+  await page.getByLabel(T.record.comments).fill("85");
+  await page
+    .getByLabel(T.record.periodStart, { exact: true })
+    .fill(dayBefore(30));
+  await page.getByLabel(T.record.periodEnd, { exact: true }).fill(dayBefore(2));
+  await page.getByRole("button", { name: T.comparison.button }).click();
+  const table = main.getByRole("region", { name: T.comparison.tableLabel });
+  await expect(table).toContainText(/86[\s  ]000/);
+  await expect(table).toContainText(/47[\s  ]300/);
+  await expect(table).toContainText(/−\s?38[\s  ]700/);
+  await expect(main.getByText(T.comparison.alert(30))).toBeVisible();
+  await page.getByLabel(T.record.followers).fill("47 301");
+  await expect(main.getByText(T.comparison.stale)).toBeVisible();
+  await page.getByLabel(T.record.followers).fill("47 300");
+
+  // The grant comes by its recap and never by a key alone; the expiry is announced, and what the badge does not state.
+  await expect(main.getByText(T.decision.expiryAudience)).toBeVisible();
+  await expect(main.getByText(T.decision.notAffirm)).toBeVisible();
+  // a key is never taken from someone typing (RG114): the focus leaves the field first
+  await page.getByLabel(T.record.followers).blur();
+  await page.keyboard.press("v");
+  await expect(
+    main.getByRole("heading", { name: T.decision.grantTitle }),
+  ).toBeVisible();
+  await expect(main).toContainText(/47[\s  ]300 abonnés, 12 publications/);
+  expect(await auditLinesOf(sent!.id, "verification.granted")).toHaveLength(0);
+  await page.getByRole("button", { name: T.decision.grantConfirm }).click();
+  await expect(
+    page.getByText(T.decision.grantedNotice("Audience vérifiée", "Instagram")),
+  ).toBeVisible();
+  const [granted] = await audienceRequestsOf(accountId);
+  expect(granted).toMatchObject({ id: sent!.id, status: "approved" });
+  const badges = await withSql(
+    (sql) => sql<
+      { followers: string; handle: string; state: string; by: string }[]
+    >`
+      select observed_followers::text as followers, observed_handle_at_decision as handle,
+             state::text as state, granted_by_account_id::text as by
+        from verification.badges
+       where account_id = ${accountId} and level = 'audience_verified'`,
+  );
+  expect(badges).toEqual([
+    {
+      followers: "47300",
+      handle: "camille_cuisine",
+      state: "active",
+      by: agent.accountId,
+    },
+  ]);
+
+  // At the creator's: the badge, dated, with its period and its source (RG4, RG5, RG10).
+  await open(page, `${AUDIENCE.fr}?network=instagram`);
+  const badge = page.locator('[data-badge="audience_verified"]');
+  await expect(badge).toContainText(
+    new RegExp(
+      `Audience vérifiée — ${network}, le \\d{1,2}(er)? \\S+ 20\\d\\d`,
+    ),
+  );
+  await expect(badge).toContainText(`tableau de bord ${network}, période du`);
+});

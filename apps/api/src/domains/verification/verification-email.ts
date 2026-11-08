@@ -115,6 +115,36 @@ export function verificationReasonOf(
     : null;
 }
 
+/**
+ * What the decision screen of an agent shows BEFORE a refusal (08 RG57; L2E-22): the sentence of the
+ * reason as the member receives it, and what the member can do next (null: nothing to add), read from
+ * the very files of the e-mail so that the preview cannot drift from the message. For `other` and
+ * `terms_breach` the agent's own text follows the sentence. Null for a code outside the closed list of
+ * its population.
+ */
+export function verificationReasonPreview(
+  locale: UiLocale,
+  level: VerificationEmailLevel,
+  code: string,
+): { message: string; nextStep: string | null } | null {
+  const reason = verificationReasonOf(level, code);
+  if (reason === null) {
+    return null;
+  }
+  const decision: Decision = MESSAGES[locale].email.verificationDecision;
+  const step: NextStep | null =
+    reason.population === "brand"
+      ? BRAND_NEXT_STEP[reason.code]
+      : CREATOR_NEXT_STEP[reason.code];
+  return {
+    message:
+      reason.population === "brand"
+        ? decision.reason.brand[reason.code]
+        : decision.reason.creator[reason.code],
+    nextStep: step === null ? null : decision.nextStep[step],
+  };
+}
+
 /** The name of a network line, null for a code the files do not know. */
 export function verificationNetworkOf(
   locale: UiLocale,
