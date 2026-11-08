@@ -391,7 +391,7 @@ function AffirmStep({
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <section aria-labelledby="audience-public" className={GROUP_CLASSES}>
-            <h4 id="audience-public" className="font-semibold">
+            <h4 id="audience-public" className={SUBTITLE_CLASSES}>
               {t("audience.preview.public.title")}
             </h4>
             <ul className={LIST_CLASSES}>
@@ -406,7 +406,7 @@ function AffirmStep({
             aria-labelledby="audience-internal"
             className={GROUP_CLASSES}
           >
-            <h4 id="audience-internal" className="font-semibold">
+            <h4 id="audience-internal" className={SUBTITLE_CLASSES}>
               {t("audience.preview.internal.title")}
             </h4>
             <ul className={LIST_CLASSES}>
