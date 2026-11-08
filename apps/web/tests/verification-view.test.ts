@@ -1,5 +1,6 @@
 // What the screens of the verification of a creator's account show, decided outside the components
-// (docs/mvp/08 RG1 to RG7, RG10, RG13, RG56, RG57, RG60, RG93, RG96; jalons/l2e, commit 18): the state of
+// (docs/mvp/08 RG1 to RG7, RG10, RG12, RG13, RG32, RG34, RG56, RG57, RG60, RG87, RG93, RG96; jalons/l2e,
+// commits 18 and 19): the state of
 // a network line, a row per level and never a global badge; the step of the journey read back from the
 // API; the written label of a badge; the text and the next step of a refusal; the failure of a call and
 // the delay left; the dates; the translation files against RG93, mot pour mot, and against the words
@@ -9,17 +10,29 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CREATOR_REJECTION_REASON_CODES,
+  VERIFICATION_EVIDENCE_REJECTIONS,
   type CreatorVerificationLine,
   type OwnBadge,
+  type OwnEvidence,
   type OwnRefusal,
   type OwnRequest,
 } from "@influx/contracts/verification";
 import { describe, expect, it } from "vitest";
 import {
+  AUDIENCE_CTA_KEYS,
+  AUDIENCE_STEP_COUNT,
+  EVIDENCE_MAX_MEBIBYTES,
   OWNERSHIP_STEP_COUNT,
+  audienceActionOf,
+  audienceJourneyOf,
+  audienceStepNumberOf,
   badgeKeysOf,
   canRestartOwnership,
+  evidenceFailureOf,
+  evidenceFileProblem,
+  expectedPieceKeyOf,
   failureOf,
+  formatByteSize,
   formatCalendarDay,
   formatDelay,
   formatVerificationDate,
@@ -477,6 +490,282 @@ describe("dates and delays, in the language of the page (08 RG4, RG60, EC-L2E-9)
   });
 });
 
+// --- The audience journey (commit 19) -------------------------------------------------------------
+
+const PIECE_ID = "0c9d6f0e-3b1a-4d7e-8a52-6f1e2b3c4d5e";
+
+function piece(state: OwnEvidence["state"], id = PIECE_ID): OwnEvidence {
+  return {
+    id,
+    state,
+    createdAt: "2026-03-01T09:00:00Z",
+    width: 600,
+    height: 300,
+    byteSize: 34_200,
+  };
+}
+
+function audienceRequest(
+  status: OwnRequest["status"],
+  extra: Partial<OwnRequest> = {},
+): OwnRequest {
+  return request(status, { level: "audience_verified", ...extra });
+}
+
+function audienceRefused(reason: OwnRefusal["reasonCode"]): OwnRequest {
+  return audienceRequest("rejected", {
+    submittedAt: "2026-03-01T09:05:00Z",
+    refusal: {
+      reasonCode: reason,
+      message: "",
+      decidedAt: "2026-03-02T08:00:00Z",
+    },
+  });
+}
+
+const OWNED = badge("account_verified", "active");
+
+describe("where the audience journey stands, read from the API (08 RG12, RG95, RG96)", () => {
+  it("writes the condition before any deposit while the ownership of the account is not established (RG12)", () => {
+    for (const held of [
+      line(),
+      line([badge("account_verified", "to_reconfirm")]),
+      line([], [refused("ownership_not_proven")]),
+    ]) {
+      const journey = audienceJourneyOf(held);
+      expect(journey.stage).toBe("locked");
+      expect(journey.request).toBeNull();
+      expect(audienceStepNumberOf(journey.stage)).toBeNull();
+    }
+  });
+
+  it("opens on what the badge states, before any request exists, once the account is verified (RG96)", () => {
+    const journey = audienceJourneyOf(line([OWNED]));
+    expect(journey).toMatchObject({
+      stage: "affirm",
+      request: null,
+      refresh: false,
+      previous: null,
+    });
+    expect(audienceStepNumberOf("affirm")).toBe(1);
+  });
+
+  it("takes a draft back at its deposit, with the pieces an agent will read and no other", () => {
+    const journey = audienceJourneyOf(
+      line(
+        [OWNED],
+        [
+          audienceRequest("draft", {
+            evidence: [
+              piece("active", PIECE_ID),
+              piece("pending", "11111111-1111-4111-8111-111111111111"),
+            ],
+          }),
+        ],
+      ),
+    );
+    expect(journey.stage).toBe("deposit");
+    expect(journey.pieces.map((one) => one.id)).toEqual([PIECE_ID]);
+    expect(audienceStepNumberOf("deposit")).toBe(2);
+  });
+
+  it("shows the follow-up of a request sent, and of a badge granted, as the third screen", () => {
+    const sent = audienceJourneyOf(
+      line([OWNED], [audienceRequest("pending", SENT)]),
+    );
+    expect(sent.stage).toBe("sent");
+    expect(sent.request?.status).toBe("pending");
+    const granted = audienceJourneyOf(
+      line([OWNED, badge("audience_verified", "active")]),
+    );
+    expect(granted.stage).toBe("done");
+    expect(audienceStepNumberOf("sent")).toBe(3);
+    expect(audienceStepNumberOf("done")).toBe(AUDIENCE_STEP_COUNT);
+  });
+
+  it("keeps the first screen after a refusal, with it, and offers a renewal for a badge to refresh", () => {
+    const refusal = audienceJourneyOf(
+      line([OWNED], [audienceRefused("evidence_too_wide")]),
+    );
+    expect(refusal.stage).toBe("affirm");
+    expect(refusal.previous?.kind).toBe("refused");
+    const refresh = audienceJourneyOf(
+      line([OWNED, badge("audience_verified", "to_refresh")]),
+    );
+    expect(refresh).toMatchObject({ stage: "affirm", refresh: true });
+  });
+});
+
+describe("the button of the audience row (08 RG12, RG57)", () => {
+  const rowOf = (held: CreatorVerificationLine) =>
+    levelRowOf(held, "audience_verified");
+
+  it("offers none before the ownership stands, and none while an agent has the request", () => {
+    expect(audienceActionOf(rowOf(line()), false)).toBeNull();
+    expect(
+      audienceActionOf(
+        rowOf(line([OWNED], [audienceRequest("pending", SENT)])),
+        true,
+      ),
+    ).toBeNull();
+  });
+
+  it("starts the first request, resumes a draft, renews a badge to refresh, and leaves a current badge alone", () => {
+    expect(audienceActionOf(rowOf(line([OWNED])), true)).toBe("start");
+    expect(
+      audienceActionOf(rowOf(line([OWNED], [audienceRequest("draft")])), true),
+    ).toBe("resume");
+    expect(
+      audienceActionOf(
+        rowOf(line([OWNED, badge("audience_verified", "to_refresh")])),
+        true,
+      ),
+    ).toBe("refresh");
+    expect(
+      audienceActionOf(
+        rowOf(line([OWNED, badge("audience_verified", "active")])),
+        true,
+      ),
+    ).toBeNull();
+  });
+
+  it("offers a new deposit only after a refusal that points at the evidence, never after one that points elsewhere", () => {
+    const after = (reason: OwnRefusal["reasonCode"]) =>
+      audienceActionOf(rowOf(line([OWNED], [audienceRefused(reason)])), true);
+    for (const reason of [
+      "missing_evidence",
+      "evidence_too_old",
+      "evidence_unreadable",
+      "evidence_wrong_source",
+      "evidence_too_wide",
+    ] as const) {
+      expect(after(reason), reason).toBe("restart");
+    }
+    for (const reason of [
+      "ownership_prerequisite",
+      "evidence_suspected_forgery",
+      "agency_managed",
+      "minor",
+    ] as const) {
+      expect(after(reason), reason).toBeNull();
+    }
+  });
+
+  it("writes every action in the translation files, both languages", () => {
+    for (const key of Object.values(AUDIENCE_CTA_KEYS)) {
+      const name = key.split(".").slice(-1)[0] ?? "";
+      expect(frVerification.line.cta).toHaveProperty(name);
+      expect(enVerification.line.cta).toHaveProperty(name);
+    }
+  });
+});
+
+describe("the piece expected on each network (08 RG32)", () => {
+  it("names Instagram, TikTok and YouTube, and the equivalent native tool of any other network", () => {
+    expect(expectedPieceKeyOf("instagram")).toBe("instagram");
+    expect(expectedPieceKeyOf("tiktok")).toBe("tiktok");
+    expect(expectedPieceKeyOf("youtube")).toBe("youtube");
+    expect(expectedPieceKeyOf("twitch")).toBe("other");
+    for (const key of ["instagram", "tiktok", "youtube", "other"] as const) {
+      expect(frVerification.audience.deposit.expected).toHaveProperty(key);
+      expect(enVerification.audience.deposit.expected).toHaveProperty(key);
+    }
+  });
+});
+
+describe("a refused deposit, told by its cause (08 RG34, RG95, CA67)", () => {
+  const failed = (
+    code: string | undefined,
+    issues: string[] = [],
+    retryAfterSeconds?: number,
+  ) => ({
+    kind: "failed" as const,
+    code,
+    issues,
+    ...(retryAfterSeconds === undefined ? {} : { retryAfterSeconds }),
+  });
+
+  it("stops a file with nothing to read or over the cap before it leaves, and lets the API decide the rest", () => {
+    expect(evidenceFileProblem(0)?.key).toBe("empty");
+    expect(evidenceFileProblem(8_388_609)?.key).toBe("tooLarge");
+    expect(evidenceFileProblem(8_388_608)).toBeNull();
+    expect(evidenceFileProblem(1)).toBeNull();
+    expect(EVIDENCE_MAX_MEBIBYTES).toBe(8);
+  });
+
+  it("gives each typed reason of an image its own message, a PDF included (the type is read in the bytes)", () => {
+    for (const reason of VERIFICATION_EVIDENCE_REJECTIONS) {
+      const failure = evidenceFailureOf(failed("image_rejected", [reason]));
+      expect(failure.key).toBe(reason);
+      expect(failure.retryable).toBe(false);
+      expect(frVerification.audience.errors).toHaveProperty(reason);
+      expect(enVerification.audience.errors).toHaveProperty(reason);
+    }
+    expect(
+      evidenceFailureOf(failed("image_rejected", ["something_new"])).key,
+    ).toBe("undecodable");
+    expect(frVerification.audience.errors.unsupported_type).toContain("PDF");
+    expect(enVerification.audience.errors.unsupported_type).toContain("PDF");
+  });
+
+  it("says the daily quota with the delay left, a full request, a request no more a draft, and one that is gone", () => {
+    expect(
+      evidenceFailureOf(failed("upload_quota_exceeded", [], 7_200)),
+    ).toMatchObject({
+      key: "quota",
+      retryAfterSeconds: 7_200,
+      stopsQueue: true,
+    });
+    expect(
+      evidenceFailureOf(failed("conflict", ["evidence_cap"])),
+    ).toMatchObject({ key: "cap", stopsQueue: true, reload: true });
+    expect(
+      evidenceFailureOf(failed("conflict", ["request_not_draft"])),
+    ).toMatchObject({ key: "notDraft", stopsQueue: true, reload: true });
+    expect(evidenceFailureOf(failed("not_found"))).toMatchObject({
+      key: "gone",
+      reload: true,
+    });
+    expect(evidenceFailureOf(failed("payload_too_large")).key).toBe("tooLarge");
+  });
+
+  it("keeps a file for another try only when the service did not answer", () => {
+    for (const result of [
+      { kind: "failed" as const },
+      failed("service_unavailable"),
+      failed("internal_error"),
+    ]) {
+      expect(evidenceFailureOf(result)).toMatchObject({
+        key: "unavailable",
+        retryable: true,
+        stopsQueue: false,
+      });
+    }
+  });
+
+  it("tells the refusals of the audience request itself: the prerequisite, a missing piece, a full request", () => {
+    for (const [issue, key] of [
+      ["ownership_prerequisite", "ownershipPrerequisite"],
+      ["missing_evidence", "missingEvidence"],
+      ["evidence_cap", "evidenceCap"],
+    ] as const) {
+      expect(failureOf(failed("conflict", [issue]))).toMatchObject({
+        key,
+        reload: true,
+      });
+      expect(frVerification.failure).toHaveProperty(key);
+      expect(enVerification.failure).toHaveProperty(key);
+    }
+  });
+
+  it("writes the size of a piece for the language, in kilobytes then megabytes", () => {
+    expect(formatByteSize(34_200, "en")).toBe("34 kB");
+    expect(formatByteSize(300, "en")).toBe("1 kB");
+    expect(formatByteSize(2_450_000, "en")).toBe("2.5 MB");
+    expect(formatByteSize(2_450_000, "fr")).toMatch(/^2,5\s?Mo$/);
+  });
+});
+
 // --- The translation files -----------------------------------------------------------------------
 
 const SPEC = path.resolve(
@@ -560,6 +849,31 @@ describe("the translation files of the verification (08 RG6, RG93; fiche invaria
         expect(forbidden.exec(text)?.[0], key).toBeUndefined();
       }
     }
+  });
+
+  it("holds the capture instructions of RG87 mot pour mot, in French, and their English twin", () => {
+    const text = readFileSync(SPEC, "utf8");
+    const rg87 = text
+      .slice(text.indexOf("**RG87**"), text.indexOf("**RG88**"))
+      .split(/\r?\n/)
+      .filter((row) => row.startsWith(">"))
+      .map((row) => row.replace(/^>\s?/, ""))
+      .join(" ");
+    const parts = [
+      ...rg87.matchAll(/\*([^*]+?)\s:\*\s([^*]+?)(?=\s\*|$)/g),
+    ].map((match) => ({
+      title: match[1] ?? "",
+      text: match[2]?.trim() ?? "",
+    }));
+    expect(parts).toHaveLength(3);
+    const written = frVerification.audience.deposit.instructions;
+    for (const [index, part] of (["see", "hide", "never"] as const).entries()) {
+      expect(written[part].title).toBe(parts[index]?.title);
+      expect(written[part].text.toLowerCase()).toBe(
+        (parts[index]?.text ?? "").toLowerCase(),
+      );
+    }
+    expect(enVerification.audience.deposit.instructions).toHaveProperty("see");
   });
 
   it("says the follower authenticity is not claimed, beside the badge and in the list of what it does not state", () => {

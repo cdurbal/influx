@@ -31,7 +31,6 @@ import { MemberButton } from "@/components/member/ui/MemberButton";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { VerifiedBadge } from "@/components/member/ui/VerifiedBadge";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
 import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
 import {
   CARD_TITLE,
@@ -44,6 +43,7 @@ import { copyText } from "@/browser/copy-text";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
 import { BadgeLine } from "./BadgeLine";
+import { BackToProfile, FailureNotice, useNetworkName } from "./JourneyParts";
 import { RequestState } from "./RequestState";
 import { useCreatorVerification } from "./use-creator-verification";
 import {
@@ -52,14 +52,12 @@ import {
 } from "./use-ownership-journey";
 import {
   OWNERSHIP_STEP_COUNT,
-  formatDelay,
   formatVerificationDate,
   isCancellable,
   levelRowOf,
   lineOfNetwork,
   ownershipJourneyOf,
   stepNumberOf,
-  type Failure,
   type OwnershipJourney,
   type RowRequest,
 } from "./verification-view";
@@ -88,7 +86,6 @@ export function OwnershipScreen({ networkCode }: { networkCode: string }) {
 function OwnershipView({ networkCode }: { networkCode: string }) {
   const t = useTranslations("verification");
   const tAccount = useTranslations("account");
-  const tBrand = useTranslations("brandProfile");
   const locale = useLocale();
   const online = useOnline();
   const { signedOut } = useMember();
@@ -101,10 +98,7 @@ function OwnershipView({ networkCode }: { networkCode: string }) {
     onSignedOut: () => signedOut(null),
   });
 
-  const networkKey = `reference.network.${networkCode}`;
-  const network = tBrand.has(networkKey as Parameters<typeof tBrand>[0])
-    ? tBrand(networkKey as Parameters<typeof tBrand>[0])
-    : networkCode;
+  const network = useNetworkName(networkCode);
 
   const back = (
     <Link
@@ -258,59 +252,6 @@ function Journey({
         ) : null}
       </Card>
     </>
-  );
-}
-
-/** What a refused call means, written; the delay left is the API's `Retry-After`, said in words (RG60). */
-function FailureNotice({
-  failure,
-  since,
-}: {
-  failure: Failure;
-  since: string | null;
-}) {
-  const t = useTranslations("verification");
-  const locale = useLocale();
-  let message: string;
-  switch (failure.key) {
-    case "retryLater":
-      message =
-        failure.retryAfterSeconds === null
-          ? t("failure.cap")
-          : t("failure.retryLater", {
-              delay: formatDelay(failure.retryAfterSeconds, locale),
-            });
-      break;
-    case "expired":
-      message = t("verif.request.expired");
-      break;
-    case "duplicate":
-      message =
-        since === null
-          ? t("failure.notDraft")
-          : t("verif.request.duplicate", { date: since });
-      break;
-    default:
-      message = t(`failure.${failure.key}`);
-  }
-  return (
-    <ErrorNotice>
-      <span data-failure={failure.key}>{message}</span>
-    </ErrorNotice>
-  );
-}
-
-function BackToProfile({ label }: { label: string }) {
-  const locale = useLocale();
-  return (
-    <div>
-      <Link
-        href={memberPageHref("accountProfile", locale)}
-        className={memberButtonClasses("secondary")}
-      >
-        {label}
-      </Link>
-    </div>
   );
 }
 

@@ -2,12 +2,15 @@
 // Each one goes through the same-origin relay (@influx/web-platform/relay-client) and reads the answer
 // with the schema of packages/contracts. No rule lives here: apps/api decides, the screen displays.
 // The account is always the session's: no call names an account, and a request is named by its own
-// identifier. The deposit of a piece (PUT …/evidence, DELETE …/evidence/:id) is commit 19's.
+// identifier. The deposit of a piece (PUT …/evidence, DELETE …/evidence/:id, commit 19) sends the raw
+// bytes of ONE image: neither its declared type nor its name ever leaves the browser (08 RG85).
 import {
   creatorVerificationResponseSchema,
+  verificationEvidenceResponseSchema,
   verificationRequestResponseSchema,
   type CreatorVerificationLevel,
   type CreatorVerificationResponse,
+  type VerificationEvidenceResponse,
   type VerificationRequestResponse,
 } from "@influx/contracts/verification";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
@@ -62,6 +65,35 @@ export function cancelVerificationRequest(
   return callRelay(
     "POST",
     `${REQUESTS_PATH}/${requestId}/cancel`,
+    verificationRequestResponseSchema,
+  );
+}
+
+/**
+ * One piece of an audience draft: the raw bytes of the file, as they are (08 RG34, RG35: the API reads
+ * the type in the bytes, re-encodes the image and strips every metadata). The answer is the piece's
+ * metadata, never its bytes (EC-L2E-7).
+ */
+export function uploadVerificationEvidence(
+  requestId: string,
+  file: Blob,
+): Promise<RelayResult<VerificationEvidenceResponse>> {
+  return callRelay(
+    "PUT",
+    `${REQUESTS_PATH}/${requestId}/evidence`,
+    verificationEvidenceResponseSchema,
+    file,
+  );
+}
+
+/** A piece of the draft withdrawn; the request as it now stands. */
+export function removeVerificationEvidence(
+  requestId: string,
+  evidenceId: string,
+): Promise<RelayResult<VerificationRequestResponse>> {
+  return callRelay(
+    "DELETE",
+    `${REQUESTS_PATH}/${requestId}/evidence/${evidenceId}`,
     verificationRequestResponseSchema,
   );
 }

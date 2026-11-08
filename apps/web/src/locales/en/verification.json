@@ -1,6 +1,7 @@
 {
   "meta": {
-    "ownership": "Verify my account"
+    "ownership": "Verify my account",
+    "audience": "Verify my audience"
   },
   "verif": {
     "badge": {
@@ -68,7 +69,11 @@
       "renew": "Generate a new code",
       "reconfirm": "Reconfirm this account",
       "see": "See the request",
-      "on": "for {network}"
+      "on": "for {network}",
+      "audienceStart": "Verify my audience",
+      "audienceResume": "Resume the upload",
+      "audienceRestart": "Upload a screenshot again",
+      "audienceRefresh": "Refresh my audience"
     }
   },
   "state": {
@@ -193,6 +198,128 @@
     },
     "cancel": "Cancel the request"
   },
+  "audience": {
+    "title": "Verify my {network} audience",
+    "steps": {
+      "affirm": "What the badge states",
+      "deposit": "Upload your screenshots",
+      "follow": "Follow-up"
+    },
+    "locked": {
+      "title": "Have the account ownership verified first",
+      "body": "An INFLUX agent reads your figures in the dashboard of an account they know is yours. The ownership of your {network} account must therefore be verified before its audience.",
+      "cta": "Verify my {network} account"
+    },
+    "affirm": {
+      "title": "What this badge states",
+      "intro": "Once an INFLUX agent has checked your figures in the {network} dashboard, the badge states four things, and not one more.",
+      "items": {
+        "fact": "That your audience figures were checked: followers, posting rhythm, average comments per post.",
+        "evidence": "That they were checked against evidence, not on your word: a screenshot of the native {network} dashboard.",
+        "agent": "That they were checked by a named INFLUX agent. The name stays internal.",
+        "date": "That they were checked on a given date, over a given period: the date, the period and the source are shown beside the badge."
+      },
+      "refresh": "Your audience badge needs refreshing: upload a recent screenshot to get a new one, dated the day of the new check.",
+      "todo": "To get it, you upload one or more screenshots of the native {network} dashboard. An INFLUX agent reads the figures themselves: you type nothing.",
+      "continue": "I understand, upload my screenshots",
+      "continueRefresh": "Upload a recent screenshot"
+    },
+    "preview": {
+      "title": "What brands will see",
+      "help": "Figures observed by INFLUX in the {network} native dashboard, with the period covered by your screenshot. INFLUX makes no claim about follower authenticity.",
+      "example": "Example: the date shown will be the date of the check.",
+      "public": {
+        "title": "Visible to a brand",
+        "level": "The badge level and the network concerned.",
+        "date": "The date of the check.",
+        "period": "The period covered by your screenshots.",
+        "source": "The source: the native {network} dashboard.",
+        "bands": "Your figures as ranges, never as exact values."
+      },
+      "internal": {
+        "title": "Never shown to a brand",
+        "pieces": "Your screenshots, in any form.",
+        "exact": "The exact figures observed: a brand reads them only once the identities of a connection have been revealed.",
+        "gap": "The gap between what you declared and what was observed.",
+        "handle": "Your account handle and the link to your profile.",
+        "agent": "The agent's name, their internal notes and the history of refusals."
+      }
+    },
+    "deposit": {
+      "title": "Upload your screenshots",
+      "expected": {
+        "title": "The screenshot expected on {network}",
+        "instagram": "The professional account statistics (\"Insights\"). These must be readable: the account name, the follower count, the reach, the period shown, the main countries.",
+        "tiktok": "The account's analytics space. These must be readable: the account name, the followers, the views, the period, the territories.",
+        "youtube": "The creator space (\"YouTube Studio\"). These must be readable: the channel name, the subscribers, the views, the period, the countries.",
+        "other": "The native statistics tool of {network}, or its equivalent. The same requirements, no exception: the account name, the follower count and the period shown must be readable.",
+        "thirdParty": "A screenshot from a third-party measurement tool or an agency report, or figures retyped by hand, are never accepted."
+      },
+      "instructions": {
+        "title": "Before you capture",
+        "see": {
+          "title": "What we need to see",
+          "text": "Your account name, the period shown, your follower count."
+        },
+        "hide": {
+          "title": "What you must hide or crop before sending",
+          "text": "The names and photos of other people, comments, messages, notifications, anything that is not your figures."
+        },
+        "never": {
+          "title": "What we never ask for",
+          "text": "Your password, access to your account, a screenshot of your private messages."
+        },
+        "why": "An analytics space often shows information about other people: a screenshot that is too wide is refused, then deleted at once."
+      },
+      "formats": "PNG, JPEG or WebP, {size} MB at most per image. PDFs are refused: take a screenshot instead.",
+      "private": "Your screenshots are read by INFLUX agents only, never by a brand. The file name is neither read nor kept, and the hidden data of the image, such as where it was taken, is removed.",
+      "pieces": {
+        "title": "Your screenshots",
+        "none": "No screenshot uploaded yet.",
+        "count": "{count, plural, one {# screenshot uploaded} other {# screenshots uploaded}}",
+        "item": "Screenshot {number}: {width} × {height} px, {size}",
+        "itemUnsized": "Screenshot {number}",
+        "remove": "Remove",
+        "removeLabel": "Remove screenshot {number}"
+      },
+      "choose": "Add images",
+      "chooseMore": "Add more images",
+      "chooseHelp": "You can pick several at once: they are sent one after the other.",
+      "attempt": {
+        "waiting": "{size} image: waiting to be sent",
+        "sending": "{size} image: sending",
+        "failed": "{size} image: not uploaded",
+        "retry": "Try sending again",
+        "dismiss": "Dismiss"
+      },
+      "submit": "Send my request",
+      "submitHelp": "Upload at least one screenshot to send the request."
+    },
+    "errors": {
+      "empty": "This file is empty: choose another one.",
+      "unsupported_type": "This file is not a PNG, JPEG or WebP image. PDFs are refused: take a screenshot of the dashboard.",
+      "undecodable": "This image could not be read. Choose another one, or take the screenshot again.",
+      "too_many_pixels": "This image has too many pixels. Reduce its size and try again.",
+      "too_small": "This image is too small to be readable: its longest side must be at least {min} pixels.",
+      "output_too_large": "This image is too heavy once processed. Choose a lighter one.",
+      "tooLarge": "This image is over {size} MB. Choose a lighter one.",
+      "quota": "You have reached today's upload limit.",
+      "quotaDelay": "You have reached today's upload limit. You will be able to upload again in {delay}.",
+      "cap": "This request already holds the maximum number of screenshots. Remove one to add another.",
+      "notDraft": "This request has already been sent or can no longer be changed. The screen has just been updated.",
+      "gone": "This request no longer exists. The screen has just been updated.",
+      "unavailable": "The service is not answering. This image is not uploaded, your other screenshots are intact: try again in a moment."
+    },
+    "sent": {
+      "title": "Request sent",
+      "body": "Request sent. An INFLUX agent will check your figures against your screenshots.",
+      "private": "Your screenshots are read by INFLUX agents only."
+    },
+    "done": {
+      "title": "Audience verified",
+      "until": "This badge expires on {date}. You will then be able to upload a recent screenshot to keep it."
+    }
+  },
   "failure": {
     "retryLater": "A request was refused a short while ago. You will be able to make a new one in {delay}.",
     "cap": "Several requests were refused in the last days: a new request is not possible for the moment.",
@@ -200,6 +327,9 @@
     "notDraft": "This request has already been sent or can no longer be changed. The screen has just been updated.",
     "gone": "This request no longer exists. The screen has just been updated.",
     "accountUnavailable": "Your request cannot be processed while your account is suspended.",
-    "unavailable": "The service is not answering. Nothing is lost: try again in a moment."
+    "unavailable": "The service is not answering. Nothing is lost: try again in a moment.",
+    "ownershipPrerequisite": "Have the ownership of this account verified on this network first.",
+    "missingEvidence": "Upload at least one screenshot before sending the request.",
+    "evidenceCap": "This request already holds the maximum number of screenshots: remove one before adding another."
   }
 }

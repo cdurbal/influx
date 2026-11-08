@@ -536,7 +536,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     const memberPaths = Object.values(MEMBER_PAGE_SLUGS).flatMap((slugs) =>
       Object.values(slugs),
     );
-    expect(memberPaths).toHaveLength(26); // 13 pages, two languages (SN-1: the page-menu of mon compte; L2B-11: the brand profile; L2E-18: the ownership journey)
+    expect(memberPaths).toHaveLength(28); // 14 pages, two languages (SN-1: the page-menu of mon compte; L2B-11: the brand profile; L2E-18 and 19: the ownership and the audience journeys)
     expect(
       findMemberGroupMismatches(
         WEB_ROOT,

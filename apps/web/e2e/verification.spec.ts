@@ -8,8 +8,12 @@
 // to paste it, what INFLUX never asks and never accepts; a reload takes the draft back at its code),
 // screen 3 (the request sent), then what only an agent does is written by the database as the agent's
 // own door would: a refusal with its reason, what to do next and the delay left of RG60 read from the
-// real `Retry-After`, then the badge with its complete date. No agent screen is run here (commits 21 to
-// 23), no amount, rate or price anywhere (D78).
+// real `Retry-After`, then the badge with its complete date. Commit 19 adds the audience: the condition
+// written before any button, what a brand reads before any deposit, the instructions as the screen, a
+// real image sent as raw bytes and a PDF refused without costing the rest, the follow-up, a refusal and
+// the badge with its period and its source. No agent screen is run here (commits 21 to 23), no amount,
+// rate or price anywhere (D78).
+import { fileURLToPath } from "node:url";
 import { connectAsMigrationRole } from "@influx/test-kit/db";
 import type { Page } from "@playwright/test";
 import enBrandProfile from "@/locales/en/brand-profile.json" with { type: "json" };
@@ -421,4 +425,289 @@ test("a creator proves the ownership of a network account in English, from the l
   await expect(accountRow(page).locator("[data-badge]")).toContainText(
     new RegExp(`Account verified — ${network}, on \\w+ \\d{1,2}, 20\\d\\d`),
   );
+});
+
+// --- The audience: the deposit of the evidence (commit 19) ---------------------------------------------
+
+const AUDIENCE = {
+  fr: "/fr/compte/profil/verification/audience",
+  en: "/en/account/profile/verification/audience",
+} as const;
+/** A real image of 600 x 300 px with GPS in its EXIF: what leaves the browser is these bytes, as they are. */
+const EVIDENCE_FIXTURE = fileURLToPath(
+  new URL("../../api/tests/fixtures/logo-geotagged.jpg", import.meta.url),
+);
+const PDF_REPORT = {
+  name: "rapport-agence.pdf",
+  mimeType: "application/pdf",
+  buffer: Buffer.from(
+    "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n",
+  ),
+};
+
+/** The audience requests of the creator, newest first, with the pieces the database holds on each. */
+async function audienceRequestsOf(
+  accountId: string,
+): Promise<{ id: string; status: string; active: number }[]> {
+  return withSql(
+    (sql) => sql`
+      select r.id::text as id, r.status::text as status,
+             (select count(*)::int from verification.evidence_files e
+               where e.request_id = r.id and e.state = 'active') as active
+        from verification.verification_requests r
+       where r.account_id = ${accountId} and r.level = 'audience_verified'
+       order by r.created_at desc, r.id desc`,
+  );
+}
+
+/** An active « Audience vérifiée » on the Instagram line, from an approved request newer than any refusal. */
+async function grantAudienceAsAgent(
+  accountId: string,
+  agentId: string,
+): Promise<void> {
+  await withSql(async (sql) => {
+    const [line] = await sql<{ id: string }[]>`
+      select id::text from profiles.creator_social_accounts
+       where account_id = ${accountId} and network_code = 'instagram'`;
+    const [request] = await sql<{ id: string }[]>`
+      insert into verification.verification_requests
+        (account_id, social_account_id, network_code, level, status, created_at, submitted_at,
+         sla_due_at, escalate_at, decided_by_account_id, decided_at, closed_at)
+      values (${accountId}, ${line?.id ?? null}, 'instagram', 'audience_verified', 'approved',
+              now(), now(), now(), now(), ${agentId}, now(), now())
+      returning id::text`;
+    await sql`
+      insert into verification.badges
+        (account_id, social_account_id, network_code, request_id, level, granted_by_account_id,
+         granted_at, evidence_source, observed_followers, observed_posts_last_30_days,
+         observed_avg_comments, observed_period_start, observed_period_end,
+         declared_posts_at_decision, declared_comments_at_decision, observed_handle_at_decision,
+         expires_at, state)
+      values (${accountId}, ${line?.id ?? null}, 'instagram', ${request?.id ?? null},
+              'audience_verified', ${agentId}, now(), 'native_dashboard', 47300, 12, 85,
+              current_date - 30, current_date - 2, 12, 85,
+              ${`handle_${accountId.slice(0, 8)}`}, now() + interval '90 days', 'active')`;
+  });
+}
+
+test("a creator deposits the evidence of an audience in French, from the condition to the badge, a refused PDF costing nothing (08 RG12, RG19, RG31 à RG36, RG87, RG95, RG96)", async ({
+  page,
+}) => {
+  const copy = COPY.fr.own;
+  const network = COPY.fr.brand.reference.network.instagram;
+  const { accountId } = await seedMember(page, {
+    role: "creator",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await seedLines(accountId, false);
+  const agent = await seedColleague("agent", "Noa");
+  const main = page.getByRole("main");
+  const puts: Record<string, string>[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "PUT" && request.url().endsWith("/evidence")) {
+      void request.allHeaders().then((headers) => puts.push(headers));
+    }
+  });
+
+  // The condition is written before any button (RG12): no request, no deposit, a way to the account.
+  await open(page, `${AUDIENCE.fr}?network=instagram`);
+  await expect(title(page)).toHaveText(
+    copy.audience.title.replace("{network}", network),
+  );
+  await expect(page.locator("[data-audience-locked]")).toHaveText(
+    copy.audience.locked.body.replace("{network}", network),
+  );
+  await expect(
+    page.getByRole("link", {
+      name: copy.audience.locked.cta.replace("{network}", network),
+    }),
+  ).toHaveAttribute(
+    "href",
+    /\/fr\/compte\/profil\/verification\/propriete\?network=instagram$/,
+  );
+  await expect(page.locator("[data-step]")).toHaveCount(0);
+  expect(await audienceRequestsOf(accountId)).toEqual([]);
+
+  // The account verified: what the badge states and what a brand reads, before anything is asked (RG96).
+  await grantAsAgent(accountId, agent.accountId);
+  await page.reload();
+  for (const text of [
+    copy.audience.affirm.intro.replace("{network}", network),
+    copy.ownership.affirm.not.authenticity,
+    copy.audience.preview.public.bands,
+    copy.audience.preview.internal.pieces,
+    copy.audience.preview.internal.gap,
+    copy.verif.evidence.freshness,
+  ]) {
+    await expect(main.getByText(text, { exact: true })).toBeVisible();
+  }
+  await expect(page.locator("[data-preview]")).toContainText(
+    new RegExp(
+      `Audience vérifiée — ${network}, le \\d{1,2}(er)? \\S+ 20\\d\\d`,
+    ),
+  );
+  await expectNothingForbidden(page);
+  expect(await audienceRequestsOf(accountId)).toEqual([]);
+  await expectAxe(page, "audience, screen 1, fr", [1440]);
+
+  // The deposit: the instructions are the screen (RG87), the piece expected on Instagram (RG32).
+  await page
+    .getByRole("button", { name: copy.audience.affirm.continue })
+    .click();
+  await expect(page.locator("[data-step]")).toContainText(
+    copy.ownership.steps.progress
+      .replace("{current}", "2")
+      .replace("{total}", "3")
+      .replace("{name}", copy.audience.steps.deposit),
+  );
+  const instructions = copy.audience.deposit.instructions;
+  for (const part of [
+    instructions.see,
+    instructions.hide,
+    instructions.never,
+  ]) {
+    await expect(page.locator("[data-instructions]")).toContainText(part.title);
+    await expect(page.locator("[data-instructions]")).toContainText(part.text);
+  }
+  await expect(page.locator('[data-expected="instagram"]')).toHaveText(
+    copy.audience.deposit.expected.instagram,
+  );
+  await expect(
+    main.getByText(copy.audience.deposit.formats.replace("{size}", "8")),
+  ).toBeVisible();
+  await expectNothingForbidden(page);
+  expect((await audienceRequestsOf(accountId))[0]).toMatchObject({
+    status: "draft",
+    active: 0,
+  });
+  const picker = page.locator("input[type=file]");
+
+  // A PDF is refused with its own words and costs nothing: no piece, nothing kept (RG34, RG95, CA67).
+  await picker.setInputFiles(PDF_REPORT);
+  await expect(
+    page.locator('[data-evidence-failure="unsupported_type"]'),
+  ).toHaveText(copy.audience.errors.unsupported_type);
+  await expect(page.locator("[data-piece]")).toHaveCount(0);
+  expect((await audienceRequestsOf(accountId))[0]?.active).toBe(0);
+  await page
+    .getByRole("button", { name: copy.audience.deposit.attempt.dismiss })
+    .click();
+  await expect(page.locator("[data-attempt]")).toHaveCount(0);
+
+  // A real image: re-encoded by the API, the piece shown by its numbers, never by a name; the bytes leave
+  // as they are, without a declared type or a name (RG35, RG85).
+  await picker.setInputFiles(EVIDENCE_FIXTURE);
+  await expect(page.locator("[data-piece]")).toHaveCount(1);
+  await expect(page.locator("[data-piece]")).toContainText(
+    /Capture 1 : \d+ × \d+ px, \d+\s?ko/i,
+  );
+  await expect(main.getByText(/1 capture déposée/)).toBeVisible();
+  expect(puts.at(-1)?.["content-type"]).toBe("application/octet-stream");
+  expect(JSON.stringify(puts)).not.toMatch(/geotagged|rapport-agence/);
+  expect(await main.innerText()).not.toMatch(/geotagged|rapport-agence/);
+  expect((await audienceRequestsOf(accountId))[0]).toMatchObject({
+    status: "draft",
+    active: 1,
+  });
+  await expectAxe(page, "audience, screen 2, fr", [375]);
+
+  // The request is sent; an agent has the last word, the database writes what his door writes.
+  await page
+    .getByRole("button", { name: copy.audience.deposit.submit })
+    .click();
+  await expect(main.getByText(copy.audience.sent.body)).toBeVisible();
+  await expect(main.getByText(copy.verif.request.pending)).toBeVisible();
+  const [sent] = await audienceRequestsOf(accountId);
+  expect(sent).toMatchObject({ status: "pending", active: 1 });
+
+  // Refused for a piece too wide: the reason, what to do next, the way to deposit again (RG56, RG57).
+  await refuseAsAgent(sent!.id, agent.accountId, "evidence_too_wide");
+  await open(page, PROFILE.fr);
+  const refusal = audienceRow(page).locator(
+    '[data-reason="evidence_too_wide"]',
+  );
+  await expect(refusal).toContainText(copy.refusal.reason.evidence_too_wide);
+  await expect(refusal).toContainText(copy.refusal.next.redeposit);
+  await expect(
+    audienceRow(page).getByRole("link", {
+      name: new RegExp(copy.line.cta.audienceRestart),
+    }),
+  ).toBeVisible();
+  await expectNothingForbidden(page, "[data-verification-line=instagram]");
+
+  // The badge: the date, the network, the period and the source with the authenticity sentence at the
+  // same place (RG4, RG5, RG10); only an agent grants it.
+  await grantAudienceAsAgent(accountId, agent.accountId);
+  await open(page, `${AUDIENCE.fr}?network=instagram`);
+  await expect(
+    page.getByRole("heading", { name: copy.audience.done.title }),
+  ).toBeVisible();
+  const badge = page.locator('[data-badge="audience_verified"]');
+  await expect(badge).toContainText(
+    new RegExp(
+      `Audience vérifiée — ${network}, le \\d{1,2}(er)? \\S+ 20\\d\\d`,
+    ),
+  );
+  await expect(badge).toContainText(`tableau de bord ${network}, période du`);
+  await expect(badge).toContainText(
+    "INFLUX ne se prononce pas sur l'authenticité des abonnés",
+  );
+  await expect(main.getByText(/Ce badge arrive à échéance le/)).toBeVisible();
+});
+
+test("a creator deposits the evidence of an audience in English: the condition lifted, one image, the request sent (08 RG87, RG93, RG96)", async ({
+  page,
+}) => {
+  const copy = COPY.en.own;
+  const network = COPY.en.brand.reference.network.instagram;
+  const { accountId } = await seedMember(page, {
+    role: "creator",
+    language: "en",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await seedLines(accountId, false);
+  const agent = await seedColleague("agent", "Noa");
+  await grantAsAgent(accountId, agent.accountId);
+
+  await open(page, PROFILE.en);
+  await expect(audienceRow(page)).toContainText(copy.line.absent.audience);
+  await audienceRow(page)
+    .getByRole("link", { name: new RegExp(copy.line.cta.audienceStart) })
+    .click();
+  await expect(page).toHaveURL(
+    new RegExp(`${AUDIENCE.en}\\?network=instagram$`),
+  );
+  const main = page.getByRole("main");
+  await expect(
+    main.getByText(copy.ownership.affirm.not.authenticity, { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("[data-preview]")).toContainText(
+    new RegExp(`Audience verified — ${network}, on \\w+ \\d{1,2}, 20\\d\\d`),
+  );
+  await expectNothingForbidden(page);
+  await page
+    .getByRole("button", { name: copy.audience.affirm.continue })
+    .click();
+  await expect(
+    main.getByText(copy.audience.deposit.formats.replace("{size}", "8")),
+  ).toBeVisible();
+  await expect(page.locator("[data-instructions]")).toContainText(
+    copy.audience.deposit.instructions.hide.text,
+  );
+  await page.locator("input[type=file]").setInputFiles(EVIDENCE_FIXTURE);
+  await expect(page.locator("[data-piece]")).toContainText(
+    /Screenshot 1: \d+ × \d+ px, \d+\s?kB/,
+  );
+  await expectAxe(page, "audience, screen 2, en", [375]);
+  await page
+    .getByRole("button", { name: copy.audience.deposit.submit })
+    .click();
+  await expect(main.getByText(copy.audience.sent.body)).toBeVisible();
+  expect((await audienceRequestsOf(accountId))[0]).toMatchObject({
+    status: "pending",
+    active: 1,
+  });
 });

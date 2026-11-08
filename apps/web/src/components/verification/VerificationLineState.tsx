@@ -3,8 +3,8 @@
 // The state of the verification of ONE network line, inside its card of block 3 of "mon profil"
 // (docs/mvp/08 RG13; 17 §5.2, §5.3; jalons/l2e, commit 18): a row for the ownership of the account and
 // a row for the audience, each with its own badge or its own request, never a global one. The
-// audience is told to wait for the ownership BEFORE any button (RG12); its own journey is commit
-// 19's. A button leads to the journey of the line, never decides anything: the API says who is
+// audience is told to wait for the ownership BEFORE any button (RG12), and offers its own journey (the
+// deposit of the evidence, commit 19) once the ownership stands. A button leads to the journey of the line, never decides anything: the API says who is
 // verified. No identifier of the account is shown here, the creator's own line holds it above.
 import type { CreatorNetworkLine } from "@influx/contracts/creator-profile";
 import { useLocale, useTranslations } from "next-intl";
@@ -14,12 +14,14 @@ import { memberButtonClasses } from "@/components/member/ui/button-classes";
 import { GROUP_TITLE_CLASSES } from "@/components/creator-profile/creator-profile-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { Link } from "@/i18n/navigation";
-import { ownershipJourneyHref } from "@/lib/member-paths";
+import { audienceJourneyHref, ownershipJourneyHref } from "@/lib/member-paths";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { BadgeLine } from "./BadgeLine";
 import { RequestState } from "./RequestState";
 import type { CreatorVerificationState } from "./use-creator-verification";
 import {
+  AUDIENCE_CTA_KEYS,
+  audienceActionOf,
   isOwnershipEstablished,
   levelRowOf,
   lineOfNetwork,
@@ -84,6 +86,8 @@ export function VerificationLineState({
     const ownership = levelRowOf(held, "account_verified");
     const audience = levelRowOf(held, "audience_verified");
     const action = ownershipActionOf(ownership);
+    const established = isOwnershipEstablished(held);
+    const audienceAction = audienceActionOf(audience, established);
     const noIdentifier =
       (line.handle ?? "").trim() === "" ||
       (line.profileUrl ?? "").trim() === "";
@@ -123,16 +127,33 @@ export function VerificationLineState({
         </div>
         <div className={ROW_CLASSES} data-verification-row="audience_verified">
           <dt className={ROW_LABEL_CLASSES}>{t("line.audience")}</dt>
-          <dd>
+          <dd className="flex flex-col gap-3">
             <RowBody
               row={audience}
               network={network}
               absent={
-                isOwnershipEstablished(held)
+                established
                   ? t("line.absent.audience")
                   : t("line.absent.audienceNeedsAccount")
               }
             />
+            {audienceAction === null ? null : (
+              <div>
+                <Link
+                  href={audienceJourneyHref(line.networkCode, locale)}
+                  className={memberButtonClasses(
+                    audienceAction === "start" ? "primary" : "secondary",
+                  )}
+                  data-verification-action={audienceAction}
+                >
+                  {t(AUDIENCE_CTA_KEYS[audienceAction])}
+                  <span className="sr-only">
+                    {" "}
+                    {t("line.cta.on", { network })}
+                  </span>
+                </Link>
+              </div>
+            )}
           </dd>
         </div>
       </dl>

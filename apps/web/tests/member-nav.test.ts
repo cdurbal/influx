@@ -30,6 +30,7 @@ import {
   spaceOf,
   spaceRedirectOf,
   TERMS_EXEMPT_PAGES,
+  audienceJourneyHref,
   isNetworkCode,
   NETWORK_QUERY_PARAMETER,
   ownershipJourneyHref,
@@ -155,6 +156,7 @@ describe("TD2.4: the active entry of each page", () => {
     accountDetails: "account",
     accountProfile: "account",
     accountVerificationOwnership: "account",
+    accountVerificationAudience: "account",
     accountPreferences: "account",
     accountSessions: "account",
     accountData: "account",
@@ -386,6 +388,7 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     ).toBeNull();
     expect(PARENT_PAGES).toEqual({
       accountVerificationOwnership: "accountProfile",
+      accountVerificationAudience: "accountProfile",
     });
     expect(activePlaceOf("accountVerificationOwnership")).toEqual({
       entry: "account",
@@ -393,6 +396,31 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     });
     expect(ACCOUNT_PAGES).not.toContain("accountVerificationOwnership");
     expect(isTermsExempt("accountVerificationOwnership")).toBe(false);
+  });
+
+  it("addresses the audience journey below the profile too, in both languages, with the network in the query (L2E 19)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountVerificationAudience).toEqual({
+      fr: "compte/profil/verification/audience",
+      en: "account/profile/verification/audience",
+    });
+    expect(audienceJourneyHref("instagram", "fr")).toBe(
+      "/compte/profil/verification/audience?network=instagram",
+    );
+    expect(audienceJourneyHref("youtube", "en")).toBe(
+      "/account/profile/verification/audience?network=youtube",
+    );
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountVerificationAudience", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountVerificationAudience",
+      );
+    }
+    expect(activePlaceOf("accountVerificationAudience")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountVerificationAudience");
+    expect(isTermsExempt("accountVerificationAudience")).toBe(false);
   });
 
   it("reads a network code as the reference list writes it, and nothing else", () => {

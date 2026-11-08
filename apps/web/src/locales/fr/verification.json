@@ -1,6 +1,7 @@
 {
   "meta": {
-    "ownership": "Faire vérifier mon compte"
+    "ownership": "Faire vérifier mon compte",
+    "audience": "Faire vérifier mon audience"
   },
   "verif": {
     "badge": {
@@ -68,7 +69,11 @@
       "renew": "Générer un nouveau code",
       "reconfirm": "Reconfirmer ce compte",
       "see": "Voir la demande",
-      "on": "pour {network}"
+      "on": "pour {network}",
+      "audienceStart": "Faire vérifier mon audience",
+      "audienceResume": "Reprendre le dépôt",
+      "audienceRestart": "Redéposer une capture",
+      "audienceRefresh": "Rafraîchir mon audience"
     }
   },
   "state": {
@@ -193,6 +198,128 @@
     },
     "cancel": "Annuler la demande"
   },
+  "audience": {
+    "title": "Faire vérifier mon audience {network}",
+    "steps": {
+      "affirm": "Ce que le badge affirme",
+      "deposit": "Déposer vos captures",
+      "follow": "Suivi"
+    },
+    "locked": {
+      "title": "Faites d'abord vérifier la propriété du compte",
+      "body": "Un agent INFLUX constate vos chiffres sur le tableau de bord d'un compte dont il sait qu'il vous appartient. La propriété de votre compte {network} doit donc être vérifiée avant son audience.",
+      "cta": "Faire vérifier mon compte {network}"
+    },
+    "affirm": {
+      "title": "Ce que ce badge affirme",
+      "intro": "Quand un agent INFLUX aura constaté vos chiffres sur le tableau de bord de {network}, le badge affirme quatre choses, et pas une de plus.",
+      "items": {
+        "fact": "Que vos chiffres d'audience ont été constatés : abonnés, rythme de publication, commentaires moyens par publication.",
+        "evidence": "Qu'ils l'ont été sur pièce, pas sur déclaration : une capture du tableau de bord natif de {network}.",
+        "agent": "Qu'ils l'ont été par un agent INFLUX nommé. Son nom reste interne.",
+        "date": "Qu'ils l'ont été à une date donnée, sur une période donnée : la date, la période et la source s'affichent à côté du badge."
+      },
+      "refresh": "Votre badge d'audience est à rafraîchir : déposez une capture récente pour en obtenir un nouveau, daté du jour du nouveau constat.",
+      "todo": "Pour l'obtenir, vous déposez une ou plusieurs captures du tableau de bord natif de {network}. Un agent INFLUX lit lui-même les chiffres : vous n'avez rien à saisir.",
+      "continue": "J'ai compris, déposer mes captures",
+      "continueRefresh": "Déposer une capture récente"
+    },
+    "preview": {
+      "title": "Ce que les marques verront",
+      "help": "Chiffres constatés par INFLUX sur le tableau de bord {network}, avec la période couverte par votre capture. INFLUX ne se prononce pas sur l'authenticité des abonnés.",
+      "example": "Exemple : la date affichée sera celle du constat.",
+      "public": {
+        "title": "Visible d'une marque",
+        "level": "Le niveau du badge et le réseau concerné.",
+        "date": "La date du constat.",
+        "period": "La période couverte par vos captures.",
+        "source": "La source : le tableau de bord natif de {network}.",
+        "bands": "Vos chiffres en tranches, jamais en valeurs exactes."
+      },
+      "internal": {
+        "title": "Jamais affiché à une marque",
+        "pieces": "Vos captures, sous aucune forme.",
+        "exact": "Les valeurs exactes constatées : une marque ne les lit qu'après la révélation des identités d'une mise en relation.",
+        "gap": "L'écart entre ce que vous avez déclaré et ce qui a été constaté.",
+        "handle": "Le pseudo de votre compte et le lien vers votre profil.",
+        "agent": "Le nom de l'agent, ses notes internes et l'historique des refus."
+      }
+    },
+    "deposit": {
+      "title": "Déposez vos captures",
+      "expected": {
+        "title": "La capture attendue sur {network}",
+        "instagram": "Les statistiques du compte professionnel (« Insights »). Doivent être lisibles : l'identifiant du compte, le nombre d'abonnés, la couverture, la période affichée, les pays principaux.",
+        "tiktok": "L'espace analytique du compte. Doivent être lisibles : l'identifiant, les abonnés, les vues, la période, les territoires.",
+        "youtube": "L'espace créateur (« YouTube Studio »). Doivent être lisibles : le nom de la chaîne, les abonnés, les vues, la période, les pays.",
+        "other": "L'outil de statistiques natif de {network}, ou son équivalent. Mêmes exigences, sans dérogation : l'identifiant du compte, le nombre d'abonnés et la période affichée doivent être lisibles.",
+        "thirdParty": "Une capture issue d'un outil de mesure tiers ou d'un rapport d'agence, ou des chiffres retapés, ne sont jamais retenus."
+      },
+      "instructions": {
+        "title": "Avant de capturer",
+        "see": {
+          "title": "Ce que nous devons voir",
+          "text": "Le nom de votre compte, la période affichée, le nombre d'abonnés."
+        },
+        "hide": {
+          "title": "Ce que vous devez masquer ou recadrer avant d'envoyer",
+          "text": "Les noms et photos d'autres personnes, les commentaires, les messages, les notifications, tout ce qui ne concerne pas vos chiffres."
+        },
+        "never": {
+          "title": "Ce que nous ne demandons jamais",
+          "text": "Votre mot de passe, un accès à votre compte, une capture de vos messages privés."
+        },
+        "why": "Un espace analytique montre souvent des informations sur d'autres personnes : une capture trop large est refusée, puis supprimée aussitôt."
+      },
+      "formats": "PNG, JPEG ou WebP, {size} Mo au plus par image. Les PDF sont refusés : faites une capture d'écran.",
+      "private": "Vos captures ne sont lues que par les agents INFLUX, jamais par une marque. Le nom du fichier n'est ni lu ni conservé, et les données cachées de l'image, comme le lieu de la prise de vue, sont supprimées.",
+      "pieces": {
+        "title": "Vos captures",
+        "none": "Aucune capture déposée pour le moment.",
+        "count": "{count, plural, one {# capture déposée} other {# captures déposées}}",
+        "item": "Capture {number} : {width} × {height} px, {size}",
+        "itemUnsized": "Capture {number}",
+        "remove": "Retirer",
+        "removeLabel": "Retirer la capture {number}"
+      },
+      "choose": "Ajouter des images",
+      "chooseMore": "Ajouter d'autres images",
+      "chooseHelp": "Vous pouvez en choisir plusieurs à la fois : elles partent une par une.",
+      "attempt": {
+        "waiting": "Image de {size} : en attente d'envoi",
+        "sending": "Image de {size} : envoi en cours",
+        "failed": "Image de {size} : non déposée",
+        "retry": "Réessayer l'envoi",
+        "dismiss": "Écarter"
+      },
+      "submit": "Envoyer ma demande",
+      "submitHelp": "Déposez au moins une capture pour envoyer la demande."
+    },
+    "errors": {
+      "empty": "Ce fichier est vide : choisissez-en un autre.",
+      "unsupported_type": "Ce fichier n'est pas une image PNG, JPEG ou WebP. Les PDF sont refusés : faites une capture d'écran du tableau de bord.",
+      "undecodable": "Cette image n'a pas pu être lue. Choisissez-en une autre, ou refaites la capture.",
+      "too_many_pixels": "Cette image compte trop de pixels. Réduisez sa taille et réessayez.",
+      "too_small": "Cette image est trop petite pour être lisible : son plus grand côté doit mesurer au moins {min} pixels.",
+      "output_too_large": "Cette image est trop lourde une fois traitée. Choisissez-en une plus légère.",
+      "tooLarge": "Cette image dépasse {size} Mo. Choisissez-en une plus légère.",
+      "quota": "Vous avez atteint la limite de dépôts pour aujourd'hui.",
+      "quotaDelay": "Vous avez atteint la limite de dépôts pour aujourd'hui. Vous pourrez de nouveau déposer dans {delay}.",
+      "cap": "Cette demande contient déjà le nombre maximal de captures. Retirez-en une pour en ajouter une autre.",
+      "notDraft": "Cette demande a déjà été envoyée ou n'est plus modifiable. L'écran vient d'être mis à jour.",
+      "gone": "Cette demande n'existe plus. L'écran vient d'être mis à jour.",
+      "unavailable": "Le service ne répond pas. Cette image n'est pas déposée, vos autres captures sont intactes : réessayez dans un instant."
+    },
+    "sent": {
+      "title": "Demande envoyée",
+      "body": "Demande envoyée. Un agent INFLUX constatera vos chiffres sur vos captures.",
+      "private": "Vos captures ne sont lues que par les agents INFLUX."
+    },
+    "done": {
+      "title": "Audience vérifiée",
+      "until": "Ce badge arrive à échéance le {date}. Vous pourrez alors déposer une capture récente pour le conserver."
+    }
+  },
   "failure": {
     "retryLater": "Une demande a été refusée il y a peu. Vous pourrez en faire une nouvelle dans {delay}.",
     "cap": "Plusieurs demandes ont été refusées ces derniers jours : une nouvelle demande n'est pas possible pour le moment.",
@@ -200,6 +327,9 @@
     "notDraft": "Cette demande a déjà été envoyée ou n'est plus modifiable. L'écran vient d'être mis à jour.",
     "gone": "Cette demande n'existe plus. L'écran vient d'être mis à jour.",
     "accountUnavailable": "Votre demande ne peut pas être traitée tant que votre compte est suspendu.",
-    "unavailable": "Le service ne répond pas. Rien n'est perdu : réessayez dans un instant."
+    "unavailable": "Le service ne répond pas. Rien n'est perdu : réessayez dans un instant.",
+    "ownershipPrerequisite": "Faites d'abord vérifier la propriété de ce compte sur ce réseau.",
+    "missingEvidence": "Déposez au moins une capture avant d'envoyer la demande.",
+    "evidenceCap": "Cette demande contient déjà le nombre maximal de captures : retirez-en une avant d'en ajouter."
   }
 }

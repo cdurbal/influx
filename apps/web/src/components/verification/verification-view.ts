@@ -12,12 +12,16 @@
 // lawyer before `production`). No amount, rate, net or price anywhere (CLAUDE.md §2, D48, D78).
 import {
   CREATOR_REJECTION_REASON_CODES,
+  VERIFICATION_EVIDENCE_MAX_UPLOAD_BYTES,
+  VERIFICATION_EVIDENCE_REJECTIONS,
   type CreatorRejectionReasonCode,
   type CreatorVerificationLevel,
   type CreatorVerificationLine,
   type OwnBadge,
+  type OwnEvidence,
   type OwnRefusal,
   type OwnRequest,
+  type VerificationEvidenceRejection,
 } from "@influx/contracts/verification";
 import type { RelayResult } from "@influx/web-platform/relay-client";
 
@@ -328,6 +332,276 @@ export function hostLineIdsOf(
   return hosts;
 }
 
+// --- The steps of the audience journey ---------------------------------------------------------
+
+/**
+ * Where the audience journey of a line stands (08 RG12, RG31 to RG36, RG87, RG95, RG96): `locked`, the
+ * ownership of the account is not established on the network (written before any button, RG12);
+ * `affirm`, what the badge states and what a brand will read, before anything is deposited (RG96);
+ * `deposit`, a draft that holds the pieces; `sent`, the request waits for an agent; `done`, the badge
+ * stands.
+ */
+export type AudienceStage = "locked" | "affirm" | "deposit" | "sent" | "done";
+
+export type AudienceJourney = {
+  stage: AudienceStage;
+  /** The draft (`deposit`) or the pending request (`sent`); null elsewhere. */
+  request: OwnRequest | null;
+  /** The pieces the API holds on the request, those an agent will read (the `active` ones, EC-L2E-7). */
+  pieces: readonly OwnEvidence[];
+  /** The badge, whatever its displayed state. */
+  badge: OwnBadge | null;
+  /** The badge is « à rafraîchir »: the journey is a renewal. */
+  refresh: boolean;
+  /** The first screen, after a refusal or an expiry: what happened to the last request. */
+  previous: RowRequest | null;
+};
+
+/** The pieces of a request that an agent will read: deposited and attached, never a row still being written (modele §3). */
+export function activePiecesOf(request: OwnRequest): readonly OwnEvidence[] {
+  return request.evidence.filter((piece) => piece.state === "active");
+}
+
+/**
+ * Where the creator is on the audience of a line, from what the API says and never from what the screen
+ * remembers: a draft is taken back at its deposit with its pieces, a request sent shows the follow-up,
+ * a badge ends it.
+ */
+export function audienceJourneyOf(
+  line: CreatorVerificationLine,
+): AudienceJourney {
+  const row = levelRowOf(line, "audience_verified");
+  const base = {
+    badge: row.badge,
+    refresh: row.badge?.state === "to_refresh",
+    previous: null,
+    pieces: [],
+  };
+  if (row.request?.kind === "started") {
+    return {
+      ...base,
+      stage: "deposit",
+      request: row.request.request,
+      pieces: activePiecesOf(row.request.request),
+    };
+  }
+  if (row.request?.kind === "requested") {
+    return {
+      ...base,
+      stage: "sent",
+      request: row.request.request,
+      pieces: activePiecesOf(row.request.request),
+    };
+  }
+  if (!isOwnershipEstablished(line)) {
+    return { ...base, stage: "locked", request: null };
+  }
+  if (row.badge?.state === "active") {
+    return { ...base, stage: "done", request: null };
+  }
+  return { ...base, stage: "affirm", request: null, previous: row.request };
+}
+
+/** The position of a stage among the three screens (the follow-up, sent or done, is the third); `locked` has none. */
+export function audienceStepNumberOf(stage: AudienceStage): number | null {
+  switch (stage) {
+    case "locked":
+      return null;
+    case "affirm":
+      return 1;
+    case "deposit":
+      return 2;
+    case "sent":
+    case "done":
+      return 3;
+  }
+}
+
+export const AUDIENCE_STEP_COUNT = 3;
+
+/**
+ * The button the audience row of a line offers (never before the ownership is established, RG12):
+ * nothing while a request waits for an agent or once the badge stands; the badge to refresh asks for a
+ * new request; a refusal that points at the evidence offers a new deposit (08 RG57).
+ */
+export type AudienceAction = "start" | "resume" | "restart" | "refresh";
+
+export function audienceActionOf(
+  row: LevelRow,
+  ownershipEstablished: boolean,
+): AudienceAction | null {
+  if (row.request?.kind === "requested") {
+    return null;
+  }
+  if (row.request?.kind === "started") {
+    return "resume";
+  }
+  if (!ownershipEstablished) {
+    return null;
+  }
+  if (row.badge?.state === "to_refresh") {
+    return "refresh";
+  }
+  if (row.badge !== null) {
+    return null;
+  }
+  if (row.request?.kind === "expired") {
+    return "restart";
+  }
+  if (row.request?.kind === "refused") {
+    return refusalViewOf(row.request.refusal).next === "redeposit"
+      ? "restart"
+      : null;
+  }
+  return "start";
+}
+
+/** The key, in `verification`, of the label of each action of the audience row. */
+export const AUDIENCE_CTA_KEYS = {
+  start: "line.cta.audienceStart",
+  resume: "line.cta.audienceResume",
+  restart: "line.cta.audienceRestart",
+  refresh: "line.cta.audienceRefresh",
+} as const satisfies Record<AudienceAction, string>;
+
+/**
+ * The piece an audience request expects, network by network (08 RG32): the three networks the
+ * reference list names, and the equivalent native tool of any other (`audience.expected.<key>`).
+ */
+export type ExpectedPieceKey = "instagram" | "tiktok" | "youtube" | "other";
+
+export function expectedPieceKeyOf(networkCode: string): ExpectedPieceKey {
+  return networkCode === "instagram" ||
+    networkCode === "tiktok" ||
+    networkCode === "youtube"
+    ? networkCode
+    : "other";
+}
+
+// --- The deposit of a piece --------------------------------------------------------------------
+
+/**
+ * Why a deposit did not give a piece, as the key of its message (`audience.errors.<key>`): the six
+ * typed reasons of the API (an image only: a PDF is `unsupported_type`, 08 RG34), a file the browser
+ * saw too big before sending it, the quota of the day, the request already full, no more a draft, an
+ * unknown request, or the service (network, Storage) that did not answer.
+ */
+export type EvidenceFailureKey =
+  | VerificationEvidenceRejection
+  | "tooLarge"
+  | "quota"
+  | "cap"
+  | "notDraft"
+  | "gone"
+  | "unavailable";
+
+export type EvidenceFailure = {
+  key: EvidenceFailureKey;
+  /** The delay left for `quota` (the `Retry-After` of the answer, until the next UTC midnight). */
+  retryAfterSeconds: number | null;
+  /** The same file is worth sending again: only an unavailable service leaves it so (08 edge case 5, CA67). */
+  retryable: boolean;
+  /** No other file of the queue can succeed after this one (a full request, no more draft, the quota). */
+  stopsQueue: boolean;
+  /** The request is not as the screen drew it: the lines are read again. */
+  reload: boolean;
+};
+
+const EVIDENCE_FAILURE_BASE = {
+  retryAfterSeconds: null,
+  retryable: false,
+  stopsQueue: false,
+  reload: false,
+} as const;
+
+/** Only a file the relay would refuse is stopped here (nothing to read, over the cap); the rest is the API's. */
+export function evidenceFileProblem(
+  sizeInBytes: number,
+): EvidenceFailure | null {
+  if (sizeInBytes === 0) {
+    return { ...EVIDENCE_FAILURE_BASE, key: "empty" };
+  }
+  return sizeInBytes > VERIFICATION_EVIDENCE_MAX_UPLOAD_BYTES
+    ? { ...EVIDENCE_FAILURE_BASE, key: "tooLarge" }
+    : null;
+}
+
+function isEvidenceRejection(
+  issue: string | undefined,
+): issue is VerificationEvidenceRejection {
+  return (VERIFICATION_EVIDENCE_REJECTIONS as readonly string[]).includes(
+    issue ?? "",
+  );
+}
+
+/** What a refused deposit means for the screen, from the code and the issues of the error envelope (apps/api evidence.ts). */
+export function evidenceFailureOf(result: Failed): EvidenceFailure {
+  const issues = result.issues ?? [];
+  switch (result.code) {
+    case "image_rejected": {
+      const reason = issues[0];
+      return {
+        ...EVIDENCE_FAILURE_BASE,
+        key: isEvidenceRejection(reason) ? reason : "undecodable",
+      };
+    }
+    case "payload_too_large":
+      return { ...EVIDENCE_FAILURE_BASE, key: "tooLarge" };
+    case "upload_quota_exceeded":
+      return {
+        ...EVIDENCE_FAILURE_BASE,
+        key: "quota",
+        retryAfterSeconds: result.retryAfterSeconds ?? null,
+        stopsQueue: true,
+      };
+    case "not_found":
+      return {
+        ...EVIDENCE_FAILURE_BASE,
+        key: "gone",
+        stopsQueue: true,
+        reload: true,
+      };
+    case "conflict":
+      if (issues.includes("evidence_cap")) {
+        return {
+          ...EVIDENCE_FAILURE_BASE,
+          key: "cap",
+          stopsQueue: true,
+          reload: true,
+        };
+      }
+      if (issues.includes("request_not_draft")) {
+        return {
+          ...EVIDENCE_FAILURE_BASE,
+          key: "notDraft",
+          stopsQueue: true,
+          reload: true,
+        };
+      }
+      return { ...EVIDENCE_FAILURE_BASE, key: "unavailable", retryable: true };
+    default:
+      return { ...EVIDENCE_FAILURE_BASE, key: "unavailable", retryable: true };
+  }
+}
+
+/** The largest image, in whole mebibytes, as the screen says it (the bound is the contract's, never typed twice). */
+export const EVIDENCE_MAX_MEBIBYTES =
+  VERIFICATION_EVIDENCE_MAX_UPLOAD_BYTES / (1024 * 1024);
+
+/** The size of a stored piece, written for the language: kilobytes under a megabyte, megabytes above (decimal, one digit at most). */
+export function formatByteSize(bytes: number, locale: string): string {
+  const mega = 1_000_000;
+  const unit = bytes < mega ? "kilobyte" : "megabyte";
+  const value =
+    bytes < mega ? Math.max(1, Math.round(bytes / 1000)) : bytes / mega;
+  return new Intl.NumberFormat(locale, {
+    style: "unit",
+    unit,
+    unitDisplay: "short",
+    maximumFractionDigits: unit === "megabyte" ? 1 : 0,
+  }).format(value);
+}
+
 // --- The failure of a call --------------------------------------------------------------------
 
 /** The message of `failure.*` a refused call leads to (the issues of 08 RG14, RG22, RG60, CA12, CA37, CA38). */
@@ -340,7 +614,10 @@ export type FailureKey =
   | "accountUnavailable"
   | "unavailable"
   | "expired"
-  | "duplicate";
+  | "duplicate"
+  | "ownershipPrerequisite"
+  | "missingEvidence"
+  | "evidenceCap";
 
 export type Failure = {
   key: FailureKey;
@@ -385,6 +662,19 @@ export function failureOf(result: Failed): Failure {
     }
     if (has("duplicate_request")) {
       return { key: "duplicate", retryAfterSeconds: null, reload: true };
+    }
+    if (has("ownership_prerequisite")) {
+      return {
+        key: "ownershipPrerequisite",
+        retryAfterSeconds: null,
+        reload: true,
+      };
+    }
+    if (has("missing_evidence")) {
+      return { key: "missingEvidence", retryAfterSeconds: null, reload: true };
+    }
+    if (has("evidence_cap")) {
+      return { key: "evidenceCap", retryAfterSeconds: null, reload: true };
     }
     if (has("request_not_draft") || has("stale_token") || has("entry_closed")) {
       return { key: "notDraft", retryAfterSeconds: null, reload: true };

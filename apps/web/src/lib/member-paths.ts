@@ -16,6 +16,7 @@ export type MemberPage =
   | "accountDetails"
   | "accountProfile"
   | "accountVerificationOwnership"
+  | "accountVerificationAudience"
   | "accountPreferences"
   | "accountSessions"
   | "accountData";
@@ -40,6 +41,11 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   accountVerificationOwnership: {
     fr: "compte/profil/verification/propriete",
     en: "account/profile/verification/ownership",
+  },
+  // "Faire vérifier mon audience" (17 §5.3, C3; L2E, commit 19): the same, for the audience of the line.
+  accountVerificationAudience: {
+    fr: "compte/profil/verification/audience",
+    en: "account/profile/verification/audience",
   },
   accountPreferences: { fr: "compte/preferences", en: "account/preferences" },
   accountSessions: { fr: "compte/sessions", en: "account/sessions" },
@@ -75,6 +81,7 @@ export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
  */
 export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
   accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
+  accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
 };
 
 /** The name of the query parameter that carries the network of a verification journey (a reference-list code, never an identifier of an account). */
@@ -95,6 +102,17 @@ export function ownershipJourneyHref(
   locale: AppLocale,
 ): string {
   return `${memberPageHref("accountVerificationOwnership", locale)}?${NETWORK_QUERY_PARAMETER}=${networkCode}`;
+}
+
+/**
+ * The path of the audience journey of a network, as `ownershipJourneyHref` writes the ownership one
+ * (L2E, commit 19): the page, then the network as a query parameter that never reaches `ops`.
+ */
+export function audienceJourneyHref(
+  networkCode: string,
+  locale: AppLocale,
+): string {
+  return `${memberPageHref("accountVerificationAudience", locale)}?${NETWORK_QUERY_PARAMETER}=${networkCode}`;
 }
 
 /**

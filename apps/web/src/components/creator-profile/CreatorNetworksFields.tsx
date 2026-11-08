@@ -32,7 +32,7 @@ import {
 import type { ProfileLayer } from "@/components/member/ui/layer-badge-classes";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
-import { ClockIcon } from "@/components/ui/icons";
+import { BadgeCheckIcon, ClockIcon } from "@/components/ui/icons";
 import type { ChoiceOption } from "@/components/member/ui/choice-option";
 import {
   GROUP_TITLE_CLASSES,
@@ -64,6 +64,11 @@ const METRICS_CLASSES =
 const METRIC_LIST_CLASSES = "flex flex-col gap-5";
 const FIGURES_CAPTION_CLASSES =
   "flex items-center gap-2 text-sm text-text-secondary";
+// « Constaté par INFLUX » and « déclaré par vous » never look alike (08 RG19, L2E commit 19): the observed
+// caption carries the badge's own icon, a bold weight and the verified tint of the badge, the declared one
+// the clock and the plain text. The words say the source on their own, the colour never does it alone.
+const OBSERVED_CAPTION_CLASSES =
+  "flex items-center gap-2 text-sm font-semibold text-verified-text";
 const BAND_SEEN_CLASSES = "text-sm font-semibold text-text-primary";
 
 /** The keyboard of each field: digits for a count, a decimal pad for the engagement, the default for a text. */
@@ -416,11 +421,25 @@ function NetworkLine({
           {metric("posts", 10)}
           {metric("comments", 15)}
         </div>
-        <p className={FIGURES_CAPTION_CLASSES}>
-          <ClockIcon
-            aria-hidden="true"
-            className="size-(--size-icon-sm) shrink-0"
-          />
+        <p
+          className={
+            line.figuresSource === "agent_observed"
+              ? OBSERVED_CAPTION_CLASSES
+              : FIGURES_CAPTION_CLASSES
+          }
+          data-figures-source={line.figuresSource}
+        >
+          {line.figuresSource === "agent_observed" ? (
+            <BadgeCheckIcon
+              aria-hidden="true"
+              className="size-(--size-icon-sm) shrink-0"
+            />
+          ) : (
+            <ClockIcon
+              aria-hidden="true"
+              className="size-(--size-icon-sm) shrink-0"
+            />
+          )}
           <span data-figures-caption="">{caption}</span>
         </p>
         {stale && line.figuresMeasuredAt !== null ? (
