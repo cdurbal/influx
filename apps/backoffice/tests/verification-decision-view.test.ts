@@ -177,6 +177,9 @@ describe("L2E-22: nothing is pre-filled, everything the agent typed is checked b
     expect(EMPTY_DRAFT).toEqual({
       handle: "",
       code: "",
+      domain: "",
+      channel: null,
+      registrySourceId: null,
       followers: "",
       periodStart: "",
       periodEnd: "",

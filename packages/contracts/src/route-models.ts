@@ -184,10 +184,12 @@ export const BACKOFFICE_PAGE_MODELS: readonly string[] = [
   "/files/verifications-createurs",
   "/files/verifications-createurs/:id",
   "/files/verifications-marques",
+  "/files/verifications-marques/:id",
   "/inscrits",
   "/inscrits/:id",
   "/invitations",
   "/reglages/apollo",
+  "/reglages/sources-registre",
   "/sante-technique",
 ];
 

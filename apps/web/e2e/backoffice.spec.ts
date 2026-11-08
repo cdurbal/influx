@@ -418,6 +418,7 @@ test("CA63: an agent sees no Apollo setting, is refused on its address, and the 
   await expect(nav.getByRole("link", { name: m.nav.accounts })).toBeVisible();
   for (const adminOnly of [
     m.nav.apollo,
+    m.nav.registrySources,
     m.nav.dualControl,
     m.nav.internalAccounts,
   ]) {
@@ -1120,6 +1121,7 @@ test("TN7: the screens of the active entry as sub-entries of the rail, a second 
     m.nav.dualControl,
     m.nav.internalAccounts,
     m.nav.apollo,
+    m.nav.registrySources,
     m.nav.health,
   ]);
   await expect(nav.getByRole("link", { name: m.nav.signups })).toHaveCount(0);

@@ -29,12 +29,15 @@ import {
   stopsEverything,
   type Draft,
   type Problem,
+  type Who,
 } from "./verification-decision-view";
 
 const t = messages.verificationReview.decision;
+const b = messages.verificationReview.brand.decision;
 
 export function VerificationReasonPicker({
   reasons,
+  who = "creator",
   draft,
   problem,
   busy,
@@ -43,6 +46,8 @@ export function VerificationReasonPicker({
   onCancel,
 }: {
   reasons: readonly VerificationReasonRow[];
+  /** The member the refusal speaks to: the creator's words, or the brand's (06 RG66, L2E-23). */
+  who?: Who;
   draft: Draft;
   problem: Problem | null;
   busy: boolean;
@@ -131,7 +136,7 @@ export function VerificationReasonPicker({
               {selected && preview !== null ? (
                 <div className="ml-7 flex flex-col gap-1 border-l-(length:--border-width-thick) border-border-strong pl-3 text-sm text-text-secondary">
                   <p className="font-semibold text-text-primary">
-                    {t.messageToCreator}
+                    {who === "brand" ? b.messageToBrand : t.messageToCreator}
                   </p>
                   {preview.paragraphs.map((paragraph, at) => (
                     <p key={at} className="whitespace-pre-wrap">
@@ -140,7 +145,7 @@ export function VerificationReasonPicker({
                   ))}
                   <p>
                     <span className="font-semibold text-text-primary">
-                      {t.nextStep}
+                      {who === "brand" ? b.nextStep : t.nextStep}
                     </span>{" "}
                     {preview.nextStep}
                   </p>
@@ -182,7 +187,7 @@ export function VerificationReasonPicker({
             htmlFor={ids.message}
             className="text-sm font-semibold text-text-primary"
           >
-            {t.ownMessage}
+            {who === "brand" ? b.ownMessage : t.ownMessage}
           </label>
           <textarea
             id={ids.message}
@@ -197,7 +202,7 @@ export function VerificationReasonPicker({
             className={TEXTAREA_CLASSES}
           />
           <p id={ids.messageHelp} className={`${HELP_CLASSES} tabular-nums`}>
-            {t.ownMessageHelp}{" "}
+            {who === "brand" ? b.ownMessageHelp : t.ownMessageHelp}{" "}
             {t.ownCount(
               draft.memberMessage.trim().length,
               VERIFICATION_MEMBER_MESSAGE_MAX_LENGTH,

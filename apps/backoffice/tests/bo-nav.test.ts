@@ -77,6 +77,7 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
       "dualControl",
       "internalAccounts",
       "apollo",
+      "registrySources",
       "health",
     ]);
   });
@@ -118,6 +119,7 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
     ],
     ["/comptes-internes", "admin", "internalAccounts"],
     ["/reglages/apollo", "admin", "apollo"],
+    ["/reglages/sources-registre", "admin", "registrySources"],
     ["/sante-technique", "admin", "health"],
   ];
 
@@ -180,6 +182,7 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
       "dualControl",
       "internalAccounts",
       "apollo",
+      "registrySources",
       "health",
     ]);
     expect(admin.href).toBe(subEntriesOf(admin)[0]?.href);

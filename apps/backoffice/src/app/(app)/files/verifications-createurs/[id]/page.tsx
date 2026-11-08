@@ -13,7 +13,7 @@ export default async function VerificationCreatorEntryPage({
   const { id } = await params;
   return (
     <Suspense>
-      <VerificationEntryScreen key={id} id={id} />
+      <VerificationEntryScreen key={id} id={id} view="creators" />
     </Suspense>
   );
 }

@@ -118,6 +118,7 @@ export const messages = {
     memberInvitations: "Invitations",
     dualControl: "Double validation",
     apollo: "Réglages Apollo",
+    registrySources: "Sources de registre",
     internalAccounts: "Comptes internes",
     health: "Santé technique",
   },
@@ -1269,12 +1270,14 @@ export const messages = {
     pageNext: "Page suivante",
     pageFirst: "Première page",
     pageEmpty: "Cette page ne contient plus d’entrée.",
+    legalNameUnset: "non demandée",
     tableLabel: "Entrées de la file Profils marque à valider",
     columns: {
       state: "État",
       due: "Échéance",
       kind: "Origine",
       brand: "Marque",
+      legalName: "Raison sociale",
       country: "Pays",
       completeness: "Complétude",
       modified: "Champs modifiés",
@@ -1781,6 +1784,7 @@ export const messages = {
   verificationReview: {
     titleCreator: (network: string, level: string) =>
       `Vérification ${network} — ${level}`,
+    titleBrand: (name: string) => `Vérification de la marque — ${name}`,
     subtitle: (submittedAt: string) => `Demande déposée le ${submittedAt}`,
     back: "Retour à la file",
     loading: "Ouverture de la demande…",
@@ -2134,6 +2138,132 @@ export const messages = {
         name_mismatch: "Raison sociale différente du registre",
       } as Readonly<Record<string, string>>,
     },
+    /**
+     * L2E-23 (06 RG46 to RG52, RG61, CA28, CA29; 17b §3.7; l2e/modele.md §5): the decision screen of a brand's
+     * request. Nothing in common with the creator's (no piece, no handle, no figure): a domain and a code to
+     * find online, a legal name and a number to find in a public register. The messages to the brand are never
+     * written here: they come from apps/api with the reasons (what the agent reads is what is sent).
+     */
+    brand: {
+      facts: {
+        brand: "Marque (nom commercial)",
+        domain: "Domaine déclaré",
+        domainHelp:
+          "Pour retrouver le site : jamais une valeur à recopier. Vous tapez ce que vous lisez.",
+        legalName: "Raison sociale (bloc interne)",
+        registrationCountry: "Pays d’immatriculation",
+        registrationNumber: "Numéro d’immatriculation",
+        detailsHelp:
+          "À chercher dans le registre public : vous constatez vous-même la correspondance, jamais une capture fournie par la marque.",
+        detailsMissing: "Le bloc interne n’est pas renseigné.",
+        unset: "non renseigné",
+      },
+      procedure: {
+        admissibility:
+          "Avant tout : un compte suspendu ou en cours de suppression se refuse avec le motif « Compte suspendu ou en cours de suppression ».",
+        steps: [
+          "Ouvrez le site de la marque, ou interrogez les enregistrements DNS de son domaine : le code INFLUX- suivi de huit signes se trouve dans un enregistrement TXT du domaine, ou sur une page du domaine ou d’un de ses sous-domaines.",
+          "Tapez ci-dessous le domaine où vous l’avez lu, la façon dont il est publié et le code lu : INFLUX compare lui-même le code à celui de la demande, il ne s’affiche jamais ici.",
+          "Ouvrez la source du registre public ci-dessous, dans un nouvel onglet, et cherchez la raison sociale et le numéro d’immatriculation affichés plus haut : la raison sociale doit correspondre à celle du registre.",
+          "Choisissez la source que vous avez consultée : vous ne la saisissez jamais librement.",
+        ],
+        never:
+          "Vous ne demandez jamais de capture d’écran à la marque et ne la contactez jamais hors de la plateforme : une capture se fabrique. Code absent ou registre sans l’immatriculation : refusez avec le motif qui correspond ; il n’existe aucun badge dégradé.",
+        sourcesLink: "Voir toutes les sources de registre (lecture seule)",
+      },
+      source: {
+        title: "Registre public à consulter",
+        none: "Aucune source de registre n’est active pour ce pays.",
+        noneAction:
+          "Refusez avec le motif « Immatriculation non vérifiable dans ce pays » : il n’y a pas de badge dégradé, et une nouvelle demande reste possible dès qu’une source est ajoutée par un administrateur.",
+        open: (name: string) => `Ouvrir ${name} (nouvel onglet)`,
+        noLink: "adresse non ouvrable depuis cet écran",
+        line: (name: string, type: string, checkedOn: string) =>
+          `${name} — ${type}, page contrôlée le ${checkedOn}`,
+        types: {
+          national: "registre national",
+          e_justice: "portail européen e-Justice",
+          gleif: "base mondiale des identifiants LEI (GLEIF)",
+        },
+      },
+      record: {
+        lead: "Saisi par vous, jamais pré-rempli : vous tapez ce que vous lisez. Le domaine déclaré ne sert qu’à retrouver le site.",
+        domain: "Domaine où le code a été lu",
+        domainHelp:
+          "Le domaine de la marque ou un de ses sous-domaines, sans https:// ni chemin (ex. maison.example).",
+        channelLegend: "Comment le code est publié",
+        channels: {
+          dns_txt: "Enregistrement DNS TXT du domaine",
+          web_page: "Page du site de la marque",
+        },
+        code: "Code lu sur le domaine",
+        codeHelp: "INFLUX- suivi de huit signes, tel que vous le lisez.",
+        registryLegend: "Source du registre que vous avez consultée",
+        registryHelp:
+          "Parmi les sources de ce pays, et la base mondiale LEI en repli.",
+      },
+      problems: {
+        domain: "Saisissez le domaine où vous avez lu le code.",
+        domainShape:
+          "Le domaine s’écrit en minuscules, sans https:// ni chemin : lettres, chiffres, points et tirets (3 à 100 signes).",
+        domainRefused:
+          "Ce domaine n’est ni celui de la marque ni un de ses sous-domaines. Relisez-le ; si le code n’est pas sur son domaine, refusez avec le motif « Code introuvable sur le domaine ».",
+        channel:
+          "Choisissez comment le code est publié : enregistrement DNS TXT ou page du site.",
+        code: "Saisissez le code lu sur le domaine : INFLUX- suivi de huit signes.",
+        codeMismatch:
+          "Le code saisi ne correspond pas à celui de cette demande. Relisez-le sur le domaine ; s’il est absent ou différent, refusez avec le motif « Code introuvable sur le domaine ».",
+        registry: "Choisissez la source du registre que vous avez consultée.",
+        noSource:
+          "Aucune source de registre n’est active pour ce pays : accorder est impossible. Refusez avec le motif « Immatriculation non vérifiable dans ce pays ».",
+        noSourceRefused:
+          "Cette source n’est plus active, ou le pays n’en a aucune : rien n’a été enregistré. Relisez le dossier ; sans source active, refusez avec le motif « Immatriculation non vérifiable dans ce pays ».",
+        domainRequired:
+          "La marque n’a pas de domaine sur son profil : rien n’a été enregistré. Refusez avec un motif, ou marquez la demande « à réexaminer ».",
+        detailsRequired:
+          "Le bloc interne de la marque est incomplet : rien n’a été enregistré. Refusez avec un motif, ou marquez la demande « à réexaminer ».",
+      },
+      decision: {
+        grant: "Accorder « Marque vérifiée »",
+        expiry:
+          "Le badge « Marque vérifiée » est daté de la décision et périme : à renouveler à son échéance (durée de validité en réglage, 12 mois au départ).",
+        notAffirm:
+          "Ce badge n’affirme ni la solvabilité, ni le sérieux de la marque, ni la qualité de ses campagnes.",
+        grantRecap: (
+          domain: string,
+          channel: string,
+          source: string,
+          language: string,
+        ) =>
+          `Le badge « Marque vérifiée » sera accordé : le code a été constaté sur ${domain} (${channel}), et l’immatriculation contrôlée dans la source « ${source} ». La marque en sera informée par e-mail, en ${language}.`,
+        messageToBrand: "Message envoyé à la marque :",
+        nextStep: "Ce que la marque pourra faire :",
+        ownMessage:
+          "Message à la marque (20 à 500 caractères, sans coordonnée)",
+        ownMessageHelp:
+          "Ce texte est envoyé tel quel à la marque, à la suite de la phrase ci-dessus.",
+        messageTooShort:
+          "Le message à la marque doit compter au moins 20 caractères.",
+        messageTooLong: "Le message à la marque dépasse 500 caractères.",
+        invalidMessage:
+          "Le message à la marque est refusé : longueur ou contenu invalide.",
+        commentHelp:
+          "Visible des seuls agents INFLUX : jamais de la marque, ni dans l’e-mail.",
+        reexamineReasons: {
+          registry_unavailable: "Registre public indisponible",
+          network_unreachable: "Site de la marque injoignable",
+        } as Readonly<Record<string, string>>,
+        grantedNotice: (brand: string) =>
+          `Marque vérifiée accordée à ${brand}. La marque en est informée par e-mail.`,
+        refusedNotice: (brand: string, reason: string) =>
+          `Demande de ${brand} refusée — ${reason}. La marque en est informée par e-mail.`,
+        closedNotice: (brand: string, reason: string) =>
+          `Demande de ${brand} close — ${reason}. La marque en est informée par e-mail.`,
+        reexaminedNotice: (brand: string) =>
+          `Demande de ${brand} marquée « à réexaminer » : elle reste dans la file.`,
+      },
+      closedMessage: "Texte de l’agent ajouté au message à la marque :",
+    },
     closed: {
       approved: "Cette demande est close : le badge a été accordé.",
       rejected: "Cette demande est close : elle a été refusée.",
@@ -2155,6 +2285,88 @@ export const messages = {
       release: "rendre la main et revenir à la file",
       escape: "fermer le panneau en cours, sans perdre la saisie",
       help: "afficher ou masquer ce rappel",
+    },
+  },
+  /**
+   * L2E-23 (06 RG52, RG101; D79 (12); l2e/registres.md; 17b §3.11): the registry sources of the brand's
+   * registration. Read by an agent, written by an administrator only; the former and the new value of every
+   * change are in the register of the database, and shown here before the change is confirmed.
+   */
+  registrySources: {
+    title: "Sources de registre",
+    lead: "Les registres publics gratuits que l’agent consulte à la main pour contrôler l’immatriculation d’une marque : une source active par pays, la base mondiale LEI en repli. INFLUX n’interroge jamais ces pages.",
+    leadAdmin:
+      "Vous activez une source « à confirmer » après avoir contrôlé à la main que sa recherche est gratuite, et vous corrigez son nom, sa page ou son jour de contrôle. Chaque changement est journalisé avec l’ancienne et la nouvelle valeur.",
+    leadAgent:
+      "Lecture seule : seul un administrateur modifie une source. Une source manquante pour un pays se signale à un administrateur.",
+    addLimit:
+      "L’ajout d’une source pour un pays qui n’en a pas encore, ou pour un État américain, n’est pas encore possible depuis cet écran : la base ne porte qu’une source par pays, sans État (EC-L2E-23-1).",
+    error: "Les sources n’ont pas pu être chargées.",
+    retry: "Réessayer",
+    inactiveTitle: "À confirmer ou désactivées",
+    inactiveNote:
+      "Ces sources ne sont pas consultées par les agents : une marque de ce pays est refusée avec le motif « Immatriculation non vérifiable dans ce pays ». Un administrateur l’active après avoir contrôlé la gratuité à la main.",
+    inactiveNone: "Aucune source inactive.",
+    activeTitle: "Sources actives",
+    tableLabel: (title: string) => `Registres : ${title}`,
+    columns: {
+      country: "Pays",
+      name: "Source",
+      type: "Type",
+      checked: "Contrôlée le",
+      updated: "Modifiée le",
+      state: "État",
+      action: "Action",
+    },
+    allCountries: "Tous les pays (repli)",
+    types: {
+      national: "Registre national",
+      e_justice: "Portail e-Justice",
+      gleif: "Base LEI (GLEIF)",
+    },
+    state: { active: "Active", inactive: "Inactive" },
+    open: (name: string) => `Ouvrir ${name} (nouvel onglet)`,
+    noLink: "adresse non ouvrable",
+    edit: (name: string) => `Modifier ${name}`,
+    editorTitle: (name: string) => `Modifier la source — ${name}`,
+    countryLine: (country: string) => `Pays : ${country}`,
+    fields: {
+      name: "Nom de la source",
+      url: "Page de recherche (https)",
+      urlHelp:
+        "Une adresse https:// seulement, ouverte à la main par les agents : jamais un agrégateur privé ni une page payante à l’acte.",
+      checkedOn: "Jour du contrôle à la main",
+      checkedOnHelp:
+        "Le jour où vous avez ouvert la page et lu que la recherche est gratuite : pas dans le futur.",
+      active: "Source active : les agents la consultent",
+      activeHelp:
+        "Une seule source active par pays : désactivez d’abord l’autre.",
+    },
+    review: "Voir le changement",
+    reviewTitle: "Confirmer ce changement ?",
+    reviewLead:
+      "Ancienne et nouvelle valeur, telles qu’elles seront journalisées. Rien n’est enregistré tant que vous n’avez pas confirmé.",
+    reviewTable: "Ancienne et nouvelle valeur de la source",
+    reviewColumns: { field: "Champ", before: "Avant", after: "Après" },
+    reviewNoChange: "Aucun champ n’a changé : il n’y a rien à enregistrer.",
+    confirm: "Confirmer le changement",
+    back: "Corriger",
+    cancel: "Annuler",
+    busy: "Enregistrement…",
+    activeWords: { yes: "active", no: "inactive" },
+    saved: (name: string) =>
+      `Source « ${name} » enregistrée : l’ancienne et la nouvelle valeur sont au journal.`,
+    problems: {
+      name: "Le nom compte de 2 à 160 caractères, sans caractère de contrôle.",
+      url: "L’adresse doit commencer par https:// et ne contenir ni espace ni caractère de contrôle (500 caractères au plus).",
+      checkedOn: "Saisissez le jour du contrôle.",
+      checkedOnFuture: "Le jour du contrôle ne peut pas être dans le futur.",
+      checkedOnRefused:
+        "Le jour du contrôle est refusé : il ne peut pas être dans le futur.",
+      fieldRefused:
+        "Un champ est refusé : relisez le nom, l’adresse (https, sans espace) et le jour du contrôle, qui ne peut pas être dans le futur.",
+      activeExists:
+        "Une autre source est déjà active pour ce pays : désactivez-la d’abord, puis activez celle-ci.",
     },
   },
   /** The link of the queues to the "Santé technique" screen (15 §C, "file bloquée"): admins only. */

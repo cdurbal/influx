@@ -155,6 +155,7 @@ describe("TN5: the sub-entries of the active entry, in the one <nav> of the rail
       messages.nav.dualControl,
       messages.nav.internalAccounts,
       messages.nav.apollo,
+      messages.nav.registrySources,
       messages.nav.health,
     ]) {
       expect(markup).not.toContain(`${adminOnly}</a>`);

@@ -1,14 +1,16 @@
 "use client";
 
-// The decision screen of a creator's verification request, queue 4, "Vérifications des créateurs" (docs/
-// mvp/08 RG43 to RG59, RG64, RG98, CA25 to CA33; 17b §3.7; jalons/l2e/modele.md §4, §6; L2E-22). Opening is
-// claiming: the page calls POST …/open when it appears, and the register of apps/api keeps the opening.
+// The decision screen of a verification request, queue 4, in either view: "Vérifications des créateurs"
+// (docs/mvp/08 RG43 to RG59, RG64, RG98, CA25 to CA33; 17b §3.7; jalons/l2e/modele.md §4, §6; L2E-22) or
+// "Vérifications des marques" (06 RG46 to RG52, RG61; L2E-23: its own blocks, none of the creator's pieces
+// or figures). Opening is claiming: the page calls POST …/open when it appears, and the register of apps/api keeps the opening.
 // Everything the decision needs is on this one screen (RG55): the request, the pieces opened one by one,
 // the procedure, what the agent types, the decision. Three modes: it decides (the claim is the caller's),
 // it reads (a colleague holds the request: a sentence, never an error screen, and no dossier), or the
 // request is closed. It only draws: the state and the calls are `use-verification-entry.ts`, the wording
 // and the checks `verification-decision-view.ts`; the database and apps/api decide.
 import Link from "next/link";
+import type { VerificationQueueView } from "@influx/contracts/verification";
 import { messages } from "@/messages/fr";
 import {
   CODE_TEXT_CLASSES,
@@ -33,16 +35,19 @@ import {
   StatusBanner,
 } from "./ReviewBanners";
 import { useMe } from "./Shell";
+import { useVerificationEntry } from "./use-verification-entry";
 import {
-  useVerificationEntry,
-  VERIFICATION_LIST,
-} from "./use-verification-entry";
+  BrandProcedureBlock,
+  BrandRecordBlock,
+  BrandRequestBlock,
+} from "./VerificationBrandBlocks";
 import { VerificationDecision } from "./VerificationDecision";
 import {
   claimBanner,
   expiryOf,
   forcedReleaseNotice,
   isAudience,
+  isBrand,
   loggedLine,
   modeOf,
   overdueBanner,
@@ -50,6 +55,7 @@ import {
 } from "./verification-decision-view";
 import { ClosedBlock, RequestBlock } from "./VerificationDossierBlocks";
 import { EvidenceBlock, ProcedureBlock } from "./VerificationEvidenceBlocks";
+import { VERIFICATION_VIEW_ADDRESS } from "./verification-queue-view";
 import { RecordBlock } from "./VerificationRecordBlock";
 import { formatDateTime } from "./view-model";
 
@@ -109,11 +115,21 @@ function Shortcuts({
   );
 }
 
-export function VerificationEntryScreen({ id }: { id: string }) {
+export function VerificationEntryScreen({
+  id,
+  view: queue,
+}: {
+  id: string;
+  view: VerificationQueueView;
+}) {
   const me = useMe();
-  const entry = useVerificationEntry(id);
+  const list = VERIFICATION_VIEW_ADDRESS[queue];
+  const entry = useVerificationEntry(id, queue, list);
   const { screen, panel, problem, busy, evidence } = entry;
-  const heading = messages.queue.verification_creators;
+  const heading =
+    queue === "brands"
+      ? messages.queue.verification_brands
+      : messages.queue.verification_creators;
 
   if (entry.done !== null) {
     return (
@@ -123,7 +139,7 @@ export function VerificationEntryScreen({ id }: { id: string }) {
           notice={entry.done}
           empty
           busy={false}
-          list={VERIFICATION_LIST}
+          list={list}
           onCancel={() => undefined}
           onClose={() => undefined}
         />
@@ -157,7 +173,7 @@ export function VerificationEntryScreen({ id }: { id: string }) {
               {messages.common.retry}
             </button>
           ) : null}
-          <Link href={VERIFICATION_LIST} className={SMALL_SECONDARY_CLASSES}>
+          <Link href={list} className={SMALL_SECONDARY_CLASSES}>
             {t.back}
           </Link>
         </div>
@@ -176,6 +192,7 @@ export function VerificationEntryScreen({ id }: { id: string }) {
   const isAdmin = me.role === "admin";
   const busyNow = busy !== null;
   const audience = isAudience(view);
+  const brand = isBrand(view);
   const decisionPanel =
     panel === "grant" || panel === "reject" || panel === "reexamine"
       ? panel
@@ -188,7 +205,7 @@ export function VerificationEntryScreen({ id }: { id: string }) {
           notice={entry.chain}
           empty={false}
           busy={busyNow}
-          list={VERIFICATION_LIST}
+          list={list}
           onCancel={() => entry.cancelChain(view)}
           onClose={entry.closeChain}
         />
@@ -217,7 +234,7 @@ export function VerificationEntryScreen({ id }: { id: string }) {
       <p className={HELP_CLASSES}>{loggedLine(view, me.email)}</p>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Link href={VERIFICATION_LIST} className={SMALL_SECONDARY_CLASSES}>
+        <Link href={list} className={SMALL_SECONDARY_CLASSES}>
           {t.back}
         </Link>
         {mode === "deciding" ? (
@@ -280,7 +297,7 @@ export function VerificationEntryScreen({ id }: { id: string }) {
       ) : null}
 
       {mode === "closed" ? <ClosedBlock view={view} /> : null}
-      <RequestBlock view={view} />
+      {brand ? <BrandRequestBlock view={view} /> : <RequestBlock view={view} />}
 
       {mode === "deciding" ? (
         <>
@@ -293,17 +310,31 @@ export function VerificationEntryScreen({ id }: { id: string }) {
               onClose={evidence.close}
             />
           ) : null}
-          <ProcedureBlock view={view} />
-          <RecordBlock
-            view={view}
-            draft={entry.draft}
-            problem={panel === "force" ? null : problem}
-            comparison={entry.comparison}
-            busy={busyNow}
-            comparing={busy === "compare"}
-            onDraft={entry.setDraft}
-            onCompare={() => entry.compare(view)}
-          />
+          {brand ? (
+            <>
+              <BrandProcedureBlock view={view} />
+              <BrandRecordBlock
+                view={view}
+                draft={entry.draft}
+                problem={panel === "force" ? null : problem}
+                onDraft={entry.setDraft}
+              />
+            </>
+          ) : (
+            <>
+              <ProcedureBlock view={view} />
+              <RecordBlock
+                view={view}
+                draft={entry.draft}
+                problem={panel === "force" ? null : problem}
+                comparison={entry.comparison}
+                busy={busyNow}
+                comparing={busy === "compare"}
+                onDraft={entry.setDraft}
+                onCompare={() => entry.compare(view)}
+              />
+            </>
+          )}
           <VerificationDecision
             view={view}
             draft={entry.draft}

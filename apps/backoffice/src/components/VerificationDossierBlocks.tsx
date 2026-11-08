@@ -27,6 +27,7 @@ import {
   alertLine,
   badgeLine,
   closedLines,
+  isBrand,
   levelName,
   profileLinkOf,
   reasonLabel,
@@ -52,7 +53,9 @@ export function ClosedBlock({ view }: { view: VerificationOpenResponse }) {
       ))}
       {decision?.memberMessage == null ? null : (
         <p className="text-sm text-text-primary">
-          <span className="font-semibold">{t.closed.message}</span>{" "}
+          <span className="font-semibold">
+            {isBrand(view) ? t.brand.closedMessage : t.closed.message}
+          </span>{" "}
           <span className="whitespace-pre-wrap">{decision.memberMessage}</span>
         </p>
       )}
@@ -184,14 +187,18 @@ export function RequestBlock({ view }: { view: VerificationOpenResponse }) {
   );
 }
 
-function DossierHistory({
+export function DossierHistory({
   dossier,
   view,
 }: {
   dossier: NonNullable<VerificationOpenResponse["dossier"]>;
   view: VerificationOpenResponse;
 }) {
-  const network = networkWords(view.entry.networkCode);
+  // a brand has no network: its badge is the account's, never one per network
+  const network =
+    view.entry.networkCode === null
+      ? null
+      : networkWords(view.entry.networkCode);
   return (
     <>
       <div className="flex flex-col gap-1">

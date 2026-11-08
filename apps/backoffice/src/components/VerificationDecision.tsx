@@ -9,7 +9,6 @@
 // screen: closing a panel with ‹Échap› loses nothing (RG116). No rule here: the server decides.
 import {
   VERIFICATION_INTERNAL_COMMENT_MAX_LENGTH,
-  VERIFICATION_REEXAMINE_REASON_CODES,
   type VerificationOpenResponse,
 } from "@influx/contracts/verification";
 import { useEffect, useId, useRef } from "react";
@@ -29,6 +28,9 @@ import type { VerificationPanel } from "./use-verification-entry";
 import {
   figuresRecap,
   isAudience,
+  isBrand,
+  reexamineReasonsOf,
+  whoOf,
   type Draft,
   type Problem,
 } from "./verification-decision-view";
@@ -36,6 +38,7 @@ import { VerificationReasonPicker } from "./VerificationReasonPicker";
 import { networkWords } from "./verification-queue-view";
 
 const t = messages.verificationReview.decision;
+const b = messages.verificationReview.brand.decision;
 
 /** The panels the decision block owns; the others (the lifting of a claim, the help) are the screen's. */
 export type DecisionPanel = Extract<
@@ -108,6 +111,7 @@ export function VerificationDecision({
   }, [panel]);
 
   const audience = isAudience(view);
+  const brand = isBrand(view);
   const language =
     (messages.languages as Readonly<Record<string, string>>)[
       view.account.preferredLanguage
@@ -153,15 +157,17 @@ export function VerificationDecision({
           }
           className={TEXTAREA_CLASSES}
         />
-        <p className={HELP_CLASSES}>{t.commentHelp}</p>
+        <p className={HELP_CLASSES}>{brand ? b.commentHelp : t.commentHelp}</p>
         {commentProblem === null ? null : (
           <ErrorNotice>{commentProblem.text}</ErrorNotice>
         )}
       </div>
 
       <div className="flex flex-col gap-1 text-sm text-text-primary">
-        <p>{audience ? t.expiryAudience : t.expiryAccount}</p>
-        <p>{t.notAffirm}</p>
+        <p>
+          {brand ? b.expiry : audience ? t.expiryAudience : t.expiryAccount}
+        </p>
+        <p>{brand ? b.notAffirm : t.notAffirm}</p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -180,7 +186,7 @@ export function VerificationDecision({
           }}
           className={SMALL_PRIMARY_CLASSES}
         >
-          {audience ? t.grantAudience : t.grantAccount}
+          {brand ? b.grant : audience ? t.grantAudience : t.grantAccount}
           <KeyHint keys="‹v›" />
         </button>
         <button
@@ -222,14 +228,27 @@ export function VerificationDecision({
             {t.grantTitle}
           </h3>
           <p className="text-sm text-text-primary">
-            {audience
-              ? t.grantRecapAudience(
-                  network,
-                  handle,
-                  figuresRecap(draft),
+            {brand
+              ? b.grantRecap(
+                  draft.domain.trim().toLowerCase(),
+                  draft.channel === null
+                    ? ""
+                    : messages.verificationReview.brand.record.channels[
+                        draft.channel
+                      ],
+                  view.dossier?.brand?.registrySources.find(
+                    (source) => source.id === draft.registrySourceId,
+                  )?.name ?? "",
                   language,
                 )
-              : t.grantRecapAccount(network, handle, language)}
+              : audience
+                ? t.grantRecapAudience(
+                    network,
+                    handle,
+                    figuresRecap(draft),
+                    language,
+                  )
+                : t.grantRecapAccount(network, handle, language)}
           </p>
           {comment === "" ? null : (
             <p className="text-sm text-text-secondary">
@@ -267,6 +286,7 @@ export function VerificationDecision({
       {panel === "reject" ? (
         <VerificationReasonPicker
           reasons={view.reasons}
+          who={whoOf(view)}
           draft={draft}
           problem={problem}
           busy={busyKind === "reject"}
@@ -297,7 +317,7 @@ export function VerificationDecision({
             <legend className="mb-1 text-sm font-semibold text-text-primary">
               {t.reexamineLegend}
             </legend>
-            {VERIFICATION_REEXAMINE_REASON_CODES.map((code) => (
+            {reexamineReasonsOf(view).map((code) => (
               <label
                 key={code}
                 className="flex min-h-(--size-bo-control) items-center gap-2 text-sm text-text-primary"
@@ -310,7 +330,9 @@ export function VerificationDecision({
                   onChange={() => onDraft({ ...draft, reexamineCode: code })}
                   className="size-(--size-checkbox)"
                 />
-                {t.reexamineReasons[code]}
+                {brand
+                  ? (b.reexamineReasons[code] ?? code)
+                  : t.reexamineReasons[code]}
               </label>
             ))}
           </fieldset>

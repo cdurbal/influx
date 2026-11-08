@@ -13,7 +13,7 @@
 // real image sent as raw bytes and a PDF refused without costing the rest, the follow-up, a refusal and
 // the badge with its period and its source. No agent screen is run here (commits 21 to 23), no amount,
 // rate or price anywhere (D78).
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import {
   connectAsLocalSuperuser,
@@ -1494,4 +1494,193 @@ test("an agent decides an audience request, from the creator's deposit to the da
     ),
   );
   await expect(badge).toContainText(`tableau de bord ${network}, période du`);
+});
+
+// L2E-23 (06 RG46 à RG52, RG61, RG101, CA28, CA29; 08 RG43; 17b §3.7, §3.11): the decision of a brand's request
+// and the registry sources, one case, in French only (the backoffice has no English before D36). The agent
+// reads the dossier with no piece, nothing pre-filled, the register to open apart; a code that is not the
+// request's is refused by the database, the right one grants « Marque vérifiée ». He reads the sources with
+// no button to write; an administrator activates a source « à confirmer » after seeing the former and the new
+// value, and the register of the database keeps both.
+
+const CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+
+/** The internal block of the brand and the domain code of its request, as the doors of 0222 leave them. */
+async function seedBrandDossier(
+  accountId: string,
+): Promise<{ requestId: string; code: string; domain: string }> {
+  const code = `INFLUX-${Array.from({ length: 8 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join("")}`;
+  return withSql(async (sql) => {
+    const [request] = await sql<{ id: string }[]>`
+      select id::text from verification.verification_requests
+       where account_id = ${accountId} and level = 'brand_verified' and status = 'pending'`;
+    const [profile] = await sql<{ domain: string }[]>`
+      select website_domain as domain from profiles.advertiser_profiles
+       where account_id = ${accountId}`;
+    await sql`
+      insert into profiles.advertiser_internal_details
+        (account_id, legal_name, registration_country_code, registration_number)
+      values (${accountId}, 'Maison E2E SRL', 'BE', '0123.456.789')`;
+    await sql`
+      insert into verification.ownership_codes (request_id, account_id, kind, code, expires_at)
+      values (${request?.id ?? ""}, ${accountId}, 'domain', ${code}, now() + interval '7 days')`;
+    return {
+      requestId: request?.id ?? "",
+      code,
+      domain: profile?.domain ?? "",
+    };
+  });
+}
+
+test("an agent decides a brand's request, then reads the registry sources an administrator keeps: the code compared by the database, the register chosen and never typed, the change shown before it is saved (06 RG46 à RG52, RG101, CA28, CA29)", async ({
+  page,
+}) => {
+  const T = bo.verificationReview;
+  const B = T.brand;
+  const S = bo.registrySources;
+  const tag = runTag("vb");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const agent = await seedInternal(page, "agent", "Lou");
+  const owner = await seedColleague("agent", "Noa");
+  const [seeded] = await seedQueueRequests([
+    {
+      kind: "brand",
+      owner: owner.accountId,
+      dueInMinutes: 120,
+      name: `Maison ${tag}`,
+    },
+  ]);
+  const { requestId, code, domain } = await seedBrandDossier(seeded!.accountId);
+
+  // The dossier: the trading name, the internal block and the register to open; no piece, no figure, no code.
+  await page.goto(
+    `${BACKOFFICE_ORIGIN}/files/verifications-marques/${requestId}`,
+  );
+  await expect(
+    page.getByRole("heading", {
+      level: 1,
+      name: T.titleBrand(`Maison ${tag}`),
+    }),
+  ).toBeVisible();
+  const main = page.getByRole("main");
+  await expect(main).toContainText("Maison E2E SRL");
+  await expect(main).toContainText("0123.456.789");
+  await expect(main).toContainText(domain);
+  await expect(main.getByText(B.procedure.never)).toBeVisible();
+  await expect(
+    main.getByRole("heading", { level: 2, name: T.sections.evidence }),
+  ).toHaveCount(0);
+  const open = main.getByRole("link", {
+    name: B.source.open("e-Justice Portal, Find a company (BRIS)"),
+  });
+  await expect(open).toHaveAttribute(
+    "href",
+    /^https:\/\/e-justice\.europa\.eu\//,
+  );
+  await expect(open).toHaveAttribute("target", "_blank");
+  await expect(open).toHaveAttribute("rel", /noreferrer/);
+  expect(await main.innerText()).not.toContain(code);
+  expect(
+    await main
+      .locator('input[type="text"]')
+      .evaluateAll((fields) =>
+        fields.map((field) => (field as HTMLInputElement).value),
+      ),
+  ).toEqual(["", ""]);
+  await expectNoAxeViolation(page, "verification decision, brand", {
+    wcag22: true,
+  });
+
+  // What he reads, he types. A code that is not the request's is refused by the database (CA28).
+  await page.getByLabel(B.record.domain).fill(domain);
+  await page.getByLabel(B.record.channels.dns_txt).check();
+  await page.getByLabel(B.record.code).fill("INFLUX-AAAAAAAA");
+  await page
+    .getByLabel(/^e-Justice Portal, Find a company \(BRIS\) — portail/)
+    .check();
+  await page.getByRole("button", { name: B.decision.grant }).click();
+  await page.getByRole("button", { name: T.decision.grantConfirm }).click();
+  await expect(main.getByText(B.problems.codeMismatch).first()).toBeVisible();
+  expect(await auditLinesOf(requestId, "verification.granted")).toHaveLength(0);
+
+  // The right code: the badge is dated, granted by this agent, from the domain and the register.
+  await page.getByLabel(B.record.code).fill(code);
+  await page.getByRole("button", { name: T.decision.grantConfirm }).click();
+  await expect(
+    page.getByText(B.decision.grantedNotice(`Maison ${tag}`)),
+  ).toBeVisible();
+  const badges = await withSql(
+    (sql) => sql<{ state: string; by: string; source: string | null }[]>`
+      select b.state::text as state, b.granted_by_account_id::text as by,
+             b.evidence_source::text as source
+        from verification.badges b
+       where b.account_id = ${seeded!.accountId} and b.level = 'brand_verified'`,
+  );
+  expect(badges).toEqual([
+    { state: "active", by: agent.accountId, source: "domain_and_registry" },
+  ]);
+
+  // The sources, read by the agent: the ones that wait apart, no button to write (RG101).
+  const [gb] = await withSql(
+    (sql) => sql<{ id: string; name: string }[]>`
+      select id::text, name from verification.registry_sources
+       where country_code = 'GB' and source_type = 'national'`,
+  );
+  await page.goto(`${BACKOFFICE_ORIGIN}/reglages/sources-registre`);
+  await expect(
+    page.getByRole("heading", { level: 1, name: S.title }),
+  ).toBeVisible();
+  await expect(main.getByText(S.leadAgent)).toBeVisible();
+  const waiting = page.getByRole("region", {
+    name: S.tableLabel(S.inactiveTitle),
+  });
+  await expect(waiting.locator(`[data-source="${gb!.id}"]`)).toContainText(
+    S.state.inactive,
+  );
+  await expect(page.getByRole("button", { name: /^Modifier / })).toHaveCount(0);
+  await expectNoAxeViolation(page, "registry sources, agent", { wcag22: true });
+
+  // An administrator activates it after the check by hand: the former and the new value first, then saved.
+  try {
+    await seedInternal(page, "admin", "Léa");
+    await page.goto(`${BACKOFFICE_ORIGIN}/reglages/sources-registre`);
+    await expect(main.getByText(S.leadAdmin)).toBeVisible();
+    await page.getByRole("button", { name: S.edit(gb!.name) }).click();
+    await page.getByLabel(S.fields.active).check();
+    await page.getByRole("button", { name: S.review }).click();
+    const change = main.locator("[data-change=isActive]");
+    await expect(change).toContainText(S.activeWords.no);
+    await expect(change).toContainText(S.activeWords.yes);
+    // the register keeps what the confirmation writes (lines of earlier runs are not ours: counted before)
+    const activations = (lines: { payload: Record<string, unknown> }[]) =>
+      lines.filter(
+        (line) => (line.payload.after as { is_active: boolean }).is_active,
+      ).length;
+    const before = await auditLinesOf(
+      gb!.id,
+      "verification.registry_source_changed",
+    );
+    await expectNoAxeViolation(page, "registry sources, change to confirm", {
+      wcag22: true,
+    });
+    await page.getByRole("button", { name: S.confirm }).click();
+    await expect(page.getByText(S.saved(gb!.name))).toBeVisible();
+    const after = await auditLinesOf(
+      gb!.id,
+      "verification.registry_source_changed",
+    );
+    expect(after).toHaveLength(before.length + 1);
+    expect(activations(after)).toBe(activations(before) + 1);
+    await expect(
+      page
+        .getByRole("region", { name: S.tableLabel(S.activeTitle) })
+        .locator(`[data-source="${gb!.id}"]`),
+    ).toContainText(S.state.active);
+  } finally {
+    await withSql(
+      (sql) => sql`
+        update verification.registry_sources set is_active = false
+         where id = ${gb!.id}`,
+    );
+  }
 });

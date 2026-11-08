@@ -1,8 +1,8 @@
 "use client";
 
-// The state and the calls of the decision screen of a creator's verification request, queue 4 (docs/mvp/08
-// RG43 to RG59; 17b §3.7; jalons/l2e/modele.md §4, §6; L2E-22), kept out of the components so that they
-// only draw. Opening is claiming: the first reading calls POST …/open. Every decision is bound to the
+// The state and the calls of the decision screen of a verification request, queue 4, in either view (docs/
+// mvp/08 RG43 to RG59; 06 RG49 to RG52; 17b §3.7; jalons/l2e/modele.md §4, §6; L2E-22, L2E-23), kept out of
+// the components so that they only draw. Opening is claiming: the first reading calls POST …/open. Every decision is bound to the
 // review token of the version read: a stale token, a lost or lifted claim, a closed request read the
 // dossier again and say why, and what the agent typed stays (RG116). The wording and the checks are
 // `verification-decision-view.ts`; the rules are the database's and apps/api's.
@@ -11,8 +11,10 @@ import type {
   CompareFiguresResponse,
   GrantAccountRequest,
   GrantAudienceRequest,
+  GrantBrandRequest,
   ObservedFigures,
   VerificationOpenResponse,
+  VerificationQueueView,
 } from "@influx/contracts/verification";
 import type { RelayResult } from "@influx/web-platform/relay-client";
 import { useRouter } from "next/navigation";
@@ -20,14 +22,15 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { messages } from "@/messages/fr";
 import {
   compareVerificationFigures,
-  extendVerificationCreatorClaim,
-  forceReleaseVerificationCreatorClaim,
+  extendVerificationEntryClaim,
+  forceReleaseVerificationEntryClaim,
   grantVerificationAccount,
   grantVerificationAudience,
-  openVerificationCreatorEntry,
-  reexamineVerificationCreator,
-  rejectVerificationCreator,
-  releaseVerificationCreator,
+  grantVerificationBrand,
+  openVerificationEntry,
+  reexamineVerificationEntry,
+  rejectVerificationEntry,
+  releaseVerificationEntry,
 } from "./backoffice-api";
 import {
   chainNoticeFor,
@@ -39,11 +42,13 @@ import {
 import {
   accountGrantCheck,
   audienceGrantCheck,
+  brandGrantCheck,
   compareCheck,
   EMPTY_DRAFT,
   figuresKeyOf,
   grantedNotice,
   isAudience,
+  isBrand,
   modeOf,
   openFailure,
   reexamineCheck,
@@ -52,16 +57,15 @@ import {
   rejectCheck,
   rejectedNotice,
   reopenNotice,
+  whoOf,
   withClaimExpiry,
   type Draft,
   type Problem,
 } from "./verification-decision-view";
-import { VERIFICATION_VIEW_ADDRESS } from "./verification-queue-view";
 import { useVerificationEvidence } from "./use-verification-evidence";
 import { formatTime } from "./view-model";
 
 const t = messages.verificationReview;
-export const VERIFICATION_LIST = VERIFICATION_VIEW_ADDRESS.creators;
 
 export type ReadyScreen = {
   kind: "ready";
@@ -90,6 +94,7 @@ export type VerificationBusy =
 type GrantPlan =
   | { ok: true; level: "account"; body: GrantAccountRequest }
   | { ok: true; level: "audience"; body: GrantAudienceRequest }
+  | { ok: true; level: "brand"; body: GrantBrandRequest }
   | { ok: false; problem: Problem };
 
 export type VerificationPanel =
@@ -102,7 +107,12 @@ export type Comparison = {
   result: CompareFiguresResponse;
 };
 
-export function useVerificationEntry(id: string) {
+/** `list` is the address of the view the request belongs to: the chain of 17b §2.6 and the way back go there. */
+export function useVerificationEntry(
+  id: string,
+  queue: VerificationQueueView,
+  list: string,
+) {
   const router = useRouter();
   const alive = useRef(false);
   const evidence = useVerificationEvidence(id);
@@ -129,7 +139,7 @@ export function useVerificationEntry(id: string) {
     ) => {
       let result: RelayResult<VerificationOpenResponse>;
       try {
-        result = await openVerificationCreatorEntry(id);
+        result = await openVerificationEntry(queue, id);
       } catch {
         // an address that is no identifier: the same answer as an unknown request
         if (alive.current) {
@@ -162,7 +172,7 @@ export function useVerificationEntry(id: string) {
         setProblem({ field: null, text: failure.text });
       }
     },
-    [id, router],
+    [id, queue, router],
   );
 
   useEffect(() => {
@@ -205,7 +215,7 @@ export function useVerificationEntry(id: string) {
           await onOk(result.data);
           return;
         }
-        const refusal = refusalOf(result);
+        const refusal = refusalOf(result, whoOf(view));
         if (refusal.kind === "signedOut") {
           router.replace("/");
         } else if (refusal.kind === "reopen") {
@@ -238,18 +248,28 @@ export function useVerificationEntry(id: string) {
           decidedEntry: view.entry.id,
           lines,
         });
-        router.push(`${VERIFICATION_LIST}/${next.entryId}`);
+        router.push(`${list}/${next.entryId}`);
         return;
       }
       stashChainNotice(null);
       setDone({ forEntry: view.entry.id, decidedEntry: view.entry.id, lines });
     },
-    [router],
+    [list, router],
   );
 
   /** What the grant of this level asks of the agent, before any panel opens or any call leaves. */
   const grantPlan = useCallback(
     (view: VerificationOpenResponse, token: string): GrantPlan => {
+      if (isBrand(view)) {
+        const checked = brandGrantCheck(
+          draft,
+          token,
+          view.dossier?.brand?.registrySources ?? [],
+        );
+        return checked.ok
+          ? { ok: true, level: "brand", body: checked.body }
+          : checked;
+      }
       if (!isAudience(view)) {
         const checked = accountGrantCheck(draft, token);
         return checked.ok
@@ -310,9 +330,11 @@ export function useVerificationEntry(id: string) {
         "grant",
         view,
         () =>
-          checked.level === "audience"
-            ? grantVerificationAudience(view.entry.id, checked.body)
-            : grantVerificationAccount(view.entry.id, checked.body),
+          checked.level === "brand"
+            ? grantVerificationBrand(view.entry.id, checked.body)
+            : checked.level === "audience"
+              ? grantVerificationAudience(view.entry.id, checked.body)
+              : grantVerificationAccount(view.entry.id, checked.body),
         (data) =>
           finish(view, data.next, grantedNotice(view, data.outcome, data.late)),
       );
@@ -325,7 +347,12 @@ export function useVerificationEntry(id: string) {
       if (view.reviewToken === null) {
         return;
       }
-      const checked = rejectCheck(draft, view.reasons, view.reviewToken);
+      const checked = rejectCheck(
+        draft,
+        view.reasons,
+        view.reviewToken,
+        whoOf(view),
+      );
       if (!checked.ok) {
         setProblem(checked.problem);
         return;
@@ -333,7 +360,7 @@ export function useVerificationEntry(id: string) {
       void perform(
         "reject",
         view,
-        () => rejectVerificationCreator(view.entry.id, checked.body),
+        () => rejectVerificationEntry(queue, view.entry.id, checked.body),
         (data) =>
           finish(
             view,
@@ -348,7 +375,7 @@ export function useVerificationEntry(id: string) {
           ),
       );
     },
-    [draft, finish, perform],
+    [draft, finish, perform, queue],
   );
 
   const reexamine = useCallback(
@@ -364,11 +391,11 @@ export function useVerificationEntry(id: string) {
       void perform(
         "reexamine",
         view,
-        () => reexamineVerificationCreator(view.entry.id, checked.body),
+        () => reexamineVerificationEntry(queue, view.entry.id, checked.body),
         (data) => finish(view, data.next, reexaminedNotice(view)),
       );
     },
-    [draft, finish, perform],
+    [draft, finish, perform, queue],
   );
 
   /** Modele -19: the typed figures leave, the declared ones and the verdict of the gap come back. */
@@ -404,10 +431,10 @@ export function useVerificationEntry(id: string) {
       void perform(
         "release",
         view,
-        () => releaseVerificationCreator(view.entry.id),
-        () => router.push(VERIFICATION_LIST),
+        () => releaseVerificationEntry(queue, view.entry.id),
+        () => router.push(list),
       ),
-    [perform, router],
+    [list, perform, queue, router],
   );
 
   const extend = useCallback(
@@ -415,7 +442,7 @@ export function useVerificationEntry(id: string) {
       void perform(
         "extend",
         view,
-        () => extendVerificationCreatorClaim(view.entry.id),
+        () => extendVerificationEntryClaim(queue, view.entry.id),
         (data) => {
           setNow(Date.now());
           setScreen((current) =>
@@ -431,7 +458,7 @@ export function useVerificationEntry(id: string) {
           );
         },
       ),
-    [perform],
+    [perform, queue],
   );
 
   /** The expired claim: the request is opened again, which takes it again when it is free. */
@@ -462,7 +489,7 @@ export function useVerificationEntry(id: string) {
         "force",
         view,
         () =>
-          forceReleaseVerificationCreatorClaim(view.entry.id, {
+          forceReleaseVerificationEntryClaim(queue, view.entry.id, {
             reasonCode: forceReason,
           }),
         async (data) => {
@@ -478,7 +505,7 @@ export function useVerificationEntry(id: string) {
         },
       );
     },
-    [forceReason, perform, read],
+    [forceReason, perform, queue, read],
   );
 
   /** 17b §2.6: the chain is cancelled, the request just taken is given back and the list is shown. */
@@ -487,17 +514,17 @@ export function useVerificationEntry(id: string) {
       stashChainNotice(null);
       setChain(null);
       if (modeOf(view) !== "deciding") {
-        router.push(VERIFICATION_LIST);
+        router.push(list);
         return;
       }
       void perform(
         "release",
         view,
-        () => releaseVerificationCreator(view.entry.id),
-        () => router.push(VERIFICATION_LIST),
+        () => releaseVerificationEntry(queue, view.entry.id),
+        () => router.push(list),
       );
     },
-    [perform, router],
+    [list, perform, queue, router],
   );
 
   const closeChain = useCallback(() => {

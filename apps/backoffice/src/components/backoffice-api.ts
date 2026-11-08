@@ -97,23 +97,29 @@ import {
   grantVerificationResponseSchema,
   reexamineVerificationResponseSchema,
   rejectVerificationResponseSchema,
+  updateVerificationRegistrySourceResponseSchema,
   verificationEntriesResponseSchema,
   verificationEvidenceReadResponseSchema,
   verificationOpenResponseSchema,
+  verificationRegistrySourcesResponseSchema,
   type CompareFiguresRequest,
   type CompareFiguresResponse,
   type GrantAccountRequest,
   type GrantAudienceRequest,
+  type GrantBrandRequest,
   type GrantVerificationResponse,
   type ReexamineVerificationRequest,
   type ReexamineVerificationResponse,
   type RejectVerificationRequest,
   type RejectVerificationResponse,
+  type UpdateVerificationRegistrySourceBody,
+  type UpdateVerificationRegistrySourceResponse,
   type VerificationEntriesResponse,
   type VerificationEntriesSearchBody,
   type VerificationEvidenceReadResponse,
   type VerificationOpenResponse,
   type VerificationQueueView,
+  type VerificationRegistrySourcesResponse,
 } from "@influx/contracts/verification";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
@@ -565,17 +571,22 @@ export function readBrandReviewLogo(
   );
 }
 
-// --- Queue 4, one creator request (08 RG43 to RG55; l2e/modele.md §4, §6; L2E-22) -------------------
+// --- Queue 4, one request of either view (08 RG43 to RG55; l2e/modele.md §4, §6; L2E-22, L2E-23) ----------
 
 const CREATOR_ENTRIES = VERIFICATION_ENTRIES.creators;
 
+function entryPath(view: VerificationQueueView, id: string): string {
+  return `${VERIFICATION_ENTRIES[view]}/${idSegment(id)}`;
+}
+
 /** Opening is claiming (08 RG43): the dossier of RG55, the version token, the closed reasons and what the member reads. */
-export function openVerificationCreatorEntry(
+export function openVerificationEntry(
+  view: VerificationQueueView,
   id: string,
 ): Promise<RelayResult<VerificationOpenResponse>> {
   return callRelay(
     "POST",
-    `${CREATOR_ENTRIES}/${idSegment(id)}/open`,
+    `${entryPath(view, id)}/open`,
     verificationOpenResponseSchema,
   );
 }
@@ -617,58 +628,76 @@ export function grantVerificationAudience(
   );
 }
 
-export function rejectVerificationCreator(
+/** 06 RG49 to RG52: « Marque vérifiée », the code found at the domain and the register consulted. */
+export function grantVerificationBrand(
+  id: string,
+  body: GrantBrandRequest,
+): Promise<RelayResult<GrantVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath("brands", id)}/grant`,
+    grantVerificationResponseSchema,
+    body,
+  );
+}
+
+export function rejectVerificationEntry(
+  view: VerificationQueueView,
   id: string,
   body: RejectVerificationRequest,
 ): Promise<RelayResult<RejectVerificationResponse>> {
   return callRelay(
     "POST",
-    `${CREATOR_ENTRIES}/${idSegment(id)}/reject`,
+    `${entryPath(view, id)}/reject`,
     rejectVerificationResponseSchema,
     body,
   );
 }
 
 /** « À réexaminer » (RG50): an internal reason, the request stays in the queue. */
-export function reexamineVerificationCreator(
+export function reexamineVerificationEntry(
+  view: VerificationQueueView,
   id: string,
   body: ReexamineVerificationRequest,
 ): Promise<RelayResult<ReexamineVerificationResponse>> {
   return callRelay(
     "POST",
-    `${CREATOR_ENTRIES}/${idSegment(id)}/reexamine`,
+    `${entryPath(view, id)}/reexamine`,
     reexamineVerificationResponseSchema,
     body,
   );
 }
 
-export function releaseVerificationCreator(
+export function releaseVerificationEntry(
+  view: VerificationQueueView,
   id: string,
 ): Promise<RelayResult<ReleaseEntryResponse>> {
   return callRelay(
     "POST",
-    `${CREATOR_ENTRIES}/${idSegment(id)}/release`,
+    `${entryPath(view, id)}/release`,
     releaseEntryResponseSchema,
   );
 }
 
-export function extendVerificationCreatorClaim(
+export function extendVerificationEntryClaim(
+  view: VerificationQueueView,
   id: string,
 ): Promise<RelayResult<ExtendEntryResponse>> {
   return callRelay(
     "POST",
-    `${CREATOR_ENTRIES}/${idSegment(id)}/extend`,
+    `${entryPath(view, id)}/extend`,
     extendEntryResponseSchema,
   );
 }
 
-export function forceReleaseVerificationCreatorClaim(
+export function forceReleaseVerificationEntryClaim(
+  view: VerificationQueueView,
   id: string,
   body: ForceReleaseRequest,
 ): Promise<RelayResult<ForceReleaseResponse>> {
   return callRelay(
     "POST",
-    `${CREATOR_ENTRIES}/${idSegment(id)}/force-release`,
+    `${entryPath(view, id)}/force-release`,
     forceReleaseResponseSchema,
     body,
   );
@@ -686,5 +715,33 @@ export function readVerificationEvidence(
     "GET",
     `${CREATOR_ENTRIES}/${idSegment(id)}/evidence/${idSegment(evidenceId)}`,
     verificationEvidenceReadResponseSchema,
+  );
+}
+
+// --- The registry sources of the brand's registration (06 RG52, RG101; D79 (12); L2E-23) -----------------
+
+const REGISTRY_SOURCES = "/v1/bo/verification/registry-sources";
+
+/** Every source, the inactive ones too: read by an agent and by an administrator. */
+export function readRegistrySources(): Promise<
+  RelayResult<VerificationRegistrySourcesResponse>
+> {
+  return callRelay(
+    "GET",
+    REGISTRY_SOURCES,
+    verificationRegistrySourcesResponseSchema,
+  );
+}
+
+/** An administrator's change (RG101): the former and the new value are journaled by the database. */
+export function saveRegistrySource(
+  id: string,
+  body: UpdateVerificationRegistrySourceBody,
+): Promise<RelayResult<UpdateVerificationRegistrySourceResponse>> {
+  return callRelay(
+    "PUT",
+    `${REGISTRY_SOURCES}/${idSegment(id)}`,
+    updateVerificationRegistrySourceResponseSchema,
+    body,
   );
 }

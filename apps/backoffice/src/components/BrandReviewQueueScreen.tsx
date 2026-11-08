@@ -2,7 +2,7 @@
 
 // Queue 1, "Profils marque à valider" (docs/mvp/06 RG63, RG64; 17b §2.2, §2.4 l. 516; jalons/l2c/
 // file.md A10; L2C-16): the columns of the queue on the template of the lists. The column "Marque"
-// shows the trading name until the legal name of L2E (EC-L2C-3); the list carries no coordinate and
+// shows the trading name and, apart, the legal name of the internal block (EC-L2C-3, L2E-23); the list carries no coordinate and
 // no contact person (D45, D46). An entry opens the decision screen (L2C-17), which takes it in
 // charge; the link here is a plain link, the claim is the opening's, journaled by apps/api.
 import {
@@ -55,6 +55,13 @@ const COLUMNS: readonly QueueColumn<QueueEntryRow>[] = [
     key: "brand",
     header: t.columns.brand,
     cell: (row) => <span className="font-semibold">{row.brandName}</span>,
+  },
+  {
+    // EC-L2C-3: the registered name of the internal block (06 RG46), read by agent and admin only; the
+    // column "Marque" keeps the trading name
+    key: "legalName",
+    header: t.columns.legalName,
+    cell: (row) => row.legalName ?? t.legalNameUnset,
   },
   {
     key: "country",

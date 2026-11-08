@@ -36,9 +36,9 @@ import {
 
 const t = messages.verificationReview;
 
-const FIELD_ID = (field: FieldName) => `verification-record-${field}`;
+export const FIELD_ID = (field: FieldName) => `verification-record-${field}`;
 
-function TypedField({
+export function TypedField({
   field,
   label,
   help,

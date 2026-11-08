@@ -27,6 +27,7 @@ export type SectionKey =
   | "dualControl"
   | "internalAccounts"
   | "apollo"
+  | "registrySources"
   | "health";
 
 export type Section = { key: SectionKey; href: string; adminOnly: boolean };
@@ -80,6 +81,12 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       { key: "dualControl", href: "/double-validation", adminOnly: true },
       { key: "internalAccounts", href: "/comptes-internes", adminOnly: true },
       { key: "apollo", href: "/reglages/apollo", adminOnly: true },
+      // read by an agent through the brand decision screen (06 RG52), written by an administrator (RG101)
+      {
+        key: "registrySources",
+        href: "/reglages/sources-registre",
+        adminOnly: true,
+      },
       { key: "health", href: "/sante-technique", adminOnly: true },
     ],
   },

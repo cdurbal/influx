@@ -10,13 +10,17 @@ import type {
   CompareFiguresResponse,
   GrantAccountRequest,
   GrantAudienceRequest,
+  GrantBrandRequest,
   ObservedFigures,
   ReexamineVerificationRequest,
   RejectVerificationRequest,
   VerificationOpenResponse,
   VerificationReasonRow,
+  VerificationRegistrySourceRow,
 } from "@influx/contracts/verification";
 import {
+  BRAND_OBSERVED_CHANNELS,
+  VERIFICATION_REEXAMINE_REASON_CODES,
   VERIFICATION_INTERNAL_COMMENT_MAX_LENGTH,
   VERIFICATION_MEMBER_MESSAGE_MAX_LENGTH,
   VERIFICATION_MEMBER_MESSAGE_MIN_LENGTH,
@@ -48,9 +52,21 @@ export function modeOf(view: VerificationOpenResponse): VerificationMode {
     : "deciding";
 }
 
-/** The level of the request is the one the screen decides: account or audience (a brand has its own screen, L2E-23). */
+/** The level of the request is the one the screen decides: account or audience for a creator. */
 export function isAudience(view: VerificationOpenResponse): boolean {
   return view.entry.level === "audience_verified";
+}
+
+/** A brand's request, « Marque vérifiée » (06 RG49 to RG52): a screen of its own, none in common with the creator's (RG61). */
+export function isBrand(view: VerificationOpenResponse): boolean {
+  return view.entry.level === "brand_verified";
+}
+
+/** The member the decision speaks to: the words of the refusal and of the notices follow it. */
+export type Who = "creator" | "brand";
+
+export function whoOf(view: VerificationOpenResponse): Who {
+  return isBrand(view) ? "brand" : "creator";
 }
 
 export function levelName(level: VerificationOpenResponse["entry"]["level"]) {
@@ -58,6 +74,9 @@ export function levelName(level: VerificationOpenResponse["entry"]["level"]) {
 }
 
 export function titleOf(view: VerificationOpenResponse): string {
+  if (isBrand(view)) {
+    return t.titleBrand(view.dossier?.brand?.tradeName ?? t.unset);
+  }
   return t.titleCreator(
     networkWords(view.entry.networkCode),
     levelName(view.entry.level),
@@ -288,6 +307,9 @@ export function reexamineMarkLine(
 export type FieldName =
   | "handle"
   | "code"
+  | "domain"
+  | "channel"
+  | "registry"
   | "followers"
   | "period"
   | "posts"
@@ -305,6 +327,10 @@ export type Problem = { field: FieldName | null; text: string };
 export type Draft = {
   handle: string;
   code: string;
+  /** A brand: the domain where the code was read, the way it was published, the register consulted. */
+  domain: string;
+  channel: GrantBrandRequest["observedChannel"] | null;
+  registrySourceId: string | null;
   followers: string;
   periodStart: string;
   periodEnd: string;
@@ -321,6 +347,9 @@ export type Draft = {
 export const EMPTY_DRAFT: Draft = {
   handle: "",
   code: "",
+  domain: "",
+  channel: null,
+  registrySourceId: null,
   followers: "",
   periodStart: "",
   periodEnd: "",
@@ -452,6 +481,92 @@ export function accountGrantCheck(
   };
 }
 
+/** The domain as the contract takes it: lower case, letters, digits, dots and hyphens, 3 to 100 signs. */
+const DOMAIN_SHAPE = /^[a-z0-9.-]{3,100}$/;
+
+/**
+ * `grant` of a brand (06 RG49 to RG52, CA28): the domain where the agent read the code, the way it was
+ * published, the code as read, and the register he consulted, chosen among the sources the dossier served
+ * (never typed: RG52, D79 (12)). The database compares the code, the domain and the source.
+ */
+export function brandGrantCheck(
+  draft: Draft,
+  reviewToken: string,
+  sources: readonly VerificationRegistrySourceRow[],
+): Checked<GrantBrandRequest> {
+  const domain = draft.domain.trim().toLowerCase();
+  if (domain === "") {
+    return fail("domain", t.brand.problems.domain);
+  }
+  if (!DOMAIN_SHAPE.test(domain)) {
+    return fail("domain", t.brand.problems.domainShape);
+  }
+  const channel = BRAND_OBSERVED_CHANNELS.find(
+    (candidate) => candidate === draft.channel,
+  );
+  if (channel === undefined) {
+    return fail("channel", t.brand.problems.channel);
+  }
+  const code = draft.code.trim();
+  if (code === "") {
+    return fail("code", t.brand.problems.code);
+  }
+  if (!CODE_SHAPE.test(code)) {
+    return fail("code", t.problems.codeShape);
+  }
+  if (sources.length === 0) {
+    return fail("registry", t.brand.problems.noSource);
+  }
+  const source = sources.find(
+    (candidate) => candidate.id === draft.registrySourceId,
+  );
+  if (source === undefined) {
+    return fail("registry", t.brand.problems.registry);
+  }
+  const comment = commentOf(draft);
+  if (!comment.ok) {
+    return comment;
+  }
+  return {
+    ok: true,
+    body: {
+      reviewToken,
+      observedCode: code,
+      observedDomain: domain,
+      observedChannel: channel,
+      registrySourceId: source.id,
+      ...(comment.body === null ? {} : { internalComment: comment.body }),
+    },
+  };
+}
+
+/** A register of the dossier in one line: its name, what kind it is, the day its page was last checked. */
+export function registrySourceWords(source: {
+  name: string;
+  sourceType: VerificationRegistrySourceRow["sourceType"];
+  checkedOn: string;
+}): string {
+  return t.brand.source.line(
+    source.name,
+    t.brand.source.types[source.sourceType],
+    formatDay(source.checkedOn),
+  );
+}
+
+/** The link of a register: the same plain https address as a profile's, opened in a new window with no referrer. */
+export function registryLinkOf(url: string): string | null {
+  return profileLinkOf(url);
+}
+
+/** The reasons of the « à réexaminer » mark a request of this level may carry (the database holds one closed list). */
+export function reexamineReasonsOf(
+  view: VerificationOpenResponse,
+): readonly ReexamineReasonCode[] {
+  return isBrand(view)
+    ? ["registry_unavailable", "network_unreachable"]
+    : VERIFICATION_REEXAMINE_REASON_CODES;
+}
+
 /** The period typed, both days required and in order; whether it is fresh is the database's (RG37, RG100). */
 function periodCheck(
   draft: Draft,
@@ -526,6 +641,7 @@ export function rejectCheck(
   draft: Draft,
   reasons: readonly VerificationReasonRow[],
   reviewToken: string,
+  who: Who = "creator",
 ): Checked<RejectVerificationRequest> {
   const reason = reasons.find(
     (candidate) => candidate.code === draft.reasonCode,
@@ -550,10 +666,20 @@ export function rejectCheck(
   }
   const message = draft.memberMessage.trim();
   if (message.length < VERIFICATION_MEMBER_MESSAGE_MIN_LENGTH) {
-    return fail("memberMessage", t.decision.messageTooShort);
+    return fail(
+      "memberMessage",
+      who === "brand"
+        ? t.brand.decision.messageTooShort
+        : t.decision.messageTooShort,
+    );
   }
   if (message.length > VERIFICATION_MEMBER_MESSAGE_MAX_LENGTH) {
-    return fail("memberMessage", t.decision.messageTooLong);
+    return fail(
+      "memberMessage",
+      who === "brand"
+        ? t.brand.decision.messageTooLong
+        : t.decision.messageTooLong,
+    );
   }
   return { ok: true, body: { ...body, memberMessage: message } };
 }
@@ -709,6 +835,9 @@ const PERIOD_ISSUES: ReadonlySet<string> = new Set([
 
 const CONFLICT_TEXT: Readonly<Record<string, string>> = {
   account_unavailable: t.notices.accountUnavailable,
+  no_registry_source: t.brand.problems.noSourceRefused,
+  website_domain_required: t.brand.problems.domainRequired,
+  internal_details_required: t.brand.problems.detailsRequired,
   ownership_prerequisite: t.problems.prerequisite,
   missing_evidence: t.problems.missingEvidence,
   declared_figures_required: t.problems.declaredFigures,
@@ -721,6 +850,7 @@ const CONFLICT_TEXT: Readonly<Record<string, string>> = {
  */
 export function refusalOf(
   result: Exclude<RelayResult<unknown>, { kind: "ok" }>,
+  who: Who = "creator",
 ): Refusal {
   if (result.kind === "unauthenticated") {
     return { kind: "signedOut" };
@@ -750,7 +880,28 @@ export function refusalOf(
       };
     case "validation_failed":
       if (issues.includes("code_mismatch")) {
-        return { kind: "text", text: t.problems.codeMismatch, field: "code" };
+        return {
+          kind: "text",
+          text:
+            who === "brand"
+              ? t.brand.problems.codeMismatch
+              : t.problems.codeMismatch,
+          field: "code",
+        };
+      }
+      if (issues.includes("invalid_observed_domain")) {
+        return {
+          kind: "text",
+          text: t.brand.problems.domainRefused,
+          field: "domain",
+        };
+      }
+      if (issues.includes("invalid_observed_channel")) {
+        return {
+          kind: "text",
+          text: t.brand.problems.channel,
+          field: "channel",
+        };
       }
       if (issues.includes("direct_contact")) {
         return {
@@ -769,7 +920,10 @@ export function refusalOf(
       if (issues.includes("invalid_member_message")) {
         return {
           kind: "text",
-          text: t.decision.invalidMessage,
+          text:
+            who === "brand"
+              ? t.brand.decision.invalidMessage
+              : t.decision.invalidMessage,
           field: "memberMessage",
         };
       }
@@ -859,7 +1013,13 @@ export function grantedNotice(
   const network = networkWords(view.entry.networkCode);
   const lines =
     outcome === "granted"
-      ? [t.decision.grantedNotice(levelName(view.entry.level), network)]
+      ? [
+          isBrand(view)
+            ? t.brand.decision.grantedNotice(
+                view.dossier?.brand?.tradeName ?? t.unset,
+              )
+            : t.decision.grantedNotice(levelName(view.entry.level), network),
+        ]
       : [t.decision.alreadyVerified];
   if (late) {
     lines.push(t.decision.lateMark);
@@ -876,10 +1036,15 @@ export function rejectedNotice(
 ): string[] {
   const network = networkWords(view.entry.networkCode);
   const reason = reasonLabel(reasonCode).toLowerCase();
+  const brand = view.dossier?.brand?.tradeName ?? t.unset;
   const lines = [
-    status === "closed"
-      ? t.decision.closedNotice(network, reason)
-      : t.decision.refusedNotice(network, reason),
+    isBrand(view)
+      ? status === "closed"
+        ? t.brand.decision.closedNotice(brand, reason)
+        : t.brand.decision.refusedNotice(brand, reason)
+      : status === "closed"
+        ? t.decision.closedNotice(network, reason)
+        : t.decision.refusedNotice(network, reason),
   ];
   if (escalated) {
     lines.push(t.decision.escalatedMark);
@@ -891,7 +1056,13 @@ export function rejectedNotice(
 }
 
 export function reexaminedNotice(view: VerificationOpenResponse): string[] {
-  return [t.decision.reexaminedNotice(networkWords(view.entry.networkCode))];
+  return [
+    isBrand(view)
+      ? t.brand.decision.reexaminedNotice(
+          view.dossier?.brand?.tradeName ?? t.unset,
+        )
+      : t.decision.reexaminedNotice(networkWords(view.entry.networkCode)),
+  ];
 }
 
 // --- The comparison asked for, and whether it still speaks of what is typed ----------------------
