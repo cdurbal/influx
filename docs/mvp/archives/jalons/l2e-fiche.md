@@ -111,15 +111,15 @@ Un créateur fait constater, réseau par réseau, la propriété de son compte (
 
 ## Critère de fin
 
-- [ ] Premier badge « Audience vérifiée » daté sur `staging` (valeur de `00` §7). *Preuve : ligne F, identifiant de la décision.*
-- [ ] T9.6 vert trois fois de suite. *Preuve : ligne 17, passages de clôture.*
-- [ ] T9.7, T9.1 à T9.5, T9.8, T9.9, T14, T1 rejoué, TM11, T2, T16 verts ; suite base verte. *Preuve : `pnpm check` à la clôture.*
-- [ ] Un créateur et une marque voient leur refus, son message, et ce qu'ils peuvent faire. *Preuve : e2e, ligne F.*
-- [ ] D82 écrite ; `03` §6.6 et PP-9 alignés. *Preuve : `decisions.md`.*
-- [ ] L2DS-1, L2DS-2, L2CT-8, L2CS-8, EC-L2C-3, L2D-E2E soldés. *Preuve : lignes 01, 02, 09, 15, 16.*
-- [ ] e2e ajouté ≤ 20 s ; chaque éclat sous 7 min 30 en CI. *Preuve : `sum-e2e-durations.ts`, durées de run.*
-- [ ] `pnpm check` et `pnpm test:e2e` verts ; CI verte. *Preuve : run.*
-- [ ] Revue soldée, attestation `security-reviewed:`. *Preuve : ligne R, commit séparé.*
+- [x] Premier badge « Audience vérifiée » daté sur `staging` (valeur de `00` §7). *Preuve : ligne F, badge 56686512-99ab-4a23-8680-a9a6499b0b25 (créé le 2026-11-08 13:17 UTC, état `active`) ; recette validée par le fondateur le 2026-11-08.*
+- [x] T9.6 vert trois fois de suite. *Preuve : ligne 17 (vert ×3, T1 et TM11 ×3).*
+- [x] T9.7, T9.1 à T9.5, T9.8, T9.9, T14, T1 rejoué, TM11, T2, T16 verts ; suite base verte. *Preuve : CI réelle `success` sur 694c298 et 49b8d44, qui rejoue toute la suite base ; `pnpm check` local non relancé par la ligne C.*
+- [x] Un créateur et une marque voient leur refus, son message, et ce qu'ils peuvent faire. *Preuve : e2e et ligne F (ligne 25) ; limite : la suite écrite dans l'e-mail de refus reste lue du seul motif (ligne 26 reportée, L2ET-4).*
+- [x] D82 écrite ; `03` §6.6 et PP-9 alignés. *Preuve : `decisions.md` (D82) ; `03` amendé à la clôture.*
+- [x] L2DS-1, L2DS-2, L2CT-8, L2CS-8, EC-L2C-3 soldés ; **L2D-E2E : non soldé, laissé ouvert** (décision du fondateur, voir ci-dessous). *Preuve : lignes 01, 09, 15, 16 ; ligne 02 ignorée.*
+- [x] e2e ajouté ≤ 20 s : **NON tenu, dépassement accepté explicitement par le fondateur le 2026-11-08** (35,8 s pour les lignes 18 à 23 contre 20 s) ; chaque éclat sous 7 min 30 en CI : tenu (361 / 333 / 332 s). *Preuve : `run.md` § Mesures de clôture.*
+- [x] `pnpm check` et `pnpm test:e2e` verts ; CI verte. *Preuve : runs 42487836458 (694c298) et 42498834685 (49b8d44), conclusion `success` lue par `gh run list --json conclusion`.*
+- [x] Revue soldée, attestation `security-reviewed:`. *Preuve : ligne R ; commit séparé `chore(security): attest the end-of-L2E review` après la clôture, `check-security-review.ts 0471930 HEAD`.*
 
 ## Écarts, décisions ouvertes, risques
 
@@ -154,7 +154,29 @@ Choix prudents, à signer par `architecte` en ligne 03 ou par le fondateur à la
 
 ## Revue
 
-*(rempli par `/jalon-run` : L2ET-n, L2ES-n)*
+Fin de jalon (2026-11-08) : **aucun bloquant**, rien « à corriger dans le jalon » côté code. Détail des constats non reporté en fichier (les revues ont rendu leurs constats à l'orchestrateur) ; la présente table et `21` §8 font foi.
+
+| Id | Gravité | Constat | Échéance |
+|---|---|---|---|
+| L2ES-1 | Avant production | Dépôt de 8 Mio lu avant le contrôle de session (`relay.ts:204-240`, `verification/routes.ts:189-221`) | Avant production ; limite de débit L2BS-6, Lot 6 |
+| L2ES-2 | Avant production | Octroi sans comparaison du handle constaté au handle déclaré (`0224:1188-1236`, `0225:301-350`) ; correctif 22023 `observed_handle_mismatch` et déclencheur de reconfirmation | Au plus tard L2F, et avant tout badge montré à un annonceur |
+| L2ES-3 | Avant production | Refus d'écriture d'un agent sur `registry-sources` non journalisé : ajouter `verification.set_registry_source` à `record_refused_action` (migration) | Avant production |
+| L2ES-4 | Avant production | Chiffres observés lisibles par les agents après effacement | La conformité tranche |
+| L2ES-5 à L2ES-8 | Plus tard | Constats mineurs de sécurité (listés en `21` §8) | Plus tard |
+| L2ET-1, L2ET-2 | Soldés | Soldés par cette clôture (amendements, archivage, mesures) | Clos |
+| L2ET-3 | Avant production | Tests concurrents de la file 4 et du quota | Avant production |
+| L2ET-4 | Avant production | E-mail de refus et aperçu du backoffice contre l'écran (ligne 26) | Avant production |
+| L2ET-5 | Soldé par la discipline | CI rouge sur 4692a25 (intermittent), 80ae5b2, 7b4dd3e, 7407a72 jusqu'à a5c7e78 : l'orchestrateur a enchaîné les lignes 22 à 24 sans lire la conclusion réelle des runs, contre `CLAUDE.md` §7 règle 4 ; solde : lire `gh run list` avant chaque commit qui suit un push de lot | Clos |
+| L2ET-6 | À surveiller | DS-flaky : `backoffice-queue.spec.ts:82` et `:418`, run 42318390996, une occurrence | À surveiller |
+| L2ET-7 | Plus tard | Constat mineur du testeur (en `21` §8) | Plus tard |
+
+**Écarts signés à la clôture :** EC-L2E-22-1 (lien de profil externe, revu par la sécurité : sûr), EC-L2E-12-1 (deux lignes d'un même réseau, une seule vérifiable), EC-L2E-12-3, EC-L2E-11-1, EC-L2E-15-3, EC-L2E-25-1 à 3, EC-L2E-23-1 à 4, EC-L2E-18-1 (page à `?network=`), EC-L2E-16-1 (`email_code`).
+
+**Décisions du fondateur (2026-11-08) :** (1) dépassement du budget e2e ACCEPTÉ, L2D-E2E laissé ouvert, levier nommé pour L2F : scinder `verification.spec.ts` et préparer les états par l'API ; aucun plancher baissé ; (2) lecture de l'identifiant du premier badge d'audience sur `staging` (D70, lecture seule) : 56686512-99ab-4a23-8680-a9a6499b0b25, créé le 2026-11-08 à 13:17 UTC ; (3) ligne 26 reportée « avant production » avec L2ET-4 ; (4) D83 ouverte (`89b3b06`), arbitrage avant L2F ; États-Unis (colonne de subdivision et porte d'insertion de `verification.registry_sources`, EC-L2E-23-1) reportés à L2F.
+
+**Opération sur `staging` :** attribut Brevo `VERIFIED_AT` créé le 2026-11-07 (ligne 16). **Planchers :** 20 relevés, 24 fichiers ajoutés, aucun baissé (`0471930..HEAD`). **Recette humaine :** aucune case ouverte (validée le 2026-11-08).
+
+**Amendements de spécification non faits (voir le message de clôture) :** `03` P7, signatures des propriétaires neufs « mot pour mot » (le fichier `revue-constats-securite.md` n'existe pas) ; `03` C(12), §6.6, P7 (ligne `influx_verification_definer`, sans mention de signature), P10, PP-9 faits ; `08` écart 8 reste ouvert.
 
 **Ligne U** (2026-11-08, `l2e/ux-constats.md` fait foi) : L2EU-1 à 8 → ligne 24. Reportés :
 

@@ -513,10 +513,10 @@ et messages restent la propriété du document cité dans `15` RG29.
 
 | # | File | Colonnes de liste (après les 3 communes : état · échéance · verrou) | Filtres propres | Issues | Action de masse |
 |---|---|---|---|---|---|
-| 1 | Profils marque à valider | Raison sociale · pays · complétude · champs modifiés · responsable | Pays · première soumission / modification | Publier · Refuser (motifs `06`) | Non |
+| 1 | Profils marque à valider | Raison sociale *(depuis L2E, lue du bloc interne `profiles.advertiser_internal_details`, EC-L2C-3 ; le nom commercial reste le titre)* · pays · complétude · champs modifiés · responsable | Pays · première soumission / modification | Publier · Refuser (motifs `06`) | Non |
 | 2 | Profils créateur à valider | Alias · pays · réseaux déclarés · complétude · badges | Pays · réseau · avec/sans badge | Publier · Refuser (motifs `07`) | Non |
 | 3 | Visuels de portfolio à modérer | Vignette · alias · date de dépôt · nb de visuels du profil | Profil · type | Approuver · Refuser (motifs `07` RG97) | **Oui** — un seul profil, **20 max**, motif commun (M4) |
-| 4 | Demandes de vérification et badge | **Deux sous-entrées : Vérifications créateurs · Vérifications marques** (D74) · niveau demandé · réseau · pièces | Niveau · réseau · population | Accorder · Refuser (motifs `08`) | Non |
+| 4 | Demandes de vérification et badge | **Deux sous-entrées : Vérifications créateurs · Vérifications marques** (D74) · niveau demandé · réseau · nombre de pièces *(L2E : aucun identifiant, chiffre ni code dans la liste, RG47)* | Niveau · réseau · population | Accorder · Refuser (motifs `08`) | Non |
 | 5 | Contestations de badge | Alias · décision contestée · date · **décideur d'origine** | Type de décision | Confirmer · Infirmer (motifs `08` RG77) | Non |
 | 6 | Identifiants modifiés à contrôler | Alias · ancien `@` · nouveau `@` · réseau · badge en cours | Réseau | Constater · Exiger une nouvelle preuve | Non |
 | 7 | Campagnes à valider | Titre · marque · catégorie de produit · budget + devise · **⚑ revue renforcée** | Secteur sensible · marque · budget | Publier · Refuser (motifs `09` RG90) | Non |
@@ -1213,7 +1213,7 @@ jamais un écran mixte** (`08` RG61 ; sous-entrées plutôt qu'onglets depuis D7
 ├────────────────────────────────────────────────────────────────────────────┤
 │ ④ DÉCISION                                                                 │
 │    [■ Accorder le badge Audience ‹v›]     [⚠ Refuser avec motif ‹r›]       │
-│    ⓘ Le badge Audience expire 90 jours après la date de mesure            │
+│    ⓘ Le badge Audience expire 90 jours après la date de décision          │
 │      (19/11/2026). Le créateur sera prévenu à J-15.                        │
 │    ⓘ Ce badge n'affirme ni l'authenticité des abonnés, ni la performance.  │
 └────────────────────────────────────────────────────────────────────────────┘

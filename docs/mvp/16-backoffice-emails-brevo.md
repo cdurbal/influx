@@ -795,6 +795,7 @@ files (`15` RG26), qui a déjà évité onze files orphelines.
 | `portfolio.decision` | Visuel refusé, avec motif | Modération d'un visuel | Le créateur | P2 | identifiant de décision | `07` RG97 |
 | `badge.granted` | Badge attribué, avec son niveau et **sa date de péremption** | Décision | Le créateur | P1 | identifiant de décision | `08` |
 | `badge.refused` | Badge refusé, avec le motif | Décision | Le créateur | P1 | identifiant de décision | `08` |
+| `verification.received` · `verification.code_issued` · `verification.decision` · `verification.request_expired` | *(L2E, EC-L2E-3, amendé à la clôture ; remplacent `badge.granted` et `badge.refused` pour le L2E)* Demande reçue ; code de propriété généré (sans le code) ; décision (accordée ou refusée, motif fermé de `modele.md` §5) ; demande expirée | Dépôt, ouverture, décision de la file 4, tâche `verification_expiry` | Le créateur (marque : mêmes types, motifs de `06`) | P1 | `<type>:<request_id>` (`code_issued` : `<code_id>`) ; charge `event_id`, `account_id`, `request_id`, `email_code` | `08` RG94 |
 | `badge.expiring` | Badge à rafraîchir | **J-15** | Le créateur | P2 | badge + étape (J-15) | `08` RG70, AL14 |
 | `badge.expired` | Badge périmé | J+0 (90 jours) | Le créateur | P2 | badge + étape (J+0) | `08` RG70 |
 | `badge.withdrawn` | Badge retiré, avec le motif | Retrait | Le créateur | P1 | identifiant de décision | `08` |
@@ -1484,7 +1485,8 @@ et coûte cher à reconstituer.
 | Taille d'entreprise | `COMPANY_SIZE` | tranche `1_10` · `11_50` · `51_250` · `251_1000` · `1001_plus` | — | **Vide.** Une tranche, jamais un effectif (`06` RG22). Marque seulement |
 | Marchés visés | `TARGET_MARKETS` | codes ISO 3166-1 alpha-2 en majuscules, dans l'ordre du profil, séparés par des virgules (5 au plus) | — | **Vide.** Marque seulement |
 | État du profil | `PROFILE_STATUS` | liste fermée `draft` · `pending_review` · `published` · `rejected` · `suspended` | — | **Vide** pour un créateur (jusqu'au Lot 3). Marque : l'état de la ligne vivante ; une révision en examen laisse `published` (`06` RG9) |
-| Niveau de badge | `VERIFIED_LEVEL` | liste fermée `none` · `n1` · `n2` | `none` | `none` |
+| Niveau de badge | `VERIFIED_LEVEL` | liste fermée `none` · `n1` · `n2` *(L2E : `n1` compte vérifié créateur ou marque vérifiée, `n2` audience vérifiée ; valeur lue du badge tenant)* | `none` | `none` |
+| Date du badge | `VERIFIED_AT` *(L2E, créé sur `staging` le 2026-11-07)* | texte (date ISO), comme `CONSENT_AT` | — | Vide ; date du badge qui fixe `VERIFIED_LEVEL`, relue à chaque réécriture du contact (Brevo seul, jamais Apollo) |
 | Consentement marketing | `MARKETING_CONSENT` | booléen | `false` | `false` — **jamais `true` par défaut** |
 | Date du consentement | `CONSENT_AT` | date-heure | — | Vide |
 | Source du consentement | `CONSENT_SOURCE` | liste fermée | — | Vide |

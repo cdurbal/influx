@@ -513,6 +513,8 @@ marque, dans sa langue :
 | Doublon d'une marque déjà inscrite | « Cette marque dispose déjà d'un compte INFLUX. » | Contacter INFLUX |
 | Autre | Message rédigé par l'agent, en complément d'une explication | Contacter INFLUX |
 
+*Amendé à la clôture de L2E (EC-L2E-11, `l2e/modele.md` §5) : RG66 ne porte que le refus du **profil**. Les refus de la demande « Marque vérifiée » ont leur liste fermée propre : `domain_code_not_found`, `registration_not_found`, `registration_unverifiable_country` (RG52), `name_mismatch`, `account_unavailable`, `other`, avec les textes de `modele.md` §5.*
+
 **RG67** — Le motif **« Autre » est exceptionnel et surveillé** : sa fréquence est un indicateur. S'il
 dépasse **10 % des refus** sur un mois, la liste est incomplète et doit être étendue.
 
@@ -945,7 +947,7 @@ Tables prévues et utilisées telles quelles : `profiles.advertiser_profiles`,
 `reference.languages`, `reference.currencies`, `reference.price_bands`, `reference.topics`,
 `reference.networks`, `reference.formats`, `reference.usage_rights`.
 
-**Quatre écarts constatés avec `docs/mvp/04-modele-de-donnees-mvp.md` §5.2, à instruire :**
+**Quatre écarts constatés avec `docs/mvp/04-modele-de-donnees-mvp.md` §5.2, à instruire :** *(état à la clôture de L2E : l'écart 1 est levé par le bloc interne `profiles.advertiser_internal_details`, `0222`, `legal_name` gardé et lu comme « nom commercial » ; l'écart 3 est levé par ce même bloc, qui porte pays et numéro d'immatriculation ; les écarts 2 et 4 relèvent de L2C et restent comme livrés.)*
 
 1. **`legal_name` doit quitter `advertiser_profiles` (public) pour le bloc interne.** La raison
    sociale peut être le nom d'une personne physique (entreprise individuelle) : la publier serait une

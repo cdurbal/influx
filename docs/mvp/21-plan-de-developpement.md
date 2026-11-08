@@ -15,7 +15,7 @@
 | **Lot 1** — inscription et leads (J5 à J9) | ✅ Clos le 2026-10-27 sur `staging` ; production préparée, non créée (portes §5.8, J9T-1) |
 | Hors jalon — suppression de compte en libre-service (D72) | ✅ Livré (`0150`) |
 | Extras **DS** (D73), **SN** (D74), **RK** (D75) | ✅ Clos les 2026-10-29, 2026-10-30 et 2026-10-30 ; reliquat RK au §8 |
-| **Lot 2** — profils, réseaux, badge | Découpé en sept jalons L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; L2A à préparer |
+| **Lot 2** — profils, réseaux, badge | Découpé en sept jalons L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; L2A à L2E clos (L2E le 2026-11-08) ; L2F suivant, après arbitrage de D83 |
 
 **Deux niveaux de « prêt », à ne pas confondre :** *prêt en `staging`* (démontrable, `staging` iso-production depuis D70 : envois et contacts réels sur les comptes de `staging`, exploité par les agents) et *prêt en production* (ouvert au public : en plus, les portes non techniques de §5.8 et l'accord explicite du fondateur).
 
@@ -145,7 +145,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 | # | Correctif attendu | Échéance | Détail |
 |---|---|---|---|
-| DS-flaky | `t14-backoffice-invitations-route` (« a retry of the same link… ») vu rouge une fois ; aucune occurrence sur les passages de clôture L2A ni sur 5 runs CI. L2D : `brand-profile.spec.ts:169` (run 42243018278, L2DT-1), corrigée par `fix-2` ; `apps/backoffice` `relay-integration.artifacts.ts` T7.3, `EPIPE` intermittent (run 42269804425, vert après `gh run rerun --failed`, sans lien avec le diff), première occurrence | À surveiller | ligne DS de l'archive §5 ; `archives/jalons/l2d/run.md` lignes fix-2, C |
+| DS-flaky | `t14-backoffice-invitations-route` (« a retry of the same link… ») vu rouge une fois ; aucune occurrence sur les passages de clôture L2A ni sur 5 runs CI. L2D : `brand-profile.spec.ts:169` (run 42243018278, L2DT-1), corrigée par `fix-2` ; `apps/backoffice` `relay-integration.artifacts.ts` T7.3, `EPIPE` intermittent (run 42269804425, vert après `gh run rerun --failed`, sans lien avec le diff), première occurrence ; L2E : `backoffice-queue.spec.ts:82` et `:418` (run 42318390996, L2ET-6), une occurrence | À surveiller | ligne DS de l'archive §5 ; `archives/jalons/l2d/run.md` lignes fix-2, C ; `archives/jalons/l2e-fiche.md` § Revue |
 | PLS-2 | T12 : audit des dépendances qui échoue sur critique ou élevée (T12.1), hebdomadaire et CI, dérogations datées (T12.3, T12.4) | Avant production | idem |
 | PLT-2 | `/v1/bo/alerts` : refus délibéré 42501 `forbidden` en 401 (cookie effacé, PLS-4) au lieu de 500 ; test db qui désactive le profil entre résolution et appel | Avant production | idem |
 | PLT-5 | Fonction 2V de `0141` (EC-PL-04a-1) : migration `@.value.type() != "string"`, test db « payload 2V refusé à la création » ; avec PLS-5 et PLS-6 | Avant production | idem |
@@ -169,12 +169,11 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | L2BT-6, L2BT-8 | Horloge des tests de quota ; D76 à étendre | Plus tard | idem |
 | L2BS-5, L2BS-6, L2BS-9 | `sharp` sans borne de temps ; 2 Mio sur tout le passe-plat ; `fastify` ≥ 5.12.6 | Plus tard | idem |
 | L2C-HARNAIS | Deux exécutions superposées de la suite base échouent parfois en 401 : `db-tests/stale-fixtures.ts` désactive tous les agents actifs ; `setLocalRolePasswords` : « tuple concurrently updated » en lancement simultané. Décision : plus tard, une seule suite base à la fois (recommandation `testeur`) | Plus tard | `archives/jalons/l2c/run.md` ligne fix-1 |
-| L2D-E2E | Budget e2e de L2D dépassé, accepté par le fondateur (2026-11-06, option a, comme L2C ; aucune fusion, aucun plancher baissé) : cas neufs 19,5 s (≤ 20 s), 24,6 s en borne haute avec trois cas allongés (`account.spec.ts` 1,5 s, `brand-profile.spec.ts` 1,4 s, `member-shell.spec.ts` 2,2 s) ; surcoût réel non mesuré ; levier au jalon suivant | Jalon suivant | `archives/jalons/l2d/run.md` ligne C |
+| L2D-E2E | Budget e2e dépassé trois jalons de suite, **accepté explicitement par le fondateur** (L2C, L2D, puis L2E le 2026-11-08 ; aucun plancher baissé). L2E : lignes 18 à 23 cumulent 35,8 s contre 20 s ; `verification.spec.ts` médiane 48,8 s à HEAD ; somme des médianes 465,2 s pour 251 cas contre 366,9 s pour 242 cas à la référence (+98 s ; bruit machine ±40 %) ; éclats CI 361 / 333 / 332 s sous 7 min 30. **Levier nommé pour L2F** : scinder `verification.spec.ts` et préparer les états par l'API plutôt que par les écrans | L2F | `archives/jalons/l2e/run.md` § Mesures de clôture |
 | EC-L2C-fix-2-2 | Refus RG36 d'un admin titulaire non journalisé (`record_refused_action` : `EXECUTE` agent seul) | Avant production | `archives/jalons/l2c/run.md` ligne fix-2 |
 | EC-L2C-15-1 | Libellés membres tirés de RG9, RG10, absents de RG84 (`status.revisionRefused`, `review.*`, `logo.review.*`, `fieldErrors.emptied`, `statusText.published`, `suspended`) : relus avec les textes D48 (`21` §5.8) | Avant production | `archives/jalons/l2c/run.md` ligne 15 |
 | L2C-09 | Rejeu d'une ligne transactionnelle déjà envoyée en défaut : journal `leads.transactional_sends`, `provider_message_id` unique (`0015` l. 83) | Avant production | `archives/jalons/l2c/run.md` ligne 09 |
 | CA22 | RG71 (e-mail de correction, `15` RG44, `03` C(7)) reporté au Lot 5 (réponse 1 du fondateur, 2026-11-03) | Avant production | `archives/jalons/l2c-fiche.md` |
-| L2CT-8, L2CS-8 | CA42 (`tests/brevo-connector.test.ts:2244-2261`) tautologique : valeurs dans le doublé ou test retiré ; au L2E, nom commercial dans sa colonne, `organization_name` d'Apollo lu de là, test RG80 | L2E | `archives/jalons/l2c/revue-constats-testeur.md`, `…-securite.md` |
 | L2CS-4 | `submit_own_advertiser_revision` aux contraintes de la colonne cible (domaine RG17, bornes, secteur actif), 22023 | Plus tard | `archives/jalons/l2c/revue-constats-securite.md` |
 | L2CS-5 | Message « Autre » refusé en 400 par le `LINK_PATTERN` de RG158, partagé | Plus tard | idem |
 | L2CS-6 | Index d'expression `normalized_brand_name(legal_name)`, `lower(website_domain)` sur `published` | Avant le Lot 3 | idem |
@@ -183,10 +182,20 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | L2DU-12 à L2DU-15 | Profil créateur, textes : reliquat « Autres » des genres ambigu, « Non renseigné » proposé, amende RG57 (`product-owner`) ; sans vitrine, message contradictoire, n'afficher que titre, notice et retour, aucune promesse de notification tant que rien ne l'envoie (`product-owner`) ; disponibilité : pléonasme « sous moins de 2 semaines » et tranches qui se recouvrent, correction de texte ; « Brouillon » avant L2G, « en cours de saisie » proposé (`product-owner`) | Avant production | `archives/jalons/l2d/ux-constats.md` |
 | L2DU-16 | Profil créateur : passages axe `wcag22` à 375 en EN avec lignes et sur l'écran sans vitrine | Avant production | idem |
 | L2DU-17, L2DU-18 | Blocs du profil créateur repliables sous lg (ou « Haut de page ») ; cible tactile de 44 px du lien « Modifier dans Mon compte » | Plus tard | idem |
-| L2DS-1 | Autorité de `profile_url` : `^[A-Za-z0-9.-]+(:[0-9]{1,5})?$` au domaine et en base, témoins `\` et `%5C` (`https://evil.example\.instagram.com` accepté) ; `network-line.ts:57,75`, `0217:205,269,277` | Avant production, au plus tard avant tout rendu cliquable de `profile_url` (L2E, Lot 4) | `archives/jalons/l2d/revue-constats-securite.md` |
+| L2ES-1 | Dépôt de 8 Mio lu avant le contrôle de session (`relay.ts:204-240`, `verification/routes.ts:189-221`) ; limite de débit L2BS-6 | Avant production (limite de débit : Lot 6) | `archives/jalons/l2e-fiche.md` § Revue |
+| L2ES-2 | Octroi sans comparaison du handle constaté au handle déclaré (`0224:1188-1236`, `0225:301-350`) : 22023 `observed_handle_mismatch` plus déclencheur de reconfirmation | Avant production, au plus tard L2F et avant tout badge montré à un annonceur | idem |
+| L2ES-3 | Refus d'écriture agent sur `registry-sources` non journalisé : code `verification.set_registry_source` à ajouter à `record_refused_action` (migration) ; avec EC-L2C-fix-2-2 | Avant production | idem |
+| L2ES-4 | Chiffres observés lisibles par les agents après effacement ; la conformité tranche | Avant production (conformité, Lot 6) | idem |
+| L2ES-5 à L2ES-8 | Constats de sécurité mineurs de la revue de fin de L2E (détail non repris dans la fiche) | Plus tard | idem |
+| L2ET-3 | Tests concurrents de la file 4 et du quota | Avant production | idem |
+| L2ET-4 | E-mail de refus et aperçu du backoffice alignés sur l'écran (suite lue du seul motif, `verification-email.ts` l. 65-82 ; ligne 26 de L2E non lancée) | Avant production | idem |
+| L2ET-7 | Constat mineur du testeur à la revue de fin de L2E (détail non repris dans la fiche) | Plus tard | idem |
+| L2EU-9 à L2EU-15 | Textes et écrans de la vérification (`ux-constats.md`) : badge d'aperçu « Exemple » (D34), récapitulatif marque, « Ouvrir et prendre en charge », « (nouvel onglet) », pièce en colonne collante dès 1024 px, « Annuler la demande » confirmé, marque d'un pays sans source (`product-owner`) ; L2EU-4 (date de nouvelle demande : contrat et route), date de levée du plafond de 3 refus (migration), page de `06` RG51 | Avant production | `archives/jalons/l2e-fiche.md` § Revue |
+| L2EU-16 à L2EU-18 | Backoffice en anglais (D36), aide dans l'espace membre, sources de registre (filtre par pays, confirmation près de la ligne) | Plus tard | idem |
+| L2E-US | États américains : colonne de subdivision et porte d'insertion de `verification.registry_sources` (EC-L2E-23-1) | L2F | idem |
+| D83 | Validation d'un membre connu sur l'initiative d'un agent (ouverte, `89b3b06`) | Arbitrage avant L2F | `decisions.md` D83 |
 | L2DT-5 | `t1-anonymisation.test.ts:585-600, 624-636` : ville, publications, commentaires, parts exactes en marqueurs distinctifs | Avant production | `archives/jalons/l2d/revue-constats-testeur.md` |
 | L2DT-6 | `t1-anonymisation.test.ts:744-757` : balayage du routeur sans session | Avant production | `archives/jalons/l2d/revue-constats-testeur.md` |
-| L2DS-2 | Métrique écrite par le créateur : `figures_source = 'declared'` forcé (`0217:516-518`, `0218:530, 689-698`) | L2E (migration qui ouvre `agent_observed`) | `archives/jalons/l2d/revue-constats-securite.md` |
 | L2DS-3 | T1-R par dépendances, tous schémas (`profiles-creator-identity.test.ts:197-221`, `0217:600-629`) | Avant le Lot 3 | `archives/jalons/l2d/revue-constats-securite.md` |
 | L2DS-5 | Aucun `execute` dynamique chez `influx_identity_definer` (`0218:271-376`, `03` l. 896) | Avant le Lot 3 | `archives/jalons/l2d/revue-constats-securite.md` |
 | L2DS-4 | Vitrine modérée comme L2C, complétude recalculée à la soumission (`0216:318-322`, `creator/profile.ts:49-53`) | L2G | `archives/jalons/l2d/revue-constats-securite.md` |
@@ -207,7 +216,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 - **L2B** (profil marque : saisie, logo, soumission ; `packages/domain`, Storage en CI, migrations `0202` à `0205`) : ouvert le 2026-11-01, **clos le 2026-11-03** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée, dérive du job « Browser journeys » acceptée par le fondateur) ; `archives/jalons/l2b-fiche.md`, `archives/jalons/l2b/run.md`.
 - **L2C** (file 1, modération du profil marque, migrations `0206` à `0214` et `0215`) : ouvert le 2026-11-03, **clos le 2026-11-05** ; `archives/jalons/l2c-fiche.md`, `archives/jalons/l2c/run.md`.
 - **L2D** (profil créateur, blocs 1 à 5, T1, TM11, migrations `0216` à `0219`) : ouvert le 2026-11-05, **clos le 2026-11-06** ; un attendu assoupli (`member-shell.spec.ts:193`, EC-L2D-15-1) ; `archives/jalons/l2d-fiche.md`, `archives/jalons/l2d/run.md`.
-- **L2E** (propriété, pièces, constat : premiers badges datés ; migrations `0221` à `0226`) : ouvert le 2026-11-07 ; `jalons/l2e-fiche.md`, `jalons/l2e/run.md`.
+- **L2E** (propriété, pièces, constat, file 4, T9.6, migrations `0220` à `0227`) : ouvert le 2026-11-07, **clos le 2026-11-08** ; dépassement e2e accepté (L2D-E2E reste ouvert) ; `archives/jalons/l2e-fiche.md`, `archives/jalons/l2e/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 

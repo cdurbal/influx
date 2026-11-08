@@ -1499,6 +1499,8 @@ champ, et son ancienne version reste affichée tant que la nouvelle n'est pas ap
 
 ### 5.3 `verification` — preuves, badge, péremption (Lot 2)
 
+> **Amendé à la clôture de L2E (2026-11-08 ; `0220` à `0227`, modèle arbitré en `archives/jalons/l2e/modele.md`).** Le schéma réel prime sur les blocs ci-dessous : **états** `draft` · `pending` · `approved` · `rejected` · `cancelled` · `expired` · `closed` (aucun état `in_review` : le verrou est porté par les colonnes de prise, et « à réexaminer » est un motif interne qui garde `pending`) ; **index de prise** : un seul `draft` ou `pending` par `(account_id, social_account_id, level)`, et non plus l'index `where status = 'in_review'` ci-dessous, qui est retiré ; `level` : `account_verified` · `audience_verified` · `brand_verified` ; acteur de décision par compte (`decided_by_account_id`) ; `badges` : `network_code`, `request_id`, `registry_source_id`, constat et déclaré à la décision, `observed_engagement_bp`, `evidence_source`, état `replaced`. Propriétaires des fonctions : `influx_verification_definer`, `influx_creator_verification_definer` (neufs), `influx_identity_definer` (portes marque, sans droit sur les pièces). L'annonceur n'a aucun droit sur le schéma `verification`, `USAGE` compris (T9.6).
+
 #### `verification.verification_requests`
 
 *Une demande de vérification, et la file qui la traite.*
@@ -1521,6 +1523,7 @@ alter table verification.verification_requests
       check (status not in ('approved','rejected') or decided_by_agent_id is not null);
 
 -- verrou anti-double-traitement : un seul agent par entrée en cours
+-- (retiré à L2E : ni état `in_review`, ni cet index ; voir l'amendement ci-dessus)
 create unique index verification_requests_claim_idx
   on verification.verification_requests (id)
   where status = 'in_review';
@@ -1561,7 +1564,7 @@ obligatoire pour qu'une demande de propriété soit approuvée.
 #### `verification.evidence_files`
 
 `id`, `verification_request_id`, `storage_path` (compartiment **privé** `verification-evidence`),
-`content_type check (content_type in ('image/png','image/jpeg'))`, `byte_size`,
+`content_type check (content_type in ('image/png','image/jpeg'))` *(amendé à L2E, D82 : la pièce stockée est un WebP ré-encodé sans métadonnée, sans colonne `content_type` ; clé calculée `<account_id>/<request_id>/<id>.webp`, `request_id`, `checksum` sha256 du WebP)*, `byte_size`,
 `checksum bytea`, `capture_period_start date`, `capture_period_end date`,
 `uploaded_by_account_id`, `uploaded_at`, `retention_due_at not null`, `deleted_at`.
 
@@ -5236,7 +5239,7 @@ Cinq compartiments, **tous privés**, sans exception.
 
 | Compartiment | Contenu | Écriture | Lecture |
 |---|---|---|---|
-| `verification-evidence` | Captures et pièces de vérification | Le créateur (URL signée, ≤ 5 min) | **Agents seulement.** Jamais un annonceur, jamais un autre créateur |
+| `verification-evidence` | Captures et pièces de vérification | `apps/api` seul, par le passe-plat (≤ 8 Mio sur la seule route de dépôt d'une pièce, D82), WebP ré-encodé, jamais d'URL signée | **Agents seulement**, octets relayés par l'API, chaque ouverture journalisée (`verification.evidence_viewed`). Jamais un annonceur, jamais un autre créateur |
 | `portfolio` | Visuels de portfolio | Le créateur | Agents ; annonceurs **uniquement** si `moderation_status = 'approved'` |
 | `introduction-documents` | Canal de documents (si D30/Q4 le retient) | Participants d'une mise en relation | Contrepartie **après** modération |
 | `legal-documents` | Versions publiées des CGU et politiques | Administrateur | Tout le monde, par URL signée longue |
@@ -5244,10 +5247,9 @@ Cinq compartiments, **tous privés**, sans exception.
 
 Règles communes, alignées sur les RLS des tables correspondantes :
 
-1. **Le chemin encode le propriétaire** : `verification-evidence/<account_id>/<request_id>/<uuid>.png`.
+1. **Le chemin encode le propriétaire** : `verification-evidence/<account_id>/<request_id>/<uuid>.webp` *(amendé à L2E, D82 ; `.png` à l'origine)*.
    Les politiques du Storage comparent le premier segment à `influx.current_account_id()`.
-2. **Aucune lecture directe** : toute lecture passe par une URL signée émise par `apps/api` après
-   contrôle, de durée courte, **dont l'émission est journalisée** (exception E1 du document `02`).
+2. **Aucune lecture directe** : toute lecture passe par `apps/api` après contrôle. *(Amendé à L2E, D82 : aucune URL signée n'est émise pour `verification-evidence` ni `brand-logo` ; l'exception E1 du document `02` n'est pas utilisée ; la lecture est journalisée par la base dans la transaction qui rend la clé.)* Les autres compartiments gardent l'URL signée courte journalisée.
 3. **Une ligne en base pour chaque objet stocké.** Un fichier sans ligne est un orphelin : une tâche
    hebdomadaire les liste et alerte.
 4. **La suppression d'un fichier suit la rétention de sa ligne**, jamais l'inverse.
@@ -5709,6 +5711,8 @@ revoke all on all tables in schema verification from influx_advertiser;
 alter default privileges in schema verification revoke all on tables from influx_advertiser;
 ```
 
+*(Amendé à L2E : pour `verification`, la garantie va plus loin, l'annonceur n'a **aucun** droit sur le schéma, `USAGE` compris, assertion de fin de `0221` et T9.6.)*
+
 La seconde ligne est celle qui compte : **toute table créée plus tard dans ce schéma sera
 inaccessible au rôle annonceur, sans que personne n'ait à y penser.** Dans un schéma unique, la même
 garantie exigerait de se souvenir d'un `REVOKE` à chaque `CREATE TABLE` — et c'est exactement le type
@@ -6137,7 +6141,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0203 | `profiles_creator_public` | Vitrine anonymisée et ses satellites, **les sept champs ajoutés par `07`**, `creator_tones`, `creator_usage_rights`, **`profile_status` à cinq valeurs** | Oui |
 | 0204 | `profiles_creator_identity` | Objets révélable et identifiant, `avg_reach_per_post`, **`GRANT` de révélation élargi aux chiffres exacts** (§5.2), `REVOKE` au rôle annonceur sur l'objet identifiant | Oui |
 | 0205 | `profiles_portfolio` | `portfolio_items`, compartiment `portfolio`, politiques Storage | Oui |
-| 0206 | `verification_core` | Demandes, codes, pièces (**images uniquement**), badges, contestations, motifs de refus, **`revocation_reasons`**, **état `to_reconfirm`**, **identifiant observé au constat** | Oui |
+| 0206 | `verification_core` | *(nom du plan d'origine ; réalisé en migrations `0221` à `0227`, voir ci-dessous)* Demandes, codes, pièces (**images uniquement**), badges, contestations, motifs de refus, **`revocation_reasons`**, **état `to_reconfirm`**, **identifiant observé au constat** | Oui |
 | 0207 | `profiles_revisions_and_review_entries` (L2C) | `moderated_fields`, `profile_field_revisions`, `advertiser_review_entries`, `advertiser_rejection_reasons`, index de file, jeton de version ; l'application d'une révision approuvée vient avec les décisions (L2C, commit 07) | Oui |
 | 0208 | `profiles_brand_logo_in_review_state` (L2C) | État `in_review` de `brand_logo_state`, seul dans son fichier : une valeur ajoutée à une énumération est inutilisable avant `COMMIT` | Oui |
 | 0209 | `profiles_brand_freeze_and_revision_door` (L2C) | Gel de `published` et `suspended`, porte membre de `06` RG9, logo en examen, `update_own_account()` recréée (§5.2) | Oui |
@@ -6152,6 +6156,14 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0217 | `profiles_creator_identity` (L2D) | `creator_identities`, `creator_social_accounts`, audience exacte (trois tables), secteurs refusés, historique des métriques en ajout seul, `reference.network_url_hosts` et sa garde ; `REVOKE` explicite de `influx_advertiser` | Non |
 | 0218 | `profiles_creator_bands_and_history` (L2D) | `creator_public_networks`, `creator_public_audience`, dérivations en tranches (`SECURITY DEFINER`, `influx_identity_definer`), porte `confirm_own_creator_figures()` | Non |
 | 0219 | `privacy_creator_profile` (L2D) | Catégorie `creator_profile` de l'export et effacement dans la même transaction | Non |
+| 0220 | `profiles_network_url_authority` (L2E) | L2DS-1 : autorité stricte de `profile_url` (`^[A-Za-z0-9.-]+(:[0-9]{1,5})?$`), contrainte `_profile_url_shape` | Oui |
+| 0221 | `verification_core` (L2E) | Schéma `verification` : demandes, codes de propriété, pièces, badges, motifs fermés, sources de registre, file 4, paramètres de RG100 ; RLS forcée, aucun droit à `influx_advertiser` | Non |
+| 0222 | `verification_member_doors` (L2E) | Portes créateur et marque bornées au compte de la session, code `INFLUX-` + 8, bloc interne `profiles.advertiser_internal_details` | Non |
+| 0223 | `verification_evidence_storage` (L2E) | Compartiment `verification-evidence`, quotas, cycle de la ligne de pièce, purge, tâche `verification_expiry` | Non |
+| 0224 | `verification_claims_and_decisions` (L2E) | `influx_verification_definer` : prise, relâche, décisions, lecture de pièce journalisée | Non |
+| 0225 | `profiles_observed_figures_bands` (L2E) | Tranches publiques dérivées du badge d'audience tenant, engagement, historique `agent_observed`, L2DS-2 | Non |
+| 0226 | `privacy_verification` (L2E) | Catégorie `verification` de l'export et effacement dans la même transaction | Non |
+| 0227 | `leads_verification_email_reads` (L2E) | Lectures du worker `read_brevo_verification_email` et `read_verified_badge` | Non |
 
 > **Numéros réels du L2B (EC-L2B-1).** `check-migrations.ts` impose l'ordre des noms : L2B a pris `0202` `profiles_advertiser_full`, `0203` `profiles_advertiser_submission` (soumission gardée par la base), `0204` `profiles_brand_logo_storage` (compartiment `brand-logo`, quotas, politiques Storage) et `0205` `ops_storage_purge`. Les lignes `0203` à `0207` ci-dessus prennent les numéros libres suivants au jalon qui les livre. **L2C** prend `0206` `backoffice_profiles_advertiser_queue` : file 1 et son délai (escalade 960, `15` RG29), `backoffice.operational_settings` (EC-L2C-2), `backoffice.business_deadline()` (§5.6), puis `0207` ci-dessus.
 | **Lot 3** | | | |
@@ -6375,7 +6387,7 @@ Ajoutés par la revue de cohérence (`archives/19-revue-de-coherence-2026-09-24.
 
 ### 12.12 Points ouverts par l'arbitrage du fondateur du 2026-09-25 — D61, métriques prioritaires des créateurs
 
-> **Réalisé au L2D (`0217`, `0218`) :** les points 1, 2, 6 et 7 sont en base (colonnes nullables en brouillon sous Q15, `comment_band` nullable, historique `creator_network_metrics_history`, date posée par la seule porte `confirm_own_creator_figures()`, non par `packages/domain`) ; les points 3 et 4 sont en référentiel depuis `0201` ; le point 5 vient avec L2E.
+> **Réalisé au L2D (`0217`, `0218`) :** les points 1, 2, 6 et 7 sont en base (colonnes nullables en brouillon sous Q15, `comment_band` nullable, historique `creator_network_metrics_history`, date posée par la seule porte `confirm_own_creator_figures()`, non par `packages/domain`) ; les points 3 et 4 sont en référentiel depuis `0201` ; le point 5 est réalisé à L2E (`0221`, `0224`, `0225`).
 
 Décision **prise** : pour chaque réseau, INFLUX suit en priorité la **taille de la communauté**, le
 **rythme de publication** et le **nombre moyen de commentaires par publication** (`07` §E bis, RG113

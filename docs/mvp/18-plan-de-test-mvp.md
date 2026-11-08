@@ -652,12 +652,12 @@ s'exécutent donc aussi sur un dossier de fichiers témoins en infraction (hors 
 | Cas | Ce qu'il vérifie |
 |---|---|
 | **T9.1** | `storage.buckets.public = false` pour **tous** les compartiments, sans exception |
-| **T9.2** | URL signée expirée ⇒ refus ; durée émise ≤ 5 min. *Au L2B (D80) : aucune réponse du logo ne porte d'hôte Supabase ni de jeton* |
+| **T9.2** | URL signée expirée ⇒ refus ; durée émise ≤ 5 min. *Au L2B (D80) : aucune réponse du logo ne porte d'hôte Supabase ni de jeton. Au L2E (D82) : aucune URL signée n'est émise pour les pièces de vérification, aucune réponse ne porte d'hôte Supabase ni de jeton ; le cas devient « aucune URL émise »* |
 | **T9.3** | Clé d'objet avec traversée (`../`) ⇒ refus |
 | **T9.4** | Fichier dont les **octets d'en-tête** contredisent le type déclaré ⇒ rejet ; PDF refusé (E1-9) |
 | **T9.5** | **EXIF absent après traitement** : image de test portant une géolocalisation connue ⇒ après ré-encodage, la donnée a disparu. Le test lit les octets, il ne fait pas confiance à un booléen |
-| **T9.6** | **Une pièce de vérification n'est atteignable par aucune route ni aucun schéma du rôle annonceur, y compris en devinant un identifiant** et y compris après révélation d'identité (C(13)). Ce cas est bloquant à lui seul |
-| **T9.7** | Toute émission d'URL signée est journalisée *(au L2B, D80 : aucune URL signée n'est émise)* ; la lecture d'une pièce de vérification passe par `apps/api` et non par une URL signée (E1-7) |
+| **T9.6** | **Une pièce de vérification n'est atteignable par aucune route ni aucun schéma du rôle annonceur, y compris en devinant un identifiant** et y compris après révélation d'identité (C(13)). Ce cas est bloquant à lui seul. *Précisé au L2E (EC-L2E-18) : l'annonceur n'a aucun droit sur le schéma `verification`, `USAGE` compris, ni sur `storage` ; toute fonction qu'il exécute, tous schémas, ne nomme ni `verification.evidence_files` ni `storage.` (`prosrc`, corps SQL standard, `pg_depend`) ; les propriétaires atteints de proche en proche n'ont aucun droit sur la pièce ni sur Storage ; une pièce réelle portée dans chaque route donne la même réponse qu'un identifiant inconnu ; témoins rouges et mutation (`USAGE` accordé) vus rouges* |
+| **T9.7** | Toute émission d'URL signée est journalisée *(au L2B, D80 : aucune URL signée n'est émise)* ; la lecture d'une pièce de vérification passe par `apps/api` et non par une URL signée (E1-7) *(au L2E : aucune réponse ne porte d'hôte Supabase ni de jeton, et chaque ouverture écrit `verification.evidence_viewed` (agent, demande, pièce) dans la transaction qui rend la clé)* |
 | **T9.8** | Quotas par compte (nombre et volume par jour) appliqués côté serveur |
 | **T9.9** | Le chemin d'objet est calculé par le serveur et **ne contient jamais le nom de fichier d'origine** |
 | **T9.10** | Contrainte de base : un visuel de portfolio dont les métadonnées n'ont pas été retirées **ne peut pas** passer en `approved` ; un remplacement de fichier repasse la modération à `pending` |
@@ -1429,7 +1429,7 @@ par le fondateur** vaut cochée : c'est la différence entre un risque accepté 
 - [ ] **B3** — Aucune table métier dans `public` ; aucun schéma exposé à PostgREST ; `REVOKE ALL` sur `PUBLIC`, `anon`, `authenticated` et `service_role` → **T2.2, T2.4, T2.8**
 - [ ] **B4** — Session opaque révocable, ligne en base avec `revoked_at` → **T8.7, T8.12**
 - [ ] **B5** — `REVOKE SELECT` sur `messaging.messages` et `conversations` pour les rôles internes *(préparé au Lot 0, vérifié au Lot 4)* → **T5.1, T5.5**
-- [ ] **B6** — Aucun droit, aucune route, aucun champ de pièce de vérification pour le rôle annonceur *(préparé, vérifié au Lot 2)* → **T9.6**
+- [ ] **B6** — Aucun droit, aucune route, aucun champ de pièce de vérification pour le rôle annonceur *(vérifié au L2E, clôture du 2026-11-08 : T9.6, 12 cas, vert trois fois ; l'annonceur sans aucun droit sur `verification`)* → **T9.6**
 - [ ] **B7** — Compte administrateur de secours « bris de glace » créé, codes scellés, alerte à chaque connexion → **vérification humaine + T8.11**
 - [ ] **B8** — Codes à usage unique : un seul valide, limitation à trois niveaux, réponse identique *(préparé, vérifié au Lot 1)* → **T8.1 à T8.6**
 - [ ] **B9** — `staging` alimenté exclusivement par `supabase/seed`, interdiction écrite de toute restauration de production → **T17.4 + procédure**

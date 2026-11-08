@@ -552,8 +552,8 @@ texte coloré (nom, montant, titre), fond de surface, bouton, contour de carte, 
 
 Le badge vérifié passe du vert au bleu de KEO : le vert est réservé à l'action. Le bleu évoque la
 coche des réseaux sociaux, qui n'affirme pas la même chose (`08` RG4, RG10, D34) : le badge n'est donc
-**jamais une coche seule ni collé à un nom** ; il écrit « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » sur la
-ligne du réseau concerné. Le fondateur a retenu ce bleu et cette règle de forme le 2026-10-29 (§11.9, F3).
+**jamais une coche seule ni collé à un nom** ; il écrit « Vérifié · ⟨réseau⟩ · ⟨date⟩ » sur la
+ligne du réseau concerné *(amendé à la clôture de L2E, EC-L2E-9 : la date est **complète**, jour, mois et année, selon `08` RG4 et RG10 ; « mois année » à l'origine)*. Le fondateur a retenu ce bleu et cette règle de forme le 2026-10-29 (§11.9, F3).
 
 **Données** (graphiques seulement, chaque série étiquetée directement, jamais pour un état ou un rôle)
 

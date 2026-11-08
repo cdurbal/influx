@@ -334,6 +334,7 @@ instructions autorisent (RG87).
 **RG34** — Formats acceptés : **images uniquement** (PNG, JPEG, WebP), conformément à `03` §6.6
 règle **E1-9**. Le **PDF est refusé au MVP**. Taille maximale par fichier et nombre maximal de
 fichiers par demande : **paramètres en table** (valeurs de départ proposées : 8 Mo, 6 fichiers).
+*Amendé à la clôture de L2E (D82) : le fichier reçu est lu dans ses octets (PNG, JPEG, WebP), puis **ré-encodé en WebP sans aucune métadonnée** avant tout examen ; seul le WebP est stocké (pas de colonne `content_type`) ; 8 Mio (8 388 608 octets) sur la seule route de dépôt, un fichier par requête.*
 
 **RG35** — Les **métadonnées EXIF sont supprimées au dépôt**, avant tout examen, et le fichier est
 **re-encodé**. Une capture prise depuis un téléphone peut contenir une géolocalisation : c'est une
@@ -485,6 +486,8 @@ sont ceux de `06` RG66, distincts) :
 | `account_unavailable` | Compte suspendu ou en cours de suppression | « Votre demande ne peut pas être traitée tant que votre compte est suspendu. » | Contacter INFLUX |
 | `other` | Autre | Message rédigé par l'agent, **en complément** d'une explication | Contacter INFLUX |
 
+*Amendé à la clôture de L2E (ligne 25 ; écart signé par le fondateur le 2026-11-08) : la colonne « Ce qu'il peut faire » se lit **par niveau**, non du seul motif. Propriété : tout motif rouvre la preuve de propriété, sauf `account_not_public` (inchangé) et les motifs d'équipe sans bouton (`evidence_suspected_forgery`, `shared_account`, `terms_breach`, `account_unavailable`, `agency_managed`, `minor`). Audience, propriété établie : les cinq motifs de pièce, `ownership_not_proven` et `ownership_prerequisite` rouvrent le dépôt ; propriété non établie : aucun bouton, la phrase demande la propriété d'abord (RG12). `other` : la suite du niveau, puis « Contacter INFLUX ». Au backoffice, les six motifs de pièce ne sont ni proposés ni acceptés sur le niveau propriété.*
+
 **RG58** — Le motif **`other` est exceptionnel et surveillé** : s'il dépasse **10 % des refus sur un
 mois**, la liste est réputée incomplète et doit être étendue. Ce seuil est un indicateur du tableau de
 bord, pas une statistique de fin d'année.
@@ -617,7 +620,7 @@ RG10).
 
 ### I — Stockage des pièces, données de tiers, publication
 
-**RG81** — Les pièces vivent dans un **compartiment privé** dédié (`verification`), séparé des visuels
+**RG81** — Les pièces vivent dans un **compartiment privé** dédié (`verification-evidence`, EC-L2E-8 : nom réel, amendé à la clôture de L2E ; `verification` à l'origine), séparé des visuels
 de portfolio, avec ses propres limites de type et de taille (`03` §6.6, **E1-1** et **E1-2**).
 
 **RG82** — **Une pièce de vérification n'est jamais accessible à un annonceur, dans aucun cas** — y
@@ -634,8 +637,9 @@ historique de navigateur, un journal de serveur mandataire ou un message copié-
 **RG84** — **Tout accès d'un agent à une pièce est journalisé** : identité, demande concernée, pièce,
 date et heure. Une consultation non journalisée est un défaut bloquant.
 
-**RG85** — Le **dépôt** se fait par une URL signée de courte durée (≤ 5 minutes), émise après contrôle
-du rôle, du propriétaire, du type et de la taille (**C(12)**, **E1-3**). Le **nom d'origine du fichier
+**RG85** — Le **dépôt** se fait par le passe-plat et `apps/api`, après contrôle du rôle, du propriétaire,
+du type (lu dans les octets) et de la taille (**C(12)**) ; **aucune URL signée n'est émise** (D82, amendé à la
+clôture de L2E ; la rédaction d'origine prévoyait une URL de ≤ 5 minutes, **E1-3**). Le **nom d'origine du fichier
 n'est jamais conservé** : le chemin est calculé par l'API (**E1-4**). Un nom de fichier est un champ de
 texte libre, donc un vecteur de coordonnées.
 
@@ -722,7 +726,7 @@ d'appréciation exportée hors du périmètre qui la justifie.
 **RG94** — Notifications transactionnelles envoyées au créateur, toutes dans sa langue : demande reçue,
 code généré, **décision favorable**, **refus avec son message de motif**, rappel J-15, passage en « à
 rafraîchir », expiration, **retrait avec son motif**, contestation reçue, issue de la contestation,
-demande expirée. **Aucune de ces notifications n'est marketing** : elles ne dépendent d'aucun
+demande expirée. *(Amendé à la clôture de L2E, EC-L2E-3 : cinq notifications sont livrées au L2E, par le worker depuis `email.json`, sans lien ni chiffre : demande reçue, code généré, décision favorable, refus avec son message de motif, demande expirée ; les six autres suivent avec L2F et le Lot 5.)* **Aucune de ces notifications n'est marketing** : elles ne dépendent d'aucun
 consentement et ne passent par aucun scénario de nurturing.
 
 **RG95** — Chaque écran de ce périmètre possède **quatre états explicites** : repos, chargement,
@@ -1188,6 +1192,8 @@ Tables prévues et utilisées telles quelles : `verification.verification_reques
    refus par 30 jours) a besoin d'un compteur ou d'une requête indexée sur l'historique.
 8. **Aucune colonne pour la version des instructions de capture** acceptée par le créateur au dépôt :
    utile en cas de contestation portant sur les données de tiers (**Q2**).
+
+**État à la clôture de L2E (2026-11-08) :** écart 1 levé (images, WebP, `0221`) ; 2 levé (`revocation_reasons`, `0221`) ; 3 levé (état `to_reconfirm`, `0221`) ; 4 **reporté à L2F** (`verification.disputes`, EC-L2E-2) ; 5 levé (`observed_handle` et colonnes d'observation de `ownership_codes`, `0221`) ; 6 levé (`reference.engagement_bands` existe depuis `0201`) ; 7 levé (RG60 calculé sur les demandes, aucune table de compteurs, `0222`) ; 8 **non traité** (version des instructions de capture, ouvert, Q2).
 
 **Écart levé le 2026-09-24 (D51, arbitrage du fondateur ; `06` le disait déjà dans ses acteurs et cas limites).** *Texte d'origine :* `06` (cas limite « droit insuffisant ») dit
 que **seul un administrateur** peut retirer un badge, alors que `03` §3.2 autorise un **agent avec
