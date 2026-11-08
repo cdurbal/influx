@@ -258,9 +258,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 
 - **Lot 2** (`jalons/lot2-plan.md`, validé le 2026-11-01 ; questions ouvertes tranchées par D61
   et D79, revue RGPD au Lot 6) : **D34** hypothèse de `staging` validée, libellés relus avant `production` · **D24**
-  créateurs particuliers et fiscalité (instruite, porte de `production`) · **D83** validation d'un
-  membre déjà connu sur l'initiative d'un agent, sans demande du membre (cadrée, arbitrage du
-  fondateur avant la préparation de L2F).
+  créateurs particuliers et fiscalité (instruite, porte de `production`).
 - **Plus tard** : **D29** non-contournement · **D33** périmètre Apollo (veto RGPD, juriste avant
   `production` ; pays : tous par défaut) · **D63** consentement obligatoire (juriste) · **D21**
   influence commerciale par pays · **D38** masse critique (Lot 3) · **D30** coordonnées dans la
@@ -275,7 +273,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
   de validation (§7 règle 5) · D77 chaîne des jalons (§7 règle 5) · D78 aucun tarif créateur
   annoncé au pilote, coûts négociés avec le commercial (prolonge D48 ; `07` §G) · D79 arbitrages
   d'ouverture du Lot 2 (« identité masquée », pièces 45 j, ville jamais révélée, visages admis,
-  « Compte vérifié » requis, tranches et paramètres de départ).
+  « Compte vérifié » requis, tranches et paramètres de départ) · D83 validation d'un membre connu
+  lancée par un agent : constat allégé (A), libellés inchangés, et marque prouvée par l'adresse de
+  connexion sur son domaine (A-bis) ; réalisée au L2F.
 - Ouvert technique : gestion d'état côté front (aucune librairie sans besoin réel).
 
 ## 10. Lots du MVP

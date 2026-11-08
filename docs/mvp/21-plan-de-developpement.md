@@ -15,7 +15,7 @@
 | **Lot 1** — inscription et leads (J5 à J9) | ✅ Clos le 2026-10-27 sur `staging` ; production préparée, non créée (portes §5.8, J9T-1) |
 | Hors jalon — suppression de compte en libre-service (D72) | ✅ Livré (`0150`) |
 | Extras **DS** (D73), **SN** (D74), **RK** (D75) | ✅ Clos les 2026-10-29, 2026-10-30 et 2026-10-30 ; reliquat RK au §8 |
-| **Lot 2** — profils, réseaux, badge | Découpé en sept jalons L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; L2A à L2E clos (L2E le 2026-11-08) ; L2F suivant, après arbitrage de D83 |
+| **Lot 2** — profils, réseaux, badge | Découpé en sept jalons L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; L2A à L2E clos (L2E le 2026-11-08) ; L2F suivant (D83 tranchée le 2026-11-08 : A + A-bis) |
 
 **Deux niveaux de « prêt », à ne pas confondre :** *prêt en `staging`* (démontrable, `staging` iso-production depuis D70 : envois et contacts réels sur les comptes de `staging`, exploité par les agents) et *prêt en production* (ouvert au public : en plus, les portes non techniques de §5.8 et l'accord explicite du fondateur).
 
@@ -193,7 +193,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | L2EU-9 à L2EU-15 | Textes et écrans de la vérification (`ux-constats.md`) : badge d'aperçu « Exemple » (D34), récapitulatif marque, « Ouvrir et prendre en charge », « (nouvel onglet) », pièce en colonne collante dès 1024 px, « Annuler la demande » confirmé, marque d'un pays sans source (`product-owner`) ; L2EU-4 (date de nouvelle demande : contrat et route), date de levée du plafond de 3 refus (migration), page de `06` RG51 | Avant production | `archives/jalons/l2e-fiche.md` § Revue |
 | L2EU-16 à L2EU-18 | Backoffice en anglais (D36), aide dans l'espace membre, sources de registre (filtre par pays, confirmation près de la ligne) | Plus tard | idem |
 | L2E-US | États américains : colonne de subdivision et porte d'insertion de `verification.registry_sources` (EC-L2E-23-1) | L2F | idem |
-| D83 | Validation d'un membre connu sur l'initiative d'un agent (ouverte, `89b3b06`) | Arbitrage avant L2F | `decisions.md` D83 |
+| D83 | Validation d'un membre connu sur l'initiative d'un agent : tranchée le 2026-11-08 (A + A-bis) | L2F | `decisions.md` D83 |
 | L2DT-5 | `t1-anonymisation.test.ts:585-600, 624-636` : ville, publications, commentaires, parts exactes en marqueurs distinctifs | Avant production | `archives/jalons/l2d/revue-constats-testeur.md` |
 | L2DT-6 | `t1-anonymisation.test.ts:744-757` : balayage du routeur sans session | Avant production | `archives/jalons/l2d/revue-constats-testeur.md` |
 | L2DS-3 | T1-R par dépendances, tous schémas (`profiles-creator-identity.test.ts:197-221`, `0217:600-629`) | Avant le Lot 3 | `archives/jalons/l2d/revue-constats-securite.md` |
@@ -217,6 +217,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 - **L2C** (file 1, modération du profil marque, migrations `0206` à `0214` et `0215`) : ouvert le 2026-11-03, **clos le 2026-11-05** ; `archives/jalons/l2c-fiche.md`, `archives/jalons/l2c/run.md`.
 - **L2D** (profil créateur, blocs 1 à 5, T1, TM11, migrations `0216` à `0219`) : ouvert le 2026-11-05, **clos le 2026-11-06** ; un attendu assoupli (`member-shell.spec.ts:193`, EC-L2D-15-1) ; `archives/jalons/l2d-fiche.md`, `archives/jalons/l2d/run.md`.
 - **L2E** (propriété, pièces, constat, file 4, T9.6, migrations `0220` à `0227`) : ouvert le 2026-11-07, **clos le 2026-11-08** ; dépassement e2e accepté (L2D-E2E reste ouvert) ; `archives/jalons/l2e-fiche.md`, `archives/jalons/l2e/run.md`.
+- **L2F** (files 5 et 6, validation d'un membre connu sur l'initiative d'un agent (D83), L2E-US, L2ES-2, levier L2D-E2E ; 21 lignes dans `jalons/l2f/run.md`) : ouvert le 2026-11-08 ; `jalons/l2f-fiche.md`, `jalons/l2f/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 
