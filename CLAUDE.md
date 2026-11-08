@@ -258,7 +258,9 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 
 - **Lot 2** (`jalons/lot2-plan.md`, validé le 2026-11-01 ; questions ouvertes tranchées par D61
   et D79, revue RGPD au Lot 6) : **D34** hypothèse de `staging` validée, libellés relus avant `production` · **D24**
-  créateurs particuliers et fiscalité (instruite, porte de `production`).
+  créateurs particuliers et fiscalité (instruite, porte de `production`) · **D83** validation d'un
+  membre déjà connu sur l'initiative d'un agent, sans demande du membre (cadrée, arbitrage du
+  fondateur avant la préparation de L2F).
 - **Plus tard** : **D29** non-contournement · **D33** périmètre Apollo (veto RGPD, juriste avant
   `production` ; pays : tous par défaut) · **D63** consentement obligatoire (juriste) · **D21**
   influence commerciale par pays · **D38** masse critique (Lot 3) · **D30** coordonnées dans la
