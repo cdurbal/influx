@@ -2,7 +2,7 @@
 
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | sonnet | high | testeur | à faire | L2D-E2E (levier nommé par le fondateur le 2026-11-08) |
+| 01 | 01.md | commit | sonnet | high | testeur | fait | L2D-E2E (levier nommé par le fondateur le 2026-11-08) ; 9 cas répartis en 3 fichiers (4 + 2 + 3), planchers 9 → 4 + 2 + 3 ; amorce par l API (`sendAudienceRequest`) dans le cas agent audience, au lieu du dépôt à l écran ; expects 262 → 261 (retiré : `[data-piece]` du dépôt amorcé ; gardé : texte « envoyée ») ; sommes des médianes (3 passages, 1 worker) 35,1 s avant → 33,8 s après (gain 1,3 s, sous les 10 s visés) ; 2 workers : 40,6 s (contention) ; mur du groupe 60 s → 53 s ; objectif ≥ 10 s non atteint, cas déjà courts (2 à 8 s), reste du temps = démarrage des serveurs |
 | 02 | 02.md | commit | opus | high | expert-database | à faire | I-4. L2ES-2 |
 | 03 | 03.md | commit | opus | high | expert-database | à faire | I-4. L2E-US, L2ES-3, EC-L2C-fix-2-2 (élargissement validé par le fondateur le 2026-11-08) |
 | D83 | d83.md | fondateur | — | — | — | fait | Tranchée le 2026-11-08 à la validation de la fiche : A + A-bis, Q3 a posteriori, Q4 oui |
