@@ -1720,12 +1720,15 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       // 0137 (J8 commit 8): E-4, the purge of the exports
       "ops.purge_data_exports(uuid,smallint,integer)",
       "ops.purge_storage_usage(uuid,smallint)",
+      // 0230 (L2F commit 05): E-4, the daily cycle of the badges and the retention of their findings
+      "ops.purge_verification_findings(uuid,smallint)",
       // 0147 (J9 commit 8, D60): the samples of the base and of the probe, the heartbeat, the
       // retention of ops, the states and the snapshot of the technical alerts
       "ops.record_database_sample()",
       "ops.record_probe_results(text,jsonb)",
       "ops.record_retention_purge(uuid,smallint,text,integer)",
       "ops.record_worker_heartbeat(text,text,text,timestamp with time zone,boolean)",
+      "ops.run_badge_lifecycle(uuid,smallint)",
       "ops.run_ops_retention(uuid,smallint)",
       "ops.save_alert_states(text,jsonb)",
       "ops.technical_alert_snapshot(timestamp with time zone)",

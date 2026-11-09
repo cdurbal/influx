@@ -227,6 +227,11 @@ export const badges = verification.table("badges", {
   revocationReasonCode: text("revocation_reason_code"),
   createdAt: timestamptz("created_at").notNull().defaultNow(),
   updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+  // 0230 (L2F commit 05): the reminder sent once, the end (trigger stamp_badge_end), the findings
+  // erased after the retention (08 RG100)
+  reminderSentAt: timestamptz("reminder_sent_at"),
+  endedAt: timestamptz("ended_at"),
+  findingsErasedAt: timestamptz("findings_erased_at"),
 });
 
 /**

@@ -1168,14 +1168,15 @@ describe("L2E commit 16, 08 RG92, RG94, fiche invariants 14 and 17: the verifica
           `insert into verification.badges
              (id, account_id, social_account_id, network_code, request_id, level,
               granted_by_account_id, granted_at, evidence_source, registry_source_id, expires_at,
-              observed_handle_at_decision, state, revoked_at, revocation_reason_code ${audience ? ", observed_followers, observed_posts_last_30_days, observed_avg_comments, observed_period_start, observed_period_end, declared_posts_at_decision, declared_comments_at_decision" : ""})
+              observed_handle_at_decision, state, revoked_at, revocation_reason_code, ended_at ${audience ? ", observed_followers, observed_posts_last_30_days, observed_avg_comments, observed_period_start, observed_period_end, declared_posts_at_decision, declared_comments_at_decision" : ""})
            select '${badge}', '${spec.account}', ${brand ? "null" : `'${randomUUID()}'`},
                   ${brand ? "null" : "'instagram'"}, '${request}', '${spec.level}',
                   '${decider?.id ?? ""}', '${spec.badge.grantedAt ?? "2026-11-03T10:00:00Z"}',
                   '${audience ? "native_dashboard" : brand ? "domain_and_registry" : "public_profile"}',
                   ${brand ? "(select id from verification.registry_sources limit 1)" : "null"},
                   ${expires === null ? "null" : `now() + interval '${expires} days'`},
-                  ${brand ? "null" : "'tm1_fixture_handle'"}, '${spec.badge.state ?? "active"}', ${spec.badge.state === "revoked" ? "now(), 'account_closed'" : "null, null"}${audience ? `, ${FIGURES}` : ""}`,
+                  ${brand ? "null" : "'tm1_fixture_handle'"}, '${spec.badge.state ?? "active"}', ${spec.badge.state === "revoked" ? "now(), 'account_closed'" : "null, null"},
+                  ${["expired", "revoked", "replaced"].includes(spec.badge.state ?? "active") ? "now()" : "null"}${audience ? `, ${FIGURES}` : ""}`,
         );
       }
     });
@@ -1551,7 +1552,7 @@ describe("L2E commit 16, 08 RG92, RG94, fiche invariants 14 and 17: the verifica
       });
     });
 
-    it("a badge holds while it is displayed and not past its expiry: to_refresh and to_reconfirm hold, revoked, replaced, expired and a lapsed date do not", async () => {
+    it("a badge holds while it is displayed, whatever its date (0230): active and to_refresh hold, to_reconfirm, revoked, replaced and expired do not", async () => {
       const refresh = await createAccount({ role: "creator" });
       await fixture({
         account: refresh,
@@ -1567,7 +1568,8 @@ describe("L2E commit 16, 08 RG92, RG94, fiche invariants 14 and 17: the verifica
         status: "approved",
         badge: { state: "to_reconfirm", expiresInDays: null },
       });
-      expect(await levelOf(reconfirm)).toMatchObject({ level: "n1" });
+      // l2f/modele.md §3: to_reconfirm never counts
+      expect(await levelOf(reconfirm)).toEqual({ level: "none", at: null });
       for (const state of ["revoked", "replaced", "expired"]) {
         const ended = await createAccount({ role: "creator" });
         await fixture({
@@ -1586,7 +1588,8 @@ describe("L2E commit 16, 08 RG92, RG94, fiche invariants 14 and 17: the verifica
         status: "approved",
         badge: { expiresInDays: -1 },
       });
-      expect(await levelOf(lapsed)).toEqual({ level: "none", at: null });
+      // no date filter: the task badge_lifecycle ends a badge, the read follows its state
+      expect(await levelOf(lapsed)).toMatchObject({ level: "n2" });
     });
 
     it("refuses an Apollo line (22023): nothing of the badge leaves for Apollo, a line of another worker is 55000", async () => {

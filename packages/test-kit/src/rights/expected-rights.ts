@@ -4403,7 +4403,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_maintenance_definer|column|verification.rejection_reasons.population|SELECT",
   "influx_maintenance_definer|column|verification.rejection_reasons.purges_evidence|SELECT",
   "influx_maintenance_definer|column|verification.verification_requests.account_id|SELECT",
-  "influx_maintenance_definer|column|verification.verification_requests.closed_at|UPDATE",
+  // 0230: also read, for the retention of a closed request
+  "influx_maintenance_definer|column|verification.verification_requests.closed_at|SELECT,UPDATE",
   "influx_maintenance_definer|column|verification.verification_requests.id|SELECT",
   "influx_maintenance_definer|column|verification.verification_requests.level|SELECT",
   "influx_maintenance_definer|column|verification.verification_requests.status|SELECT,UPDATE",
@@ -4712,6 +4713,45 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|schema|verification|USAGE",
   "influx_worker|function|leads.read_brevo_verification_email(bigint,text)|EXECUTE",
   "influx_worker|function|leads.read_verified_badge(bigint,text)|EXECUTE",
+  // 0230 (L2F commit 05, l2f/modele.md §2, §3 "0230", fiche invariants 1, 10, 12): the daily task
+  // badge_lifecycle. influx_maintenance_definer reads the state and dates of the badges (never a
+  // handle, a figure, a reference nor an agent), writes their state and reminder and erases their
+  // findings after the retention; reads the id of a network line; deletes the purged evidence rows
+  // and the codes of a closed request; empties its texts without reading them; executes the
+  // derivation of a line.
+  "influx_maintenance_definer|column|profiles.creator_social_accounts.id|SELECT",
+  "influx_maintenance_definer|column|verification.badges.account_id|SELECT",
+  "influx_maintenance_definer|column|verification.badges.declared_comments_at_decision|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.declared_engagement_bp_at_decision|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.declared_followers_at_decision|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.declared_posts_at_decision|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.ended_at|SELECT",
+  "influx_maintenance_definer|column|verification.badges.expires_at|SELECT",
+  "influx_maintenance_definer|column|verification.badges.findings_erased_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|verification.badges.id|SELECT",
+  "influx_maintenance_definer|column|verification.badges.level|SELECT",
+  "influx_maintenance_definer|column|verification.badges.observed_avg_comments|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.observed_engagement_bp|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.observed_followers|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.observed_handle_at_decision|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.observed_period_end|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.observed_period_start|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.observed_platform_account_ref|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.observed_posts_last_30_days|UPDATE",
+  "influx_maintenance_definer|column|verification.badges.reminder_sent_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|verification.badges.social_account_id|SELECT",
+  "influx_maintenance_definer|column|verification.badges.state|SELECT,UPDATE",
+  "influx_maintenance_definer|column|verification.ownership_codes.id|SELECT",
+  "influx_maintenance_definer|column|verification.verification_requests.internal_comment|UPDATE",
+  "influx_maintenance_definer|column|verification.verification_requests.member_message|UPDATE",
+  "influx_maintenance_definer|function|ops.purge_verification_findings(uuid,smallint)|EXECUTE",
+  "influx_maintenance_definer|function|ops.queue_badge_change(uuid,uuid,text,boolean)|EXECUTE",
+  "influx_maintenance_definer|function|ops.run_badge_lifecycle(uuid,smallint)|EXECUTE",
+  "influx_maintenance_definer|function|profiles.refresh_creator_public_network(uuid)|EXECUTE",
+  "influx_maintenance_definer|table|verification.evidence_files|DELETE",
+  "influx_maintenance_definer|table|verification.ownership_codes|DELETE",
+  "influx_worker|function|ops.purge_verification_findings(uuid,smallint)|EXECUTE",
+  "influx_worker|function|ops.run_badge_lifecycle(uuid,smallint)|EXECUTE",
 ];
 
 /**
@@ -5091,4 +5131,9 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0227 (L2E commit 16): the worker's reads of the verification e-mails and of the badge level.
   "leads.read_brevo_verification_email(bigint,text)": "influx_leads_definer",
   "leads.read_verified_badge(bigint,text)": "influx_leads_definer",
+  // 0230 (L2F commit 05): the daily task badge_lifecycle (cycle, then retention); the helper
+  // ops.queue_badge_change() is SECURITY INVOKER, same owner.
+  "ops.run_badge_lifecycle(uuid,smallint)": "influx_maintenance_definer",
+  "ops.purge_verification_findings(uuid,smallint)":
+    "influx_maintenance_definer",
 };

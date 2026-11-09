@@ -270,6 +270,8 @@ describe("queue 4 and the parameters of 08 RG100 (modele §4, D79)", () => {
         audience_badge_validity_days: 90,
         audience_drop_alert_percent: 40,
         badge_grace_days: 30,
+        // 0230 (L2F commit 05): the reminder before the expiry (08 RG70 « J-15 »)
+        badge_reminder_days: 15,
         brand_badge_validity_months: 12,
         claim_expiry_minutes: 30,
         dispute_window_days: 30,

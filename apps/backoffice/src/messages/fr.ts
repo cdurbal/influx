@@ -1051,6 +1051,7 @@ export const messages = {
           ops_retention: "Conservation et purges de la surveillance",
           storage_purge: "Purge des fichiers déposés",
           verification_expiry: "Expiration des codes de vérification",
+          badge_lifecycle: "Péremption des badges",
         },
         outcomes: {
           succeeded: "réussie",
