@@ -454,8 +454,13 @@ describe("L2D-D14: the creator profile in the export (art. 15, 15 RG81)", () => 
         },
       ],
       metrics_history: expect.any(Array),
-      // 0226 (L2E): no request nor badge for this creator
-      verification: { requests: [], badges: [] },
+      // 0226 (L2E): no request nor badge for this creator; 0235 (L2F): no contest nor entry of queue 6
+      verification: {
+        requests: [],
+        badges: [],
+        disputes: [],
+        identifier_changes: [],
+      },
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),
     });

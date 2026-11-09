@@ -8,6 +8,15 @@
 // influx_privacy_definer on the verification. The badges are granted by agent A through the
 // functions of 0224 and 0225, as apps/api calls them; the approval of a request runs as in
 // t8-privacy-execution. Each case runs in ONE rolled-back transaction of the local superuser.
+//
+// L2F commit 10 — the data of L2F in the export, the erasure and the retention, 0235 (jalons/l2f/10.md;
+// l2f/modele.md §3 "0235"; fiche invariants 12 to 14): L2F-D18 the export (origin of a request, message
+// of a withdrawal, contests, entries of queue 6; never a decider, a lock, an internal or opening
+// comment, a previous handle nor the handle an agent read), the erasure (texts emptied, open contest
+// and entry withdrawn account_erased, a sweep without residue), the retention of the new texts, and
+// the bounds of the two definers on the new tables. The withdrawal, the contests and the entries are
+// written as their functions leave them (as the data set does); the brand is opened by agent A
+// through verification.open_request_for_member() (0234).
 import { accountIdOf, inRolledBackTransaction } from "@influx/test-kit/db";
 import { OUR_SCHEMAS } from "@influx/test-kit/rights";
 import { randomUUID } from "node:crypto";
@@ -33,6 +42,7 @@ const INSUFFICIENT_PRIVILEGE = "42501";
 const adminA = accountIdOf("admin", "a");
 const adminB = accountIdOf("admin", "b");
 const agentA = accountIdOf("agent", "a");
+const agentB = accountIdOf("agent", "b");
 
 const NOTICE = {
   language: "en",
@@ -556,6 +566,9 @@ describe("L2E-D23: the verification in the export (art. 15, fiche invariant 16)"
         member_message: `Please send the capture again, ${creator.tag} cannot be read.`,
         cancelled_at: null,
         closed_at: ISO,
+        // 0235 (EC-L2F-10-1): the origin of the request, D83
+        opened_by: "member",
+        opening_reason: null,
       },
       expect.objectContaining({
         network: "tiktok",
@@ -584,6 +597,7 @@ describe("L2E-D23: the verification in the export (art. 15, fiche invariant 16)"
         expires_at: null,
         revoked_at: null,
         revocation_reason: null,
+        revocation_message: null,
       },
       {
         network: "instagram",
@@ -600,6 +614,7 @@ describe("L2E-D23: the verification in the export (art. 15, fiche invariant 16)"
         expires_at: ISO,
         revoked_at: null,
         revocation_reason: null,
+        revocation_message: null,
       },
     ]);
     // the history row agent_observed of the decision (0225), its author shown as INFLUX
@@ -675,6 +690,8 @@ describe("L2E-D23: the verification in the export (art. 15, fiche invariant 16)"
           member_message: null,
           cancelled_at: null,
           closed_at: ISO,
+          opened_by: "member",
+          opening_reason: null,
         },
         expect.objectContaining({
           level: "brand_verified",
@@ -691,6 +708,7 @@ describe("L2E-D23: the verification in the export (art. 15, fiche invariant 16)"
           expires_at: ISO,
           revoked_at: null,
           revocation_reason: null,
+          revocation_message: null,
         },
       ],
     });
@@ -1028,6 +1046,651 @@ describe("influx_privacy_definer on the verification (0226 §1)", () => {
           tx,
           "update verification.verification_requests " +
             "set member_message = 'A message kept after the erasure.' where account_id = $1",
+          [creator.id],
+        ),
+      ];
+      await tx.unsafe("reset role");
+      return results;
+    });
+    for (const result of outcome) {
+      expect(result).toMatchObject({
+        outcome: "error",
+        code: INSUFFICIENT_PRIVILEGE,
+      });
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L2F-D18: the data of L2F (0231 to 0234) in the export, the erasure and the retention (0235)
+// ---------------------------------------------------------------------------------------------
+
+type L2fCreator = Creator & {
+  accountBadge: string;
+  audienceBadge: string;
+  dualControl: string;
+  upheld: string;
+  open: string;
+  confirmed: string;
+  pending: string;
+};
+
+/**
+ * The verified creator of L2E-D23, then: his audience badge withdrawn under 2V (terms_breach, a
+ * message to him); his withdrawal contested and upheld (message to him, internal comment); his
+ * refused audience request contested, still open and claimed by agent B; an entry of queue 6
+ * confirmed (the handle agent B read, an internal comment) and another one open, claimed.
+ */
+async function l2fCreator(tx: Tx): Promise<L2fCreator> {
+  const creator = await verifiedCreator(tx);
+  const { id, tag } = creator;
+  const badgeOf = async (level: string): Promise<string> => {
+    const [row] = await tx<{ id: string }[]>`
+      select id::text from verification.badges
+       where account_id = ${id} and level = ${level}::verification.badge_level`;
+    if (row === undefined) throw new Error(`no ${level} badge`);
+    return row.id;
+  };
+  const accountBadge = await badgeOf("account_verified");
+  const audienceBadge = await badgeOf("audience_verified");
+  const refused = creator.requests[2] ?? "";
+
+  // the withdrawal under 2V, as revoke_badge() leaves it (0231)
+  const dualControl = randomUUID();
+  await tx`
+    insert into backoffice.dual_control_requests
+      (id, action_code, payload, reason_code, requested_by_account_id)
+    values (${dualControl}, 'verification.revoke_badge',
+            jsonb_build_object('account_id', ${id}::uuid, 'badge_id', ${audienceBadge}::uuid,
+                               'reason_code', 'terms_breach'),
+            'terms_breach', ${agentA})`;
+  await tx`
+    update backoffice.dual_control_requests
+       set state = 'confirmed', confirmed_by_account_id = ${adminA}
+     where id = ${dualControl}`;
+  await tx`
+    update backoffice.dual_control_requests set consumed_at = now() where id = ${dualControl}`;
+  await tx`
+    insert into verification.badge_revocation_requests
+      (dual_control_request_id, badge_id, account_id, reason_code, member_message,
+       requested_by_account_id, executed_by_account_id, executed_at)
+    values (${dualControl}, ${audienceBadge}, ${id}, 'terms_breach',
+            ${`${tag} revocation message for the member.`}, ${agentA}, ${adminA}, now())`;
+  await tx`
+    update verification.badges
+       set state = 'revoked', revoked_at = now(), revocation_reason_code = 'terms_breach',
+           revocation_request_id = ${dualControl}
+     where id = ${audienceBadge}`;
+
+  // the two contests (0232)
+  const [upheld] = await tx<{ id: string }[]>`
+    insert into verification.disputes
+      (account_id, badge_id, level, network_code, reason_code, text, state, original_decider_ids,
+       decided_by_account_id, decided_at, outcome_reason_code, member_message, internal_comment,
+       review_mode, closed_at)
+    values (${id}, ${audienceBadge}, 'audience_verified', 'instagram', 'other',
+            ${`${tag} dispute text on the withdrawal`}, 'upheld', ${[agentA, adminA]}::uuid[],
+            ${agentB}, now(), 'other', ${`${tag} outcome message for the member.`},
+            ${`${tag} dispute comment`}, 'independent', now())
+    returning id::text`;
+  const [open] = await tx<{ id: string }[]>`
+    insert into verification.disputes
+      (account_id, request_id, level, network_code, reason_code, text, original_decider_ids,
+       claimed_by_account_id, claimed_at, claim_expires_at)
+    values (${id}, ${refused}, 'audience_verified', 'instagram', 'misread',
+            ${`${tag} open dispute text`}, ${[agentA]}::uuid[], ${agentB}, now(),
+            now() + interval '30 minutes')
+    returning id::text`;
+
+  // the two entries of queue 6 (0233)
+  const [confirmed] = await tx<{ id: string }[]>`
+    insert into verification.identifier_change_reviews
+      (account_id, social_account_id, network_code, badge_id, previous_handle, new_handle, state,
+       decided_by_account_id, decided_at, observed_handle, internal_comment, closed_at)
+    values (${id}, ${creator.lineA}, 'instagram', ${accountBadge}, ${`${tag}_seen`},
+            ${`${tag}_typed`}, 'confirmed', ${agentB}, now(), ${`${tag}_read_online`},
+            ${`${tag} identifier comment`}, now())
+    returning id::text`;
+  const [pending] = await tx<{ id: string }[]>`
+    insert into verification.identifier_change_reviews
+      (account_id, social_account_id, network_code, badge_id, previous_handle, new_handle,
+       claimed_by_account_id, claimed_at, claim_expires_at)
+    values (${id}, ${creator.lineA}, 'instagram', ${accountBadge}, ${`${tag}_seen`},
+            ${`${tag}_renamed`}, ${agentB}, now(), now() + interval '30 minutes')
+    returning id::text`;
+
+  return {
+    ...creator,
+    accountBadge,
+    audienceBadge,
+    dualControl,
+    upheld: String(upheld?.id),
+    open: String(open?.id),
+    confirmed: String(confirmed?.id),
+    pending: String(pending?.id),
+  };
+}
+
+type AgentOpenedBrand = { id: string; tag: string; request: string };
+
+/** A brand whose verification agent A opened (D83 A, reason other with his comment, 0234). */
+async function agentOpenedBrand(tx: Tx): Promise<AgentOpenedBrand> {
+  const id = randomUUID();
+  const tag = letterName(id.slice(0, 8));
+  await tx`
+    insert into identity.accounts
+      (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+       declared_status)
+    values (${id}, ${randomUUID()}, ${`l2f-privacy-${id}@example.test`}, now(), 'FR', 'en',
+            'business')`;
+  await tx`insert into identity.account_roles (account_id, role) values (${id}, 'advertiser')`;
+  await tx`insert into profiles.advertiser_profiles (account_id, legal_name, website_domain)
+           values (${id}, ${`${tag} Trade`}, ${`${tag}.example`})`;
+  const [opened] = rowsOf(
+    await asAgent(tx, () =>
+      attempt(
+        tx,
+        "select request_id::text from verification.open_request_for_member($1::uuid, null, " +
+          "'brand_verified', 'other', $2, $3, 'FR', $4)",
+        [id, `${tag} opening comment`, `${tag} Holding SAS`, `RCS ${tag}`],
+      ),
+    ),
+  );
+  if (opened?.request_id == null) throw new Error("not opened");
+  return { id, tag, request: String(opened.request_id) };
+}
+
+async function l2fStateOf(tx: Tx, account: string): Promise<Row> {
+  const disputes = await tx<Row[]>`
+    select (request_id is not null) as refusal, state::text, withdrawn_cause, outcome_reason_code,
+           decided_by_account_id::text as decided_by, text, member_message, internal_comment,
+           claimed_by_account_id::text as claimed_by, closed_at is not null as closed,
+           texts_erased_at is not null as erased
+      from verification.disputes where account_id = ${account} order by 1`;
+  const identifiers = await tx<Row[]>`
+    select state::text, withdrawn_cause, decided_by_account_id::text as decided_by,
+           previous_handle, new_handle, observed_handle, internal_comment,
+           claimed_by_account_id::text as claimed_by, closed_at is not null as closed,
+           texts_erased_at is not null as erased
+      from verification.identifier_change_reviews where account_id = ${account} order by 1`;
+  const revocations = await tx<Row[]>`
+    select reason_code, member_message, executed_by_account_id::text as executed_by,
+           texts_erased_at is not null as erased
+      from verification.badge_revocation_requests where account_id = ${account}`;
+  const openings = await tx<Row[]>`
+    select status::text, opened_by, opening_reason_code,
+           opened_by_account_id::text as opened_by_account, opening_comment
+      from verification.verification_requests
+     where account_id = ${account} and opened_by = 'agent'`;
+  return { disputes, identifiers, revocations, openings };
+}
+
+describe("L2F-D18: the data of L2F in the export (art. 15, fiche invariants 13, 14)", () => {
+  it("exports the contests, the entries of queue 6, the message of a withdrawal and the origin of a request", async () => {
+    const { creator, file } = await scenario(async (tx) => {
+      const found = await l2fCreator(tx);
+      return { creator: found, ...(await exportOf(tx, found.id)) };
+    });
+    const { tag } = creator;
+    const verification = (file.data.creator_profile as Row).verification as {
+      requests: Row[];
+      badges: Row[];
+      disputes: Row[];
+      identifier_changes: Row[];
+    };
+    expect(sortedBy(verification.disputes, ["target"])).toEqual([
+      {
+        target: "refusal",
+        network: "instagram",
+        level: "audience_verified",
+        reason: "misread",
+        text: `${tag} open dispute text`,
+        submitted_at: ISO,
+        state: "open",
+        outcome_reason: null,
+        member_message: null,
+        decided_at: null,
+        withdrawn_cause: null,
+        closed_at: null,
+      },
+      {
+        target: "withdrawal",
+        network: "instagram",
+        level: "audience_verified",
+        reason: "other",
+        text: `${tag} dispute text on the withdrawal`,
+        submitted_at: ISO,
+        state: "upheld",
+        outcome_reason: "other",
+        member_message: `${tag} outcome message for the member.`,
+        decided_at: ISO,
+        withdrawn_cause: null,
+        closed_at: ISO,
+      },
+    ]);
+    expect(sortedBy(verification.identifier_changes, ["state"])).toEqual([
+      {
+        network: "instagram",
+        new_handle: `${tag}_typed`,
+        change_count: 1,
+        created_at: ISO,
+        last_changed_at: ISO,
+        state: "confirmed",
+        decided_at: ISO,
+        withdrawn_cause: null,
+        closed_at: ISO,
+      },
+      {
+        network: "instagram",
+        new_handle: `${tag}_renamed`,
+        change_count: 1,
+        created_at: ISO,
+        last_changed_at: ISO,
+        state: "open",
+        decided_at: null,
+        withdrawn_cause: null,
+        closed_at: null,
+      },
+    ]);
+    expect(sortedBy(verification.badges, ["level"])).toEqual([
+      expect.objectContaining({
+        level: "account_verified",
+        state: "active",
+        revocation_message: null,
+      }),
+      expect.objectContaining({
+        level: "audience_verified",
+        state: "revoked",
+        revocation_reason: "terms_breach",
+        revoked_at: ISO,
+        revocation_message: `${tag} revocation message for the member.`,
+      }),
+    ]);
+    for (const row of verification.requests) {
+      expect(row).toMatchObject({ opened_by: "member", opening_reason: null });
+    }
+  });
+
+  it("exports the origin of an agent-opened request, never the agent, his comment, a decider, a lock nor a handle read", async () => {
+    const { creator, brand, creatorContent, brandFile, brandContent } =
+      await scenario(async (tx) => {
+        const found = await l2fCreator(tx);
+        const opened = await agentOpenedBrand(tx);
+        const ofCreator = await exportOf(tx, found.id);
+        const ofBrand = await exportOf(tx, opened.id);
+        return {
+          creator: found,
+          brand: opened,
+          creatorContent: ofCreator.content,
+          brandFile: ofBrand.file,
+          brandContent: ofBrand.content,
+        };
+      });
+    const { tag } = creator;
+    for (const forbidden of [
+      `${tag}_seen`,
+      `${tag}_read_online`,
+      `${tag} dispute comment`,
+      `${tag} identifier comment`,
+      creator.dualControl,
+      creator.upheld,
+      creator.open,
+      creator.confirmed,
+      creator.pending,
+      creator.audienceBadge,
+      agentA,
+      agentB,
+      adminA,
+      "internal_comment",
+      "claimed",
+      "decider",
+      "review_mode",
+      "sla_due",
+      "previous_handle",
+      "observed_handle",
+    ]) {
+      expect(creatorContent.includes(forbidden), forbidden).toBe(false);
+    }
+    const requests = (
+      (brandFile.data.advertiser_profile as Row).verification as Row
+    ).requests as Row[];
+    expect(requests).toEqual([
+      expect.objectContaining({
+        level: "brand_verified",
+        status: "pending",
+        opened_by: "agent",
+        opening_reason: "other",
+      }),
+    ]);
+    for (const forbidden of [
+      `${brand.tag} opening comment`,
+      "opening_comment",
+      "opened_by_account",
+      agentA,
+      brand.request,
+    ]) {
+      expect(brandContent.includes(forbidden), forbidden).toBe(false);
+    }
+  });
+});
+
+describe("L2F-D18: the data of L2F in the erasure (04 §9.1, 08 Q2)", () => {
+  it("empties every text, withdraws the open contest and entry account_erased, keeps the decisions, and leaves no residue in any table", async () => {
+    const outcome = await scenario(async (tx) => {
+      const creator = await l2fCreator(tx);
+      const brand = await agentOpenedBrand(tx);
+      const markers = [
+        `${creator.tag} revocation message`,
+        `${creator.tag} dispute text`,
+        `${creator.tag} open dispute text`,
+        `${creator.tag} outcome message`,
+        `${creator.tag} dispute comment`,
+        `${creator.tag}_typed`,
+        `${creator.tag}_renamed`,
+        `${creator.tag}_read_online`,
+        `${creator.tag} identifier comment`,
+        creator.tag,
+        `${brand.tag} opening comment`,
+        brand.tag,
+      ];
+      const before = await tablesCarrying(tx, markers);
+      const [mark] = await tx<{ seq: string }[]>`
+        select coalesce(max(seq), 0)::text as seq from audit.audit_events`;
+      await execute(tx, creator.id, "erasure");
+      await execute(tx, brand.id, "erasure");
+      const lines = await tx<{ event_type: string }[]>`
+        select event_type from audit.audit_events
+         where seq > ${String(mark?.seq)}::bigint
+           and subject_type in ('verification_dispute', 'identifier_change_review',
+                                'verification_badge', 'verification_request')`;
+      return {
+        creator,
+        brand,
+        before,
+        after: await tablesCarrying(tx, markers),
+        lines,
+        creatorState: await l2fStateOf(tx, creator.id),
+        brandState: await l2fStateOf(tx, brand.id),
+      };
+    });
+    const { creator, brand, before, after } = outcome;
+    // the témoin: every text was there before
+    expect(before[`${creator.tag} revocation message`]).toEqual([
+      "verification.badge_revocation_requests",
+    ]);
+    expect(before[`${creator.tag} dispute text`]).toEqual([
+      "verification.disputes",
+    ]);
+    expect(before[`${creator.tag} dispute comment`]).toEqual([
+      "verification.disputes",
+    ]);
+    expect(before[`${creator.tag}_renamed`]).toEqual([
+      "verification.identifier_change_reviews",
+    ]);
+    expect(before[`${creator.tag}_read_online`]).toEqual([
+      "verification.identifier_change_reviews",
+    ]);
+    expect(before[`${brand.tag} opening comment`]).toEqual([
+      "verification.verification_requests",
+    ]);
+    for (const [marker, tables] of Object.entries(after)) {
+      expect(tables, marker).toEqual([]);
+    }
+    expect(outcome.lines).toEqual([]);
+
+    const emptiedDispute = {
+      text: null,
+      member_message: null,
+      internal_comment: null,
+      claimed_by: null,
+      closed: true,
+      erased: true,
+    };
+    expect(outcome.creatorState.disputes).toEqual([
+      {
+        refusal: false,
+        state: "upheld",
+        withdrawn_cause: null,
+        outcome_reason_code: "other",
+        decided_by: agentB,
+        ...emptiedDispute,
+      },
+      {
+        refusal: true,
+        state: "withdrawn",
+        withdrawn_cause: "account_erased",
+        outcome_reason_code: null,
+        decided_by: null,
+        ...emptiedDispute,
+      },
+    ]);
+    const emptiedEntry = {
+      previous_handle: null,
+      new_handle: null,
+      observed_handle: null,
+      internal_comment: null,
+      claimed_by: null,
+      closed: true,
+      erased: true,
+    };
+    expect(outcome.creatorState.identifiers).toEqual([
+      {
+        state: "confirmed",
+        withdrawn_cause: null,
+        decided_by: agentB,
+        ...emptiedEntry,
+      },
+      {
+        state: "withdrawn",
+        withdrawn_cause: "account_erased",
+        decided_by: null,
+        ...emptiedEntry,
+      },
+    ]);
+    expect(outcome.creatorState.revocations).toEqual([
+      {
+        reason_code: "terms_breach",
+        member_message: null,
+        executed_by: adminA,
+        erased: true,
+      },
+    ]);
+    expect(outcome.brandState.openings).toEqual([
+      {
+        status: "cancelled",
+        opened_by: "agent",
+        opening_reason_code: "other",
+        opened_by_account: agentA,
+        opening_comment: null,
+      },
+    ]);
+  });
+});
+
+describe("L2F-D18: the retention of the new texts (08 RG100, modele point 3)", () => {
+  it("empties the texts of a contest, an entry and a withdrawal closed 3 years ago and the opening comment of an old request; spares the open ones", async () => {
+    const found = await scenario(async (tx) => {
+      const creator = await l2fCreator(tx);
+      const brand = await agentOpenedBrand(tx);
+      await tx.unsafe("set local session_replication_role = replica");
+      await tx`
+        update verification.disputes
+           set submitted_at = now() - interval '1200 days',
+               decided_at = now() - interval '1199 days',
+               closed_at = now() - interval '1199 days'
+         where id = ${creator.upheld}`;
+      await tx`
+        update verification.identifier_change_reviews
+           set created_at = now() - interval '1200 days',
+               last_changed_at = now() - interval '1200 days',
+               decided_at = now() - interval '1199 days',
+               closed_at = now() - interval '1199 days'
+         where id = ${creator.confirmed}`;
+      await tx`
+        update verification.badge_revocation_requests
+           set requested_at = now() - interval '1200 days',
+               executed_at = now() - interval '1199 days'
+         where dual_control_request_id = ${creator.dualControl}`;
+      await tx`
+        update verification.verification_requests
+           set status = 'cancelled', created_at = now() - interval '1200 days',
+               submitted_at = now() - interval '1200 days',
+               cancelled_at = now() - interval '1199 days',
+               closed_at = now() - interval '1199 days'
+         where id = ${brand.request}`;
+      await tx.unsafe("set local session_replication_role = origin");
+      await tx`
+        delete from ops.periodic_runs
+         where task_code::text = 'badge_lifecycle'
+           and period_key = to_char(now() at time zone 'UTC', 'YYYY-MM-DD')`;
+      const [run] = await tx<{ id: string }[]>`
+        insert into ops.periodic_runs (task_code, period_key)
+        values ('badge_lifecycle', to_char(now() at time zone 'UTC', 'YYYY-MM-DD'))
+        returning id::text`;
+      await actAs(tx, "worker", () =>
+        tx.unsafe(
+          "select ops.purge_verification_findings($1::uuid, 1::smallint)",
+          [String(run?.id)],
+        ),
+      );
+      const register = await tx<{ payload: Record<string, unknown> }[]>`
+        select payload from audit.audit_events
+         where event_type = 'retention.purged' and subject_id = ${String(run?.id)}::uuid`;
+      return {
+        creatorState: await l2fStateOf(tx, creator.id),
+        brandState: await l2fStateOf(tx, brand.id),
+        tag: creator.tag,
+        register: register.map((line) => line.payload),
+      };
+    });
+    const { tag } = found;
+    expect(found.creatorState.disputes).toEqual([
+      expect.objectContaining({
+        refusal: false,
+        state: "upheld",
+        text: null,
+        member_message: null,
+        internal_comment: null,
+        erased: true,
+      }),
+      expect.objectContaining({
+        refusal: true,
+        state: "open",
+        text: `${tag} open dispute text`,
+        claimed_by: agentB,
+        erased: false,
+      }),
+    ]);
+    expect(found.creatorState.identifiers).toEqual([
+      expect.objectContaining({
+        state: "confirmed",
+        previous_handle: null,
+        new_handle: null,
+        observed_handle: null,
+        internal_comment: null,
+        erased: true,
+      }),
+      expect.objectContaining({
+        state: "open",
+        previous_handle: `${tag}_seen`,
+        new_handle: `${tag}_renamed`,
+        erased: false,
+      }),
+    ]);
+    expect(found.creatorState.revocations).toEqual([
+      expect.objectContaining({ member_message: null, erased: true }),
+    ]);
+    expect(found.brandState.openings).toEqual([
+      expect.objectContaining({
+        opening_reason_code: "other",
+        opening_comment: null,
+      }),
+    ]);
+    for (const category of [
+      "verification_request_texts",
+      "verification_dispute_texts",
+      "verification_identifier_texts",
+      "verification_revocation_texts",
+    ]) {
+      expect(found.register).toContainEqual(
+        expect.objectContaining({ category }),
+      );
+    }
+  });
+});
+
+describe("influx_privacy_definer on the data of L2F (0235 §1)", () => {
+  it("empties and withdraws nothing of an account that is not erased", async () => {
+    const outcome = await scenario(async (tx) => {
+      const creator = await l2fCreator(tx);
+      const brand = await agentOpenedBrand(tx);
+      const before = {
+        creator: await l2fStateOf(tx, creator.id),
+        brand: await l2fStateOf(tx, brand.id),
+      };
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = [
+        await attempt(
+          tx,
+          "update verification.disputes set state = 'withdrawn', withdrawn_cause = 'account_erased', " +
+            "closed_at = now(), claimed_by_account_id = null, claimed_at = null, " +
+            "claim_expires_at = null, text = null, member_message = null, internal_comment = null, " +
+            "texts_erased_at = now() where account_id = $1",
+          [creator.id],
+        ),
+        await attempt(
+          tx,
+          "update verification.identifier_change_reviews set state = 'withdrawn', " +
+            "withdrawn_cause = 'account_erased', closed_at = now(), claimed_by_account_id = null, " +
+            "claimed_at = null, claim_expires_at = null, previous_handle = null, new_handle = null, " +
+            "observed_handle = null, internal_comment = null, texts_erased_at = now() " +
+            "where account_id = $1",
+          [creator.id],
+        ),
+        await attempt(
+          tx,
+          "update verification.badge_revocation_requests set member_message = null, " +
+            "texts_erased_at = now() where account_id = $1",
+          [creator.id],
+        ),
+        await attempt(
+          tx,
+          "update verification.verification_requests set opening_comment = null " +
+            "where account_id = $1",
+          [brand.id],
+        ),
+      ];
+      await tx.unsafe("reset role");
+      return {
+        results,
+        before,
+        after: {
+          creator: await l2fStateOf(tx, creator.id),
+          brand: await l2fStateOf(tx, brand.id),
+        },
+      };
+    });
+    for (const result of outcome.results) {
+      expect(result).toMatchObject({ outcome: "rows", count: 0 });
+    }
+    expect(outcome.after).toEqual(outcome.before);
+  });
+
+  it("refuses on an erased account a write that does not leave the row emptied (42501)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const creator = await l2fCreator(tx);
+      await execute(tx, creator.id, "erasure");
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = [
+        await attempt(
+          tx,
+          "update verification.disputes set texts_erased_at = null where account_id = $1",
+          [creator.id],
+        ),
+        await attempt(
+          tx,
+          "update verification.badge_revocation_requests set texts_erased_at = null " +
+            "where account_id = $1",
           [creator.id],
         ),
       ];
