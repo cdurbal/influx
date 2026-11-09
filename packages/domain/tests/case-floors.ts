@@ -15,5 +15,6 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/creator-profile-required.test.ts": 9,
   "tests/verification-badge-display.test.ts": 8,
   "tests/verification-figures.test.ts": 7,
+  "tests/verification-lifecycle.test.ts": 19,
   "tests/verification-period.test.ts": 6,
 };

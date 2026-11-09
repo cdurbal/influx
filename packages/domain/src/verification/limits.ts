@@ -11,6 +11,8 @@ export const INTERNAL_COMMENT_MAX_LENGTH = 1000;
 /** The message the member receives, required for `other` and `terms_breach` (0224: 20 to 500). */
 export const MEMBER_MESSAGE_MIN_LENGTH = 20;
 export const MEMBER_MESSAGE_MAX_LENGTH = 500;
+/** The text of a contest, written by the creator (0232: 1 to 1 000 printable characters). */
+export const DISPUTE_TEXT_MAX_LENGTH = 1000;
 /** The legal name and registration number of a brand (0222: 1 to 160, 1 to 40). */
 export const LEGAL_NAME_MAX_LENGTH = 160;
 export const REGISTRATION_NUMBER_MAX_LENGTH = 40;
@@ -68,4 +70,9 @@ export function isMemberMessage(value: string): boolean {
     MEMBER_MESSAGE_MIN_LENGTH,
     MEMBER_MESSAGE_MAX_LENGTH,
   );
+}
+
+/** The text of a contest as 0232 holds it: printable, not blank, 1 to 1 000 characters (the contact rule is the dispute's, not this check's). */
+export function isDisputeText(value: string): boolean {
+  return isPrintableText(value, 1, DISPUTE_TEXT_MAX_LENGTH);
 }

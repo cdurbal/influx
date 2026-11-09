@@ -87,7 +87,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/verification-core.test.ts": 28,
   "db-tests/verification-decisions.test.ts": 20,
   "db-tests/verification-disputes.test.ts": 10,
-  "db-tests/verification-domain-parity.test.ts": 8,
+  "db-tests/verification-domain-parity.test.ts": 17,
   "db-tests/verification-evidence-route.test.ts": 17,
   "db-tests/verification-evidence.test.ts": 13,
   "db-tests/verification-identifier-changes.test.ts": 6,

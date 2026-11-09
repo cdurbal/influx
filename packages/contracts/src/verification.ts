@@ -187,6 +187,150 @@ export const BRAND_OBSERVED_CHANNELS = ["dns_txt", "web_page"] as const;
 export const brandObservedChannelSchema = z.enum(BRAND_OBSERVED_CHANNELS);
 
 /**
+ * Every channel a constat on a brand's code is recorded with (0234): the two an agent types after
+ * reading the domain, and `login_address` (D83 A-bis), which only the database writes, from the
+ * verified login address of the account, on its own route (`grant-by-login`). A decision typed by
+ * the agent accepts the first two alone (`brandObservedChannelSchema`).
+ */
+export const BRAND_CONSTAT_CHANNELS = [
+  ...BRAND_OBSERVED_CHANNELS,
+  "login_address",
+] as const;
+export const brandConstatChannelSchema = z.enum(BRAND_CONSTAT_CHANNELS);
+
+// ---------------------------------------------------------------------------------------------
+// The cycle of the badge (jalons/l2f; 0230 to 0235), twins of packages/domain/src/verification
+// (badge-revocation, badge-dispute, agent-opening): this package carries no dependency on it, and
+// apps/api/tests/domain-guards.test.ts holds the lists equal, db-tests/verification-domain-parity
+// holds them equal to the tables.
+// ---------------------------------------------------------------------------------------------
+
+/** `verification.revocation_reasons.code`, in the order of `position` (0231; 08 RG73; 06 RG55). */
+export const REVOCATION_REASON_CODES = [
+  "forged_evidence",
+  "account_closed",
+  "owner_changed",
+  "terms_breach",
+  "influx_error",
+  "company_dissolved",
+  "domain_transferred",
+] as const;
+export const revocationReasonCodeSchema = z.enum(REVOCATION_REASON_CODES);
+export type RevocationReasonCode = z.infer<typeof revocationReasonCodeSchema>;
+
+/**
+ * The effective state of the 2V of a withdrawal (0231 `dual_control_status_for`): `consumed` once the
+ * withdrawal ran, `expired` past 24 h without effect, else the state of the request.
+ */
+export const REVOCATION_REQUEST_STATES = [
+  "pending",
+  "confirmed",
+  "degraded",
+  "cancelled",
+  "consumed",
+  "expired",
+] as const;
+export const revocationRequestStateSchema = z.enum(REVOCATION_REQUEST_STATES);
+
+/** `verification.dispute_reasons.code`, in the order of `position` (0232): `other` asks for the text. */
+export const DISPUTE_REASON_CODES = [
+  "misread",
+  "evidence_valid",
+  "reason_wrong",
+  "other",
+] as const;
+export const disputeReasonCodeSchema = z.enum(DISPUTE_REASON_CODES);
+export type DisputeReasonCode = z.infer<typeof disputeReasonCodeSchema>;
+
+/** `verification.dispute_state` (0232). */
+export const DISPUTE_STATES = [
+  "open",
+  "upheld",
+  "overturned",
+  "withdrawn",
+] as const;
+export const disputeStateSchema = z.enum(DISPUTE_STATES);
+export type DisputeState = z.infer<typeof disputeStateSchema>;
+
+/** The two outcomes of a contest (08 RG77, CA53). */
+export const DISPUTE_OUTCOMES = ["upheld", "overturned"] as const;
+export const disputeOutcomeSchema = z.enum(DISPUTE_OUTCOMES);
+
+/** `verification.dispute_outcome_reasons.code`, in the order of `position` (0232). */
+export const DISPUTE_OUTCOME_REASON_CODES = [
+  "decision_confirmed",
+  "new_request_needed",
+  "other",
+  "decision_overturned",
+] as const;
+export const disputeOutcomeReasonCodeSchema = z.enum(
+  DISPUTE_OUTCOME_REASON_CODES,
+);
+export type DisputeOutcomeReasonCode = z.infer<
+  typeof disputeOutcomeReasonCodeSchema
+>;
+/** The motives of an upheld contest, the only ones an agent upholds with. */
+export const DISPUTE_UPHELD_OUTCOME_REASON_CODES = [
+  "decision_confirmed",
+  "new_request_needed",
+  "other",
+] as const;
+export const disputeUpheldOutcomeReasonCodeSchema = z.enum(
+  DISPUTE_UPHELD_OUTCOME_REASON_CODES,
+);
+
+/** What a contest contests: the refusal of a request, or the withdrawal of a badge (0232 `kind`). */
+export const DISPUTE_KINDS = ["refusal", "revocation"] as const;
+export const disputeKindSchema = z.enum(DISPUTE_KINDS);
+
+/** `disputes.review_mode` (0232): another person judged it, or the decider after the reflection delay. */
+export const DISPUTE_REVIEW_MODES = ["independent", "delayed"] as const;
+export const disputeReviewModeSchema = z.enum(DISPUTE_REVIEW_MODES);
+
+/** `disputes.withdrawn_cause` (0232): why a contest left the queue without an outcome. */
+export const DISPUTE_WITHDRAWN_CAUSES = [
+  "superseded",
+  "line_deleted",
+  "account_erased",
+] as const;
+export const disputeWithdrawnCauseSchema = z.enum(DISPUTE_WITHDRAWN_CAUSES);
+
+/** `verification.identifier_review_state` (0233) of an entry of queue 6. */
+export const IDENTIFIER_REVIEW_STATES = [
+  "open",
+  "confirmed",
+  "proof_required",
+  "withdrawn",
+] as const;
+export const identifierReviewStateSchema = z.enum(IDENTIFIER_REVIEW_STATES);
+
+/** `identifier_change_reviews.withdrawn_cause` (0233). */
+export const IDENTIFIER_WITHDRAWN_CAUSES = [
+  "reverted",
+  "line_deleted",
+  "badge_ended",
+  "account_erased",
+] as const;
+export const identifierWithdrawnCauseSchema = z.enum(
+  IDENTIFIER_WITHDRAWN_CAUSES,
+);
+
+/** Who opened a request (0234 `opened_by`) and the reasons of an agent (`opening_reasons`, D83 A). */
+export const VERIFICATION_OPENERS = ["member", "agent"] as const;
+export const verificationOpenerSchema = z.enum(VERIFICATION_OPENERS);
+export const OPENING_REASON_CODES = [
+  "invited_by_agent",
+  "existing_client",
+  "past_collaboration",
+  "other",
+] as const;
+export const openingReasonCodeSchema = z.enum(OPENING_REASON_CODES);
+export type OpeningReasonCode = z.infer<typeof openingReasonCodeSchema>;
+
+/** The text of a contest (0232: 1 to 1 000 printable characters), the twin of the domain's. */
+export const VERIFICATION_DISPUTE_TEXT_MAX_LENGTH = 1000;
+
+/**
  * The refusals of the verification routes, as the `issue` of the details of the error envelope
  * (the database says them by MESSAGE, 0222, 0224; a value in DETAIL for `duplicate_request`, a date,
  * and `retry_after`, seconds, which travel as `Retry-After`, never in the body). 409 unless said.
@@ -220,6 +364,23 @@ export const VERIFICATION_REFUSAL_ISSUES = [
   "declared_figures_required",
   "decision_blocked",
   "active_source_exists",
+  // L2F (0230 to 0234), all 409: the badge to withdraw is not held, or a withdrawal is already
+  // asked; the contest of a decision (not contestable, past its window with the closing instant in
+  // the detail, already contested); the review of another person (the decider, or the reflection
+  // delay, seconds in the detail); the badge given back would be past its date; a line deleted; a
+  // handle already verified elsewhere (an outcome of the grant, an error of the identifier change);
+  // the login address does not prove the domain (`unverified`, `consumer_domain`, `other_domain`).
+  "badge_not_holding",
+  "revocation_pending",
+  "not_disputable",
+  "dispute_window_closed",
+  "already_disputed",
+  "reviewer_is_decider",
+  "reflection_delay",
+  "restore_expired",
+  "line_deleted",
+  "handle_already_verified",
+  "login_address_ineligible",
 ] as const;
 export const verificationRefusalIssueSchema = z.enum(
   VERIFICATION_REFUSAL_ISSUES,
@@ -308,6 +469,12 @@ export const ownBadgeSchema = z.strictObject({
   evidenceSource: verificationEvidenceSourceSchema,
   /** 90 days after the decision for the audience (08 RG69), 12 months for a brand (06 RG54). */
   expiresAt: instantSchema.nullable(),
+  /**
+   * The instant a badge « à rafraîchir » or « à reconfirmer » disappears: `expiresAt` and
+   * `badge_grace_days` (08 RG70, `graceEndsAt` of packages/domain); null for an active badge.
+   * Absent until the route serves it (L2F commit 13), then always present.
+   */
+  graceEndsAt: instantSchema.nullable().optional(),
 });
 export type OwnBadge = z.infer<typeof ownBadgeSchema>;
 
@@ -646,6 +813,111 @@ export type ReexamineVerificationResponse = z.infer<
   typeof reexamineVerificationResponseSchema
 >;
 
+// ---------------------------------------------------------------------------------------------
+// MEMBER side: the contest of a decision (08 RG77, CA52, CA53; jalons/l2f/modele.md §1 points 7 to 9,
+// §5; 0232). A creator contests a refusal or the withdrawal of a badge; a brand does not (it corrects
+// and submits again, 06 l. 718). Every object is closed and carries neither the deciders, nor the
+// lock, nor the internal comment, nor the review mode, nor the deadlines of the queue (invariant 13):
+// the member reads what he wrote, the date, the state and, once decided, the outcome with its motive.
+// ---------------------------------------------------------------------------------------------
+
+const disputeTextSchema = z
+  .string()
+  .min(1)
+  .max(VERIFICATION_DISPUTE_TEXT_MAX_LENGTH);
+
+/**
+ * A decision the creator may still contest (RG77): the refusal of a request, or the withdrawal of a
+ * badge he held, named by its own identifier; `closesAt` is the end of `dispute_window_days` after
+ * the notification (the instant itself is still inside, `disputeWindow` of packages/domain).
+ */
+export const contestableDecisionSchema = z.discriminatedUnion("kind", [
+  z.strictObject({
+    kind: z.literal("refusal"),
+    requestId: z.uuid(),
+    level: creatorVerificationLevelSchema,
+    networkCode: referenceCodeSchema,
+    reasonCode: creatorRejectionReasonCodeSchema,
+    decidedAt: instantSchema,
+    closesAt: instantSchema,
+  }),
+  z.strictObject({
+    kind: z.literal("revocation"),
+    badgeId: z.uuid(),
+    level: creatorVerificationLevelSchema,
+    networkCode: referenceCodeSchema,
+    reasonCode: revocationReasonCodeSchema,
+    /** The agent's own message to the member, where the reason asks for it (`terms_breach`). */
+    memberMessage: z.string().nullable(),
+    decidedAt: instantSchema,
+    closesAt: instantSchema,
+  }),
+]);
+export type ContestableDecision = z.infer<typeof contestableDecisionSchema>;
+
+/** The outcome of a contest, with its motive (RG77 « notifié de l'issue avec un motif »). */
+export const ownDisputeOutcomeSchema = z.strictObject({
+  result: disputeOutcomeSchema,
+  reasonCode: disputeOutcomeReasonCodeSchema,
+  /** The team's own message, for the motive that asks for one (`other`). */
+  memberMessage: z.string().nullable(),
+  decidedAt: instantSchema,
+});
+
+/** A contest of the member: what he sent, its state, and its outcome once there is one. */
+export const ownDisputeSchema = z.strictObject({
+  id: z.uuid(),
+  /** Exactly one of the two names the decision contested. */
+  requestId: z.uuid().nullable(),
+  badgeId: z.uuid().nullable(),
+  level: creatorVerificationLevelSchema,
+  networkCode: referenceCodeSchema,
+  reasonCode: disputeReasonCodeSchema,
+  text: z.string().nullable(),
+  submittedAt: instantSchema,
+  state: disputeStateSchema,
+  outcome: ownDisputeOutcomeSchema.nullable(),
+});
+export type OwnDispute = z.infer<typeof ownDisputeSchema>;
+
+/**
+ * `GET /v1/me/verification/disputes` (creator): the decisions he may still contest, his contests, and
+ * the window in days for the sentence « Vous pouvez contester cette décision pendant {n} jours ».
+ */
+export const ownDisputesResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  windowDays: z.number().int().positive(),
+  contestable: z.array(contestableDecisionSchema),
+  disputes: z.array(ownDisputeSchema),
+});
+export type OwnDisputesResponse = z.infer<typeof ownDisputesResponseSchema>;
+
+const submitDisputeShape = {
+  reasonCode: disputeReasonCodeSchema,
+  /** Required for `other`, optional for the others; no link, no contact (the API checks, RG19). */
+  text: disputeTextSchema.optional(),
+};
+
+/**
+ * `POST /v1/me/verification/disputes`: the decision is named by `requestId` (a refusal) or `badgeId`
+ * (a withdrawal), one of the two and never both; the account is the session's (T14). The reason is a
+ * code of the closed list, and `other` is never sent without its text.
+ */
+export const submitDisputeBodySchema = z
+  .union([
+    z.strictObject({ requestId: z.uuid(), ...submitDisputeShape }),
+    z.strictObject({ badgeId: z.uuid(), ...submitDisputeShape }),
+  ])
+  .refine((body) => body.reasonCode !== "other" || body.text !== undefined, {
+    message: "text_required",
+  });
+export type SubmitDisputeBody = z.infer<typeof submitDisputeBodySchema>;
+
+export const submitDisputeResponseSchema = z.strictObject({
+  dispute: ownDisputeSchema,
+});
+export type SubmitDisputeResponse = z.infer<typeof submitDisputeResponseSchema>;
+
 /** The codes of the schemas a member reads: the test of the commit walks them for a forbidden key. */
 export const MEMBER_VERIFICATION_RESPONSE_SCHEMAS = {
   publicBadge: publicBadgeSchema,
@@ -653,6 +925,8 @@ export const MEMBER_VERIFICATION_RESPONSE_SCHEMAS = {
   verificationRequest: verificationRequestResponseSchema,
   verificationEvidence: verificationEvidenceResponseSchema,
   brandVerification: brandVerificationResponseSchema,
+  ownDisputes: ownDisputesResponseSchema,
+  submitDispute: submitDisputeResponseSchema,
 } as const;
 
 // ---------------------------------------------------------------------------------------------
@@ -860,6 +1134,20 @@ export type VerificationRegistrySourceRow = z.infer<
 >;
 
 /**
+ * Who opened the request, and why (D83 A; 0234), as the decision view of queue 4 shows it, to agents
+ * only: an agent's reason is a code of the closed list, its comment is internal, and the member's
+ * own reading of it is the e-mail that told him. `loginAddressEligible` (A-bis): a brand whose
+ * verified login address is on its domain, a consumer mailbox apart, so that `grant-by-login` is offered.
+ */
+export const verificationOpeningSchema = z.strictObject({
+  openedBy: verificationOpenerSchema,
+  reasonCode: openingReasonCodeSchema.nullable(),
+  comment: z.string().nullable(),
+  loginAddressEligible: z.boolean(),
+});
+export type VerificationOpening = z.infer<typeof verificationOpeningSchema>;
+
+/**
  * The dossier an agent holding the live claim reads, everything of RG55 on one answer: the line as
  * the creator declared it (handle, pseudonym, address: to find the account, never a value to copy,
  * RG47), or the brand and its internal block; the pieces as metadata; the history; the alerts. No
@@ -888,6 +1176,8 @@ export const verificationDossierSchema = z.strictObject({
   history: z.array(verificationDossierHistorySchema),
   badges: z.array(verificationDossierBadgeSchema),
   alerts: z.array(verificationDossierAlertSchema),
+  /** Absent until the decision view serves it (L2F commit 15), then always present. */
+  opening: verificationOpeningSchema.optional(),
 });
 export type VerificationDossier = z.infer<typeof verificationDossierSchema>;
 
@@ -1064,4 +1354,631 @@ export const updateVerificationRegistrySourceResponseSchema = z.strictObject({
 });
 export type UpdateVerificationRegistrySourceResponse = z.infer<
   typeof updateVerificationRegistrySourceResponseSchema
+>;
+
+// ---------------------------------------------------------------------------------------------
+// AGENT side: the withdrawal of a badge under 2V, and the badges of an account (08 RG73 to RG76;
+// 06 RG55; jalons/l2f/modele.md §1 points 4, 5, §3 "0231", §5; 0231). An agent asks, an
+// administrator distinct from the asker confirms: this contract carries the ask and the read, the
+// 2V's own view is the one of `backoffice-actions.ts`. Nothing here is served to a member.
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * A reason of withdrawal as the agent chooses it, with what the withdrawal does with it (0231) and the
+ * sentence the member receives, in his language (`message`: what the agent reads is what is sent).
+ */
+export const revocationReasonRowSchema = z.strictObject({
+  code: revocationReasonCodeSchema,
+  position: z.number().int().positive(),
+  /** The levels a badge may be withdrawn at for this reason. */
+  levels: z.array(verificationLevelSchema).min(1),
+  /** The agent's own message to the member, 20 to 500 characters, required and refused otherwise. */
+  requiresMemberMessage: z.boolean(),
+  /** The escalation of RG73: held by construction, only an administrator confirms and executes. */
+  escalatesToAdmin: z.boolean(),
+  message: z.string().min(1),
+});
+export type RevocationReasonRow = z.infer<typeof revocationReasonRowSchema>;
+
+/**
+ * `POST /v1/bo/accounts/:id/badges/:badgeId/revocation` (an agent or an administrator): a reason of the
+ * list of the badge's level; `memberMessage` is the agent's text for the reasons that ask for it
+ * (`terms_breach`), refused for the others. The 2V is opened by this ask (charge: account, badge,
+ * reason).
+ */
+export const requestBadgeRevocationBodySchema = z.strictObject({
+  reasonCode: revocationReasonCodeSchema,
+  memberMessage: z
+    .string()
+    .min(VERIFICATION_MEMBER_MESSAGE_MIN_LENGTH)
+    .max(VERIFICATION_MEMBER_MESSAGE_MAX_LENGTH)
+    .optional(),
+});
+export type RequestBadgeRevocationBody = z.infer<
+  typeof requestBadgeRevocationBodySchema
+>;
+
+/** The 2V that was opened: the administrator confirms it at `/double-validation/[id]`. */
+export const requestBadgeRevocationResponseSchema = z.strictObject({
+  dualControlRequestId: z.uuid(),
+});
+export type RequestBadgeRevocationResponse = z.infer<
+  typeof requestBadgeRevocationResponseSchema
+>;
+
+/** A badge of an account, whatever its state, with no figure and no identifier of a network (0231 `read_account_badges`). */
+export const accountBadgeRowSchema = z.strictObject({
+  id: z.uuid(),
+  level: verificationLevelSchema,
+  networkCode: referenceCodeSchema.nullable(),
+  state: verificationBadgeStateSchema,
+  grantedAt: instantSchema,
+  expiresAt: instantSchema.nullable(),
+  /** The end of the badge (`expired`, `revoked`, `replaced`), null while it stands. */
+  endedAt: instantSchema.nullable(),
+  revokedAt: instantSchema.nullable(),
+  revocationReasonCode: revocationReasonCodeSchema.nullable(),
+  /** A withdrawal asked for and not yet executed, with the effective state of its 2V. */
+  pendingRevocation: z
+    .strictObject({
+      dualControlRequestId: z.uuid(),
+      state: revocationRequestStateSchema,
+    })
+    .nullable(),
+  /** The contest of the decision that ended this badge, when there is one. */
+  dispute: z
+    .strictObject({ id: z.uuid(), state: disputeStateSchema })
+    .nullable(),
+});
+export type AccountBadgeRow = z.infer<typeof accountBadgeRowSchema>;
+
+/** `GET /v1/bo/accounts/:id/badges`: the block « Badges » of the account's page, and the reasons it offers. */
+export const accountBadgesResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  badges: z.array(accountBadgeRowSchema),
+  reasons: z.array(revocationReasonRowSchema),
+});
+export type AccountBadgesResponse = z.infer<typeof accountBadgesResponseSchema>;
+
+export const accountBadgeParamsSchema = z.strictObject({
+  id: z.uuid(),
+  badgeId: z.uuid(),
+});
+export type AccountBadgeParams = z.infer<typeof accountBadgeParamsSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// AGENT side: queue 5, the contests (08 RG77, RG78; 15 RG27 C1 to C8, RG29; jalons/l2f/modele.md §1
+// points 7 to 10, §3 "0232", §5; 0232). Same rules as queue 4: opening is claiming, the review token
+// binds a decision to the version examined, no entry leaves without a decision. The handle typed
+// after an overturn is a body field only (0228). Nothing here is served to a member.
+// ---------------------------------------------------------------------------------------------
+
+/** 08 RG62 as queue 5 reads it: the sorts of queue 4, the level (creator levels) and what is contested. */
+const disputeEntriesFilterShape = {
+  level: creatorVerificationLevelSchema.optional(),
+  network: referenceCodeSchema.optional(),
+  kind: disputeKindSchema.optional(),
+  sort: verificationQueueSortSchema.default("age"),
+  overdue: z.literal("true").optional(),
+  holder: z.union([z.enum(["free", "me"]), z.uuid()]).optional(),
+  owner: z.union([z.literal("none"), z.uuid()]).optional(),
+  from: instantSchema.optional(),
+  to: instantSchema.optional(),
+  cursor: queueCursorSchema.optional(),
+};
+
+export const disputeEntriesQuerySchema = z
+  .strictObject({
+    ...disputeEntriesFilterShape,
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(verificationPeriodIsOrdered, { message: "period_order" });
+export type DisputeEntriesQuery = z.infer<typeof disputeEntriesQuerySchema>;
+
+export const disputeEntriesSearchSchema = z
+  .strictObject({
+    ...disputeEntriesFilterShape,
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(verificationPeriodIsOrdered, { message: "period_order" });
+export type DisputeEntriesSearch = z.infer<typeof disputeEntriesSearchSchema>;
+export type DisputeEntriesSearchBody = z.input<
+  typeof disputeEntriesSearchSchema
+>;
+
+/** One line of the list: no handle, no text of the creator (those are in the decision view). */
+export const disputeEntryRowSchema = z.strictObject({
+  id: z.uuid(),
+  accountId: z.uuid(),
+  kind: disputeKindSchema,
+  level: creatorVerificationLevelSchema,
+  networkCode: referenceCodeSchema,
+  /** The alias of the creator, never his handle. */
+  displayName: z.string().nullable(),
+  countryCode: countryCodeSchema,
+  reasonCode: disputeReasonCodeSchema,
+  submittedAt: instantSchema,
+  slaDueAt: instantSchema,
+  escalateAt: instantSchema,
+  /** Past its deadline: written in clear by the screen, still decidable and marked (C8). */
+  overdue: z.boolean(),
+  owner: accountOwnerSchema.nullable(),
+  claim: entryClaimSchema,
+});
+export type DisputeEntryRow = z.infer<typeof disputeEntryRowSchema>;
+
+export const disputeEntriesResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  items: z.array(disputeEntryRowSchema),
+  /** Null at the last page: no infinite scroll (15 RG34). */
+  nextCursor: queueCursorSchema.nullable(),
+});
+export type DisputeEntriesResponse = z.infer<
+  typeof disputeEntriesResponseSchema
+>;
+
+/**
+ * The dossier an agent holding the live claim reads: what the creator wrote, the line as he declared
+ * it (to find the account), the decision contested with its reason, the pieces as metadata. The review
+ * mode is the one the decision would have NOW (`independent`: another person than the deciders;
+ * `delayed`: a decider alone, from `reflectionUntil`). No key, no figure the creator declared.
+ */
+export const disputeDossierSchema = z.strictObject({
+  kind: disputeKindSchema,
+  reasonCode: disputeReasonCodeSchema,
+  text: z.string().nullable(),
+  submittedAt: instantSchema,
+  reviewMode: disputeReviewModeSchema,
+  /** `delayed` only: the earliest instant a decider may judge it alone. */
+  reflectionUntil: instantSchema.nullable(),
+  /** The persons who took the decision contested: they open it read-only while another person exists. */
+  deciders: z.array(accountOwnerSchema),
+  creator: z
+    .strictObject({
+      handle: z.string().nullable(),
+      pseudonym: z.string().nullable(),
+      profileUrl: z.string().nullable(),
+    })
+    .nullable(),
+  refusal: z
+    .strictObject({
+      requestId: z.uuid(),
+      reasonCode: creatorRejectionReasonCodeSchema,
+      memberMessage: z.string().nullable(),
+      decidedAt: instantSchema,
+      /** The code of a refused account request expires then; the code itself never leaves the database. */
+      codeExpiresAt: instantSchema.nullable(),
+    })
+    .nullable(),
+  revocation: z
+    .strictObject({
+      badgeId: z.uuid(),
+      grantedAt: instantSchema,
+      expiresAt: instantSchema.nullable(),
+      revokedAt: instantSchema,
+      reasonCode: revocationReasonCodeSchema,
+      memberMessage: z.string().nullable(),
+      /** The audience carried along by a withdrawn « Compte vérifié » (modele point 4). */
+      cascadeBadgeIds: z.array(z.uuid()),
+    })
+    .nullable(),
+  evidence: z.array(verificationDossierEvidenceSchema),
+});
+export type DisputeDossier = z.infer<typeof disputeDossierSchema>;
+
+/** A motive of outcome, with what it does and the sentence the member receives (`other`: the agent's text follows). */
+export const disputeOutcomeReasonRowSchema = z.strictObject({
+  code: disputeOutcomeReasonCodeSchema,
+  outcome: disputeOutcomeSchema,
+  position: z.number().int().positive(),
+  requiresMemberMessage: z.boolean(),
+  message: z.string().min(1),
+});
+export type DisputeOutcomeReasonRow = z.infer<
+  typeof disputeOutcomeReasonRowSchema
+>;
+
+/** The decision of a closed contest (C8); the internal comment is for agents only. */
+export const disputeEntryDecisionSchema = z.strictObject({
+  decidedAt: instantSchema,
+  decidedBy: accountOwnerSchema.nullable(),
+  late: z.boolean(),
+  state: z.enum(["upheld", "overturned", "withdrawn"]),
+  outcomeReasonCode: disputeOutcomeReasonCodeSchema.nullable(),
+  reviewMode: disputeReviewModeSchema.nullable(),
+  withdrawnCause: disputeWithdrawnCauseSchema.nullable(),
+  memberMessage: z.string().nullable(),
+  internalComment: z.string().nullable(),
+});
+
+export const disputeOpenedEntrySchema = z.strictObject({
+  id: z.uuid(),
+  kind: disputeKindSchema,
+  level: creatorVerificationLevelSchema,
+  networkCode: referenceCodeSchema,
+  state: disputeStateSchema,
+  submittedAt: instantSchema,
+  slaDueAt: instantSchema,
+  escalateAt: instantSchema,
+  overdue: z.boolean(),
+  claim: entryClaimSchema,
+  lastForcedRelease: forcedReleaseSchema.nullable(),
+  decision: disputeEntryDecisionSchema.nullable(),
+});
+
+/** `POST …/verification-disputes/entries/:id/open` (C1, C2): `claimed` and `held` carry the dossier and the token. */
+export const disputeOpenResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  outcome: openOutcomeSchema,
+  reviewToken: reviewTokenSchema.nullable(),
+  entry: disputeOpenedEntrySchema,
+  account: z.strictObject({
+    id: z.uuid(),
+    countryCode: countryCodeSchema,
+    preferredLanguage: uiLocaleSchema,
+    owner: accountOwnerSchema.nullable(),
+  }),
+  dossier: disputeDossierSchema.nullable(),
+  outcomeReasons: z.array(disputeOutcomeReasonRowSchema),
+});
+export type DisputeOpenResponse = z.infer<typeof disputeOpenResponseSchema>;
+
+const optionalPlatformAccountRefSchema = z
+  .string()
+  .min(1)
+  .max(100)
+  .nullable()
+  .optional();
+
+/**
+ * `POST …/entries/:id/uphold`: the decision stands, with a motive of the upheld ones; `memberMessage`
+ * is the team's own text for `other` (20 to 500 characters), refused for the others.
+ */
+export const upholdDisputeRequestSchema = z.strictObject({
+  reviewToken: reviewTokenSchema,
+  outcomeReasonCode: disputeUpheldOutcomeReasonCodeSchema,
+  memberMessage: z
+    .string()
+    .min(VERIFICATION_MEMBER_MESSAGE_MIN_LENGTH)
+    .max(VERIFICATION_MEMBER_MESSAGE_MAX_LENGTH)
+    .optional(),
+  internalComment: internalCommentSchema.optional(),
+});
+export type UpholdDisputeRequest = z.infer<typeof upholdDisputeRequestSchema>;
+
+/**
+ * `POST …/entries/:id/overturn` (CA53): the decision is reversed, by what was contested: a refused
+ * account request (the code read and the handle typed), a refused audience request (the figures, the
+ * period, the handle), a withdrawn badge (the handle read again). Every overturn types the handle again
+ * (0228) and gives a new date of decision.
+ */
+export const overturnDisputeRequestSchema = z.discriminatedUnion("target", [
+  z.strictObject({
+    target: z.literal("refusal_account"),
+    reviewToken: reviewTokenSchema,
+    observedCode: ownershipCodeSchema,
+    observedHandle: observedHandleSchema,
+    observedPlatformAccountRef: optionalPlatformAccountRefSchema,
+    internalComment: internalCommentSchema.optional(),
+  }),
+  z.strictObject({
+    target: z.literal("refusal_audience"),
+    reviewToken: reviewTokenSchema,
+    ...observedFiguresSchema.shape,
+    periodStart: calendarDaySchema,
+    periodEnd: calendarDaySchema,
+    observedHandle: observedHandleSchema,
+    internalComment: internalCommentSchema.optional(),
+  }),
+  z.strictObject({
+    target: z.literal("revocation"),
+    reviewToken: reviewTokenSchema,
+    observedHandle: observedHandleSchema,
+    internalComment: internalCommentSchema.optional(),
+  }),
+]);
+export type OverturnDisputeRequest = z.infer<
+  typeof overturnDisputeRequestSchema
+>;
+
+/** What a decision of queue 5 answers: the outcome, the badge given back, the mode of the review, the deadline marked. */
+export const decideDisputeResponseSchema = z.strictObject({
+  outcome: disputeOutcomeSchema,
+  /** The badge granted by an overturn (a new date of decision); null when the decision stands. */
+  badgeId: z.uuid().nullable(),
+  decidedAt: instantSchema,
+  late: z.boolean(),
+  reviewMode: disputeReviewModeSchema,
+  next: nextVerificationEntrySchema,
+});
+export type DecideDisputeResponse = z.infer<typeof decideDisputeResponseSchema>;
+
+// ---------------------------------------------------------------------------------------------
+// AGENT side: queue 6, the identifiers changed after a verification (08 RG78; 15 RG29;
+// jalons/l2f/modele.md §1 points 12, 13, §3 "0233", §5; 0233). The badge stays; the agent confirms
+// (« même compte », the handle typed) or requires a proof (« à reconfirmer »). The former and the
+// new identifier are in the decision view only: never in a list, never public, never in a register.
+// ---------------------------------------------------------------------------------------------
+
+const identifierChangeEntriesFilterShape = {
+  network: referenceCodeSchema.optional(),
+  sort: verificationQueueSortSchema.default("age"),
+  overdue: z.literal("true").optional(),
+  holder: z.union([z.enum(["free", "me"]), z.uuid()]).optional(),
+  owner: z.union([z.literal("none"), z.uuid()]).optional(),
+  from: instantSchema.optional(),
+  to: instantSchema.optional(),
+  cursor: queueCursorSchema.optional(),
+};
+
+export const identifierChangeEntriesQuerySchema = z
+  .strictObject({
+    ...identifierChangeEntriesFilterShape,
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(verificationPeriodIsOrdered, { message: "period_order" });
+export type IdentifierChangeEntriesQuery = z.infer<
+  typeof identifierChangeEntriesQuerySchema
+>;
+
+export const identifierChangeEntriesSearchSchema = z
+  .strictObject({
+    ...identifierChangeEntriesFilterShape,
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(verificationPeriodIsOrdered, { message: "period_order" });
+export type IdentifierChangeEntriesSearch = z.infer<
+  typeof identifierChangeEntriesSearchSchema
+>;
+export type IdentifierChangeEntriesSearchBody = z.input<
+  typeof identifierChangeEntriesSearchSchema
+>;
+
+/** One line of the list: the network and how often the identifier changed, no identifier. */
+export const identifierChangeEntryRowSchema = z.strictObject({
+  id: z.uuid(),
+  accountId: z.uuid(),
+  networkCode: referenceCodeSchema,
+  displayName: z.string().nullable(),
+  countryCode: countryCodeSchema,
+  changeCount: z.number().int().positive(),
+  createdAt: instantSchema,
+  lastChangedAt: instantSchema,
+  slaDueAt: instantSchema,
+  escalateAt: instantSchema,
+  overdue: z.boolean(),
+  owner: accountOwnerSchema.nullable(),
+  claim: entryClaimSchema,
+});
+export type IdentifierChangeEntryRow = z.infer<
+  typeof identifierChangeEntryRowSchema
+>;
+
+export const identifierChangeEntriesResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  items: z.array(identifierChangeEntryRowSchema),
+  nextCursor: queueCursorSchema.nullable(),
+});
+export type IdentifierChangeEntriesResponse = z.infer<
+  typeof identifierChangeEntriesResponseSchema
+>;
+
+/** The dossier an agent holding the live claim reads: the former and the new identifier, the badges held. */
+export const identifierChangeDossierSchema = z.strictObject({
+  networkCode: referenceCodeSchema,
+  /** The identifier of the last constat `confirmed`, else the one seen at the decision of the held badge. */
+  previousHandle: z.string().nullable(),
+  newHandle: z.string(),
+  changeCount: z.number().int().positive(),
+  createdAt: instantSchema,
+  lastChangedAt: instantSchema,
+  /** The line as the creator now declares it, to find the account. */
+  creator: z.strictObject({
+    handle: z.string().nullable(),
+    pseudonym: z.string().nullable(),
+    profileUrl: z.string().nullable(),
+  }),
+  accountBadge: z
+    .strictObject({
+      id: z.uuid(),
+      state: verificationBadgeStateSchema,
+      grantedAt: instantSchema,
+    })
+    .nullable(),
+  audienceBadge: z
+    .strictObject({
+      id: z.uuid(),
+      state: verificationBadgeStateSchema,
+      expiresAt: instantSchema.nullable(),
+    })
+    .nullable(),
+});
+export type IdentifierChangeDossier = z.infer<
+  typeof identifierChangeDossierSchema
+>;
+
+/** The decision of a closed entry (C8); the internal comment is for agents only. */
+export const identifierChangeDecisionSchema = z.strictObject({
+  decidedAt: instantSchema,
+  decidedBy: accountOwnerSchema.nullable(),
+  late: z.boolean(),
+  state: z.enum(["confirmed", "proof_required", "withdrawn"]),
+  withdrawnCause: identifierWithdrawnCauseSchema.nullable(),
+  observedHandle: z.string().nullable(),
+  internalComment: z.string().nullable(),
+});
+
+export const identifierChangeOpenedEntrySchema = z.strictObject({
+  id: z.uuid(),
+  networkCode: referenceCodeSchema,
+  state: identifierReviewStateSchema,
+  createdAt: instantSchema,
+  slaDueAt: instantSchema,
+  escalateAt: instantSchema,
+  overdue: z.boolean(),
+  claim: entryClaimSchema,
+  lastForcedRelease: forcedReleaseSchema.nullable(),
+  decision: identifierChangeDecisionSchema.nullable(),
+});
+
+/** `POST …/identifier-changes/entries/:id/open` (C1, C2). */
+export const identifierChangeOpenResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  outcome: openOutcomeSchema,
+  reviewToken: reviewTokenSchema.nullable(),
+  entry: identifierChangeOpenedEntrySchema,
+  account: z.strictObject({
+    id: z.uuid(),
+    countryCode: countryCodeSchema,
+    preferredLanguage: uiLocaleSchema,
+    owner: accountOwnerSchema.nullable(),
+  }),
+  dossier: identifierChangeDossierSchema.nullable(),
+});
+export type IdentifierChangeOpenResponse = z.infer<
+  typeof identifierChangeOpenResponseSchema
+>;
+
+/** `POST …/entries/:id/confirm` (« même compte »): the handle typed must be the one declared (0233); the badge is never rewritten. */
+export const confirmIdentifierChangeRequestSchema = z.strictObject({
+  reviewToken: reviewTokenSchema,
+  observedHandle: observedHandleSchema,
+  internalComment: internalCommentSchema.optional(),
+});
+export type ConfirmIdentifierChangeRequest = z.infer<
+  typeof confirmIdentifierChangeRequestSchema
+>;
+
+/** `POST …/entries/:id/require-proof` (« à reconfirmer »): no free text, the proof is asked again from the member's space. */
+export const requireIdentifierProofRequestSchema = z.strictObject({
+  reviewToken: reviewTokenSchema,
+  internalComment: internalCommentSchema.optional(),
+});
+export type RequireIdentifierProofRequest = z.infer<
+  typeof requireIdentifierProofRequestSchema
+>;
+
+export const confirmIdentifierChangeResponseSchema = z.strictObject({
+  decidedAt: instantSchema,
+  late: z.boolean(),
+  next: nextVerificationEntrySchema,
+});
+export type ConfirmIdentifierChangeResponse = z.infer<
+  typeof confirmIdentifierChangeResponseSchema
+>;
+
+export const requireIdentifierProofResponseSchema = z.strictObject({
+  decidedAt: instantSchema,
+  late: z.boolean(),
+  /** « Compte vérifié » now to reconfirm, and the audience tenue of the line with it. */
+  badgeId: z.uuid().nullable(),
+  audienceBadgeIds: z.array(z.uuid()),
+  next: nextVerificationEntrySchema,
+});
+export type RequireIdentifierProofResponse = z.infer<
+  typeof requireIdentifierProofResponseSchema
+>;
+
+// ---------------------------------------------------------------------------------------------
+// AGENT side: a verification opened by an agent, and the proof of a brand by its login address
+// (decision D83, A and A-bis; 06 RG51; jalons/l2f/modele.md §1 point 14, §6; 0234). The same request,
+// the same queue, the same unicity and the same decisions: the origin and the reason are carried by
+// the request. « Audience vérifiée » is never opened this way, nor is a lot or an import. The domain
+// of a brand is proven by the verified login address, read by the database and never typed.
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * `POST /v1/bo/accounts/:id/verification-requests` (an agent or an administrator, never on his own
+ * account): « Compte vérifié » of a line (`socialAccountId`) or « Marque vérifiée » of the account
+ * (no line, and the three fields of the internal block when it holds none). The reason is a code of
+ * the closed list; its comment is required for `other`, 1 to 1 000 characters. The member is told by
+ * e-mail, with no code in it.
+ */
+export const openVerificationForMemberBodySchema = z
+  .strictObject({
+    level: z.enum(["account_verified", "brand_verified"]),
+    socialAccountId: z.uuid().nullable(),
+    openingReasonCode: openingReasonCodeSchema,
+    openingComment: internalCommentSchema.optional(),
+    legalName: z
+      .string()
+      .min(1)
+      .max(VERIFICATION_LEGAL_NAME_MAX_LENGTH)
+      .optional(),
+    registrationCountryCode: countryCodeSchema.optional(),
+    registrationNumber: z
+      .string()
+      .min(1)
+      .max(VERIFICATION_REGISTRATION_NUMBER_MAX_LENGTH)
+      .optional(),
+  })
+  .refine(
+    (body) =>
+      body.openingReasonCode !== "other" || body.openingComment !== undefined,
+    { message: "opening_comment_required" },
+  )
+  .refine(
+    (body) =>
+      (body.level === "account_verified") === (body.socialAccountId !== null),
+    { message: "social_account_mismatch" },
+  )
+  .refine(
+    (body) => {
+      const given = [
+        body.legalName,
+        body.registrationCountryCode,
+        body.registrationNumber,
+      ].filter((value) => value !== undefined).length;
+      return body.level === "brand_verified"
+        ? given === 0 || given === 3
+        : given === 0;
+    },
+    { message: "internal_details_invalid" },
+  );
+export type OpenVerificationForMemberBody = z.infer<
+  typeof openVerificationForMemberBodySchema
+>;
+
+/** The request that now waits in queue 4, and whether it was just created (a request already open is taken over, never doubled). */
+export const openVerificationForMemberResponseSchema = z.strictObject({
+  requestId: z.uuid(),
+  status: verificationRequestStatusSchema,
+  created: z.boolean(),
+});
+export type OpenVerificationForMemberResponse = z.infer<
+  typeof openVerificationForMemberResponseSchema
+>;
+
+/**
+ * `POST /v1/bo/queues/verification-brands/entries/:id/grant-by-login` (A-bis): the same grant as a
+ * brand's, without a code or a channel typed: the database reads the login address. The register of the
+ * company is still consulted by the agent (06 RG52). The answer is the one of a grant.
+ */
+export const grantBrandByLoginRequestSchema = z.strictObject({
+  reviewToken: reviewTokenSchema,
+  registrySourceId: z.uuid(),
+  internalComment: internalCommentSchema.optional(),
+});
+export type GrantBrandByLoginRequest = z.infer<
+  typeof grantBrandByLoginRequestSchema
 >;

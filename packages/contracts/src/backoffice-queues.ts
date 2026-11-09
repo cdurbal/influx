@@ -33,6 +33,15 @@ export const BRAND_REVIEW_QUEUE = "profiles_advertiser";
  */
 export const VERIFICATION_CREATORS_QUEUE = "verification_creators";
 export const VERIFICATION_BRANDS_QUEUE = "verification_brands";
+/**
+ * Queues 5 and 6 (L2F: the contests of a refusal or a withdrawal, 0232; the identifiers changed after a
+ * verification, 0233), their codes in `backoffice.queues` and in the register. They join
+ * `queueCodeSchema` with the counters and the screens that list them (commits 14 and 19: the screens
+ * address every code of that list, `QUEUE_ADDRESS`); their entries are the contract of
+ * `verification.ts`.
+ */
+export const VERIFICATION_DISPUTES_QUEUE = "verification_disputes";
+export const IDENTITY_CHANGE_QUEUE = "identity_change_review";
 export const queueCodeSchema = z.enum([
   BRAND_REVIEW_QUEUE,
   VERIFICATION_CREATORS_QUEUE,
