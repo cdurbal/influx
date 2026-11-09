@@ -240,6 +240,8 @@ export const VERIFICATION_GENERIC_COLUMNS: readonly string[] = [
   "name",
   "network_code",
   "position",
+  // 0231: a reason code of a withdrawal, as the refusal of a brand profile carries its own
+  "reason_code",
   "request_id",
   "state",
   "status",

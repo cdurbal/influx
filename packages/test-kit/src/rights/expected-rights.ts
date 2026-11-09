@@ -1319,6 +1319,17 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       }),
     ),
   },
+  // 0231 (L2F commit 06, l2f/modele.md §2, point 4): the request of a withdrawal under 2V, its
+  // message to the member. No right for any execution role: written and read by the functions of
+  // influx_verification_definer only (request_badge_revocation, read_badge_revocation, revoke_badge,
+  // read_account_badges); nothing for a member (fiche invariant 10).
+  {
+    table: "verification.badge_revocation_requests",
+    source:
+      "0231 (08 RG75, 03 §3.2 2V): no right for any execution role; definer functions only",
+    probeColumn: "badge_id",
+    expected: {},
+  },
   // 0222 (L2E commit 06, modele §3): the internal block of a brand. The brand reads and writes it
   // through its doors only (profiles.read_own_brand_verification(), save_own_brand_internal_details()):
   // no direct right for any member; never a creator, Brevo nor Apollo (06 RG46, RG48).
@@ -4752,6 +4763,51 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_maintenance_definer|table|verification.ownership_codes|DELETE",
   "influx_worker|function|ops.purge_verification_findings(uuid,smallint)|EXECUTE",
   "influx_worker|function|ops.run_badge_lifecycle(uuid,smallint)|EXECUTE",
+  // 0231 (L2F commit 06, l2f/modele.md point 4, §3 "0231", fiche invariants 3, 10): the withdrawal
+  // under 2V. Three wrappers of influx_identity_definer (open, consume, status of a 2V of
+  // verification.revoke_badge only), EXECUTE for influx_verification_definer ONLY: no right of it
+  // on backoffice.dual_control_requests. influx_verification_definer reads the reasons and their
+  // levels, writes the request of a withdrawal and its execution, withdraws a holding badge; four
+  // functions for influx_agent and influx_admin (read_badge_revocation and revoke_badge refuse
+  // the agent).
+  "influx_admin|function|verification.read_account_badges(uuid)|EXECUTE",
+  "influx_admin|function|verification.read_badge_revocation(uuid)|EXECUTE",
+  "influx_admin|function|verification.request_badge_revocation(uuid,text,text)|EXECUTE",
+  "influx_admin|function|verification.revoke_badge(uuid,uuid,uuid,text)|EXECUTE",
+  "influx_agent|function|verification.read_account_badges(uuid)|EXECUTE",
+  "influx_agent|function|verification.read_badge_revocation(uuid)|EXECUTE",
+  "influx_agent|function|verification.request_badge_revocation(uuid,text,text)|EXECUTE",
+  "influx_agent|function|verification.revoke_badge(uuid,uuid,uuid,text)|EXECUTE",
+  "influx_identity_definer|function|backoffice.consume_dual_control_for(uuid,uuid,text,jsonb,text)|EXECUTE",
+  "influx_identity_definer|function|backoffice.dual_control_status_for(uuid)|EXECUTE",
+  "influx_identity_definer|function|backoffice.open_dual_control_for(text,jsonb,text)|EXECUTE",
+  "influx_verification_definer|column|verification.badge_revocation_requests.account_id|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badge_revocation_requests.badge_id|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badge_revocation_requests.dual_control_request_id|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badge_revocation_requests.executed_at|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.badge_revocation_requests.executed_by_account_id|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.badge_revocation_requests.member_message|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badge_revocation_requests.reason_code|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badge_revocation_requests.requested_at|SELECT",
+  "influx_verification_definer|column|verification.badge_revocation_requests.requested_by_account_id|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.ended_at|SELECT",
+  "influx_verification_definer|column|verification.badges.revocation_reason_code|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.badges.revocation_request_id|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.badges.revoked_at|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.revocation_reasons.code|SELECT",
+  "influx_verification_definer|column|verification.revocation_reasons.escalates_to_admin|SELECT",
+  "influx_verification_definer|column|verification.revocation_reasons.is_active|SELECT",
+  "influx_verification_definer|column|verification.revocation_reasons.levels|SELECT",
+  "influx_verification_definer|column|verification.revocation_reasons.position|SELECT",
+  "influx_verification_definer|column|verification.revocation_reasons.requires_member_message|SELECT",
+  "influx_verification_definer|function|backoffice.consume_dual_control_for(uuid,uuid,text,jsonb,text)|EXECUTE",
+  "influx_verification_definer|function|backoffice.dual_control_status_for(uuid)|EXECUTE",
+  "influx_verification_definer|function|backoffice.open_dual_control_for(text,jsonb,text)|EXECUTE",
+  "influx_verification_definer|function|verification.check_revocation_reason(verification.badge_level,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.read_account_badges(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.read_badge_revocation(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.request_badge_revocation(uuid,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.revoke_badge(uuid,uuid,uuid,text)|EXECUTE",
 ];
 
 /**
@@ -5136,4 +5192,18 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "ops.run_badge_lifecycle(uuid,smallint)": "influx_maintenance_definer",
   "ops.purge_verification_findings(uuid,smallint)":
     "influx_maintenance_definer",
+  // 0231 (L2F commit 06): the withdrawal under 2V; the three wrappers of the 2V are the identity
+  // owner's (no right of influx_verification_definer on dual_control_requests); the helper
+  // verification.check_revocation_reason() is SECURITY INVOKER, same owner as the functions.
+  "backoffice.open_dual_control_for(text,jsonb,text)":
+    "influx_identity_definer",
+  "backoffice.consume_dual_control_for(uuid,uuid,text,jsonb,text)":
+    "influx_identity_definer",
+  "backoffice.dual_control_status_for(uuid)": "influx_identity_definer",
+  "verification.request_badge_revocation(uuid,text,text)":
+    "influx_verification_definer",
+  "verification.read_badge_revocation(uuid)": "influx_verification_definer",
+  "verification.revoke_badge(uuid,uuid,uuid,text)":
+    "influx_verification_definer",
+  "verification.read_account_badges(uuid)": "influx_verification_definer",
 };

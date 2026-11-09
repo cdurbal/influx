@@ -75,15 +75,23 @@ export const rejectionReasons = verification.table(
   (table) => [primaryKey({ columns: [table.population, table.code] })],
 );
 
-/** 08 RG73: the five reasons of a withdrawal (04 l. 1627). */
+/**
+ * 08 RG73 (creator, five) and 06 RG55 (brand) since 0231: the reasons of a withdrawal, each with
+ * the levels it may withdraw (04 l. 1627, l2f/textes.md).
+ */
 export const revocationReasons = verification.table("revocation_reasons", {
   code: text("code").primaryKey(),
   labelKey: text("label_key").notNull(),
   messageKey: text("message_key").notNull(),
-  requiresComment: boolean("requires_comment").notNull().default(false),
+  // 0231: renamed from requires_comment (terms_breach requires a message to the member)
+  requiresMemberMessage: boolean("requires_member_message")
+    .notNull()
+    .default(false),
   notifiesMember: boolean("notifies_member").notNull().default(true),
   escalatesToAdmin: boolean("escalates_to_admin").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),
+  levels: badgeLevel("levels").array().notNull(),
+  position: smallint("position").notNull().unique(),
 });
 
 /** 06 RG52, D79 (12), l2e/registres.md: the free public registers, one active per
@@ -232,7 +240,31 @@ export const badges = verification.table("badges", {
   reminderSentAt: timestamptz("reminder_sent_at"),
   endedAt: timestamptz("ended_at"),
   findingsErasedAt: timestamptz("findings_erased_at"),
+  // 0231 (L2F commit 06): the withdrawal under 2V that revoked it (NULL for the erasure of 0226)
+  revocationRequestId: uuid("revocation_request_id"),
 });
+
+/**
+ * 0231 (L2F commit 06, 08 RG75, 03 §3.2 2V): the request of a withdrawal, keyed by its request of
+ * dual control (payload {account_id, badge_id, reason_code}); the message to the member lives here,
+ * never in the payload nor the register. Written by the functions of influx_verification_definer
+ * only; nothing for a member.
+ */
+export const badgeRevocationRequests = verification.table(
+  "badge_revocation_requests",
+  {
+    dualControlRequestId: uuid("dual_control_request_id").primaryKey(),
+    badgeId: uuid("badge_id").notNull(),
+    accountId: uuid("account_id").notNull(),
+    reasonCode: text("reason_code").notNull(),
+    memberMessage: text("member_message"),
+    requestedByAccountId: uuid("requested_by_account_id").notNull(),
+    requestedAt: timestamptz("requested_at").notNull().defaultNow(),
+    executedByAccountId: uuid("executed_by_account_id"),
+    executedAt: timestamptz("executed_at"),
+    textsErasedAt: timestamptz("texts_erased_at"),
+  },
+);
 
 /**
  * 0222 (L2E commit 06, 06 RG46 to RG48): the internal block of a brand, in the schema `profiles`

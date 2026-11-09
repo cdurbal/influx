@@ -187,8 +187,12 @@ describe("the closed catalogues of 0221 (08 RG57, RG59, RG73; 06 RG51-RG52; EC-L
   });
 
   it("holds the five revocation reasons of 08 RG73", async () => {
+    // 0231 (06 RG55): the brand reasons join the table; a creator badge keeps the five of RG73
     const rows = await migration<{ code: string }[]>`
-      select code from verification.revocation_reasons where is_active order by code`;
+      select code from verification.revocation_reasons
+       where is_active
+         and levels && array['account_verified', 'audience_verified']::verification.badge_level[]
+       order by code`;
     expect(rows.map((row) => row.code)).toEqual([
       "account_closed",
       "forged_evidence",

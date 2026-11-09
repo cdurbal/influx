@@ -122,6 +122,14 @@ export const VERIFICATION_IDS = {
   },
 } as const;
 
+/**
+ * 0231 (L2F commit 06): the 2V verification.revoke_badge that withdrew the badge of creator A
+ * (VERIFICATION_IDS.badge.a): requested by agent A, confirmed by admin A, consumed, its request of a
+ * withdrawal executed, so that T2 finds a row of verification.badge_revocation_requests. Inert.
+ */
+export const REVOCATION_DUAL_CONTROL_REQUEST_ID =
+  "00000000-0000-4000-8000-00000000ff1c";
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -540,6 +548,40 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
                 ${ids.request}, 'account_verified', ${agent}, now(), 'public_profile',
                 ${rows.handle}, 'revoked', now(), 'influx_error')
         on conflict do nothing`;
+    }
+    // 0231 (L2F): the withdrawal of badge A under 2V, inert (REVOCATION_DUAL_CONTROL_REQUEST_ID)
+    {
+      const badge = VERIFICATION_IDS.badge.a;
+      const creatorA = accountIdOf("creator", "a");
+      const [created] = await tx<{ id: string }[]>`
+        insert into backoffice.dual_control_requests
+          (id, action_code, payload, reason_code, requested_by_account_id)
+        values (${REVOCATION_DUAL_CONTROL_REQUEST_ID}, 'verification.revoke_badge',
+                jsonb_build_object('account_id', ${creatorA}::uuid, 'badge_id', ${badge}::uuid,
+                                   'reason_code', 'influx_error'),
+                'influx_error', ${accountIdOf("agent", "a")})
+        on conflict do nothing
+        returning id::text`;
+      if (created !== undefined) {
+        await tx`
+          update backoffice.dual_control_requests
+             set state = 'confirmed', confirmed_by_account_id = ${accountIdOf("admin", "a")}
+           where id = ${REVOCATION_DUAL_CONTROL_REQUEST_ID} and state = 'pending'`;
+        await tx`
+          update backoffice.dual_control_requests set consumed_at = now()
+           where id = ${REVOCATION_DUAL_CONTROL_REQUEST_ID} and state = 'confirmed'
+             and consumed_at is null`;
+        await tx`
+          insert into verification.badge_revocation_requests
+            (dual_control_request_id, badge_id, account_id, reason_code, requested_by_account_id,
+             executed_by_account_id, executed_at)
+          values (${REVOCATION_DUAL_CONTROL_REQUEST_ID}, ${badge}, ${creatorA}, 'influx_error',
+                  ${accountIdOf("agent", "a")}, ${accountIdOf("admin", "a")}, now())
+          on conflict do nothing`;
+        await tx`
+          update verification.badges set revocation_request_id = ${REVOCATION_DUAL_CONTROL_REQUEST_ID}
+           where id = ${badge} and revocation_request_id is null`;
+      }
     }
     await tx`
       insert into leads.outbox_events
