@@ -1402,6 +1402,29 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     }),
   },
+  // 0234 (L2F commit 09, l2f/modele.md §2; D83 A + A-bis): the reasons of an opening by an agent,
+  // read by agent and admin; the consumer mailboxes, read by the owner of the decisions only.
+  // Written by the migrations only; nothing for any member nor influx_advertiser (fiche invariant 10).
+  {
+    table: "verification.opening_reasons",
+    source:
+      "0234 (D83 (5), l2f/textes.md « Ouverture »): the agent's reasons, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "D83 (5): the agent chooses a typed reason to open a member's verification; agent and admin, aal2",
+      },
+    }),
+  },
+  {
+    table: "verification.consumer_email_domains",
+    source:
+      "0234 (D83 A-bis): no right for any execution role; read by influx_verification_definer only",
+    probeColumn: "domain",
+    expected: {},
+  },
   // 0222 (L2E commit 06, modele §3): the internal block of a brand. The brand reads and writes it
   // through its doors only (profiles.read_own_brand_verification(), save_own_brand_internal_details()):
   // no direct right for any member; never a creator, Brevo nor Apollo (06 RG46, RG48).
@@ -2261,7 +2284,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|column|identity.accounts.declared_status|INSERT,SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.email_status|SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.email_undeliverable_at|UPDATE",
-  "influx_identity_definer|column|identity.accounts.email_verified_at|INSERT,UPDATE",
+  "influx_identity_definer|column|identity.accounts.email_verified_at|INSERT,SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.email|INSERT,SELECT,UPDATE",
   "influx_identity_definer|column|identity.accounts.is_adult_attested|INSERT",
   "influx_identity_definer|column|identity.accounts.preferred_language|INSERT,SELECT,UPDATE",
@@ -4547,10 +4570,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|column|leads.outbox_events.payload|INSERT",
   "influx_verification_definer|column|leads.outbox_events.priority|INSERT",
   "influx_verification_definer|column|leads.outbox_events.subject_key|INSERT",
-  "influx_verification_definer|column|profiles.advertiser_internal_details.account_id|SELECT",
-  "influx_verification_definer|column|profiles.advertiser_internal_details.legal_name|SELECT",
-  "influx_verification_definer|column|profiles.advertiser_internal_details.registration_country_code|SELECT",
-  "influx_verification_definer|column|profiles.advertiser_internal_details.registration_number|SELECT",
+  "influx_verification_definer|column|profiles.advertiser_internal_details.account_id|INSERT,SELECT",
+  "influx_verification_definer|column|profiles.advertiser_internal_details.legal_name|INSERT,SELECT",
+  "influx_verification_definer|column|profiles.advertiser_internal_details.registration_country_code|INSERT,SELECT",
+  "influx_verification_definer|column|profiles.advertiser_internal_details.registration_number|INSERT,SELECT",
   "influx_verification_definer|column|profiles.advertiser_profiles.account_id|SELECT",
   "influx_verification_definer|column|profiles.advertiser_profiles.legal_name|SELECT",
   "influx_verification_definer|column|profiles.advertiser_profiles.website_domain|SELECT",
@@ -4586,19 +4609,19 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|column|verification.evidence_files.request_id|SELECT",
   "influx_verification_definer|column|verification.evidence_files.state|SELECT",
   "influx_verification_definer|column|verification.evidence_files.width|SELECT",
-  "influx_verification_definer|column|verification.ownership_codes.account_id|SELECT",
-  "influx_verification_definer|column|verification.ownership_codes.code|SELECT",
-  "influx_verification_definer|column|verification.ownership_codes.expires_at|SELECT",
+  "influx_verification_definer|column|verification.ownership_codes.account_id|INSERT,SELECT",
+  "influx_verification_definer|column|verification.ownership_codes.code|INSERT,SELECT",
+  "influx_verification_definer|column|verification.ownership_codes.expires_at|INSERT,SELECT",
   "influx_verification_definer|column|verification.ownership_codes.id|SELECT",
-  "influx_verification_definer|column|verification.ownership_codes.kind|SELECT",
+  "influx_verification_definer|column|verification.ownership_codes.kind|INSERT,SELECT",
   "influx_verification_definer|column|verification.ownership_codes.observed_at|SELECT,UPDATE",
   "influx_verification_definer|column|verification.ownership_codes.observed_by_account_id|UPDATE",
   "influx_verification_definer|column|verification.ownership_codes.observed_channel|UPDATE",
   "influx_verification_definer|column|verification.ownership_codes.observed_domain|UPDATE",
   "influx_verification_definer|column|verification.ownership_codes.observed_handle|UPDATE",
   "influx_verification_definer|column|verification.ownership_codes.observed_platform_account_ref|UPDATE",
-  "influx_verification_definer|column|verification.ownership_codes.request_id|SELECT",
-  "influx_verification_definer|column|verification.ownership_codes.revoked_at|SELECT",
+  "influx_verification_definer|column|verification.ownership_codes.request_id|INSERT,SELECT",
+  "influx_verification_definer|column|verification.ownership_codes.revoked_at|SELECT,UPDATE",
   "influx_verification_definer|column|verification.registry_sources.checked_on|INSERT,SELECT,UPDATE",
   "influx_verification_definer|column|verification.registry_sources.country_code|INSERT,SELECT",
   "influx_verification_definer|column|verification.registry_sources.id|SELECT",
@@ -4615,7 +4638,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|column|verification.rejection_reasons.is_active|SELECT",
   "influx_verification_definer|column|verification.rejection_reasons.population|SELECT",
   "influx_verification_definer|column|verification.rejection_reasons.requires_member_message|SELECT",
-  "influx_verification_definer|column|verification.verification_requests.account_id|SELECT",
+  "influx_verification_definer|column|verification.verification_requests.account_id|INSERT,SELECT",
   "influx_verification_definer|column|verification.verification_requests.claim_expires_at|SELECT,UPDATE",
   "influx_verification_definer|column|verification.verification_requests.claimed_at|SELECT,UPDATE",
   "influx_verification_definer|column|verification.verification_requests.claimed_by_account_id|SELECT,UPDATE",
@@ -4630,15 +4653,15 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|column|verification.verification_requests.forced_release_reason_code|UPDATE",
   "influx_verification_definer|column|verification.verification_requests.id|SELECT",
   "influx_verification_definer|column|verification.verification_requests.internal_comment|UPDATE",
-  "influx_verification_definer|column|verification.verification_requests.level|SELECT",
-  "influx_verification_definer|column|verification.verification_requests.network_code|SELECT",
+  "influx_verification_definer|column|verification.verification_requests.level|INSERT,SELECT",
+  "influx_verification_definer|column|verification.verification_requests.network_code|INSERT,SELECT",
   "influx_verification_definer|column|verification.verification_requests.population|SELECT",
   "influx_verification_definer|column|verification.verification_requests.reexamine_reason_code|SELECT,UPDATE",
   "influx_verification_definer|column|verification.verification_requests.reexamined_at|SELECT,UPDATE",
   "influx_verification_definer|column|verification.verification_requests.rejection_reason_code|SELECT,UPDATE",
   "influx_verification_definer|column|verification.verification_requests.sla_breached|SELECT",
   "influx_verification_definer|column|verification.verification_requests.sla_due_at|SELECT",
-  "influx_verification_definer|column|verification.verification_requests.social_account_id|SELECT",
+  "influx_verification_definer|column|verification.verification_requests.social_account_id|INSERT,SELECT",
   "influx_verification_definer|column|verification.verification_requests.status|SELECT,UPDATE",
   "influx_verification_definer|column|verification.verification_requests.submitted_at|SELECT",
   "influx_verification_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
@@ -5071,6 +5094,40 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|function|verification.restore_reconfirmed_audience()|EXECUTE",
   "influx_verification_definer|function|verification.withdraw_identifier_reviews()|EXECUTE",
   "influx_verification_definer|table|verification.identifier_change_reviews|SELECT",
+  // 0234 (L2F commit 09, l2f/modele.md §2, §6; D83 A + A-bis; fiche invariants 9, 10): the
+  // verification opened by an agent. Agent and admin read the reasons of an opening in aal2 and
+  // execute the opening and the A-bis grant. The verification owner creates the draft through the
+  // helper of 0222 (granted by its owner, with the code generator), makes it pending (the delay of
+  // queue 4), writes the origin once, draws and revokes a code, writes a missing brand block, reads
+  // the reasons and the consumer mailboxes; the identity owner reads the verification instant of the
+  // login address for identity.login_domain_of(), executed by the verification owner only.
+  "influx_admin|function|verification.grant_brand_verified_by_login(uuid,text,uuid,text)|EXECUTE",
+  "influx_admin|function|verification.open_request_for_member(uuid,uuid,verification.badge_level,text,text,text,text,text)|EXECUTE",
+  "influx_admin|table|verification.opening_reasons|SELECT",
+  "influx_agent|function|verification.grant_brand_verified_by_login(uuid,text,uuid,text)|EXECUTE",
+  "influx_agent|function|verification.open_request_for_member(uuid,uuid,verification.badge_level,text,text,text,text,text)|EXECUTE",
+  "influx_agent|table|verification.opening_reasons|SELECT",
+  "influx_identity_definer|function|identity.login_domain_of(uuid)|EXECUTE",
+  "influx_verification_definer|column|backoffice.sla_policies.business_hours|SELECT",
+  "influx_verification_definer|column|backoffice.sla_policies.escalate_after_minutes|SELECT",
+  "influx_verification_definer|column|backoffice.sla_policies.is_active|SELECT",
+  "influx_verification_definer|column|backoffice.sla_policies.queue_code|SELECT",
+  "influx_verification_definer|column|backoffice.sla_policies.target_decision_minutes|SELECT",
+  "influx_verification_definer|column|verification.consumer_email_domains.domain|SELECT",
+  "influx_verification_definer|column|verification.opening_reasons.code|SELECT",
+  "influx_verification_definer|column|verification.opening_reasons.is_active|SELECT",
+  "influx_verification_definer|column|verification.opening_reasons.requires_comment|SELECT",
+  "influx_verification_definer|column|verification.verification_requests.opened_by_account_id|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.verification_requests.opened_by|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.verification_requests.opening_comment|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.verification_requests.opening_reason_code|SELECT,UPDATE",
+  "influx_verification_definer|function|backoffice.business_deadline(text,timestamp with time zone,integer)|EXECUTE",
+  "influx_verification_definer|function|identity.login_domain_of(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.grant_brand_verified_by_login(uuid,text,uuid,text)|EXECUTE",
+  "influx_verification_definer|function|verification.login_address_ineligibility(uuid,text)|EXECUTE",
+  "influx_verification_definer|function|verification.new_ownership_code()|EXECUTE",
+  "influx_verification_definer|function|verification.open_request_for_member(uuid,uuid,verification.badge_level,text,text,text,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.open_request_of(uuid,uuid,text,verification.badge_level)|EXECUTE",
 ];
 
 /**
@@ -5514,5 +5571,13 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "verification.confirm_identifier_change(uuid,text,text,text)":
     "influx_verification_definer",
   "verification.require_identifier_proof(uuid,text,text)":
+    "influx_verification_definer",
+  // 0234 (L2F commit 09, D83 A + A-bis): the opening by an agent and the A-bis grant are the
+  // verification owner's; the domain of the login address is the identity owner's (EXECUTE for the
+  // verification owner only); login_address_ineligibility is SECURITY INVOKER.
+  "identity.login_domain_of(uuid)": "influx_identity_definer",
+  "verification.open_request_for_member(uuid,uuid,verification.badge_level,text,text,text,text,text)":
+    "influx_verification_definer",
+  "verification.grant_brand_verified_by_login(uuid,text,uuid,text)":
     "influx_verification_definer",
 };

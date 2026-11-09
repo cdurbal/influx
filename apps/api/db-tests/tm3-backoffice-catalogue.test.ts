@@ -604,7 +604,7 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
     ]);
   });
 
-  it("is executed by its writers only: influx_identity_definer (queue 1, 0207) and influx_creator_verification_definer (queue 4, 0222)", async () => {
+  it("is executed by its writers only: influx_identity_definer (queue 1, 0207), influx_creator_verification_definer (queue 4, 0222) and influx_verification_definer (queue 4 opened by an agent, 0234)", async () => {
     const rows = await migration<{ rolname: string }[]>`
       select rolname from pg_catalog.pg_roles
        where rolname like 'influx\\_%'
@@ -612,10 +612,12 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
                oid, 'backoffice.business_deadline(text, timestamptz, integer)', 'EXECUTE')
        order by rolname`;
     // 0222: the creator doors submit to queue 4, whose deadlines the invoker trigger
-    // verification.prepare_request() computes with the writer's rights
+    // verification.prepare_request() computes with the writer's rights; 0234 (D83 A): the agent's
+    // opening makes the request pending at once, through the same trigger
     expect(rows).toEqual([
       { rolname: "influx_creator_verification_definer" },
       { rolname: "influx_identity_definer" },
+      { rolname: "influx_verification_definer" },
     ]);
   });
 });

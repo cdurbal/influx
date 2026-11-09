@@ -1,5 +1,5 @@
 // Schema `verification`, migrations 0221 and 0222 (L2E commits 05 and 06, jalons/l2e/modele.md
-// §3), then 0230 to 0233 (L2F). The SQL is the source of truth: this file is aligned by hand, never generated. Declaring a
+// §3), then 0230 to 0234 (L2F). The SQL is the source of truth: this file is aligned by hand, never generated. Declaring a
 // column grants nothing: influx_advertiser holds no right on this schema, USAGE included (fiche
 // invariant 1, EC-L2E-18, 04 §7.5); nobody writes these tables directly, only the functions of
 // 0222 to 0224.
@@ -110,6 +110,24 @@ export const registrySources = verification.table("registry_sources", {
   updatedAt: timestamptz("updated_at").notNull().defaultNow(),
 });
 
+/** 0234 (D83 (5); l2f/textes.md « Ouverture »): why an agent opens the verification of a member. */
+export const openingReasons = verification.table("opening_reasons", {
+  code: text("code").primaryKey(),
+  labelKey: text("label_key").notNull(),
+  requiresComment: boolean("requires_comment").notNull().default(false),
+  position: smallint("position").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+/** 0234 (D83 A-bis): the consumer mailboxes, which never prove the domain of a brand. */
+export const consumerEmailDomains = verification.table(
+  "consumer_email_domains",
+  {
+    domain: text("domain").primaryKey(),
+    createdAt: timestamptz("created_at").notNull().defaultNow(),
+  },
+);
+
 /** Queue 4 (D81): one request per (account, network line, level). */
 export const verificationRequests = verification.table(
   "verification_requests",
@@ -152,6 +170,11 @@ export const verificationRequests = verification.table(
         sql`decided_at is not null and decided_at > sla_due_at`,
       ),
     updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+    // 0234 (D83 A): the origin, written at the creation; author, reason and comment frozen once written
+    openedBy: text("opened_by").notNull().default("member"),
+    openedByAccountId: uuid("opened_by_account_id"),
+    openingReasonCode: text("opening_reason_code"),
+    openingComment: text("opening_comment"),
   },
 );
 
