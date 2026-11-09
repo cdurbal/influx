@@ -1330,6 +1330,62 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "badge_id",
     expected: {},
   },
+  // 0232 (L2F commit 07, l2f/modele.md §2): the two closed lists of a contest and queue 5. Nobody
+  // writes directly: the creator door (submit_own_dispute) and the functions of
+  // influx_verification_definer; nothing for influx_advertiser (fiche invariant 10).
+  {
+    table: "verification.dispute_reasons",
+    source:
+      "0232 (08 RG77, écart 4): the creator's reasons to contest, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "08 RG77: the reviewer reads the reason of the contest; agent and admin, aal2",
+      },
+    }),
+  },
+  {
+    table: "verification.dispute_outcome_reasons",
+    source:
+      "0232 (08 RG77, l2f/textes.md « Issue »): the reasons of an outcome, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "08 RG77: the reviewer chooses a typed outcome; agent and admin, aal2",
+      },
+    }),
+  },
+  {
+    table: "verification.disputes",
+    source:
+      "0232 (08 RG77, 15 RG29 file 5): written by verification.submit_own_dispute() and the " +
+      "functions of 0232 only",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "08 RG77, modele §2: the creator reads his contests, never the lock, an agent, the " +
+              "deadlines, the deciders, the internal comment nor review_mode (column grants)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "15 RG26, RG36 C(3): agent and admin read queue 5 in aal2, never their own account",
+        },
+      }),
+    ),
+  },
   // 0222 (L2E commit 06, modele §3): the internal block of a brand. The brand reads and writes it
   // through its doors only (profiles.read_own_brand_verification(), save_own_brand_internal_details()):
   // no direct right for any member; never a creator, Brevo nor Apollo (06 RG46, RG48).
@@ -4493,26 +4549,14 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|column|profiles.creator_social_accounts.profile_url|SELECT",
   "influx_verification_definer|column|profiles.creator_social_accounts.pseudonym|SELECT",
   "influx_verification_definer|column|verification.badges.account_id|INSERT,SELECT",
-  "influx_verification_definer|column|verification.badges.declared_comments_at_decision|INSERT",
-  "influx_verification_definer|column|verification.badges.declared_engagement_bp_at_decision|INSERT",
-  "influx_verification_definer|column|verification.badges.declared_followers_at_decision|INSERT",
-  "influx_verification_definer|column|verification.badges.declared_posts_at_decision|INSERT",
-  "influx_verification_definer|column|verification.badges.evidence_source|INSERT",
   "influx_verification_definer|column|verification.badges.expires_at|INSERT,SELECT",
   "influx_verification_definer|column|verification.badges.granted_at|INSERT,SELECT",
   "influx_verification_definer|column|verification.badges.granted_by_account_id|INSERT",
   "influx_verification_definer|column|verification.badges.id|SELECT",
   "influx_verification_definer|column|verification.badges.level|INSERT,SELECT",
   "influx_verification_definer|column|verification.badges.network_code|INSERT,SELECT",
-  "influx_verification_definer|column|verification.badges.observed_avg_comments|INSERT",
-  "influx_verification_definer|column|verification.badges.observed_engagement_bp|INSERT",
-  "influx_verification_definer|column|verification.badges.observed_followers|INSERT",
   "influx_verification_definer|column|verification.badges.observed_handle_at_decision|INSERT,SELECT",
-  "influx_verification_definer|column|verification.badges.observed_period_end|INSERT",
-  "influx_verification_definer|column|verification.badges.observed_period_start|INSERT",
   "influx_verification_definer|column|verification.badges.observed_platform_account_ref|INSERT,SELECT",
-  "influx_verification_definer|column|verification.badges.observed_posts_last_30_days|INSERT",
-  "influx_verification_definer|column|verification.badges.registry_source_id|INSERT",
   "influx_verification_definer|column|verification.badges.request_id|INSERT,SELECT",
   "influx_verification_definer|column|verification.badges.social_account_id|INSERT,SELECT",
   "influx_verification_definer|column|verification.badges.state|SELECT,UPDATE",
@@ -4562,7 +4606,6 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|column|verification.verification_requests.closed_at|UPDATE",
   "influx_verification_definer|column|verification.verification_requests.created_at|SELECT",
   "influx_verification_definer|column|verification.verification_requests.decided_at|SELECT,UPDATE",
-  "influx_verification_definer|column|verification.verification_requests.decided_by_account_id|UPDATE",
   "influx_verification_definer|column|verification.verification_requests.escalate_at|SELECT",
   "influx_verification_definer|column|verification.verification_requests.escalated_at|SELECT,UPDATE",
   "influx_verification_definer|column|verification.verification_requests.forced_release_at|UPDATE",
@@ -4572,7 +4615,6 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|column|verification.verification_requests.id|SELECT",
   "influx_verification_definer|column|verification.verification_requests.internal_comment|UPDATE",
   "influx_verification_definer|column|verification.verification_requests.level|SELECT",
-  "influx_verification_definer|column|verification.verification_requests.member_message|UPDATE",
   "influx_verification_definer|column|verification.verification_requests.network_code|SELECT",
   "influx_verification_definer|column|verification.verification_requests.population|SELECT",
   "influx_verification_definer|column|verification.verification_requests.reexamine_reason_code|SELECT,UPDATE",
@@ -4808,6 +4850,134 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|function|verification.read_badge_revocation(uuid)|EXECUTE",
   "influx_verification_definer|function|verification.request_badge_revocation(uuid,text,text)|EXECUTE",
   "influx_verification_definer|function|verification.revoke_badge(uuid,uuid,uuid,text)|EXECUTE",
+  // 0232 (L2F commit 07, l2f/modele.md §2, §3 "0232", fiche invariants 6, 8, 10): queue 5, the
+  // contests. influx_creator reads his own contests (never the lock, an agent, the deadlines, the
+  // deciders, the internal comment nor review_mode) and executes his door; agent and admin read
+  // the two catalogues and queue 5 in aal2 and execute ten functions (force_release refuses the
+  // agent). The creator owner reads the decider of a refusal and the 2V of a withdrawal, writes the
+  // contest; the verification owner reads the finding of a withdrawn badge (copied by an
+  // overturn), the break-glass flag (« autre personne »), writes the claim and the decision.
+  "influx_admin|function|verification.extend_dispute_claim(uuid)|EXECUTE",
+  "influx_admin|function|verification.force_release_dispute_claim(uuid,text)|EXECUTE",
+  "influx_admin|function|verification.open_dispute(uuid)|EXECUTE",
+  "influx_admin|function|verification.overturn_refusal_account(uuid,text,text,text,text,text)|EXECUTE",
+  "influx_admin|function|verification.overturn_refusal_audience(uuid,text,bigint,integer,bigint,integer,date,date,text,text)|EXECUTE",
+  "influx_admin|function|verification.overturn_revocation(uuid,text,text,text)|EXECUTE",
+  "influx_admin|function|verification.read_dispute_dossier(uuid)|EXECUTE",
+  "influx_admin|function|verification.read_dispute_evidence(uuid,uuid)|EXECUTE",
+  "influx_admin|function|verification.release_dispute(uuid)|EXECUTE",
+  "influx_admin|function|verification.uphold_dispute(uuid,text,text,text,text)|EXECUTE",
+  "influx_admin|table|verification.dispute_outcome_reasons|SELECT",
+  "influx_admin|table|verification.dispute_reasons|SELECT",
+  "influx_admin|table|verification.disputes|SELECT",
+  "influx_agent|function|verification.extend_dispute_claim(uuid)|EXECUTE",
+  "influx_agent|function|verification.force_release_dispute_claim(uuid,text)|EXECUTE",
+  "influx_agent|function|verification.open_dispute(uuid)|EXECUTE",
+  "influx_agent|function|verification.overturn_refusal_account(uuid,text,text,text,text,text)|EXECUTE",
+  "influx_agent|function|verification.overturn_refusal_audience(uuid,text,bigint,integer,bigint,integer,date,date,text,text)|EXECUTE",
+  "influx_agent|function|verification.overturn_revocation(uuid,text,text,text)|EXECUTE",
+  "influx_agent|function|verification.read_dispute_dossier(uuid)|EXECUTE",
+  "influx_agent|function|verification.read_dispute_evidence(uuid,uuid)|EXECUTE",
+  "influx_agent|function|verification.release_dispute(uuid)|EXECUTE",
+  "influx_agent|function|verification.uphold_dispute(uuid,text,text,text,text)|EXECUTE",
+  "influx_agent|table|verification.dispute_outcome_reasons|SELECT",
+  "influx_agent|table|verification.dispute_reasons|SELECT",
+  "influx_agent|table|verification.disputes|SELECT",
+  "influx_creator_verification_definer|column|verification.badge_revocation_requests.account_id|SELECT",
+  "influx_creator_verification_definer|column|verification.badge_revocation_requests.badge_id|SELECT",
+  "influx_creator_verification_definer|column|verification.badge_revocation_requests.dual_control_request_id|SELECT",
+  "influx_creator_verification_definer|column|verification.badge_revocation_requests.executed_at|SELECT",
+  "influx_creator_verification_definer|column|verification.badge_revocation_requests.executed_by_account_id|SELECT",
+  "influx_creator_verification_definer|column|verification.badge_revocation_requests.requested_by_account_id|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.id|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.network_code|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.revocation_request_id|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.revoked_at|SELECT",
+  "influx_creator_verification_definer|column|verification.dispute_reasons.code|SELECT",
+  "influx_creator_verification_definer|column|verification.dispute_reasons.is_active|SELECT",
+  "influx_creator_verification_definer|column|verification.dispute_reasons.requires_text|SELECT",
+  "influx_creator_verification_definer|column|verification.disputes.account_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.disputes.badge_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.disputes.id|SELECT",
+  "influx_creator_verification_definer|column|verification.disputes.level|INSERT",
+  "influx_creator_verification_definer|column|verification.disputes.network_code|INSERT",
+  "influx_creator_verification_definer|column|verification.disputes.original_decider_ids|INSERT",
+  "influx_creator_verification_definer|column|verification.disputes.reason_code|INSERT",
+  "influx_creator_verification_definer|column|verification.disputes.request_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.disputes.text|INSERT",
+  "influx_creator_verification_definer|column|verification.verification_requests.decided_by_account_id|SELECT",
+  "influx_creator_verification_definer|function|verification.submit_own_dispute(uuid,uuid,text,text)|EXECUTE",
+  "influx_creator|column|verification.disputes.account_id|SELECT",
+  "influx_creator|column|verification.disputes.badge_id|SELECT",
+  "influx_creator|column|verification.disputes.closed_at|SELECT",
+  "influx_creator|column|verification.disputes.decided_at|SELECT",
+  "influx_creator|column|verification.disputes.id|SELECT",
+  "influx_creator|column|verification.disputes.level|SELECT",
+  "influx_creator|column|verification.disputes.member_message|SELECT",
+  "influx_creator|column|verification.disputes.network_code|SELECT",
+  "influx_creator|column|verification.disputes.outcome_reason_code|SELECT",
+  "influx_creator|column|verification.disputes.reason_code|SELECT",
+  "influx_creator|column|verification.disputes.request_id|SELECT",
+  "influx_creator|column|verification.disputes.state|SELECT",
+  "influx_creator|column|verification.disputes.submitted_at|SELECT",
+  "influx_creator|column|verification.disputes.text|SELECT",
+  "influx_creator|column|verification.disputes.updated_at|SELECT",
+  "influx_creator|column|verification.disputes.withdrawn_cause|SELECT",
+  "influx_creator|function|verification.submit_own_dispute(uuid,uuid,text,text)|EXECUTE",
+  "influx_verification_definer|column|identity.agent_profiles.is_break_glass|SELECT",
+  "influx_verification_definer|column|verification.badges.declared_comments_at_decision|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.declared_engagement_bp_at_decision|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.declared_followers_at_decision|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.declared_posts_at_decision|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.dispute_id|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.evidence_source|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.findings_erased_at|SELECT",
+  "influx_verification_definer|column|verification.badges.observed_avg_comments|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.observed_engagement_bp|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.observed_followers|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.observed_period_end|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.observed_period_start|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.observed_posts_last_30_days|INSERT,SELECT",
+  "influx_verification_definer|column|verification.badges.registry_source_id|INSERT,SELECT",
+  "influx_verification_definer|column|verification.dispute_outcome_reasons.code|SELECT",
+  "influx_verification_definer|column|verification.dispute_outcome_reasons.is_active|SELECT",
+  "influx_verification_definer|column|verification.dispute_outcome_reasons.outcome|SELECT",
+  "influx_verification_definer|column|verification.dispute_outcome_reasons.requires_member_message|SELECT",
+  "influx_verification_definer|column|verification.disputes.claim_expires_at|UPDATE",
+  "influx_verification_definer|column|verification.disputes.claimed_at|UPDATE",
+  "influx_verification_definer|column|verification.disputes.claimed_by_account_id|UPDATE",
+  "influx_verification_definer|column|verification.disputes.closed_at|UPDATE",
+  "influx_verification_definer|column|verification.disputes.decided_at|UPDATE",
+  "influx_verification_definer|column|verification.disputes.decided_by_account_id|UPDATE",
+  "influx_verification_definer|column|verification.disputes.forced_release_at|UPDATE",
+  "influx_verification_definer|column|verification.disputes.forced_release_by_account_id|UPDATE",
+  "influx_verification_definer|column|verification.disputes.forced_release_holder_account_id|UPDATE",
+  "influx_verification_definer|column|verification.disputes.forced_release_reason_code|UPDATE",
+  "influx_verification_definer|column|verification.disputes.internal_comment|UPDATE",
+  "influx_verification_definer|column|verification.disputes.member_message|UPDATE",
+  "influx_verification_definer|column|verification.disputes.outcome_reason_code|UPDATE",
+  "influx_verification_definer|column|verification.disputes.review_mode|UPDATE",
+  "influx_verification_definer|column|verification.disputes.state|UPDATE",
+  "influx_verification_definer|column|verification.disputes.withdrawn_cause|UPDATE",
+  "influx_verification_definer|column|verification.verification_requests.decided_by_account_id|SELECT,UPDATE",
+  "influx_verification_definer|column|verification.verification_requests.member_message|SELECT,UPDATE",
+  "influx_verification_definer|function|verification.close_dispute(uuid,uuid,uuid,verification.dispute_state,text,text,text,text,uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.dispute_other_reviewer_exists(uuid[])|EXECUTE",
+  "influx_verification_definer|function|verification.dispute_review_token(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.extend_dispute_claim(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.force_release_dispute_claim(uuid,text)|EXECUTE",
+  "influx_verification_definer|function|verification.gate_dispute_decision(uuid,uuid,text)|EXECUTE",
+  "influx_verification_definer|function|verification.lock_held_dispute(uuid,uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.open_dispute(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.overturn_refusal_account(uuid,text,text,text,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.overturn_refusal_audience(uuid,text,bigint,integer,bigint,integer,date,date,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.overturn_revocation(uuid,text,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.read_dispute_dossier(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.read_dispute_evidence(uuid,uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.release_dispute(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.uphold_dispute(uuid,text,text,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.withdraw_superseded_disputes()|EXECUTE",
+  "influx_verification_definer|table|verification.disputes|SELECT",
 ];
 
 /**
@@ -5206,4 +5376,27 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "verification.revoke_badge(uuid,uuid,uuid,text)":
     "influx_verification_definer",
   "verification.read_account_badges(uuid)": "influx_verification_definer",
+  // 0232 (L2F commit 07): queue 5, the contests. The creator door is the creator owner's; the
+  // agent functions and the trigger withdraw_superseded_disputes() are the verification owner's;
+  // the helpers (lock_held_dispute, dispute_review_token, gate_dispute_decision, close_dispute,
+  // dispute_other_reviewer_exists) are SECURITY INVOKER, same owner.
+  "verification.submit_own_dispute(uuid,uuid,text,text)":
+    "influx_creator_verification_definer",
+  "verification.open_dispute(uuid)": "influx_verification_definer",
+  "verification.release_dispute(uuid)": "influx_verification_definer",
+  "verification.extend_dispute_claim(uuid)": "influx_verification_definer",
+  "verification.force_release_dispute_claim(uuid,text)":
+    "influx_verification_definer",
+  "verification.read_dispute_dossier(uuid)": "influx_verification_definer",
+  "verification.read_dispute_evidence(uuid,uuid)":
+    "influx_verification_definer",
+  "verification.uphold_dispute(uuid,text,text,text,text)":
+    "influx_verification_definer",
+  "verification.overturn_refusal_account(uuid,text,text,text,text,text)":
+    "influx_verification_definer",
+  "verification.overturn_refusal_audience(uuid,text,bigint,integer,bigint,integer,date,date,text,text)":
+    "influx_verification_definer",
+  "verification.overturn_revocation(uuid,text,text,text)":
+    "influx_verification_definer",
+  "verification.withdraw_superseded_disputes()": "influx_verification_definer",
 };

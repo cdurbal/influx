@@ -239,6 +239,8 @@ export const VERIFICATION_GENERIC_COLUMNS: readonly string[] = [
   "member_message",
   "name",
   "network_code",
+  // 0232: the outcome of a contest's reason, as the auth and account answers carry their own
+  "outcome",
   "position",
   // 0231: a reason code of a withdrawal, as the refusal of a brand profile carries its own
   "reason_code",

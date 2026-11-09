@@ -1,5 +1,5 @@
 // Schema `verification`, migrations 0221 and 0222 (L2E commits 05 and 06, jalons/l2e/modele.md
-// §3). The SQL is the source of truth: this file is aligned by hand, never generated. Declaring a
+// §3), then 0230 to 0232 (L2F). The SQL is the source of truth: this file is aligned by hand, never generated. Declaring a
 // column grants nothing: influx_advertiser holds no right on this schema, USAGE included (fiche
 // invariant 1, EC-L2E-18, 04 §7.5); nobody writes these tables directly, only the functions of
 // 0222 to 0224.
@@ -242,6 +242,83 @@ export const badges = verification.table("badges", {
   findingsErasedAt: timestamptz("findings_erased_at"),
   // 0231 (L2F commit 06): the withdrawal under 2V that revoked it (NULL for the erasure of 0226)
   revocationRequestId: uuid("revocation_request_id"),
+  // 0232 (L2F commit 07): the contest whose overturn granted it (08 CA53)
+  disputeId: uuid("dispute_id"),
+});
+
+/** 0232 (L2F commit 07, modele §2): the life of a contest of queue 5. */
+export const disputeState = verification.enum("dispute_state", [
+  "open",
+  "upheld",
+  "overturned",
+  "withdrawn",
+]);
+
+/** 0232 (08 RG77, écart 4; l2f/textes.md « Contestation »): the creator's closed list. */
+export const disputeReasons = verification.table("dispute_reasons", {
+  code: text("code").primaryKey(),
+  labelKey: text("label_key").notNull(),
+  requiresText: boolean("requires_text").notNull().default(false),
+  position: smallint("position").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+});
+
+/** 0232 (l2f/textes.md « Issue »): the reason of an outcome, tied to its outcome. */
+export const disputeOutcomeReasons = verification.table(
+  "dispute_outcome_reasons",
+  {
+    code: text("code").primaryKey(),
+    outcome: disputeState("outcome").notNull(),
+    labelKey: text("label_key").notNull(),
+    messageKey: text("message_key").notNull(),
+    requiresMemberMessage: boolean("requires_member_message")
+      .notNull()
+      .default(false),
+    position: smallint("position").notNull().unique(),
+    isActive: boolean("is_active").notNull().default(true),
+  },
+);
+
+/**
+ * 0232 (L2F commit 07; 08 RG77, CA52, CA53; file.md A1): queue 5, the contest of a refusal
+ * (requestId) or of a withdrawal (badgeId), once per decision; the deciders frozen at the
+ * submission, the lock, the deadlines, the outcome. Written by the creator door and the functions
+ * of influx_verification_definer only.
+ */
+export const disputes = verification.table("disputes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  accountId: uuid("account_id").notNull(),
+  requestId: uuid("request_id").unique(),
+  badgeId: uuid("badge_id").unique(),
+  level: badgeLevel("level").notNull(),
+  networkCode: text("network_code").notNull(),
+  reasonCode: text("reason_code").notNull(),
+  text: text("text"),
+  submittedAt: timestamptz("submitted_at").notNull().defaultNow(),
+  slaDueAt: timestamptz("sla_due_at").notNull(),
+  escalateAt: timestamptz("escalate_at").notNull(),
+  state: disputeState("state").notNull().default("open"),
+  originalDeciderIds: uuid("original_decider_ids").array().notNull(),
+  claimedByAccountId: uuid("claimed_by_account_id"),
+  claimedAt: timestamptz("claimed_at"),
+  claimExpiresAt: timestamptz("claim_expires_at"),
+  forcedReleaseAt: timestamptz("forced_release_at"),
+  forcedReleaseByAccountId: uuid("forced_release_by_account_id"),
+  forcedReleaseHolderAccountId: uuid("forced_release_holder_account_id"),
+  forcedReleaseReasonCode: text("forced_release_reason_code"),
+  decidedByAccountId: uuid("decided_by_account_id"),
+  decidedAt: timestamptz("decided_at"),
+  outcomeReasonCode: text("outcome_reason_code"),
+  memberMessage: text("member_message"),
+  internalComment: text("internal_comment"),
+  reviewMode: text("review_mode"),
+  withdrawnCause: text("withdrawn_cause"),
+  closedAt: timestamptz("closed_at"),
+  slaBreached: boolean("sla_breached")
+    .notNull()
+    .generatedAlwaysAs(sql`decided_at is not null and decided_at > sla_due_at`),
+  updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+  textsErasedAt: timestamptz("texts_erased_at"),
 });
 
 /**

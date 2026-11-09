@@ -130,6 +130,16 @@ export const VERIFICATION_IDS = {
 export const REVOCATION_DUAL_CONTROL_REQUEST_ID =
   "00000000-0000-4000-8000-00000000ff1c";
 
+/**
+ * 0232 (L2F commit 07): one UPHELD contest per creator, on his revoked badge (VERIFICATION_IDS.badge),
+ * decided by agent B, closed, so that T2 observes `propre` against account B. Inert: no open entry
+ * of queue 5.
+ */
+export const DISPUTE_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff1d",
+  b: "00000000-0000-4000-8000-00000000ff1e",
+} as const;
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -582,6 +592,23 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
           update verification.badges set revocation_request_id = ${REVOCATION_DUAL_CONTROL_REQUEST_ID}
            where id = ${badge} and revocation_request_id is null`;
       }
+    }
+    // 0232 (L2F): one upheld contest per creator on his revoked badge, inert (DISPUTE_IDS)
+    for (const side of ["a", "b"] as const) {
+      const deciders =
+        side === "a"
+          ? [accountIdOf("agent", "a"), accountIdOf("admin", "a")]
+          : [accountIdOf("agent", "a")];
+      await tx`
+        insert into verification.disputes
+          (id, account_id, badge_id, level, network_code, reason_code, state,
+           original_decider_ids, decided_by_account_id, decided_at, outcome_reason_code,
+           review_mode, closed_at)
+        values (${DISPUTE_IDS[side]}, ${accountIdOf("creator", side)}, ${VERIFICATION_IDS.badge[side]},
+                'account_verified', ${identityRows[side].network}, 'misread', 'upheld',
+                ${deciders}::uuid[], ${accountIdOf("agent", "b")}, now(), 'decision_confirmed',
+                'independent', now())
+        on conflict do nothing`;
     }
     await tx`
       insert into leads.outbox_events

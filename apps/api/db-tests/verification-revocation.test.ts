@@ -591,10 +591,12 @@ describe("L2F-D7: an agent asks, an administrator distinct from him confirms, th
         pending_revocation_state: "pending",
       }),
     );
-    // never a handle nor a figure in the block of the account
+    // never a handle nor a figure in the block of the account (0232: the contest of each badge)
     for (const line of listed) {
       expect(Object.keys(line).sort()).toEqual([
         "badge_id",
+        "dispute_id",
+        "dispute_state",
         "ended_at",
         "expires_at",
         "granted_at",

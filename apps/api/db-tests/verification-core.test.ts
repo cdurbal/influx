@@ -278,6 +278,8 @@ describe("queue 4 and the parameters of 08 RG100 (modele §4, D79)", () => {
         badge_reminder_days: 15,
         brand_badge_validity_months: 12,
         claim_expiry_minutes: 30,
+        // 0232 (L2F commit 07): a decider of a single team decides a contest after it (08 RG77)
+        dispute_reflection_hours: 24,
         dispute_window_days: 30,
         evidence_freshness_days: 30,
         evidence_max_files_per_request: 6,

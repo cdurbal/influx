@@ -121,6 +121,16 @@ describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG2
         is_active: true,
         retired_at: null,
       },
+      // 0232 (L2F): queue 5, 08 RG77, a lock, no bulk action
+      {
+        code: "verification_disputes",
+        label_key: "queue.verification_disputes",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
     ]);
   });
 
@@ -228,6 +238,16 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
         business_hours: D39_BUSINESS_HOURS,
         escalate: 960,
         is_provisional: false,
+        is_active: true,
+      },
+      // 0232 (L2F): queue 5, 5 business days (04 l. 5107, 15 Q2: a proposal, provisional)
+      {
+        queue_code: "verification_disputes",
+        claim: 480,
+        decision: 2400,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: true,
         is_active: true,
       },
     ]);
