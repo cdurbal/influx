@@ -91,6 +91,16 @@ describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG2
         is_active: true,
         retired_at: null,
       },
+      // 0233 (L2F): queue 6, 08 RG78, a lock, no bulk action
+      {
+        code: "identity_change_review",
+        label_key: "queue.identity_change_review",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
       // 15 RG30: no lock, the replay is idempotent; the only bulk action of J8 (replay of 200)
       {
         code: "lead_sync_failures",
@@ -209,6 +219,16 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
         business_hours: D39_BUSINESS_HOURS,
         escalate: 480,
         is_provisional: true,
+        is_active: true,
+      },
+      // 0233 (L2F): queue 6, 1 business day, claim within 4 business hours (15 RG29)
+      {
+        queue_code: "identity_change_review",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
         is_active: true,
       },
       {

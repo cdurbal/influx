@@ -1,5 +1,5 @@
 // Schema `verification`, migrations 0221 and 0222 (L2E commits 05 and 06, jalons/l2e/modele.md
-// §3), then 0230 to 0232 (L2F). The SQL is the source of truth: this file is aligned by hand, never generated. Declaring a
+// §3), then 0230 to 0233 (L2F). The SQL is the source of truth: this file is aligned by hand, never generated. Declaring a
 // column grants nothing: influx_advertiser holds no right on this schema, USAGE included (fiche
 // invariant 1, EC-L2E-18, 04 §7.5); nobody writes these tables directly, only the functions of
 // 0222 to 0224.
@@ -320,6 +320,58 @@ export const disputes = verification.table("disputes", {
   updatedAt: timestamptz("updated_at").notNull().defaultNow(),
   textsErasedAt: timestamptz("texts_erased_at"),
 });
+
+/** 0233 (L2F commit 08, modele §2): the life of an entry of queue 6. */
+export const identifierReviewState = verification.enum(
+  "identifier_review_state",
+  ["open", "confirmed", "proof_required", "withdrawn"],
+);
+
+/**
+ * 0233 (L2F commit 08; 08 RG78, CA54; file.md A1): queue 6, a handle changed on a line holding an
+ * active « Compte vérifié »; one open entry per line, updated at each change. The handles are
+ * internal, never public. Written by the triggers of the line and the functions of
+ * influx_verification_definer only; no right for any member.
+ */
+export const identifierChangeReviews = verification.table(
+  "identifier_change_reviews",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id").notNull(),
+    // no foreign key: the line may be deleted, the entry stays
+    socialAccountId: uuid("social_account_id").notNull(),
+    networkCode: text("network_code").notNull(),
+    badgeId: uuid("badge_id").notNull(),
+    previousHandle: text("previous_handle"),
+    newHandle: text("new_handle"),
+    changeCount: integer("change_count").notNull().default(1),
+    createdAt: timestamptz("created_at").notNull().defaultNow(),
+    lastChangedAt: timestamptz("last_changed_at").notNull().defaultNow(),
+    slaDueAt: timestamptz("sla_due_at").notNull(),
+    escalateAt: timestamptz("escalate_at").notNull(),
+    state: identifierReviewState("state").notNull().default("open"),
+    claimedByAccountId: uuid("claimed_by_account_id"),
+    claimedAt: timestamptz("claimed_at"),
+    claimExpiresAt: timestamptz("claim_expires_at"),
+    forcedReleaseAt: timestamptz("forced_release_at"),
+    forcedReleaseByAccountId: uuid("forced_release_by_account_id"),
+    forcedReleaseHolderAccountId: uuid("forced_release_holder_account_id"),
+    forcedReleaseReasonCode: text("forced_release_reason_code"),
+    decidedByAccountId: uuid("decided_by_account_id"),
+    decidedAt: timestamptz("decided_at"),
+    observedHandle: text("observed_handle"),
+    internalComment: text("internal_comment"),
+    withdrawnCause: text("withdrawn_cause"),
+    closedAt: timestamptz("closed_at"),
+    slaBreached: boolean("sla_breached")
+      .notNull()
+      .generatedAlwaysAs(
+        sql`decided_at is not null and decided_at > sla_due_at`,
+      ),
+    updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+    textsErasedAt: timestamptz("texts_erased_at"),
+  },
+);
 
 /**
  * 0231 (L2F commit 06, 08 RG75, 03 §3.2 2V): the request of a withdrawal, keyed by its request of

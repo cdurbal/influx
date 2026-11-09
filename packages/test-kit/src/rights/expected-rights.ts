@@ -1386,6 +1386,22 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       }),
     ),
   },
+  // 0233 (L2F commit 08, l2f/modele.md §2): queue 6, the identifier changes. Written by the
+  // triggers of the line and the functions of 0233 only; no right for any member nor
+  // influx_advertiser (fiche invariant 10).
+  {
+    table: "verification.identifier_change_reviews",
+    source:
+      "0233 (08 RG78, 15 RG29 file 6): written by the triggers and the functions of 0233 only",
+    probeColumn: "account_id",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "15 RG26, RG36 C(3): agent and admin read queue 6 in aal2, never their own account",
+      },
+    }),
+  },
   // 0222 (L2E commit 06, modele §3): the internal block of a brand. The brand reads and writes it
   // through its doors only (profiles.read_own_brand_verification(), save_own_brand_internal_details()):
   // no direct right for any member; never a creator, Brevo nor Apollo (06 RG46, RG48).
@@ -4978,6 +4994,83 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_verification_definer|function|verification.uphold_dispute(uuid,text,text,text,text)|EXECUTE",
   "influx_verification_definer|function|verification.withdraw_superseded_disputes()|EXECUTE",
   "influx_verification_definer|table|verification.disputes|SELECT",
+  // 0233 (L2F commit 08, l2f/modele.md §2, §3 "0233", fiche invariants 7, 8, 10, 12): queue 6,
+  // the identifier changes. Agent and admin read queue 6 in aal2 and execute seven functions
+  // (force_release refuses the agent); no member reads it. The creator owner (the triggers of the
+  // line) reads the handle of the badge at the decision, opens, updates and withdraws the entries of
+  // the caller's lines, withdraws the open contests of a deleted line, executes the normalisation of
+  // 0228 (granted by its owner); the verification owner claims, decides, withdraws on an ended badge.
+  "influx_admin|function|verification.confirm_identifier_change(uuid,text,text,text)|EXECUTE",
+  "influx_admin|function|verification.extend_identifier_change_claim(uuid)|EXECUTE",
+  "influx_admin|function|verification.force_release_identifier_change_claim(uuid,text)|EXECUTE",
+  "influx_admin|function|verification.open_identifier_change(uuid)|EXECUTE",
+  "influx_admin|function|verification.read_identifier_change_dossier(uuid)|EXECUTE",
+  "influx_admin|function|verification.release_identifier_change(uuid)|EXECUTE",
+  "influx_admin|function|verification.require_identifier_proof(uuid,text,text)|EXECUTE",
+  "influx_admin|table|verification.identifier_change_reviews|SELECT",
+  "influx_agent|function|verification.confirm_identifier_change(uuid,text,text,text)|EXECUTE",
+  "influx_agent|function|verification.extend_identifier_change_claim(uuid)|EXECUTE",
+  "influx_agent|function|verification.force_release_identifier_change_claim(uuid,text)|EXECUTE",
+  "influx_agent|function|verification.open_identifier_change(uuid)|EXECUTE",
+  "influx_agent|function|verification.read_identifier_change_dossier(uuid)|EXECUTE",
+  "influx_agent|function|verification.release_identifier_change(uuid)|EXECUTE",
+  "influx_agent|function|verification.require_identifier_proof(uuid,text,text)|EXECUTE",
+  "influx_agent|table|verification.identifier_change_reviews|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.observed_handle_at_decision|SELECT",
+  "influx_creator_verification_definer|column|verification.disputes.claim_expires_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.disputes.claimed_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.disputes.claimed_by_account_id|UPDATE",
+  "influx_creator_verification_definer|column|verification.disputes.closed_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.disputes.state|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.disputes.withdrawn_cause|UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.account_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.badge_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.change_count|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.claim_expires_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.claimed_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.claimed_by_account_id|UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.closed_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.decided_at|SELECT",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.id|SELECT",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.last_changed_at|UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.network_code|INSERT",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.new_handle|INSERT,UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.observed_handle|SELECT",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.previous_handle|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.social_account_id|INSERT,SELECT",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.state|SELECT,UPDATE",
+  "influx_creator_verification_definer|column|verification.identifier_change_reviews.withdrawn_cause|UPDATE",
+  "influx_creator_verification_definer|function|verification.normalize_handle(text)|EXECUTE",
+  "influx_creator_verification_definer|function|verification.track_identifier_change()|EXECUTE",
+  "influx_creator_verification_definer|function|verification.withdraw_entries_of_line()|EXECUTE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.claim_expires_at|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.claimed_at|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.claimed_by_account_id|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.closed_at|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.decided_at|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.decided_by_account_id|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.forced_release_at|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.forced_release_by_account_id|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.forced_release_holder_account_id|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.forced_release_reason_code|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.internal_comment|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.observed_handle|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.state|UPDATE",
+  "influx_verification_definer|column|verification.identifier_change_reviews.withdrawn_cause|UPDATE",
+  "influx_verification_definer|function|verification.confirm_identifier_change(uuid,text,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.extend_identifier_change_claim(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.force_release_identifier_change_claim(uuid,text)|EXECUTE",
+  "influx_verification_definer|function|verification.gate_identifier_change_decision(uuid,uuid,text)|EXECUTE",
+  "influx_verification_definer|function|verification.guard_audience_identifier()|EXECUTE",
+  "influx_verification_definer|function|verification.identifier_change_review_token(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.lock_held_identifier_change(uuid,uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.open_identifier_change(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.read_identifier_change_dossier(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.release_identifier_change(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.require_identifier_proof(uuid,text,text)|EXECUTE",
+  "influx_verification_definer|function|verification.restore_reconfirmed_audience()|EXECUTE",
+  "influx_verification_definer|function|verification.withdraw_identifier_reviews()|EXECUTE",
+  "influx_verification_definer|table|verification.identifier_change_reviews|SELECT",
 ];
 
 /**
@@ -5399,4 +5492,27 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "verification.overturn_revocation(uuid,text,text,text)":
     "influx_verification_definer",
   "verification.withdraw_superseded_disputes()": "influx_verification_definer",
+  // 0233 (L2F commit 08): queue 6, the identifier changes. The triggers of the line are the creator
+  // owner's; the agent functions and the triggers of the badges are the verification owner's; the
+  // helpers (lock_held_identifier_change, identifier_change_review_token,
+  // gate_identifier_change_decision) are SECURITY INVOKER, same owner.
+  "verification.track_identifier_change()":
+    "influx_creator_verification_definer",
+  "verification.withdraw_entries_of_line()":
+    "influx_creator_verification_definer",
+  "verification.withdraw_identifier_reviews()": "influx_verification_definer",
+  "verification.guard_audience_identifier()": "influx_verification_definer",
+  "verification.restore_reconfirmed_audience()": "influx_verification_definer",
+  "verification.open_identifier_change(uuid)": "influx_verification_definer",
+  "verification.release_identifier_change(uuid)": "influx_verification_definer",
+  "verification.extend_identifier_change_claim(uuid)":
+    "influx_verification_definer",
+  "verification.force_release_identifier_change_claim(uuid,text)":
+    "influx_verification_definer",
+  "verification.read_identifier_change_dossier(uuid)":
+    "influx_verification_definer",
+  "verification.confirm_identifier_change(uuid,text,text,text)":
+    "influx_verification_definer",
+  "verification.require_identifier_proof(uuid,text,text)":
+    "influx_verification_definer",
 };

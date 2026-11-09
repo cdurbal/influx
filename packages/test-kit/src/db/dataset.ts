@@ -140,6 +140,16 @@ export const DISPUTE_IDS = {
   b: "00000000-0000-4000-8000-00000000ff1e",
 } as const;
 
+/**
+ * 0233 (L2F commit 08): one CONFIRMED entry of queue 6 per creator, on his revoked badge
+ * (VERIFICATION_IDS.badge), decided by agent B, closed, so that T2 finds a row agent and admin read.
+ * Inert: no open entry of queue 6.
+ */
+export const IDENTIFIER_CHANGE_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff1f",
+  b: "00000000-0000-4000-8000-00000000ff20",
+} as const;
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -608,6 +618,19 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
                 'account_verified', ${identityRows[side].network}, 'misread', 'upheld',
                 ${deciders}::uuid[], ${accountIdOf("agent", "b")}, now(), 'decision_confirmed',
                 'independent', now())
+        on conflict do nothing`;
+    }
+    // 0233 (L2F): one confirmed entry of queue 6 per creator on his revoked badge, inert
+    for (const side of ["a", "b"] as const) {
+      const handle = identityRows[side].handle;
+      await tx`
+        insert into verification.identifier_change_reviews
+          (id, account_id, social_account_id, network_code, badge_id, previous_handle, new_handle,
+           state, decided_by_account_id, decided_at, observed_handle, closed_at)
+        values (${IDENTIFIER_CHANGE_IDS[side]}, ${accountIdOf("creator", side)},
+                ${CREATOR_SOCIAL_ACCOUNT_IDS[side]}, ${identityRows[side].network},
+                ${VERIFICATION_IDS.badge[side]}, ${handle}, ${`${handle}_renamed`}, 'confirmed',
+                ${accountIdOf("agent", "b")}, now(), ${`${handle}_renamed`}, now())
         on conflict do nothing`;
     }
     await tx`
