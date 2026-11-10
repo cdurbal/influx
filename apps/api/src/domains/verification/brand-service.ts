@@ -34,6 +34,8 @@ import {
   submitOwnBrandRequest,
   type OwnBrandVerificationRow,
 } from "./brand/repository.ts";
+import { graceEndOf, isInGrace } from "./badge-grace.ts";
+import { readBadgeGraceDays } from "./repository.ts";
 import { refusalOf } from "./service.ts";
 
 /** The field of the contract each DETAIL of `internal_details_invalid` names (0222). */
@@ -86,7 +88,7 @@ async function through<T>(door: () => Promise<T>): Promise<T> {
   }
 }
 
-function badgeOf(row: OwnBrandVerificationRow) {
+function badgeOf(row: OwnBrandVerificationRow, graceDays: number | null) {
   if (row.badgeState === null || row.badgeGrantedAt === null) {
     return null;
   }
@@ -100,6 +102,12 @@ function badgeOf(row: OwnBrandVerificationRow) {
     // what a brand badge rests on: its domain and a public register (06 RG49), no piece
     evidenceSource: "domain_and_registry",
     expiresAt: row.badgeExpiresAt,
+    // 08 RG70, 06 RG54: the end of the grace of a badge « à rafraîchir », null while it is active
+    graceEndsAt: graceEndOf({
+      state: row.badgeState,
+      expiresAt: row.badgeExpiresAt,
+      graceDays,
+    }),
   };
 }
 
@@ -166,9 +174,14 @@ export async function readBrandVerification(
 ): Promise<BrandVerificationResponse> {
   const asOf = await readBrandVerificationInstant(tx);
   const row = await through(() => readOwnBrandVerification(tx));
+  // the days of grace are read only when the badge is in its grace period
+  const graceDays =
+    row.badgeState !== null && isInGrace(row.badgeState)
+      ? await readBadgeGraceDays(tx)
+      : null;
   return brandVerificationResponseSchema.parse({
     asOf,
-    badge: badgeOf(row),
+    badge: badgeOf(row, graceDays),
     request: requestOf(row),
     internalDetails: internalDetailsOf(row),
   });

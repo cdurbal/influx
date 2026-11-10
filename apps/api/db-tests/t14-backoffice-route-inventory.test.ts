@@ -166,6 +166,11 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
     },
   },
   "GET /v1/bo/settings/apollo": {},
+  // L2F 13: the badges of a member account, and the request of the withdrawal of one (opens a 2V)
+  "GET /v1/bo/accounts/:id/badges": {},
+  "POST /v1/bo/accounts/:id/badges/:badgeId/revocation": {
+    body: { reasonCode: "forged_evidence" },
+  },
   // L2E 15: the registry sources of the brand's registration, read by agent and admin, written by admin
   "GET /v1/bo/verification/registry-sources": {},
   "PUT /v1/bo/verification/registry-sources/:id": {
@@ -329,7 +334,7 @@ function concrete(route: string, id: string): { method: Method; url: string } {
   const query = path.endsWith("/logo") ? `?logo=${NIL}` : "";
   return {
     method: method as Method,
-    url: `${path.replace(":id", id).replace(":evidenceId", NIL)}${query}`,
+    url: `${path.replace(":id", id).replace(":evidenceId", NIL).replace(":badgeId", NIL)}${query}`,
   };
 }
 
@@ -561,6 +566,16 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
       async () => [{ who: agent, id: await ownVerificationRequest("brand") }],
     "POST /v1/bo/queues/verification-brands/entries/:id/grant": async () => [
       { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    // L2F 13: the badges and the withdrawal of an internal account, and of the caller's own, are the
+    // answer of an unknown account; a badge that is not the account's answers like an unknown one.
+    "GET /v1/bo/accounts/:id/badges": async () => [
+      { who: agent, id: admin.accountId },
+      { who: agent, id: agent.accountId },
+    ],
+    "POST /v1/bo/accounts/:id/badges/:badgeId/revocation": async () => [
+      { who: agent, id: otherAgent.accountId },
+      { who: admin, id: admin.accountId },
     ],
     // An agent never writes a registry source (admin only, 0224): one that exists or not, the same 403.
     "PUT /v1/bo/verification/registry-sources/:id": async () => [

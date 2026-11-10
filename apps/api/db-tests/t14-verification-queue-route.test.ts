@@ -1774,6 +1774,24 @@ describe("the typing, the comparison and the grants (RG25, RG36 to RG42, RG47, R
     expect(issuesOf(wrong)).toEqual([
       { path: "observedCode", issue: "code_mismatch" },
     ]);
+    // L2ES-2 (0228): the handle seen is not the one declared: the database says `observed_handle_mismatch`,
+    // the API a 400 on the field (it was a 500 until L2F commit 13), and nothing is written
+    const elsewhere = await act(
+      server,
+      CREATORS,
+      creator.requestId,
+      "grant-account",
+      agent,
+      {
+        reviewToken: view.reviewToken,
+        observedCode: creator.code,
+        observedHandle: `${creator.handle}_elsewhere`,
+      },
+    );
+    expect(elsewhere.statusCode, elsewhere.body).toBe(400);
+    expect(issuesOf(elsewhere)).toEqual([
+      { path: "observedHandle", issue: "invalid_observed_handle_mismatch" },
+    ]);
     const real = await act(
       server,
       CREATORS,

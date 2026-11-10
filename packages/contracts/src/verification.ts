@@ -31,7 +31,7 @@ const calendarDaySchema = z.iso.date();
 /** The version of the request the agent examined (0224): the one the opening returned, as is. */
 const reviewTokenSchema = z.string().regex(/^[0-9a-f]{64}$/);
 /** A code of a `reference.*` table: snake_case, at most 63 characters (0201). */
-const referenceCodeSchema = z
+export const referenceCodeSchema = z
   .string()
   .max(63)
   .regex(/^[a-z0-9]+(_[a-z0-9]+)*$/);
@@ -472,9 +472,9 @@ export const ownBadgeSchema = z.strictObject({
   /**
    * The instant a badge « à rafraîchir » or « à reconfirmer » disappears: `expiresAt` and
    * `badge_grace_days` (08 RG70, `graceEndsAt` of packages/domain); null for an active badge.
-   * Absent until the route serves it (L2F commit 13), then always present.
+   * Always present since L2F commit 13 (the routes of both populations serve it).
    */
-  graceEndsAt: instantSchema.nullable().optional(),
+  graceEndsAt: instantSchema.nullable(),
 });
 export type OwnBadge = z.infer<typeof ownBadgeSchema>;
 

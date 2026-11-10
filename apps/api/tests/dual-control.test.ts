@@ -20,6 +20,7 @@ describe("PD1: the recap of each action, before the first gesture", () => {
       "identity.invite_admin",
       "leads.change_apollo_setting",
       "privacy.approve_data_request",
+      "verification.revoke_badge",
     ]);
     for (const recap of [
       dualControlRecap({
@@ -45,6 +46,12 @@ describe("PD1: the recap of each action, before the first gesture", () => {
         code: "privacy.approve_data_request",
         requestId: ACCOUNT,
         requestType: "access",
+      }),
+      dualControlRecap({
+        code: "verification.revoke_badge",
+        accountId: ACCOUNT,
+        badgeId: ACCOUNT,
+        reasonCode: "terms_breach",
       }),
     ]) {
       expect(recap.scope.count).toBe(1);
@@ -120,6 +127,67 @@ describe("PD1: the recap of each action, before the first gesture", () => {
       scope: { kind: "setting", count: 1 },
       consequences: ["setting_changed", "skipped_accounts_reevaluated"],
       reversible: true,
+    });
+  });
+});
+
+describe("PD1 of a withdrawal of a badge (08 RG73 to RG76, CA49 to CA51; 0231)", () => {
+  const action = {
+    code: "verification.revoke_badge",
+    accountId: ACCOUNT,
+    badgeId: ACCOUNT,
+    reasonCode: "forged_evidence",
+  } as const;
+  const badge = (
+    level: "account_verified" | "audience_verified" | "brand_verified",
+    cascadeCount: number,
+  ) =>
+    ({
+      kind: "badge",
+      accountId: ACCOUNT,
+      badgeId: ACCOUNT,
+      level,
+      networkCode: level === "brand_verified" ? null : "instagram",
+      badgeState: "active",
+      memberMessage: null,
+      cascadeCount,
+      memberRole: level === "brand_verified" ? "advertiser" : "creator",
+      countryCode: "FR",
+      companyName: null,
+    }) as const;
+
+  it("says that the badge goes at once, the public row is derived again, the member is told and the backoffice cannot undo it", () => {
+    expect(dualControlRecap(action, badge("audience_verified", 0))).toEqual({
+      scope: { kind: "badge", count: 1 },
+      consequences: [
+        "badge_withdrawn",
+        "public_row_recomputed",
+        "member_notified",
+        "member_may_appeal",
+      ],
+      reversible: false,
+    });
+  });
+
+  it("counts the audience badge a withdrawn « Compte vérifié » carries along, and tells a brand it cannot appeal", () => {
+    expect(dualControlRecap(action, badge("account_verified", 1))).toEqual({
+      scope: { kind: "badge", count: 2 },
+      consequences: [
+        "badge_withdrawn",
+        "audience_badge_withdrawn",
+        "public_row_recomputed",
+        "member_notified",
+        "member_may_appeal",
+      ],
+      reversible: false,
+    });
+    expect(
+      dualControlRecap(action, badge("brand_verified", 0)).consequences,
+    ).not.toContain("member_may_appeal");
+    // a target that cannot be read still says what the withdrawal does, for one badge
+    expect(dualControlRecap(action, null).scope).toEqual({
+      kind: "badge",
+      count: 1,
     });
   });
 });

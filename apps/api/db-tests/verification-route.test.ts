@@ -19,7 +19,12 @@ import {
   type CreatorVerificationResponse,
   type VerificationRequestResponse,
 } from "@influx/contracts/verification";
-import { accountIdOf, localRoleUrl, type LoginRole } from "@influx/test-kit/db";
+import {
+  accountIdOf,
+  inRolledBackTransaction,
+  localRoleUrl,
+  type LoginRole,
+} from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -36,7 +41,13 @@ import {
 } from "../scripts/terms-publication.ts";
 import { buildServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
-import { migrationRole, testDataSet } from "./support.ts";
+import {
+  actAsInternal,
+  actAsMember,
+  localSuperuser,
+  migrationRole,
+  testDataSet,
+} from "./support.ts";
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
@@ -283,6 +294,39 @@ async function grantAccountBadge(member: Member, line: string): Promise<void> {
             ${`handle_${member.accountId.slice(0, 8)}_0`}, 'active')`;
 }
 
+/**
+ * An « Audience vérifiée » of the creator on `line`, in `state`, expiring `expiresInDays` from now
+ * (negative: already past): the three observed figures and the period the constraint asks for.
+ */
+async function grantAudienceBadge(
+  member: Member,
+  line: string,
+  state: "active" | "to_refresh" | "to_reconfirm",
+  expiresInDays: number,
+): Promise<void> {
+  const [request] = await migration<{ id: string }[]>`
+    insert into verification.verification_requests
+      (account_id, social_account_id, network_code, level, status, created_at, submitted_at,
+       sla_due_at, escalate_at, decided_by_account_id, decided_at, closed_at)
+    values (${member.accountId}, ${line}, 'instagram', 'audience_verified', 'approved',
+            now() - interval '3 hours', now() - interval '3 hours',
+            now() - interval '1 hour', now() - interval '1 hour',
+            ${agentA}, now() - interval '2 hours', now() - interval '2 hours')
+    returning id::text`;
+  await migration`
+    insert into verification.badges
+      (account_id, social_account_id, network_code, request_id, level, granted_by_account_id,
+       granted_at, evidence_source, observed_handle_at_decision, state, expires_at,
+       observed_followers, observed_posts_last_30_days, observed_avg_comments,
+       observed_period_start, observed_period_end, declared_posts_at_decision,
+       declared_comments_at_decision)
+    values (${member.accountId}, ${line}, 'instagram', ${request?.id ?? null},
+            'audience_verified', ${agentA}, now() - interval '100 days', 'native_dashboard',
+            ${`handle_${member.accountId.slice(0, 8)}_0`}, ${state}::verification.badge_state,
+            now() + make_interval(days => ${expiresInDays}), 1000, 3, 20,
+            current_date - 30, current_date - 1, 3, 20)`;
+}
+
 beforeAll(async () => {
   migration = migrationRole();
   await testDataSet();
@@ -360,11 +404,87 @@ describe("L2E-R1 GET /v1/me/verification: the lines, network by network (08 RG13
         periodEnd: null,
         evidenceSource: "public_profile",
         expiresAt: null,
+        // L2F commit 13: always present, null while the badge is current
+        graceEndsAt: null,
       },
     ]);
     // the approved request is the badge's: it is not shown a second time as a request
     expect(found.lines[0]?.requests).toEqual([]);
     expect(JSON.stringify(found)).not.toContain("handle_");
+  });
+});
+
+describe("L2F-13 the end of the grace of a badge (08 RG70, RG93; 0237)", () => {
+  it("serves expiry plus badge_grace_days for a badge « à rafraîchir » or « à reconfirmer », null while it is current", async () => {
+    const server = app();
+    const [setting] = await migration<{ days: number }[]>`
+      select (value #>> '{}')::integer as days from backoffice.operational_settings
+       where key = 'badge_grace_days'`;
+    const graceDays = setting?.days ?? Number.NaN;
+    expect(graceDays).toBeGreaterThan(0);
+    for (const badgeState of ["to_refresh", "to_reconfirm"] as const) {
+      const member = await newMember("creator");
+      await grantAudienceBadge(
+        member,
+        await lineOf(member, "instagram"),
+        badgeState,
+        -10,
+      );
+      const found = await state(server, member);
+      const [badge] = found.lines[0]?.badges ?? [];
+      expect(badge?.state).toBe(badgeState);
+      // the instant is the badge's own expiry and the days of the parameter, to the millisecond
+      expect(
+        Date.parse(badge?.graceEndsAt ?? "") -
+          Date.parse(badge?.expiresAt ?? ""),
+      ).toBe(graceDays * 86_400_000);
+    }
+    const current = await newMember("creator");
+    await grantAudienceBadge(
+      current,
+      await lineOf(current, "instagram"),
+      "active",
+      60,
+    );
+    expect((await state(server, current)).lines[0]?.badges[0]).toMatchObject({
+      state: "active",
+      graceEndsAt: null,
+    });
+  });
+
+  it("lets a creator and an advertiser read the days, and nobody else (0237)", async () => {
+    const reading = "select profiles.read_badge_grace_days() as days";
+    for (const role of ["creator", "advertiser"] as const) {
+      const member = await newMember(role);
+      const days = await inRolledBackTransaction(localSuperuser(), (tx) =>
+        actAsMember(
+          tx,
+          `influx_${role}`,
+          { accountId: member.accountId, role, aal: "aal1" },
+          async () => (await tx.unsafe<{ days: number }[]>(reading))[0]?.days,
+        ),
+      );
+      expect(days).toBeGreaterThan(0);
+    }
+    // the team has no door to it: it reads the parameter on the table it is granted
+    for (const role of ["agent", "admin"] as const) {
+      const refused = await inRolledBackTransaction(localSuperuser(), (tx) =>
+        actAsInternal(
+          tx,
+          `influx_${role}`,
+          { accountId: accountIdOf(role, "a"), role, aal: "aal2" },
+          async () => {
+            try {
+              await tx.savepoint((savepoint) => savepoint.unsafe(reading));
+              return null;
+            } catch (error) {
+              return (error as { code?: string }).code ?? null;
+            }
+          },
+        ),
+      );
+      expect(refused).toBe("42501");
+    }
   });
 });
 

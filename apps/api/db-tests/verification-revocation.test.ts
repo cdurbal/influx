@@ -955,6 +955,8 @@ describe("L2F-D9: the closed lists of the creator and of the brand, the message,
         select payload ->> 'reason_code' as reason, (payload ->> 'escalated')::boolean as escalated
           from audit.audit_events
          where event_type = 'verification.revocation_requested'
+           -- this transaction's lines: the route tests commit their own (t14-verification-badges-route)
+           and recorded_at >= pg_catalog.transaction_timestamp()
          order by seq`;
       // a badge not holding, an account held by the agent
       await tx`update verification.badges set state = 'expired' where id = ${audience}`;

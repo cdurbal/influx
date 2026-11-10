@@ -776,6 +776,47 @@ describe("L2E-B4 the code found at the domain, the badge, a badge withdrawn (06 
   });
 });
 
+describe("L2F-13 the end of the grace of the brand's badge (06 RG54; 08 RG70; 0237)", () => {
+  it("serves the expiry plus badge_grace_days for a badge « à rafraîchir », null while it is active", async () => {
+    const server = app();
+    const member = await newBrand();
+    const source = await registrySource("FR");
+    const [request] = await migration<{ id: string }[]>`
+      insert into verification.verification_requests (account_id, level, status)
+      values (${member.accountId}, 'brand_verified', 'pending') returning id::text`;
+    await migration`
+      update verification.verification_requests
+         set status = 'approved', decided_by_account_id = ${agent.accountId}, decided_at = now(),
+             closed_at = now()
+       where id = ${request?.id ?? null}`;
+    await migration`
+      insert into verification.badges
+        (account_id, request_id, level, granted_by_account_id, granted_at, evidence_source,
+         registry_source_id, expires_at)
+      values (${member.accountId}, ${request?.id ?? null}, 'brand_verified', ${agent.accountId},
+              now() - interval '400 days', 'domain_and_registry', ${source},
+              now() + interval '60 days')`;
+    // current: no grace to speak of
+    expect((await state(server, member)).badge).toMatchObject({
+      state: "active",
+      graceEndsAt: null,
+    });
+    // « à rafraîchir » since its expiry 10 days ago: the instant it disappears is dated
+    await migration`
+      update verification.badges
+         set state = 'to_refresh', expires_at = now() - interval '10 days'
+       where account_id = ${member.accountId} and level = 'brand_verified'`;
+    const [setting] = await migration<{ days: number }[]>`
+      select (value #>> '{}')::integer as days from backoffice.operational_settings
+       where key = 'badge_grace_days'`;
+    const found = (await state(server, member)).badge;
+    expect(found?.state).toBe("to_refresh");
+    expect(
+      Date.parse(found?.graceEndsAt ?? "") - Date.parse(found?.expiresAt ?? ""),
+    ).toBe((setting?.days ?? Number.NaN) * 86_400_000);
+  });
+});
+
 describe("L2E-B5 a country whose register cannot be read: a reasoned refusal, no degraded badge (06 RG52, CA29)", () => {
   it("serves the register of the country, refuses with the dedicated reason, and shows the brand its refusal without the agent's words (CA29)", async () => {
     const server = app();

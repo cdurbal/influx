@@ -27,6 +27,7 @@ import {
   RetryLaterError,
 } from "../../platform/errors.ts";
 import { refreshStoredCreatorScore } from "../profiles/creator/profile.ts";
+import { graceEndOf, isInGrace } from "./badge-grace.ts";
 import {
   cancelOwnRequest,
   openOwnRequest,
@@ -35,6 +36,7 @@ import {
   readOwnEvidence,
   readOwnLiveCodes,
   readOwnRequest,
+  readBadgeGraceDays,
   readOwnVerifiableLines,
   readVerificationInstant,
   renewOwnCode,
@@ -174,6 +176,10 @@ export async function readCreatorVerification(
   const asOf = await readVerificationInstant(tx);
   const lines = await readOwnVerifiableLines(tx);
   const badges = await readOwnBadges(tx);
+  // the days of grace are read only when a badge is in its grace period (08 RG70)
+  const graceDays = badges.some((badge) => isInGrace(badge.state))
+    ? await readBadgeGraceDays(tx)
+    : null;
   const requests = await readOwnCurrentRequests(tx);
   const codes = await readOwnLiveCodes(tx);
   const evidence = await readOwnEvidence(tx);
@@ -192,6 +198,11 @@ export async function readCreatorVerification(
           periodEnd: badge.periodEnd,
           evidenceSource: badge.evidenceSource,
           expiresAt: badge.expiresAt,
+          graceEndsAt: graceEndOf({
+            state: badge.state,
+            expiresAt: badge.expiresAt,
+            graceDays,
+          }),
         })),
       requests: requests
         .filter((request) => request.socialAccountId === line.id)

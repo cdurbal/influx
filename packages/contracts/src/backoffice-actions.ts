@@ -23,6 +23,12 @@ import { INTERNAL_INVITATION_REASONS } from "./backoffice-invitations.ts";
 import { uiLocaleSchema } from "./auth.ts";
 import { countryCodeSchema, declaredStatusSchema } from "./signup.ts";
 import { USER_AGENT_SUMMARY_KEY_PATTERN } from "./user-agent.ts";
+import {
+  referenceCodeSchema,
+  revocationReasonCodeSchema,
+  verificationBadgeStateSchema,
+  verificationLevelSchema,
+} from "./verification.ts";
 
 const commentSchema = z
   .string()
@@ -301,6 +307,17 @@ export const dualControlActionSchema = z.discriminatedUnion("code", [
     requestId: z.uuid(),
     requestType: z.enum(EXECUTABLE_DATA_REQUEST_TYPES),
   }),
+  /**
+   * L2F commit 13 (0231): the withdrawal of a badge, asked by an agent or an administrator through
+   * `POST /v1/bo/accounts/:id/badges/:badgeId/revocation`, never through the request above: the
+   * database refuses it there. The stored charge is exactly the account, the badge and the reason.
+   */
+  z.strictObject({
+    code: z.literal("verification.revoke_badge"),
+    accountId: z.uuid(),
+    badgeId: z.uuid(),
+    reasonCode: revocationReasonCodeSchema,
+  }),
 ]);
 
 export const DUAL_CONTROL_STATES = [
@@ -339,6 +356,25 @@ export const dualControlTargetSchema = z.discriminatedUnion("kind", [
     role: z.enum(["agent", "admin"]),
     createdAt: z.iso.datetime(),
   }),
+  /**
+   * L2F commit 13 (modele §3 `read_badge_revocation`): the badge a withdrawal reaches, by its level,
+   * its network (a code, never an identifier of an account), its state, the message the member will
+   * receive and the audience badges a withdrawn « Compte vérifié » carries along. Never a figure.
+   */
+  z.strictObject({
+    kind: z.literal("badge"),
+    accountId: z.uuid(),
+    badgeId: z.uuid(),
+    level: verificationLevelSchema,
+    networkCode: referenceCodeSchema.nullable(),
+    badgeState: verificationBadgeStateSchema,
+    memberMessage: z.string().nullable(),
+    /** The audience badges of the same line that leave with a « Compte vérifié » (0 otherwise). */
+    cascadeCount: z.number().int().nonnegative(),
+    memberRole: z.enum(["advertiser", "creator"]),
+    countryCode: countryCodeSchema,
+    companyName: z.string().nullable(),
+  }),
 ]);
 export type DualControlTarget = z.infer<typeof dualControlTargetSchema>;
 
@@ -355,6 +391,7 @@ export const dualControlViewSchema = z.strictObject({
         "internal_invitation",
         "setting",
         "data_request",
+        "badge",
       ]),
       count: z.number().int().positive(),
     }),

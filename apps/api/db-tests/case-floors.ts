@@ -28,6 +28,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t14-backoffice-ops-route.test.ts": 10,
   "db-tests/t14-backoffice-queue-route.test.ts": 55,
   "db-tests/t14-backoffice-route-inventory.test.ts": 6,
+  "db-tests/t14-verification-badges-route.test.ts": 10,
   "db-tests/t14-verification-queue-route.test.ts": 29,
   "db-tests/t16-commission.test.ts": 36,
   "db-tests/t2-rls-matrix.test.ts": 29,
@@ -83,7 +84,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/tm9-ops-monitoring.test.ts": 66,
   "db-tests/verification-agent-opening.test.ts": 5,
   "db-tests/verification-bands.test.ts": 12,
-  "db-tests/verification-brand-route.test.ts": 19,
+  "db-tests/verification-brand-route.test.ts": 20,
   "db-tests/verification-core.test.ts": 28,
   "db-tests/verification-decisions.test.ts": 20,
   "db-tests/verification-disputes.test.ts": 10,
@@ -96,5 +97,5 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/verification-registry-sources.test.ts": 5,
   "db-tests/verification-requests.test.ts": 14,
   "db-tests/verification-revocation.test.ts": 7,
-  "db-tests/verification-route.test.ts": 18,
+  "db-tests/verification-route.test.ts": 20,
 };

@@ -48,6 +48,8 @@ const BODY_FIELD_OF: Readonly<Record<string, string>> = {
   member_message: "memberMessage",
   internal_comment: "internalComment",
   observed_handle: "observedHandle",
+  // 0228 (L2ES-2): the handle typed does not match the one declared: the same field, its own issue
+  observed_handle_mismatch: "observedHandle",
   observed_platform_account_ref: "observedPlatformAccountRef",
   observed_domain: "observedDomain",
   observed_channel: "observedChannel",
@@ -64,6 +66,56 @@ const FIGURE_FIELD_OF: Readonly<Record<string, string>> = {
 
 function conflict(issues: readonly ValidationIssue[]): ApiError {
   return new ApiError("conflict", issues);
+}
+
+/**
+ * The 22023 of a typed value the database refuses, as a 400 on the body field its MESSAGE names
+ * (`invalid_<message>`, `code_mismatch` as is); `error` itself for a message this file does not know.
+ */
+function invalidFieldOf(error: unknown): unknown {
+  const message = sqlMessageOf(error);
+  const field = message === null ? undefined : BODY_FIELD_OF[message];
+  return field === undefined
+    ? error
+    : new RequestValidationError([
+        {
+          path: field,
+          issue:
+            message === "code_mismatch"
+              ? "code_mismatch"
+              : `invalid_${message ?? "value"}`,
+        },
+      ]);
+}
+
+/** 0231: the issues the withdrawal of a badge says in its DETAIL (55000), on the path `badge`. */
+const REVOCATION_ISSUES: ReadonlySet<string> =
+  new Set<VerificationRefusalIssue>([
+    "badge_not_holding",
+    "revocation_pending",
+  ]);
+
+/**
+ * The refusal of the request of a withdrawal (0231 verification.request_badge_revocation()), as the
+ * API answers it: 42501 (unknown badge, own account, an account the caller holds) the same 404 as an
+ * unknown address (T14.3, T14.4); 55000 `badge_not_holding` or `revocation_pending` a 409 on `badge`;
+ * 22023 `reason` or `member_message` a 400 on `reasonCode` or `memberMessage`. Anything else, unchanged.
+ */
+export function revocationRefusalOf(error: unknown): unknown {
+  if (isForbidden(error)) {
+    return new ApiError("not_found");
+  }
+  const detail = sqlDetailOf(error);
+  switch (sqlStateOf(error)) {
+    case "55000":
+      return detail !== null && REVOCATION_ISSUES.has(detail)
+        ? conflict([{ path: "badge", issue: detail }])
+        : error;
+    case "22023":
+      return invalidFieldOf(error);
+    default:
+      return error;
+  }
 }
 
 /** The refusal of a door as the API answers it (see the header); anything else, unchanged (a 500). */
@@ -121,18 +173,7 @@ export async function agentRefusalOf(
           { path: field ?? "figures", issue: "figures_invalid" },
         ]);
       }
-      const field = message === null ? undefined : BODY_FIELD_OF[message];
-      return field === undefined
-        ? error
-        : new RequestValidationError([
-            {
-              path: field,
-              issue:
-                message === "code_mismatch"
-                  ? "code_mismatch"
-                  : `invalid_${message ?? "value"}`,
-            },
-          ]);
+      return invalidFieldOf(error);
     }
     default:
       return error;

@@ -16,6 +16,10 @@
 //        confirm" at every call, and the database re-reads it at every confirmation.
 // Codes only: the labels of the screen are the backoffice's (17b, D36).
 import type { ApolloSetting } from "@influx/contracts/backoffice-actions";
+import {
+  REVOCATION_REASON_CODES,
+  type RevocationReasonCode,
+} from "@influx/contracts/verification";
 import type { BusinessRole, Transaction } from "../../db/index.ts";
 import { ApiError } from "../../platform/errors.ts";
 import type { BackofficeContext } from "../identity/backoffice-session.ts";
@@ -23,6 +27,7 @@ import { apolloSettingOf, storedApolloSetting } from "./apollo-settings.ts";
 import {
   approveAdminInvitation,
   approveDataRequestExecution,
+  badgeRevocationTarget,
   cancelDualControl as cancelRequest,
   changeApolloSetting,
   changeMemberRole,
@@ -36,6 +41,8 @@ import {
   isBreakGlassAccount,
   peerAdminExists,
   requestDualControl as insertRequest,
+  revocationAccountHolder,
+  revokeBadge,
   type DualControlActionCode,
   type DualControlMode,
   type DualControlPayload,
@@ -76,13 +83,30 @@ export type DualControlAction =
       code: "privacy.approve_data_request";
       requestId: string;
       requestType: "access" | "erasure";
+    }
+  | {
+      /**
+       * L2F commit 13 (0231): the withdrawal of a badge. Opened by verification.request_badge_revocation()
+       * (an agent or an admin), never by requestDualControl(); the confirmation executes it.
+       */
+      code: "verification.revoke_badge";
+      accountId: string;
+      badgeId: string;
+      reasonCode: RevocationReasonCode;
     };
+
+/** The actions a route may REQUEST through backoffice.request_dual_control() (not the withdrawal). */
+export type RequestableDualControlAction = Exclude<
+  DualControlAction,
+  { code: "verification.revoke_badge" }
+>;
 
 /** PD1: what the action does, said before the first gesture. Codes, for the screen to word. */
 export type DualControlRecap = {
   /** How many objects the action touches. */
   scope: {
-    kind: "account" | "internal_invitation" | "setting" | "data_request";
+    kind:
+      "account" | "internal_invitation" | "setting" | "data_request" | "badge";
     count: number;
   };
   consequences: readonly string[];
@@ -97,7 +121,10 @@ export type DualControlRecap = {
  */
 const RECAPS: Readonly<
   Record<
-    Exclude<DualControlActionCode, "privacy.approve_data_request">,
+    Exclude<
+      DualControlActionCode,
+      "privacy.approve_data_request" | "verification.revoke_badge"
+    >,
     DualControlRecap
   >
 > = {
@@ -165,6 +192,7 @@ const DATA_REQUEST_RECAPS: Readonly<
  */
 async function dualControlTarget(
   tx: Transaction,
+  requestId: string,
   action: DualControlAction,
 ): Promise<DualControlTargetRow | null> {
   switch (action.code) {
@@ -179,18 +207,59 @@ async function dualControlTarget(
         ? null
         : dualControlAccountTarget(tx, accountId);
     }
+    case "verification.revoke_badge":
+      return badgeRevocationTarget(tx, requestId);
     case "leads.change_apollo_setting":
       return null;
   }
 }
 
-export function dualControlRecap(action: DualControlAction): DualControlRecap {
-  return action.code === "privacy.approve_data_request"
-    ? DATA_REQUEST_RECAPS[action.requestType]
-    : RECAPS[action.code];
+/**
+ * PD1 of a withdrawal (08 RG73 to RG76, CA49 to CA51; 06 RG55): what it does, said before the first
+ * gesture and again on the confirmation screen. The badge goes at once and the public row of its line
+ * is derived again (RG76); the member is told by e-mail, with the reason; a creator may appeal for
+ * `dispute_window_days` (RG77), a brand corrects and resubmits (06 l. 718); a withdrawn « Compte
+ * vérifié » carries the audience badge of its line (modele point 4). The backoffice cannot undo it:
+ * the badge comes back only if an appeal is overturned (queue 5). `cascadeCount` is the audience badges
+ * that leave with it, read with the target (0 when the target cannot be read).
+ */
+function revocationRecap(
+  target: DualControlTargetRow | null,
+): DualControlRecap {
+  const cascade = target?.kind === "badge" ? target.cascadeCount : 0;
+  const creator = target?.kind === "badge" && target.level !== "brand_verified";
+  return {
+    scope: { kind: "badge", count: 1 + cascade },
+    consequences: [
+      "badge_withdrawn",
+      ...(cascade > 0 ? ["audience_badge_withdrawn"] : []),
+      "public_row_recomputed",
+      "member_notified",
+      ...(creator ? ["member_may_appeal"] : []),
+    ],
+    reversible: false,
+  };
 }
 
-function payloadOf(action: DualControlAction): DualControlPayload {
+/**
+ * PD1: the recap of an action. A withdrawal says how many badges it reaches, so it reads the target
+ * it was shown with (`target`); every other action is the same whatever it names.
+ */
+export function dualControlRecap(
+  action: DualControlAction,
+  target: DualControlTargetRow | null = null,
+): DualControlRecap {
+  switch (action.code) {
+    case "privacy.approve_data_request":
+      return DATA_REQUEST_RECAPS[action.requestType];
+    case "verification.revoke_badge":
+      return revocationRecap(target);
+    default:
+      return RECAPS[action.code];
+  }
+}
+
+function payloadOf(action: RequestableDualControlAction): DualControlPayload {
   switch (action.code) {
     case "identity.invite_admin":
       return { invitation_id: action.invitationId };
@@ -248,6 +317,18 @@ function actionOf(
         (requestType === "access" || requestType === "erasure")
         ? { code, requestId, requestType }
         : null;
+    case "verification.revoke_badge": {
+      // exactly {account_id, badge_id, reason_code} (0231); the reason of the request is the same
+      const { badge_id: badgeId, reason_code: reasonCode } = payload;
+      const reason = REVOCATION_REASON_CODES.find(
+        (candidate) => candidate === reasonCode,
+      );
+      return typeof accountId === "string" &&
+        typeof badgeId === "string" &&
+        reason !== undefined
+        ? { code, accountId, badgeId, reasonCode: reason }
+        : null;
+    }
     default:
       return null;
   }
@@ -270,7 +351,7 @@ function targetAccountOf(action: DualControlAction): string | null {
 // ---------------------------------------------------------------------------------------------
 
 export type DualControlRequestInput = {
-  action: DualControlAction;
+  action: RequestableDualControlAction;
   /** PD4: typed, `^[a-z][a-z0-9_]{1,62}$`; the action function is called with the same one. */
   reasonCode: string;
   /** PD4: optional, never copied to the register. */
@@ -390,11 +471,12 @@ export async function dualControlView(
     }
   }
 
+  const target = await dualControlTarget(tx, row.id, action);
   return {
     id: row.id,
     action,
-    recap: dualControlRecap(action),
-    target: await dualControlTarget(tx, action),
+    recap: dualControlRecap(action, target),
+    target,
     reasonCode: row.reasonCode,
     reasonNote: row.reasonNote,
     requestedBy: row.requestedBy,
@@ -472,6 +554,13 @@ export function dualControlExecutor(): DualControlExecutor<number | null> {
           reasonCode: request.reasonCode,
         });
         return null;
+      case "verification.revoke_badge":
+        // the badge and the reason of the confirmed payload; the database compares them whole (0231)
+        await revokeBadge(tx, context.sessionId, request.id, {
+          badgeId: action.badgeId,
+          reasonCode: request.reasonCode,
+        });
+        return null;
     }
   };
 }
@@ -509,6 +598,18 @@ export async function confirmAndExecute<Result>(
     mode,
   });
   return { mode, result };
+}
+
+/**
+ * 15 RG36 (0215): whether the confirmer HOLDS the account a withdrawal reaches. The route then refuses
+ * with the trace of the attempt (`queue.conflict_of_interest`), as for any act on an account one holds.
+ */
+export async function holdsRevocationAccount(
+  tx: Transaction,
+  context: BackofficeContext,
+  requestId: string,
+): Promise<boolean> {
+  return (await revocationAccountHolder(tx, requestId)) === context.accountId;
 }
 
 /** 17b §3.13.c: abandoned by the requester, or refused by another admin; nothing is executed. */

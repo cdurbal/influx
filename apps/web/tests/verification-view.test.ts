@@ -72,6 +72,7 @@ function badge(
     evidenceSource:
       level === "audience_verified" ? "native_dashboard" : "public_profile",
     expiresAt: null,
+    graceEndsAt: null,
     ...extra,
   };
 }

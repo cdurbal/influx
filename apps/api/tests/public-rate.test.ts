@@ -90,6 +90,8 @@ const SESSION_ROUTES: readonly string[] = [
   "POST /v1/bo/accounts/search",
   "GET /v1/bo/accounts/counters",
   "GET /v1/bo/accounts/:id",
+  "GET /v1/bo/accounts/:id/badges",
+  "POST /v1/bo/accounts/:id/badges/:badgeId/revocation",
   "POST /v1/bo/accounts/:id/corrections",
   "POST /v1/bo/accounts/:id/brevo-suppression/lift",
   "POST /v1/bo/leads/replays",

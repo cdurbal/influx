@@ -28,6 +28,7 @@ import {
   type DualControlRequestBody,
   type DualControlViewBody,
 } from "@influx/contracts/backoffice-actions";
+import { sqlDetailOf, sqlStateOf } from "../../db/sql-state.ts";
 import { ApiError, RequestValidationError } from "../../platform/errors.ts";
 import {
   withBackofficeSession,
@@ -40,20 +41,25 @@ import {
   cancelDualControl,
   confirmAndExecute,
   degradedConfirmationsByWeek,
+  holdsRevocationAccount,
   dualControlExecutor,
   dualControlView,
   requestDualControl,
-  type DualControlAction,
   type DualControlView,
+  type RequestableDualControlAction,
 } from "./dual-control.ts";
 import {
   adminOnly,
+  conflictOfInterest,
   isForbidden,
+  unlessConflict,
   unlessRefused,
   type BackofficeActionsDependencies,
 } from "./action-guards.ts";
 
-function actionOfRequest(body: DualControlRequestBody): DualControlAction {
+function actionOfRequest(
+  body: DualControlRequestBody,
+): RequestableDualControlAction {
   switch (body.code) {
     case "identity.change_member_role":
       return {
@@ -79,6 +85,10 @@ type DualControlMemberTarget = Extract<
   NonNullable<DualControlViewBody["target"]>,
   { kind: "member_account" }
 >;
+type DualControlBadgeTarget = Extract<
+  NonNullable<DualControlViewBody["target"]>,
+  { kind: "badge" }
+>;
 
 function viewBody(view: DualControlView): DualControlViewBody {
   const { target } = view;
@@ -86,7 +96,7 @@ function viewBody(view: DualControlView): DualControlViewBody {
     id: view.id,
     action: view.action,
     recap: { ...view.recap, consequences: [...view.recap.consequences] },
-    // the response schema checks the country code again
+    // the response schema checks the country code, the level and the state again
     target:
       target?.kind === "member_account"
         ? {
@@ -94,7 +104,15 @@ function viewBody(view: DualControlView): DualControlViewBody {
             countryCode:
               target.countryCode as DualControlMemberTarget["countryCode"],
           }
-        : target,
+        : target?.kind === "badge"
+          ? {
+              ...target,
+              countryCode:
+                target.countryCode as DualControlBadgeTarget["countryCode"],
+              badgeState:
+                target.badgeState as DualControlBadgeTarget["badgeState"],
+            }
+          : target,
     reasonCode: view.reasonCode,
     reasonNote: view.reasonNote,
     requestedBy: view.requestedBy,
@@ -105,6 +123,18 @@ function viewBody(view: DualControlView): DualControlViewBody {
     executed: view.executed,
     next: view.next,
   };
+}
+
+/**
+ * 0231: a withdrawal whose badge no longer holds (the task or a grant ended it since the request) is a
+ * 409 on `badge`; the confirmation is rolled back with it, the request stays as it was. Anything else,
+ * unchanged (the deliberate 42501 of the database stays the 403 of runSensitiveAction).
+ */
+function confirmRefusalOf(error: unknown): unknown {
+  return sqlStateOf(error) === "55000" &&
+    sqlDetailOf(error) === "badge_not_holding"
+    ? new ApiError("conflict", [{ path: "badge", issue: "badge_not_holding" }])
+    : error;
 }
 
 export function registerDualControlRoutes(
@@ -253,18 +283,28 @@ export function registerDualControlRoutes(
       void reply.header("cache-control", "no-store");
       const requestId = (request.params as DualControlParams).id.toLowerCase();
       const body = request.body as DualControlConfirm;
-      const confirmed = unlessRefused(
-        await withSensitiveAction(database, request, reply, (tx, context) =>
-          adminOnly(tx, context, "backoffice.dual_control", () =>
-            confirmAndExecute(
-              tx,
-              context,
-              {
-                requestId,
-                degradedJustification: body.degradedJustification,
-              },
-              dualControlExecutor(),
-            ),
+      const confirmed = unlessConflict(
+        unlessRefused(
+          await withSensitiveAction(database, request, reply, (tx, context) =>
+            adminOnly(tx, context, "backoffice.dual_control", async () => {
+              // 15 RG36: the withdrawal of a badge of an account the confirmer holds is refused, traced
+              if (await holdsRevocationAccount(tx, context, requestId)) {
+                return conflictOfInterest(tx);
+              }
+              try {
+                return await confirmAndExecute(
+                  tx,
+                  context,
+                  {
+                    requestId,
+                    degradedJustification: body.degradedJustification,
+                  },
+                  dualControlExecutor(),
+                );
+              } catch (error) {
+                throw confirmRefusalOf(error);
+              }
+            }),
           ),
         ),
       );

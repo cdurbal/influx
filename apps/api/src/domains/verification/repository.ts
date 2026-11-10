@@ -85,6 +85,21 @@ export async function readOwnVerifiableLines(
   return rows.map((row) => ({ id: row.id, networkCode: row.network_code }));
 }
 
+/**
+ * The days of grace a badge keeps after its expiry (0237 `profiles.read_badge_grace_days()`, the
+ * parameter `badge_grace_days`): a member reads no parameter, the door gives him this one number.
+ */
+export async function readBadgeGraceDays(tx: Transaction): Promise<number> {
+  const rows = await tx.execute<{ days: number }>(
+    sql`select profiles.read_badge_grace_days() as days`,
+  );
+  const days = rows[0]?.days;
+  if (typeof days !== "number") {
+    throw new Error("profiles.read_badge_grace_days returned no number");
+  }
+  return days;
+}
+
 /** The badges the creator reads on his lines: the displayed states only (08 RG70, RG76). */
 export async function readOwnBadges(tx: Transaction): Promise<OwnBadgeRow[]> {
   const rows = await tx.execute<{

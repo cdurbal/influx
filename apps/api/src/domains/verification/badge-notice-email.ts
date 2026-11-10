@@ -51,6 +51,17 @@ export function revocationReasonOf(code: string): RevocationReasonCode | null {
     : null;
 }
 
+/**
+ * The sentence a member receives for a reason of withdrawal, in his language: what the agent reads
+ * when he chooses the reason is what is sent (modele annexe « Retrait »).
+ */
+export function revocationReasonText(
+  code: RevocationReasonCode,
+  locale: UiLocale,
+): string {
+  return MESSAGES[locale].email.badgeNotice.revoked.reason[code];
+}
+
 /** The outcome of an appeal as the database names it, null for a code outside the list. */
 export function disputeOutcomeOf(code: string): DisputeOutcomeCode | null {
   return Object.hasOwn(french.email.badgeNotice.disputeOutcome.outcome, code)

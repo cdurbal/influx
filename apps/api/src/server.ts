@@ -29,6 +29,7 @@ import { registerDataExportRoutes } from "./domains/privacy/member/routes.ts";
 import { registerCreatorProfileRoutes } from "./domains/profiles/creator/routes.ts";
 import { registerVerificationRoutes } from "./domains/verification/routes.ts";
 import { registerBrandVerificationRoutes } from "./domains/verification/brand-routes.ts";
+import { registerVerificationBadgesRoutes } from "./domains/backoffice/verification-badges-routes.ts";
 import { registerVerificationRegistryRoutes } from "./domains/backoffice/verification-registry-routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
@@ -641,6 +642,10 @@ export function buildServer(
   // The registry sources of the brand's registration: read by agent and admin, written by an admin
   // (docs/mvp/06 RG52, RG101; jalon L2E commit 15).
   registerVerificationRegistryRoutes(app, { database });
+
+  // The badges of a member account and the request of their withdrawal, which opens a 2V an
+  // administrator confirms (docs/mvp/08 RG73 to RG76; jalon L2F commit 13).
+  registerVerificationBadgesRoutes(app, { database });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

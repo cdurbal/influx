@@ -7,6 +7,7 @@ import {
   DEGRADED_REVIEW_WEEKS_MAX,
   degradedReviewQuerySchema,
   degradedReviewResponseSchema,
+  dualControlActionSchema,
   dualControlConfirmSchema,
   dualControlRequestSchema,
   dualControlTargetSchema,
@@ -208,6 +209,74 @@ describe("PD1 (J8S-2): the target of a 2V action, never an identifier alone", ()
         companyName: null,
         email: "member@example.test",
       }).success,
+    ).toBe(false);
+  });
+});
+
+describe("L2F-13 the withdrawal of a badge under 2V (0231; 08 RG73 to RG76)", () => {
+  const BADGE = "00000000-0000-4000-8000-000000000002";
+
+  it("is a stored action of the closed list (account, badge, reason) and never one a route requests", () => {
+    expect(
+      dualControlActionSchema.safeParse({
+        code: "verification.revoke_badge",
+        accountId: ACCOUNT,
+        badgeId: BADGE,
+        reasonCode: "terms_breach",
+      }).success,
+    ).toBe(true);
+    // a reason outside the closed list, a missing badge or an extra key: refused
+    for (const action of [
+      { accountId: ACCOUNT, badgeId: BADGE, reasonCode: "invented" },
+      { accountId: ACCOUNT, reasonCode: "terms_breach" },
+      {
+        accountId: ACCOUNT,
+        badgeId: BADGE,
+        reasonCode: "terms_breach",
+        memberMessage: "twenty characters at least",
+      },
+    ]) {
+      expect(
+        dualControlActionSchema.safeParse({
+          code: "verification.revoke_badge",
+          ...action,
+        }).success,
+      ).toBe(false);
+    }
+    // the request of a 2V never carries it: the database refuses it there (0231)
+    expect(
+      dualControlRequestSchema.safeParse({
+        code: "verification.revoke_badge",
+        accountId: ACCOUNT,
+        badgeId: BADGE,
+        reasonCode: "terms_breach",
+      }).success,
+    ).toBe(false);
+  });
+
+  it("names the badge it reaches by level, network code and state, never a figure nor a handle", () => {
+    const target = {
+      kind: "badge",
+      accountId: ACCOUNT,
+      badgeId: BADGE,
+      level: "account_verified",
+      networkCode: "instagram",
+      badgeState: "active",
+      memberMessage: null,
+      cascadeCount: 1,
+      memberRole: "creator",
+      countryCode: "FR",
+      companyName: null,
+    };
+    expect(dualControlTargetSchema.safeParse(target).success).toBe(true);
+    for (const extra of [{ handle: "@someone" }, { followers: 1200 }]) {
+      expect(
+        dualControlTargetSchema.safeParse({ ...target, ...extra }).success,
+      ).toBe(false);
+    }
+    expect(
+      dualControlTargetSchema.safeParse({ ...target, badgeState: "weird" })
+        .success,
     ).toBe(false);
   });
 });

@@ -53,6 +53,7 @@ function badge(
     periodEnd: null,
     evidenceSource: "domain_and_registry",
     expiresAt: "2027-03-03T10:15:00Z",
+    graceEndsAt: null,
     ...extra,
   };
 }

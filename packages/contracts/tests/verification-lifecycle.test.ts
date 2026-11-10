@@ -163,7 +163,7 @@ describe("L2F-11 the member's contest, closed (08 RG77, CA52; invariant 13)", ()
     ).toBe(false);
   });
 
-  it("states the end of the grace on a badge, absent until the route serves it", () => {
+  it("states the end of the grace on a badge, always present (null while it is active)", () => {
     const badge = {
       level: "audience_verified",
       networkCode: "instagram",
@@ -174,7 +174,11 @@ describe("L2F-11 the member's contest, closed (08 RG77, CA52; invariant 13)", ()
       evidenceSource: "native_dashboard",
       expiresAt: INSTANT,
     };
-    expect(ownBadgeSchema.safeParse(badge).success).toBe(true);
+    // L2F commit 13: the routes serve it, so a badge without it is no longer a badge
+    expect(ownBadgeSchema.safeParse(badge).success).toBe(false);
+    expect(
+      ownBadgeSchema.safeParse({ ...badge, graceEndsAt: null }).success,
+    ).toBe(true);
     expect(
       ownBadgeSchema.safeParse({ ...badge, graceEndsAt: INSTANT }).success,
     ).toBe(true);

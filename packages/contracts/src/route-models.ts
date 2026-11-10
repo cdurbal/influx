@@ -25,6 +25,8 @@ export const API_ROUTE_MODELS: readonly string[] = [
   "/v1/auth/verify-code",
   "/v1/bo/accounts",
   "/v1/bo/accounts/:id",
+  "/v1/bo/accounts/:id/badges",
+  "/v1/bo/accounts/:id/badges/:badgeId/revocation",
   "/v1/bo/accounts/:id/brevo-suppression/lift",
   "/v1/bo/accounts/:id/corrections",
   "/v1/bo/accounts/counters",

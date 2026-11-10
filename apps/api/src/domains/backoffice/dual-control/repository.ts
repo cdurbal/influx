@@ -4,6 +4,7 @@
 // refusal of those functions is 42501 `forbidden`.
 import { sql } from "drizzle-orm";
 import type { BusinessRole, Transaction } from "../../../db/index.ts";
+import { isForbidden } from "../action-guards.ts";
 import type { StoredApolloSetting } from "../apollo-settings.ts";
 import { ISO_UTC } from "../sql-formats.ts";
 
@@ -14,6 +15,8 @@ export const DUAL_CONTROL_ACTION_CODES = [
   "identity.invite_admin",
   "leads.change_apollo_setting",
   "privacy.approve_data_request",
+  // 0231: opened by verification.request_badge_revocation() only (never by request_dual_control)
+  "verification.revoke_badge",
 ] as const;
 export type DualControlActionCode = (typeof DUAL_CONTROL_ACTION_CODES)[number];
 
@@ -148,6 +151,29 @@ export async function approveDataRequestExecution(
                  ${sessionId}::uuid, ${requestId}::uuid, ${call.dataRequestId}::uuid,
                  ${call.requestType}::backoffice.data_request_type, ${call.reasonCode})`,
   );
+}
+
+/**
+ * 0231 (08 RG73 to RG76; modele point 4): verification.revoke_badge(), by the confirmer. It checks R on
+ * the session of the request, consumes the confirmed 2V once for exactly this account, badge and
+ * reason, withdraws the badge (and the audience badges a « Compte vérifié » carries), derives the
+ * public row again and queues the e-mail. Returns the mode the database recorded.
+ */
+export async function revokeBadge(
+  tx: Transaction,
+  sessionId: string,
+  requestId: string,
+  call: { badgeId: string; reasonCode: string },
+): Promise<DualControlMode> {
+  const rows = await tx.execute<{ mode: string }>(
+    sql`select verification.revoke_badge(${sessionId}::uuid, ${requestId}::uuid,
+                                         ${call.badgeId}::uuid, ${call.reasonCode}) as mode`,
+  );
+  const mode = rows[0]?.mode;
+  if (mode !== "peer" && mode !== "degraded_single_operator") {
+    throw new Error("verification.revoke_badge returned no mode");
+  }
+  return mode;
 }
 
 /** 0132 (EC-J8-17): identity.change_member_role(), creator to advertiser, by the confirmer. */
@@ -307,6 +333,20 @@ export type DualControlTargetRow =
       email: string;
       role: "agent" | "admin";
       createdAt: string;
+    }
+  | {
+      /** 0231 read_badge_revocation(): what a withdrawal reaches, never a figure nor a handle. */
+      kind: "badge";
+      accountId: string;
+      badgeId: string;
+      level: "account_verified" | "audience_verified" | "brand_verified";
+      networkCode: string | null;
+      badgeState: string;
+      memberMessage: string | null;
+      cascadeCount: number;
+      memberRole: "advertiser" | "creator";
+      countryCode: string;
+      companyName: string | null;
     };
 
 /** PD1: the account of a 2V action, member or internal; null when it cannot be read. */
@@ -356,6 +396,85 @@ export async function dualControlAccountTarget(
     createdAt: row.created_at,
     companyName: row.company_name,
   };
+}
+
+/**
+ * PD1 (0231 verification.read_badge_revocation(), admin in aal2): the badge a withdrawal names, with
+ * its message to the member and the audience badges it carries along, and the member it belongs to.
+ * Null when the database refuses the read (an unknown request, the caller's own account): the
+ * refusal is taken in a savepoint, so the transaction stays readable.
+ */
+export async function badgeRevocationTarget(
+  tx: Transaction,
+  requestId: string,
+): Promise<DualControlTargetRow | null> {
+  let row:
+    | {
+        badge_id: string;
+        account_id: string;
+        level: "account_verified" | "audience_verified" | "brand_verified";
+        network_code: string | null;
+        badge_state: string;
+        member_message: string | null;
+        cascade_count: number;
+        member_role: "advertiser" | "creator" | null;
+        country_code: string;
+        company_name: string | null;
+      }
+    | undefined;
+  try {
+    [row] = await tx.transaction((savepoint) =>
+      savepoint.execute<NonNullable<typeof row>>(sql`
+        select r.badge_id::text as badge_id, r.account_id::text as account_id, r.level::text as level,
+               r.network_code, r.badge_state, r.member_message,
+               coalesce(cardinality(r.cascade_badge_ids), 0)::integer as cascade_count,
+               (select m.role::text from identity.account_roles m
+                 where m.account_id = r.account_id and m.role in ('advertiser', 'creator')
+                 order by m.role limit 1) as member_role,
+               a.country_code::text as country_code, p.legal_name as company_name
+          from verification.read_badge_revocation(${requestId}::uuid) r
+          join identity.accounts a on a.id = r.account_id
+          left join profiles.advertiser_profiles p on p.account_id = r.account_id`),
+    );
+  } catch (error) {
+    if (isForbidden(error)) {
+      return null;
+    }
+    throw error;
+  }
+  if (row === undefined || row.member_role === null) {
+    return null;
+  }
+  return {
+    kind: "badge",
+    accountId: row.account_id,
+    badgeId: row.badge_id,
+    level: row.level,
+    networkCode: row.network_code,
+    badgeState: row.badge_state,
+    memberMessage: row.member_message,
+    cascadeCount: row.cascade_count,
+    memberRole: row.member_role,
+    countryCode: row.country_code,
+    companyName: row.company_name,
+  };
+}
+
+/**
+ * The salesperson who HOLDS the account a withdrawal reaches (`identity.accounts.owner_agent_id`), null
+ * when nobody does, or when the request is not a withdrawal: the confirmation of an account one holds
+ * is refused (15 RG36; the database refuses it too, 0231).
+ */
+export async function revocationAccountHolder(
+  tx: Transaction,
+  requestId: string,
+): Promise<string | null> {
+  const [row] = await tx.execute<{ owner_agent_id: string | null }>(sql`
+    select a.owner_agent_id::text as owner_agent_id
+      from backoffice.dual_control_requests r
+      join identity.accounts a on a.id = (r.payload ->> 'account_id')::uuid
+     where r.id = ${requestId}::uuid and r.action_code = 'verification.revoke_badge'`);
+  return row?.owner_agent_id ?? null;
 }
 
 /** PD1: the member account a "mes données" request comes from; null when unknown. */
