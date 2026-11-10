@@ -818,6 +818,58 @@ describe("L2F-13 the end of the grace of the brand's badge (06 RG54; 08 RG70; 02
   });
 });
 
+describe("L2F fix-1 the brand's badge renewable from its reminder window (08 RG70 « J-15 »; 06 RG54; 0240)", () => {
+  it("serves renewable once expiry minus badge_reminder_days is reached, false before it and once « à rafraîchir »", async () => {
+    const server = app();
+    const member = await newBrand();
+    const source = await registrySource("FR");
+    const [setting] = await migration<{ days: number }[]>`
+      select (value #>> '{}')::integer as days from backoffice.operational_settings
+       where key = 'badge_reminder_days'`;
+    const reminderDays = setting?.days ?? Number.NaN;
+    expect(reminderDays).toBeGreaterThan(1);
+    const [request] = await migration<{ id: string }[]>`
+      insert into verification.verification_requests (account_id, level, status)
+      values (${member.accountId}, 'brand_verified', 'pending') returning id::text`;
+    await migration`
+      update verification.verification_requests
+         set status = 'approved', decided_by_account_id = ${agent.accountId}, decided_at = now(),
+             closed_at = now()
+       where id = ${request?.id ?? null}`;
+    // one day before the window opens: not yet
+    await migration`
+      insert into verification.badges
+        (account_id, request_id, level, granted_by_account_id, granted_at, evidence_source,
+         registry_source_id, expires_at)
+      values (${member.accountId}, ${request?.id ?? null}, 'brand_verified', ${agent.accountId},
+              now() - interval '300 days', 'domain_and_registry', ${source},
+              now() + make_interval(days => ${reminderDays + 1}))`;
+    expect((await state(server, member)).badge).toMatchObject({
+      state: "active",
+      renewable: false,
+    });
+    // inside the window: renewable now, still active and with no grace
+    await migration`
+      update verification.badges
+         set expires_at = now() + make_interval(days => ${reminderDays - 1})
+       where account_id = ${member.accountId} and level = 'brand_verified'`;
+    expect((await state(server, member)).badge).toMatchObject({
+      state: "active",
+      renewable: true,
+      graceEndsAt: null,
+    });
+    // past its expiry, « à rafraîchir »: the refresh is the state's own, never `renewable`
+    await migration`
+      update verification.badges
+         set state = 'to_refresh', expires_at = now() - interval '1 day'
+       where account_id = ${member.accountId} and level = 'brand_verified'`;
+    expect((await state(server, member)).badge).toMatchObject({
+      state: "to_refresh",
+      renewable: false,
+    });
+  });
+});
+
 describe("L2E-B5 a country whose register cannot be read: a reasoned refusal, no degraded badge (06 RG52, CA29)", () => {
   it("serves the register of the country, refuses with the dedicated reason, and shows the brand its refusal without the agent's words (CA29)", async () => {
     const server = app();

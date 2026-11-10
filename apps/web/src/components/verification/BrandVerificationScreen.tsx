@@ -9,7 +9,8 @@
 // asked at the request and never before (RG47), in the internal layer; 3. the follow-up. The screen is
 // the API's own state read back (a request left half-way is taken back at its own screen); it grants
 // nothing: an INFLUX agent looks at the domain and at a public register by hand and decides (RG49,
-// RG52). The page of a brand: any other role finds no such page. This file draws; the steps and the
+// RG52). The follow-up shows the code again while it lives (a request an agent opened is sent at once,
+// D83; the TXT record or the page stays possible, L2FU-1). The page of a brand: any other role finds no such page. This file draws; the steps and the
 // refusals are brand-verification-view.ts, the gestures use-brand-journey.ts. No amount, rate, net or
 // price (D48, D78); the internal block is never written in a log nor kept in the browser (D37, RG48).
 import {
@@ -17,6 +18,7 @@ import {
   VERIFICATION_REGISTRATION_NUMBER_MAX_LENGTH,
   type BrandInternalDetails,
   type BrandVerificationResponse,
+  type OwnCode,
   type OwnRequest,
 } from "@influx/contracts/verification";
 import { notFound } from "next/navigation";
@@ -50,13 +52,13 @@ import {
 } from "@/components/member/ui/heading-classes";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
-import { ChevronLeftIcon, CopyIcon } from "@/components/ui/icons";
-import { copyText } from "@/browser/copy-text";
+import { ChevronLeftIcon } from "@/components/ui/icons";
 import { getLocalizedCountryOptions } from "@/content/country-codes";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
 import { BrandBadgeLine } from "./BrandBadgeLine";
 import { BrandRequestState } from "./BrandRequestState";
+import { CodeBox } from "./CodeBox";
 import {
   BRAND_STEP_COUNT,
   DETAILS_CONTROL_IDS,
@@ -80,8 +82,12 @@ import {
 } from "./use-brand-journey";
 import { useBrandVerification } from "./use-brand-verification";
 import {
+  doneUntilKeyOf,
   formatVerificationDate,
   isCancellable,
+  isRenewable,
+  requestedCodeOf,
+  rowRequestOf,
   type Failure,
 } from "./verification-view";
 
@@ -90,10 +96,6 @@ const SUBTITLE_CLASSES = cn(CARD_TITLE, "text-text-primary");
 const LIST_CLASSES =
   "flex list-disc flex-col gap-2 pl-5 text-md text-text-primary";
 const ACTIONS_CLASSES = "flex flex-wrap items-center gap-3";
-const CODE_BOX_CLASSES =
-  "flex flex-col gap-3 rounded-md border-(length:--border-width-thin) border-border-strong bg-surface-raised p-4";
-const CODE_CLASSES =
-  "select-all break-all font-mono text-title-section font-bold tracking-overline text-text-primary";
 
 type TitleRef = RefObject<HTMLHeadingElement | null>;
 
@@ -290,11 +292,22 @@ function Journey({
             <p>{t("brand.done.removeCode")}</p>
             {journey.badge.expiresAt === null ? null : (
               <p className={MEMBER_FIELD_HELP_CLASSES}>
-                {t("brand.done.until", {
+                {t(`brand.done.${doneUntilKeyOf(journey.badge)}`, {
                   date: formatVerificationDate(journey.badge.expiresAt, locale),
                 })}
               </p>
             )}
+            {isRenewable(journey.badge) ? (
+              // the reminder window is open (06 RG54, L2FU-2): a new request keeps the badge until it is decided
+              <div className={ACTIONS_CLASSES}>
+                <MemberButton
+                  onClick={gestures.start}
+                  aria-disabled={gestures.busy !== null}
+                >
+                  {t("brandBlock.cta.refresh")}
+                </MemberButton>
+              </div>
+            ) : null}
             <BackToProfile label={t("brand.done.back")} />
           </>
         ) : null}
@@ -391,8 +404,6 @@ function PublishStep({
   title: TitleRef;
 }) {
   const t = useTranslations("verification");
-  const locale = useLocale();
-  const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
   const [draft, setDraft] = useState<DetailsDraft>(() => detailsDraftOf(saved));
   const [showMissing, setShowMissing] = useState(false);
   const code = request.code;
@@ -430,58 +441,7 @@ function PublishStep({
         </>
       ) : (
         <>
-          <p>{t("brand.publish.intro")}</p>
-          <div className={CODE_BOX_CLASSES}>
-            <span className="text-sm font-semibold text-text-secondary">
-              {t("ownership.code.label")}
-            </span>
-            <code className={CODE_CLASSES} data-ownership-code="">
-              {code.code}
-            </code>
-            <div className={ACTIONS_CLASSES}>
-              <MemberButton
-                variant="secondary"
-                onClick={() => {
-                  void copyText(code.code).then((done) =>
-                    setCopy(done ? "copied" : "failed"),
-                  );
-                }}
-              >
-                <CopyIcon
-                  aria-hidden="true"
-                  className="size-(--size-icon-sm) shrink-0"
-                />
-                {t("ownership.code.copy")}
-              </MemberButton>
-              <span role="status" className="text-sm text-text-secondary">
-                {copy === "copied"
-                  ? t("ownership.code.copied")
-                  : copy === "failed"
-                    ? t("ownership.code.copyFailed")
-                    : null}
-              </span>
-            </div>
-          </div>
-          <p className={MEMBER_FIELD_HELP_CLASSES} data-code-validity="">
-            {t("verif.ownership.codeExpiry", {
-              date: formatVerificationDate(code.expiresAt, locale),
-            })}
-          </p>
-          <h3 className={SUBTITLE_CLASSES}>{t("brand.publish.ways.title")}</h3>
-          <ul className="flex flex-col gap-3" data-ways="">
-            <li className="flex flex-col gap-1">
-              <span className="font-semibold text-text-primary">
-                {t("brand.publish.ways.dns.title")}
-              </span>
-              <span>{t("brand.publish.ways.dns.text")}</span>
-            </li>
-            <li className="flex flex-col gap-1">
-              <span className="font-semibold text-text-primary">
-                {t("brand.publish.ways.page.title")}
-              </span>
-              <span>{t("brand.publish.ways.page.text")}</span>
-            </li>
-          </ul>
+          <BrandCode code={code} />
           <p>{t("brand.publish.public")}</p>
           <Notice tone="info" announce={false}>
             {t("brand.publish.neverAsk")}
@@ -506,10 +466,7 @@ function PublishStep({
             </MemberButton>
             <MemberButton
               variant="text"
-              onClick={() => {
-                setCopy("idle");
-                gestures.renew();
-              }}
+              onClick={gestures.renew}
               aria-disabled={busy}
             >
               {t("ownership.code.renew")}
@@ -521,6 +478,35 @@ function PublishStep({
           </p>
         </>
       )}
+    </>
+  );
+}
+
+/**
+ * The domain code and the two ways to publish it, a DNS TXT record or a page of the domain (06 RG51): the
+ * same block on screen 2 and, while it lives, on screen 3.
+ */
+function BrandCode({ code }: { code: OwnCode }) {
+  const t = useTranslations("verification");
+  return (
+    <>
+      <p>{t("brand.publish.intro")}</p>
+      <CodeBox key={code.code} code={code} />
+      <h3 className={SUBTITLE_CLASSES}>{t("brand.publish.ways.title")}</h3>
+      <ul className="flex flex-col gap-3" data-ways="">
+        <li className="flex flex-col gap-1">
+          <span className="font-semibold text-text-primary">
+            {t("brand.publish.ways.dns.title")}
+          </span>
+          <span>{t("brand.publish.ways.dns.text")}</span>
+        </li>
+        <li className="flex flex-col gap-1">
+          <span className="font-semibold text-text-primary">
+            {t("brand.publish.ways.page.title")}
+          </span>
+          <span>{t("brand.publish.ways.page.text")}</span>
+        </li>
+      </ul>
     </>
   );
 }
@@ -612,7 +598,11 @@ function CancelButton({
   );
 }
 
-/** Screen 3: the request is sent, an agent will check; the state stays visible in block 4 of the profile. */
+/**
+ * Screen 3: the request is sent, an agent will check; the state stays visible in block 4 of the profile.
+ * While its domain code lives, the code is shown again with the two ways (L2FU-1, the TXT fallback of a
+ * request an agent opened).
+ */
 function SentStep({
   request,
   requestedSince,
@@ -625,6 +615,7 @@ function SentStep({
   title: TitleRef;
 }) {
   const t = useTranslations("verification");
+  const code = requestedCodeOf(rowRequestOf(request));
   return (
     <>
       <h2 ref={title} tabIndex={-1} className={STEP_TITLE_CLASSES}>
@@ -636,6 +627,7 @@ function SentStep({
           state={{ kind: "requested", request, since: requestedSince }}
         />
       )}
+      {code === null ? null : <BrandCode code={code} />}
       <Notice tone="info" announce={false}>
         {t("brand.sent.keepCode")}
       </Notice>

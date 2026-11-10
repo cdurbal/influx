@@ -27,7 +27,12 @@ import {
   RetryLaterError,
 } from "../../platform/errors.ts";
 import { refreshStoredCreatorScore } from "../profiles/creator/profile.ts";
-import { graceEndOf, isInGrace } from "./badge-grace.ts";
+import {
+  graceEndOf,
+  isInGrace,
+  mayBeRenewable,
+  renewableOf,
+} from "./badge-grace.ts";
 import {
   cancelOwnRequest,
   openOwnRequest,
@@ -37,6 +42,7 @@ import {
   readOwnLiveCodes,
   readOwnRequest,
   readBadgeGraceDays,
+  readBadgeReminderDays,
   readOwnVerifiableLines,
   readVerificationInstant,
   renewOwnCode,
@@ -180,6 +186,10 @@ export async function readCreatorVerification(
   const graceDays = badges.some((badge) => isInGrace(badge.state))
     ? await readBadgeGraceDays(tx)
     : null;
+  // the days of the reminder window, only when an active badge with an expiry is held (08 RG70, 0240)
+  const reminderDays = badges.some((badge) => mayBeRenewable(badge))
+    ? await readBadgeReminderDays(tx)
+    : null;
   const requests = await readOwnCurrentRequests(tx);
   const codes = await readOwnLiveCodes(tx);
   const evidence = await readOwnEvidence(tx);
@@ -202,6 +212,12 @@ export async function readCreatorVerification(
             state: badge.state,
             expiresAt: badge.expiresAt,
             graceDays,
+          }),
+          renewable: renewableOf({
+            state: badge.state,
+            expiresAt: badge.expiresAt,
+            reminderDays,
+            asOf,
           }),
         })),
       requests: requests

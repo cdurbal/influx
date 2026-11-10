@@ -407,7 +407,8 @@
     },
     "done": {
       "title": "Audience vérifiée",
-      "until": "Ce badge arrive à échéance le {date}. Vous pourrez alors déposer une capture récente pour le conserver."
+      "until": "Ce badge arrive à échéance le {date}. Vous pourrez alors déposer une capture récente pour le conserver.",
+      "untilNow": "Ce badge arrive à échéance le {date}. Vous pouvez dès maintenant déposer une capture récente pour le conserver."
     }
   },
   "brandBlock": {
@@ -421,7 +422,8 @@
       "start": "Demander le badge",
       "resume": "Reprendre la demande",
       "restart": "Redemander le badge",
-      "refresh": "Rafraîchir le badge"
+      "refresh": "Rafraîchir le badge",
+      "see": "Voir la demande"
     }
   },
   "brand": {
@@ -509,6 +511,7 @@
       "title": "Marque vérifiée",
       "removeCode": "Le contrôle est enregistré : vous pouvez retirer le code de votre domaine.",
       "until": "Ce badge arrive à échéance le {date}. Vous pourrez alors le rafraîchir.",
+      "untilNow": "Ce badge arrive à échéance le {date}. Vous pouvez dès maintenant le rafraîchir.",
       "back": "Voir mon profil de marque"
     },
     "failure": {

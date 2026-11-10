@@ -4,13 +4,15 @@
 // never by the doors (the task of the worker, the 2V of the backoffice) it does not test. One connection
 // serves a whole seed (`withSql`), as every call of a case costs a connection otherwise. Nothing here is an
 // amount, a rate or a price.
-import { withSql, type Sql } from "./verification";
+import { randomInt } from "node:crypto";
+import { CODE_ALPHABET, withSql, type Sql } from "./verification";
 
 export { withSql, type Sql };
 
 const PROFILE_URLS: Readonly<Record<string, (handle: string) => string>> = {
   tiktok: (handle) => `https://www.tiktok.com/@${handle}`,
   youtube: (handle) => `https://www.youtube.com/@${handle}`,
+  twitch: (handle) => `https://www.twitch.tv/${handle}`,
 };
 
 /** A line of a network, with its handle and link: the creator's own, as the profile autosave leaves it. */
@@ -174,6 +176,33 @@ export async function seedRevokedBadge(
        where id = ${badgeId}`;
     return badgeId;
   });
+}
+
+/**
+ * The verification of a creator's account an agent opened for him (D83 A, 0234 open_request_for_member):
+ * the request sent at once, its origin and reason written, and its code issued, valid 7 days (L2FU-1).
+ * Returns the code, as the member must read it on screen 3.
+ */
+export async function seedAgentOpenedRequest(
+  sql: Sql,
+  accountId: string,
+  agentId: string,
+  networkCode: string,
+): Promise<string> {
+  const code = `INFLUX-${Array.from({ length: 8 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join("")}`;
+  const lineId = await lineIdOf(sql, accountId, networkCode);
+  const [request] = await sql<{ id: string }[]>`
+    insert into verification.verification_requests
+      (account_id, social_account_id, network_code, level, status, created_at, submitted_at,
+       sla_due_at, escalate_at, opened_by, opened_by_account_id, opening_reason_code)
+    values (${accountId}, ${lineId}, ${networkCode}, 'account_verified', 'pending',
+            now() - interval '1 hour', now() - interval '1 hour', now() + interval '1 day',
+            now() + interval '2 days', 'agent', ${agentId}, 'existing_client')
+    returning id::text`;
+  await sql`
+    insert into verification.ownership_codes (request_id, account_id, kind, code, expires_at)
+    values (${request?.id ?? ""}, ${accountId}, 'network', ${code}, now() + interval '7 days')`;
+  return code;
 }
 
 /** The contests of an account as the database holds them: what a contest filed on screen left. */

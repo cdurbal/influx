@@ -5,7 +5,8 @@
 // decided contest are written by the database as those doors would (support/verification-cycle.ts): what is
 // proven here is what the creator reads and does, never the doors. A line with a badge to refresh (the end
 // of its grace written, a redeposit offered WITHOUT the proof of ownership), a line to reconfirm, a refusal
-// contested (the confirmation, then the follow-up on the line). The withdrawn badge, its apologies and its
+// contested (the confirmation, then the follow-up on the line), a verification an agent opened (its code
+// read on screen 3, L2FU-1). The withdrawn badge, its apologies and its
 // contest, in English, extend the English case of verification-creator.spec.ts. No agent, no decider, no
 // amount, rate or price anywhere (D78).
 import { seedMember } from "./support/account";
@@ -24,6 +25,7 @@ import {
 import {
   disputesOf,
   graceEndOf,
+  seedAgentOpenedRequest,
   seedBadge,
   seedNetworkLine,
   seedRefusal,
@@ -56,9 +58,10 @@ test("a creator redeposits a badge to refresh without proving ownership again, s
   });
   await seedLines(accountId, false);
   const agent = await seedColleague("agent", "Noa");
-  const { requestId, graceEndAt } = await withSql(async (sql) => {
+  const { requestId, graceEndAt, openedCode } = await withSql(async (sql) => {
     await seedNetworkLine(sql, accountId, "tiktok", "camille_tt");
     await seedNetworkLine(sql, accountId, "youtube", "camille_yt");
+    await seedNetworkLine(sql, accountId, "twitch", "camille_tw");
     await seedBadge(sql, accountId, agent.accountId, {
       networkCode: "instagram",
       level: "account_verified",
@@ -83,6 +86,12 @@ test("a creator redeposits a badge to refresh without proving ownership again, s
         "ownership_not_proven",
       ),
       graceEndAt: (await graceEndOf(sql, accountId)).toISOString(),
+      openedCode: await seedAgentOpenedRequest(
+        sql,
+        accountId,
+        agent.accountId,
+        "twitch",
+      ),
     };
   });
 
@@ -125,6 +134,15 @@ test("a creator redeposits a badge to refresh without proving ownership again, s
   await expect(
     reconfirm.getByRole("link", { name: new RegExp(copy.line.cta.reconfirm) }),
   ).toHaveCount(1);
+
+  // A verification an agent opened (D83): sent at once, the row offers « Voir la demande » to the journey of
+  // the line (followed at the end of the case, L2FU-1).
+  const see = lineRow(page, "twitch").getByRole("link", {
+    name: new RegExp(copy.line.cta.see),
+  });
+  await expect(see).toHaveCount(1);
+  const seeHref = (await see.getAttribute("href")) ?? "";
+  expect(seeHref).toMatch(/\/propriete\?network=twitch$/);
 
   // A refusal, the window to contest it written in days from the setting, and the way there (RG77, CA52).
   const refused = lineRow(page, "tiktok");
@@ -220,4 +238,17 @@ test("a creator redeposits a badge to refresh without proving ownership again, s
     "deposit",
   );
   await expect(page).not.toHaveURL(/propriete/);
+
+  // « Voir la demande » of the verification an agent opened: screen 3, where the code is read with « Copier »
+  // and its validity; who opened it is not said (L2FU-1).
+  await open(page, seeHref);
+  await expect(page.locator("[data-step]")).toHaveAttribute(
+    "data-step",
+    "confirm",
+  );
+  await expect(page.locator("[data-ownership-code]")).toHaveText(openedCode);
+  await expect(
+    page.getByRole("button", { name: copy.ownership.code.copy }),
+  ).toBeVisible();
+  await expect(page.locator("[data-code-validity]")).toBeVisible();
 });

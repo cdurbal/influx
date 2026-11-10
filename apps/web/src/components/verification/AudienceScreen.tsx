@@ -64,11 +64,13 @@ import {
   EVIDENCE_MAX_MEBIBYTES,
   audienceJourneyOf,
   audienceStepNumberOf,
+  doneUntilKeyOf,
   expectedPieceKeyOf,
   formatByteSize,
   formatDelay,
   formatVerificationDate,
   isCancellable,
+  isRenewable,
   levelRowOf,
   lineOfNetwork,
   type AudienceJourney,
@@ -286,11 +288,22 @@ function Journey({
             <BadgeLine badge={journey.badge} network={network} />
             {journey.badge.expiresAt === null ? null : (
               <p>
-                {t("audience.done.until", {
+                {t(`audience.done.${doneUntilKeyOf(journey.badge)}`, {
                   date: formatVerificationDate(journey.badge.expiresAt, locale),
                 })}
               </p>
             )}
+            {isRenewable(journey.badge) ? (
+              // the reminder window is open (08 RG70 « J-15 », L2FU-2): the new deposit keeps the badge
+              <div className={ACTIONS_CLASSES}>
+                <MemberButton
+                  onClick={gestures.start}
+                  aria-disabled={gestures.busy !== null}
+                >
+                  {t("audience.affirm.continueRefresh")}
+                </MemberButton>
+              </div>
+            ) : null}
             <BackToProfile label={t("ownership.done.back")} />
           </>
         ) : null}

@@ -943,7 +943,12 @@ describe("T9.6-R influx_advertiser holds no right on `verification` nor on Stora
   it("names the tables of L2F: each one is swept, holds no right of the advertiser, and answers 42501", async () => {
     const sql = localSuperuser();
     const [catalogue] = await sql<
-      { tables: string[]; rights: string[]; grace: boolean }[]
+      {
+        tables: string[];
+        rights: string[];
+        grace: boolean;
+        reminder: boolean;
+      }[]
     >`
       select
         coalesce((select array_agg(c.relname::text order by 1) from pg_catalog.pg_class c
@@ -961,12 +966,15 @@ describe("T9.6-R influx_advertiser holds no right on `verification` nor on Stora
                               and pg_catalog.has_any_column_privilege('influx_advertiser',
                                     ('verification.' || t)::regclass, p)))), '{}')
           as rights,
-        -- the one function of L2F the advertiser executes (0237) is among those T9.6-F reads
+        -- the two functions of L2F the advertiser executes (0237, 0240) are among those T9.6-F reads
         pg_catalog.has_function_privilege('influx_advertiser',
-          'profiles.read_badge_grace_days()', 'EXECUTE') as grace`;
+          'profiles.read_badge_grace_days()', 'EXECUTE') as grace,
+        pg_catalog.has_function_privilege('influx_advertiser',
+          'profiles.read_badge_reminder_days()', 'EXECUTE') as reminder`;
     expect(catalogue?.tables).toEqual([...L2F_TABLES].sort());
     expect(catalogue?.rights).toEqual([]);
     expect(catalogue?.grace).toBe(true);
+    expect(catalogue?.reminder).toBe(true);
     const attempts = await inRolledBackTransaction(
       loginRole("influx_app"),
       async (tx) => {

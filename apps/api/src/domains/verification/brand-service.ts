@@ -34,8 +34,13 @@ import {
   submitOwnBrandRequest,
   type OwnBrandVerificationRow,
 } from "./brand/repository.ts";
-import { graceEndOf, isInGrace } from "./badge-grace.ts";
-import { readBadgeGraceDays } from "./repository.ts";
+import {
+  graceEndOf,
+  isInGrace,
+  mayBeRenewable,
+  renewableOf,
+} from "./badge-grace.ts";
+import { readBadgeGraceDays, readBadgeReminderDays } from "./repository.ts";
 import { refusalOf } from "./service.ts";
 
 /** The field of the contract each DETAIL of `internal_details_invalid` names (0222). */
@@ -88,7 +93,12 @@ async function through<T>(door: () => Promise<T>): Promise<T> {
   }
 }
 
-function badgeOf(row: OwnBrandVerificationRow, graceDays: number | null) {
+function badgeOf(
+  row: OwnBrandVerificationRow,
+  graceDays: number | null,
+  reminderDays: number | null,
+  asOf: string,
+) {
   if (row.badgeState === null || row.badgeGrantedAt === null) {
     return null;
   }
@@ -107,6 +117,13 @@ function badgeOf(row: OwnBrandVerificationRow, graceDays: number | null) {
       state: row.badgeState,
       expiresAt: row.badgeExpiresAt,
       graceDays,
+    }),
+    // 08 RG70 « J-15 », 06 RG54: an active badge whose reminder window is open may be refreshed now (0240)
+    renewable: renewableOf({
+      state: row.badgeState,
+      expiresAt: row.badgeExpiresAt,
+      reminderDays,
+      asOf,
     }),
   };
 }
@@ -179,9 +196,15 @@ export async function readBrandVerification(
     row.badgeState !== null && isInGrace(row.badgeState)
       ? await readBadgeGraceDays(tx)
       : null;
+  // the days of the reminder window, only while the badge is active (08 RG70, 0240)
+  const reminderDays =
+    row.badgeState !== null &&
+    mayBeRenewable({ state: row.badgeState, expiresAt: row.badgeExpiresAt })
+      ? await readBadgeReminderDays(tx)
+      : null;
   return brandVerificationResponseSchema.parse({
     asOf,
-    badge: badgeOf(row, graceDays),
+    badge: badgeOf(row, graceDays, reminderDays, asOf),
     request: requestOf(row),
     internalDetails: internalDetailsOf(row),
   });

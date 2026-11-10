@@ -406,6 +406,8 @@ describe("L2E-R1 GET /v1/me/verification: the lines, network by network (08 RG13
         expiresAt: null,
         // L2F commit 13: always present, null while the badge is current
         graceEndsAt: null,
+        // L2F fix-1: an account badge never expires, so it is never renewable (RG30, RG71)
+        renewable: false,
       },
     ]);
     // the approved request is the badge's: it is not shown a second time as a request
@@ -467,6 +469,76 @@ describe("L2F-13 the end of the grace of a badge (08 RG70, RG93; 0237)", () => {
       expect(days).toBeGreaterThan(0);
     }
     // the team has no door to it: it reads the parameter on the table it is granted
+    for (const role of ["agent", "admin"] as const) {
+      const refused = await inRolledBackTransaction(localSuperuser(), (tx) =>
+        actAsInternal(
+          tx,
+          `influx_${role}`,
+          { accountId: accountIdOf(role, "a"), role, aal: "aal2" },
+          async () => {
+            try {
+              await tx.savepoint((savepoint) => savepoint.unsafe(reading));
+              return null;
+            } catch (error) {
+              return (error as { code?: string }).code ?? null;
+            }
+          },
+        ),
+      );
+      expect(refused).toBe("42501");
+    }
+  });
+});
+
+describe("L2F fix-1 an audience badge renewable from its reminder window (08 RG70 « J-15 »; 0240)", () => {
+  it("serves renewable once expiry minus badge_reminder_days is reached, false before it, for an account badge and once « à rafraîchir »", async () => {
+    const server = app();
+    const [setting] = await migration<{ days: number }[]>`
+      select (value #>> '{}')::integer as days from backoffice.operational_settings
+       where key = 'badge_reminder_days'`;
+    const reminderDays = setting?.days ?? Number.NaN;
+    expect(reminderDays).toBeGreaterThan(1);
+    const cases = [
+      { state: "active", expiresInDays: reminderDays + 1, renewable: false },
+      { state: "active", expiresInDays: reminderDays - 1, renewable: true },
+      { state: "to_refresh", expiresInDays: -1, renewable: false },
+    ] as const;
+    for (const expected of cases) {
+      const member = await newMember("creator");
+      const line = await lineOf(member, "instagram");
+      await grantAccountBadge(member, line);
+      await grantAudienceBadge(
+        member,
+        line,
+        expected.state,
+        expected.expiresInDays,
+      );
+      const badges = (await state(server, member)).lines[0]?.badges ?? [];
+      expect(
+        badges.find((badge) => badge.level === "audience_verified"),
+        `${expected.state} ${expected.expiresInDays}`,
+      ).toMatchObject({ state: expected.state, renewable: expected.renewable });
+      // « Compte vérifié » never expires: never renewable (RG30, RG71)
+      expect(
+        badges.find((badge) => badge.level === "account_verified"),
+      ).toMatchObject({ state: "active", renewable: false });
+    }
+  });
+
+  it("lets a creator and an advertiser read the reminder days, and nobody else (0240)", async () => {
+    const reading = "select profiles.read_badge_reminder_days() as days";
+    for (const role of ["creator", "advertiser"] as const) {
+      const member = await newMember(role);
+      const days = await inRolledBackTransaction(localSuperuser(), (tx) =>
+        actAsMember(
+          tx,
+          `influx_${role}`,
+          { accountId: member.accountId, role, aal: "aal1" },
+          async () => (await tx.unsafe<{ days: number }[]>(reading))[0]?.days,
+        ),
+      );
+      expect(days).toBeGreaterThan(0);
+    }
     for (const role of ["agent", "admin"] as const) {
       const refused = await inRolledBackTransaction(localSuperuser(), (tx) =>
         actAsInternal(

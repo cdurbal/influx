@@ -215,7 +215,9 @@ test("a creator proves the ownership of a network account in French, from the li
         " \\d{1,2}(er)? \\S+ 20\\d\\d",
     ),
   );
-  await expect(accountRow(page).locator("a")).toHaveCount(0);
+  // the code still lives: the one link leads back to it (L2FU-1), never a second request
+  await expect(accountRow(page).locator("a")).toHaveCount(1);
+  await expect(accountRow(page).locator("a")).toContainText(copy.line.cta.see);
 
   // The agent refuses for a reason about a piece, which an ownership does not hold (`missing_evidence`
   // leaves no delay, 0222): the sentence reopens the proof, « Redemander » leads back to the first screen,

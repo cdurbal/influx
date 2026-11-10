@@ -54,6 +54,7 @@ function badge(
     evidenceSource: "domain_and_registry",
     expiresAt: "2027-03-03T10:15:00Z",
     graceEndsAt: null,
+    renewable: false,
     ...extra,
   };
 }
@@ -283,6 +284,43 @@ describe("block 4 of the profile: the one button, and the domain written before 
     expect(
       brandBlockOf(answer({ request: refused("other", "Un mot") }), true)
         .action,
+    ).toBeNull();
+  });
+
+  it("offers « Voir la demande » while the request waits with a domain code still alive, nothing once it ran out (L2FU-1)", () => {
+    const sent = { submittedAt: "2026-03-01T09:05:00Z" };
+    expect(
+      brandBlockOf(
+        answer({ request: request("pending", { ...sent, code: LIVE_CODE }) }),
+        false,
+      ),
+    ).toMatchObject({ action: "see", needsDomain: false });
+    expect(
+      brandBlockOf(answer({ request: request("pending", sent) }), true).action,
+    ).toBeNull();
+    expect(BRAND_CTA_KEYS.see).toBe("brandBlock.cta.see");
+    expect(frVerification.brandBlock.cta.see).toBe("Voir la demande");
+    expect(enVerification.brandBlock.cta.see).toBe("See the request");
+  });
+
+  it("offers the refresh of an active badge once the API says its reminder window is open (06 RG54, L2FU-2)", () => {
+    expect(
+      brandBlockOf(
+        answer({ badge: badge("active", { renewable: true }) }),
+        true,
+      ).action,
+    ).toBe("refresh");
+    expect(
+      brandBlockOf(
+        answer({ badge: badge("active", { renewable: true }) }),
+        false,
+      ),
+    ).toMatchObject({ action: null, needsDomain: true });
+    expect(
+      brandBlockOf(
+        answer({ badge: badge("active", { renewable: false }) }),
+        true,
+      ).action,
     ).toBeNull();
   });
 

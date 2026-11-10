@@ -4,12 +4,13 @@
 // jalons/l2e, commit 18): the proof of ownership of ONE network line, in three screens. 1. what the
 // badge states and does not state, and what the brands will read of it, BEFORE anything is asked;
 // 2. the code, « Copier », where to paste it, how long it is valid, what INFLUX never asks and what
-// it does not accept; 3. the confirmation. The screen is the API's own state read back (a request
+// it does not accept; 3. the confirmation, with the code while it lives (a request an agent opened is
+// sent at once with its code, D83, L2FU-1; who opened it is not said). The screen is the API's own state read back (a request
 // left half-way is taken back at its own screen); it grants nothing: an INFLUX agent reads the code
 // online and decides by hand (RG9, RG25). The page of a creator: any other role finds no such page.
 // This file draws; the steps and the refusals are verification-view.ts, the gestures
 // use-ownership-journey.ts. No amount, rate, net or price (D78); no identifier of the account.
-import type { OwnRequest } from "@influx/contracts/verification";
+import type { OwnCode, OwnRequest } from "@influx/contracts/verification";
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -38,11 +39,11 @@ import {
 } from "@/components/member/ui/heading-classes";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
-import { ChevronLeftIcon, CopyIcon } from "@/components/ui/icons";
-import { copyText } from "@/browser/copy-text";
+import { ChevronLeftIcon } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
 import { BadgeLine } from "./BadgeLine";
+import { CodeBox } from "./CodeBox";
 import { BackToProfile, FailureNotice, useNetworkName } from "./JourneyParts";
 import { RequestState } from "./RequestState";
 import { useCreatorVerification } from "./use-creator-verification";
@@ -57,6 +58,7 @@ import {
   levelRowOf,
   lineOfNetwork,
   ownershipJourneyOf,
+  requestedCodeOf,
   stepNumberOf,
   type OwnershipJourney,
   type RowRequest,
@@ -67,10 +69,6 @@ const SUBTITLE_CLASSES = cn(CARD_TITLE, "text-text-primary");
 const LIST_CLASSES =
   "flex list-disc flex-col gap-2 pl-5 text-md text-text-primary";
 const ACTIONS_CLASSES = "flex flex-wrap items-center gap-3";
-const CODE_BOX_CLASSES =
-  "flex flex-col gap-3 rounded-md border-(length:--border-width-thin) border-border-strong bg-surface-raised p-4";
-const CODE_CLASSES =
-  "select-all break-all font-mono text-title-section font-bold tracking-overline text-text-primary";
 
 type TitleRef = RefObject<HTMLHeadingElement | null>;
 
@@ -234,6 +232,8 @@ function Journey({
         ) : null}
         {journey.step === "confirm" && journey.request !== null ? (
           <ConfirmStep
+            network={network}
+            networkCode={networkCode}
             request={journey.request}
             gestures={gestures}
             title={title}
@@ -353,13 +353,7 @@ function CodeStep({
   title: TitleRef;
 }) {
   const t = useTranslations("verification");
-  const locale = useLocale();
-  const [copy, setCopy] = useState<"idle" | "copied" | "failed">("idle");
   const code = request.code;
-  const whereKey = `ownership.code.where.${networkCode}`;
-  const where = t.has(whereKey as Parameters<typeof t>[0])
-    ? t(whereKey as Parameters<typeof t>[0])
-    : t("ownership.code.where.other");
   const busy = gestures.busy !== null;
 
   return (
@@ -382,44 +376,11 @@ function CodeStep({
         </>
       ) : (
         <>
-          <p>{t("verif.ownership.instructions", { network })}</p>
-          <p>{where}</p>
-          <div className={CODE_BOX_CLASSES}>
-            <span className="text-sm font-semibold text-text-secondary">
-              {t("ownership.code.label")}
-            </span>
-            <code className={CODE_CLASSES} data-ownership-code="">
-              {code.code}
-            </code>
-            <div className={ACTIONS_CLASSES}>
-              <MemberButton
-                variant="secondary"
-                onClick={() => {
-                  void copyText(code.code).then((done) =>
-                    setCopy(done ? "copied" : "failed"),
-                  );
-                }}
-              >
-                <CopyIcon
-                  aria-hidden="true"
-                  className="size-(--size-icon-sm) shrink-0"
-                />
-                {t("ownership.code.copy")}
-              </MemberButton>
-              <span role="status" className="text-sm text-text-secondary">
-                {copy === "copied"
-                  ? t("ownership.code.copied")
-                  : copy === "failed"
-                    ? t("ownership.code.copyFailed")
-                    : null}
-              </span>
-            </div>
-          </div>
-          <p className={MEMBER_FIELD_HELP_CLASSES}>
-            {t("verif.ownership.codeExpiry", {
-              date: formatVerificationDate(code.expiresAt, locale),
-            })}
-          </p>
+          <OwnershipCode
+            network={network}
+            networkCode={networkCode}
+            code={code}
+          />
           <p>{t("ownership.code.public")}</p>
           <Notice tone="info" announce={false}>
             {t("verif.ownership.neverAsk")}
@@ -446,10 +407,7 @@ function CodeStep({
             </MemberButton>
             <MemberButton
               variant="text"
-              onClick={() => {
-                setCopy("idle");
-                gestures.renew(request.id);
-              }}
+              onClick={() => gestures.renew(request.id)}
               aria-disabled={busy}
             >
               {t("ownership.code.renew")}
@@ -461,6 +419,33 @@ function CodeStep({
           </p>
         </>
       )}
+    </>
+  );
+}
+
+/**
+ * What the member does with the code: where to paste it on this network, the code itself with « Copier »,
+ * and until when it is valid (RG21 to RG24). The same block on screen 2 and, while it lives, on screen 3.
+ */
+function OwnershipCode({
+  network,
+  networkCode,
+  code,
+}: {
+  network: string;
+  networkCode: string;
+  code: OwnCode;
+}) {
+  const t = useTranslations("verification");
+  const whereKey = `ownership.code.where.${networkCode}`;
+  const where = t.has(whereKey as Parameters<typeof t>[0])
+    ? t(whereKey as Parameters<typeof t>[0])
+    : t("ownership.code.where.other");
+  return (
+    <>
+      <p>{t("verif.ownership.instructions", { network })}</p>
+      <p>{where}</p>
+      <CodeBox key={code.code} code={code} />
     </>
   );
 }
@@ -487,19 +472,28 @@ function CancelButton({
   );
 }
 
-/** Screen 3: the request is sent, an agent will check; the state stays visible in the line of the network. */
+/**
+ * Screen 3: the request is sent, an agent will check; the state stays visible in the line of the network.
+ * While its code lives, the code is shown again with where to paste it (L2FU-1: a request an agent opened
+ * reaches the member here, never through screen 2).
+ */
 function ConfirmStep({
+  network,
+  networkCode,
   request,
   gestures,
   title,
   requested,
 }: {
+  network: string;
+  networkCode: string;
   request: OwnRequest;
   gestures: OwnershipJourneyGestures;
   title: TitleRef;
   requested: RowRequest | null;
 }) {
   const t = useTranslations("verification");
+  const code = requestedCodeOf(requested);
   return (
     <>
       <h2 ref={title} tabIndex={-1} className={STEP_TITLE_CLASSES}>
@@ -510,6 +504,13 @@ function ConfirmStep({
         <RequestState
           state={requested}
           context={{ level: "account_verified" }}
+        />
+      )}
+      {code === null ? null : (
+        <OwnershipCode
+          network={network}
+          networkCode={networkCode}
+          code={code}
         />
       )}
       <Notice tone="info" announce={false}>

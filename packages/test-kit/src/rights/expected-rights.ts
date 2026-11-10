@@ -4326,6 +4326,9 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // 0237 (L2F commit 13): the days of grace a member reads to serve the end of a badge « à rafraîchir ».
   "influx_advertiser|function|profiles.read_badge_grace_days()|EXECUTE",
   "influx_creator|function|profiles.read_badge_grace_days()|EXECUTE",
+  // 0240 (L2F fix-1, L2FU-2 answer A): the days of the reminder window a member reads to serve `renewable`.
+  "influx_advertiser|function|profiles.read_badge_reminder_days()|EXECUTE",
+  "influx_creator|function|profiles.read_badge_reminder_days()|EXECUTE",
   "influx_advertiser|function|profiles.renew_own_brand_verification_code()|EXECUTE",
   "influx_advertiser|function|profiles.save_own_brand_internal_details(text,text,text)|EXECUTE",
   "influx_advertiser|function|profiles.submit_own_brand_verification()|EXECUTE",
@@ -4441,6 +4444,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|profiles.open_own_brand_verification()|EXECUTE",
   "influx_identity_definer|function|profiles.read_own_brand_verification()|EXECUTE",
   "influx_identity_definer|function|profiles.read_badge_grace_days()|EXECUTE",
+  "influx_identity_definer|function|profiles.read_badge_reminder_days()|EXECUTE",
   "influx_identity_definer|function|profiles.renew_own_brand_verification_code()|EXECUTE",
   "influx_identity_definer|function|profiles.save_own_brand_internal_details(text,text,text)|EXECUTE",
   "influx_identity_definer|function|profiles.submit_own_brand_verification()|EXECUTE",
@@ -5581,6 +5585,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "profiles.read_own_brand_verification()": "influx_identity_definer",
   // 0237 (L2F commit 13): the grace days a member reads (creator and advertiser).
   "profiles.read_badge_grace_days()": "influx_identity_definer",
+  // 0240 (L2F fix-1): the reminder days a member reads (creator and advertiser).
+  "profiles.read_badge_reminder_days()": "influx_identity_definer",
   // 0223 (L2E commit 07): the five deposit doors; the trigger that follows a request and the expiry
   // of the codes (E-4); ops.claim_storage_purges() and complete_storage_purges() keep their 0205
   // lines (recreated, same signatures).

@@ -407,7 +407,8 @@
     },
     "done": {
       "title": "Audience verified",
-      "until": "This badge expires on {date}. You will then be able to upload a recent screenshot to keep it."
+      "until": "This badge expires on {date}. You will then be able to upload a recent screenshot to keep it.",
+      "untilNow": "This badge expires on {date}. You can upload a recent screenshot now to keep it."
     }
   },
   "brandBlock": {
@@ -421,7 +422,8 @@
       "start": "Request the badge",
       "resume": "Resume the request",
       "restart": "Request the badge again",
-      "refresh": "Refresh the badge"
+      "refresh": "Refresh the badge",
+      "see": "See the request"
     }
   },
   "brand": {
@@ -509,6 +511,7 @@
       "title": "Brand verified",
       "removeCode": "The check is recorded: you can remove the code from your domain.",
       "until": "This badge expires on {date}. You can then refresh it.",
+      "untilNow": "This badge expires on {date}. You can refresh it now.",
       "back": "See my brand profile"
     },
     "failure": {

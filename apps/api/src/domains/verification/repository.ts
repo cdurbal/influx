@@ -100,6 +100,22 @@ export async function readBadgeGraceDays(tx: Transaction): Promise<number> {
   return days;
 }
 
+/**
+ * The days before its expiry from which an active badge may be renewed (0240
+ * `profiles.read_badge_reminder_days()`, the parameter `badge_reminder_days`, 08 RG70 « J-15 »): a member
+ * reads no parameter, the door gives him this one number.
+ */
+export async function readBadgeReminderDays(tx: Transaction): Promise<number> {
+  const rows = await tx.execute<{ days: number }>(
+    sql`select profiles.read_badge_reminder_days() as days`,
+  );
+  const days = rows[0]?.days;
+  if (typeof days !== "number") {
+    throw new Error("profiles.read_badge_reminder_days returned no number");
+  }
+  return days;
+}
+
 /** The badges the creator reads on his lines: the displayed states only (08 RG70, RG76). */
 export async function readOwnBadges(tx: Transaction): Promise<OwnBadgeRow[]> {
   const rows = await tx.execute<{

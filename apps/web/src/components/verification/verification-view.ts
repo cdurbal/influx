@@ -384,15 +384,29 @@ export function isCancellable(request: OwnRequest): boolean {
 // --- What the row of a network line offers ---------------------------------------------------
 
 /** The label of the one action a level of a line offers, or null when there is none (`line.cta.*`). */
-export type RowAction = "start" | "resume" | "restart" | "renew" | "reconfirm";
+export type RowAction =
+  "start" | "resume" | "restart" | "renew" | "reconfirm" | "see";
 
 /**
- * The action of the ownership row (the audience's is commit 19's): nothing while a request waits for
- * an agent or once the badge stands; the badge to reconfirm asks for a new request (RG78).
+ * The code of a request sent and waiting for an agent, while it is still valid (the API serves a code
+ * only while it lives, RG21 to RG23), else null. A request an agent opened for the member is sent at
+ * once with its code (D83, modele §6): the member reads it on the third screen, never on a draft
+ * (L2FU-1). Who opened it is not served to the member, and is not said.
+ */
+export function requestedCodeOf(
+  request: RowRequest | null,
+): OwnRequest["code"] {
+  return request?.kind === "requested" ? request.request.code : null;
+}
+
+/**
+ * The action of the ownership row (the audience's is commit 19's): « Voir la demande » while a request
+ * waits for an agent with a code still to publish (L2FU-1), nothing once the code ran out or the badge
+ * stands; the badge to reconfirm asks for a new request (RG78).
  */
 export function ownershipActionOf(row: LevelRow): RowAction | null {
   if (row.request?.kind === "requested") {
-    return null;
+    return requestedCodeOf(row.request) === null ? null : "see";
   }
   if (row.request?.kind === "started") {
     return row.request.request.code === null ? "renew" : "resume";
@@ -538,8 +552,9 @@ export const AUDIENCE_STEP_COUNT = 3;
 
 /**
  * The button the audience row of a line offers (never before the ownership is established, RG12):
- * nothing while a request waits for an agent or once the badge stands; the badge to refresh asks for a
- * new request; a refusal that points at the evidence offers a new deposit (08 RG57).
+ * nothing while a request waits for an agent or once the badge stands outside its reminder window; the
+ * badge to refresh, or still active with its reminder window open (`renewable`, RG70 « J-15 », L2FU-2),
+ * asks for a new request; a refusal that points at the evidence offers a new deposit (08 RG57).
  */
 export type AudienceAction = "start" | "resume" | "restart" | "refresh";
 
@@ -556,11 +571,10 @@ export function audienceActionOf(
   if (!ownershipEstablished) {
     return null;
   }
-  if (row.badge?.state === "to_refresh") {
-    return "refresh";
-  }
   if (row.badge !== null) {
-    return null;
+    return row.badge.state === "to_refresh" || isRenewable(row.badge)
+      ? "refresh"
+      : null;
   }
   if (row.request?.kind === "expired") {
     return "restart";
@@ -586,6 +600,23 @@ export function audienceActionOf(
  */
 function canRestartAudience(view: RefusalView): boolean {
   return view.next === "redeposit" || view.next === "makePublic";
+}
+
+/**
+ * The badge is still active and its reminder window is open: the API says so (`renewable`, 0240), the
+ * front never counts the days (08 RG70 « J-15 », 06 RG54; L2FU-2).
+ */
+export function isRenewable(badge: OwnBadge | null): boolean {
+  return badge !== null && badge.state === "active" && badge.renewable;
+}
+
+/**
+ * The sentence under the deadline of an active badge, at the end of a journey: « Vous pourrez alors »
+ * before its reminder window, « Vous pouvez dès maintenant » once it is open (L2FU-2). The keys are
+ * `<scope>.done.until` and `<scope>.done.untilNow`, the scope being `audience` or `brand`.
+ */
+export function doneUntilKeyOf(badge: OwnBadge): "until" | "untilNow" {
+  return isRenewable(badge) ? "untilNow" : "until";
 }
 
 /** The key, in `verification`, of the label of each action of the audience row. */

@@ -475,6 +475,12 @@ export const ownBadgeSchema = z.strictObject({
    * Always present since L2F commit 13 (the routes of both populations serve it).
    */
   graceEndsAt: instantSchema.nullable(),
+  /**
+   * The badge is still active and its reminder window is open (`expiresAt` minus `badge_reminder_days`,
+   * 08 RG70 « J-15 », 06 RG54; `isInRenewalWindow` of packages/domain; 0240): a new request may be
+   * opened now and keeps it. False for any other state, and for a badge with no expiry.
+   */
+  renewable: z.boolean(),
 });
 export type OwnBadge = z.infer<typeof ownBadgeSchema>;
 

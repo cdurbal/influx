@@ -31,6 +31,7 @@ import {
   badgeKeysOf,
   badgeNoticeOf,
   canRestartOwnership,
+  doneUntilKeyOf,
   evidenceFailureOf,
   evidenceFileProblem,
   expectedPieceKeyOf,
@@ -42,12 +43,14 @@ import {
   hostLineIdsOf,
   isCancellable,
   isOwnershipEstablished,
+  isRenewable,
   levelRowOf,
   lineOfNetwork,
   missingIdentifierOf,
   ownershipActionOf,
   ownershipJourneyOf,
   refusalViewOf,
+  requestedCodeOf,
   stepNumberOf,
   type NextStep,
   type RefusalContext,
@@ -74,6 +77,7 @@ function badge(
       level === "audience_verified" ? "native_dashboard" : "public_profile",
     expiresAt: null,
     graceEndsAt: null,
+    renewable: false,
     ...extra,
   };
 }
@@ -527,6 +531,39 @@ describe("the one action of the ownership row", () => {
     expect(action([badge("account_verified", "active")], [])).toBeNull();
   });
 
+  it("offers « Voir la demande » for a request sent whose code still lives, as an agent opens it (L2FU-1)", () => {
+    const opened = request("pending", { ...SENT, code: LIVE_CODE });
+    expect(action([], [opened])).toBe("see");
+    expect(
+      requestedCodeOf(
+        levelRowOf(line([], [opened]), "account_verified").request,
+      ),
+    ).toEqual(LIVE_CODE);
+    // the journey takes it at the third screen, where the code is shown again
+    expect(ownershipJourneyOf(line([], [opened])).step).toBe("confirm");
+    expect(enVerification.line.cta.see).toBe("See the request");
+    expect(frVerification.line.cta.see).toBe("Voir la demande");
+  });
+
+  it("offers nothing for a request sent whose code ran out, and no code for a draft or a decided request (L2FU-1)", () => {
+    expect(action([], [request("pending", SENT)])).toBeNull();
+    expect(
+      requestedCodeOf(
+        levelRowOf(line([], [request("pending", SENT)]), "account_verified")
+          .request,
+      ),
+    ).toBeNull();
+    expect(
+      requestedCodeOf(
+        levelRowOf(
+          line([], [request("draft", { code: LIVE_CODE })]),
+          "account_verified",
+        ).request,
+      ),
+    ).toBeNull();
+    expect(requestedCodeOf(null)).toBeNull();
+  });
+
   it("offers to reconfirm a badge that asks for it, and to ask again only after a refusal that allows it", () => {
     expect(action([badge("account_verified", "to_reconfirm")], [])).toBe(
       "reconfirm",
@@ -745,6 +782,38 @@ describe("where the audience journey stands, read from the API (08 RG12, RG95, R
 describe("the button of the audience row (08 RG12, RG57)", () => {
   const rowOf = (held: CreatorVerificationLine) =>
     levelRowOf(held, "audience_verified");
+
+  it("offers the refresh of an active badge once the API says its reminder window is open, and says so at the end of the journey (08 RG70 « J-15 », L2FU-2)", () => {
+    const renewable = badge("audience_verified", "active", {
+      expiresAt: "2026-03-20T10:15:00Z",
+      renewable: true,
+    });
+    expect(isRenewable(renewable)).toBe(true);
+    expect(audienceActionOf(rowOf(line([OWNED, renewable])), true)).toBe(
+      "refresh",
+    );
+    expect(doneUntilKeyOf(renewable)).toBe("untilNow");
+    // the journey stays at its end, where the button is offered with the sentence
+    expect(audienceJourneyOf(line([OWNED, renewable])).stage).toBe("done");
+    const current = badge("audience_verified", "active", {
+      expiresAt: "2026-05-20T10:15:00Z",
+    });
+    expect(isRenewable(current)).toBe(false);
+    expect(audienceActionOf(rowOf(line([OWNED, current])), true)).toBeNull();
+    expect(doneUntilKeyOf(current)).toBe("until");
+    // the window is said by the API for an ACTIVE badge only
+    expect(
+      isRenewable(
+        badge("audience_verified", "to_refresh", { renewable: true }),
+      ),
+    ).toBe(false);
+    for (const scope of ["audience", "brand"] as const) {
+      expect(frVerification[scope].done.untilNow).toContain(
+        "Vous pouvez dès maintenant",
+      );
+      expect(enVerification[scope].done.untilNow).toContain("now");
+    }
+  });
 
   it("offers none before the ownership stands, and none while an agent has the request", () => {
     expect(audienceActionOf(rowOf(line()), false)).toBeNull();

@@ -13,7 +13,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/backoffice-auth.test.ts": 27,
   "tests/backoffice-queue-view.test.ts": 7,
   "tests/backoffice-sync-causes.test.ts": 5,
-  "tests/badge-grace.test.ts": 2,
+  "tests/badge-grace.test.ts": 4,
   "tests/badge-notice-email.test.ts": 12,
   "tests/brand-decision-email.test.ts": 23,
   "tests/brevo-connector.test.ts": 128,

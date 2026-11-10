@@ -21,7 +21,12 @@ import {
   type OwnRefusal,
   type OwnRequest,
 } from "@influx/contracts/verification";
-import { rowRequestOf, type RowRequest } from "./verification-view";
+import {
+  isRenewable,
+  requestedCodeOf,
+  rowRequestOf,
+  type RowRequest,
+} from "./verification-view";
 
 // --- The dated badge ---------------------------------------------------------------------------
 
@@ -167,7 +172,8 @@ export function brandStepNumberOf(stage: BrandStage): number {
 // --- Block 4 of the profile ----------------------------------------------------------------------------
 
 /** The one button of block 4, a link to the journey; the labels are `brandBlock.cta.*`. */
-export type BrandBlockAction = "start" | "resume" | "restart" | "refresh";
+export type BrandBlockAction =
+  "start" | "resume" | "restart" | "refresh" | "see";
 
 export type BrandBlock = BrandState & {
   action: BrandBlockAction | null;
@@ -179,8 +185,10 @@ export type BrandBlock = BrandState & {
 };
 
 /**
- * What block 4 offers. Nothing while a request waits for an agent or once the badge stands; a draft is
- * taken back whatever the profile holds; every NEW request needs the domain of the profile (CA26: the API
+ * What block 4 offers. « Voir la demande » while a request waits for an agent with a domain code still to
+ * publish (the TXT record or the page, L2FU-1), nothing once it ran out; nothing once the badge stands,
+ * unless it is to refresh or its reminder window is open (`renewable`, 06 RG54, L2FU-2); a draft is taken
+ * back whatever the profile holds; every NEW request needs the domain of the profile (CA26: the API
  * refuses it too, and says so).
  */
 export function brandBlockOf(
@@ -190,11 +198,14 @@ export function brandBlockOf(
   const state = brandStateOf(response);
   let action: BrandBlockAction | null;
   if (state.request?.kind === "requested") {
-    action = null;
+    action = requestedCodeOf(state.request) === null ? null : "see";
   } else if (state.request?.kind === "started") {
     action = "resume";
   } else if (state.badge !== null) {
-    action = isBrandRefresh(state.badge) ? "refresh" : null;
+    action =
+      isBrandRefresh(state.badge) || isRenewable(state.badge)
+        ? "refresh"
+        : null;
   } else if (state.request?.kind === "refused") {
     action = canRestartBrandRequest(brandRefusalViewOf(state.request.refusal))
       ? "restart"
@@ -215,6 +226,7 @@ export const BRAND_CTA_KEYS = {
   resume: "brandBlock.cta.resume",
   restart: "brandBlock.cta.restart",
   refresh: "brandBlock.cta.refresh",
+  see: "brandBlock.cta.see",
 } as const satisfies Record<BrandBlockAction, string>;
 
 // --- The internal block, as a form (06 RG46, RG47) ---------------------------------------------------------

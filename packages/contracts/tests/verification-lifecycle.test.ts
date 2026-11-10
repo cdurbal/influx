@@ -173,6 +173,7 @@ describe("L2F-11 the member's contest, closed (08 RG77, CA52; invariant 13)", ()
       periodEnd: "2026-08-30",
       evidenceSource: "native_dashboard",
       expiresAt: INSTANT,
+      renewable: false,
     };
     // L2F commit 13: the routes serve it, so a badge without it is no longer a badge
     expect(ownBadgeSchema.safeParse(badge).success).toBe(false);
@@ -184,6 +185,29 @@ describe("L2F-11 the member's contest, closed (08 RG77, CA52; invariant 13)", ()
     ).toBe(true);
     expect(
       ownBadgeSchema.safeParse({ ...badge, graceEndsAt: "soon" }).success,
+    ).toBe(false);
+  });
+
+  it("states whether the reminder window is open, always present, a boolean (L2F fix-1, 0240)", () => {
+    const badge = {
+      level: "audience_verified",
+      networkCode: "instagram",
+      state: "active",
+      grantedAt: INSTANT,
+      periodStart: "2026-08-01",
+      periodEnd: "2026-08-30",
+      evidenceSource: "native_dashboard",
+      expiresAt: INSTANT,
+      graceEndsAt: null,
+    };
+    expect(ownBadgeSchema.safeParse(badge).success).toBe(false);
+    for (const renewable of [true, false]) {
+      expect(ownBadgeSchema.safeParse({ ...badge, renewable }).success).toBe(
+        true,
+      );
+    }
+    expect(
+      ownBadgeSchema.safeParse({ ...badge, renewable: "yes" }).success,
     ).toBe(false);
   });
 });

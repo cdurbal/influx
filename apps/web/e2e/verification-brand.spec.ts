@@ -154,7 +154,9 @@ test("a brand asks for the badge « Marque vérifiée » in French, from the pro
         " \\d{1,2}(er)? \\S+ 20\\d\\d",
     ),
   );
-  await expect(block.locator("a")).toHaveCount(0);
+  // the domain code still lives: the one link leads back to it (L2FU-1), never a second request
+  await expect(block.locator("a")).toHaveCount(1);
+  await expect(block.locator("a")).toHaveText(copy.brandBlock.cta.see);
 
   // The agent refuses (the database writes what his door writes): the reason of the closed list, its
   // text, what to do next; asked again at once, the delay left is the real Retry-After (RG56, RG60).
