@@ -586,7 +586,7 @@ describe("L2F-11 a verification opened by an agent, and the proof by the login a
     );
   });
 
-  it("shows the origin to the agent in the dossier of queue 4, absent until commit 15, and adds the refusals of L2F", () => {
+  it("shows the origin to the agent in the dossier of queue 4, always present, and adds the refusals of L2F", () => {
     const dossier = {
       codeExpiresAt: null,
       creator: null,
@@ -596,7 +596,8 @@ describe("L2F-11 a verification opened by an agent, and the proof by the login a
       badges: [],
       alerts: [],
     };
-    expect(verificationDossierSchema.safeParse(dossier).success).toBe(true);
+    // L2F commit 15: the opening is served with every dossier, never optional
+    expect(verificationDossierSchema.safeParse(dossier).success).toBe(false);
     expect(
       verificationDossierSchema.safeParse({
         ...dossier,

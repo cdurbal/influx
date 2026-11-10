@@ -7,7 +7,8 @@
 //   both views   POST …/entries/:id/{release, extend, force-release, reexamine, reject}
 //   creators     POST …/entries/:id/{compare, grant-account, grant-audience},
 //                GET  …/entries/:id/evidence/:evidenceId
-//   brands       POST …/entries/:id/grant
+//   brands       POST …/entries/:id/grant, POST …/entries/:id/grant-by-login (D83 A-bis: the domain proven
+//                by the verified login address, read by the database, never typed nor served)
 // The rules are the database's (0224): each door locks the request, checks the live claim, the review
 // token and the typed values, and writes the decision, the register, the badge and the outbox in ONE
 // transaction. This file maps their refusals to codes (refusals.ts), and never a trace (invariant 17).
@@ -40,6 +41,7 @@ import {
   compareFiguresResponseSchema,
   grantAccountRequestSchema,
   grantAudienceRequestSchema,
+  grantBrandByLoginRequestSchema,
   grantBrandRequestSchema,
   grantVerificationResponseSchema,
   reexamineVerificationRequestSchema,
@@ -53,6 +55,7 @@ import {
   type CompareFiguresResponse,
   type GrantAccountRequest,
   type GrantAudienceRequest,
+  type GrantBrandByLoginRequest,
   type GrantBrandRequest,
   type GrantVerificationResponse,
   type ReexamineVerificationRequest,
@@ -98,6 +101,7 @@ import {
   grantAccountVerified,
   grantAudienceVerified,
   grantBrandVerified,
+  grantBrandVerifiedByLogin,
   nextRequestId,
   readEvidenceDescription,
   readEvidenceKey,
@@ -618,6 +622,46 @@ export function registerVerificationQueueDecisionRoutes(
                   registrySourceId: body.registrySourceId,
                   internalComment: body.internalComment ?? null,
                 }),
+            );
+            return granted === CONFLICT_OF_INTEREST
+              ? granted
+              : grantAnswer(tx, context, "brands", granted);
+          }),
+        );
+      },
+    );
+
+    // D83 A-bis: the same grant, without a code, a channel or a domain typed: the database reads the
+    // login address of the account (never the address, never its domain, in any answer)
+    app.post(
+      `/v1/bo/queues/${VIEW_SEGMENT.brands}/entries/:id/grant-by-login`,
+      {
+        schema: {
+          params: verificationEntryParamsSchema,
+          body: grantBrandByLoginRequestSchema,
+          response: { 200: grantVerificationResponseSchema },
+        },
+      },
+      async (request, reply): Promise<GrantVerificationResponse> => {
+        const requestId = idOf(request);
+        const body = request.body as GrantBrandByLoginRequest;
+        return unlessConflict(
+          await inSession(request, reply, async (tx, context) => {
+            const granted = await decided(
+              tx,
+              context,
+              "brands",
+              requestId,
+              (savepoint) =>
+                grantBrandVerifiedByLogin(
+                  savepoint,
+                  requestId,
+                  body.reviewToken,
+                  {
+                    registrySourceId: body.registrySourceId,
+                    internalComment: body.internalComment ?? null,
+                  },
+                ),
             );
             return granted === CONFLICT_OF_INTEREST
               ? granted

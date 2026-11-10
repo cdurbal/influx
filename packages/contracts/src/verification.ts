@@ -1062,6 +1062,8 @@ export const verificationQueueEntryRowSchema = z.strictObject({
   claim: entryClaimSchema,
   reexamine: verificationReexamineMarkSchema.nullable(),
   alerts: z.array(verificationQueueAlertCodeSchema),
+  /** Who opened the request (D83 A): the member himself, or an agent (the reason is in the dossier). */
+  openedBy: verificationOpenerSchema,
 });
 export type VerificationQueueEntryRow = z.infer<
   typeof verificationQueueEntryRowSchema
@@ -1176,8 +1178,8 @@ export const verificationDossierSchema = z.strictObject({
   history: z.array(verificationDossierHistorySchema),
   badges: z.array(verificationDossierBadgeSchema),
   alerts: z.array(verificationDossierAlertSchema),
-  /** Absent until the decision view serves it (L2F commit 15), then always present. */
-  opening: verificationOpeningSchema.optional(),
+  /** Who opened the request and why (D83 A), and whether the login address proves the domain (A-bis). */
+  opening: verificationOpeningSchema,
 });
 export type VerificationDossier = z.infer<typeof verificationDossierSchema>;
 

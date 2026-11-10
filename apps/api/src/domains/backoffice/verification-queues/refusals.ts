@@ -18,6 +18,10 @@
 // contest or an identifier change never escalates a grant) and `badge_not_holding`, all on the path
 // `entry`; `reflection_delay` carries the seconds left in its DETAIL, served on `entry.reflectionSeconds`
 // (the decider alone waits `dispute_reflection_hours`, the number is the database's, not a constant).
+// D83 (L2F commit 15, 0234): the grant on the login address says `login_address_ineligible` by MESSAGE
+// and its reason by DETAIL (`unverified`, `consumer_domain`, `other_domain`): 409 on `entry`, the reason
+// on `entry.loginAddress` (a word, never the address nor its domain). The opening of a verification by an
+// agent has its own reading, `openingRefusalOf` below.
 import type { DECISION_CONFLICT_ISSUES } from "@influx/contracts/backoffice-queues";
 import type { VerificationRefusalIssue } from "@influx/contracts/verification";
 import type { ValidationIssue } from "@influx/contracts/errors";
@@ -27,7 +31,11 @@ import {
   sqlMessageOf,
   sqlStateOf,
 } from "../../../db/sql-state.ts";
-import { ApiError, RequestValidationError } from "../../../platform/errors.ts";
+import {
+  ApiError,
+  RequestValidationError,
+  RetryLaterError,
+} from "../../../platform/errors.ts";
 import { isForbidden } from "../action-guards.ts";
 import { displayNameOf, wasDispossessed } from "./repository.ts";
 
@@ -55,6 +63,14 @@ const ENTRY_ISSUES: ReadonlySet<string> = new Set<VerificationRefusalIssue>([
 ]);
 
 const SECONDS_DETAIL = /^\d{1,9}$/;
+const INSTANT_DETAIL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+
+/** What the database says of a login address that does not prove the domain (0234, EC-L2F-09-6). */
+const LOGIN_ADDRESS_REASONS: ReadonlySet<string> = new Set([
+  "unverified",
+  "consumer_domain",
+  "other_domain",
+]);
 
 /** The body field each 22023 MESSAGE names. */
 const BODY_FIELD_OF: Readonly<Record<string, string>> = {
@@ -132,6 +148,101 @@ export function revocationRefusalOf(error: unknown): unknown {
   }
 }
 
+/** The fields of the internal block of a brand, as the body names them (DETAIL of `internal_details_invalid`). */
+const INTERNAL_FIELD_OF: Readonly<Record<string, string>> = {
+  legal_name: "legalName",
+  registration_country_code: "registrationCountryCode",
+  registration_number: "registrationNumber",
+};
+
+/** The issues the opening of a verification says in its DETAIL (55000, 23514), on the path `request`. */
+const OPENING_ISSUES: ReadonlySet<string> = new Set<VerificationRefusalIssue>([
+  "account_unavailable",
+  "already_verified",
+  "rejection_cap",
+  "website_domain_required",
+  "internal_details_required",
+]);
+
+/**
+ * The refusal of the opening of a verification by an agent (0234 verification.open_request_for_member(),
+ * D83 A), as the API answers it:
+ *   42501 (an unknown account, an internal one, the caller's own, a line that is not the account's, the
+ *         population of the level) the same 404 as an unknown address (T14.3, T14.4);
+ *   55000 by DETAIL: `account_unavailable`, `already_verified`, `rejection_cap`, a number of seconds
+ *         (`retry_after`, RG60: also a `Retry-After`), a date or the message `duplicate_request`;
+ *         409 on `request`;
+ *   23514 `website_domain_required`, `internal_details_required`: 409 on `request`;
+ *   22023 by MESSAGE `level`, `reason`, `opening_comment`: 400 on its body field;
+ *         `internal_details_invalid` by DETAIL: the field of the block (`invalid_internal_details`), or
+ *         the block already on the record (`internal_details_present`, on `internalDetails`).
+ * Anything else is returned unchanged (a 500).
+ */
+export function openingRefusalOf(error: unknown): unknown {
+  if (isForbidden(error)) {
+    return new ApiError("not_found");
+  }
+  const detail = sqlDetailOf(error);
+  switch (sqlStateOf(error)) {
+    case "55000":
+      if (detail !== null && SECONDS_DETAIL.test(detail)) {
+        return new RetryLaterError("conflict", Number(detail), [
+          { path: "request", issue: "retry_after" },
+        ]);
+      }
+      if (detail !== null && INSTANT_DETAIL.test(detail)) {
+        return conflict([
+          { path: "request", issue: "duplicate_request" },
+          { path: "submittedAt", issue: detail },
+        ]);
+      }
+      if (detail !== null && OPENING_ISSUES.has(detail)) {
+        return conflict([{ path: "request", issue: detail }]);
+      }
+      return sqlMessageOf(error) === "duplicate_request"
+        ? conflict([{ path: "request", issue: "duplicate_request" }])
+        : error;
+    case "23514":
+      return detail !== null && OPENING_ISSUES.has(detail)
+        ? conflict([{ path: "request", issue: detail }])
+        : error;
+    case "22023": {
+      const message = sqlMessageOf(error);
+      if (message === "level") {
+        return new RequestValidationError([
+          { path: "level", issue: "invalid_level" },
+        ]);
+      }
+      if (message === "reason") {
+        return new RequestValidationError([
+          { path: "openingReasonCode", issue: "invalid_reason" },
+        ]);
+      }
+      if (message === "opening_comment") {
+        return new RequestValidationError([
+          { path: "openingComment", issue: "invalid_opening_comment" },
+        ]);
+      }
+      if (message === "internal_details_invalid") {
+        if (detail === "internal_details_present") {
+          return new RequestValidationError([
+            { path: "internalDetails", issue: "internal_details_present" },
+          ]);
+        }
+        const field = detail === null ? undefined : INTERNAL_FIELD_OF[detail];
+        return field === undefined
+          ? error
+          : new RequestValidationError([
+              { path: field, issue: "invalid_internal_details" },
+            ]);
+      }
+      return error;
+    }
+    default:
+      return error;
+  }
+}
+
 /** The refusal of a door as the API answers it (see the header); anything else, unchanged (a 500). */
 export async function agentRefusalOf(
   tx: Transaction,
@@ -180,6 +291,16 @@ export async function agentRefusalOf(
         return conflict([
           { path: "entry", issue: "reflection_delay" },
           { path: "entry.reflectionSeconds", issue: detail },
+        ]);
+      }
+      if (
+        detail !== null &&
+        LOGIN_ADDRESS_REASONS.has(detail) &&
+        sqlMessageOf(error) === "login_address_ineligible"
+      ) {
+        return conflict([
+          { path: "entry", issue: "login_address_ineligible" },
+          { path: "entry.loginAddress", issue: detail },
         ]);
       }
       return detail !== null && ENTRY_ISSUES.has(detail)

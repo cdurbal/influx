@@ -87,28 +87,33 @@ export async function readCounters(
            (select count(*)::int from verification.verification_requests r
               join identity.accounts a on a.id = r.account_id
              where r.status = 'pending' and r.population = ${population}
-               and a.owner_agent_id is distinct from ${caller}::uuid) as pending,
+               and (a.owner_agent_id is distinct from ${caller}::uuid
+                    or r.opened_by = 'agent')) as pending,
            (select to_char(min(r.submitted_at) at time zone 'UTC', ${ISO_UTC})
               from verification.verification_requests r
               join identity.accounts a on a.id = r.account_id
              where r.status = 'pending' and r.population = ${population}
-               and a.owner_agent_id is distinct from ${caller}::uuid) as oldest,
+               and (a.owner_agent_id is distinct from ${caller}::uuid
+                    or r.opened_by = 'agent')) as oldest,
            (select count(*)::int from verification.verification_requests r
               join identity.accounts a on a.id = r.account_id
              where r.status = 'pending' and r.population = ${population}
                and r.sla_due_at < now()
-               and a.owner_agent_id is distinct from ${caller}::uuid) as overdue,
+               and (a.owner_agent_id is distinct from ${caller}::uuid
+                    or r.opened_by = 'agent')) as overdue,
            (select count(*)::int from verification.verification_requests r
               join identity.accounts a on a.id = r.account_id
              where r.status = 'pending' and r.population = ${population}
                and (r.claimed_by_account_id is null or r.claim_expires_at <= now())
-               and a.owner_agent_id is distinct from ${caller}::uuid) as unclaimed,
+               and (a.owner_agent_id is distinct from ${caller}::uuid
+                    or r.opened_by = 'agent')) as unclaimed,
            (select to_char(max(r.decided_at) at time zone 'UTC', ${ISO_UTC})
               from verification.verification_requests r
               join identity.accounts a on a.id = r.account_id
              where r.status in ('approved', 'rejected', 'closed')
                and r.population = ${population}
-               and a.owner_agent_id is distinct from ${caller}::uuid) as last_decided,
+               and (a.owner_agent_id is distinct from ${caller}::uuid
+                    or r.opened_by = 'agent')) as last_decided,
            p.target_decision_minutes as decision_minutes,
            p.target_claim_minutes as claim_target_minutes,
            p.escalate_after_minutes,
@@ -157,6 +162,8 @@ export type ListedEntry = {
   priorRejections: boolean;
   sameHandleElsewhere: boolean;
   handleVerifiedElsewhere: boolean;
+  /** Who opened the request (D83 A): `member` or `agent`. */
+  openedBy: string;
   /** The sort key, for the cursor: the primary text, the submission to the microsecond, the id. */
   cursor: { primary: string; submittedAt: string; id: string };
 };
@@ -184,6 +191,7 @@ type ListRow = {
   prior_rejections: boolean;
   same_handle: boolean;
   verified_elsewhere: boolean;
+  opened_by: string;
   cursor_primary: string;
   cursor_submitted: string;
 };
@@ -238,8 +246,9 @@ function conditionsOf(
   const conditions: SQL[] = [
     sql`r.status = 'pending'`,
     sql`r.population = ${POPULATION_OF[view]}`,
-    // 15 RG36, 08 RG53: a request of an account the caller holds is masked from him
-    sql`a.owner_agent_id is distinct from ${caller}::uuid`,
+    // 15 RG36, 08 RG53: a request of an account the caller holds is masked from him, but for one an
+    // agent opened (D83 Q4: the responsible agent may validate his own client)
+    sql`(a.owner_agent_id is distinct from ${caller}::uuid or r.opened_by = 'agent')`,
   ];
   if (filters.level !== undefined) {
     conditions.push(sql`r.level = ${filters.level}::verification.badge_level`);
@@ -316,7 +325,7 @@ export async function listEntries(
            to_char(r.claim_expires_at at time zone 'UTC', ${ISO_UTC}) as claim_expires_at,
            r.reexamine_reason_code,
            to_char(r.reexamined_at at time zone 'UTC', ${ISO_UTC}) as reexamined_at,
-           al.prior_rejections, al.same_handle, al.verified_elsewhere,
+           al.prior_rejections, al.same_handle, al.verified_elsewhere, r.opened_by,
            ${primaryKeyOf(sort)} as cursor_primary, ${SUBMITTED_KEY} as cursor_submitted
       from verification.verification_requests r
       join identity.accounts a on a.id = r.account_id
@@ -368,6 +377,7 @@ export async function listEntries(
     priorRejections: row.prior_rejections,
     sameHandleElsewhere: row.same_handle,
     handleVerifiedElsewhere: row.verified_elsewhere,
+    openedBy: row.opened_by,
     cursor: {
       primary: row.cursor_primary,
       submittedAt: row.cursor_submitted,
@@ -386,6 +396,8 @@ export type RequestTarget = {
   ownerAgentId: string | null;
   population: "creator" | "brand";
   status: string;
+  /** Who opened the request (D83 A): D83 Q4 lifts the refusal of a held account for `agent` only. */
+  openedBy: string;
 };
 
 /**
@@ -401,9 +413,10 @@ export async function requestTargetOf(
     owner_agent_id: string | null;
     population: "creator" | "brand";
     status: string;
+    opened_by: string;
   }>(sql`
     select r.account_id::text as account_id, a.owner_agent_id::text as owner_agent_id,
-           r.population, r.status::text as status
+           r.population, r.status::text as status, r.opened_by
       from verification.verification_requests r
       join identity.accounts a on a.id = r.account_id
      where r.id = ${requestId}::uuid and r.status <> 'draft'`);
@@ -415,6 +428,7 @@ export async function requestTargetOf(
         ownerAgentId: row.owner_agent_id,
         population: row.population,
         status: row.status,
+        openedBy: row.opened_by,
       };
 }
 
@@ -635,6 +649,11 @@ export type DossierRow = {
   recentRejections: number;
   sameHandleAccounts: number;
   handleVerifiedElsewhere: boolean;
+  openedBy: string;
+  openingReasonCode: string | null;
+  openingComment: string | null;
+  /** A-bis: null for a creator's request. */
+  loginAddressEligible: boolean | null;
 };
 
 /**
@@ -662,12 +681,17 @@ export async function readDossier(
     recent_rejections: number;
     same_handle_accounts: number;
     handle_verified_elsewhere: boolean;
+    opened_by: string;
+    opening_reason_code: string | null;
+    opening_comment: string | null;
+    login_address_eligible: boolean | null;
   }>(sql`
     select review_token,
            to_char(code_expires_at at time zone 'UTC', ${ISO_UTC}) as code_expires_at,
            handle, pseudonym, profile_url, trade_name, website_domain, legal_name,
            registration_country_code, registration_number, evidence, history, badges,
-           recent_rejections, same_handle_accounts, handle_verified_elsewhere
+           recent_rejections, same_handle_accounts, handle_verified_elsewhere,
+           opened_by, opening_reason_code, opening_comment, login_address_eligible
       from verification.read_request_dossier(${requestId}::uuid)`);
   const row = rows[0];
   if (row === undefined) {
@@ -690,6 +714,10 @@ export async function readDossier(
     recentRejections: row.recent_rejections,
     sameHandleAccounts: row.same_handle_accounts,
     handleVerifiedElsewhere: row.handle_verified_elsewhere,
+    openedBy: row.opened_by,
+    openingReasonCode: row.opening_reason_code,
+    openingComment: row.opening_comment,
+    loginAddressEligible: row.login_address_eligible,
   };
 }
 
@@ -950,6 +978,25 @@ export async function grantBrandVerified(
              ${input.observedDomain}, ${input.observedChannel},
              ${input.registrySourceId}::uuid, ${input.internalComment})`);
   return grantedOf(rows, "verification.grant_brand_verified");
+}
+
+/**
+ * D83 A-bis, 06 RG51: « Marque vérifiée » on the verified login address of the account (the database
+ * reads it, never says it): no code, no channel and no domain typed; the register is still consulted.
+ */
+export async function grantBrandVerifiedByLogin(
+  tx: Transaction,
+  requestId: string,
+  reviewToken: string,
+  input: { registrySourceId: string; internalComment: string | null },
+): Promise<GrantedRow> {
+  const rows = await tx.execute<GrantSqlRow>(sql`
+    select outcome, badge_id::text as badge_id,
+           to_char(decided_at at time zone 'UTC', ${ISO_UTC}) as decided_at, sla_breached
+      from verification.grant_brand_verified_by_login(
+             ${requestId}::uuid, ${reviewToken}, ${input.registrySourceId}::uuid,
+             ${input.internalComment})`);
+  return grantedOf(rows, "verification.grant_brand_verified_by_login");
 }
 
 /** 08 RG56, RG57, RG59: the refusal (or the closure of an unavailable account) with a typed reason. */

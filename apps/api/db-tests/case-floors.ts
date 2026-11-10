@@ -29,6 +29,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t14-backoffice-queue-route.test.ts": 55,
   "db-tests/t14-backoffice-route-inventory.test.ts": 6,
   "db-tests/t14-verification-badges-route.test.ts": 10,
+  "db-tests/t14-verification-opening-route.test.ts": 11,
   "db-tests/t14-verification-queue-route.test.ts": 37,
   "db-tests/t16-commission.test.ts": 36,
   "db-tests/t2-rls-matrix.test.ts": 29,

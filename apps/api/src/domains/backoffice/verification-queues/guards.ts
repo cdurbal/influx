@@ -61,13 +61,19 @@ export async function inSavepoint<T>(
   }
 }
 
-/** 08 RG53, 15 RG36 (0215): the caller HOLDS the account: refused, journaled, answered 403 after the commit. */
+/**
+ * 08 RG53, 15 RG36 (0215): the caller HOLDS the account: refused, journaled, answered 403 after the
+ * commit. D83 Q4 (0234, EC-L2F-09-1): not for a request an agent opened, which the responsible agent may
+ * validate for his own client; a member's request taken over keeps the refusal (`openedBy` stays
+ * `member`).
+ */
 export async function unlessHeld(
   tx: Transaction,
   context: BackofficeContext,
   target: RequestTarget,
 ): Promise<typeof CONFLICT_OF_INTEREST | null> {
-  return target.ownerAgentId === context.accountId
+  return target.ownerAgentId === context.accountId &&
+    target.openedBy !== "agent"
     ? conflictOfInterest(tx)
     : null;
 }

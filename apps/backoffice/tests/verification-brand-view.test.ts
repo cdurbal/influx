@@ -118,6 +118,12 @@ function brandViewOf(
       history: [],
       badges: [],
       alerts: [],
+      opening: {
+        openedBy: "member",
+        reasonCode: null,
+        comment: null,
+        loginAddressEligible: false,
+      },
     },
     reasons: [],
   });

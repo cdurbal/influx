@@ -30,6 +30,7 @@ import { registerCreatorProfileRoutes } from "./domains/profiles/creator/routes.
 import { registerVerificationRoutes } from "./domains/verification/routes.ts";
 import { registerBrandVerificationRoutes } from "./domains/verification/brand-routes.ts";
 import { registerVerificationBadgesRoutes } from "./domains/backoffice/verification-badges-routes.ts";
+import { registerVerificationOpeningRoutes } from "./domains/backoffice/verification-opening-routes.ts";
 import { registerVerificationRegistryRoutes } from "./domains/backoffice/verification-registry-routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
@@ -646,6 +647,7 @@ export function buildServer(
   // The badges of a member account and the request of their withdrawal, which opens a 2V an
   // administrator confirms (docs/mvp/08 RG73 to RG76; jalon L2F commit 13).
   registerVerificationBadgesRoutes(app, { database });
+  registerVerificationOpeningRoutes(app, { database });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

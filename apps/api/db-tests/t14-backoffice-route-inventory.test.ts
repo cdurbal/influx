@@ -209,6 +209,17 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   "POST /v1/bo/accounts/:id/badges/:badgeId/revocation": {
     body: { reasonCode: "forged_evidence" },
   },
+  // L2F 15 (D83): a verification opened by an agent for a member, and the grant on the login address
+  "POST /v1/bo/accounts/:id/verification-requests": {
+    body: {
+      level: "brand_verified",
+      socialAccountId: null,
+      openingReasonCode: "existing_client",
+    },
+  },
+  "POST /v1/bo/queues/verification-brands/entries/:id/grant-by-login": {
+    body: { reviewToken: "0".repeat(64), registrySourceId: NIL },
+  },
   // L2E 15: the registry sources of the brand's registration, read by agent and admin, written by admin
   "GET /v1/bo/verification/registry-sources": {},
   "PUT /v1/bo/verification/registry-sources/:id": {
@@ -649,6 +660,14 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
       { who: agent, id: otherAgent.accountId },
       { who: admin, id: admin.accountId },
     ],
+    // L2F 15: the opening for an internal account or the caller's own is the answer of an unknown account;
+    // the grant on the login address of the caller's own brand request, that of an unknown entry
+    "POST /v1/bo/accounts/:id/verification-requests": async () => [
+      { who: agent, id: otherAgent.accountId },
+      { who: admin, id: admin.accountId },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/grant-by-login":
+      async () => [{ who: agent, id: await ownVerificationRequest("brand") }],
     // An agent never writes a registry source (admin only, 0224): one that exists or not, the same 403.
     "PUT /v1/bo/verification/registry-sources/:id": async () => [
       { who: agent, id: await anyRegistrySource() },

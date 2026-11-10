@@ -203,6 +203,12 @@ describe("L2E-22: nothing is pre-filled, everything the agent typed is checked b
       history: [],
       badges: [],
       alerts: [],
+      opening: {
+        openedBy: "member",
+        reasonCode: null,
+        comment: null,
+        loginAddressEligible: false,
+      },
       declared: { followers: 86_000 },
     };
     expect(

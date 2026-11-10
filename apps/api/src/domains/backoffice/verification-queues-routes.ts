@@ -37,6 +37,7 @@ import {
   type VerificationEntriesSearch,
   type VerificationEntryParams,
   type VerificationOpenResponse,
+  type VerificationOpening,
   type VerificationQueueEntryRow,
   type VerificationQueueSort,
 } from "@influx/contracts/verification";
@@ -185,6 +186,7 @@ function rowOf(entry: ListedEntry, caller: string): VerificationQueueEntryRow {
             reexaminedAt: entry.reexamine.reexaminedAt,
           },
     alerts: alertCodesOf(entry),
+    openedBy: entry.openedBy as VerificationQueueEntryRow["openedBy"],
   };
 }
 
@@ -310,6 +312,13 @@ async function dossierOf(
       expiresAt: instantOf(badge.expires_at),
     })),
     alerts,
+    opening: {
+      openedBy: row.openedBy as VerificationOpening["openedBy"],
+      reasonCode: row.openingReasonCode as VerificationOpening["reasonCode"],
+      comment: row.openingComment,
+      // a creator's request has no login-address proof (null): nothing to offer
+      loginAddressEligible: row.loginAddressEligible === true,
+    },
   };
 }
 
