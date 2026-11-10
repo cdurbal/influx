@@ -30,5 +30,6 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/verification-brand.spec.ts": 2,
   "e2e/verification-creator.spec.ts": 4,
   "e2e/verification-lifecycle.spec.ts": 1,
+  "e2e/verification-revocation.spec.ts": 1,
   "e2e/vitrine-unchanged.spec.ts": 6,
 };

@@ -674,6 +674,91 @@ export const messages = {
     masked:
       "Les messages envoyés à la marque et les commentaires internes des décisions ne sont pas repris sur cette fiche.",
   },
+  /** L2F-18 (08 RG70, RG73 to RG77; 06 RG55; 15 RG75): the badges of an account and the ask for a withdrawal. */
+  accountBadges: {
+    title: "Badges de vérification",
+    lead: "Chaque badge du compte, quel que soit son état. Aucun chiffre ni identifiant de réseau n’est affiché ici. Un retrait se demande ici et se confirme, par un administrateur distinct, sur l’écran de double validation.",
+    tableLabel: "Badges du compte",
+    loading: "Chargement des badges…",
+    empty: "Aucun badge n’a été accordé à ce compte.",
+    error: "Les badges n’ont pas pu être chargés.",
+    columns: {
+      badge: "Badge",
+      state: "État",
+      granted: "Accordé le",
+      date: "Échéance",
+      action: "Retrait",
+    },
+    state: {
+      active: "actif",
+      to_refresh: "à rafraîchir",
+      to_reconfirm: "à reconfirmer",
+      expired: "expiré",
+      revoked: "retiré",
+      replaced: "remplacé",
+    } as Readonly<Record<string, string>>,
+    /** The date of the badge's end or expiry, written; « Compte vérifié » never expires (RG30). */
+    date: {
+      neverExpires: "sans échéance",
+      expires: (at: string) => `expire le ${at}`,
+      pastDue: (at: string) => `échéance dépassée le ${at}`,
+      dueOn: (at: string) => `échéance le ${at}`,
+      expired: (at: string) => `expiré le ${at}`,
+      revoked: (at: string) => `retiré le ${at}`,
+      replaced: (at: string) => `remplacé le ${at}`,
+    },
+    /** The reason of a withdrawal already executed, in the agent's words. */
+    revokedFor: (reason: string) => `motif : ${reason}`,
+    pending: {
+      pending:
+        "retrait demandé, en attente de la confirmation d’un administrateur",
+      confirmed: "retrait confirmé, en cours d’exécution",
+      degraded: "retrait confirmé en mode différé, en cours d’exécution",
+      cancelled: "dernière demande de retrait abandonnée : aucun effet",
+      consumed: "retrait exécuté",
+      expired: "dernière demande de retrait expirée : aucun effet",
+    } as Readonly<Record<string, string>>,
+    openRequest: "Voir la demande",
+    dispute: {
+      open: "contestation en cours",
+      upheld: "contestation tranchée : décision maintenue",
+      overturned: "contestation tranchée : décision infirmée",
+      withdrawn: "contestation retirée",
+    } as Readonly<Record<string, string>>,
+    requestWithdrawal: "Demander le retrait",
+    requestWithdrawalOf: (badge: string) => `Demander le retrait : ${badge}`,
+    formTitle: (badge: string) => `Demander le retrait du badge « ${badge} »`,
+    formLead:
+      "Aucun badge ne se retire directement : cette demande ouvre une double validation que confirme un administrateur distinct de vous.",
+    reason: "Motif du retrait",
+    reasonPlaceholder: "Choisissez un motif",
+    escalated:
+      "Ce motif est réservé à la décision d’un administrateur : lui seul confirme le retrait.",
+    memberMessage: (min: number, max: number) =>
+      `Message au membre (${min} à ${max} caractères, sans lien, adresse ni numéro)`,
+    memberMessageInvalid: (min: number, max: number) =>
+      `Écrivez un message de ${min} à ${max} caractères.`,
+    memberReceives: "Le membre recevra, par e-mail, cette phrase :",
+    recapTitle: "Ce que fera le retrait, une fois confirmé",
+    recap: {
+      withdrawn:
+        "Le badge disparaît aussitôt et la ligne publique du profil est recalculée.",
+      cascade:
+        "Un « Compte vérifié » retiré emporte avec lui les badges d’audience du même compte de réseau.",
+      notified: "Le membre est prévenu par e-mail, avec le motif.",
+      appeal:
+        "Un créateur peut contester le retrait dans le délai prévu ; une marque corrige et redépose.",
+      irreversible:
+        "Réversible : non. Ce retrait ne s’annule pas depuis le backoffice.",
+    },
+    submit: "Envoyer la demande à un administrateur",
+    busy: "Envoi…",
+    cancel: "Renoncer",
+    sentAgent:
+      "Demande envoyée. Un administrateur la confirme sur l’écran de double validation ; le badge reste affiché d’ici là.",
+    refused:
+      "Ce badge ne peut plus faire l’objet d’un retrait, ou un retrait est déjà demandé. La liste est rechargée.",
+  },
   apollo: {
     title: "Réglages Apollo",
     lead: "Chaque changement passe par une double validation, sur un écran distinct. Un changement réévalue les inscrits écartés.",
@@ -750,6 +835,7 @@ export const messages = {
       "leads.change_apollo_setting": "Changer un réglage Apollo",
       "privacy.approve_data_request":
         "Approuver l’exécution d’une demande « mes données »",
+      "verification.revoke_badge": "Retirer un badge de vérification",
     } as Readonly<Record<string, string>>,
     reasons: {
       member_request: "Demande du membre",
@@ -761,6 +847,14 @@ export const messages = {
       new_team_member: "Arrivée dans l’équipe",
       team_replacement: "Remplacement",
       request_instructed: "Demande instruite",
+      /** L2F-18 (08 RG73; 06 RG55): the reasons of a withdrawal of a badge, as the agent chose them. */
+      forged_evidence: "Pièce ou information inexacte",
+      account_closed: "Compte de réseau supprimé, fermé ou inaccessible",
+      owner_changed: "Compte de réseau passé à un autre titulaire",
+      terms_breach: "Manquement aux conditions d’utilisation",
+      influx_error: "Badge accordé par erreur par INFLUX",
+      company_dissolved: "Société radiée du registre public",
+      domain_transferred: "Domaine du site passé à un autre titulaire",
     } as Readonly<Record<string, string>>,
     consequences: {
       role_granted: "le rôle est attribué",
@@ -780,6 +874,14 @@ export const messages = {
       sessions_closed: "les sessions sont fermées",
       brevo_contact_deleted: "le contact Brevo est supprimé",
       auth_user_deleted: "l’identifiant de connexion est supprimé",
+      /** L2F-18 (08 RG76, RG77; 15 RG75): what a withdrawal does, said before the first gesture. */
+      badge_withdrawn: "le badge est retiré aussitôt",
+      audience_badge_withdrawn:
+        "les badges d’audience du même compte de réseau sont retirés avec lui",
+      public_row_recomputed:
+        "la ligne publique du profil est recalculée, sans le badge",
+      member_may_appeal:
+        "le créateur peut contester le retrait dans le délai prévu",
     } as Readonly<Record<string, string>>,
     target: {
       account: "Compte concerné",
@@ -795,6 +897,13 @@ export const messages = {
       invited: (email: string, role: string, date: string) =>
         `${email} · rôle proposé : ${role} · invitation du ${date}`,
       newBrand: "Nouvelle raison sociale",
+      /** L2F-18 (PD1): the badge a withdrawal reaches, by level, network and state, never by an identifier. */
+      badge: "Badge concerné",
+      badgeLine: (level: string, network: string | null, state: string) =>
+        `${level}${network === null ? "" : ` · ${network}`} · état : ${state}`,
+      holder: "Titulaire",
+      holderLine: (role: string, country: string) => `${role} · ${country}`,
+      memberMessage: "Message qui sera envoyé au membre",
       unreadable:
         "Objet introuvable : il n’existe plus ou n’est plus lisible. Ne confirmez pas sans l’avoir vérifié.",
     },

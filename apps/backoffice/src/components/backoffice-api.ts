@@ -93,7 +93,9 @@ import {
   type ReleaseEntryResponse,
 } from "@influx/contracts/backoffice-queues";
 import {
+  accountBadgesResponseSchema,
   compareFiguresResponseSchema,
+  requestBadgeRevocationResponseSchema,
   grantVerificationResponseSchema,
   reexamineVerificationResponseSchema,
   rejectVerificationResponseSchema,
@@ -102,6 +104,7 @@ import {
   verificationEvidenceReadResponseSchema,
   verificationOpenResponseSchema,
   verificationRegistrySourcesResponseSchema,
+  type AccountBadgesResponse,
   type CompareFiguresRequest,
   type CompareFiguresResponse,
   type GrantAccountRequest,
@@ -109,6 +112,8 @@ import {
   type GrantBrandRequest,
   type GrantVerificationResponse,
   type ReexamineVerificationRequest,
+  type RequestBadgeRevocationBody,
+  type RequestBadgeRevocationResponse,
   type ReexamineVerificationResponse,
   type RejectVerificationRequest,
   type RejectVerificationResponse,
@@ -216,6 +221,32 @@ export function readApolloSettings(): Promise<
     "GET",
     "/v1/bo/settings/apollo",
     apolloSettingsResponseSchema,
+  );
+}
+
+// --- Badges of an account and the ask for a withdrawal (08 RG73 to RG76; L2F-18) ----------------
+
+export function readAccountBadges(
+  id: string,
+): Promise<RelayResult<AccountBadgesResponse>> {
+  return callRelay(
+    "GET",
+    `/v1/bo/accounts/${idSegment(id)}/badges`,
+    accountBadgesResponseSchema,
+  );
+}
+
+/** Opens the 2V of the withdrawal: nothing is withdrawn here, an administrator confirms elsewhere. */
+export function requestBadgeRevocation(
+  accountId: string,
+  badgeId: string,
+  body: RequestBadgeRevocationBody,
+): Promise<RelayResult<RequestBadgeRevocationResponse>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/accounts/${idSegment(accountId)}/badges/${idSegment(badgeId)}/revocation`,
+    requestBadgeRevocationResponseSchema,
+    body,
   );
 }
 

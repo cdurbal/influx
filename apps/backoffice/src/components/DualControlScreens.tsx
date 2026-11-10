@@ -121,6 +121,40 @@ function TargetField({
           )}
         </>
       );
+    case "badge":
+      return (
+        <>
+          <Field label={label}>
+            {t.target.badgeLine(
+              messages.verificationQueue.levels[target.level],
+              target.networkCode === null
+                ? null
+                : (messages.verificationQueue.networks[target.networkCode] ??
+                    target.networkCode),
+              messages.accountBadges.state[target.badgeState] ??
+                target.badgeState,
+            )}{" "}
+            <Link
+              href={`/inscrits/${target.accountId}`}
+              className={LINK_CLASSES}
+            >
+              {t.openAccount}
+            </Link>
+          </Field>
+          <Field label={t.target.holder}>
+            {t.target.holderLine(
+              messages.roles[target.memberRole],
+              countryName(target.countryCode),
+            )}
+          </Field>
+          {target.companyName === null ? null : (
+            <Field label={t.target.legalName}>{target.companyName}</Field>
+          )}
+          {target.memberMessage === null ? null : (
+            <Field label={t.target.memberMessage}>{target.memberMessage}</Field>
+          )}
+        </>
+      );
     case "internal_account":
       return (
         <Field label={label}>
@@ -175,6 +209,8 @@ function ActionTarget({ view }: { view: DualControlViewBody }) {
           {apolloSettingWords(action.setting)}
         </Field>
       );
+    case "verification.revoke_badge":
+      return <TargetField view={view} label={t.target.badge} />;
   }
 }
 
