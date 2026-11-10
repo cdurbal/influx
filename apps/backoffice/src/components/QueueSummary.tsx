@@ -8,9 +8,11 @@
 // each queue, the only ones that can be (the threshold lies beyond the deadline): "at least" when capped.
 import {
   BRAND_REVIEW_QUEUE,
+  IDENTITY_CHANGE_QUEUE,
   QUEUE_PAGE_SIZE_MAX,
   VERIFICATION_BRANDS_QUEUE,
   VERIFICATION_CREATORS_QUEUE,
+  VERIFICATION_DISPUTES_QUEUE,
   type QueueCode,
 } from "@influx/contracts/backoffice-queues";
 import Link from "next/link";
@@ -19,6 +21,8 @@ import { messages } from "@/messages/fr";
 import { HELP_CLASSES, WARNING_CLASSES } from "./auth-classes";
 import {
   readBrandReviewEntries,
+  readDisputeEntries,
+  readIdentifierChangeEntries,
   readQueueCounters,
   readVerificationEntries,
 } from "./backoffice-api";
@@ -48,10 +52,14 @@ async function overdueOf(queue: QueueCode): Promise<Overdue | null> {
   const result =
     queue === BRAND_REVIEW_QUEUE
       ? await readBrandReviewEntries(query)
-      : await readVerificationEntries(
-          queue === VERIFICATION_CREATORS_QUEUE ? "creators" : "brands",
-          query,
-        );
+      : queue === VERIFICATION_DISPUTES_QUEUE
+        ? await readDisputeEntries(query)
+        : queue === IDENTITY_CHANGE_QUEUE
+          ? await readIdentifierChangeEntries(query)
+          : await readVerificationEntries(
+              queue === VERIFICATION_CREATORS_QUEUE ? "creators" : "brands",
+              query,
+            );
   return result.kind === "ok" ? { queue, page: result.data } : null;
 }
 
@@ -59,6 +67,8 @@ const QUEUES_SHOWN: readonly QueueCode[] = [
   BRAND_REVIEW_QUEUE,
   VERIFICATION_CREATORS_QUEUE,
   VERIFICATION_BRANDS_QUEUE,
+  VERIFICATION_DISPUTES_QUEUE,
+  IDENTITY_CHANGE_QUEUE,
 ];
 
 export function QueueSummary() {

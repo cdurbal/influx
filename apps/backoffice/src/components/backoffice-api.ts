@@ -95,7 +95,14 @@ import {
 import {
   accountBadgesResponseSchema,
   compareFiguresResponseSchema,
+  confirmIdentifierChangeResponseSchema,
+  decideDisputeResponseSchema,
+  disputeEntriesResponseSchema,
+  disputeOpenResponseSchema,
+  identifierChangeEntriesResponseSchema,
+  identifierChangeOpenResponseSchema,
   requestBadgeRevocationResponseSchema,
+  requireIdentifierProofResponseSchema,
   grantVerificationResponseSchema,
   reexamineVerificationResponseSchema,
   rejectVerificationResponseSchema,
@@ -107,6 +114,19 @@ import {
   type AccountBadgesResponse,
   type CompareFiguresRequest,
   type CompareFiguresResponse,
+  type ConfirmIdentifierChangeRequest,
+  type ConfirmIdentifierChangeResponse,
+  type DecideDisputeResponse,
+  type DisputeEntriesResponse,
+  type DisputeEntriesSearchBody,
+  type DisputeOpenResponse,
+  type IdentifierChangeEntriesResponse,
+  type IdentifierChangeEntriesSearchBody,
+  type IdentifierChangeOpenResponse,
+  type OverturnDisputeRequest,
+  type RequireIdentifierProofRequest,
+  type RequireIdentifierProofResponse,
+  type UpholdDisputeRequest,
   type GrantAccountRequest,
   type GrantAudienceRequest,
   type GrantBrandRequest,
@@ -773,6 +793,212 @@ export function saveRegistrySource(
     "PUT",
     `${REGISTRY_SOURCES}/${idSegment(id)}`,
     updateVerificationRegistrySourceResponseSchema,
+    body,
+  );
+}
+
+// --- Queue 5, the contests of a badge decision (08 RG77; 15 RG27 C1 to C8; l2f/modele.md §5; L2F-19) ----
+
+const DISPUTE_ENTRIES = "/v1/bo/queues/verification-disputes/entries";
+
+/** One page, filters, period, sort and cursor in the BODY (the relay refuses an instant in a query). */
+export function searchDisputeEntries(
+  body: DisputeEntriesSearchBody,
+): Promise<RelayResult<DisputeEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/search`,
+    disputeEntriesResponseSchema,
+    body,
+  );
+}
+
+/** The first page from a query of plain characters: the dashboard only asks for the overdue ones. */
+export function readDisputeEntries(
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<DisputeEntriesResponse>> {
+  return callRelay(
+    "GET",
+    DISPUTE_ENTRIES,
+    disputeEntriesResponseSchema,
+    undefined,
+    query,
+  );
+}
+
+/** Opening is claiming (15 C1): the dossier, the version token and the motives of the outcome. */
+export function openDisputeEntry(
+  id: string,
+): Promise<RelayResult<DisputeOpenResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/open`,
+    disputeOpenResponseSchema,
+  );
+}
+
+export function releaseDisputeEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendDisputeEntryClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseDisputeEntryClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/** « Confirmer la décision » (CA52): a motive of the upheld ones, the team's own text for `other`. */
+export function upholdDisputeEntry(
+  id: string,
+  body: UpholdDisputeRequest,
+): Promise<RelayResult<DecideDisputeResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/uphold`,
+    decideDisputeResponseSchema,
+    body,
+  );
+}
+
+/** « Infirmer » (CA53): by what was contested, with the identifier and the figures typed again. */
+export function overturnDisputeEntry(
+  id: string,
+  body: OverturnDisputeRequest,
+): Promise<RelayResult<DecideDisputeResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/overturn`,
+    decideDisputeResponseSchema,
+    body,
+  );
+}
+
+/** One piece of the dossier of a refusal, by the id the dossier served: a nominative line of the register. */
+export function readDisputeEvidence(
+  id: string,
+  evidenceId: string,
+): Promise<RelayResult<VerificationEvidenceReadResponse>> {
+  return callRelay(
+    "GET",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/evidence/${idSegment(evidenceId)}`,
+    verificationEvidenceReadResponseSchema,
+  );
+}
+
+// --- Queue 6, the identifiers changed after a verification (08 RG78; 15 RG29; L2F-19) -----------------
+
+const IDENTIFIER_ENTRIES = "/v1/bo/queues/identifier-changes/entries";
+
+export function searchIdentifierChangeEntries(
+  body: IdentifierChangeEntriesSearchBody,
+): Promise<RelayResult<IdentifierChangeEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/search`,
+    identifierChangeEntriesResponseSchema,
+    body,
+  );
+}
+
+export function readIdentifierChangeEntries(
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<IdentifierChangeEntriesResponse>> {
+  return callRelay(
+    "GET",
+    IDENTIFIER_ENTRIES,
+    identifierChangeEntriesResponseSchema,
+    undefined,
+    query,
+  );
+}
+
+/** Opening is claiming: the former and the new identifier come to the holder of the live claim only. */
+export function openIdentifierChangeEntry(
+  id: string,
+): Promise<RelayResult<IdentifierChangeOpenResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/open`,
+    identifierChangeOpenResponseSchema,
+  );
+}
+
+export function releaseIdentifierChangeEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendIdentifierChangeClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseIdentifierChangeClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/** « Même compte »: the handle typed must be the one declared; the badge is never rewritten. */
+export function confirmIdentifierChangeEntry(
+  id: string,
+  body: ConfirmIdentifierChangeRequest,
+): Promise<RelayResult<ConfirmIdentifierChangeResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/confirm`,
+    confirmIdentifierChangeResponseSchema,
+    body,
+  );
+}
+
+/** « Exiger une nouvelle preuve »: the badge goes to « à reconfirmer », the proof is asked in the member's space. */
+export function requireIdentifierProofEntry(
+  id: string,
+  body: RequireIdentifierProofRequest,
+): Promise<RelayResult<RequireIdentifierProofResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/require-proof`,
+    requireIdentifierProofResponseSchema,
     body,
   );
 }

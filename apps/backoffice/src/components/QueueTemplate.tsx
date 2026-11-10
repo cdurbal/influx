@@ -125,6 +125,8 @@ export type QueueTemplateProps<
   /** The empty state (15 RG32): "Aucune entrée en attente" by default, queue 4 says "demande". */
   emptyLine?: (counters: QueueCounters | null, asOf: string) => string;
   splitOverdue?: OverdueSplit;
+  /** Queues 5 and 6 carry no alert: the filter is neither offered nor sent (default: offered). */
+  withAlertFilter?: boolean;
 };
 
 type Load<Value> =
@@ -181,14 +183,19 @@ export function QueueTemplate<
     resultsLine,
     emptyLine,
     splitOverdue,
+    withAlertFilter = true,
   } = props;
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
-  const filters = useMemo(
-    () => filtersOf((name) => search.get(name), ownFilters),
-    [search, ownFilters],
-  );
+  const filters = useMemo(() => {
+    const found = filtersOf((name) => search.get(name), ownFilters);
+    return withAlertFilter
+      ? found
+      : Object.fromEntries(
+          Object.entries(found).filter(([key]) => key !== "alert"),
+        );
+  }, [search, ownFilters, withAlertFilter]);
   const paging = useMemo(() => pagingOf((name) => search.get(name)), [search]);
   // 05 RG97: a period that ends before it starts is said, never sent.
   const period = useMemo(
@@ -459,6 +466,7 @@ export function QueueTemplate<
       <QueueFilterBar
         filters={filters}
         own={ownFilters}
+        withAlert={withAlertFilter}
         onChange={change}
         onReset={() => go({})}
       />

@@ -108,6 +108,8 @@ export const messages = {
     brandReviewQueue: "Profils marque à valider",
     verificationCreators: "Vérifications créateurs",
     verificationBrands: "Vérifications marques",
+    verificationDisputes: "Contestations",
+    identifierChanges: "Identifiants modifiés",
     accounts: "Comptes",
     creatorSearch: "Créateurs",
     deals: "Affaires",
@@ -2404,6 +2406,373 @@ export const messages = {
       lead: "Ce que vous avez saisi sur cet écran (identifiant, chiffres, période, code, commentaire) sera perdu : rien n’en est gardé. La demande revient à la file.",
       confirm: "Rendre la main et perdre la saisie",
       keep: "Garder la demande",
+    },
+  },
+  /**
+   * L2F-19 (08 RG77, RG78, CA52 to CA54; 15 RG27 C1 to C8, RG29; 17b §2.7; jalons/l2f/modele.md §5):
+   * queues 5 and 6 as lists, each its own sub-entry of the rail. A state is written, the colour only
+   * underlines it. The lists carry no handle, no text of the creator, no figure (the dossier of the opening
+   * has them, and its reading is journaled by apps/api).
+   */
+  disputeQueue: {
+    lead: "Contestations d’un refus ou d’un retrait de badge, déposées par les créateurs dans leur fenêtre de recours. Ouvrir une contestation la prend en charge ; elle est tranchée par une autre personne que celle qui a décidé, ou, si l’équipe n’en compte qu’une, après un délai de réflexion.",
+    tableLabel: "Contestations de la file Contestations de badge",
+    overdueTableLabel:
+      "Contestations de la file Contestations de badge dont le SLA est dépassé",
+    openEntryOf: (name: string) => `Ouvrir la contestation de ${name}`,
+    unnamed: "Créateur sans alias",
+    columns: {
+      state: "État",
+      due: "SLA",
+      kind: "Décision contestée",
+      level: "Niveau",
+      network: "Réseau",
+      creator: "Créateur",
+      country: "Pays",
+      reason: "Motif du membre",
+      submitted: "Déposée le",
+      age: "Ancienneté",
+      owner: "Responsable",
+      holder: "Verrou",
+    },
+    kinds: { refusal: "Refus", revocation: "Retrait" },
+    reasons: {
+      misread: "Pièce ou profil mal lu",
+      evidence_valid: "Pièce conforme aux consignes",
+      reason_wrong: "Motif inadapté à la situation",
+      other: "Autre raison",
+    } as Readonly<Record<string, string>>,
+    filters: {
+      sort: "Tri",
+      level: "Niveau",
+      network: "Réseau",
+      kind: "Décision contestée",
+    },
+    resultsSorted: (count: number, sort: string) =>
+      `${count} ${count > 1 ? "contestations" : "contestation"} · ${sort}`,
+    empty: "Aucune contestation en attente.",
+    emptySince: (age: string) =>
+      `Aucune contestation en attente — la dernière a été traitée il y a ${age}.`,
+  },
+  identifierQueue: {
+    lead: "Identifiants de réseau modifiés par un créateur après la vérification de son compte. Le badge reste ; ouvrir l’entrée la prend en charge, puis vous constatez que c’est le même compte ou vous exigez une nouvelle preuve.",
+    tableLabel: "Entrées de la file Identifiants modifiés à contrôler",
+    overdueTableLabel:
+      "Entrées de la file Identifiants modifiés à contrôler dont le SLA est dépassé",
+    openEntryOf: (name: string) => `Ouvrir l’entrée de ${name}`,
+    unnamed: "Créateur sans alias",
+    columns: {
+      state: "État",
+      due: "SLA",
+      network: "Réseau",
+      creator: "Créateur",
+      country: "Pays",
+      changes: "Modifications",
+      opened: "Ouverte le",
+      lastChanged: "Dernière modification",
+      age: "Ancienneté",
+      owner: "Responsable",
+      holder: "Verrou",
+    },
+    filters: { sort: "Tri", network: "Réseau" },
+    changes: (count: number) =>
+      `${count} ${count > 1 ? "modifications" : "modification"}`,
+    resultsSorted: (count: number, sort: string) =>
+      `${count} ${count > 1 ? "entrées" : "entrée"} · ${sort}`,
+    empty: "Aucune entrée à contrôler.",
+    emptySince: (age: string) =>
+      `Aucune entrée à contrôler — la dernière a été traitée il y a ${age}.`,
+  },
+  /**
+   * L2F-19 (08 RG77, RG78, RG98; 15 RG27 C1 to C8; 17b §2.4 to §2.6): what queues 5 and 6 share on their
+   * decision screens (the banners, the refusals, the notices over the next entry). The sentences sent to the
+   * creator are never written here: they come from apps/api, from the very files of the e-mail.
+   */
+  claimedReview: {
+    back: "Retour à la file",
+    loading: "Ouverture du dossier…",
+    decider:
+      "Vous avez pris la décision contestée : une autre personne la tranchera. Vous pouvez seulement lire cette contestation.",
+    readOnly:
+      "Lecture seule : la décision appartient à la personne qui a pris le dossier en charge.",
+    release: "Je rends la main",
+    comment: "Commentaire interne (facultatif, 1 000 caractères au plus)",
+    commentHelp:
+      "Visible des seuls agents INFLUX : jamais du créateur, ni dans l’e-mail.",
+    busy: "Enregistrement…",
+    cancel: "Annuler",
+    notices: {
+      heldByOther:
+        "Un collègue vient de prendre ce dossier en charge : il est maintenant en lecture seule. Votre saisie est conservée.",
+      lifted:
+        "Votre prise en charge a été levée par un administrateur. Le dossier est rouvert, relisez-le avant de décider. Votre saisie est conservée.",
+      notHeld:
+        "Votre prise en charge n’était plus valable. Le dossier est rouvert, relisez-le avant de décider. Votre saisie est conservée.",
+      stale:
+        "Le dossier a changé depuis votre lecture : il est relu ci-dessous et rien n’a été enregistré. Relisez-le, puis décidez de nouveau. Votre saisie est conservée.",
+      closed: "Ce dossier a été clos entre-temps : rien n’a été enregistré.",
+    },
+    errors: {
+      forbidden:
+        "Vous n’avez pas le droit d’ouvrir ce dossier. La tentative a été enregistrée. Rôle requis : commercial ou administrateur.",
+      conflictOfInterest:
+        "Ce dossier est celui d’un compte dont vous êtes le responsable : vous ne pouvez ni le lire ni le décider. Un autre commercial le traitera.",
+      notFound: "Ce dossier n’existe pas ou n’est plus disponible.",
+      unavailable:
+        "Le dossier n’a pas pu être ouvert. Rien n’a été modifié. Réessayez dans quelques minutes.",
+    },
+    refusals: {
+      reviewerIsDecider:
+        "Vous avez pris la décision contestée : une autre personne doit trancher. Rien n’a été enregistré.",
+      reflectionDelay:
+        "Le délai de réflexion n’est pas écoulé : le décideur d’origine ne peut trancher seul qu’à l’issue de ce délai. Rien n’a été enregistré.",
+      restoreExpired:
+        "Le badge ne peut pas être rendu : son échéance d’origine est passée. Confirmez la décision avec le motif « nouvelle demande ».",
+      lineDeleted:
+        "Le créateur a supprimé cette ligne de réseau : le dossier est clos, rien n’a été enregistré.",
+      handleAlreadyVerified:
+        "Cet identifiant porte déjà un badge sur un autre compte : rien n’a été enregistré.",
+      badgeNotHolding:
+        "Le badge concerné n’est plus tenu : le dossier a changé, relisez-le. Rien n’a été enregistré.",
+      ownershipPrerequisite:
+        "Le compte n’a pas de badge « Compte vérifié » actif sur ce réseau : l’audience ne peut pas être rendue. Confirmez la décision avec le motif « nouvelle demande ».",
+      missingEvidence:
+        "La pièce du refus n’est plus conservée : confirmez la décision avec le motif « nouvelle demande ».",
+      handleMismatch:
+        "L’identifiant constaté ne correspond pas à l’identifiant que le créateur déclare. Relisez-le sur le profil ; s’il diffère, exigez une nouvelle preuve.",
+      accountUnavailable:
+        "Le compte n’est plus actif : rien n’a été enregistré.",
+    },
+    shortcuts: {
+      title: "Raccourcis de l’écran de décision",
+      button: "Raccourcis",
+      release:
+        "rendre la main et revenir à la file (une confirmation d’abord si une saisie est en cours)",
+      escape: "fermer le panneau en cours, sans perdre la saisie",
+      help: "afficher ou masquer ce rappel",
+    },
+    late: "La décision est marquée tardive : le délai était dépassé.",
+  },
+  disputeReview: {
+    title: (kind: string, network: string, level: string) =>
+      `Contestation — ${kind} · ${network} — ${level}`,
+    subtitle: (submittedAt: string) => `Contestation déposée le ${submittedAt}`,
+    sections: {
+      contest: "La contestation",
+      decision: "La décision contestée",
+      evidence: "Les pièces du refus",
+      outcome: "Décision",
+    },
+    facts: {
+      country: "Pays",
+      language: "Langue du compte",
+      owner: "Responsable",
+      network: "Réseau",
+      level: "Niveau",
+      kind: "Décision contestée",
+      reason: "Motif du membre",
+      text: "Texte du membre",
+      submitted: "Déposée le",
+      deciders: "Décideur d’origine",
+      creator: "Créateur",
+      handle: "Identifiant déclaré",
+      profile: "Profil public",
+    },
+    noText: "Le membre n’a pas écrit de texte.",
+    noOwner: "aucun",
+    unset: "non renseigné",
+    handleHelp:
+      "Pour retrouver le compte : jamais une valeur à recopier. Vous tapez ce que vous lisez.",
+    profileLink: "Ouvrir le profil public (nouvel onglet, sans être connecté)",
+    profileNoLink: "Aucun lien de profil public n’est enregistré.",
+    mode: {
+      independent:
+        "Examen par une autre personne que celle qui a décidé : vous pouvez trancher.",
+      delayed: (until: string) =>
+        `L’équipe n’a pas d’autre personne : le décideur d’origine tranche seul, à partir du ${until}.`,
+      delayedElapsed:
+        "L’équipe n’a pas d’autre personne : le décideur d’origine tranche seul, le délai de réflexion est écoulé.",
+    },
+    refusal: {
+      line: (reason: string, decidedAt: string) =>
+        `Refus du ${decidedAt} : ${reason}.`,
+      message: (text: string) => `Message envoyé au créateur : ${text}`,
+      codeExpires: (at: string) =>
+        `Le code de cette demande expirait le ${at} ; il n’est jamais montré.`,
+    },
+    revocation: {
+      line: (reason: string, revokedAt: string) =>
+        `Retrait du ${revokedAt} : ${reason}.`,
+      granted: (grantedAt: string) => `Badge accordé le ${grantedAt}.`,
+      expires: (expiresAt: string) => `Échéance d’origine : ${expiresAt}.`,
+      noExpiry: "Ce badge n’a pas d’échéance.",
+      message: (text: string) => `Message envoyé au créateur : ${text}`,
+      cascade: (count: number) =>
+        `${count} ${count > 1 ? "badges ont été retirés" : "badge a été retiré"} avec lui (l’audience tenue de la ligne).`,
+    },
+    decision: {
+      lead: "Deux issues : confirmer la décision avec un motif, ou l’infirmer. L’infirmation donne une nouvelle date au badge et vous retapez ce que vous constatez : rien n’est pré-rempli.",
+      uphold: "Confirmer la décision",
+      overturn: "Infirmer",
+      upholdTitle: "Confirmer la décision contestée",
+      upholdLegend: "Motif de l’issue (liste fermée)",
+      upholdRequired: "Choisissez un motif avant de confirmer.",
+      upholdConfirm: "Confirmer la décision",
+      messageToCreator: "Message envoyé au créateur :",
+      ownMessage: "Message au créateur (20 à 500 caractères, sans coordonnée)",
+      ownMessageHelp:
+        "Ce texte est envoyé tel quel au créateur, à la suite de la phrase ci-dessus.",
+      messageTooShort:
+        "Le message au créateur doit compter au moins 20 caractères.",
+      messageTooLong: "Le message au créateur dépasse 500 caractères.",
+      directContact:
+        "Le message contient une adresse, un numéro ou un lien : retirez-le, les coordonnées ne passent pas par ce message.",
+      invalidMessage:
+        "Le message au créateur est refusé : longueur ou contenu invalide.",
+      invalidReason:
+        "Le motif choisi n’est pas valide. Choisissez-en un autre.",
+      invalidComment:
+        "Le commentaire interne est refusé : 1 000 caractères au plus.",
+      overturnTitle: "Infirmer la décision contestée",
+      overturnLeadRefusalAccount:
+        "Vous retrouvez le code sur le profil public et le tapez avec l’identifiant que vous lisez : le badge « Compte vérifié » est accordé à la date du jour.",
+      overturnLeadRefusalAudience:
+        "Vous tapez ce que vous lisez sur la pièce du refus : identifiant, chiffres et période. Le badge « Audience vérifiée » est accordé, sa validité comptée depuis le jour du refus.",
+      overturnLeadRevocation:
+        "Vous tapez l’identifiant que vous lisez sur le profil : le badge retiré est rendu avec son échéance d’origine, et l’audience qu’il emportait avec lui.",
+      overturnConfirm: "Infirmer la décision",
+      handle: "Identifiant constaté sur le profil",
+      code: "Code lu sur le profil",
+      codeHelp: "INFLUX- suivi de huit signes, tel que vous le lisez.",
+      followers: "Abonnés constatés",
+      posts: "Publications des 30 derniers jours",
+      comments: "Commentaires moyens par publication",
+      engagement: "Engagement constaté (facultatif), en %",
+      engagementHelp: "Laissez vide s’il n’est pas lisible.",
+      noOutcomeReason:
+        "Aucun motif d’issue n’est servi : le dossier ne peut pas être confirmé ici.",
+      outcomeLabels: {
+        decision_confirmed: "Décision maintenue pour son motif initial",
+        new_request_needed: "Sans suite en l’état : nouvelle demande à déposer",
+        other: "Décision maintenue, avec un message de l’équipe",
+        decision_overturned: "Décision infirmée",
+      } as Readonly<Record<string, string>>,
+    },
+    closed: {
+      upheld: "Contestation tranchée : la décision est confirmée.",
+      overturned: "Contestation tranchée : la décision est infirmée.",
+      withdrawn: (cause: string) =>
+        `Contestation close sans décision : ${cause}.`,
+      causes: {
+        superseded: "un badge du même niveau a été accordé entre-temps",
+        line_deleted: "le créateur a supprimé la ligne de réseau",
+        account_erased: "le compte a été effacé",
+      } as Readonly<Record<string, string>>,
+      decidedBy: (name: string, at: string) => `Décidée par ${name}, le ${at}.`,
+      decidedAt: (at: string) => `Décidée le ${at}.`,
+      modes: {
+        independent:
+          "Examinée par une autre personne que le décideur d’origine.",
+        delayed:
+          "Examinée par le décideur d’origine, après le délai de réflexion.",
+      },
+      reason: (label: string) => `Motif : ${label}.`,
+      message: "Message envoyé au créateur :",
+      comment: "Commentaire interne :",
+    },
+    evidence: {
+      lead: "Les pièces du refus d’origine, tant qu’elles sont conservées. Chaque ouverture est une ligne nominative du registre.",
+      none: "Aucune pièce n’est conservée pour ce refus.",
+    },
+    notices: {
+      upheld: (kind: string, network: string) =>
+        `Contestation du ${kind.toLowerCase()} (${network}) : décision confirmée, le créateur est informé.`,
+      overturnedRefusal: (network: string) =>
+        `Refus infirmé (${network}) : le badge est accordé à la date du jour, le créateur est informé.`,
+      overturnedRevocation: (network: string) =>
+        `Retrait infirmé (${network}) : le badge est rendu, le créateur est informé.`,
+    },
+    shortcuts: {
+      keys: "‹v› infirmer (panneau) · ‹r› confirmer la décision (panneau) · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      overturn: "ouvrir le panneau d’infirmation (n’infirme jamais seul)",
+      uphold: "ouvrir le choix du motif (ne confirme jamais seul)",
+    },
+  },
+  identifierReview: {
+    title: (network: string) => `Identifiant modifié — ${network}`,
+    subtitle: (openedAt: string) => `Entrée ouverte le ${openedAt}`,
+    sections: {
+      change: "Le changement",
+      badges: "Badges en cours",
+      outcome: "Décision",
+    },
+    facts: {
+      country: "Pays",
+      language: "Langue du compte",
+      owner: "Responsable",
+      network: "Réseau",
+      previous: "Ancien identifiant",
+      current: "Nouvel identifiant",
+      changes: "Modifications depuis l’ouverture",
+      lastChanged: "Dernière modification",
+      creator: "Créateur",
+      profile: "Profil public",
+    },
+    internalOnly:
+      "Ces identifiants sont internes : jamais affichés au public, jamais dans une liste ni dans le registre.",
+    unknownPrevious: "inconnu",
+    noOwner: "aucun",
+    unset: "non renseigné",
+    profileLink: "Ouvrir le profil public (nouvel onglet, sans être connecté)",
+    profileNoLink: "Aucun lien de profil public n’est enregistré.",
+    badges: {
+      account: (state: string, grantedAt: string) =>
+        `« Compte vérifié » : ${state}, accordé le ${grantedAt}.`,
+      audience: (state: string, expires: string) =>
+        `« Audience vérifiée » : ${state}, ${expires}.`,
+      none: "Aucun badge n’est tenu sur cette ligne.",
+      expires: (at: string) => `échéance le ${at}`,
+      noExpiry: "sans échéance",
+    },
+    decision: {
+      lead: "Deux issues : constater que c’est le même compte (le badge reste), ou exiger une nouvelle preuve (le badge passe à « à reconfirmer » jusqu’à la reconfirmation).",
+      confirm: "Constater : même compte",
+      requireProof: "Exiger une nouvelle preuve",
+      confirmTitle: "Constater que c’est le même compte",
+      confirmLead:
+        "Vous tapez l’identifiant que vous lisez sur le profil public : il doit être celui que le créateur déclare. Le badge n’est pas réécrit et rien n’est envoyé au créateur.",
+      confirmConfirm: "Constater le même compte",
+      handle: "Identifiant constaté sur le profil",
+      proofTitle: "Exiger une nouvelle preuve",
+      proofLead:
+        "Le badge « Compte vérifié » et l’audience tenue de cette ligne passent à « à reconfirmer » : ils cessent d’être affichés, et le créateur est invité par e-mail à refaire la preuve depuis son espace.",
+      proofConfirm: "Exiger la preuve",
+    },
+    closed: {
+      confirmed: "Entrée traitée : même compte constaté, le badge reste.",
+      proof_required:
+        "Entrée traitée : nouvelle preuve exigée, le badge est à reconfirmer.",
+      withdrawn: (cause: string) => `Entrée close sans décision : ${cause}.`,
+      causes: {
+        reverted: "le créateur a repris l’ancien identifiant",
+        line_deleted: "le créateur a supprimé la ligne de réseau",
+        badge_ended: "le badge a pris fin",
+        account_erased: "le compte a été effacé",
+      } as Readonly<Record<string, string>>,
+      decidedBy: (name: string, at: string) => `Décidée par ${name}, le ${at}.`,
+      decidedAt: (at: string) => `Décidée le ${at}.`,
+      comment: "Commentaire interne :",
+    },
+    notices: {
+      confirmed: (network: string) =>
+        `Identifiant constaté (${network}) : même compte, le badge reste.`,
+      proof: (network: string) =>
+        `Nouvelle preuve exigée (${network}) : le badge passe à « à reconfirmer », le créateur est informé.`,
+    },
+    shortcuts: {
+      keys: "‹v› constater le même compte (panneau) · ‹r› exiger une nouvelle preuve (panneau) · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      confirm: "ouvrir le panneau du constat (ne constate jamais seul)",
+      proof: "ouvrir la demande de preuve (n’exige jamais seule)",
     },
   },
   /**

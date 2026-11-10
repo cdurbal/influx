@@ -6,7 +6,10 @@
 // opened one by one on request. Each opening is one nominative line of the register, and says so. The image
 // is drawn from a `blob:` URL: no link to it, no download, nothing outside the backoffice. A Storage that
 // does not answer is told with its cause, and the decision of an audience waits.
-import type { VerificationOpenResponse } from "@influx/contracts/verification";
+import type {
+  VerificationDossier,
+  VerificationOpenResponse,
+} from "@influx/contracts/verification";
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES } from "./auth-classes";
 import {
@@ -123,6 +126,49 @@ function Piece({
   );
 }
 
+/**
+ * The pieces of a dossier, each opened on request: shared by the decision screen of queue 4 and the one of
+ * the contests (queue 5), which relays the pieces of a refusal while they are kept (08 RG77).
+ */
+export function EvidencePieces({
+  evidence,
+  pieces,
+  blocked,
+  disabled,
+  onOpen,
+  onClose,
+}: {
+  evidence: VerificationDossier["evidence"];
+  pieces: Readonly<Record<string, PieceImage>>;
+  blocked: boolean;
+  disabled: boolean;
+  onOpen: (evidenceId: string) => void;
+  onClose: (evidenceId: string) => void;
+}) {
+  return (
+    <>
+      <ul className="flex flex-col gap-4">
+        {evidence.map((piece, index) => (
+          <Piece
+            key={piece.id}
+            at={index + 1}
+            total={evidence.length}
+            image={pieces[piece.id]}
+            disabled={disabled}
+            onOpen={() => onOpen(piece.id)}
+            onClose={() => onClose(piece.id)}
+          />
+        ))}
+      </ul>
+      {Object.values(pieces).some((piece) => piece.kind === "failed") &&
+      !blocked ? (
+        <ErrorNotice>{t.evidence.failed}</ErrorNotice>
+      ) : null}
+      {blocked ? <ErrorNotice>{t.evidence.blocked}</ErrorNotice> : null}
+    </>
+  );
+}
+
 export function EvidenceBlock({
   view,
   pieces,
@@ -153,27 +199,18 @@ export function EvidenceBlock({
           {mode === "deciding" ? (
             <p className={HELP_CLASSES}>{t.evidence.noneSuggestion}</p>
           ) : null}
+          {blocked ? <ErrorNotice>{t.evidence.blocked}</ErrorNotice> : null}
         </>
       ) : (
-        <ul className="flex flex-col gap-4">
-          {evidence.map((piece, index) => (
-            <Piece
-              key={piece.id}
-              at={index + 1}
-              total={evidence.length}
-              image={pieces[piece.id]}
-              disabled={mode !== "deciding"}
-              onOpen={() => onOpen(piece.id)}
-              onClose={() => onClose(piece.id)}
-            />
-          ))}
-        </ul>
+        <EvidencePieces
+          evidence={evidence}
+          pieces={pieces}
+          blocked={blocked}
+          disabled={mode !== "deciding"}
+          onOpen={onOpen}
+          onClose={onClose}
+        />
       )}
-      {Object.values(pieces).some((piece) => piece.kind === "failed") &&
-      !blocked ? (
-        <ErrorNotice>{t.evidence.failed}</ErrorNotice>
-      ) : null}
-      {blocked ? <ErrorNotice>{t.evidence.blocked}</ErrorNotice> : null}
     </section>
   );
 }

@@ -8,6 +8,8 @@
 // answer is not a failed piece: the decision of an audience waits (`decision_blocked`, `17b` l. 1235).
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { VerificationEvidenceReadResponse } from "@influx/contracts/verification";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 import { readVerificationEvidence } from "./backoffice-api";
 import { bytesOf } from "./use-review-logo";
 import { isDecisionBlocked } from "./verification-decision-view";
@@ -17,7 +19,16 @@ export type PieceImage =
   | { kind: "ready"; url: string; width: number; height: number }
   | { kind: "failed" };
 
-export function useVerificationEvidence(entryId: string) {
+/** `read` is the queue's own door to a piece: queue 4 by default, queue 5 for the pieces of a contested refusal. */
+export function useVerificationEvidence(
+  entryId: string,
+  read: (
+    entryId: string,
+    evidenceId: string,
+  ) => Promise<
+    RelayResult<VerificationEvidenceReadResponse>
+  > = readVerificationEvidence,
+) {
   const router = useRouter();
   const alive = useRef(false);
   const urls = useRef(new Map<string, string>());
@@ -58,7 +69,7 @@ export function useVerificationEvidence(entryId: string) {
       let image: PieceImage = { kind: "failed" };
       let storageDown = false;
       try {
-        const result = await readVerificationEvidence(entryId, evidenceId);
+        const result = await read(entryId, evidenceId);
         if (result.kind === "ok") {
           if (!alive.current) {
             return;
@@ -93,7 +104,7 @@ export function useVerificationEvidence(entryId: string) {
         setSeen((current) => new Set(current).add(evidenceId));
       }
     },
-    [entryId, forget, router],
+    [entryId, forget, read, router],
   );
 
   const close = useCallback(

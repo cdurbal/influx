@@ -442,7 +442,7 @@ function figuresCheck(draft: Draft): Checked<ObservedFigures> {
   };
 }
 
-function commentOf(draft: Draft): Checked<string | null> {
+export function commentOf(draft: Draft): Checked<string | null> {
   const comment = draft.internalComment.trim();
   if (comment.length > VERIFICATION_INTERNAL_COMMENT_MAX_LENGTH) {
     return fail("internalComment", t.decision.commentTooLong);
@@ -450,7 +450,7 @@ function commentOf(draft: Draft): Checked<string | null> {
   return { ok: true, body: comment === "" ? null : comment };
 }
 
-function handleOf(draft: Draft): Checked<string> {
+export function handleOf(draft: Draft): Checked<string> {
   const handle = draft.handle.trim();
   if (handle === "") {
     return fail("handle", t.problems.handle);

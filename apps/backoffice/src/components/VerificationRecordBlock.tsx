@@ -103,6 +103,65 @@ export function TypedField({
   );
 }
 
+/** The period displayed on the piece, both days typed (08 RG38bis): shared with the overturn of a refused audience. */
+export function PeriodFields({
+  draft,
+  problem,
+  onDraft,
+}: {
+  draft: Draft;
+  /** The problem of the field `period`, or null. */
+  problem: Problem | null;
+  onDraft: (next: Draft) => void;
+}) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-1 text-sm font-semibold text-text-primary">
+        {t.record.periodLegend}
+      </legend>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className={FIELD_CLASSES}>
+          <label
+            htmlFor="verification-record-period-start"
+            className="text-sm font-semibold text-text-primary"
+          >
+            {t.record.periodStart}
+          </label>
+          <input
+            id="verification-record-period-start"
+            type="date"
+            value={draft.periodStart}
+            aria-invalid={problem !== null || undefined}
+            onChange={(event) =>
+              onDraft({ ...draft, periodStart: event.target.value })
+            }
+            className={inputClasses(problem !== null)}
+          />
+        </div>
+        <div className={FIELD_CLASSES}>
+          <label
+            htmlFor="verification-record-period-end"
+            className="text-sm font-semibold text-text-primary"
+          >
+            {t.record.periodEnd}
+          </label>
+          <input
+            id="verification-record-period-end"
+            type="date"
+            value={draft.periodEnd}
+            aria-invalid={problem !== null || undefined}
+            onChange={(event) =>
+              onDraft({ ...draft, periodEnd: event.target.value })
+            }
+            className={inputClasses(problem !== null)}
+          />
+        </div>
+      </div>
+      {problem === null ? null : <ErrorNotice>{problem.text}</ErrorNotice>}
+    </fieldset>
+  );
+}
+
 function ComparisonTable({
   comparison,
   draft,
@@ -252,48 +311,11 @@ export function RecordBlock({
               onChange={(comments) => set({ comments })}
             />
           </div>
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1 text-sm font-semibold text-text-primary">
-              {t.record.periodLegend}
-            </legend>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className={FIELD_CLASSES}>
-                <label
-                  htmlFor="verification-record-period-start"
-                  className="text-sm font-semibold text-text-primary"
-                >
-                  {t.record.periodStart}
-                </label>
-                <input
-                  id="verification-record-period-start"
-                  type="date"
-                  value={draft.periodStart}
-                  aria-invalid={periodProblem !== null || undefined}
-                  onChange={(event) => set({ periodStart: event.target.value })}
-                  className={inputClasses(periodProblem !== null)}
-                />
-              </div>
-              <div className={FIELD_CLASSES}>
-                <label
-                  htmlFor="verification-record-period-end"
-                  className="text-sm font-semibold text-text-primary"
-                >
-                  {t.record.periodEnd}
-                </label>
-                <input
-                  id="verification-record-period-end"
-                  type="date"
-                  value={draft.periodEnd}
-                  aria-invalid={periodProblem !== null || undefined}
-                  onChange={(event) => set({ periodEnd: event.target.value })}
-                  className={inputClasses(periodProblem !== null)}
-                />
-              </div>
-            </div>
-            {periodProblem === null ? null : (
-              <ErrorNotice>{periodProblem.text}</ErrorNotice>
-            )}
-          </fieldset>
+          <PeriodFields
+            draft={draft}
+            problem={periodProblem}
+            onDraft={onDraft}
+          />
           <TypedField
             field="engagement"
             label={t.record.engagement}

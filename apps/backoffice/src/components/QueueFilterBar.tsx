@@ -67,9 +67,12 @@ export function QueueFilterBar({
   own,
   onChange,
   onReset,
+  withAlert = true,
 }: {
   filters: QueueFilters;
   own: readonly OwnFilter[];
+  /** Queues 5 and 6 carry no alert (08 RG63 names none for them): the filter is not offered there. */
+  withAlert?: boolean;
   onChange: (key: string, value: string | null) => void;
   onReset: () => void;
 }) {
@@ -106,13 +109,15 @@ export function QueueFilterBar({
           value={filters.owner}
           onChange={(value) => onChange("owner", value)}
         />
-        <FilterSelect
-          filterKey="alert"
-          label={t.alert}
-          options={[{ value: "true", label: t.alertOptions.true }]}
-          value={filters.alert}
-          onChange={(value) => onChange("alert", value)}
-        />
+        {withAlert ? (
+          <FilterSelect
+            filterKey="alert"
+            label={t.alert}
+            options={[{ value: "true", label: t.alertOptions.true }]}
+            value={filters.alert}
+            onChange={(value) => onChange("alert", value)}
+          />
+        ) : null}
         {own.length === 0 ? null : (
           <span
             role="separator"

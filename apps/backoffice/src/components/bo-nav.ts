@@ -22,6 +22,8 @@ export type SectionKey =
   | "brandReviewQueue"
   | "verificationCreators"
   | "verificationBrands"
+  | "verificationDisputes"
+  | "identifierChanges"
   | "signups"
   | "memberInvitations"
   | "dualControl"
@@ -61,6 +63,17 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       {
         key: "verificationBrands",
         href: "/files/verifications-marques",
+        adminOnly: false,
+      },
+      // queues 5 and 6 (08 RG77, RG78; 15 RG29): the contests of a badge decision, the handles changed
+      {
+        key: "verificationDisputes",
+        href: "/files/contestations",
+        adminOnly: false,
+      },
+      {
+        key: "identifierChanges",
+        href: "/files/identifiants-modifies",
         adminOnly: false,
       },
     ],
