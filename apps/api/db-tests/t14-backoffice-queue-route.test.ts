@@ -1031,11 +1031,14 @@ describe("the counters (15 RG28, RG32, RG38)", () => {
         policy: Record<string, unknown>;
       }[];
     }>();
-    // L2E 14: the two views of queue 4 join the counters of queue 1, which keeps its line
+    // L2E 14: the two views of queue 4 join the counters of queue 1, which keeps its line; L2F 14: queues
+    // 5 and 6 follow
     expect(body.queues.map((line) => line.queue)).toEqual([
       "profiles_advertiser",
       "verification_creators",
       "verification_brands",
+      "verification_disputes",
+      "identity_change_review",
     ]);
     const [counters] = body.queues;
     expect(counters?.queue).toBe("profiles_advertiser");

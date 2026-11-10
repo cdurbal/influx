@@ -12,6 +12,9 @@
 //                                                  only exception to the relay's 2 MiB, D82 (1)),
 //                                                  re-encoded; the piece as metadata (commit 13)
 // - DELETE …/requests/:id/evidence/:evidenceId     a piece of the draft withdrawn (commit 13)
+// - GET  /v1/me/verification/disputes              the decisions he may still contest, his contests, the
+//                                                  window (L2F commit 14, disputes.ts)
+// - POST /v1/me/verification/disputes              one contest of a refusal or of a withdrawal
 // Any role but creator (a brand included) gets the answer of a
 // route that does not exist: the same code and the same body as an unknown address (T14.3, T14.4).
 // The terms gate applies to a creator only, for that reason checked here and not by the session
@@ -19,6 +22,9 @@
 import {
   creatorVerificationResponseSchema,
   openVerificationRequestBodySchema,
+  ownDisputesResponseSchema,
+  submitDisputeBodySchema,
+  submitDisputeResponseSchema,
   VERIFICATION_EVIDENCE_MAX_UPLOAD_BYTES,
   verificationEvidenceParamsSchema,
   verificationEvidenceResponseSchema,
@@ -26,6 +32,9 @@ import {
   verificationRequestResponseSchema,
   type CreatorVerificationResponse,
   type OpenVerificationRequestBody,
+  type OwnDisputesResponse,
+  type SubmitDisputeBody,
+  type SubmitDisputeResponse,
   type VerificationEvidenceParams,
   type VerificationEvidenceResponse,
   type VerificationRequestParams,
@@ -41,6 +50,7 @@ import {
   type MemberContext,
 } from "../identity/member-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
+import { readOwnDisputes, submitOwnDispute } from "./disputes.ts";
 import {
   removeEvidence,
   uploadEvidence,
@@ -57,6 +67,7 @@ import {
 export const VERIFICATION_ROUTE = "/v1/me/verification";
 const REQUESTS_ROUTE = `${VERIFICATION_ROUTE}/requests`;
 const REQUEST_ROUTE = `${REQUESTS_ROUTE}/:id`;
+const DISPUTES_ROUTE = `${VERIFICATION_ROUTE}/disputes`;
 
 /** The deposit of a piece (D82 (1)); the relay holds the same exception (relay.ts). */
 export const EVIDENCE_ROUTE = `${REQUEST_ROUTE}/evidence`;
@@ -114,6 +125,27 @@ export function registerVerificationRoutes(
     { schema: { response: { 200: creatorVerificationResponseSchema } } },
     async (request, reply): Promise<CreatorVerificationResponse> =>
       asCreator(request, reply, (tx) => readCreatorVerification(tx)),
+  );
+
+  app.get(
+    DISPUTES_ROUTE,
+    { schema: { response: { 200: ownDisputesResponseSchema } } },
+    async (request, reply): Promise<OwnDisputesResponse> =>
+      asCreator(request, reply, (tx) => readOwnDisputes(tx)),
+  );
+
+  app.post(
+    DISPUTES_ROUTE,
+    {
+      schema: {
+        body: submitDisputeBodySchema,
+        response: { 200: submitDisputeResponseSchema },
+      },
+    },
+    async (request, reply): Promise<SubmitDisputeResponse> => {
+      const body = request.body as SubmitDisputeBody;
+      return asCreator(request, reply, (tx) => submitOwnDispute(tx, body));
+    },
   );
 
   app.post(

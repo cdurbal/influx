@@ -796,7 +796,11 @@ describe("T1.1, T1.4 every route, called as a brand on the web surface: no marke
     const result = await sweep(server, sweepingBrand, ids, markers);
     expect(result.findings).toEqual([]);
     const errors = statusesOf(result).filter((status) => status >= 500);
-    expect(errors.length).toBeGreaterThan(result.statuses.size);
+    // the routes of the backoffice answer the web surface 404 by design (T14.1): the 500 is the web routes'
+    const webRoutes = [...result.statuses.keys()].filter(
+      (route) => !route.includes(" /v1/bo/"),
+    );
+    expect(errors.length).toBeGreaterThan(webRoutes.length);
     expect(result.statuses.get("GET /v1/me/t1-witness-throws")).toEqual([500]);
     expect(result.statuses.get("GET /v1/me")).toContain(500);
   });

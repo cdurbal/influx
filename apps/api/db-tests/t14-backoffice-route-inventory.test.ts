@@ -165,6 +165,44 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
       registrySourceId: NIL,
     },
   },
+  // L2F 14: queue 5 (the contests) and queue 6 (the identifiers changed)
+  "GET /v1/bo/queues/verification-disputes/entries": {},
+  "POST /v1/bo/queues/verification-disputes/entries/search": { body: {} },
+  "POST /v1/bo/queues/verification-disputes/entries/:id/open": {},
+  "POST /v1/bo/queues/verification-disputes/entries/:id/release": {},
+  "POST /v1/bo/queues/verification-disputes/entries/:id/extend": {},
+  "POST /v1/bo/queues/verification-disputes/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/queues/verification-disputes/entries/:id/uphold": {
+    body: {
+      reviewToken: "0".repeat(64),
+      outcomeReasonCode: "decision_confirmed",
+    },
+  },
+  "POST /v1/bo/queues/verification-disputes/entries/:id/overturn": {
+    body: {
+      target: "revocation",
+      reviewToken: "0".repeat(64),
+      observedHandle: "t14_inventory",
+    },
+  },
+  "GET /v1/bo/queues/verification-disputes/entries/:id/evidence/:evidenceId":
+    {},
+  "GET /v1/bo/queues/identifier-changes/entries": {},
+  "POST /v1/bo/queues/identifier-changes/entries/search": { body: {} },
+  "POST /v1/bo/queues/identifier-changes/entries/:id/open": {},
+  "POST /v1/bo/queues/identifier-changes/entries/:id/release": {},
+  "POST /v1/bo/queues/identifier-changes/entries/:id/extend": {},
+  "POST /v1/bo/queues/identifier-changes/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/queues/identifier-changes/entries/:id/confirm": {
+    body: { reviewToken: "0".repeat(64), observedHandle: "t14_inventory" },
+  },
+  "POST /v1/bo/queues/identifier-changes/entries/:id/require-proof": {
+    body: { reviewToken: "0".repeat(64) },
+  },
   "GET /v1/bo/settings/apollo": {},
   // L2F 13: the badges of a member account, and the request of the withdrawal of one (opens a 2V)
   "GET /v1/bo/accounts/:id/badges": {},
@@ -567,6 +605,40 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     "POST /v1/bo/queues/verification-brands/entries/:id/grant": async () => [
       { who: agent, id: await ownVerificationRequest("brand") },
     ],
+    // L2F 14: an entry of queue 5 or 6 on the caller's own account answers like an unknown entry (T14.3)
+    "POST /v1/bo/queues/verification-disputes/entries/:id/open": async () => [
+      { who: agent, id: await ownDispute() },
+    ],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/release":
+      async () => [{ who: agent, id: await ownDispute() }],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/extend": async () => [
+      { who: agent, id: await ownDispute() },
+    ],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownDispute() }],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/uphold": async () => [
+      { who: agent, id: await ownDispute() },
+    ],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/overturn":
+      async () => [{ who: agent, id: await ownDispute() }],
+    "GET /v1/bo/queues/verification-disputes/entries/:id/evidence/:evidenceId":
+      async () => [{ who: agent, id: await ownDispute() }],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/open": async () => [
+      { who: agent, id: await ownIdentifierReview() },
+    ],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/release": async () => [
+      { who: agent, id: await ownIdentifierReview() },
+    ],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/extend": async () => [
+      { who: agent, id: await ownIdentifierReview() },
+    ],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownIdentifierReview() }],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/confirm": async () => [
+      { who: agent, id: await ownIdentifierReview() },
+    ],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/require-proof":
+      async () => [{ who: agent, id: await ownIdentifierReview() }],
     // L2F 13: the badges and the withdrawal of an internal account, and of the caller's own, are the
     // answer of an unknown account; a badge that is not the account's answers like an unknown one.
     "GET /v1/bo/accounts/:id/badges": async () => [
@@ -672,6 +744,69 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     ownRequestIds.push(requestId);
     return requestId;
   }
+
+  const ownQueueIds: { dispute: string[]; review: string[] } = {
+    dispute: [],
+    review: [],
+  };
+  let ownDisputeEntry: Promise<string> | undefined;
+  let ownReviewEntry: Promise<string> | undefined;
+
+  /**
+   * A contest (queue 5) on the agent's own account: the doors never write one, so the superuser writes
+   * it with the foreign keys and the triggers out of the way; the policy of 0232 is a second line.
+   */
+  function ownDispute(): Promise<string> {
+    ownDisputeEntry ??= (async () => {
+      const id = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into verification.disputes
+            (id, account_id, badge_id, level, network_code, reason_code, original_decider_ids,
+             sla_due_at, escalate_at)
+          values (${id}, ${agent.accountId}, ${randomUUID()}, 'audience_verified', 'instagram',
+                  'misread', array[${otherAgent.accountId}]::uuid[], now() + interval '1 day',
+                  now() + interval '2 days')`;
+      });
+      ownQueueIds.dispute.push(id);
+      return id;
+    })();
+    return ownDisputeEntry;
+  }
+
+  /** An entry of queue 6 on the agent's own account, written the same way. */
+  function ownIdentifierReview(): Promise<string> {
+    ownReviewEntry ??= (async () => {
+      const id = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into verification.identifier_change_reviews
+            (id, account_id, social_account_id, network_code, badge_id, previous_handle, new_handle,
+             sla_due_at, escalate_at)
+          values (${id}, ${agent.accountId}, ${randomUUID()}, 'instagram', ${randomUUID()},
+                  't14_before', 't14_after', now() + interval '1 day',
+                  now() + interval '2 days')`;
+      });
+      ownQueueIds.review.push(id);
+      return id;
+    })();
+    return ownReviewEntry;
+  }
+
+  afterAll(async () => {
+    if (ownQueueIds.dispute.length > 0) {
+      await migrationRole()`
+        update verification.disputes set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now()
+         where id = any(${ownQueueIds.dispute}::uuid[]) and state = 'open'`;
+    }
+    if (ownQueueIds.review.length > 0) {
+      await migrationRole()`
+        update verification.identifier_change_reviews set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now()
+         where id = any(${ownQueueIds.review}::uuid[]) and state = 'open'`;
+    }
+  });
 
   afterAll(async () => {
     if (ownRequestIds.length > 0) {

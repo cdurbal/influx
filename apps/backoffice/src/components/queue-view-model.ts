@@ -20,6 +20,8 @@ export const QUEUE_ADDRESS: Readonly<Record<QueueCode, string>> = {
   profiles_advertiser: "/files/profils-marque",
   verification_creators: "/files/verifications-createurs",
   verification_brands: "/files/verifications-marques",
+  verification_disputes: "/files/contestations",
+  identity_change_review: "/files/identifiants-modifies",
 };
 
 /** The common filters of every queue, in the order of 15 RG33 (the state is always `open`). */

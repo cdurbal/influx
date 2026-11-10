@@ -32,7 +32,7 @@ import {
   captureLogs,
   testApiConfig,
 } from "../tests/helpers.ts";
-import { localSuperuser, sharedMigrationRole } from "./support.ts";
+import { actAsMember, localSuperuser, sharedMigrationRole } from "./support.ts";
 
 const CREATORS = "/v1/bo/queues/verification-creators/entries";
 const BRANDS = "/v1/bo/queues/verification-brands/entries";
@@ -2476,6 +2476,618 @@ describe("the brands view: domain code, register, reasons of its own (06 RG51, R
     expect((await list(server, BRANDS, agent)).raw).not.toContain(
       held.requestId,
     );
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L2F-14: queue 5 (the contests) and queue 6 (the identifiers changed): CA52 to CA54 by the route
+// ---------------------------------------------------------------------------------------------
+
+const DISPUTES = "/v1/bo/queues/verification-disputes/entries";
+const CHANGES = "/v1/bo/queues/identifier-changes/entries";
+const disputeIds: string[] = [];
+const reviewAccounts: string[] = [];
+
+/** A refusal of the creator's account request by `decider`, its live code kept, and the contest of it. */
+async function newDispute(
+  creator: Creator,
+  decider: Internal,
+  options: { text?: string } = {},
+): Promise<{ disputeId: string; requestId: string; code: string }> {
+  const ownership = code();
+  const [request] = await sharedMigrationRole()<{ id: string }[]>`
+    insert into verification.verification_requests
+      (account_id, social_account_id, network_code, level, status, created_at, submitted_at,
+       sla_due_at, escalate_at, decided_by_account_id, decided_at, closed_at,
+       rejection_reason_code)
+    values (${creator.accountId}, ${creator.socialAccountId}, ${creator.network},
+            'account_verified', 'rejected', now() - interval '3 days', now() - interval '3 days',
+            now() - interval '2 days', now() - interval '1 day', ${decider.accountId},
+            now() - interval '1 day', now() - interval '1 day', 'ownership_not_proven')
+    returning id::text`;
+  const requestId = request?.id ?? "";
+  await sharedMigrationRole()`
+    insert into verification.ownership_codes (request_id, account_id, kind, code, expires_at)
+    values (${requestId}, ${creator.accountId}, 'network', ${ownership}, now() + interval '7 days')`;
+  const [dispute] = await sharedMigrationRole()<{ id: string }[]>`
+    insert into verification.disputes
+      (account_id, request_id, level, network_code, reason_code, text, original_decider_ids)
+    values (${creator.accountId}, ${requestId}, 'account_verified', ${creator.network},
+            'misread', ${options.text ?? "The code is in my bio since this morning."},
+            array[${decider.accountId}]::uuid[])
+    returning id::text`;
+  const disputeId = dispute?.id ?? "";
+  disputeIds.push(disputeId);
+  watched.push(ownership);
+  return { disputeId, requestId, code: ownership };
+}
+
+type QueueOpened = {
+  outcome: string;
+  reviewToken: string | null;
+  entry: {
+    state: string;
+    claim: { holder: { displayName: string | null } | null };
+  };
+  dossier: Record<string, unknown> | null;
+  outcomeReasons?: { code: string; message: string }[];
+};
+
+async function openedAt(
+  server: Server,
+  queue: string,
+  id: string,
+  who: Internal,
+): Promise<QueueOpened> {
+  const response = await call(
+    server,
+    "POST",
+    `${queue}/${id}/open`,
+    who.session,
+  );
+  expect(response.statusCode, response.body).toBe(200);
+  return response.json<QueueOpened>();
+}
+
+/** A creator holding « Compte vérifié » on its line, whose handle then changes: queue 6 opens an entry. */
+async function changedHandle(options: { owner?: string } = {}): Promise<{
+  creator: Creator;
+  reviewId: string;
+  before: string;
+  after: string;
+}> {
+  const creator = await newCreator({
+    ...(options.owner === undefined ? {} : { owner: options.owner }),
+  });
+  await accountBadge(
+    creator.accountId,
+    creator.socialAccountId,
+    creator.network,
+    creator.handle,
+  );
+  const after = `${creator.handle}_n`;
+  watched.push(after);
+  // the trigger reads the line's own badge under the policy of the owner: the change is the creator's
+  await localSuperuser().begin(async (tx) => {
+    await actAsMember(
+      tx,
+      "influx_creator",
+      { accountId: creator.accountId, role: "creator", aal: "aal1" },
+      () =>
+        tx`
+          update profiles.creator_social_accounts set handle = ${after}
+           where id = ${creator.socialAccountId}`,
+    );
+  });
+  reviewAccounts.push(creator.accountId);
+  const [review] = await sharedMigrationRole()<{ id: string }[]>`
+    select id::text from verification.identifier_change_reviews
+     where account_id = ${creator.accountId} and state = 'open'`;
+  return {
+    creator,
+    reviewId: review?.id ?? "",
+    before: creator.handle,
+    after,
+  };
+}
+
+afterAll(async () => {
+  if (disputeIds.length > 0) {
+    await sharedMigrationRole()`
+      update verification.disputes
+         set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now(),
+             claimed_by_account_id = null, claimed_at = null, claim_expires_at = null
+       where id = any(${disputeIds}::uuid[]) and state = 'open'`;
+  }
+  if (reviewAccounts.length > 0) {
+    await sharedMigrationRole()`
+      update verification.identifier_change_reviews
+         set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now(),
+             claimed_by_account_id = null, claimed_at = null, claim_expires_at = null
+       where account_id = any(${reviewAccounts}::uuid[]) and state = 'open'`;
+  }
+});
+
+describe("L2F-14 queue 5, the contests: the list, the opening, the decision of another person (08 RG77, CA52, 15 RG27, RG36)", () => {
+  it("counts and lists the open contests without a handle, a text or a decider, and opens them: a decider read only, another person claims and gets the dossier and the sentences the creator will receive", async () => {
+    const server = app();
+    const since = new Date(Date.now() - 2000).toISOString();
+    const creator = await newCreator();
+    const { disputeId } = await newDispute(creator, agent, {
+      text: "My profile is public and the code is in my bio.",
+    });
+    // the counters carry both new queues, with their own delay
+    const counters = (
+      await call(server, "GET", COUNTERS, colleague.session)
+    ).json<{
+      queues: {
+        queue: string;
+        pending: number;
+        policy: { decisionMinutes: number };
+      }[];
+    }>();
+    for (const queue of ["verification_disputes", "identity_change_review"]) {
+      const line = counters.queues.find((item) => item.queue === queue);
+      expect(line, queue).toBeDefined();
+      expect(line?.policy.decisionMinutes).toBeGreaterThan(0);
+    }
+    expect(
+      counters.queues.find((item) => item.queue === "verification_disputes")
+        ?.pending,
+    ).toBeGreaterThanOrEqual(1);
+    // the list: the alias, the reason code, never the handle, the text or the person who decided
+    const listed = await call(
+      server,
+      "POST",
+      `${DISPUTES}/search`,
+      colleague.session,
+      {
+        body: { from: since, limit: 50 },
+      },
+    );
+    expect(listed.statusCode, listed.body).toBe(200);
+    const page = listed.json<{
+      items: {
+        id: string;
+        kind: string;
+        reasonCode: string;
+        displayName: string | null;
+      }[];
+    }>();
+    const row = page.items.find((item) => item.id === disputeId);
+    expect(row).toMatchObject({ kind: "refusal", reasonCode: "misread" });
+    const rowText = JSON.stringify(row);
+    for (const secret of [
+      creator.handle,
+      "My profile",
+      agent.accountId,
+      agent.name,
+    ]) {
+      expect(rowText).not.toContain(secret);
+    }
+    // the decider reads only while another person exists (modele point 10)
+    const asDecider = await openedAt(server, DISPUTES, disputeId, agent);
+    expect(asDecider).toMatchObject({
+      outcome: "read_only",
+      reviewToken: null,
+      dossier: null,
+    });
+    // another person claims it and reads the dossier
+    const claimed = await openedAt(server, DISPUTES, disputeId, colleague);
+    expect(claimed.outcome).toBe("claimed");
+    expect(claimed.reviewToken).toMatch(/^[0-9a-f]{64}$/);
+    expect(claimed.dossier).toMatchObject({
+      kind: "refusal",
+      reasonCode: "misread",
+      text: "My profile is public and the code is in my bio.",
+      reviewMode: "independent",
+      creator: { handle: creator.handle },
+    });
+    const dossierText = JSON.stringify(claimed.dossier);
+    expect(dossierText).toContain(agent.name);
+    // what the agent sees is what the creator receives: the sentence of the reason the decision stood on
+    const confirmed = claimed.outcomeReasons?.find(
+      (reason) => reason.code === "decision_confirmed",
+    );
+    expect(confirmed?.message).toContain("Après réexamen");
+    // a colleague is told « en cours — {name} » and gets nothing else
+    const second = await openedAt(server, DISPUTES, disputeId, admin);
+    expect(second).toMatchObject({ outcome: "read_only", dossier: null });
+    expect(second.entry.claim.holder?.displayName).toBe(colleague.name);
+  });
+
+  it("upholds on a typed motive by another person, refuses what the database refuses with its own code, and a contact in the team's message (CA52, RG19)", async () => {
+    const server = app();
+    const creator = await newCreator();
+    const { disputeId } = await newDispute(creator, agent);
+    const view = await openedAt(server, DISPUTES, disputeId, colleague);
+    const token = view.reviewToken ?? "";
+    // not the holder: refused, the holder is named
+    const intruder = await act(server, DISPUTES, disputeId, "uphold", admin, {
+      reviewToken: token,
+      outcomeReasonCode: "decision_confirmed",
+    });
+    expect(intruder.statusCode).toBe(409);
+    expect(issuesOf(intruder)).toContainEqual({
+      path: "claim",
+      issue: "held_by_other",
+    });
+    // `other` without the team's message, and a message that carries a contact
+    const noMessage = await act(
+      server,
+      DISPUTES,
+      disputeId,
+      "uphold",
+      colleague,
+      {
+        reviewToken: token,
+        outcomeReasonCode: "other",
+      },
+    );
+    expect(noMessage.statusCode).toBe(400);
+    expect(issuesOf(noMessage)).toContainEqual({
+      path: "memberMessage",
+      issue: "invalid_member_message",
+    });
+    const contact = await act(
+      server,
+      DISPUTES,
+      disputeId,
+      "uphold",
+      colleague,
+      {
+        reviewToken: token,
+        outcomeReasonCode: "other",
+        memberMessage:
+          "Please write to me at someone@example.test to continue.",
+      },
+    );
+    expect(contact.statusCode).toBe(400);
+    expect(issuesOf(contact)).toContainEqual({
+      path: "memberMessage",
+      issue: "direct_contact",
+    });
+    // a stale token
+    const stale = await act(server, DISPUTES, disputeId, "uphold", colleague, {
+      reviewToken: "1".repeat(64),
+      outcomeReasonCode: "decision_confirmed",
+    });
+    expect(stale.statusCode).toBe(409);
+    expect(issuesOf(stale)).toContainEqual({
+      path: "entry",
+      issue: "stale_token",
+    });
+    // the decision stands
+    const upheld = await act(server, DISPUTES, disputeId, "uphold", colleague, {
+      reviewToken: token,
+      outcomeReasonCode: "decision_confirmed",
+      internalComment: "Code absent at the time of the review.",
+    });
+    expect(upheld.statusCode, upheld.body).toBe(200);
+    expect(upheld.json()).toMatchObject({
+      outcome: "upheld",
+      badgeId: null,
+      reviewMode: "independent",
+    });
+    // the register carries the outcome, codes and identifiers only; the entry is closed and answers so
+    const lines = await registerLines(disputeId);
+    expect(lines.map((line) => line.event)).toContain(
+      "verification.dispute_decided",
+    );
+    const decided = lines.find(
+      (line) => line.event === "verification.dispute_decided",
+    );
+    expect(JSON.stringify(decided?.payload)).not.toContain("Code absent");
+    expect(JSON.stringify(decided?.payload)).not.toContain(creator.handle);
+    const closed = await openedAt(server, DISPUTES, disputeId, admin);
+    expect(closed).toMatchObject({ outcome: "closed", dossier: null });
+    expect(closed.entry.state).toBe("upheld");
+  });
+
+  it("overturns a refused « Compte vérifié »: the handle typed again must be the declared one, then the badge is granted now (CA53)", async () => {
+    const server = app();
+    const creator = await newCreator();
+    const { disputeId, code: ownership } = await newDispute(creator, agent);
+    const view = await openedAt(server, DISPUTES, disputeId, colleague);
+    const body = {
+      target: "refusal_account",
+      reviewToken: view.reviewToken,
+      observedCode: ownership,
+      observedHandle: creator.handle,
+    };
+    // 0228: another handle than the declared one is refused, nothing written
+    const wrong = await act(
+      server,
+      DISPUTES,
+      disputeId,
+      "overturn",
+      colleague,
+      {
+        ...body,
+        observedHandle: `${creator.handle}_other`,
+      },
+    );
+    expect(wrong.statusCode).toBe(400);
+    expect(issuesOf(wrong)).toContainEqual({
+      path: "observedHandle",
+      issue: "invalid_observed_handle_mismatch",
+    });
+    const overturned = await act(
+      server,
+      DISPUTES,
+      disputeId,
+      "overturn",
+      colleague,
+      body,
+    );
+    expect(overturned.statusCode, overturned.body).toBe(200);
+    const result = overturned.json<{
+      outcome: string;
+      badgeId: string | null;
+    }>();
+    expect(result.outcome).toBe("overturned");
+    const [badge] = await sharedMigrationRole()<
+      { state: string; granted: boolean }[]
+    >`
+      select state::text as state, (granted_at > now() - interval '1 minute') as granted
+        from verification.badges where id = ${result.badgeId}`;
+    expect(badge).toEqual({ state: "active", granted: true });
+  });
+
+  it("refuses a contest of an account the caller holds with conflict_of_interest, the attempt journaled, and leaves it out of his list (15 RG36, 0215)", async () => {
+    const server = app();
+    const since = new Date(Date.now() - 2000).toISOString();
+    const held = await newCreator({ owner: agent.accountId });
+    const { disputeId } = await newDispute(held, colleague);
+    const before = await conflictAttempts(agent);
+    const opening = await act(server, DISPUTES, disputeId, "open", agent);
+    expect(opening.statusCode).toBe(403);
+    expect(issuesOf(opening)).toContainEqual({
+      path: "entry",
+      issue: "conflict_of_interest",
+    });
+    expect(await conflictAttempts(agent)).toBe(before + 1);
+    const ids = async (who: Internal) =>
+      (
+        await call(server, "POST", `${DISPUTES}/search`, who.session, {
+          body: { from: since, limit: 50 },
+        })
+      )
+        .json<{ items: { id: string }[] }>()
+        .items.map((item) => item.id);
+    expect(await ids(agent)).not.toContain(disputeId);
+    expect(await ids(colleague)).toContain(disputeId);
+    // the claim was never taken
+    const [state] = await sharedMigrationRole()<{ claimed: string | null }[]>`
+      select claimed_by_account_id::text as claimed from verification.disputes where id = ${disputeId}`;
+    expect(state?.claimed).toBeNull();
+  });
+
+  it("gives the claim back, takes the delay again, and lets only an administrator lift it (15 C3, C4, A8, A9, CA63)", async () => {
+    const server = app();
+    const creator = await newCreator();
+    const { disputeId } = await newDispute(creator, agent);
+    await openedAt(server, DISPUTES, disputeId, colleague);
+    // the holder takes the delay again; another does not hold it
+    const extended = await act(
+      server,
+      DISPUTES,
+      disputeId,
+      "extend",
+      colleague,
+    );
+    expect(extended.statusCode, extended.body).toBe(200);
+    expect(extended.json<{ claimExpiresAt: string }>().claimExpiresAt).toMatch(
+      /Z$/,
+    );
+    expect(
+      (await act(server, DISPUTES, disputeId, "extend", admin)).statusCode,
+    ).toBe(409);
+    // an agent cannot lift a claim: refused, journaled by the database
+    const refused = await act(
+      server,
+      DISPUTES,
+      disputeId,
+      "force-release",
+      agent,
+      {
+        reasonCode: "holder_absent",
+      },
+    );
+    expect(refused.statusCode).toBe(403);
+    const lifted = await act(
+      server,
+      DISPUTES,
+      disputeId,
+      "force-release",
+      admin,
+      {
+        reasonCode: "holder_absent",
+      },
+    );
+    expect(lifted.statusCode, lifted.body).toBe(200);
+    expect(lifted.json()).toMatchObject({
+      released: true,
+      holder: { displayName: colleague.name },
+    });
+    // the dispossessed holder is told at his next decision, not « no claim »
+    const late = await act(server, DISPUTES, disputeId, "uphold", colleague, {
+      reviewToken: "0".repeat(64),
+      outcomeReasonCode: "decision_confirmed",
+    });
+    expect(late.statusCode).toBe(409);
+    expect(issuesOf(late)).toContainEqual({
+      path: "claim",
+      issue: "claim_lifted",
+    });
+    // opened again by the same person, then given back
+    await openedAt(server, DISPUTES, disputeId, colleague);
+    expect(
+      (await act(server, DISPUTES, disputeId, "release", colleague)).statusCode,
+    ).toBe(200);
+  });
+});
+
+describe("L2F-14 queue 6, the identifiers changed: the entry, « même compte » and « à reconfirmer » (08 RG78, CA54, 15 RG29)", () => {
+  it("lists an entry without any identifier, hands the former and the new one to the holder of the claim only, and confirms on the declared handle without touching the badge (CA54)", async () => {
+    const server = app();
+    const since = new Date(Date.now() - 2000).toISOString();
+    const { creator, reviewId, before, after } = await changedHandle();
+    expect(reviewId).not.toBe("");
+    const listed = await call(
+      server,
+      "POST",
+      `${CHANGES}/search`,
+      colleague.session,
+      {
+        body: { from: since, limit: 50 },
+      },
+    );
+    expect(listed.statusCode, listed.body).toBe(200);
+    const row = listed
+      .json<{
+        items: { id: string; networkCode: string; changeCount: number }[];
+      }>()
+      .items.find((item) => item.id === reviewId);
+    expect(row).toMatchObject({ networkCode: creator.network, changeCount: 1 });
+    for (const identifier of [before, after]) {
+      expect(JSON.stringify(row)).not.toContain(identifier);
+    }
+    // a colleague who does not hold the claim reads no identifier
+    const view = await openedAt(server, CHANGES, reviewId, colleague);
+    expect(view.outcome).toBe("claimed");
+    expect(view.dossier).toMatchObject({
+      networkCode: creator.network,
+      previousHandle: before,
+      newHandle: after,
+      changeCount: 1,
+      accountBadge: { state: "active" },
+    });
+    const other = await openedAt(server, CHANGES, reviewId, admin);
+    expect(other).toMatchObject({ outcome: "read_only", dossier: null });
+    expect(JSON.stringify(other)).not.toContain(after);
+    // the handle typed must be the declared one (0233, 22023): another is refused, nothing is written
+    const wrong = await act(server, CHANGES, reviewId, "confirm", colleague, {
+      reviewToken: view.reviewToken,
+      observedHandle: before,
+    });
+    expect(wrong.statusCode).toBe(400);
+    expect(issuesOf(wrong)).toContainEqual({
+      path: "observedHandle",
+      issue: "invalid_observed_handle_mismatch",
+    });
+    const confirmed = await act(
+      server,
+      CHANGES,
+      reviewId,
+      "confirm",
+      colleague,
+      {
+        reviewToken: view.reviewToken,
+        observedHandle: after,
+        internalComment: "Same person, new username.",
+      },
+    );
+    expect(confirmed.statusCode, confirmed.body).toBe(200);
+    expect(confirmed.json()).toMatchObject({ late: false });
+    const [state] = await sharedMigrationRole()<
+      { review: string; badge: string }[]
+    >`
+      select r.state::text as review, b.state::text as badge
+        from verification.identifier_change_reviews r
+        join verification.badges b on b.id = r.badge_id
+       where r.id = ${reviewId}`;
+    expect(state).toEqual({ review: "confirmed", badge: "active" });
+    // the register carries codes and identifiers, never the handles nor the comment
+    const lines = await registerLines(reviewId);
+    expect(lines.map((line) => line.event)).toContain(
+      "verification.identifier_confirmed",
+    );
+    for (const line of lines) {
+      const text = JSON.stringify(line.payload);
+      for (const secret of [before, after, "Same person"]) {
+        expect(text, line.event).not.toContain(secret);
+      }
+    }
+    expect(await openedAt(server, CHANGES, reviewId, admin)).toMatchObject({
+      outcome: "closed",
+      dossier: null,
+    });
+  });
+
+  it("requires a proof: « Compte vérifié » goes to reconfirm, the answer names it, and no other person's decision is taken (CA54)", async () => {
+    const server = app();
+    const { creator, reviewId } = await changedHandle();
+    const view = await openedAt(server, CHANGES, reviewId, agent);
+    const required = await act(
+      server,
+      CHANGES,
+      reviewId,
+      "require-proof",
+      agent,
+      {
+        reviewToken: view.reviewToken,
+      },
+    );
+    expect(required.statusCode, required.body).toBe(200);
+    const result = required.json<{
+      badgeId: string | null;
+      audienceBadgeIds: string[];
+    }>();
+    expect(result.badgeId).not.toBeNull();
+    const [badge] = await sharedMigrationRole()<{ state: string }[]>`
+      select state::text from verification.badges
+       where account_id = ${creator.accountId} and level = 'account_verified'`;
+    expect(badge?.state).toBe("to_reconfirm");
+    // a token of nothing, a stale one: the same answer a decision gives (409)
+    const stale = await act(server, CHANGES, reviewId, "require-proof", agent, {
+      reviewToken: "2".repeat(64),
+    });
+    expect(stale.statusCode).toBe(409);
+  });
+
+  it("refuses an entry of an account the caller holds, journaled, and lets claims be extended, given back and lifted as in queue 5 (15 RG36, C3, C4)", async () => {
+    const server = app();
+    const held = await changedHandle({ owner: agent.accountId });
+    const before = await conflictAttempts(agent);
+    const opening = await act(server, CHANGES, held.reviewId, "open", agent);
+    expect(opening.statusCode).toBe(403);
+    expect(issuesOf(opening)).toContainEqual({
+      path: "entry",
+      issue: "conflict_of_interest",
+    });
+    expect(await conflictAttempts(agent)).toBe(before + 1);
+
+    const { reviewId } = await changedHandle();
+    await openedAt(server, CHANGES, reviewId, colleague);
+    expect(
+      (await act(server, CHANGES, reviewId, "extend", colleague)).statusCode,
+    ).toBe(200);
+    expect(
+      (
+        await act(server, CHANGES, reviewId, "force-release", agent, {
+          reasonCode: "holder_absent",
+        })
+      ).statusCode,
+    ).toBe(403);
+    const lifted = await act(
+      server,
+      CHANGES,
+      reviewId,
+      "force-release",
+      admin,
+      {
+        reasonCode: "overdue_entry",
+      },
+    );
+    expect(lifted.statusCode, lifted.body).toBe(200);
+    expect(lifted.json()).toMatchObject({
+      holder: { displayName: colleague.name },
+    });
+    await openedAt(server, CHANGES, reviewId, agent);
+    expect(
+      (await act(server, CHANGES, reviewId, "release", agent)).statusCode,
+    ).toBe(200);
   });
 });
 

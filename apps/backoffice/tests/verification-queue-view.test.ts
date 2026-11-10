@@ -57,6 +57,8 @@ describe("L2E-21: the two views of queue 4 and their filters (RG61, RG62, CA43)"
       profiles_advertiser: "/files/profils-marque",
       verification_creators: VERIFICATION_VIEW_ADDRESS.creators,
       verification_brands: VERIFICATION_VIEW_ADDRESS.brands,
+      verification_disputes: "/files/contestations",
+      identity_change_review: "/files/identifiants-modifies",
     });
     expect(t.creators.tableLabel).not.toBe(t.brands.tableLabel);
     expect(t.creators.lead).not.toBe(t.brands.lead);

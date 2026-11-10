@@ -20,8 +20,10 @@
 // - Every answer is `Cache-Control: no-store`: it carries internal data. Nothing is logged here.
 import type { QueueCounters } from "@influx/contracts/backoffice-queues";
 import {
+  IDENTITY_CHANGE_QUEUE,
   VERIFICATION_BRANDS_QUEUE,
   VERIFICATION_CREATORS_QUEUE,
+  VERIFICATION_DISPUTES_QUEUE,
 } from "@influx/contracts/backoffice-queues";
 import {
   verificationEntriesQuerySchema,
@@ -52,6 +54,13 @@ import {
 } from "../verification/verification-email.ts";
 import { isForbidden, unlessConflict } from "./action-guards.ts";
 import { registerVerificationQueueDecisionRoutes } from "./verification-queues-decision-routes.ts";
+import { registerVerificationDisputeRoutes } from "./verification-disputes-routes.ts";
+import { registerVerificationIdentifierChangeRoutes } from "./verification-identifier-changes-routes.ts";
+import {
+  readClaimedCounters,
+  type ClaimedQueueKind,
+} from "./verification-queues/claimed/repository.ts";
+import type { CountersRow } from "./verification-queues/repository.ts";
 import {
   inSavepoint,
   targetOf,
@@ -309,7 +318,37 @@ type SourceType = NonNullable<
   VerificationDossier["brand"]
 >["registrySources"][number]["sourceType"];
 
-/** The counters of the two views, as the caller sees them, for GET /v1/bo/queues/counters. */
+function countersOf(
+  queue: QueueCounters["queue"],
+  counters: CountersRow,
+): QueueCounters {
+  return {
+    queue,
+    pending: counters.pending,
+    oldestCreatedAt: counters.oldestSubmittedAt,
+    overdue: counters.overdue,
+    unclaimed: counters.unclaimed,
+    lastDecidedAt: counters.lastDecidedAt,
+    policy: {
+      decisionMinutes: counters.decisionMinutes,
+      claimTargetMinutes: counters.claimTargetMinutes,
+      escalateAfterMinutes: counters.escalateAfterMinutes,
+      businessHours: counters.businessHours,
+    },
+  };
+}
+
+const CLAIMED_COUNTER_CODE: Readonly<
+  Record<ClaimedQueueKind, QueueCounters["queue"]>
+> = {
+  disputes: VERIFICATION_DISPUTES_QUEUE,
+  identifier_changes: IDENTITY_CHANGE_QUEUE,
+};
+
+/**
+ * The counters of the two views of queue 4 and of queues 5 and 6 (L2F-14), as the caller sees them, for
+ * GET /v1/bo/queues/counters.
+ */
 export async function verificationCounters(
   tx: Transaction,
   caller: string,
@@ -320,20 +359,13 @@ export async function verificationCounters(
     const counters = await readCounters(tx, caller, view);
     if (counters === null) continue;
     asOf = counters.asOf;
-    queues.push({
-      queue: COUNTER_CODE[view],
-      pending: counters.pending,
-      oldestCreatedAt: counters.oldestSubmittedAt,
-      overdue: counters.overdue,
-      unclaimed: counters.unclaimed,
-      lastDecidedAt: counters.lastDecidedAt,
-      policy: {
-        decisionMinutes: counters.decisionMinutes,
-        claimTargetMinutes: counters.claimTargetMinutes,
-        escalateAfterMinutes: counters.escalateAfterMinutes,
-        businessHours: counters.businessHours,
-      },
-    });
+    queues.push(countersOf(COUNTER_CODE[view], counters));
+  }
+  for (const kind of ["disputes", "identifier_changes"] as const) {
+    const counters = await readClaimedCounters(tx, caller, kind);
+    if (counters === null) continue;
+    asOf ??= counters.asOf;
+    queues.push(countersOf(CLAIMED_COUNTER_CODE[kind], counters));
   }
   return { asOf, queues };
 }
@@ -344,6 +376,8 @@ export function registerVerificationQueueRoutes(
 ): void {
   const { database } = dependencies;
   registerVerificationQueueDecisionRoutes(app, dependencies);
+  registerVerificationDisputeRoutes(app, dependencies);
+  registerVerificationIdentifierChangeRoutes(app, dependencies);
 
   for (const view of VIEWS) {
     const entries = `/v1/bo/queues/${VIEW_SEGMENT[view]}/entries`;

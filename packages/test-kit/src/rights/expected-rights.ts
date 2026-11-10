@@ -4980,6 +4980,11 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_verification_definer|column|verification.disputes.text|INSERT",
   "influx_creator_verification_definer|column|verification.verification_requests.decided_by_account_id|SELECT",
   "influx_creator_verification_definer|function|verification.submit_own_dispute(uuid,uuid,text,text)|EXECUTE",
+  // 0238 (L2F commit 14): the decisions a creator may still contest, read by his own door.
+  "influx_creator_verification_definer|column|verification.badge_revocation_requests.member_message|SELECT",
+  "influx_creator_verification_definer|column|verification.badge_revocation_requests.reason_code|SELECT",
+  "influx_creator_verification_definer|column|verification.badges.revocation_reason_code|SELECT",
+  "influx_creator_verification_definer|function|verification.read_own_contestable_decisions()|EXECUTE",
   "influx_creator|column|verification.disputes.account_id|SELECT",
   "influx_creator|column|verification.disputes.badge_id|SELECT",
   "influx_creator|column|verification.disputes.closed_at|SELECT",
@@ -4997,6 +5002,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|column|verification.disputes.updated_at|SELECT",
   "influx_creator|column|verification.disputes.withdrawn_cause|SELECT",
   "influx_creator|function|verification.submit_own_dispute(uuid,uuid,text,text)|EXECUTE",
+  "influx_creator|function|verification.read_own_contestable_decisions()|EXECUTE",
   "influx_verification_definer|column|identity.agent_profiles.is_break_glass|SELECT",
   "influx_verification_definer|column|verification.badges.declared_comments_at_decision|INSERT,SELECT",
   "influx_verification_definer|column|verification.badges.declared_engagement_bp_at_decision|INSERT,SELECT",
@@ -5643,6 +5649,9 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // the helpers (lock_held_dispute, dispute_review_token, gate_dispute_decision, close_dispute,
   // dispute_other_reviewer_exists) are SECURITY INVOKER, same owner.
   "verification.submit_own_dispute(uuid,uuid,text,text)":
+    "influx_creator_verification_definer",
+  // 0238 (L2F commit 14): the creator's read of the decisions he may still contest.
+  "verification.read_own_contestable_decisions()":
     "influx_creator_verification_definer",
   "verification.open_dispute(uuid)": "influx_verification_definer",
   "verification.release_dispute(uuid)": "influx_verification_definer",

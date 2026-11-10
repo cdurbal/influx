@@ -404,11 +404,13 @@ describe("queue 4, the list and the decision view (08 RG47, RG55, RG62, RG63, RG
     }
   });
 
-  it("counts the two views of the queue under their own codes, beside queue 1 (modele §6)", () => {
+  it("counts the two views of the queue under their own codes, beside queue 1 and queues 5 and 6 (modele §6, L2F-14)", () => {
     expect(queueCodeSchema.options).toEqual([
       "profiles_advertiser",
       "verification_creators",
       "verification_brands",
+      "verification_disputes",
+      "identity_change_review",
     ]);
   });
 });

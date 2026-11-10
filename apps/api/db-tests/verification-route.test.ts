@@ -1019,6 +1019,222 @@ describe("L2E-R7 who may reach the routes (18 T14.1 to T14.4)", () => {
   });
 });
 
+/** A refusal of the member's own request, written as the agent's decision `decidedDaysAgo` days ago. */
+async function refusedRequest(
+  member: Member,
+  options: { decidedDaysAgo?: number; status?: "rejected" | "closed" } = {},
+): Promise<string> {
+  const [line] = await migration<{ id: string }[]>`
+    select id::text as id from profiles.creator_social_accounts
+     where account_id = ${member.accountId} limit 1`;
+  const days = options.decidedDaysAgo ?? 1;
+  const [row] = await migration<{ id: string }[]>`
+    insert into verification.verification_requests
+      (account_id, social_account_id, network_code, level, status, created_at, submitted_at,
+       sla_due_at, escalate_at, decided_by_account_id, decided_at, closed_at,
+       rejection_reason_code)
+    values (${member.accountId}, ${line?.id ?? null}, 'instagram', 'account_verified',
+            ${options.status ?? "rejected"}::verification.request_status,
+            now() - make_interval(days => ${days + 2}),
+            now() - make_interval(days => ${days + 2}),
+            now() - make_interval(days => ${days + 1}),
+            now() - make_interval(days => ${days}),
+            ${agentA}, now() - make_interval(days => ${days}),
+            now() - make_interval(days => ${days}),
+            ${options.status === "closed" ? "account_unavailable" : "ownership_not_proven"})
+    returning id::text`;
+  return row?.id ?? "";
+}
+
+const URL_DISPUTES = `${URL_STATE}/disputes`;
+
+type DisputesBody = {
+  windowDays: number;
+  contestable: { kind: string; requestId?: string; closesAt: string }[];
+  disputes: {
+    id: string;
+    requestId: string | null;
+    state: string;
+    text: string | null;
+  }[];
+};
+
+describe("L2F-14 the contest of a refusal, by its owner (08 RG77, CA52; 0232, 0238)", () => {
+  it("lists the refusal he may contest with its window, takes one contest per decision, and shows it back without a decider, a lock or a deadline", async () => {
+    const server = app();
+    const member = await newMember("creator");
+    const requestId = await refusedRequest(member);
+    const read = await call(server, "GET", URL_DISPUTES, member.session);
+    expect(read.statusCode, read.body).toBe(200);
+    expect(read.headers["cache-control"]).toBe("no-store");
+    const first = read.json<DisputesBody>();
+    expect(first.windowDays).toBeGreaterThan(0);
+    expect(first.contestable).toHaveLength(1);
+    expect(first.contestable[0]).toMatchObject({ kind: "refusal", requestId });
+    expect(first.disputes).toEqual([]);
+
+    const sent = await call(server, "POST", URL_DISPUTES, member.session, {
+      requestId,
+      reasonCode: "misread",
+      text: "My profile is public and the code is in my bio.",
+    });
+    expect(sent.statusCode, sent.body).toBe(200);
+    const created = sent.json<{ dispute: DisputesBody["disputes"][number] }>();
+    expect(created.dispute).toMatchObject({
+      requestId,
+      state: "open",
+      text: "My profile is public and the code is in my bio.",
+    });
+    // CA52 « une par décision »: the second contest is refused, and the decision is no longer offered
+    const again = await call(server, "POST", URL_DISPUTES, member.session, {
+      requestId,
+      reasonCode: "evidence_valid",
+    });
+    expect(errorBody(again).status).toBe(409);
+    expect(issuesOf(again)).toContainEqual({
+      path: "dispute",
+      issue: "already_disputed",
+    });
+    const after = (
+      await call(server, "GET", URL_DISPUTES, member.session)
+    ).json<DisputesBody>();
+    expect(after.contestable).toEqual([]);
+    expect(after.disputes).toHaveLength(1);
+    // invariant 13: nothing the team holds
+    const text = JSON.stringify(after);
+    for (const forbidden of [
+      "decider",
+      "claim",
+      "slaDue",
+      "escalate",
+      "reviewMode",
+      "internalComment",
+      agentA,
+    ]) {
+      expect(text, forbidden).not.toContain(forbidden);
+    }
+  });
+
+  it("refuses a contest past its window with the closing instant, a text that carries a contact, and a closed request (RG77, RG19)", async () => {
+    const server = app();
+    const member = await newMember("creator");
+    const old = await refusedRequest(member, { decidedDaysAgo: 400 });
+    const late = await call(server, "POST", URL_DISPUTES, member.session, {
+      requestId: old,
+      reasonCode: "misread",
+    });
+    expect(errorBody(late).status).toBe(409);
+    const issues = issuesOf(late);
+    expect(issues).toContainEqual({
+      path: "dispute",
+      issue: "dispute_window_closed",
+    });
+    expect(
+      issues.find((issue) => issue.path === "dispute.closesAt")?.issue,
+    ).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    // a refusal past the window is not offered either
+    expect(
+      (
+        await call(server, "GET", URL_DISPUTES, member.session)
+      ).json<DisputesBody>().contestable,
+    ).toEqual([]);
+
+    const fresh = await refusedRequest(member);
+    for (const text of [
+      "write me at someone@example.test",
+      "see https://example.test/x",
+    ]) {
+      const response = await call(
+        server,
+        "POST",
+        URL_DISPUTES,
+        member.session,
+        { requestId: fresh, reasonCode: "other", text },
+      );
+      expect(response.statusCode).toBe(400);
+      expect(issuesOf(response)).toContainEqual({
+        path: "text",
+        issue: "direct_contact",
+      });
+    }
+    // `other` without a text is a validation failure of the contract
+    expect(
+      (
+        await call(server, "POST", URL_DISPUTES, member.session, {
+          requestId: fresh,
+          reasonCode: "other",
+        })
+      ).statusCode,
+    ).toBe(400);
+    // a request closed for an unavailable account is no refusal to contest
+    const closed = await refusedRequest(member, { status: "closed" });
+    const notDisputable = await call(
+      server,
+      "POST",
+      URL_DISPUTES,
+      member.session,
+      { requestId: closed, reasonCode: "misread" },
+    );
+    expect(issuesOf(notDisputable)).toContainEqual({
+      path: "dispute",
+      issue: "not_disputable",
+    });
+  });
+
+  it("answers another creator's decision, an unknown one, a brand and a visitor as an address that does not exist (T14)", async () => {
+    const server = app();
+    const owner = await newMember("creator");
+    const other = await newMember("creator");
+    const brand = await newMember("advertiser");
+    const requestId = await refusedRequest(owner);
+    const expected = errorBody(
+      await call(server, "GET", "/v1/me/verification-nothing", other.session),
+    );
+    for (const target of [requestId, randomUUID()]) {
+      expect(
+        errorBody(
+          await call(server, "POST", URL_DISPUTES, other.session, {
+            requestId: target,
+            reasonCode: "misread",
+          }),
+        ),
+      ).toEqual(expected);
+    }
+    expect(
+      errorBody(
+        await call(server, "POST", URL_DISPUTES, other.session, {
+          badgeId: randomUUID(),
+          reasonCode: "misread",
+        }),
+      ),
+    ).toEqual(expected);
+    for (const [method, body] of [
+      ["GET", undefined],
+      ["POST", { requestId, reasonCode: "misread" }],
+    ] as const) {
+      expect(
+        errorBody(
+          await call(server, method, URL_DISPUTES, brand.session, body),
+        ),
+      ).toEqual(expected);
+    }
+    expect((await call(server, "GET", URL_DISPUTES, null)).statusCode).toBe(
+      401,
+    );
+    // the other creator reads nothing of the owner's decision, the owner's is untouched
+    const theirs = (
+      await call(server, "GET", URL_DISPUTES, other.session)
+    ).json<DisputesBody>();
+    expect(theirs.contestable).toEqual([]);
+    expect(JSON.stringify(theirs)).not.toContain(requestId);
+    expect(
+      (
+        await call(server, "GET", URL_DISPUTES, owner.session)
+      ).json<DisputesBody>().contestable,
+    ).toHaveLength(1);
+  });
+});
+
 describe("C-1 (D60, invariant 17): nothing personal in the logs", () => {
   it("finds no code, no handle and no address in any captured stream", () => {
     expect(logStreams.length).toBeGreaterThanOrEqual(10);

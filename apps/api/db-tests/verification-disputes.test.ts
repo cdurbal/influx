@@ -689,6 +689,67 @@ describe("L2F-D11: a creator contests a refusal or a withdrawal within 30 days, 
       }),
     );
   });
+
+  it("offers the creator the refusal and the withdrawal he may still contest, the badge the 2V named and not the audience it carried, until he contests; never to a brand or to another creator (0238, RG77)", async () => {
+    const READ =
+      "select window_days, decisions from verification.read_own_contestable_decisions()";
+    type Read = { window_days: number; decisions: Record<string, unknown>[] };
+    const found = await scenario(async (tx) => {
+      const refusal = await refusedRequest(tx, "account_verified", 5);
+      await refusedRequest(tx, "account_verified", 45);
+      const { account, audience } = await observedLineA(tx);
+      await withdrawn(tx, account, "owner_changed");
+      const before = await asCreator(tx, () => run<Read>(tx, READ));
+      const dispute = await submitted(tx, { badge: account });
+      const after = await asCreator(tx, () => run<Read>(tx, READ));
+      const other = await asCreator(tx, () => run<Read>(tx, READ), creatorB);
+      const brand = await actAsMember(
+        tx,
+        "influx_advertiser",
+        { accountId: brandA, role: "advertiser", aal: "aal1" },
+        () => run(tx, READ),
+      );
+      return {
+        refusal,
+        account,
+        audience,
+        before,
+        after,
+        other,
+        brand,
+        dispute,
+      };
+    });
+    const rows = (outcome: Awaited<ReturnType<typeof run<Read>>>) =>
+      outcome.outcome === "rows" ? (outcome.rows[0]?.decisions ?? []) : [];
+    const before = rows(found.before);
+    // the refusal of 5 days and the withdrawal are offered; the refusal of 45 days is past the window
+    expect(before.map((item) => item.kind).sort()).toEqual([
+      "refusal",
+      "revocation",
+    ]);
+    expect(before).toContainEqual(
+      expect.objectContaining({
+        kind: "refusal",
+        request_id: found.refusal.request,
+        reason_code: "ownership_not_proven",
+        member_message: null,
+      }),
+    );
+    expect(before).toContainEqual(
+      expect.objectContaining({
+        kind: "revocation",
+        badge_id: found.account,
+        reason_code: "owner_changed",
+      }),
+    );
+    // the audience carried along is not contestable (modele point 4)
+    expect(JSON.stringify(before)).not.toContain(found.audience);
+    // a contested decision is no longer offered, the other still is
+    expect(rows(found.after).map((item) => item.kind)).toEqual(["refusal"]);
+    expect(rows(found.other)).toEqual([]);
+    expect(found.brand).toMatchObject(refused(INSUFFICIENT_PRIVILEGE));
+  });
 });
 
 /** A holding « Compte vérifié » of creator B (another account): never contestable by creator A. */

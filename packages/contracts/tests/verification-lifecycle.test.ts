@@ -288,7 +288,7 @@ describe("L2F-11 queue 5, the contests of the agent (08 RG77; 15 RG27, RG29)", (
     },
   };
 
-  it("lists a contest without handle, text or decider, and leaves the code of the queue to the screens", () => {
+  it("lists a contest without handle, text or decider, and joins the codes of queues 5 and 6 to the counters (L2F-14)", () => {
     expect(disputeEntryRowSchema.safeParse(row).success).toBe(true);
     expect(
       namesOf(disputeEntryRowSchema).filter((name) =>
@@ -304,7 +304,7 @@ describe("L2F-11 queue 5, the contests of the agent (08 RG77; 15 RG27, RG29)", (
       [VERIFICATION_DISPUTES_QUEUE, IDENTITY_CHANGE_QUEUE].filter(
         (code) => queueCodeSchema.safeParse(code).success,
       ),
-    ).toEqual([]);
+    ).toEqual([VERIFICATION_DISPUTES_QUEUE, IDENTITY_CHANGE_QUEUE]);
   });
 
   it("carries the dossier and the motives only with a claim, and never the review token of another entry's shape", () => {

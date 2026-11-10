@@ -425,3 +425,112 @@ export async function removeOwnEvidence(
     ? null
     : { evidenceId: row.evidence_id, objectKey: row.object_key };
 }
+
+// --- The contest of a decision (0232, 0238; L2F commit 14) ----------------------------------------
+
+/** What `verification.read_own_contestable_decisions()` answers: the window and the decisions, raw. */
+export type ContestableRead = { windowDays: number; decisions: unknown };
+
+/**
+ * The decisions the creator may still contest (a refusal, the withdrawal of a badge), within the
+ * window, not already contested (0238): the member reads no parameter and no message of a withdrawal,
+ * the door gives him these.
+ */
+export async function readOwnContestable(
+  tx: Transaction,
+): Promise<ContestableRead> {
+  const rows = await tx.execute<{ window_days: number; decisions: unknown }>(
+    sql`select window_days, decisions from verification.read_own_contestable_decisions()`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("read_own_contestable_decisions answered no row");
+  }
+  return { windowDays: row.window_days, decisions: row.decisions };
+}
+
+export type OwnDisputeRow = {
+  id: string;
+  requestId: string | null;
+  badgeId: string | null;
+  level: string;
+  networkCode: string;
+  reasonCode: string;
+  text: string | null;
+  submittedAt: string;
+  state: string;
+  outcomeReasonCode: string | null;
+  memberMessage: string | null;
+  decidedAt: string | null;
+};
+
+/**
+ * The creator's own contests, newest first, or one of them: the columns he is granted (0232 §4.2),
+ * never the lock, an agent, the deadlines, the deciders, the internal comment nor the review mode.
+ */
+export async function readOwnDisputeRows(
+  tx: Transaction,
+  disputeId: string | null = null,
+): Promise<OwnDisputeRow[]> {
+  const rows = await tx.execute<{
+    id: string;
+    request_id: string | null;
+    badge_id: string | null;
+    level: string;
+    network_code: string;
+    reason_code: string;
+    text: string | null;
+    submitted_at: string;
+    state: string;
+    outcome_reason_code: string | null;
+    member_message: string | null;
+    decided_at: string | null;
+  }>(
+    sql`select d.id::text as id, d.request_id::text as request_id, d.badge_id::text as badge_id,
+               d.level::text as level, d.network_code::text as network_code, d.reason_code,
+               d.text,
+               to_char(d.submitted_at at time zone 'UTC', ${ISO_UTC}) as submitted_at,
+               d.state::text as state, d.outcome_reason_code, d.member_message,
+               to_char(d.decided_at at time zone 'UTC', ${ISO_UTC}) as decided_at
+          from verification.disputes d
+         where d.account_id = (select influx.current_account_id())
+           and (${disputeId}::uuid is null or d.id = ${disputeId}::uuid)
+         order by d.submitted_at desc, d.id`,
+  );
+  return rows.map((row) => ({
+    id: row.id,
+    requestId: row.request_id,
+    badgeId: row.badge_id,
+    level: row.level,
+    networkCode: row.network_code,
+    reasonCode: row.reason_code,
+    text: row.text,
+    submittedAt: row.submitted_at,
+    state: row.state,
+    outcomeReasonCode: row.outcome_reason_code,
+    memberMessage: row.member_message,
+    decidedAt: row.decided_at,
+  }));
+}
+
+/**
+ * `verification.submit_own_dispute()`: the contest of ONE decision of his own, named by the request
+ * (a refusal) or the badge (a withdrawal), one of the two; the identifier of the contest.
+ */
+export async function submitOwnDisputeDoor(
+  tx: Transaction,
+  target: { requestId: string | null; badgeId: string | null },
+  reasonCode: string,
+  text: string | null,
+): Promise<string> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`select verification.submit_own_dispute(
+               ${target.requestId}::uuid, ${target.badgeId}::uuid, ${reasonCode}, ${text})::text
+               as id`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("submit_own_dispute answered no row");
+  }
+  return row.id;
+}

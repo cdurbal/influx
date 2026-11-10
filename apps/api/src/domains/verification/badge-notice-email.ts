@@ -260,3 +260,55 @@ function partsOf(input: BadgeNoticeInput): Parts {
 export function renderBadgeNoticeEmail(input: BadgeNoticeInput): RenderedEmail {
   return renderParts(input.locale, partsOf(input));
 }
+
+type DisputeOutcomeInput = Extract<
+  BadgeNoticeInput,
+  { kind: "dispute_outcome" }
+>["outcome"];
+
+/**
+ * What the decision screen of queue 5 shows BEFORE an outcome (08 RG77; l2f commit 14): the sentence the
+ * member will receive for this outcome, in his language, read from the very files of the e-mail so that
+ * the preview cannot drift from the message. `contested` names the reason the decision stood on (the
+ * sentence of `decision_confirmed`); `restoredAt` is the date of the badge a successful contest hands
+ * back. For `other` the team's own message follows the sentence, so it is not part of the preview. Null
+ * for a code outside the closed list, or for `decision_confirmed` without the reason contested.
+ */
+export function disputeOutcomePreview(input: {
+  locale: UiLocale;
+  level: VerificationEmailLevel;
+  networkName: string | null;
+  outcomeCode: string;
+  contested: ContestedReason | null;
+  restoredAt: Date;
+}): string | null {
+  const code = disputeOutcomeOf(input.outcomeCode);
+  if (code === null) {
+    return null;
+  }
+  const outcome = ((): DisputeOutcomeInput | null => {
+    switch (code) {
+      case "decision_confirmed":
+        return input.contested === null
+          ? null
+          : { code, contested: input.contested };
+      case "new_request_needed":
+        return { code };
+      case "other":
+        return { code, memberMessage: "" };
+      case "decision_overturned":
+        return { code, restoredAt: input.restoredAt };
+    }
+  })();
+  if (outcome === null) {
+    return null;
+  }
+  const parts = partsOf({
+    kind: "dispute_outcome",
+    locale: input.locale,
+    level: input.level,
+    networkName: input.networkName,
+    outcome,
+  });
+  return parts.paragraphs.filter((line) => line.trim() !== "").join("\n");
+}

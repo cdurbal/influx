@@ -103,6 +103,8 @@ const OWN_CONTACT_BY_ROUTE: Readonly<Record<string, readonly string[]>> = {
   "/v1/me/verification/requests/:id/code": ["networkCode"],
   "/v1/me/verification/requests/:id/submit": ["networkCode"],
   "/v1/me/verification/requests/:id/cancel": ["networkCode"],
+  // L2F 14: the contests of HIS own decisions name the network of the line they concern.
+  "/v1/me/verification/disputes": ["networkCode"],
   // L2E 13: the removal of a piece answers the request as it now stands; the deposit answers the
   // piece alone (metadata, no network).
   "/v1/me/verification/requests/:id/evidence/:evidenceId": ["networkCode"],

@@ -127,6 +127,8 @@ export const messages = {
     profiles_advertiser: "Profils marque à valider",
     verification_creators: "Vérifications des créateurs",
     verification_brands: "Vérifications des marques",
+    verification_disputes: "Contestations de badge",
+    identity_change_review: "Identifiants modifiés à contrôler",
   },
   /** 17b §1.4 and §1.7: the head band, the rail, and the screen of a window too small. */
   shell: {
