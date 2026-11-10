@@ -10,6 +10,7 @@ import type {
   CompareFiguresResponse,
   GrantAccountRequest,
   GrantAudienceRequest,
+  GrantBrandByLoginRequest,
   GrantBrandRequest,
   ObservedFigures,
   ReexamineVerificationRequest,
@@ -309,6 +310,7 @@ export type FieldName =
   | "code"
   | "domain"
   | "channel"
+  | "proof"
   | "registry"
   | "followers"
   | "period"
@@ -320,6 +322,9 @@ export type FieldName =
   | "internalComment"
   | "stop"
   | "reexamine";
+
+/** D83 A-bis: how the agent proves the domain, when the base offers the login address; a choice, not typed work. */
+export type DomainProof = "login" | "code";
 
 export type Problem = { field: FieldName | null; text: string };
 
@@ -497,6 +502,50 @@ export function accountGrantCheck(
 /** The domain as the contract takes it: lower case, letters, digits, dots and hyphens, 3 to 100 signs. */
 const DOMAIN_SHAPE = /^[a-z0-9.-]{3,100}$/;
 
+/** The register the agent consulted, chosen among the sources the dossier served (never typed: RG52, D79 (12)). */
+function registryChoice(
+  draft: Draft,
+  sources: readonly VerificationRegistrySourceRow[],
+): Checked<VerificationRegistrySourceRow> {
+  if (sources.length === 0) {
+    return fail("registry", t.brand.problems.noSource);
+  }
+  const source = sources.find(
+    (candidate) => candidate.id === draft.registrySourceId,
+  );
+  return source === undefined
+    ? fail("registry", t.brand.problems.registry)
+    : { ok: true, body: source };
+}
+
+/**
+ * `grant-by-login` of a brand (D83 A-bis; 06 RG51): the domain is proven by the verified login address of
+ * the account, which the database reads (never typed, never shown): nothing but the register the agent
+ * consulted, and his comment. The immatriculation stays his own constat (RG52).
+ */
+export function brandGrantByLoginCheck(
+  draft: Draft,
+  reviewToken: string,
+  sources: readonly VerificationRegistrySourceRow[],
+): Checked<GrantBrandByLoginRequest> {
+  const source = registryChoice(draft, sources);
+  if (!source.ok) {
+    return source;
+  }
+  const comment = commentOf(draft);
+  if (!comment.ok) {
+    return comment;
+  }
+  return {
+    ok: true,
+    body: {
+      reviewToken,
+      registrySourceId: source.body.id,
+      ...(comment.body === null ? {} : { internalComment: comment.body }),
+    },
+  };
+}
+
 /**
  * `grant` of a brand (06 RG49 to RG52, CA28): the domain where the agent read the code, the way it was
  * published, the code as read, and the register he consulted, chosen among the sources the dossier served
@@ -527,14 +576,9 @@ export function brandGrantCheck(
   if (!CODE_SHAPE.test(code)) {
     return fail("code", t.problems.codeShape);
   }
-  if (sources.length === 0) {
-    return fail("registry", t.brand.problems.noSource);
-  }
-  const source = sources.find(
-    (candidate) => candidate.id === draft.registrySourceId,
-  );
-  if (source === undefined) {
-    return fail("registry", t.brand.problems.registry);
+  const source = registryChoice(draft, sources);
+  if (!source.ok) {
+    return source;
   }
   const comment = commentOf(draft);
   if (!comment.ok) {
@@ -547,7 +591,7 @@ export function brandGrantCheck(
       observedCode: code,
       observedDomain: domain,
       observedChannel: channel,
-      registrySourceId: source.id,
+      registrySourceId: source.body.id,
       ...(comment.body === null ? {} : { internalComment: comment.body }),
     },
   };
@@ -873,6 +917,13 @@ const PERIOD_ISSUES: ReadonlySet<string> = new Set([
   "period_too_old",
 ]);
 
+/** What the database says of a login address that does not prove the domain: a word, never the address. */
+const LOGIN_ADDRESS_REASONS = [
+  "unverified",
+  "consumer_domain",
+  "other_domain",
+] as const;
+
 const CONFLICT_TEXT: Readonly<Record<string, string>> = {
   account_unavailable: t.notices.accountUnavailable,
   no_registry_source: t.brand.problems.noSourceRefused,
@@ -898,6 +949,16 @@ export function refusalOf(
   const issues = result.issues ?? [];
   switch (result.code) {
     case "conflict": {
+      if (issues.includes("login_address_ineligible")) {
+        const why = LOGIN_ADDRESS_REASONS.find((reason) =>
+          issues.includes(reason),
+        );
+        return {
+          kind: "text",
+          text: t.brand.problems.loginIneligible[why ?? "other_domain"] ?? "",
+          field: "proof",
+        };
+      }
       for (const [issue, why] of Object.entries(REOPEN_BY_ISSUE)) {
         if (issues.includes(issue)) {
           return { kind: "reopen", why };

@@ -6,6 +6,7 @@
 // badges that stand, one already withdrawn) are written by the database, never by the screens of the
 // member's journey or by the 2V of the case (support/verification-cycle.ts). The texts are those of the
 // locale files, never copies. No figure, no handle, no amount, rate or price anywhere.
+// L2F-20 (D83 A) extends it: the administrator then opens the verification of the other line himself.
 import { messages as bo } from "../../backoffice/src/messages/fr";
 import { expectNoAxeViolation } from "./support/axe";
 import {
@@ -210,4 +211,56 @@ test("an agent asks for the withdrawal of a « Compte vérifié » and an admini
     { level: "account_verified", state: "revoked", reason: "terms_breach" },
     { level: "audience_verified", state: "revoked", reason: "terms_breach" },
   ]);
+
+  // L2F-20 (D83 A): the administrator, who knows the member, opens the verification of the other line
+  // himself: a reason of the closed list, an internal comment, what the member will receive. The request
+  // waits in queue 4 with its origin; the comment is read in the dossier only, never on the page of the
+  // account, never by the member.
+  const open = bo.accountOpening;
+  const line = "Compte vérifié · YouTube";
+  const offered = page.getByRole("region", { name: open.tableLabel });
+  await expect(offered.locator("[data-opening-row]")).toHaveCount(2);
+  await offered.getByRole("button", { name: open.launchOf(line) }).click();
+  const launch = page.getByRole("form", { name: open.formTitle(line) });
+  await expect(launch.getByLabel(open.reason)).toBeFocused();
+  await expect(launch.getByText(open.recapCreator("YouTube"))).toBeVisible();
+  await launch.getByRole("button", { name: open.submit }).click();
+  await expect(
+    launch.getByRole("alert").filter({ hasText: bo.common.reasonPlaceholder }),
+  ).toBeVisible();
+  await launch
+    .getByLabel(open.reason)
+    .selectOption({ label: open.reasons.other ?? "" });
+  await launch.getByRole("button", { name: open.submit }).click();
+  await expect(
+    launch.getByRole("alert").filter({ hasText: open.commentMissing }),
+  ).toBeVisible();
+  await launch.getByLabel(open.commentRequired).fill("Met at the Lyon fair.");
+  await launch.getByRole("button", { name: open.submit }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: open.created(line) }),
+  ).toBeVisible();
+  await expect(
+    offered.locator("[data-opening-row]", { hasText: line }),
+  ).toContainText(open.request.agent?.pending ?? "");
+  await expect(page.getByRole("main")).not.toContainText("Lyon fair");
+  const opened = await withSql(async (sql) => {
+    const rows = await sql<{ opened_by: string; status: string }[]>`
+      select opened_by, status::text as status
+        from verification.verification_requests
+       where account_id = ${accountId} and level = 'account_verified'
+         and status = 'pending'`;
+    return rows;
+  });
+  expect(opened).toEqual([{ opened_by: "agent", status: "pending" }]);
+
+  // the dossier says who opened the request and why, to the agents only (the comment is internal)
+  await offered
+    .locator("[data-opening-row]", { hasText: line })
+    .getByRole("link", { name: open.openRequest })
+    .click();
+  const origin = page.locator("[data-opening-origin=agent]");
+  await expect(origin).toContainText(bo.verificationReview.opening.agent);
+  await expect(origin).toContainText(open.reasons.other ?? "");
+  await expect(origin).toContainText("Met at the Lyon fair.");
 });

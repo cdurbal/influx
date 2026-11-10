@@ -33,9 +33,11 @@ import {
   rejectionReasonsOf,
   whoOf,
   type Draft,
+  type DomainProof,
   type Problem,
 } from "./verification-decision-view";
 import { VerificationReasonPicker } from "./VerificationReasonPicker";
+import { loginProofOffered } from "./verification-opening-view";
 import { networkWords } from "./verification-queue-view";
 
 const t = messages.verificationReview.decision;
@@ -58,6 +60,7 @@ function KeyHint({ keys }: { keys: string }) {
 export function VerificationDecision({
   view,
   draft,
+  proof,
   problem,
   busy,
   busyKind,
@@ -71,6 +74,7 @@ export function VerificationDecision({
 }: {
   view: VerificationOpenResponse;
   draft: Draft;
+  proof: DomainProof | null;
   problem: Problem | null;
   busy: boolean;
   busyKind: "grant" | "reject" | "reexamine" | null;
@@ -229,27 +233,34 @@ export function VerificationDecision({
             {t.grantTitle}
           </h3>
           <p className="text-sm text-text-primary">
-            {brand
-              ? b.grantRecap(
-                  draft.domain.trim().toLowerCase(),
-                  draft.channel === null
-                    ? ""
-                    : messages.verificationReview.brand.record.channels[
-                        draft.channel
-                      ],
+            {brand && loginProofOffered(view) && proof === "login"
+              ? b.grantRecapByLogin(
                   view.dossier?.brand?.registrySources.find(
                     (source) => source.id === draft.registrySourceId,
                   )?.name ?? "",
                   language,
                 )
-              : audience
-                ? t.grantRecapAudience(
-                    network,
-                    handle,
-                    figuresRecap(draft),
+              : brand
+                ? b.grantRecap(
+                    draft.domain.trim().toLowerCase(),
+                    draft.channel === null
+                      ? ""
+                      : messages.verificationReview.brand.record.channels[
+                          draft.channel
+                        ],
+                    view.dossier?.brand?.registrySources.find(
+                      (source) => source.id === draft.registrySourceId,
+                    )?.name ?? "",
                     language,
                   )
-                : t.grantRecapAccount(network, handle, language)}
+                : audience
+                  ? t.grantRecapAudience(
+                      network,
+                      handle,
+                      figuresRecap(draft),
+                      language,
+                    )
+                  : t.grantRecapAccount(network, handle, language)}
           </p>
           {comment === "" ? null : (
             <p className="text-sm text-text-secondary">

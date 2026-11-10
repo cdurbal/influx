@@ -210,6 +210,8 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
     body: { reasonCode: "forged_evidence" },
   },
   // L2F 15 (D83): a verification opened by an agent for a member, and the grant on the login address
+  // (L2F 20: what the opening offers on the account, 0239)
+  "GET /v1/bo/accounts/:id/verification-requests": {},
   "POST /v1/bo/accounts/:id/verification-requests": {
     body: {
       level: "brand_verified",
@@ -662,6 +664,11 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     ],
     // L2F 15: the opening for an internal account or the caller's own is the answer of an unknown account;
     // the grant on the login address of the caller's own brand request, that of an unknown entry
+    "GET /v1/bo/accounts/:id/verification-requests": async () => [
+      { who: agent, id: otherAgent.accountId },
+      { who: admin, id: admin.accountId },
+      { who: agent, id: agent.accountId },
+    ],
     "POST /v1/bo/accounts/:id/verification-requests": async () => [
       { who: agent, id: otherAgent.accountId },
       { who: admin, id: admin.accountId },

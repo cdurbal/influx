@@ -19,6 +19,7 @@ import {
 import { DueCell, StateCell } from "./QueueCells";
 import { QueueTemplate, type QueueColumn } from "./QueueTemplate";
 import { type QueueFilters } from "./queue-view-model";
+import { openedByWords } from "./verification-opening-view";
 import {
   ageWords,
   levelWords,
@@ -79,6 +80,7 @@ function columnsOf(
     column("submitted", t.columns.submitted, (row) => (
       <span className="tabular-nums">{formatDateTime(row.submittedAt)}</span>
     )),
+    column("opened", t.columns.opened, (row) => openedByWords(row)),
     column("age", t.columns.age, (row, asOf) => (
       <span className="tabular-nums">{ageWords(row, asOf)}</span>
     )),

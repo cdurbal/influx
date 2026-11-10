@@ -16,7 +16,10 @@ export type Action = {
   run: <T>(
     call: () => Promise<RelayResult<T>>,
     onOk: (data: T) => void,
-    onFailure?: (code: string | undefined) => string | null,
+    onFailure?: (
+      code: string | undefined,
+      issues: readonly string[],
+    ) => string | null,
   ) => Promise<void>;
   reauthConfirmed: () => void;
   reauthCancelled: () => void;
@@ -32,7 +35,10 @@ export function useAction(): Action {
   async function run<T>(
     call: () => Promise<RelayResult<T>>,
     onOk: (data: T) => void,
-    onFailure?: (code: string | undefined) => string | null,
+    onFailure?: (
+      code: string | undefined,
+      issues: readonly string[],
+    ) => string | null,
   ): Promise<void> {
     setBusy(true);
     setError(null);
@@ -54,7 +60,7 @@ export function useAction(): Action {
       }
       const own =
         result.kind === "failed" && onFailure !== undefined
-          ? onFailure(result.code)
+          ? onFailure(result.code, result.issues ?? [])
           : null;
       setError(own ?? failure);
     } finally {

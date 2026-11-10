@@ -968,6 +968,7 @@ describe("L2F (commit 16): the withdrawal, the contest and the changed handle jo
       "GET /v1/bo/queues/identifier-changes/entries",
       "GET /v1/bo/accounts/:id/badges",
       "POST /v1/bo/accounts/:id/badges/:badgeId/revocation",
+      "GET /v1/bo/accounts/:id/verification-requests",
       "POST /v1/bo/accounts/:id/verification-requests",
     ]) {
       expect(swept, route).toContain(route);

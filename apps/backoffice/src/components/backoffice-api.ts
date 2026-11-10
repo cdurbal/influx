@@ -94,6 +94,8 @@ import {
 } from "@influx/contracts/backoffice-queues";
 import {
   accountBadgesResponseSchema,
+  accountOpeningsResponseSchema,
+  openVerificationForMemberResponseSchema,
   compareFiguresResponseSchema,
   confirmIdentifierChangeResponseSchema,
   decideDisputeResponseSchema,
@@ -112,6 +114,10 @@ import {
   verificationOpenResponseSchema,
   verificationRegistrySourcesResponseSchema,
   type AccountBadgesResponse,
+  type AccountOpeningsResponse,
+  type GrantBrandByLoginRequest,
+  type OpenVerificationForMemberBody,
+  type OpenVerificationForMemberResponse,
   type CompareFiguresRequest,
   type CompareFiguresResponse,
   type ConfirmIdentifierChangeRequest,
@@ -266,6 +272,32 @@ export function requestBadgeRevocation(
     "POST",
     `/v1/bo/accounts/${idSegment(accountId)}/badges/${idSegment(badgeId)}/revocation`,
     requestBadgeRevocationResponseSchema,
+    body,
+  );
+}
+
+// --- « Lancer la vérification » (D83 A; 06 RG51; L2F-20) --------------------------------------------
+
+/** What the opening offers on an account: its lines of network, or its brand, and the request already open. */
+export function readAccountOpenings(
+  id: string,
+): Promise<RelayResult<AccountOpeningsResponse>> {
+  return callRelay(
+    "GET",
+    `/v1/bo/accounts/${idSegment(id)}/verification-requests`,
+    accountOpeningsResponseSchema,
+  );
+}
+
+/** The verification of a member opened by an agent: the request waits in queue 4, the member is told by e-mail. */
+export function openVerificationForMember(
+  accountId: string,
+  body: OpenVerificationForMemberBody,
+): Promise<RelayResult<OpenVerificationForMemberResponse>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/accounts/${idSegment(accountId)}/verification-requests`,
+    openVerificationForMemberResponseSchema,
     body,
   );
 }
@@ -687,6 +719,19 @@ export function grantVerificationBrand(
   return callRelay(
     "POST",
     `${entryPath("brands", id)}/grant`,
+    grantVerificationResponseSchema,
+    body,
+  );
+}
+
+/** D83 A-bis: the same grant, the domain proven by the verified login address (nothing typed about it). */
+export function grantVerificationBrandByLogin(
+  id: string,
+  body: GrantBrandByLoginRequest,
+): Promise<RelayResult<GrantVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath("brands", id)}/grant-by-login`,
     grantVerificationResponseSchema,
     body,
   );

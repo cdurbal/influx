@@ -11,6 +11,7 @@ import type {
   CompareFiguresResponse,
   GrantAccountRequest,
   GrantAudienceRequest,
+  GrantBrandByLoginRequest,
   GrantBrandRequest,
   ObservedFigures,
   VerificationOpenResponse,
@@ -27,6 +28,7 @@ import {
   grantVerificationAccount,
   grantVerificationAudience,
   grantVerificationBrand,
+  grantVerificationBrandByLogin,
   openVerificationEntry,
   reexamineVerificationEntry,
   rejectVerificationEntry,
@@ -42,6 +44,7 @@ import {
 import {
   accountGrantCheck,
   audienceGrantCheck,
+  brandGrantByLoginCheck,
   brandGrantCheck,
   compareCheck,
   EMPTY_DRAFT,
@@ -62,9 +65,11 @@ import {
   whoOf,
   withClaimExpiry,
   type Draft,
+  type DomainProof,
   type Problem,
 } from "./verification-decision-view";
 import { useVerificationEvidence } from "./use-verification-evidence";
+import { loginProofOffered } from "./verification-opening-view";
 import { formatTime } from "./view-model";
 
 const t = messages.verificationReview;
@@ -97,6 +102,7 @@ type GrantPlan =
   | { ok: true; level: "account"; body: GrantAccountRequest }
   | { ok: true; level: "audience"; body: GrantAudienceRequest }
   | { ok: true; level: "brand"; body: GrantBrandRequest }
+  | { ok: true; level: "brandLogin"; body: GrantBrandByLoginRequest }
   | { ok: false; problem: Problem };
 
 export type VerificationPanel =
@@ -122,6 +128,7 @@ export function useVerificationEntry(
   const [now, setNow] = useState(0);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [panel, setPanel] = useState<VerificationPanel>(null);
+  const [proof, setProof] = useState<DomainProof | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [busy, setBusy] = useState<VerificationBusy | null>(null);
   const [comparison, setComparison] = useState<Comparison | null>(null);
@@ -263,11 +270,23 @@ export function useVerificationEntry(
   const grantPlan = useCallback(
     (view: VerificationOpenResponse, token: string): GrantPlan => {
       if (isBrand(view)) {
-        const checked = brandGrantCheck(
-          draft,
-          token,
-          view.dossier?.brand?.registrySources ?? [],
-        );
+        const sources = view.dossier?.brand?.registrySources ?? [];
+        // D83 A-bis: offered only when the base says the login address proves the domain; the agent chooses
+        if (loginProofOffered(view)) {
+          if (proof === null) {
+            return {
+              ok: false,
+              problem: { field: "proof", text: t.brand.problems.proof },
+            };
+          }
+          if (proof === "login") {
+            const byLogin = brandGrantByLoginCheck(draft, token, sources);
+            return byLogin.ok
+              ? { ok: true, level: "brandLogin", body: byLogin.body }
+              : byLogin;
+          }
+        }
+        const checked = brandGrantCheck(draft, token, sources);
         return checked.ok
           ? { ok: true, level: "brand", body: checked.body }
           : checked;
@@ -296,7 +315,7 @@ export function useVerificationEntry(
         ? { ok: true, level: "audience", body: checked.body }
         : checked;
     },
-    [draft, evidence.blocked, evidence.seen],
+    [draft, evidence.blocked, evidence.seen, proof],
   );
 
   /** ‹v› and the button open the recap, never grant (RG115): what is typed is checked before it opens. */
@@ -332,11 +351,13 @@ export function useVerificationEntry(
         "grant",
         view,
         () =>
-          checked.level === "brand"
-            ? grantVerificationBrand(view.entry.id, checked.body)
-            : checked.level === "audience"
-              ? grantVerificationAudience(view.entry.id, checked.body)
-              : grantVerificationAccount(view.entry.id, checked.body),
+          checked.level === "brandLogin"
+            ? grantVerificationBrandByLogin(view.entry.id, checked.body)
+            : checked.level === "brand"
+              ? grantVerificationBrand(view.entry.id, checked.body)
+              : checked.level === "audience"
+                ? grantVerificationAudience(view.entry.id, checked.body)
+                : grantVerificationAccount(view.entry.id, checked.body),
         (data) =>
           finish(view, data.next, grantedNotice(view, data.outcome, data.late)),
       );
@@ -605,6 +626,8 @@ export function useVerificationEntry(
     setDraft,
     panel,
     setPanel,
+    proof,
+    setProof,
     problem,
     setProblem,
     busy,

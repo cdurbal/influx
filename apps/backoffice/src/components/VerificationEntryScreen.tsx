@@ -325,8 +325,10 @@ export function VerificationEntryScreen({
               <BrandRecordBlock
                 view={view}
                 draft={entry.draft}
+                proof={entry.proof}
                 problem={panel === "force" ? null : problem}
                 onDraft={entry.setDraft}
+                onProof={entry.setProof}
               />
             </>
           ) : (
@@ -347,6 +349,7 @@ export function VerificationEntryScreen({
           <VerificationDecision
             view={view}
             draft={entry.draft}
+            proof={entry.proof}
             problem={panel === "force" ? null : problem}
             busy={busyNow}
             busyKind={

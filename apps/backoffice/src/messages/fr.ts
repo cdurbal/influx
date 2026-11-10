@@ -761,6 +761,115 @@ export const messages = {
     refused:
       "Ce badge ne peut plus faire l’objet d’un retrait, ou un retrait est déjà demandé. La liste est rechargée.",
   },
+  /**
+   * L2F-20 (D83 A; 06 RG51; jalons/l2f/modele.md §5, §6; l2f/textes.md « Ouverture »): « Lancer la
+   * vérification » on the record of a member. The reasons are the closed list of the opening; the comment
+   * is internal (never served to the member, never logged). « Audience vérifiée » is never offered.
+   */
+  accountOpening: {
+    title: "Lancer la vérification",
+    lead: "Vous connaissez ce membre : lancez vous-même sa vérification. La demande rejoint la file « Vérifications » comme celle d’un membre, et aucun badge n’est accordé sans votre constat. « Audience vérifiée » ne se lance pas d’ici : le créateur dépose lui-même ses pièces.",
+    tableLabel: "Vérifications que vous pouvez lancer pour ce compte",
+    loading: "Chargement des vérifications possibles…",
+    error: "Les vérifications possibles n’ont pas pu être chargées.",
+    emptyCreator: "Ce créateur n’a déclaré aucun compte de réseau social.",
+    emptyBrand: "Ce compte n’offre aucune vérification à lancer.",
+    columns: {
+      target: "Vérification",
+      request: "Demande en cours",
+      action: "Lancer",
+    },
+    brandName: "Marque vérifiée",
+    noRequest: "aucune",
+    request: {
+      member: {
+        draft: "brouillon du membre, pas encore envoyé : lancer la reprend",
+        pending: "demande du membre, en file : lancer la reprend",
+      },
+      agent: {
+        draft: "brouillon ouvert par l’équipe",
+        pending: "demande ouverte par l’équipe, en file",
+      },
+    } as Readonly<Record<string, Readonly<Record<string, string>>>>,
+    openRequest: "Ouvrir la demande (la prend en charge)",
+    launch: "Lancer la vérification",
+    launchOf: (target: string) => `Lancer la vérification : ${target}`,
+    formTitle: (target: string) => `Lancer la vérification — ${target}`,
+    formLead:
+      "La demande est prise en charge dans la file ; vous la décidez ensuite vous-même, ou un collègue, après avoir constaté. Rien ne se décide ici.",
+    reason: "Pourquoi la lancez-vous ?",
+    reasonPlaceholder: "Choisissez un motif",
+    reasons: {
+      invited_by_agent: "Invité par l’agent (D54)",
+      existing_client: "Client existant",
+      past_collaboration: "Collaboration antérieure",
+      other: "Autre (commentaire exigé)",
+    } as Readonly<Record<string, string>>,
+    comment: "Commentaire interne",
+    commentRequired: "Commentaire interne (exigé pour « Autre »)",
+    commentHelp:
+      "Visible des seuls agents INFLUX : jamais du membre, ni dans l’e-mail, ni dans les journaux.",
+    commentMissing: "Le motif « Autre » exige un commentaire interne.",
+    commentTooLong: (max: number) =>
+      `Le commentaire interne ne dépasse pas ${max} caractères.`,
+    noDomain:
+      "La marque n’a pas de domaine sur son profil : sa vérification ne peut pas être lancée. Elle doit d’abord le renseigner.",
+    detailsTitle: "Bloc interne de la marque",
+    detailsLead:
+      "La marque n’en a pas encore : renseignez ses trois champs, tels que vous les connaissez. Ils ne sont jamais montrés à la marque.",
+    detailsPresent:
+      "Le bloc interne de la marque est déjà renseigné : il est repris tel quel.",
+    legalName: "Raison sociale",
+    registrationCountry: "Pays d’immatriculation",
+    countryPlaceholder: "Choisissez un pays",
+    registrationNumber: "Numéro d’immatriculation",
+    legalNameInvalid: "Saisissez la raison sociale (160 caractères au plus).",
+    countryInvalid: "Choisissez le pays d’immatriculation.",
+    numberInvalid:
+      "Saisissez le numéro d’immatriculation (40 caractères au plus).",
+    recapTitle: "Ce que le membre recevra",
+    recapCreator: (network: string) =>
+      `Un e-mail l’informe que son commercial INFLUX a lancé la vérification de son compte ${network} et lui indique de retrouver, dans son espace INFLUX, le code à publier.`,
+    recapBrand:
+      "Un e-mail l’informe que son commercial INFLUX a lancé la vérification de sa marque ; si une action de sa part est nécessaire, elle est indiquée dans son espace INFLUX.",
+    recapNoCode:
+      "Cet e-mail ne contient ni code, ni lien, ni chiffre, ni identifiant de réseau.",
+    recapTakeover:
+      "Une demande déjà ouverte par le membre est reprise : elle n’est jamais doublée.",
+    recapInternal:
+      "Votre motif et votre commentaire restent internes : le membre ne les lit jamais.",
+    submit: "Lancer la vérification",
+    busy: "Envoi…",
+    cancel: "Renoncer",
+    created: (target: string) =>
+      `Vérification lancée : la demande « ${target} » attend dans la file « Vérifications ». Le membre en est informé par e-mail.`,
+    takenOver: (target: string) =>
+      `La demande déjà ouverte « ${target} » est reprise, elle n’est pas doublée. Le membre en est informé par e-mail.`,
+    refusals: {
+      account_unavailable:
+        "Le compte n’est plus actif : rien n’a été enregistré.",
+      already_verified:
+        "Ce badge est déjà accordé à ce compte : rien n’a été lancé.",
+      rejection_cap:
+        "Plusieurs demandes ont déjà été refusées pour ce compte : rien n’a été lancé.",
+      retry_after:
+        "Une demande vient d’être refusée pour ce compte : réessayez plus tard, rien n’a été lancé.",
+      duplicate_request: "Une demande est déjà en cours pour ce compte.",
+      website_domain_required:
+        "La marque n’a pas de domaine sur son profil : rien n’a été lancé.",
+      internal_details_required:
+        "La marque n’a pas de bloc interne : renseignez ses trois champs.",
+      internal_details_present:
+        "Le bloc interne de la marque existe déjà : laissez ses champs vides.",
+      invalid_internal_details:
+        "Le bloc interne est refusé : relisez la raison sociale, le pays et le numéro.",
+      invalid_reason: "Ce motif n’est pas dans la liste : choisissez-en un.",
+      invalid_opening_comment:
+        "Le commentaire interne est refusé : 1 à 1 000 caractères, sans caractère de contrôle.",
+      invalid_level: "Ce niveau ne peut pas être lancé d’ici.",
+    } as Readonly<Record<string, string>>,
+    notFound: "Ce compte n’est plus disponible : rien n’a été lancé.",
+  },
   apollo: {
     title: "Réglages Apollo",
     lead: "Chaque changement passe par une double validation, sur un écran distinct. Un changement réévalue les inscrits écartés.",
@@ -1509,9 +1618,14 @@ export const messages = {
       brand: "Marque",
       country: "Pays",
       submitted: "Déposée le",
+      opened: "Ouverte par",
       age: "Ancienneté",
       owner: "Responsable",
       holder: "Verrou",
+    },
+    openedBy: {
+      member: "le membre",
+      agent: "l’équipe",
     },
     levels: {
       account_verified: "Compte vérifié",
@@ -1949,6 +2063,14 @@ export const messages = {
       submitted: "Déposée le",
       codeExpiry: "Le code à chercher expire le",
     },
+    /** D83 A: who opened the request, and why (agents only; the member read the e-mail that told him). */
+    opening: {
+      title: "Origine de la demande",
+      member: "Ouverte par le membre lui-même.",
+      agent: "Ouverte par l’équipe INFLUX, depuis la fiche du compte.",
+      reason: (reason: string) => `Motif : ${reason}.`,
+      comment: "Commentaire interne :",
+    },
     unset: "non renseigné",
     noOwner: "aucun",
     handleHelp:
@@ -2301,6 +2423,13 @@ export const messages = {
         },
       },
       record: {
+        proofLegend: "Comment la maîtrise du domaine est-elle prouvée ?",
+        proofLogin:
+          "Par l’adresse de connexion du compte, sur le domaine de la marque (rien à saisir)",
+        proofLoginHelp:
+          "INFLUX lit lui-même l’adresse de connexion vérifiée du compte et contrôle qu’elle est sur le domaine déclaré, hors messagerie grand public. Elle ne s’affiche jamais ici. L’immatriculation reste à constater par vous.",
+        proofCode:
+          "Par un code publié sur le domaine (enregistrement DNS TXT ou page du site)",
         lead: "Saisi par vous, jamais pré-rempli : vous tapez ce que vous lisez. Le domaine déclaré ne sert qu’à retrouver le site.",
         domain: "Domaine où le code a été lu",
         domainHelp:
@@ -2317,6 +2446,15 @@ export const messages = {
           "Parmi les sources de ce pays, et la base mondiale LEI en repli.",
       },
       problems: {
+        proof: "Choisissez comment la maîtrise du domaine est prouvée.",
+        loginIneligible: {
+          unverified:
+            "L’adresse de connexion du compte n’est pas vérifiée : elle ne prouve pas le domaine. Rien n’a été enregistré. Choisissez le code publié sur le domaine.",
+          consumer_domain:
+            "L’adresse de connexion du compte est une messagerie grand public : elle ne prouve pas le domaine. Rien n’a été enregistré. Choisissez le code publié sur le domaine.",
+          other_domain:
+            "L’adresse de connexion du compte n’est pas sur le domaine de la marque : elle ne le prouve pas. Rien n’a été enregistré. Choisissez le code publié sur le domaine.",
+        } as Readonly<Record<string, string>>,
         domain: "Saisissez le domaine où vous avez lu le code.",
         domainShape:
           "Le domaine s’écrit en minuscules, sans https:// ni chemin : lettres, chiffres, points et tirets (3 à 100 signes).",
@@ -2350,6 +2488,8 @@ export const messages = {
           language: string,
         ) =>
           `Le badge « Marque vérifiée » sera accordé : le code a été constaté sur ${domain} (${channel}), et l’immatriculation contrôlée dans la source « ${source} ». La marque en sera informée par e-mail, en ${language}.`,
+        grantRecapByLogin: (source: string, language: string) =>
+          `Le badge « Marque vérifiée » sera accordé : le domaine est prouvé par l’adresse de connexion vérifiée du compte (contrôlée par INFLUX, jamais affichée), et l’immatriculation contrôlée dans la source « ${source} ». La marque en sera informée par e-mail, en ${language}.`,
         messageToBrand: "Message envoyé à la marque :",
         nextStep: "Ce que la marque pourra faire :",
         ownMessage:

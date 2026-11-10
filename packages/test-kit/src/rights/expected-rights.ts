@@ -5141,6 +5141,11 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // queue 4), writes the origin once, draws and revokes a code, writes a missing brand block, reads
   // the reasons and the consumer mailboxes; the identity owner reads the verification instant of the
   // login address for identity.login_domain_of(), executed by the verification owner only.
+  // 0239 (L2F commit 20, D83 A): what the opening offers on an account (the lines of a creator, the
+  // brand): one read of the verification owner, EXECUTE for agent and admin, nothing for a member role.
+  "influx_admin|function|verification.read_account_openings(uuid)|EXECUTE",
+  "influx_agent|function|verification.read_account_openings(uuid)|EXECUTE",
+  "influx_verification_definer|function|verification.read_account_openings(uuid)|EXECUTE",
   "influx_admin|function|verification.grant_brand_verified_by_login(uuid,text,uuid,text)|EXECUTE",
   "influx_admin|function|verification.open_request_for_member(uuid,uuid,verification.badge_level,text,text,text,text,text)|EXECUTE",
   "influx_admin|table|verification.opening_reasons|SELECT",
@@ -5701,4 +5706,6 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_verification_definer",
   "verification.grant_brand_verified_by_login(uuid,text,uuid,text)":
     "influx_verification_definer",
+  // 0239 (L2F commit 20): the read of what the opening offers on an account.
+  "verification.read_account_openings(uuid)": "influx_verification_definer",
 };

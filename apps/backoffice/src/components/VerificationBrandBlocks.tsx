@@ -28,6 +28,7 @@ import {
 } from "./bo-classes";
 import { ErrorNotice } from "./ErrorNotice";
 import { DossierHistory } from "./VerificationDossierBlocks";
+import { loginProofOffered } from "./verification-opening-view";
 import { FIELD_ID, TypedField } from "./VerificationRecordBlock";
 import {
   levelName,
@@ -35,6 +36,7 @@ import {
   registryLinkOf,
   registrySourceWords,
   type Draft,
+  type DomainProof,
   type Problem,
 } from "./verification-decision-view";
 import { countryName, formatDateTime } from "./view-model";
@@ -244,16 +246,24 @@ export function BrandProcedureBlock({
 export function BrandRecordBlock({
   view,
   draft,
+  proof,
   problem,
   onDraft,
+  onProof,
 }: {
   view: VerificationOpenResponse;
   draft: Draft;
+  proof: DomainProof | null;
   problem: Problem | null;
   onDraft: (next: Draft) => void;
+  onProof: (next: DomainProof) => void;
 }) {
   const sources = view.dossier?.brand?.registrySources ?? [];
   const set = (patch: Partial<Draft>) => onDraft({ ...draft, ...patch });
+  const proofProblem = problem?.field === "proof" ? problem : null;
+  // D83 A-bis: when the base says the login address proves the domain, the agent may skip the code
+  const offered = loginProofOffered(view);
+  const byLogin = offered && proof === "login";
   const channelProblem = problem?.field === "channel" ? problem : null;
   const registryProblem = problem?.field === "registry" ? problem : null;
 
@@ -271,49 +281,83 @@ export function BrandRecordBlock({
         {t.sections.record}
       </h2>
       <p className={HELP_CLASSES}>{b.record.lead}</p>
-      <TypedField
-        field="domain"
-        label={b.record.domain}
-        help={b.record.domainHelp}
-        value={draft.domain}
-        problem={problem}
-        mono
-        onChange={(domain) => set({ domain })}
-      />
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-1 text-sm font-semibold text-text-primary">
-          {b.record.channelLegend}
-        </legend>
-        {BRAND_OBSERVED_CHANNELS.map((channel, at) => (
-          <label
-            key={channel}
-            className="flex min-h-(--size-bo-control) items-center gap-2 text-sm text-text-primary"
-          >
-            <input
-              id={at === 0 ? FIELD_ID("channel") : undefined}
-              type="radio"
-              name="verification-brand-channel"
-              value={channel}
-              checked={draft.channel === channel}
-              onChange={() => set({ channel })}
-              className="size-(--size-checkbox)"
-            />
-            {b.record.channels[channel]}
-          </label>
-        ))}
-        {channelProblem === null ? null : (
-          <ErrorNotice>{channelProblem.text}</ErrorNotice>
-        )}
-      </fieldset>
-      <TypedField
-        field="code"
-        label={b.record.code}
-        help={b.record.codeHelp}
-        value={draft.code}
-        problem={problem}
-        mono
-        onChange={(code) => set({ code })}
-      />
+      {offered ? (
+        <fieldset className="flex flex-col gap-2" data-proof-choice>
+          <legend className="mb-1 text-sm font-semibold text-text-primary">
+            {b.record.proofLegend}
+          </legend>
+          {(["login", "code"] as const).map((choice, at) => (
+            <label
+              key={choice}
+              className="flex min-h-(--size-bo-control) items-center gap-2 text-sm text-text-primary"
+            >
+              <input
+                id={at === 0 ? FIELD_ID("proof") : undefined}
+                type="radio"
+                name="verification-brand-proof"
+                value={choice}
+                checked={proof === choice}
+                onChange={() => onProof(choice)}
+                className="size-(--size-checkbox)"
+              />
+              {choice === "login" ? b.record.proofLogin : b.record.proofCode}
+            </label>
+          ))}
+          {byLogin ? (
+            <p className={HELP_CLASSES}>{b.record.proofLoginHelp}</p>
+          ) : null}
+          {proofProblem === null ? null : (
+            <ErrorNotice>{proofProblem.text}</ErrorNotice>
+          )}
+        </fieldset>
+      ) : null}
+      {byLogin ? null : (
+        <>
+          <TypedField
+            field="domain"
+            label={b.record.domain}
+            help={b.record.domainHelp}
+            value={draft.domain}
+            problem={problem}
+            mono
+            onChange={(domain) => set({ domain })}
+          />
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1 text-sm font-semibold text-text-primary">
+              {b.record.channelLegend}
+            </legend>
+            {BRAND_OBSERVED_CHANNELS.map((channel, at) => (
+              <label
+                key={channel}
+                className="flex min-h-(--size-bo-control) items-center gap-2 text-sm text-text-primary"
+              >
+                <input
+                  id={at === 0 ? FIELD_ID("channel") : undefined}
+                  type="radio"
+                  name="verification-brand-channel"
+                  value={channel}
+                  checked={draft.channel === channel}
+                  onChange={() => set({ channel })}
+                  className="size-(--size-checkbox)"
+                />
+                {b.record.channels[channel]}
+              </label>
+            ))}
+            {channelProblem === null ? null : (
+              <ErrorNotice>{channelProblem.text}</ErrorNotice>
+            )}
+          </fieldset>
+          <TypedField
+            field="code"
+            label={b.record.code}
+            help={b.record.codeHelp}
+            value={draft.code}
+            problem={problem}
+            mono
+            onChange={(code) => set({ code })}
+          />
+        </>
+      )}
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-semibold text-text-primary">
           {b.record.registryLegend}

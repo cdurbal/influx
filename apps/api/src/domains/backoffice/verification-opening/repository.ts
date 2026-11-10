@@ -55,3 +55,47 @@ export async function openVerificationForMember(
     created: row.created,
   };
 }
+
+/** A row of what the opening offers on an account (0239). */
+export type AccountOpeningRow = {
+  socialAccountId: string | null;
+  networkCode: string | null;
+  level: string;
+  requestId: string | null;
+  requestStatus: string | null;
+  openedBy: string | null;
+  hasWebsiteDomain: boolean | null;
+  hasInternalDetails: boolean | null;
+};
+
+/** 0239 read_account_openings(): 42501 for the caller's own account and an unknown one. */
+export async function readAccountOpenings(
+  tx: Transaction,
+  accountId: string,
+): Promise<AccountOpeningRow[]> {
+  const rows = await tx.execute<{
+    social_account_id: string | null;
+    network_code: string | null;
+    level: string;
+    request_id: string | null;
+    request_status: string | null;
+    opened_by: string | null;
+    has_website_domain: boolean | null;
+    has_internal_details: boolean | null;
+  }>(
+    sql`select o.social_account_id::text as social_account_id, o.network_code, o.level::text as level,
+               o.request_id::text as request_id, o.request_status, o.opened_by,
+               o.has_website_domain, o.has_internal_details
+          from verification.read_account_openings(${accountId}::uuid) o`,
+  );
+  return rows.map((row) => ({
+    socialAccountId: row.social_account_id,
+    networkCode: row.network_code,
+    level: row.level,
+    requestId: row.request_id,
+    requestStatus: row.request_status,
+    openedBy: row.opened_by,
+    hasWebsiteDomain: row.has_website_domain,
+    hasInternalDetails: row.has_internal_details,
+  }));
+}

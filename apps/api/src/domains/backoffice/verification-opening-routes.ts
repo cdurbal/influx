@@ -2,6 +2,9 @@
 // §6; l2f-fiche invariants 9, 12, 13; D83 A; 0234; 18 T14; l2f commit 15). Backoffice surface; the aal2
 // guard of server.ts runs first, then the handler writes through withBackofficeSession() (agent and admin
 // alike).
+//   GET  /v1/bo/accounts/:id/verification-requests   what the opening offers on the page of the account:
+//                                                    its lines of network or its brand, and the request
+//                                                    already open for each (0239; L2F commit 20)
 //   POST /v1/bo/accounts/:id/verification-requests   a commercial starts the verification of a member he
 //                                                    knows: « Compte vérifié » of a line, or « Marque
 //                                                    vérifiée » (the internal block of the company when
@@ -18,8 +21,10 @@
 //   HOLDS is not refused: the responsible commercial opens his own client's verification (D83).
 // - Every answer is `Cache-Control: no-store`. Nothing typed by an agent is logged here.
 import {
+  accountOpeningsResponseSchema,
   openVerificationForMemberBodySchema,
   openVerificationForMemberResponseSchema,
+  type AccountOpeningsResponse,
   type OpenVerificationForMemberBody,
   type OpenVerificationForMemberResponse,
 } from "@influx/contracts/verification";
@@ -30,7 +35,11 @@ import { ApiError } from "../../platform/errors.ts";
 import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import { isMemberAccount } from "./verification-badges/repository.ts";
-import { openVerificationForMember } from "./verification-opening/repository.ts";
+import { databaseNow } from "./alerts/repository.ts";
+import {
+  openVerificationForMember,
+  readAccountOpenings,
+} from "./verification-opening/repository.ts";
 import { openingRefusalOf } from "./verification-queues/refusals.ts";
 
 export type VerificationOpeningRoutesDependencies = { database: ApiDatabase };
@@ -40,6 +49,51 @@ export function registerVerificationOpeningRoutes(
   dependencies: VerificationOpeningRoutesDependencies,
 ): void {
   const { database } = dependencies;
+
+  app.get(
+    "/v1/bo/accounts/:id/verification-requests",
+    {
+      schema: {
+        params: accountActionParamsSchema,
+        response: { 200: accountOpeningsResponseSchema },
+      },
+    },
+    async (request, reply): Promise<AccountOpeningsResponse> => {
+      void reply.header("cache-control", "no-store");
+      const accountId = (
+        request.params as AccountActionParams
+      ).id.toLowerCase();
+      return withBackofficeSession(database, request, reply, async (tx) => {
+        if (!(await isMemberAccount(tx, accountId))) {
+          throw new ApiError("not_found");
+        }
+        const rows = await readAccountOpenings(tx, accountId);
+        return accountOpeningsResponseSchema.parse({
+          asOf: await databaseNow(tx),
+          openings: rows.map((row) => ({
+            socialAccountId: row.socialAccountId,
+            networkCode: row.networkCode,
+            level: row.level,
+            request:
+              row.requestId === null
+                ? null
+                : {
+                    id: row.requestId,
+                    status: row.requestStatus,
+                    openedBy: row.openedBy,
+                  },
+            brand:
+              row.level === "brand_verified"
+                ? {
+                    hasWebsiteDomain: row.hasWebsiteDomain === true,
+                    hasInternalDetails: row.hasInternalDetails === true,
+                  }
+                : null,
+          })),
+        });
+      });
+    },
+  );
 
   app.post(
     "/v1/bo/accounts/:id/verification-requests",

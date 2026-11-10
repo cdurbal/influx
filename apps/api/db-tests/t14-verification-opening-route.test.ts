@@ -865,3 +865,82 @@ describe("L2F-O6 the grant on the login address refused", () => {
     expect(bare.statusCode).toBe(400);
   });
 });
+
+describe("L2F-O7 what the opening offers on an account (0239)", () => {
+  it("serves the lines of a creator and the brand with the request already open, never a handle, and answers an unknown, an internal or the caller's own account as one 404", async () => {
+    const server = app();
+    const creator = await newCreator(agent.accountId);
+    const before = await call(
+      server,
+      "GET",
+      openUrl(creator.accountId),
+      agent.session,
+    );
+    expect(before.statusCode).toBe(200);
+    expect(before.headers["cache-control"]).toBe("no-store");
+    expect(before.json<{ openings: unknown[] }>().openings).toEqual([
+      {
+        socialAccountId: creator.lineId,
+        networkCode: "instagram",
+        level: "account_verified",
+        request: null,
+        brand: null,
+      },
+    ]);
+    const opened = (
+      await call(
+        server,
+        "POST",
+        openUrl(creator.accountId),
+        agent.session,
+        creatorBody(creator),
+      )
+    ).json<Opened>();
+    const after = await call(
+      server,
+      "GET",
+      openUrl(creator.accountId),
+      colleague.session,
+    );
+    expect(after.json<{ openings: unknown[] }>().openings).toEqual([
+      {
+        socialAccountId: creator.lineId,
+        networkCode: "instagram",
+        level: "account_verified",
+        request: { id: opened.requestId, status: "pending", openedBy: "agent" },
+        brand: null,
+      },
+    ]);
+    // no handle, no pseudonym, no comment in the answer
+    expect(after.body).not.toMatch(/t14open_|Pseudo |handle|comment/u);
+
+    const brand = await newBrand({ noBlock: true, noDomain: true });
+    const brandRead = await call(
+      server,
+      "GET",
+      openUrl(brand.accountId),
+      admin.session,
+    );
+    expect(brandRead.json<{ openings: unknown[] }>().openings).toEqual([
+      {
+        socialAccountId: null,
+        networkCode: null,
+        level: "brand_verified",
+        request: null,
+        brand: { hasWebsiteDomain: false, hasInternalDetails: false },
+      },
+    ]);
+
+    const unknown = await call(
+      server,
+      "GET",
+      openUrl(randomUUID()),
+      agent.session,
+    );
+    expect(unknown.statusCode).toBe(404);
+    for (const id of [admin.accountId, agent.accountId]) {
+      const refused = await call(server, "GET", openUrl(id), agent.session);
+      expect(answer(refused)).toEqual(answer(unknown));
+    }
+  });
+});

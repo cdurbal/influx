@@ -1972,6 +1972,42 @@ export type OpenVerificationForMemberResponse = z.infer<
 >;
 
 /**
+ * `GET /v1/bo/accounts/:id/verification-requests` (0239): what « Lancer la vérification » offers on the
+ * page of a member account: one row per network line of a creator (`account_verified`) and one for a
+ * brand (`brand_verified`, no line), with the request of the triplet already open (a member's own is
+ * taken over by the opening, never doubled) and, for the brand, whether its site has a domain and its
+ * internal block exists (the three fields are then to be typed). « Audience vérifiée » has no row.
+ * Never a handle, a figure, an agent nor a comment.
+ */
+export const accountOpeningRowSchema = z.strictObject({
+  socialAccountId: z.uuid().nullable(),
+  networkCode: referenceCodeSchema.nullable(),
+  level: z.enum(["account_verified", "brand_verified"]),
+  request: z
+    .strictObject({
+      id: z.uuid(),
+      status: z.enum(["draft", "pending"]),
+      openedBy: verificationOpenerSchema,
+    })
+    .nullable(),
+  brand: z
+    .strictObject({
+      hasWebsiteDomain: z.boolean(),
+      hasInternalDetails: z.boolean(),
+    })
+    .nullable(),
+});
+export type AccountOpeningRow = z.infer<typeof accountOpeningRowSchema>;
+
+export const accountOpeningsResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  openings: z.array(accountOpeningRowSchema),
+});
+export type AccountOpeningsResponse = z.infer<
+  typeof accountOpeningsResponseSchema
+>;
+
+/**
  * `POST /v1/bo/queues/verification-brands/entries/:id/grant-by-login` (A-bis): the same grant as a
  * brand's, without a code or a channel typed: the database reads the login address. The register of the
  * company is still consulted by the agent (06 RG52). The answer is the one of a grant.

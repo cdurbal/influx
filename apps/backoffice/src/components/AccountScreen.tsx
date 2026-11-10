@@ -31,6 +31,7 @@ import {
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES, inputClasses, TITLE_CLASSES } from "./auth-classes";
 import { AccountBadgesBlock } from "./AccountBadgesBlock";
+import { AccountOpeningBlock } from "./AccountOpeningBlock";
 import { AccountBrandBlocks } from "./AccountBrandBlocks";
 import { ActionFeedback, AdminOnlyNotice } from "./ActionFeedback";
 import {
@@ -792,6 +793,9 @@ export function AccountScreen({ id }: { id: string }) {
       </section>
       <AccountBrandBlocks brand={detail.brand} />
       <AccountBadgesBlock accountId={account.id} />
+      {account.role === "creator" || account.role === "advertiser" ? (
+        <AccountOpeningBlock accountId={account.id} role={account.role} />
+      ) : null}
       <SyncBlock detail={detail} onReplayed={() => setReload(reload + 1)} />
       <CorrectionForm
         detail={detail}

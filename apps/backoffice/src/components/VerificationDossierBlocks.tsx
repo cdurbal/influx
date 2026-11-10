@@ -33,6 +33,7 @@ import {
   reasonLabel,
   reexamineMarkLine,
 } from "./verification-decision-view";
+import { openingLines } from "./verification-opening-view";
 import { networkWords } from "./verification-queue-view";
 import { countryName, formatDateTime } from "./view-model";
 
@@ -199,8 +200,25 @@ export function DossierHistory({
     view.entry.networkCode === null
       ? null
       : networkWords(view.entry.networkCode);
+  const opening = openingLines(dossier.opening);
   return (
     <>
+      <div
+        className="flex flex-col gap-1"
+        data-opening-origin={dossier.opening.openedBy}
+      >
+        <h3 className={BLOCK_TITLE}>{t.opening.title}</h3>
+        <p className="text-sm text-text-primary">{opening.origin}</p>
+        {opening.reason === null ? null : (
+          <p className="text-sm text-text-primary">{opening.reason}</p>
+        )}
+        {opening.comment === null ? null : (
+          <p className="text-sm text-text-primary">
+            {t.opening.comment}{" "}
+            <span className="whitespace-pre-wrap">{opening.comment}</span>
+          </p>
+        )}
+      </div>
       <div className="flex flex-col gap-1">
         <h3 className={BLOCK_TITLE}>{t.badges.title}</h3>
         {dossier.badges.length === 0 ? (
