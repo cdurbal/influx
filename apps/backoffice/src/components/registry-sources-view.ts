@@ -5,12 +5,15 @@
 // database holds one active source per country, refuses a day in the future and writes the former and the new
 // value in the register (RG101); this module words, gathers and parses what was typed.
 import {
+  registrySubdivisionCodeSchema,
   VERIFICATION_REGISTRY_SOURCE_NAME_MAX_LENGTH,
   VERIFICATION_REGISTRY_SOURCE_NAME_MIN_LENGTH,
   VERIFICATION_REGISTRY_SOURCE_URL_MAX_LENGTH,
+  type AddVerificationRegistrySourceBody,
   type UpdateVerificationRegistrySourceBody,
   type VerificationRegistrySourceAdminRow,
 } from "@influx/contracts/verification";
+import { ISO_COUNTRY_CODES } from "@influx/contracts/countries";
 import { messages } from "@/messages/fr";
 import { registryLinkOf } from "./verification-decision-view";
 import { countryName, formatDay } from "./view-model";
@@ -37,6 +40,13 @@ export function sourceCountryWords(
   return row.countryCode === null
     ? t.allCountries
     : countryName(row.countryCode);
+}
+
+/** The State of a source in words: its code (ISO 3166-2), or « Tout le pays » for the register of a country. */
+export function sourceSubdivisionWords(
+  row: Pick<SourceRow, "subdivisionCode">,
+): string {
+  return row.subdivisionCode ?? t.noSubdivision;
 }
 
 /** Only an administrator writes (RG101): the button is masked for an agent, and the server refuses it anyway. */
@@ -149,4 +159,147 @@ export function saveFailureText(code: string | undefined): string | null {
     return t.problems.fieldRefused;
   }
   return null;
+}
+
+// ---------------------------------------------------------------------------------------------
+// The addition of a source (L2F-21, 0229): a register of type national for a country, or for one of its
+// States. Same discipline: shapes checked here, the rest (the country, the State of that country, one
+// active source per country and State) is the database's.
+// ---------------------------------------------------------------------------------------------
+
+/** What the administrator types for a new source; the type is always national, never chosen. */
+export type NewSourceDraft = SourceDraft & {
+  countryCode: string;
+  subdivisionCode: string;
+};
+
+export const EMPTY_NEW_SOURCE: NewSourceDraft = {
+  countryCode: "",
+  subdivisionCode: "",
+  name: "",
+  url: "",
+  checkedOn: "",
+  isActive: false,
+};
+
+export type NewSourceFieldName =
+  SourceFieldName | "countryCode" | "subdivisionCode";
+
+export type NewSourceProblem = { field: NewSourceFieldName; text: string };
+
+export type NewSourceChecked =
+  | { ok: true; body: AddVerificationRegistrySourceBody }
+  | { ok: false; problem: NewSourceProblem };
+
+const COUNTRY_CODES: ReadonlySet<string> = new Set(ISO_COUNTRY_CODES);
+
+/**
+ * The State as the contract takes it: empty is the whole country; « CA » is read as « US-CA » for the country
+ * chosen; the code is put in capitals and its prefix must be the country's own. Null when it cannot be one.
+ */
+export function subdivisionOf(
+  countryCode: string,
+  typed: string,
+): string | null | undefined {
+  const value = typed.trim().toUpperCase();
+  if (value === "") {
+    return null;
+  }
+  const full = value.includes("-") ? value : `${countryCode}-${value}`;
+  return registrySubdivisionCodeSchema.safeParse(full).success &&
+    full.startsWith(`${countryCode}-`)
+    ? full
+    : undefined;
+}
+
+/** The body of the addition as the contract takes it, after the checks of the shapes. */
+export function newSourceCheck(draft: NewSourceDraft): NewSourceChecked {
+  const p = t.add.problems;
+  if (!COUNTRY_CODES.has(draft.countryCode)) {
+    return { ok: false, problem: { field: "countryCode", text: p.country } };
+  }
+  const subdivisionCode = subdivisionOf(
+    draft.countryCode,
+    draft.subdivisionCode,
+  );
+  if (subdivisionCode === undefined) {
+    return {
+      ok: false,
+      problem: { field: "subdivisionCode", text: p.subdivision },
+    };
+  }
+  const checked = sourceChangeCheck(draft);
+  if (!checked.ok) {
+    return checked;
+  }
+  return {
+    ok: true,
+    body: {
+      ...checked.body,
+      countryCode:
+        draft.countryCode as AddVerificationRegistrySourceBody["countryCode"],
+      subdivisionCode,
+    },
+  };
+}
+
+export type AddLine = {
+  key: "country" | "subdivision" | "name" | "url" | "checkedOn" | "isActive";
+  field: string;
+  value: string;
+};
+
+/** What will be journaled, field by field: the whole value of the new source (there is no former one). */
+export function addLines(body: AddVerificationRegistrySourceBody): AddLine[] {
+  return [
+    {
+      key: "country",
+      field: t.add.country,
+      value: countryName(body.countryCode),
+    },
+    {
+      key: "subdivision",
+      field: t.columns.subdivision,
+      value: body.subdivisionCode ?? t.noSubdivision,
+    },
+    { key: "name", field: t.fields.name, value: body.name },
+    { key: "url", field: t.fields.url, value: body.url },
+    {
+      key: "checkedOn",
+      field: t.fields.checkedOn,
+      value: formatDay(body.checkedOn),
+    },
+    {
+      key: "isActive",
+      field: t.fields.active,
+      value: body.isActive ? t.activeWords.yes : t.activeWords.no,
+    },
+  ];
+}
+
+/** Where a source added stands, in words: its country, and its State when it has one. */
+export function addedWhere(body: AddVerificationRegistrySourceBody): string {
+  return body.subdivisionCode === null
+    ? countryName(body.countryCode)
+    : `${countryName(body.countryCode)}, ${body.subdivisionCode}`;
+}
+
+/**
+ * The sentence of a refused addition, by the issues the API names (never a value): the country or the State
+ * the base does not know, a second active source for the country and State, a field the base refuses.
+ */
+export function addFailureText(
+  code: string | undefined,
+  issues: readonly string[],
+): string | null {
+  if (issues.includes("invalid_country")) {
+    return t.add.problems.unknownCountry;
+  }
+  if (issues.includes("invalid_subdivision")) {
+    return t.add.problems.unknownSubdivision;
+  }
+  if (code === "conflict") {
+    return t.add.problems.activeExists;
+  }
+  return saveFailureText(code);
 }

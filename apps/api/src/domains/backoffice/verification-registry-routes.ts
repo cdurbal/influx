@@ -3,6 +3,10 @@
 // guard of server.ts runs first, then each handler reads and writes through withBackofficeSession().
 // - GET /v1/bo/verification/registry-sources        every source, the inactive ones too: agent and admin
 //                                                   (an agent reads the register he consults by hand)
+// - POST /v1/bo/verification/registry-sources       an administrator only (L2F-21, 0229): a register of
+//                                                   type national for a country or for one of its States;
+//                                                   200 (the relay reads 200 only), the source as read back; 400 `countryCode` /
+//                                                   `subdivisionCode` (22023), 409 `active_source_exists`
 // - PUT /v1/bo/verification/registry-sources/:id    an administrator only: name, `https` page, day of the
 //                                                   check by hand, activation; the former and the new
 //                                                   value are journaled by the database (RG101)
@@ -12,10 +16,14 @@
 // per country and subdivision (409 `active_source_exists`: deactivate the first one before). Every
 // answer is `Cache-Control: no-store`. Nothing is logged here.
 import {
+  addVerificationRegistrySourceBodySchema,
+  addVerificationRegistrySourceResponseSchema,
   updateVerificationRegistrySourceBodySchema,
   updateVerificationRegistrySourceResponseSchema,
   verificationRegistrySourceParamsSchema,
   verificationRegistrySourcesResponseSchema,
+  type AddVerificationRegistrySourceBody,
+  type AddVerificationRegistrySourceResponse,
   type UpdateVerificationRegistrySourceBody,
   type UpdateVerificationRegistrySourceResponse,
   type VerificationRegistrySourceParams,
@@ -23,7 +31,11 @@ import {
 } from "@influx/contracts/verification";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ApiDatabase, Transaction } from "../../db/index.ts";
-import { sqlConstraintOf, sqlStateOf } from "../../db/sql-state.ts";
+import {
+  sqlConstraintOf,
+  sqlDetailOf,
+  sqlStateOf,
+} from "../../db/sql-state.ts";
 import { ApiError, RequestValidationError } from "../../platform/errors.ts";
 import {
   withBackofficeSession,
@@ -32,6 +44,7 @@ import {
 import type { IdentityApp } from "../identity/routes.ts";
 import { adminOnly, isForbidden, unlessRefused } from "./action-guards.ts";
 import {
+  addRegistrySource,
   listRegistrySources,
   readRegistrySourceById,
   setRegistrySource,
@@ -56,10 +69,17 @@ function refusalOf(error: unknown): unknown {
     return new ApiError("not_found");
   }
   switch (sqlStateOf(error)) {
-    case "22023":
+    case "22023": {
+      // the door of an addition names the field (DETAIL); the update has the day of the check alone
+      const detail = sqlDetailOf(error);
       return new RequestValidationError([
-        { path: "checkedOn", issue: "invalid_checked_on" },
+        detail === "country_code"
+          ? { path: "countryCode", issue: "invalid_country" }
+          : detail === "subdivision_code"
+            ? { path: "subdivisionCode", issue: "invalid_subdivision" }
+            : { path: "checkedOn", issue: "invalid_checked_on" },
       ]);
+    }
     case "23514": {
       const constraint = sqlConstraintOf(error);
       const field =
@@ -103,6 +123,46 @@ export function registerVerificationRegistryRoutes(
           sources: await listRegistrySources(tx),
         }),
       ),
+  );
+
+  app.post(
+    REGISTRY_SOURCES_ROUTE,
+    {
+      schema: {
+        body: addVerificationRegistrySourceBodySchema,
+        response: { 200: addVerificationRegistrySourceResponseSchema },
+      },
+    },
+    async (request, reply): Promise<AddVerificationRegistrySourceResponse> => {
+      const body = request.body as AddVerificationRegistrySourceBody;
+      return unlessRefused(
+        await inSession(request, reply, (tx, context) =>
+          adminOnly(
+            tx,
+            context,
+            "verification.add_registry_source",
+            async () => {
+              let id: string;
+              try {
+                // a savepoint: the refusal of the door leaves the transaction readable
+                id = await tx.transaction((savepoint) =>
+                  addRegistrySource(savepoint, body),
+                );
+              } catch (error) {
+                throw refusalOf(error);
+              }
+              const source = await readRegistrySourceById(tx, id);
+              if (source === null) {
+                throw new ApiError("not_found");
+              }
+              return addVerificationRegistrySourceResponseSchema.parse({
+                source,
+              });
+            },
+          ),
+        ),
+      );
+    },
   );
 
   app.put(

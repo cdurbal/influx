@@ -273,6 +273,7 @@ async function dossierOf(
                     id: source.id,
                     sourceType: source.sourceType as SourceType,
                     countryCode: source.countryCode as Country | null,
+                    subdivisionCode: source.subdivisionCode,
                     name: source.name,
                     url: source.url,
                     checkedOn: source.checkedOn,

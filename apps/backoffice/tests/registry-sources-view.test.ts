@@ -6,14 +6,21 @@
 import type { VerificationRegistrySourceAdminRow } from "@influx/contracts/verification";
 import { describe, expect, it } from "vitest";
 import {
+  addedWhere,
+  addFailureText,
+  addLines,
   canEditSources,
   changeLines,
   draftOf,
+  EMPTY_NEW_SOURCE,
+  newSourceCheck,
   partitionSources,
   saveFailureText,
   sourceChangeCheck,
   sourceCountryWords,
   sourceLinkOf,
+  sourceSubdivisionWords,
+  subdivisionOf,
 } from "../src/components/registry-sources-view";
 import { messages } from "../src/messages/fr";
 
@@ -28,6 +35,7 @@ function source(
     countryCode: "GB",
     name: "Companies House, Find and update company information",
     url: "https://find-and-update.company-information.service.gov.uk/",
+    subdivisionCode: null,
     checkedOn: "2026-11-07",
     isActive: false,
     updatedAt: "2026-11-07T09:00:00.000Z",
@@ -168,9 +176,133 @@ describe("L2E-23: a change is checked in its shapes, then shown as former and ne
     expect(saveFailureText(undefined)).toBeNull();
   });
 
-  it("states what the screen cannot do yet: no source for a country that has none, no State of the United States, and no internal ticket number on screen (L2EU-8)", () => {
-    expect(t.addLimit).toMatch(/État américain/);
-    expect(t.addLimit).not.toMatch(/EC-L2E-/);
+  it("tells an agent the screen is read-only, and no longer says an addition is impossible (L2F-21)", () => {
     expect(t.leadAgent).toMatch(/Lecture seule/);
+    expect(JSON.stringify(t)).not.toMatch(/pas encore possible|sans migration/);
+  });
+});
+
+describe("L2F-21: a source for a country or for one of its States is checked in its shapes and shown before it is added (RG52, RG101; 0229)", () => {
+  const typed = {
+    ...EMPTY_NEW_SOURCE,
+    countryCode: "US",
+    subdivisionCode: "ca",
+    name: "  California Secretary of State  ",
+    url: " https://bizfileonline.sos.ca.gov/search/business ",
+    checkedOn: "2026-11-09",
+    isActive: true,
+  };
+
+  it("words the State of a source, and « Tout le pays » for the register of a whole country", () => {
+    expect(sourceSubdivisionWords(source({ subdivisionCode: "US-CA" }))).toBe(
+      "US-CA",
+    );
+    expect(sourceSubdivisionWords(source())).toBe(t.noSubdivision);
+    expect(t.countryLine("États-Unis", "US-CA")).toBe(
+      "Pays : États-Unis ; État : US-CA",
+    );
+    expect(t.countryLine("États-Unis", null)).toBe("Pays : États-Unis");
+  });
+
+  it("reads the State as typed: empty is the whole country, the end alone is completed, the prefix is the country's own", () => {
+    expect(subdivisionOf("US", "")).toBeNull();
+    expect(subdivisionOf("US", "  ")).toBeNull();
+    expect(subdivisionOf("US", "ca")).toBe("US-CA");
+    expect(subdivisionOf("US", " us-ny ")).toBe("US-NY");
+    expect(subdivisionOf("US", "CA-ON")).toBeUndefined();
+    expect(subdivisionOf("US", "California")).toBeUndefined();
+    expect(subdivisionOf("US", "US-")).toBeUndefined();
+  });
+
+  it("sends the country, the State completed, the name and the address trimmed; never the type", () => {
+    expect(newSourceCheck(typed)).toEqual({
+      ok: true,
+      body: {
+        countryCode: "US",
+        subdivisionCode: "US-CA",
+        name: "California Secretary of State",
+        url: "https://bizfileonline.sos.ca.gov/search/business",
+        checkedOn: "2026-11-09",
+        isActive: true,
+      },
+    });
+    const whole = newSourceCheck({ ...typed, subdivisionCode: "" });
+    expect(whole.ok && whole.body.subdivisionCode).toBeNull();
+  });
+
+  it("refuses, on its own field, no country, a country that is not one, a State of another country, then the shapes of the name, the page and the day", () => {
+    const p = t.add.problems;
+    expect(newSourceCheck({ ...typed, countryCode: "" })).toEqual({
+      ok: false,
+      problem: { field: "countryCode", text: p.country },
+    });
+    expect(newSourceCheck({ ...typed, countryCode: "ZZ" })).toEqual({
+      ok: false,
+      problem: { field: "countryCode", text: p.country },
+    });
+    expect(newSourceCheck({ ...typed, subdivisionCode: "CA-ON" })).toEqual({
+      ok: false,
+      problem: { field: "subdivisionCode", text: p.subdivision },
+    });
+    expect(newSourceCheck({ ...typed, name: "x" })).toMatchObject({
+      ok: false,
+      problem: { field: "name" },
+    });
+    expect(
+      newSourceCheck({ ...typed, url: "http://bizfileonline.sos.ca.gov/" }),
+    ).toMatchObject({ ok: false, problem: { field: "url" } });
+    expect(newSourceCheck({ ...typed, checkedOn: "" })).toMatchObject({
+      ok: false,
+      problem: { field: "checkedOn" },
+    });
+  });
+
+  it("shows every value before it is journaled, the State as « Tout le pays » when there is none, and says where the source stands once added", () => {
+    const checked = newSourceCheck(typed);
+    if (!checked.ok) {
+      throw new Error("the addition was refused");
+    }
+    const lines = addLines(checked.body);
+    expect(lines.map((line) => line.key)).toEqual([
+      "country",
+      "subdivision",
+      "name",
+      "url",
+      "checkedOn",
+      "isActive",
+    ]);
+    expect(lines.find((line) => line.key === "subdivision")?.value).toBe(
+      "US-CA",
+    );
+    expect(lines.find((line) => line.key === "isActive")?.value).toBe(
+      t.activeWords.yes,
+    );
+    expect(
+      addLines({ ...checked.body, subdivisionCode: null }).find(
+        (line) => line.key === "subdivision",
+      )?.value,
+    ).toBe(t.noSubdivision);
+    expect(addedWhere(checked.body)).toBe("États-Unis, US-CA");
+    expect(addedWhere({ ...checked.body, subdivisionCode: null })).toBe(
+      "États-Unis",
+    );
+  });
+
+  it("says the country or the State the base does not know, a second active source, and a field the base refuses; any other failure keeps the generic sentence", () => {
+    const p = t.add.problems;
+    expect(addFailureText("validation_failed", ["invalid_country"])).toBe(
+      p.unknownCountry,
+    );
+    expect(addFailureText("validation_failed", ["invalid_subdivision"])).toBe(
+      p.unknownSubdivision,
+    );
+    expect(addFailureText("conflict", ["active_source_exists"])).toBe(
+      p.activeExists,
+    );
+    expect(addFailureText("validation_failed", ["invalid_checked_on"])).toBe(
+      t.problems.fieldRefused,
+    );
+    expect(addFailureText("forbidden", [])).toBeNull();
+    expect(addFailureText(undefined, [])).toBeNull();
   });
 });

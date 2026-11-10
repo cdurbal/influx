@@ -101,6 +101,7 @@ const SESSION_ROUTES: readonly string[] = [
   "POST /v1/bo/leads/replays",
   "GET /v1/bo/settings/apollo",
   "GET /v1/bo/verification/registry-sources",
+  "POST /v1/bo/verification/registry-sources",
   "PUT /v1/bo/verification/registry-sources/:id",
   "GET /v1/bo/alerts",
   "GET /v1/bo/ops/status",

@@ -13,6 +13,7 @@
 // L2E-B5 a country without a register (CA29), L2E-B6 who may reach the routes (T14, CA33), L2E-B7 the
 // registry sources (RG52, RG101), L2E-B8 the logs.
 import {
+  addVerificationRegistrySourceResponseSchema,
   brandVerificationResponseSchema,
   verificationOpenResponseSchema,
   verificationRegistrySourcesResponseSchema,
@@ -1169,6 +1170,188 @@ describe("L2E-B7 the registry sources: read by agent and admin, written by an ad
     ).toBe(400);
     // the sources are unchanged by every refusal above
     expect(await sourceOf("GB", "national")).toEqual(gb);
+  });
+});
+
+describe("L2F-21 the register of a State: added by an administrator, served with its subdivision (06 RG52, RG101; 0229; T14)", () => {
+  const added: string[] = [];
+  const stateBody = (subdivisionCode: string | null, isActive = true) => ({
+    countryCode: "US",
+    subdivisionCode,
+    name: `Register of ${subdivisionCode ?? "the United States"} (L2F-21)`,
+    url: `https://registry.example.test/${(subdivisionCode ?? "us").toLowerCase()}`,
+    checkedOn: "2026-11-01",
+    isActive,
+  });
+  async function rowsOfUs() {
+    return migration<{ id: string; subdivision: string | null }[]>`
+      select id::text as id, subdivision_code as subdivision
+        from verification.registry_sources
+       where country_code = 'US' order by subdivision_code nulls first`;
+  }
+  afterAll(async () => {
+    if (added.length > 0) {
+      await migration`delete from verification.registry_sources where id = any(${added}::uuid[])`;
+    }
+  });
+
+  it("refuses an agent and changes nothing, then lets an admin add the register of a country and of two States, each served with its subdivision and journaled with the value added; a second active source for the same State is a conflict", async () => {
+    const server = app();
+    const before = (await rowsOfUs()).length;
+    const byAgent = await callBo(
+      server,
+      "POST",
+      URL_SOURCES,
+      agent.session,
+      stateBody("US-CA"),
+    );
+    expect(byAgent.statusCode).toBe(403);
+    expect((await rowsOfUs()).length).toBe(before);
+    const [refusal] = await migration<{ payload: Record<string, unknown> }[]>`
+      select payload from audit.audit_events
+       where event_type = 'backoffice.action_refused' and subject_id = ${agent.accountId}
+       order by seq desc limit 1`;
+    expect(refusal?.payload).toEqual({
+      action_code: "verification.add_registry_source",
+      required_role: "admin",
+    });
+
+    const post = (body: unknown) =>
+      callBo(server, "POST", URL_SOURCES, admin.session, body);
+    for (const subdivision of [null, "US-NY", "US-CA"]) {
+      const done = await post(stateBody(subdivision));
+      expect(done.statusCode, done.body).toBe(200);
+      expect(done.headers["cache-control"]).toBe("no-store");
+      const { source } = addVerificationRegistrySourceResponseSchema.parse(
+        done.json(),
+      );
+      added.push(source.id);
+      expect(source).toMatchObject({
+        countryCode: "US",
+        subdivisionCode: subdivision,
+        sourceType: "national",
+        isActive: true,
+      });
+    }
+    // the journal keeps the value added, before null
+    const [line] = await migration<
+      {
+        actor: string;
+        payload: { before: unknown; after: { subdivision_code: string } };
+      }[]
+    >`
+      select actor_account_id::text as actor, payload from audit.audit_events
+       where subject_id = ${added.at(-1) ?? ""}
+         and event_type = 'verification.registry_source_changed'`;
+    expect(line).toMatchObject({
+      actor: admin.accountId,
+      payload: { before: null, after: { subdivision_code: "US-CA" } },
+    });
+    // read by an agent, with the subdivision; the whole country first among its States
+    const listed = await callBo(server, "GET", URL_SOURCES, agent.session);
+    const { sources } = verificationRegistrySourcesResponseSchema.parse(
+      listed.json(),
+    );
+    expect(
+      sources
+        .filter((source) => source.countryCode === "US")
+        .map((source) => source.subdivisionCode),
+    ).toEqual([null, "US-CA", "US-NY"]);
+    const others = sources.filter((source) => source.countryCode !== "US");
+    expect(others.length).toBeGreaterThan(0);
+    expect(others.every((source) => source.subdivisionCode === null)).toBe(
+      true,
+    );
+
+    // a second active source for the same State: conflict, the first stays
+    const second = await post(stateBody("US-CA"));
+    expect(second.statusCode).toBe(409);
+    expect(issuesOf(second)).toEqual([
+      { path: "source", issue: "active_source_exists" },
+    ]);
+    // inactive, it is accepted: one active per State, not one source
+    const inactive = await post(stateBody("US-CA", false));
+    expect(inactive.statusCode, inactive.body).toBe(200);
+    added.push(
+      addVerificationRegistrySourceResponseSchema.parse(inactive.json()).source
+        .id,
+    );
+    expect((await rowsOfUs()).length).toBe(before + 4);
+  });
+
+  it("refuses a State of another country, an unknown State, a day in the future, a page that is not https and a field it does not know; nothing is written", async () => {
+    const server = app();
+    const before = (await rowsOfUs()).length;
+    const post = (body: unknown) =>
+      callBo(server, "POST", URL_SOURCES, admin.session, body);
+    const valid = stateBody("US-TX", false);
+    // the prefix of the State is the country's own: the contract says so before the database
+    expect(
+      (await post({ ...valid, subdivisionCode: "CA-ON" })).statusCode,
+    ).toBe(400);
+    // the database says it for a State the reference does not hold
+    const unknown = await post({ ...valid, subdivisionCode: "US-ZZ" });
+    expect(unknown.statusCode).toBe(400);
+    expect(issuesOf(unknown)).toEqual([
+      { path: "subdivisionCode", issue: "invalid_subdivision" },
+    ]);
+    const future = await post({
+      ...valid,
+      checkedOn: new Date(Date.now() + 3 * DAY_MS).toISOString().slice(0, 10),
+    });
+    expect(future.statusCode).toBe(400);
+    expect(issuesOf(future)).toEqual([
+      { path: "checkedOn", issue: "invalid_checked_on" },
+    ]);
+    for (const body of [
+      { ...valid, url: "http://example.test/register" },
+      { ...valid, countryCode: "ZZ" },
+      { ...valid, source_type: "gleif" },
+      { ...valid, subdivisionCode: undefined },
+    ]) {
+      expect((await post(body)).statusCode).toBe(400);
+    }
+    expect((await rowsOfUs()).length).toBe(before);
+  });
+
+  it("serves the dossier of a brand registered in the United States the register of its country, the registers of its States after it and GLEIF last, none of another country", async () => {
+    const server = app();
+    const member = await newBrand();
+    await saveDetails(server, member, {
+      ...DETAILS,
+      registrationCountryCode: "US",
+    });
+    const draft = await act(server, member, "");
+    await act(server, member, "/submit");
+    const view = await openEntry(server, draft.request.id, agent);
+    const served = view.dossier?.brand?.registrySources ?? [];
+    expect(
+      served.map((source) => [source.sourceType, source.subdivisionCode]),
+    ).toEqual([
+      ["national", null],
+      ["national", "US-CA"],
+      ["national", "US-NY"],
+      ["gleif", null],
+    ]);
+    expect(
+      served.every(
+        (source) =>
+          source.sourceType === "gleif" || source.countryCode === "US",
+      ),
+    ).toBe(true);
+    // tidy: the request is closed as B5 does
+    const refused = await callBo(
+      server,
+      "POST",
+      `${BRANDS}/${draft.request.id}/reject`,
+      agent.session,
+      {
+        reviewToken: view.reviewToken,
+        reasonCode: "registration_unverifiable_country",
+        internalComment: SECRET_COMMENT,
+      },
+    );
+    expect(refused.statusCode, refused.body).toBe(200);
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { queueCodeSchema } from "../src/backoffice-queues.ts";
 import { z } from "../src/zod.ts";
 import {
+  addVerificationRegistrySourceBodySchema,
   brandVerificationResponseSchema,
   compareFiguresRequestSchema,
   creatorVerificationResponseSchema,
@@ -412,5 +413,31 @@ describe("queue 4, the list and the decision view (08 RG47, RG55, RG62, RG63, RG
       "verification_disputes",
       "identity_change_review",
     ]);
+  });
+});
+
+describe("L2F-21: the addition of a registry source, for a country or for one of its States (0229)", () => {
+  const body = {
+    countryCode: "US",
+    subdivisionCode: "US-CA",
+    name: "California Secretary of State",
+    url: "https://bizfileonline.sos.ca.gov/search/business",
+    checkedOn: "2026-11-09",
+    isActive: false,
+  };
+
+  it("takes a State whose prefix is the country's own, or none for the whole country, and nothing else", () => {
+    const parse = (value: unknown) =>
+      addVerificationRegistrySourceBodySchema.safeParse(value).success;
+    expect(parse(body)).toBe(true);
+    expect(parse({ ...body, subdivisionCode: null })).toBe(true);
+    expect(parse({ ...body, subdivisionCode: "CA-ON" })).toBe(false);
+    expect(parse({ ...body, subdivisionCode: "us-ca" })).toBe(false);
+    expect(parse({ ...body, subdivisionCode: undefined })).toBe(false);
+    expect(parse({ ...body, countryCode: "ZZ" })).toBe(false);
+    expect(parse({ ...body, url: "http://bizfileonline.sos.ca.gov/" })).toBe(
+      false,
+    );
+    expect(parse({ ...body, sourceType: "gleif" })).toBe(false);
   });
 });

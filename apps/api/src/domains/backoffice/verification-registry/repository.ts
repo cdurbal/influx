@@ -11,6 +11,7 @@ export type RegistrySourceAdminRow = {
   id: string;
   sourceType: string;
   countryCode: string | null;
+  subdivisionCode: string | null;
   name: string;
   url: string;
   checkedOn: string;
@@ -22,6 +23,7 @@ type Row = {
   id: string;
   source_type: string;
   country_code: string | null;
+  subdivision_code: string | null;
   name: string;
   url: string;
   checked_on: string;
@@ -30,7 +32,7 @@ type Row = {
 };
 
 const COLUMNS = sql`id::text as id, source_type::text as source_type,
-       country_code::text as country_code, name, url,
+       country_code::text as country_code, subdivision_code, name, url,
        to_char(checked_on, 'YYYY-MM-DD') as checked_on, is_active,
        to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at`;
 
@@ -39,6 +41,7 @@ function rowOf(row: Row): RegistrySourceAdminRow {
     id: row.id,
     sourceType: row.source_type,
     countryCode: row.country_code,
+    subdivisionCode: row.subdivision_code,
     name: row.name,
     url: row.url,
     checkedOn: row.checked_on,
@@ -54,7 +57,7 @@ export async function listRegistrySources(
   const rows = await tx.execute<Row>(
     sql`select ${COLUMNS}
           from verification.registry_sources
-         order by (source_type = 'gleif'), country_code, name, id`,
+         order by (source_type = 'gleif'), country_code, subdivision_code nulls first, name, id`,
   );
   return rows.map(rowOf);
 }
@@ -81,4 +84,31 @@ export async function setRegistrySource(
           ${id}::uuid, ${change.name}, ${change.url}, ${change.checkedOn}::date,
           ${change.isActive}::boolean)`,
   );
+}
+
+/**
+ * `verification.add_registry_source()` (0229, L2F-21): an administrator adds a register of type national
+ * for a country, or for one of its States; journaled by the database (RG101). Answers the new id.
+ */
+export async function addRegistrySource(
+  tx: Transaction,
+  source: {
+    countryCode: string;
+    subdivisionCode: string | null;
+    name: string;
+    url: string;
+    checkedOn: string;
+    isActive: boolean;
+  },
+): Promise<string> {
+  const rows = await tx.execute<{ id: string }>(
+    sql`select verification.add_registry_source(
+          ${source.countryCode}, ${source.subdivisionCode}, ${source.name}, ${source.url},
+          ${source.checkedOn}::date, ${source.isActive}::boolean)::text as id`,
+  );
+  const id = rows[0]?.id;
+  if (id === undefined) {
+    throw new Error("add_registry_source answered no id");
+  }
+  return id;
 }

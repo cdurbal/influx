@@ -2416,6 +2416,8 @@ export const messages = {
         noLink: "adresse non ouvrable depuis cet écran",
         line: (name: string, type: string, checkedOn: string) =>
           `${name} — ${type}, page contrôlée le ${checkedOn}`,
+        /** L2F-21: the register of a State of the country, named after its code (ISO 3166-2). */
+        state: (code: string) => `État ${code}`,
         types: {
           national: "registre national",
           e_justice: "portail européen e-Justice",
@@ -2927,8 +2929,8 @@ export const messages = {
       "Vous activez une source « à confirmer » après avoir contrôlé à la main que sa recherche est gratuite, et vous corrigez son nom, sa page ou son jour de contrôle. Chaque changement est journalisé avec l’ancienne et la nouvelle valeur.",
     leadAgent:
       "Lecture seule : seul un administrateur modifie une source. Une source manquante pour un pays se signale à un administrateur.",
-    addLimit:
-      "L’ajout d’une source pour un pays qui n’en a pas encore, ou pour un État américain, n’est pas encore possible depuis cet écran : la base ne porte qu’une source par pays, sans État.",
+    leadAddAdmin:
+      "Vous ajoutez le registre d’un pays qui n’en a pas encore, ou celui d’un État (le code de l’État, par exemple US-CA, ou sa seule fin, CA) à côté du registre national du pays. Une seule source active par pays et par État.",
     error: "Les sources n’ont pas pu être chargées.",
     retry: "Réessayer",
     inactiveTitle: "À confirmer ou désactivées",
@@ -2943,9 +2945,11 @@ export const messages = {
       type: "Type",
       checked: "Contrôlée le",
       updated: "Modifiée le",
-      state: "État",
+      subdivision: "État",
+      state: "Statut",
       action: "Action",
     },
+    noSubdivision: "Tout le pays",
     allCountries: "Tous les pays (repli)",
     types: {
       national: "Registre national",
@@ -2957,7 +2961,39 @@ export const messages = {
     noLink: "adresse non ouvrable",
     edit: (name: string) => `Modifier ${name}`,
     editorTitle: (name: string) => `Modifier la source — ${name}`,
-    countryLine: (country: string) => `Pays : ${country}`,
+    countryLine: (country: string, subdivision: string | null) =>
+      subdivision === null
+        ? `Pays : ${country}`
+        : `Pays : ${country} ; État : ${subdivision}`,
+    add: {
+      open: "Ajouter une source",
+      title: "Ajouter une source de registre",
+      lead: "Registre de type national, ajouté après avoir contrôlé à la main que sa recherche est gratuite. Rien n’est enregistré tant que vous n’avez pas confirmé.",
+      country: "Pays",
+      countryPlaceholder: "Choisir un pays",
+      subdivision: "État (facultatif)",
+      subdivisionHelp:
+        "Laissez vide pour le registre de tout le pays. Pour un État : son code ISO 3166-2, par exemple US-CA, ou seulement sa fin, CA. Le code doit être celui d’un État du pays choisi.",
+      review: "Voir la source à ajouter",
+      reviewTitle: "Confirmer l’ajout de cette source ?",
+      reviewLead:
+        "Valeurs telles qu’elles seront journalisées. La source est de type « registre national ».",
+      reviewTable: "Valeurs de la source à ajouter",
+      reviewColumns: { field: "Champ", value: "Valeur" },
+      confirm: "Confirmer l’ajout",
+      added: (name: string, where: string) =>
+        `Source « ${name} » ajoutée (${where}) : sa valeur est au journal.`,
+      problems: {
+        country: "Choisissez le pays de la source.",
+        subdivision:
+          "Le code de l’État doit être celui d’un État du pays choisi, par exemple US-CA, ou seulement sa fin, CA.",
+        unknownCountry: "Ce pays n’est pas connu de la base.",
+        unknownSubdivision:
+          "Cet État n’est pas connu de la base pour ce pays : relisez son code.",
+        activeExists:
+          "Une autre source est déjà active pour ce pays et cet État : désactivez-la d’abord, ou ajoutez celle-ci inactive.",
+      },
+    },
     fields: {
       name: "Nom de la source",
       url: "Page de recherche (https)",
@@ -2968,7 +3004,7 @@ export const messages = {
         "Le jour où vous avez ouvert la page et lu que la recherche est gratuite : pas dans le futur.",
       active: "Source active : les agents la consultent",
       activeHelp:
-        "Une seule source active par pays : désactivez d’abord l’autre.",
+        "Une seule source active par pays et par État : désactivez d’abord l’autre.",
     },
     review: "Voir le changement",
     reviewTitle: "Confirmer ce changement ?",

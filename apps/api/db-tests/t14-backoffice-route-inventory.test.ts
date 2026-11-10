@@ -224,6 +224,17 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   },
   // L2E 15: the registry sources of the brand's registration, read by agent and admin, written by admin
   "GET /v1/bo/verification/registry-sources": {},
+  // L2F 21 (0229): an administrator adds the register of a country or of one of its States
+  "POST /v1/bo/verification/registry-sources": {
+    body: {
+      countryCode: "US",
+      subdivisionCode: "US-CA",
+      name: "Registry of the inventory",
+      url: "https://registry.example.test/",
+      checkedOn: "2026-01-01",
+      isActive: false,
+    },
+  },
   "PUT /v1/bo/verification/registry-sources/:id": {
     body: {
       name: "Registry of the inventory",

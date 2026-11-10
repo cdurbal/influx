@@ -49,6 +49,7 @@ const SOURCES: VerificationRegistrySourceRow[] = [
     id: EUROPE,
     sourceType: "e_justice",
     countryCode: "BE",
+    subdivisionCode: null,
     name: "e-Justice Portal, Find a company (BRIS)",
     url: "https://e-justice.europa.eu/489/EN/business_registers__search_for_a_company_in_the_eu",
     checkedOn: "2026-11-07",
@@ -57,6 +58,7 @@ const SOURCES: VerificationRegistrySourceRow[] = [
     id: GLEIF,
     sourceType: "gleif",
     countryCode: null,
+    subdivisionCode: null,
     name: "GLEIF, LEI search",
     url: "https://search.gleif.org/",
     checkedOn: "2026-11-07",
@@ -298,6 +300,16 @@ describe("L2E-23: what the agent types is checked in the order of the screen, an
   it("words a source in one line, and links its page only when it is a plain https address", () => {
     expect(registrySourceWords(SOURCES[1]!)).toBe(
       "GLEIF, LEI search — base mondiale des identifiants LEI (GLEIF), page contrôlée le 07/11/2026",
+    );
+    // L2F-21: the register of a State carries its code after the name
+    expect(
+      registrySourceWords({
+        ...SOURCES[0]!,
+        name: "California Secretary of State",
+        subdivisionCode: "US-CA",
+      }),
+    ).toBe(
+      "California Secretary of State (État US-CA) — portail européen e-Justice, page contrôlée le 07/11/2026",
     );
     expect(registryLinkOf("https://search.gleif.org/")).toBe(
       "https://search.gleif.org/",

@@ -137,7 +137,9 @@ export function RegistrySourceEditor({
       >
         {t.editorTitle(row.name)}
       </h2>
-      <p className={HELP_CLASSES}>{t.countryLine(sourceCountryWords(row))}</p>
+      <p className={HELP_CLASSES}>
+        {t.countryLine(sourceCountryWords(row), row.subdivisionCode)}
+      </p>
 
       <div className={FIELD_CLASSES}>
         <label htmlFor={ids.name} className={SMALL_LABEL_CLASSES}>

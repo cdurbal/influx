@@ -6,7 +6,9 @@
 // written by an administrator only (RG101): an agent has no button to write, and the server refuses him
 // anyway. The sources that wait for a hand check ("à confirmer") are apart, on top: an administrator activates
 // one after checking by hand that its search is free. Nothing here fetches a page. No rule here: the database
-// holds one active source per country and writes the former and the new value in the register.
+// holds one active source per country and State and writes the former and the new value in the register.
+// L2F-21 (0229): an administrator also adds a source, for a country or for one of its States (a column
+// « État », the form of RegistrySourceAdder); the list is read again to keep the server's order.
 import type { VerificationRegistrySourceAdminRow } from "@influx/contracts/verification";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -27,12 +29,14 @@ import {
 } from "./bo-classes";
 import { DenseTableRegion } from "./DenseTableRegion";
 import { ErrorNotice } from "./ErrorNotice";
+import { RegistrySourceAdder } from "./RegistrySourceAdder";
 import { RegistrySourceEditor } from "./RegistrySourceEditor";
 import {
   canEditSources,
   partitionSources,
   sourceCountryWords,
   sourceLinkOf,
+  sourceSubdivisionWords,
   type SourceRow,
 } from "./registry-sources-view";
 import { useMe } from "./Shell";
@@ -59,6 +63,7 @@ function SourcesTable({
 }) {
   const columns = [
     t.columns.country,
+    t.columns.subdivision,
     t.columns.name,
     t.columns.type,
     t.columns.checked,
@@ -92,6 +97,9 @@ function SourcesTable({
                 return (
                   <tr key={row.id} data-source={row.id}>
                     <td className={TD_CLASSES}>{sourceCountryWords(row)}</td>
+                    <td className={`${TD_CLASSES} tabular-nums`}>
+                      {sourceSubdivisionWords(row)}
+                    </td>
                     <td className={TD_CLASSES}>
                       <span className="font-semibold">{row.name}</span>
                       {link === null ? (
@@ -151,6 +159,7 @@ export function RegistrySourcesScreen() {
   const [error, setError] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     const result = await readRegistrySources();
@@ -192,6 +201,14 @@ export function RegistrySourcesScreen() {
     );
   }
 
+  function onAdded(source: VerificationRegistrySourceAdminRow, where: string) {
+    setAdding(false);
+    setSaved(t.add.added(source.name, where));
+    // the server's order (the country, its States after it) is the one shown: read again
+    void load();
+    window.setTimeout(() => document.getElementById("add-source")?.focus(), 0);
+  }
+
   const editedRow =
     editing === null ? null : (rows?.find((row) => row.id === editing) ?? null);
   const parts = rows === null ? null : partitionSources(rows);
@@ -201,7 +218,21 @@ export function RegistrySourcesScreen() {
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
       <p className={HELP_CLASSES}>{canEdit ? t.leadAdmin : t.leadAgent}</p>
-      <p className={HELP_CLASSES}>{t.addLimit}</p>
+      {canEdit ? <p className={HELP_CLASSES}>{t.leadAddAdmin}</p> : null}
+      {canEdit && !adding ? (
+        <button
+          type="button"
+          id="add-source"
+          onClick={() => {
+            setSaved(null);
+            setEditing(null);
+            setAdding(true);
+          }}
+          className={`${SMALL_PRIMARY_CLASSES} self-start`}
+        >
+          {t.add.open}
+        </button>
+      ) : null}
       {saved === null ? null : (
         <p role="status" className={SUCCESS_CLASSES}>
           {saved}
@@ -224,6 +255,18 @@ export function RegistrySourcesScreen() {
         </p>
       ) : (
         <>
+          {canEdit && adding ? (
+            <RegistrySourceAdder
+              onAdded={onAdded}
+              onCancel={() => {
+                setAdding(false);
+                window.setTimeout(
+                  () => document.getElementById("add-source")?.focus(),
+                  0,
+                );
+              }}
+            />
+          ) : null}
           {canEdit && editedRow !== null ? (
             <RegistrySourceEditor
               key={editedRow.id}
@@ -241,6 +284,7 @@ export function RegistrySourcesScreen() {
             canEdit={canEdit}
             onEdit={(row) => {
               setSaved(null);
+              setAdding(false);
               setEditing(row.id);
             }}
           />

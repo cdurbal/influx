@@ -758,6 +758,7 @@ export type RegistrySourceRow = {
   id: string;
   sourceType: string;
   countryCode: string | null;
+  subdivisionCode: string | null;
   name: string;
   url: string;
   checkedOn: string;
@@ -775,12 +776,13 @@ export async function readRegistrySources(
     id: string;
     source_type: string;
     country_code: string | null;
+    subdivision_code: string | null;
     name: string;
     url: string;
     checked_on: string;
   }>(sql`
     select id::text as id, source_type::text as source_type, country_code::text as country_code,
-           name, url, to_char(checked_on, 'YYYY-MM-DD') as checked_on
+           subdivision_code, name, url, to_char(checked_on, 'YYYY-MM-DD') as checked_on
       from verification.registry_sources
      where is_active and (source_type = 'gleif' or country_code = ${countryCode})
      order by (country_code is null), (subdivision_code is not null), subdivision_code, name, id`);
@@ -788,6 +790,7 @@ export async function readRegistrySources(
     id: row.id,
     sourceType: row.source_type,
     countryCode: row.country_code,
+    subdivisionCode: row.subdivision_code,
     name: row.name,
     url: row.url,
     checkedOn: row.checked_on,

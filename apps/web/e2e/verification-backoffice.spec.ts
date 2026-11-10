@@ -492,6 +492,7 @@ test("an agent decides a brand's request, then reads the registry sources an adm
   await expectNoAxeViolation(page, "registry sources, agent", { wcag22: true });
 
   // An administrator activates it after the check by hand: the former and the new value first, then saved.
+  const stateName = `California register ${tag}`;
   try {
     await seedInternal(page, "admin", "Léa");
     await page.goto(`${BACKOFFICE_ORIGIN}/reglages/sources-registre`);
@@ -527,7 +528,52 @@ test("an agent decides a brand's request, then reads the registry sources an adm
         .getByRole("region", { name: S.tableLabel(S.activeTitle) })
         .locator(`[data-source="${gb!.id}"]`),
     ).toContainText(S.state.active);
+
+    // L2F-21: the register of a State is added beside the one of its country; the value to be journaled
+    // is shown first (inactive: it never shares the one active source of the country), then saved
+    await page.getByRole("button", { name: S.add.open }).click();
+    await page.getByLabel(S.add.country).selectOption("US");
+    await page.getByLabel(S.add.subdivision).fill("ca");
+    await page.getByLabel(S.fields.name).fill(stateName);
+    await page
+      .getByLabel(S.fields.url)
+      .fill("https://bizfileonline.sos.ca.gov/search/business");
+    await page.getByLabel(S.fields.checkedOn).fill("2026-11-01");
+    await page.getByRole("button", { name: S.add.review }).click();
+    await expect(main.locator("[data-add-line=subdivision]")).toContainText(
+      "US-CA",
+    );
+    await expectNoAxeViolation(page, "registry sources, source to add", {
+      wcag22: true,
+    });
+    await page.getByRole("button", { name: S.add.confirm }).click();
+    await expect(
+      page.getByText(S.add.added(stateName, "États-Unis, US-CA")),
+    ).toBeVisible();
+    const [stateRow] = await withSql(
+      (sql) => sql<{ id: string }[]>`
+        select id::text from verification.registry_sources where name = ${stateName}`,
+    );
+    const addedStateSource = stateRow!.id;
+    await expect(
+      page
+        .getByRole("region", { name: S.tableLabel(S.inactiveTitle) })
+        .locator(`[data-source="${addedStateSource}"]`),
+    ).toContainText("US-CA");
+    expect(
+      (
+        await auditLinesOf(
+          addedStateSource,
+          "verification.registry_source_changed",
+        )
+      ).map((line) => line.payload.before),
+    ).toEqual([null]);
   } finally {
+    // the source added is the test's own, whatever the point where it stopped
+    await withSql(
+      (sql) => sql`
+        delete from verification.registry_sources where name = ${stateName}`,
+    );
     await withSql(
       (sql) => sql`
         update verification.registry_sources set is_active = false

@@ -108,6 +108,7 @@ import {
   grantVerificationResponseSchema,
   reexamineVerificationResponseSchema,
   rejectVerificationResponseSchema,
+  addVerificationRegistrySourceResponseSchema,
   updateVerificationRegistrySourceResponseSchema,
   verificationEntriesResponseSchema,
   verificationEvidenceReadResponseSchema,
@@ -143,6 +144,8 @@ import {
   type ReexamineVerificationResponse,
   type RejectVerificationRequest,
   type RejectVerificationResponse,
+  type AddVerificationRegistrySourceBody,
+  type AddVerificationRegistrySourceResponse,
   type UpdateVerificationRegistrySourceBody,
   type UpdateVerificationRegistrySourceResponse,
   type VerificationEntriesResponse,
@@ -826,6 +829,18 @@ export function readRegistrySources(): Promise<
     "GET",
     REGISTRY_SOURCES,
     verificationRegistrySourcesResponseSchema,
+  );
+}
+
+/** An administrator adds the register of a country or of one of its States (0229, L2F-21), journaled by the database. */
+export function addRegistrySource(
+  body: AddVerificationRegistrySourceBody,
+): Promise<RelayResult<AddVerificationRegistrySourceResponse>> {
+  return callRelay(
+    "POST",
+    REGISTRY_SOURCES,
+    addVerificationRegistrySourceResponseSchema,
+    body,
   );
 }
 

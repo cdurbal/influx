@@ -33,6 +33,7 @@ const SOURCES: VerificationRegistrySourceRow[] = [
     id: SOURCE,
     sourceType: "e_justice",
     countryCode: "BE",
+    subdivisionCode: null,
     name: "e-Justice Portal",
     url: "https://e-justice.europa.eu/",
     checkedOn: "2026-11-07",

@@ -1122,11 +1122,18 @@ export type VerificationDossierAlert = z.infer<
   typeof verificationDossierAlertSchema
 >;
 
-/** A register an agent may consult for a brand (06 RG52): the one of its country, or GLEIF. */
+/** A first-level subdivision of a country, ISO 3166-2 (0201 `reference.regions`, 0229). */
+export const registrySubdivisionCodeSchema = z
+  .string()
+  .regex(/^[A-Z]{2}-[A-Z0-9]{1,3}$/);
+
+/** A register an agent may consult for a brand (06 RG52): the one of its country, its States, or GLEIF. */
 export const verificationRegistrySourceRowSchema = z.strictObject({
   id: z.uuid(),
   sourceType: z.enum(["national", "e_justice", "gleif"]),
   countryCode: countryCodeSchema.nullable(),
+  /** L2F-21 (0229): the State of a source of a State, ISO 3166-2; null for the register of a whole country. */
+  subdivisionCode: registrySubdivisionCodeSchema.nullable(),
   name: z.string(),
   url: z.string(),
   checkedOn: calendarDaySchema,
@@ -1295,10 +1302,12 @@ export const verificationRegistrySourceAdminRowSchema = z.strictObject({
   sourceType: z.enum(["national", "e_justice", "gleif"]),
   /** Null for GLEIF alone, which answers for every country (0221). */
   countryCode: countryCodeSchema.nullable(),
+  /** L2F-21 (0229): the State of a source of a State (national type only); null for a whole country. */
+  subdivisionCode: registrySubdivisionCodeSchema.nullable(),
   name: z.string(),
   url: z.string(),
   checkedOn: calendarDaySchema,
-  /** One active source per country; a source whose gratuity is "à confirmer" loads inactive. */
+  /** One active source per country and subdivision; a source whose gratuity is "à confirmer" loads inactive. */
   isActive: z.boolean(),
   updatedAt: instantSchema,
 });
@@ -1356,6 +1365,35 @@ export const updateVerificationRegistrySourceResponseSchema = z.strictObject({
 });
 export type UpdateVerificationRegistrySourceResponse = z.infer<
   typeof updateVerificationRegistrySourceResponseSchema
+>;
+
+/**
+ * `POST /v1/bo/verification/registry-sources` (an administrator; L2F-21, 0229): a register of type
+ * `national` for a country, or for one of its States (`subdivisionCode`, whose country prefix is the
+ * country's own), added after checking its gratuity by hand (RG101). The fields of the update, plus the
+ * country and the optional subdivision; the database refuses an unknown country or subdivision (22023) and
+ * a second active source for the (country, subdivision) (23505).
+ */
+export const addVerificationRegistrySourceBodySchema =
+  updateVerificationRegistrySourceBodySchema
+    .extend({
+      countryCode: countryCodeSchema,
+      subdivisionCode: registrySubdivisionCodeSchema.nullable(),
+    })
+    .refine(
+      (body) =>
+        body.subdivisionCode === null ||
+        body.subdivisionCode.startsWith(`${body.countryCode}-`),
+      { path: ["subdivisionCode"], message: "subdivision_of_other_country" },
+    );
+export type AddVerificationRegistrySourceBody = z.infer<
+  typeof addVerificationRegistrySourceBodySchema
+>;
+
+export const addVerificationRegistrySourceResponseSchema =
+  updateVerificationRegistrySourceResponseSchema;
+export type AddVerificationRegistrySourceResponse = z.infer<
+  typeof addVerificationRegistrySourceResponseSchema
 >;
 
 // ---------------------------------------------------------------------------------------------

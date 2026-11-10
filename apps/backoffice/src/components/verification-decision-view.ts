@@ -601,10 +601,13 @@ export function brandGrantCheck(
 export function registrySourceWords(source: {
   name: string;
   sourceType: VerificationRegistrySourceRow["sourceType"];
+  subdivisionCode?: string | null;
   checkedOn: string;
 }): string {
   return t.brand.source.line(
-    source.name,
+    source.subdivisionCode == null
+      ? source.name
+      : `${source.name} (${t.brand.source.state(source.subdivisionCode)})`,
     t.brand.source.types[source.sourceType],
     formatDay(source.checkedOn),
   );
