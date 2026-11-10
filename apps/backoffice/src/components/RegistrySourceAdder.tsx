@@ -38,6 +38,7 @@ import {
   addedWhere,
   addFailureText,
   addLines,
+  describedByOf,
   EMPTY_NEW_SOURCE,
   newSourceCheck,
   type AddLine,
@@ -60,19 +61,29 @@ export function RegistrySourceAdder({
   const ids = {
     title: useId(),
     country: useId(),
+    countryError: useId(),
     subdivision: useId(),
     subdivisionHelp: useId(),
+    subdivisionError: useId(),
     name: useId(),
+    nameError: useId(),
     url: useId(),
     urlHelp: useId(),
+    urlError: useId(),
     checkedOn: useId(),
     checkedOnHelp: useId(),
+    checkedOnError: useId(),
     active: useId(),
     activeHelp: useId(),
     review: useId(),
   };
   const action = useAction();
   const title = useRef<HTMLHeadingElement>(null);
+  const reviewTitle = useRef<HTMLHeadingElement>(null);
+  const reviewButton = useRef<HTMLButtonElement>(null);
+  // set when the review panel gives way to the form again: the focus must land on something that exists,
+  // the field in error (its id) or, with none, the button that reviews (null)
+  const returning = useRef<{ id: string | null } | null>(null);
   const countries = useMemo(() => countryOptions(), []);
   const [draft, setDraft] = useState<NewSourceDraft>(EMPTY_NEW_SOURCE);
   const [problem, setProblem] = useState<NewSourceProblem | null>(null);
@@ -83,18 +94,38 @@ export function RegistrySourceAdder({
     title.current?.focus();
   }, []);
 
-  const set = (patch: Partial<NewSourceDraft>) => {
-    setDraft({ ...draft, ...patch });
-    // what is reviewed is no longer what is typed
-    setLines(null);
-  };
-
   const fieldId: Record<NewSourceFieldName, string> = {
     countryCode: ids.country,
     subdivisionCode: ids.subdivision,
     name: ids.name,
     url: ids.url,
     checkedOn: ids.checkedOn,
+  };
+
+  // the review panel replaces the button that opened it: it is read from its title (WCAG 2.4.3)
+  useEffect(() => {
+    if (lines !== null) {
+      reviewTitle.current?.focus();
+    }
+  }, [lines]);
+
+  // back to the form: the first field in error, else the button that reviews (WCAG 2.4.3)
+  useEffect(() => {
+    const back = returning.current;
+    if (lines !== null || back === null) {
+      return;
+    }
+    returning.current = null;
+    (back.id === null
+      ? reviewButton.current
+      : document.getElementById(back.id)
+    )?.focus();
+  }, [lines]);
+
+  const set = (patch: Partial<NewSourceDraft>) => {
+    setDraft({ ...draft, ...patch });
+    // what is reviewed is no longer what is typed
+    setLines(null);
   };
 
   function review(event: FormEvent<HTMLFormElement>) {
@@ -114,6 +145,7 @@ export function RegistrySourceAdder({
     const checked = newSourceCheck(draft);
     if (!checked.ok) {
       setProblem(checked.problem);
+      returning.current = { id: fieldId[checked.problem.field] };
       setLines(null);
       return;
     }
@@ -158,6 +190,9 @@ export function RegistrySourceAdder({
           id={ids.country}
           value={draft.countryCode}
           aria-invalid={countryProblem !== null || undefined}
+          aria-describedby={describedByOf(
+            countryProblem === null ? null : ids.countryError,
+          )}
           onChange={(event) => set({ countryCode: event.target.value })}
           className={`${SELECT_CLASSES} self-start`}
         >
@@ -169,7 +204,9 @@ export function RegistrySourceAdder({
           ))}
         </select>
         {countryProblem === null ? null : (
-          <ErrorNotice announce={false}>{countryProblem.text}</ErrorNotice>
+          <ErrorNotice id={ids.countryError} announce={false}>
+            {countryProblem.text}
+          </ErrorNotice>
         )}
       </div>
 
@@ -184,7 +221,10 @@ export function RegistrySourceAdder({
           autoComplete="off"
           autoCapitalize="characters"
           spellCheck={false}
-          aria-describedby={ids.subdivisionHelp}
+          aria-describedby={describedByOf(
+            ids.subdivisionHelp,
+            subdivisionProblem === null ? null : ids.subdivisionError,
+          )}
           aria-invalid={subdivisionProblem !== null || undefined}
           onChange={(event) => set({ subdivisionCode: event.target.value })}
           className={`${inputClasses(subdivisionProblem !== null)} font-mono`}
@@ -193,7 +233,9 @@ export function RegistrySourceAdder({
           {t.add.subdivisionHelp}
         </p>
         {subdivisionProblem === null ? null : (
-          <ErrorNotice announce={false}>{subdivisionProblem.text}</ErrorNotice>
+          <ErrorNotice id={ids.subdivisionError} announce={false}>
+            {subdivisionProblem.text}
+          </ErrorNotice>
         )}
       </div>
 
@@ -208,11 +250,16 @@ export function RegistrySourceAdder({
           autoComplete="off"
           spellCheck={false}
           aria-invalid={nameProblem !== null || undefined}
+          aria-describedby={describedByOf(
+            nameProblem === null ? null : ids.nameError,
+          )}
           onChange={(event) => set({ name: event.target.value })}
           className={inputClasses(nameProblem !== null)}
         />
         {nameProblem === null ? null : (
-          <ErrorNotice announce={false}>{nameProblem.text}</ErrorNotice>
+          <ErrorNotice id={ids.nameError} announce={false}>
+            {nameProblem.text}
+          </ErrorNotice>
         )}
       </div>
 
@@ -228,7 +275,10 @@ export function RegistrySourceAdder({
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
-          aria-describedby={ids.urlHelp}
+          aria-describedby={describedByOf(
+            ids.urlHelp,
+            urlProblem === null ? null : ids.urlError,
+          )}
           aria-invalid={urlProblem !== null || undefined}
           onChange={(event) => set({ url: event.target.value })}
           className={`${inputClasses(urlProblem !== null)} font-mono`}
@@ -237,7 +287,9 @@ export function RegistrySourceAdder({
           {t.fields.urlHelp}
         </p>
         {urlProblem === null ? null : (
-          <ErrorNotice announce={false}>{urlProblem.text}</ErrorNotice>
+          <ErrorNotice id={ids.urlError} announce={false}>
+            {urlProblem.text}
+          </ErrorNotice>
         )}
       </div>
 
@@ -249,7 +301,10 @@ export function RegistrySourceAdder({
           id={ids.checkedOn}
           type="date"
           value={draft.checkedOn}
-          aria-describedby={ids.checkedOnHelp}
+          aria-describedby={describedByOf(
+            ids.checkedOnHelp,
+            dayProblem === null ? null : ids.checkedOnError,
+          )}
           aria-invalid={dayProblem !== null || undefined}
           onChange={(event) => set({ checkedOn: event.target.value })}
           className={inputClasses(dayProblem !== null)}
@@ -258,7 +313,9 @@ export function RegistrySourceAdder({
           {t.fields.checkedOnHelp}
         </p>
         {dayProblem === null ? null : (
-          <ErrorNotice announce={false}>{dayProblem.text}</ErrorNotice>
+          <ErrorNotice id={ids.checkedOnError} announce={false}>
+            {dayProblem.text}
+          </ErrorNotice>
         )}
       </div>
 
@@ -284,7 +341,11 @@ export function RegistrySourceAdder({
 
       {lines === null ? (
         <div className="flex flex-wrap gap-3">
-          <button type="submit" className={SMALL_PRIMARY_CLASSES}>
+          <button
+            ref={reviewButton}
+            type="submit"
+            className={SMALL_PRIMARY_CLASSES}
+          >
             {t.add.review}
           </button>
           <button
@@ -300,7 +361,12 @@ export function RegistrySourceAdder({
           aria-labelledby={ids.review}
           className="flex flex-col gap-3 rounded-md border-(length:--border-width-thin) border-border-strong p-3"
         >
-          <h3 id={ids.review} className={BLOCK_TITLE}>
+          <h3
+            id={ids.review}
+            ref={reviewTitle}
+            tabIndex={-1}
+            className={BLOCK_TITLE}
+          >
             {t.add.reviewTitle}
           </h3>
           <p className={HELP_CLASSES}>{t.add.reviewLead}</p>
@@ -350,6 +416,7 @@ export function RegistrySourceAdder({
               type="button"
               onClick={() => {
                 action.clear();
+                returning.current = { id: null };
                 setLines(null);
               }}
               className={SMALL_SECONDARY_CLASSES}

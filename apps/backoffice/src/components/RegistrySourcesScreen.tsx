@@ -291,10 +291,12 @@ export function RegistrySourcesScreen() {
           <SourcesTable
             id="registry-sources-active"
             title={t.activeTitle}
+            empty={t.activeNone}
             rows={parts.active}
             canEdit={canEdit}
             onEdit={(row) => {
               setSaved(null);
+              setAdding(false);
               setEditing(row.id);
             }}
           />

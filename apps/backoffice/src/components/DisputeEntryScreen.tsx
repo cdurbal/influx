@@ -389,6 +389,7 @@ export function DisputeEntryScreen({ id }: { id: string }) {
     LIST,
     API,
     KEYS,
+    "dispute",
   );
   const evidence = useVerificationEvidence(id, readDisputeEvidence);
   const [outcomeCode, setOutcomeCode] = useState<string | null>(null);

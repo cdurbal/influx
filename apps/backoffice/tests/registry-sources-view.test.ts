@@ -11,6 +11,7 @@ import {
   addLines,
   canEditSources,
   changeLines,
+  describedByOf,
   draftOf,
   EMPTY_NEW_SOURCE,
   newSourceCheck,
@@ -174,6 +175,19 @@ describe("L2E-23: a change is checked in its shapes, then shown as former and ne
     expect(saveFailureText("validation_failed")).toBe(t.problems.fieldRefused);
     expect(saveFailureText("forbidden")).toBeNull();
     expect(saveFailureText(undefined)).toBeNull();
+  });
+
+  it("joins a field's help and the message that says why it is in error, for a screen reader (L2FU-3)", () => {
+    expect(describedByOf("help", "error")).toBe("help error");
+    expect(describedByOf("help", null)).toBe("help");
+    expect(describedByOf(null, "error")).toBe("error");
+    expect(describedByOf(null)).toBeUndefined();
+    expect(describedByOf()).toBeUndefined();
+  });
+
+  it("says that no source is active when the list empties, in its own sentence (L2FU-6)", () => {
+    expect(t.activeNone).toMatch(/Aucune source active/);
+    expect(t.activeNone).not.toBe(t.inactiveNone);
   });
 
   it("tells an agent the screen is read-only, and no longer says an addition is impossible (L2F-21)", () => {

@@ -1,6 +1,10 @@
 // Labels of the backoffice. D36 is open: French only, without next-intl (02 §8, 21 §4 J1-E).
 // No literal text in JSX: moving to two languages will only replace this module. Sign-in, TOTP
 // activation and recovery codes: 17b §3.14 (keys `bo.auth.*`, same wording).
+// The option of queue 5 that confirms a decision without a new grant, as the agent reads it: the refusals
+// that send him to it quote it, so the two never drift apart.
+const NEW_REQUEST_NEEDED = "Sans suite en l’état : nouvelle demande à déposer";
+
 export const messages = {
   metadata: {
     title: "INFLUX — Backoffice",
@@ -2668,20 +2672,20 @@ export const messages = {
         "Vous avez pris la décision contestée : une autre personne doit trancher. Rien n’a été enregistré.",
       reflectionDelay:
         "Le délai de réflexion n’est pas écoulé : le décideur d’origine ne peut trancher seul qu’à l’issue de ce délai. Rien n’a été enregistré.",
-      restoreExpired:
-        "Le badge ne peut pas être rendu : son échéance d’origine est passée. Confirmez la décision avec le motif « nouvelle demande ».",
+      restoreExpired: `Le badge ne peut pas être rendu : son échéance d’origine est passée. Confirmez la décision avec le motif « ${NEW_REQUEST_NEEDED} ».`,
       lineDeleted:
         "Le créateur a supprimé cette ligne de réseau : le dossier est clos, rien n’a été enregistré.",
       handleAlreadyVerified:
         "Cet identifiant porte déjà un badge sur un autre compte : rien n’a été enregistré.",
       badgeNotHolding:
         "Le badge concerné n’est plus tenu : le dossier a changé, relisez-le. Rien n’a été enregistré.",
-      ownershipPrerequisite:
-        "Le compte n’a pas de badge « Compte vérifié » actif sur ce réseau : l’audience ne peut pas être rendue. Confirmez la décision avec le motif « nouvelle demande ».",
-      missingEvidence:
-        "La pièce du refus n’est plus conservée : confirmez la décision avec le motif « nouvelle demande ».",
+      ownershipPrerequisite: `Le compte n’a pas de badge « Compte vérifié » actif sur ce réseau : l’audience ne peut pas être rendue. Confirmez la décision avec le motif « ${NEW_REQUEST_NEEDED} ».`,
+      missingEvidence: `La pièce du refus n’est plus conservée : confirmez la décision avec le motif « ${NEW_REQUEST_NEEDED} ».`,
+      // queue 6 (identifier changed): the proof is demanded there
       handleMismatch:
         "L’identifiant constaté ne correspond pas à l’identifiant que le créateur déclare. Relisez-le sur le profil ; s’il diffère, exigez une nouvelle preuve.",
+      // queue 5 (dispute): no proof can be demanded, the decision is confirmed with the option below
+      handleMismatchDispute: `L’identifiant constaté ne correspond pas à l’identifiant que le créateur déclare. Relisez-le sur le profil ; s’il diffère, confirmez la décision avec le motif « ${NEW_REQUEST_NEEDED} ».`,
       accountUnavailable:
         "Le compte n’est plus actif : rien n’a été enregistré.",
     },
@@ -2795,7 +2799,7 @@ export const messages = {
         "Aucun motif d’issue n’est servi : le dossier ne peut pas être confirmé ici.",
       outcomeLabels: {
         decision_confirmed: "Décision maintenue pour son motif initial",
-        new_request_needed: "Sans suite en l’état : nouvelle demande à déposer",
+        new_request_needed: NEW_REQUEST_NEEDED,
         other: "Décision maintenue, avec un message de l’équipe",
         decision_overturned: "Décision infirmée",
       } as Readonly<Record<string, string>>,
@@ -2938,6 +2942,7 @@ export const messages = {
       "Ces sources ne sont pas consultées par les agents : une marque de ce pays est refusée avec le motif « Immatriculation non vérifiable dans ce pays ». Un administrateur l’active après avoir contrôlé la gratuité à la main.",
     inactiveNone: "Aucune source inactive.",
     activeTitle: "Sources actives",
+    activeNone: "Aucune source active.",
     tableLabel: (title: string) => `Registres : ${title}`,
     columns: {
       country: "Pays",

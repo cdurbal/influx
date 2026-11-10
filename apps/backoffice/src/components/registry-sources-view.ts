@@ -303,3 +303,16 @@ export function addFailureText(
   }
   return saveFailureText(code);
 }
+
+/**
+ * The value of a field's `aria-describedby`: its help and, when it is in error, the message that says why,
+ * so that a screen reader reads both (WCAG 3.3.1). Nothing when neither exists.
+ */
+export function describedByOf(
+  ...ids: readonly (string | null | undefined)[]
+): string | undefined {
+  const present = ids.filter(
+    (id): id is string => id !== null && id !== undefined,
+  );
+  return present.length === 0 ? undefined : present.join(" ");
+}

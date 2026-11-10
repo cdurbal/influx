@@ -138,7 +138,7 @@ describe("L2F-19 claimed entry: what a refused call means", () => {
       ["entry_closed", "closed"],
       ["held_by_other", "heldByOther"],
     ] as const) {
-      expect(claimedRefusalOf(failed("conflict", [issue]))).toEqual({
+      expect(claimedRefusalOf(failed("conflict", [issue]), "dispute")).toEqual({
         kind: "reopen",
         why,
       });
@@ -157,7 +157,7 @@ describe("L2F-19 claimed entry: what a refused call means", () => {
       missing_evidence: t.refusals.missingEvidence,
     };
     for (const [issue, text] of Object.entries(expected)) {
-      expect(claimedRefusalOf(failed("conflict", [issue]))).toEqual({
+      expect(claimedRefusalOf(failed("conflict", [issue]), "dispute")).toEqual({
         kind: "text",
         text,
         field: null,
@@ -169,6 +169,7 @@ describe("L2F-19 claimed entry: what a refused call means", () => {
     expect(
       claimedRefusalOf(
         failed("validation_failed", ["invalid_observed_handle_mismatch"]),
+        "identifier",
       ),
     ).toEqual({
       kind: "text",
@@ -177,11 +178,42 @@ describe("L2F-19 claimed entry: what a refused call means", () => {
     });
     const plain = claimedRefusalOf(
       failed("validation_failed", ["invalid_observed_handle"]),
+      "identifier",
     );
     expect(plain.kind === "text" && plain.field).toBe("handle");
-    expect(claimedRefusalOf({ kind: "unauthenticated" })).toEqual({
-      kind: "signedOut",
+    expect(claimedRefusalOf({ kind: "unauthenticated" }, "identifier")).toEqual(
+      {
+        kind: "signedOut",
+      },
+    );
+  });
+
+  it("sends the agent only to gestures his queue offers: queue 6 demands a proof, queue 5 confirms with the option, quoted as it reads (L2FU-5)", () => {
+    const mismatch = failed("validation_failed", [
+      "invalid_observed_handle_mismatch",
+    ]);
+    const identifier = claimedRefusalOf(mismatch, "identifier");
+    const dispute = claimedRefusalOf(mismatch, "dispute");
+    expect(identifier.kind === "text" && identifier.text).toContain(
+      "exigez une nouvelle preuve",
+    );
+    expect(dispute).toEqual({
+      kind: "text",
+      text: t.refusals.handleMismatchDispute,
+      field: "handle",
     });
+    const option =
+      messages.disputeReview.decision.outcomeLabels.new_request_needed;
+    expect(option).toBe("Sans suite en l’état : nouvelle demande à déposer");
+    expect(t.refusals.handleMismatchDispute).not.toContain("preuve");
+    for (const text of [
+      t.refusals.handleMismatchDispute,
+      t.refusals.restoreExpired,
+      t.refusals.ownershipPrerequisite,
+      t.refusals.missingEvidence,
+    ]) {
+      expect(text).toContain(`« ${option} »`);
+    }
   });
 });
 

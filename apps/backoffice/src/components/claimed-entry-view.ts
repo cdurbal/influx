@@ -208,13 +208,18 @@ const ISSUE_TEXT: Readonly<Record<string, string>> = {
   account_unavailable: t.refusals.accountUnavailable,
 };
 
+/** The two queues that share the screens: 5 (contests of a decision) and 6 (identifier changed). */
+export type ClaimedQueue = "dispute" | "identifier";
+
 /**
  * What a refused call of these queues means: a lost claim, a stale version or a closed entry read the
  * dossier again (as queue 4); the refusals of 0232 and 0233 are a sentence; a handle that does not match
- * the declared one is told on its own field, whichever of its two issues the API names (`0228`).
+ * the declared one is told on its own field, whichever of its two issues the API names (`0228`), and by
+ * the queue: a proof is demanded in queue 6 only, queue 5 confirms the decision with its own option.
  */
 export function claimedRefusalOf(
   result: Exclude<RelayResult<unknown>, { kind: "ok" }>,
+  queue: ClaimedQueue,
 ): Refusal {
   if (result.kind === "failed") {
     const issues = result.issues ?? [];
@@ -233,7 +238,14 @@ export function claimedRefusalOf(
       result.code === "validation_failed" &&
       issues.includes("invalid_observed_handle_mismatch")
     ) {
-      return { kind: "text", text: t.refusals.handleMismatch, field: "handle" };
+      return {
+        kind: "text",
+        text:
+          queue === "dispute"
+            ? t.refusals.handleMismatchDispute
+            : t.refusals.handleMismatch,
+        field: "handle",
+      };
     }
   }
   return refusalOf(result);

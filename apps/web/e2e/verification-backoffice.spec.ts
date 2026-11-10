@@ -500,6 +500,10 @@ test("an agent decides a brand's request, then reads the registry sources an adm
     await page.getByRole("button", { name: S.edit(gb!.name) }).click();
     await page.getByLabel(S.fields.active).check();
     await page.getByRole("button", { name: S.review }).click();
+    // the review replaces its button: the focus is on its title, never lost on the body (WCAG 2.4.3)
+    await expect(
+      page.getByRole("heading", { level: 3, name: S.reviewTitle }),
+    ).toBeFocused();
     const change = main.locator("[data-change=isActive]");
     await expect(change).toContainText(S.activeWords.no);
     await expect(change).toContainText(S.activeWords.yes);
@@ -532,7 +536,16 @@ test("an agent decides a brand's request, then reads the registry sources an adm
     // L2F-21: the register of a State is added beside the one of its country; the value to be journaled
     // is shown first (inactive: it never shares the one active source of the country), then saved
     await page.getByRole("button", { name: S.add.open }).click();
-    await page.getByLabel(S.add.country).selectOption("US");
+    // nothing typed: the error is on the first field, which has the focus and is described by it (WCAG 3.3.1)
+    await page.getByRole("button", { name: S.add.review }).click();
+    const countryField = page.getByLabel(S.add.country);
+    await expect(countryField).toBeFocused();
+    await expect(countryField).toHaveAttribute("aria-invalid", "true");
+    const errorId = await countryField.getAttribute("aria-describedby");
+    await expect(page.locator(`[id="${errorId}"]`)).toContainText(
+      S.add.problems.country,
+    );
+    await countryField.selectOption("US");
     await page.getByLabel(S.add.subdivision).fill("ca");
     await page.getByLabel(S.fields.name).fill(stateName);
     await page
@@ -543,9 +556,18 @@ test("an agent decides a brand's request, then reads the registry sources an adm
     await expect(main.locator("[data-add-line=subdivision]")).toContainText(
       "US-CA",
     );
+    await expect(
+      page.getByRole("heading", { level: 3, name: S.add.reviewTitle }),
+    ).toBeFocused();
     await expectNoAxeViolation(page, "registry sources, source to add", {
       wcag22: true,
     });
+    // « Corriger » gives the focus back to the button that reviews, then the value is reviewed again
+    await page.getByRole("button", { name: S.back }).click();
+    await expect(
+      page.getByRole("button", { name: S.add.review }),
+    ).toBeFocused();
+    await page.getByRole("button", { name: S.add.review }).click();
     await page.getByRole("button", { name: S.add.confirm }).click();
     await expect(
       page.getByText(S.add.added(stateName, "États-Unis, US-CA")),

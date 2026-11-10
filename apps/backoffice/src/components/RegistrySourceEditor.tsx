@@ -27,6 +27,7 @@ import { DenseTableRegion } from "./DenseTableRegion";
 import { ErrorNotice } from "./ErrorNotice";
 import {
   changeLines,
+  describedByOf,
   draftOf,
   saveFailureText,
   sourceChangeCheck,
@@ -52,16 +53,24 @@ export function RegistrySourceEditor({
   const ids = {
     title: useId(),
     name: useId(),
+    nameError: useId(),
     url: useId(),
     urlHelp: useId(),
+    urlError: useId(),
     checkedOn: useId(),
     checkedOnHelp: useId(),
+    checkedOnError: useId(),
     active: useId(),
     activeHelp: useId(),
     review: useId(),
   };
   const action = useAction();
   const title = useRef<HTMLHeadingElement>(null);
+  const reviewTitle = useRef<HTMLHeadingElement>(null);
+  const reviewButton = useRef<HTMLButtonElement>(null);
+  // set when the review panel gives way to the form again: the focus must land on something that exists,
+  // the field in error (its id) or, with none, the button that reviews (null)
+  const returning = useRef<{ id: string | null } | null>(null);
   const [draft, setDraft] = useState<SourceDraft>(() => draftOf(row));
   const [problem, setProblem] = useState<SourceProblem | null>(null);
   const [lines, setLines] = useState<ChangeLine[] | null>(null);
@@ -71,6 +80,29 @@ export function RegistrySourceEditor({
   useEffect(() => {
     title.current?.focus();
   }, []);
+
+  const fieldId = (field: SourceProblem["field"]) =>
+    field === "name" ? ids.name : field === "url" ? ids.url : ids.checkedOn;
+
+  // the review panel replaces the button that opened it: it is read from its title (WCAG 2.4.3)
+  useEffect(() => {
+    if (lines !== null) {
+      reviewTitle.current?.focus();
+    }
+  }, [lines]);
+
+  // back to the form: the first field in error, else the button that reviews (WCAG 2.4.3)
+  useEffect(() => {
+    const back = returning.current;
+    if (lines !== null || back === null) {
+      return;
+    }
+    returning.current = null;
+    (back.id === null
+      ? reviewButton.current
+      : document.getElementById(back.id)
+    )?.focus();
+  }, [lines]);
 
   const set = (patch: Partial<SourceDraft>) => {
     setDraft({ ...draft, ...patch });
@@ -85,15 +117,7 @@ export function RegistrySourceEditor({
     if (!checked.ok) {
       setProblem(checked.problem);
       setLines(null);
-      document
-        .getElementById(
-          checked.problem.field === "name"
-            ? ids.name
-            : checked.problem.field === "url"
-              ? ids.url
-              : ids.checkedOn,
-        )
-        ?.focus();
+      document.getElementById(fieldId(checked.problem.field))?.focus();
       return;
     }
     setProblem(null);
@@ -106,6 +130,7 @@ export function RegistrySourceEditor({
     const checked = sourceChangeCheck(draft);
     if (!checked.ok) {
       setProblem(checked.problem);
+      returning.current = { id: fieldId(checked.problem.field) };
       setLines(null);
       return;
     }
@@ -152,11 +177,16 @@ export function RegistrySourceEditor({
           autoComplete="off"
           spellCheck={false}
           aria-invalid={nameProblem !== null || undefined}
+          aria-describedby={describedByOf(
+            nameProblem === null ? null : ids.nameError,
+          )}
           onChange={(event) => set({ name: event.target.value })}
           className={inputClasses(nameProblem !== null)}
         />
         {nameProblem === null ? null : (
-          <ErrorNotice announce={false}>{nameProblem.text}</ErrorNotice>
+          <ErrorNotice id={ids.nameError} announce={false}>
+            {nameProblem.text}
+          </ErrorNotice>
         )}
       </div>
 
@@ -172,7 +202,10 @@ export function RegistrySourceEditor({
           autoComplete="off"
           autoCapitalize="off"
           spellCheck={false}
-          aria-describedby={ids.urlHelp}
+          aria-describedby={describedByOf(
+            ids.urlHelp,
+            urlProblem === null ? null : ids.urlError,
+          )}
           aria-invalid={urlProblem !== null || undefined}
           onChange={(event) => set({ url: event.target.value })}
           className={`${inputClasses(urlProblem !== null)} font-mono`}
@@ -181,7 +214,9 @@ export function RegistrySourceEditor({
           {t.fields.urlHelp}
         </p>
         {urlProblem === null ? null : (
-          <ErrorNotice announce={false}>{urlProblem.text}</ErrorNotice>
+          <ErrorNotice id={ids.urlError} announce={false}>
+            {urlProblem.text}
+          </ErrorNotice>
         )}
       </div>
 
@@ -193,7 +228,10 @@ export function RegistrySourceEditor({
           id={ids.checkedOn}
           type="date"
           value={draft.checkedOn}
-          aria-describedby={ids.checkedOnHelp}
+          aria-describedby={describedByOf(
+            ids.checkedOnHelp,
+            dayProblem === null ? null : ids.checkedOnError,
+          )}
           aria-invalid={dayProblem !== null || undefined}
           onChange={(event) => set({ checkedOn: event.target.value })}
           className={inputClasses(dayProblem !== null)}
@@ -202,7 +240,9 @@ export function RegistrySourceEditor({
           {t.fields.checkedOnHelp}
         </p>
         {dayProblem === null ? null : (
-          <ErrorNotice announce={false}>{dayProblem.text}</ErrorNotice>
+          <ErrorNotice id={ids.checkedOnError} announce={false}>
+            {dayProblem.text}
+          </ErrorNotice>
         )}
       </div>
 
@@ -234,7 +274,11 @@ export function RegistrySourceEditor({
 
       {lines === null ? (
         <div className="flex flex-wrap gap-3">
-          <button type="submit" className={SMALL_PRIMARY_CLASSES}>
+          <button
+            ref={reviewButton}
+            type="submit"
+            className={SMALL_PRIMARY_CLASSES}
+          >
             {t.review}
           </button>
           <button
@@ -250,7 +294,12 @@ export function RegistrySourceEditor({
           aria-labelledby={ids.review}
           className="flex flex-col gap-3 rounded-md border-(length:--border-width-thin) border-border-strong p-3"
         >
-          <h3 id={ids.review} className={BLOCK_TITLE}>
+          <h3
+            id={ids.review}
+            ref={reviewTitle}
+            tabIndex={-1}
+            className={BLOCK_TITLE}
+          >
             {t.reviewTitle}
           </h3>
           <p className={HELP_CLASSES}>{t.reviewLead}</p>
@@ -302,6 +351,7 @@ export function RegistrySourceEditor({
               type="button"
               onClick={() => {
                 action.clear();
+                returning.current = { id: null };
                 setLines(null);
               }}
               className={SMALL_SECONDARY_CLASSES}

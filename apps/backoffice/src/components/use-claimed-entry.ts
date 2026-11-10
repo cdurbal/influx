@@ -22,6 +22,7 @@ import {
   claimedOpenFailure,
   claimedRefusalOf,
   claimedReopenNotice,
+  type ClaimedQueue,
   withClaimedExpiry,
   type ClaimedView,
 } from "./claimed-entry-view";
@@ -85,6 +86,7 @@ export function useClaimedEntry<
   list: string,
   api: ClaimedApi<View>,
   keys: ClaimedKeys<Decision>,
+  queue: ClaimedQueue,
 ) {
   const router = useRouter();
   const alive = useRef(false);
@@ -185,7 +187,7 @@ export function useClaimedEntry<
           await onOk(result.data);
           return;
         }
-        const refusal = claimedRefusalOf(result);
+        const refusal = claimedRefusalOf(result, queue);
         if (refusal.kind === "signedOut") {
           router.replace("/");
         } else if (refusal.kind === "reopen") {
@@ -200,7 +202,7 @@ export function useClaimedEntry<
         }
       }
     },
-    [read, router],
+    [queue, read, router],
   );
 
   /** 17b §2.6: the next entry opens by itself; with none left, the screen ends on the empty queue. */

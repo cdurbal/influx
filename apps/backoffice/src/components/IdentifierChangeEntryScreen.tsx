@@ -267,6 +267,7 @@ export function IdentifierChangeEntryScreen({ id }: { id: string }) {
     LIST,
     API,
     KEYS,
+    "identifier",
   );
   const { perform, finish, draft, setProblem, setDraft, panel, problem, busy } =
     entry;
