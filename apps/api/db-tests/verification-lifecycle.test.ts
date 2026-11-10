@@ -437,6 +437,69 @@ describe("TM5.3: the task alone moves a badge to to_refresh then expired, as a s
     expect(found.afterReplay.register).toEqual(found.register);
     expect(found.afterReplay.queue.leads).toBe(0);
   });
+
+  // L2F commit 16 (18 TM5.3 read again): "not as an agent's decision" holds because no other hand can
+  // move the state. A mutation that let an agent run the task was seen red above (the register line
+  // carried actor_type agent and his account).
+  it("leaves the transition to no other hand: neither an agent's nor an admin's direct write, nor an agent's call of the task", async () => {
+    const found = await scenario(async (tx) => {
+      const { audience } = await observedLineA(tx);
+      await age(tx, audience, 91, -1);
+      const lifecycle = await lifecycleRun(tx);
+      const write = (state: string) =>
+        `update verification.badges set state = '${state}' where id = $1`;
+      const agentWrites = await asAgent(tx, async () => ({
+        toRefresh: await run(tx, write("to_refresh"), [audience]),
+        expired: await run(tx, write("expired"), [audience]),
+        task: await run(
+          tx,
+          "select ops.run_badge_lifecycle($1::uuid, 1::smallint)",
+          [lifecycle.id],
+        ),
+      }));
+      const adminWrites = await actAsInternal(
+        tx,
+        "influx_admin",
+        {
+          accountId: accountIdOf("admin", "a"),
+          role: "admin",
+          aal: "aal2",
+        },
+        async () => ({
+          toRefresh: await run(tx, write("to_refresh"), [audience]),
+          task: await run(
+            tx,
+            "select ops.run_badge_lifecycle($1::uuid, 1::smallint)",
+            [lifecycle.id],
+          ),
+        }),
+      );
+      const memberWrites = await asCreator(tx, () =>
+        run(tx, write("expired"), [audience]),
+      );
+      return {
+        agentWrites,
+        adminWrites,
+        memberWrites,
+        state: (await badgeOf(tx, audience)).state,
+        register: await registerOf(tx, audience),
+      };
+    });
+    const refused = { outcome: "error", code: "42501" };
+    expect(found.agentWrites).toEqual({
+      toRefresh: expect.objectContaining(refused),
+      expired: expect.objectContaining(refused),
+      task: expect.objectContaining(refused),
+    });
+    expect(found.adminWrites).toEqual({
+      toRefresh: expect.objectContaining(refused),
+      task: expect.objectContaining(refused),
+    });
+    expect(found.memberWrites).toMatchObject(refused);
+    // due since a day, the badge waits for the task: still active, nothing in the register
+    expect(found.state).toBe("active");
+    expect(found.register).toEqual([]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

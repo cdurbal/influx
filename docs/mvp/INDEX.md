@@ -640,9 +640,9 @@
 | 1267 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
 | 1310 | 31 | 8. Ce qui n'est pas couvert, et pourquoi |  |
 | 1341 | 60 | 9. Ce qui remonte |  |
-| 1401 | 225 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
-| 1626 | 21 | 11. Verdict |  |
-| 1647 | 271 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1401 | 226 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
+| 1627 | 21 | 11. Verdict |  |
+| 1648 | 271 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
 
 ## 20-direction-design.md (~27k tokens)
 

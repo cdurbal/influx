@@ -426,6 +426,28 @@ describe("TM11.3 (L2E 17): no field of verification.* outside the verification m
     expect(forbidden.size).toBeGreaterThan(50);
   });
 
+  // L2F commit 16: the tables of 0231 to 0234 join the list by their declaration (their parity with
+  // the migrated base is db-tests/tm11-drizzle-parity.test.ts): both handles of queue 6, the text of
+  // a contest and its deciders, the withdrawal request; the message stays generic (member_message, a
+  // brand refusal's own field), its value is T1's (db-tests/t1-anonymisation, L2F markers).
+  it("derives the L2F names too: the old and new handle, the contest text and its deciders", () => {
+    const forbidden = forbiddenVerificationNames();
+    for (const name of [
+      "previous_handle",
+      "new_handle",
+      "text",
+      "original_decider_ids",
+      "review_mode",
+      "dual_control_request_id",
+      "opened_by_account_id",
+    ]) {
+      expect(forbidden.has(normalisedName(name)), name).toBe(true);
+    }
+    expect(forbidden.get(normalisedName("previous_handle"))).toBe(
+      "verification identifier_change_reviews.previous_handle",
+    );
+  });
+
   it("finds none in the contracts but the verification module and the backoffice's", async () => {
     const forbidden = forbiddenVerificationNames();
     const modules = await contractModules();

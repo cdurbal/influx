@@ -26,6 +26,9 @@
 //           same status and body as an identifier never issued (uuids and times normalised).
 //   T9.6-W  witnesses: a USAGE granted, a definer door naming the piece, a door relaying to another
 //           owner's function, and a route that serves the piece each make the check fail.
+//   L2F     (commit 16, fiche L2F invariant 10) the seven tables of 0231 to 0234 named one by one in
+//           T9.6-R; the routes of L2F (contests, queues 5 and 6, badges, opening) join T9.6-A by the
+//           inventory, and profiles.read_badge_grace_days() (0237) joins T9.6-F and T9.6-O by itself.
 // "After the reveal of identities" (18 T9.6) waits for Lot 4, where no reveal exists yet: this file
 // is replayed then. Fixtures are COMMITTED through the routes (random identifiers, disposable local
 // stack); the piece's row, the open requests and the usage are removed after the file. Storage is a
@@ -90,6 +93,16 @@ const BRAND_DOOR_TABLES = [
   "badges",
   "ownership_codes",
   "verification_requests",
+];
+/** The tables of `verification` the L2F migrations add (0231 to 0234): fiche L2F invariant 10. */
+const L2F_TABLES = [
+  "badge_revocation_requests",
+  "consumer_email_domains",
+  "dispute_outcome_reasons",
+  "dispute_reasons",
+  "disputes",
+  "identifier_change_reviews",
+  "opening_reasons",
 ];
 
 let database: ApiDatabase;
@@ -923,6 +936,59 @@ describe("T9.6-R influx_advertiser holds no right on `verification` nor on Stora
     ).toEqual([]);
     expect(Object.keys(attempts)).toContain("verification.evidence_files");
     expect(Object.keys(attempts)).toContain("storage.objects");
+  });
+
+  // L2F commit 16 (fiche L2F invariant 10, EC-L2E-18): the tables of 0231 to 0234 are in the sweeps
+  // above by their schema; this case names them, so that a sweep that misses one cannot pass.
+  it("names the tables of L2F: each one is swept, holds no right of the advertiser, and answers 42501", async () => {
+    const sql = localSuperuser();
+    const [catalogue] = await sql<
+      { tables: string[]; rights: string[]; grace: boolean }[]
+    >`
+      select
+        coalesce((select array_agg(c.relname::text order by 1) from pg_catalog.pg_class c
+                   where c.relnamespace = 'verification'::regnamespace
+                     and c.relname = any (${L2F_TABLES}::text[]) and c.relkind = 'r'), '{}')
+          as tables,
+        coalesce((select array_agg(t || ' ' || p order by 1)
+                    from unnest(${L2F_TABLES}::text[]) t,
+                         unnest(array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES',
+                                      'TRIGGER']) p
+                   where to_regclass('verification.' || t) is not null
+                     and (pg_catalog.has_table_privilege('influx_advertiser',
+                            ('verification.' || t)::regclass, p)
+                          or (p in ('SELECT','INSERT','UPDATE','REFERENCES')
+                              and pg_catalog.has_any_column_privilege('influx_advertiser',
+                                    ('verification.' || t)::regclass, p)))), '{}')
+          as rights,
+        -- the one function of L2F the advertiser executes (0237) is among those T9.6-F reads
+        pg_catalog.has_function_privilege('influx_advertiser',
+          'profiles.read_badge_grace_days()', 'EXECUTE') as grace`;
+    expect(catalogue?.tables).toEqual([...L2F_TABLES].sort());
+    expect(catalogue?.rights).toEqual([]);
+    expect(catalogue?.grace).toBe(true);
+    const attempts = await inRolledBackTransaction(
+      loginRole("influx_app"),
+      async (tx) => {
+        await takeRole(tx, "influx_advertiser", {
+          accountId: brand.accountId,
+          role: "advertiser",
+          aal: "aal1",
+        });
+        const results: Record<string, string> = {};
+        for (const table of L2F_TABLES) {
+          const found = await probe(
+            tx,
+            `select 1 from verification.${table} limit 1`,
+          );
+          results[table] = found.outcome === "error" ? found.code : "read";
+        }
+        return results;
+      },
+    );
+    expect(attempts).toEqual(
+      Object.fromEntries(L2F_TABLES.map((table) => [table, "42501"])),
+    );
   });
 });
 

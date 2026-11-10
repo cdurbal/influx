@@ -429,6 +429,15 @@ describe("L2F-D17: the verification opened by an agent (D83 A, 0234)", () => {
 
   it("refuses an unknown or own account, another population, an inactive account, the audience, a reason or comment out of rule, a block given for nothing, and any caller but an agent in aal2", async () => {
     await scenario(async (tx) => {
+      // EC-L2F-16-1: the shared stack keeps the committed openings of other files
+      // (t14-verification-opening-route): "nothing was opened" is counted from here
+      const opened = async (): Promise<number> => {
+        const [found] = await tx<{ n: number }[]>`
+          select count(*)::int as n from verification.verification_requests
+           where opening_reason_code is not null`;
+        return found?.n ?? -1;
+      };
+      const before = await opened();
       const row = (
         account: string,
         line: string | null,
@@ -533,10 +542,8 @@ describe("L2F-D17: the verification opened by an agent (D83 A, 0234)", () => {
         ),
       ).toMatchObject(refused(INSUFFICIENT_PRIVILEGE));
       // nothing was opened
-      const [count] = await tx<{ n: number }[]>`
-        select count(*)::int as n from verification.verification_requests
-         where opening_reason_code is not null`;
-      expect(count?.n).toBe(0);
+      expect(before).toBeGreaterThanOrEqual(0);
+      expect(await opened()).toBe(before);
     });
   });
 

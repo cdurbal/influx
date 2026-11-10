@@ -21,6 +21,11 @@
 //         codes go through the members' routes, the decisions through the agent's functions of 0224
 //         (a committed transaction of the local superuser, as apps/api calls them), the piece is a row
 //         (its bytes are T9.6's, db-tests/t9-evidence-unreachable).
+//   L2F   (commit 16) creator L: a badge withdrawn under 2V with a message (0231), contested with a
+//         text (0232), then the handle of his verified line changed (queue 6, 0233). The old and the
+//         new handle, the contest text and the withdrawal message join every sweep and C-1; his own
+//         reads carry the new handle and the text, the contestable decision the message; C-2 searches
+//         every table of `audit`, `ops` and `leads` for them (fiche L2F invariant 12), with a witness.
 // Deferred: T1.5 (signed URL of the portfolio) and the agent's identified view at L2G, which replays
 // this file; T1.3 and the "after" of T1.6 (a revealed introduction) at Lot 4. The rights side of the
 // same rule (influx_advertiser reaches no `creator_%` object, non reversible) is T1-R, in
@@ -98,14 +103,29 @@ let brand: Member & { markers: Marker[] };
  * once, at the opening of its request; the finding of the agent is served to no member at all.
  */
 let verificationMarkers: { creator: Marker[]; brand: Marker[] };
+/**
+ * L2F (commit 16): creator L, whose « Audience vérifiée » was withdrawn with a message, who contests
+ * the withdrawal with a text, then changes the handle of his verified line (queue 6). The old handle
+ * is served to no member any more; the new one, the text and the message are his own and served to
+ * him alone (positive control).
+ */
+let l2f: {
+  creator: Member;
+  ids: string[];
+  markers: Marker[];
+  ownMarkers: Marker[];
+  disputeId: string;
+  reviewId: string;
+};
 
-/** Every marker of both parties, the verification's included. */
+/** Every marker of both parties, the verification's and L2F's included. */
 function allMarkers(): Marker[] {
   return [
     ...creator.markers,
     ...brand.markers,
     ...verificationMarkers.creator,
     ...verificationMarkers.brand,
+    ...l2f.markers,
   ];
 }
 /** The brand that sweeps (T1.1), and the creator that sweeps (T1.6). */
@@ -434,6 +454,7 @@ beforeAll(async () => {
   };
 
   verificationMarkers = await verificationFixtures(server, tag);
+  l2f = await l2fFixtures(server);
 
   sweepingBrand = await newMember("advertiser");
   sweepingCreator = await newMember("creator");
@@ -621,8 +642,217 @@ async function verificationFixtures(
   };
 }
 
+/** A fresh backoffice session of `account`, TOTP proven now (the 0012 trigger), for R. */
+async function backofficeSession(
+  tx: postgres.TransactionSql,
+  account: string,
+): Promise<string> {
+  const [row] = await tx<{ id: string }[]>`
+    insert into identity.sessions (token_hash, account_id, surface, mfa_method, user_agent_summary)
+    values (sha256(gen_random_uuid()::text::bytea), ${account}, 'backoffice', 'totp',
+            'firefox.linux')
+    returning id::text`;
+  if (row === undefined) {
+    throw new Error("no backoffice session");
+  }
+  return row.id;
+}
+
+/**
+ * L2F: creator L gets « Compte vérifié » then « Audience vérifiée » (as creator A), agent A asks the
+ * withdrawal of the audience badge for `terms_breach` with a message, admin A confirms and withdraws
+ * (0231, a COMMITTED transaction as apps/api calls them); L contests it through his route with a
+ * text (0232), then changes the handle of his line through his route, which opens queue 6 (0233).
+ */
+async function l2fFixtures(server: Server): Promise<typeof l2f> {
+  const l = await newMember("creator");
+  const tag = hex(5);
+  const oldHandle = `ancien_t1_${tag}`;
+  const newHandle = `nouveau_t1_${hex(5)}`;
+  const message = `Publications contraires aux conditions ${letterName(hex(6))} ${letterName(hex(6))}`;
+  const text = `Le constat a mal lu mes publications ${letterName(hex(6))} ${letterName(hex(6))}`;
+  // no URL on the line: the old handle lives in the handle alone
+  const created = (await through(server, l, "POST", NETWORKS, {
+    networkCode: "instagram",
+    handle: oldHandle,
+    isPrimary: true,
+    followersCount: randomInt(41_000_000, 49_999_999),
+  })) as { lineId: string | null };
+  const lineId = created.lineId ?? "";
+  expect(lineId).not.toBe("");
+  await through(server, l, "POST", `${NETWORKS}/${lineId}/figures`, {
+    followersCount: randomInt(41_000_000, 49_999_999),
+    postsLast30Days: 12,
+    avgCommentsPerPost: 31,
+  });
+
+  const account = (await through(
+    server,
+    l,
+    "POST",
+    `${VERIFICATION}/requests`,
+    {
+      networkCode: "instagram",
+      level: "account_verified",
+    },
+  )) as OwnRequest;
+  const code = account.request.code?.code ?? "";
+  await through(
+    server,
+    l,
+    "POST",
+    `${VERIFICATION}/requests/${account.request.id}/submit`,
+  );
+  await agentDecides(
+    account.request.id,
+    "select * from verification.grant_account_verified($1::uuid, $2::text, $3::text, $4::text, null, null)",
+    (token) => [account.request.id, token, code, oldHandle],
+  );
+  const audience = (await through(
+    server,
+    l,
+    "POST",
+    `${VERIFICATION}/requests`,
+    {
+      networkCode: "instagram",
+      level: "audience_verified",
+    },
+  )) as OwnRequest;
+  await localSuperuser()`
+    insert into verification.evidence_files
+      (request_id, account_id, state, received_bytes, byte_size, width, height, checksum,
+       activated_at, retention_due_at)
+    values (${audience.request.id}, ${l.accountId}, 'active', 500000, 400000, 1290, 2796,
+            sha256(${randomUUID()}::bytea), now(), now() + interval '45 days')`;
+  await through(
+    server,
+    l,
+    "POST",
+    `${VERIFICATION}/requests/${audience.request.id}/submit`,
+  );
+  await agentDecides(
+    audience.request.id,
+    `select * from verification.grant_audience_verified($1::uuid, $2::text, $3::bigint, $4::integer,
+       $5::bigint, $6::integer, $7::date, $8::date, $9::text, null)`,
+    (token) => [
+      audience.request.id,
+      token,
+      randomInt(51_000_000, 59_999_999),
+      23,
+      randomInt(1_000_000, 9_999_999),
+      412,
+      utcDay(-12),
+      utcDay(-2),
+      oldHandle,
+    ],
+  );
+  const [badge] = await localSuperuser()<{ id: string }[]>`
+    select id::text from verification.badges
+     where request_id = ${audience.request.id} and state = 'active'`;
+  const badgeId = badge?.id ?? "";
+  expect(badgeId).not.toBe("");
+
+  // the withdrawal under 2V: the agent asks, a distinct admin confirms and withdraws (peer)
+  const adminA = accountIdOf("admin", "a");
+  await localSuperuser().begin(async (tx) => {
+    const [requested] = await actAsInternal(
+      tx,
+      "influx_agent",
+      { accountId: agentA, role: "agent", aal: "aal2" },
+      () => tx<{ id: string }[]>`
+        select verification.request_badge_revocation(${badgeId}::uuid, 'terms_breach',
+                                                     ${message})::text as id`,
+    );
+    const request = requested?.id ?? "";
+    const session = await backofficeSession(tx, adminA);
+    await actAsInternal(
+      tx,
+      "influx_admin",
+      { accountId: adminA, role: "admin", aal: "aal2", sessionId: session },
+      async () => {
+        await tx`select backoffice.confirm_dual_control(${session}::uuid, ${request}::uuid, null)`;
+        await tx`
+          select verification.revoke_badge(${session}::uuid, ${request}::uuid, ${badgeId}::uuid,
+                                           'terms_breach')`;
+      },
+    );
+  });
+
+  // positive control: the message is served to creator L, with the decision he may contest
+  const contestable = await call(
+    server,
+    "GET",
+    `${VERIFICATION}/disputes`,
+    await newSession(l.accountId),
+  );
+  expect(contestable.statusCode).toBe(200);
+  expect(valuesFoundIn(contestable.body, [message])).not.toEqual([]);
+
+  // the contest of the withdrawal, then the change of handle, through his routes
+  const submitted = (await through(
+    server,
+    l,
+    "POST",
+    `${VERIFICATION}/disputes`,
+    {
+      badgeId,
+      reasonCode: "other",
+      text,
+    },
+  )) as { dispute: { id: string } };
+  await through(server, l, "PATCH", `${NETWORKS}/${lineId}`, {
+    handle: newHandle,
+  });
+  const [review] = await localSuperuser()<
+    { id: string; previous: string | null; next: string | null }[]
+  >`
+    select id::text, previous_handle as previous, new_handle as next
+      from verification.identifier_change_reviews
+     where social_account_id = ${lineId} and state = 'open'`;
+  // the base holds both handles, internally (08 RG78, CA54)
+  expect(review).toMatchObject({ previous: oldHandle, next: newHandle });
+  const [held] = await localSuperuser()<
+    { message: string | null; text: string | null }[]
+  >`
+    select q.member_message as message, d.text
+      from verification.badge_revocation_requests q
+      join verification.disputes d on d.badge_id = q.badge_id
+     where q.badge_id = ${badgeId}`;
+  expect(held).toEqual({ message, text });
+
+  // what creator L still reads of his own: the new handle and his contest (the message came with the
+  // contestable decision, above, and leaves the read once contested)
+  const ownMarkers: Marker[] = [
+    { name: "L2F new handle", value: newHandle },
+    { name: "L2F contest text", value: text },
+  ];
+  return {
+    creator: l,
+    ids: [lineId, badgeId, submitted.dispute.id, review?.id ?? "", l.accountId],
+    markers: [
+      { name: "L2F old handle", value: oldHandle },
+      { name: "L2F withdrawal message", value: message },
+      ...ownMarkers,
+    ],
+    ownMarkers,
+    disputeId: submitted.dispute.id,
+    reviewId: review?.id ?? "",
+  };
+}
+
 afterAll(async () => {
   await closeDatabase(database);
+  // no entry of this file stays in queues 5 and 6 of the shared stack
+  if (l2f !== undefined) {
+    await migration`
+      update verification.disputes
+         set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now()
+       where id = ${l2f.disputeId}::uuid and state = 'open'`;
+    await migration`
+      update verification.identifier_change_reviews
+         set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now()
+       where id = ${l2f.reviewId}::uuid and state = 'open'`;
+  }
   await retireBrandFixtures(migration, [
     brand.accountId,
     sweepingBrand.accountId,
@@ -728,6 +958,110 @@ describe("T1.3 adapted (EC-L2D-3): the creator's own reads carry the markers", (
   });
 });
 
+describe("L2F (commit 16): the withdrawal, the contest and the changed handle join the sweeps", () => {
+  it("T1.2: the routes of L2F are in the inventory the sweeps walk", async () => {
+    const swept = (await sweptRoutes(app())).map(routeName);
+    for (const route of [
+      `GET ${VERIFICATION}/disputes`,
+      `POST ${VERIFICATION}/disputes`,
+      "GET /v1/bo/queues/verification-disputes/entries",
+      "GET /v1/bo/queues/identifier-changes/entries",
+      "GET /v1/bo/accounts/:id/badges",
+      "POST /v1/bo/accounts/:id/badges/:badgeId/revocation",
+      "POST /v1/bo/accounts/:id/verification-requests",
+    ]) {
+      expect(swept, route).toContain(route);
+    }
+  });
+
+  it("T1.3 adapted: creator L reads his new handle and his contest text (the withdrawal message before he contests, in the fixture); the markers are real", async () => {
+    const server = app();
+    const texts: string[] = [];
+    for (const url of [NETWORKS, `${VERIFICATION}/disputes`]) {
+      const response = await call(
+        server,
+        "GET",
+        url,
+        await newSession(l2f.creator.accountId),
+      );
+      expect(response.statusCode, url).toBe(200);
+      texts.push(response.body);
+    }
+    expect(markersIn(texts.join("\n"), l2f.ownMarkers)).toEqual(
+      l2f.ownMarkers.map((marker) => marker.name),
+    );
+    // and nothing of creator A, nor of brand M, comes to creator L
+    expect(
+      markersIn(texts.join("\n"), [
+        ...creator.markers,
+        ...brand.markers,
+        ...verificationMarkers.creator,
+        ...verificationMarkers.brand,
+      ]),
+    ).toEqual([]);
+  });
+
+  it("C-2 (D60, RG99; fiche L2F invariant 12): no L2F marker in the register, the outbox or any table of ops", async () => {
+    const sql = localSuperuser();
+    const values = l2f.markers.map((marker) => marker.value);
+    const relations = await sql<{ name: string }[]>`
+      select n.nspname || '.' || c.relname as name
+        from pg_catalog.pg_class c
+        join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+       where n.nspname in ('audit', 'ops', 'leads') and c.relkind in ('r', 'p')
+         and not c.relispartition
+       order by 1`;
+    const names = relations.map((relation) => relation.name);
+    expect(names).toEqual(
+      expect.arrayContaining(["audit.audit_events", "leads.outbox_events"]),
+    );
+    expect(
+      names.filter((name) => name.startsWith("ops.")).length,
+    ).toBeGreaterThan(3);
+    /** `relation: marker` for every L2F marker a row of `relations` holds, its JSON form searched. */
+    const findingsIn = async (relations: string[]): Promise<string[]> => {
+      const findings: string[] = [];
+      for (const name of relations) {
+        const rows = await sql.unsafe<{ marker: string }[]>(
+          `select distinct m.value as marker
+             from ${name} t, unnest($1::text[]) m(value)
+            where strpos(to_jsonb(t)::text, m.value) > 0`,
+          [values] as postgres.ParameterOrJSON<never>[],
+        );
+        for (const row of rows) {
+          const marker = l2f.markers.find(
+            (entry) => entry.value === row.marker,
+          );
+          findings.push(`${name}: ${marker?.name ?? "?"}`);
+        }
+      }
+      return findings.sort();
+    };
+    expect(await findingsIn(names)).toEqual([]);
+    // witness: the same search finds each marker where the base keeps it, internally
+    expect(
+      await findingsIn([
+        "verification.badge_revocation_requests",
+        "verification.disputes",
+        "verification.identifier_change_reviews",
+      ]),
+    ).toEqual(
+      [
+        "verification.badge_revocation_requests: L2F withdrawal message",
+        "verification.disputes: L2F contest text",
+        "verification.identifier_change_reviews: L2F new handle",
+        "verification.identifier_change_reviews: L2F old handle",
+      ].sort(),
+    );
+    // the facts themselves are in the register, by their codes and identifiers
+    const [facts] = await sql<{ codes: string[] }[]>`
+      select coalesce(array_agg(distinct event_type order by event_type), '{}') as codes
+        from audit.audit_events
+       where subject_id::text = any (${l2f.ids}::text[])`;
+    expect(facts?.codes ?? []).toContain("verification.badge_revoked");
+  });
+});
+
 describe("T1.1, T1.4 every route, called as a brand on the web surface: no marker of a creator, errors included", () => {
   it("finds no marker in any body or header, over 2xx, 400 and 404 answers", async () => {
     const server = app();
@@ -737,6 +1071,8 @@ describe("T1.1, T1.4 every route, called as a brand on the web surface: no marke
       creator.publicRef,
       randomUUID(),
       "x",
+      // L2F: creator L's line, withdrawn badge, contest and queue 6 entry
+      ...l2f.ids,
     ];
     const result = await sweep(server, sweepingBrand, ids, allMarkers());
     expect(result.findings).toEqual([]);
@@ -816,6 +1152,7 @@ describe("T1.6 before the reveal: no contact of the other party, no data of anot
       brand.accountId,
       randomUUID(),
       "x",
+      ...l2f.ids,
     ];
     const result = await sweep(server, sweepingCreator, ids, allMarkers());
     expect(result.findings).toEqual([]);
