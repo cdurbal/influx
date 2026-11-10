@@ -12,7 +12,7 @@
 // price anywhere (D78).
 import { seedMember } from "./support/account";
 import { retireInternals, seedColleague } from "./support/backoffice";
-import { expect, open, test, title } from "./support/journey";
+import { expect, open, reload, test, title } from "./support/journey";
 import { WEB_ORIGIN } from "./support/servers";
 import {
   disputesOf,
@@ -194,7 +194,7 @@ test("a creator proves the ownership of a network account in French, from the li
   await expectAxe(page, "ownership, screen 2, fr", WIDTHS);
 
   // A reload takes the draft back at its own screen, with the same code (the API's state, not memory).
-  await page.reload();
+  await reload(page);
   await expect(code).toHaveText(draft?.code ?? "");
 
   // Screen 3: the request is sent; the state stays in the line of the network.
@@ -224,7 +224,7 @@ test("a creator proves the ownership of a network account in French, from the li
   // a new draft carries a new code and is sent at once (L2E-25, C1).
   const [first] = await requestsOf(accountId);
   await refuseAsAgent(first!.id, agent.accountId, "missing_evidence");
-  await page.reload();
+  await reload(page);
   await expect(
     accountRow(page).locator('[data-reason="missing_evidence"]'),
   ).toContainText(copy.refusal.next.restartOwnership);
@@ -242,12 +242,14 @@ test("a creator proves the ownership of a network account in French, from the li
   ).toBeVisible();
   expect((await requestsOf(accountId))[0]?.status).toBe("pending");
   await page.getByRole("link", { name: copy.ownership.confirm.back }).click();
+  // the target page is on screen before the database is written and the page reloaded (L2FT-1)
+  await expect(title(page)).toHaveText(frCreatorProfile.page.title);
 
   // The agent refuses (the database writes what his door writes): the reason, its text, what to do next,
   // the way to ask again; asked again at once, the delay left is the real Retry-After (RG56, RG57, RG60).
   const [sent] = await requestsOf(accountId);
   await refuseAsAgent(sent!.id, agent.accountId, "ownership_not_proven");
-  await page.reload();
+  await reload(page);
   const refusal = accountRow(page).locator(
     '[data-reason="ownership_not_proven"]',
   );
@@ -271,7 +273,7 @@ test("a creator proves the ownership of a network account in French, from the li
   // The badge, granted by an agent: the complete date, the explanation beside it, and the end of the
   // journey says the code can leave the bio (RG24).
   await grantAsAgent(accountId, agent.accountId);
-  await page.reload();
+  await reload(page);
   await expect(
     page.getByRole("heading", { name: copy.ownership.done.title }),
   ).toBeVisible();
@@ -460,7 +462,7 @@ test("a creator deposits the evidence of an audience in French, from the conditi
 
   // The account verified: what the badge states and what a brand reads, before anything is asked (RG96).
   await grantAsAgent(accountId, agent.accountId);
-  await page.reload();
+  await reload(page);
   for (const text of [
     copy.audience.affirm.intro.replace("{network}", network),
     copy.ownership.affirm.not.authenticity,
