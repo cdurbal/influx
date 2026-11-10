@@ -18,6 +18,7 @@ import { lineControlIdOf } from "@/components/creator-profile/creator-networks-v
 import { audienceJourneyHref, ownershipJourneyHref } from "@/lib/member-paths";
 import { routing, type AppLocale } from "@/i18n/routing";
 import { BadgeLine } from "./BadgeLine";
+import { RowDisputes } from "./DisputeNotice";
 import { RequestState } from "./RequestState";
 import type { CreatorVerificationState } from "./use-creator-verification";
 import {
@@ -104,6 +105,8 @@ export function VerificationLineState({
             <RowBody
               row={ownership}
               network={network}
+              networkCode={line.networkCode}
+              verification={verification}
               ownershipEstablished={established}
               absent={t("line.absent.account")}
             />
@@ -160,6 +163,8 @@ export function VerificationLineState({
             <RowBody
               row={audience}
               network={network}
+              networkCode={line.networkCode}
+              verification={verification}
               ownershipEstablished={established}
               absent={
                 established
@@ -208,11 +213,16 @@ export function VerificationLineState({
 function RowBody({
   row,
   network,
+  networkCode,
+  verification,
   ownershipEstablished,
   absent,
 }: {
   row: LevelRow;
   network: string;
+  networkCode: string;
+  /** The contests the row says: the decisions still contestable and the follow-up of the latest one (RG77). */
+  verification: CreatorVerificationState;
   /** Whether the ownership stands on the line: a refusal of the audience reads it (RG12). */
   ownershipEstablished: boolean;
   absent: string;
@@ -233,6 +243,14 @@ function RowBody({
           }
         />
       )}
+      <RowDisputes
+        disputes={verification.disputes}
+        lines={verification.lines}
+        networkCode={networkCode}
+        level={row.level}
+        network={network}
+        shownRequestId={row.request?.request.id ?? null}
+      />
       {shown ? null : <p className="text-sm text-text-secondary">{absent}</p>}
     </div>
   );

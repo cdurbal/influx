@@ -30,6 +30,9 @@ import {
   spaceOf,
   spaceRedirectOf,
   TERMS_EXEMPT_PAGES,
+  APPEAL_BADGE_PARAMETER,
+  APPEAL_REQUEST_PARAMETER,
+  appealHref,
   audienceJourneyHref,
   isNetworkCode,
   NETWORK_QUERY_PARAMETER,
@@ -157,6 +160,7 @@ describe("TD2.4: the active entry of each page", () => {
     accountProfile: "account",
     accountVerificationOwnership: "account",
     accountVerificationAudience: "account",
+    accountVerificationAppeal: "account",
     accountBrandVerification: "account",
     accountPreferences: "account",
     accountSessions: "account",
@@ -390,6 +394,7 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     expect(PARENT_PAGES).toEqual({
       accountVerificationOwnership: "accountProfile",
       accountVerificationAudience: "accountProfile",
+      accountVerificationAppeal: "accountProfile",
       accountBrandVerification: "accountProfile",
     });
     expect(activePlaceOf("accountVerificationOwnership")).toEqual({
@@ -423,6 +428,32 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     });
     expect(ACCOUNT_PAGES).not.toContain("accountVerificationAudience");
     expect(isTermsExempt("accountVerificationAudience")).toBe(false);
+  });
+
+  it("addresses the contest of a decision below the profile too, in both languages, the decision in the query (L2F 17)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountVerificationAppeal).toEqual({
+      fr: "compte/profil/verification/contestation",
+      en: "account/profile/verification/appeal",
+    });
+    const id = "5c1f0a3e-8a47-4c0b-9b53-0e2b9a1d7f10";
+    expect(appealHref({ kind: "refusal", requestId: id }, "fr")).toBe(
+      `/compte/profil/verification/contestation?${APPEAL_REQUEST_PARAMETER}=${id}`,
+    );
+    expect(appealHref({ kind: "revocation", badgeId: id }, "en")).toBe(
+      `/account/profile/verification/appeal?${APPEAL_BADGE_PARAMETER}=${id}`,
+    );
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountVerificationAppeal", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountVerificationAppeal",
+      );
+    }
+    expect(activePlaceOf("accountVerificationAppeal")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountVerificationAppeal");
+    expect(isTermsExempt("accountVerificationAppeal")).toBe(false);
   });
 
   it("addresses the brand verification below the profile too, in both languages, with no network in the address (L2E 20)", () => {

@@ -246,6 +246,10 @@ test("a brand asks for the badge in English at 375 px: the accordion, the domain
       "Brand verified on \\w+ \\d{1,2}, 20\\d\\d — verification needs refreshing\\.",
     ),
   );
+  // …and until when it stays shown, the end of its grace (RG54, l2f/textes.md)
+  await expect(
+    block.locator('[data-badge-notice="verif.expiry.brandToRefresh"]'),
+  ).toContainText(fixed(copy.verif.expiry.brandToRefresh));
   await block.getByRole("link", { name: copy.brandBlock.cta.refresh }).click();
   await expect(
     page.getByRole("main").getByText(copy.brand.affirm.refresh),

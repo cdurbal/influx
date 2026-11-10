@@ -13,6 +13,7 @@ import { VerifiedBadge } from "@/components/member/ui/VerifiedBadge";
 import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
 import {
   badgeKeysOf,
+  badgeNoticeOf,
   formatCalendarDay,
   formatVerificationDate,
 } from "./verification-view";
@@ -49,14 +50,30 @@ export function BadgeLine({
               ? ""
               : formatCalendarDay(badge.periodEnd, locale),
         });
+  const notice = badgeNoticeOf(badge);
   return (
-    <div className="flex flex-col gap-2" data-badge={badge.level}>
+    <div
+      className="flex flex-col gap-2"
+      data-badge={badge.level}
+      data-badge-state={badge.state}
+    >
       {keys.needsAction ? (
         <Notice tone="warning" announce={false}>
           {label}
         </Notice>
       ) : (
         <VerifiedBadge text={label} />
+      )}
+      {notice === null ? null : (
+        <p data-badge-notice={notice.key}>
+          {t(notice.key, {
+            network,
+            date:
+              notice.date === null
+                ? ""
+                : formatVerificationDate(notice.date, locale),
+          })}
+        </p>
       )}
       {help === null ? null : (
         <p className={MEMBER_FIELD_HELP_CLASSES}>{help}</p>

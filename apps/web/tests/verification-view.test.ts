@@ -29,6 +29,7 @@ import {
   audienceJourneyOf,
   audienceStepNumberOf,
   badgeKeysOf,
+  badgeNoticeOf,
   canRestartOwnership,
   evidenceFailureOf,
   evidenceFileProblem,
@@ -994,6 +995,57 @@ function leavesOf(node: unknown, prefix = ""): [string, string][] {
     ([key, child]) => leavesOf(child, prefix === "" ? key : `${prefix}.${key}`),
   );
 }
+
+describe("the sentence under a badge that needs an action (08 RG10, RG70, RG78; 06 RG54; l2f/textes.md; L2F 17)", () => {
+  const GRACE_END = "2026-05-02T00:00:00Z";
+
+  it("says until when an audience « à rafraîchir » stays shown, by the end of its grace the API serves", () => {
+    expect(
+      badgeNoticeOf(
+        badge("audience_verified", "to_refresh", { graceEndsAt: GRACE_END }),
+      ),
+    ).toEqual({ key: "verif.expiry.toRefresh", date: GRACE_END });
+  });
+
+  it("says the same for a brand's badge, with its own sentence", () => {
+    expect(
+      badgeNoticeOf(
+        badge("brand_verified", "to_refresh", {
+          networkCode: null,
+          graceEndsAt: GRACE_END,
+        }),
+      ),
+    ).toEqual({ key: "verif.expiry.brandToRefresh", date: GRACE_END });
+  });
+
+  it("says why an account is « à reconfirmer » and what to do, with no date", () => {
+    expect(badgeNoticeOf(badge("account_verified", "to_reconfirm"))).toEqual({
+      key: "verif.reconfirm.notice",
+      date: null,
+    });
+  });
+
+  it("says nothing of an active badge, nor of one « à rafraîchir » whose end the API did not give", () => {
+    expect(badgeNoticeOf(badge("audience_verified", "active"))).toBeNull();
+    expect(badgeNoticeOf(badge("account_verified", "active"))).toBeNull();
+    expect(badgeNoticeOf(badge("audience_verified", "to_refresh"))).toBeNull();
+  });
+
+  it("holds the sentences of the annex mot pour mot, in French and in English", () => {
+    expect(frVerification.verif.expiry.brandToRefresh).toBe(
+      "Votre badge « Marque vérifiée » est à rafraîchir. Il reste affiché avec sa date jusqu'au {date}.",
+    );
+    expect(enVerification.verif.expiry.brandToRefresh).toBe(
+      'Your "Brand verified" badge needs refreshing. It stays visible with its date until {date}.',
+    );
+    expect(frVerification.verif.reconfirm.notice).toBe(
+      "Vous avez modifié l'identifiant de votre compte {network}. Pour conserver votre badge, refaites la preuve de propriété depuis votre espace INFLUX.",
+    );
+    expect(enVerification.verif.reconfirm.notice).toBe(
+      "You changed the handle of your {network} account. To keep your badge, prove ownership again from your INFLUX space.",
+    );
+  });
+});
 
 describe("the translation files of the verification (08 RG6, RG93; fiche invariant 12)", () => {
   it("holds the twenty-two keys of RG93 mot pour mot, in French and in English", () => {

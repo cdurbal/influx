@@ -7,12 +7,17 @@
 import {
   brandVerificationResponseSchema,
   creatorVerificationResponseSchema,
+  ownDisputesResponseSchema,
+  submitDisputeResponseSchema,
   verificationEvidenceResponseSchema,
   verificationRequestResponseSchema,
   type BrandInternalDetails,
   type BrandVerificationResponse,
   type CreatorVerificationLevel,
   type CreatorVerificationResponse,
+  type OwnDisputesResponse,
+  type SubmitDisputeBody,
+  type SubmitDisputeResponse,
   type VerificationEvidenceResponse,
   type VerificationRequestResponse,
 } from "@influx/contracts/verification";
@@ -99,6 +104,24 @@ export function removeVerificationEvidence(
     `${REQUESTS_PATH}/${requestId}/evidence/${evidenceId}`,
     verificationRequestResponseSchema,
   );
+}
+
+// --- The contest of a decision (08 RG77, CA52; L2F, commit 17) ----------------------------------------------
+// The account is the session's: no call names one. A decision is named by its own identifier (a refusal's
+// request, a withdrawn badge), and the window, the unicity and what is contestable are the database's.
+
+const DISPUTES_PATH = `${VERIFICATION_PATH}/disputes`;
+
+/** The decisions the creator may still contest, his contests, and the window in days (08 RG77). */
+export function readOwnDisputes(): Promise<RelayResult<OwnDisputesResponse>> {
+  return callRelay("GET", DISPUTES_PATH, ownDisputesResponseSchema);
+}
+
+/** One contest: a reason of the closed list and, where asked, the creator's words; the answer is the contest as filed. */
+export function submitOwnDispute(
+  body: SubmitDisputeBody,
+): Promise<RelayResult<SubmitDisputeResponse>> {
+  return callRelay("POST", DISPUTES_PATH, submitDisputeResponseSchema, body);
 }
 
 // --- A brand's own request, « Marque vérifiée » (06 RG46 to RG52; commit 20) -------------------------

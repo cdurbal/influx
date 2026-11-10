@@ -2,7 +2,8 @@
   "meta": {
     "ownership": "Verify my account",
     "audience": "Verify my audience",
-    "brand": "Verify my brand"
+    "brand": "Verify my brand",
+    "appeal": "Appeal a decision"
   },
   "verif": {
     "badge": {
@@ -41,7 +42,11 @@
     "expiry": {
       "reminder": "Your verified audience expires on {date}. Upload a recent screenshot to keep it.",
       "toRefresh": "Your verified audience needs refreshing. It stays visible with its date until {date}.",
+      "brandToRefresh": "Your \"Brand verified\" badge needs refreshing. It stays visible with its date until {date}.",
       "removed": "Your verified audience has expired. Your figures are shown as declared again."
+    },
+    "reconfirm": {
+      "notice": "You changed the handle of your {network} account. To keep your badge, prove ownership again from your INFLUX space."
     },
     "revoked": {
       "notice": "Your badge was removed: {reason}"
@@ -79,6 +84,86 @@
       "audienceRestart": "Upload a screenshot again",
       "audienceRefresh": "Refresh my audience",
       "fillIdentifier": "Fill in the handle and the link"
+    }
+  },
+  "revocation": {
+    "reason": {
+      "forged_evidence": "A document or piece of information provided for this verification turned out to be inaccurate.",
+      "account_closed": "The social media account concerned has been deleted, closed or is no longer accessible.",
+      "owner_changed": "The social media account concerned has changed hands.",
+      "terms_breach": "Your profile does not comply with the INFLUX terms of use.",
+      "influx_error": "INFLUX granted this badge by mistake. You are not at fault, and we apologise.",
+      "company_dissolved": "The company has been struck off the public register.",
+      "domain_transferred": "Your website's domain has changed hands."
+    }
+  },
+  "appeal": {
+    "title": "Appeal a decision",
+    "badgeName": {
+      "account_verified": "Account verified",
+      "audience_verified": "Audience verified"
+    },
+    "window": "You can appeal this decision for {days, plural, one {# day} other {# days}}.",
+    "until": "You can appeal it until {date}.",
+    "cta": "Appeal this decision",
+    "see": "See my appeal",
+    "about": {
+      "refusal": "Your \"{badge}\" verification request on {network} was refused on {date}.",
+      "revocation": "Your \"{badge}\" badge on {network} was removed on {date}."
+    },
+    "gone": "This decision can no longer be appealed: the time limit has passed, or it has already been appealed.",
+    "form": {
+      "reasonLegend": "Why are you appealing this decision?",
+      "textLabel": "Your explanation",
+      "textRequired": "required",
+      "textOptional": "Optional for this reason.",
+      "textHelp": "Do not write an e-mail address, a link or a phone number: everything happens inside INFLUX.",
+      "noAttachment": "Attachments are not accepted here. To provide new evidence, submit a new verification request.",
+      "characters": "{count} / {max} characters",
+      "submit": "Send my appeal",
+      "sending": "Sending…"
+    },
+    "reason": {
+      "misread": "My evidence or profile was misread",
+      "evidence_valid": "My evidence met the instructions",
+      "reason_wrong": "The reason does not fit my situation",
+      "other": "Another reason (please explain)"
+    },
+    "problem": {
+      "reason": "Choose the reason for your appeal.",
+      "text": "Explain your appeal in your own words."
+    },
+    "sent": {
+      "title": "Appeal sent",
+      "received": "We have received your appeal about the \"{badge}\" badge. We are reviewing it and will write to you once it is decided."
+    },
+    "state": {
+      "open": "Appeal sent on {date}. It is being reviewed.",
+      "decided": "Appeal decided on {date}.",
+      "withdrawn": "This appeal no longer applies: your situation has changed since."
+    },
+    "yours": {
+      "reason": "Your reason: {reason}",
+      "text": "Your explanation:"
+    },
+    "outcome": {
+      "title": "Outcome of your appeal",
+      "decision_confirmed": "After review, the decision stands for its original reason: {reason}",
+      "decision_confirmedBare": "After review, the decision stands.",
+      "new_request_needed": "After review, your appeal cannot succeed as it stands: you can submit a new request from your INFLUX space.",
+      "other": "After review, the decision stands. The message from the INFLUX team:",
+      "decision_overturned": "After review, INFLUX reverses its decision and apologises: your \"{badge}\" badge is granted as of {date}."
+    },
+    "failure": {
+      "notDisputable": "This decision cannot be appealed.",
+      "alreadyDisputed": "This decision has already been appealed.",
+      "windowClosed": "The time limit to appeal this decision has passed.",
+      "gone": "This decision no longer exists. The screen has just been updated.",
+      "directContact": "Your text contains an e-mail address, a link or a phone number. Remove them: everything happens inside INFLUX.",
+      "textRequired": "Explain your appeal in your own words.",
+      "invalidText": "Your text is not accepted: it must be 1 to 1,000 characters long, with no control character.",
+      "invalidReason": "This reason is not accepted: choose one from the list.",
+      "unavailable": "The service is not responding. Nothing is lost: try again in a moment."
     }
   },
   "state": {

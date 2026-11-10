@@ -16,12 +16,13 @@ import {
   brandBadgeKeyOf,
   isBrandBadgeCurrent,
 } from "./brand-verification-view";
-import { formatVerificationDate } from "./verification-view";
+import { badgeNoticeOf, formatVerificationDate } from "./verification-view";
 
 export function BrandBadgeLine({ badge }: { badge: OwnBadge }) {
   const t = useTranslations("verification");
   const tBrand = useTranslations("brandProfile");
   const locale = useLocale();
+  const notice = badgeNoticeOf(badge);
   const label = tBrand(brandBadgeKeyOf(badge), {
     date: formatVerificationDate(badge.grantedAt, locale),
   });
@@ -38,6 +39,13 @@ export function BrandBadgeLine({ badge }: { badge: OwnBadge }) {
           {label}
         </Notice>
       )}
+      {notice?.key === "verif.expiry.brandToRefresh" && notice.date !== null ? (
+        <p data-badge-notice={notice.key}>
+          {t(notice.key, {
+            date: formatVerificationDate(notice.date, locale),
+          })}
+        </p>
+      ) : null}
       <p className={MEMBER_FIELD_HELP_CLASSES}>
         {t("verif.badge.brandVerified.help")}
       </p>

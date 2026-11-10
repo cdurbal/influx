@@ -2,7 +2,8 @@
   "meta": {
     "ownership": "Faire vérifier mon compte",
     "audience": "Faire vérifier mon audience",
-    "brand": "Faire vérifier ma marque"
+    "brand": "Faire vérifier ma marque",
+    "appeal": "Contester une décision"
   },
   "verif": {
     "badge": {
@@ -41,7 +42,11 @@
     "expiry": {
       "reminder": "Votre audience vérifiée arrive à échéance le {date}. Déposez une capture récente pour la conserver.",
       "toRefresh": "Votre audience vérifiée est à rafraîchir. Elle reste affichée avec sa date jusqu'au {date}.",
+      "brandToRefresh": "Votre badge « Marque vérifiée » est à rafraîchir. Il reste affiché avec sa date jusqu'au {date}.",
       "removed": "Votre audience vérifiée a expiré. Vos chiffres sont de nouveau affichés comme déclarés."
+    },
+    "reconfirm": {
+      "notice": "Vous avez modifié l'identifiant de votre compte {network}. Pour conserver votre badge, refaites la preuve de propriété depuis votre espace INFLUX."
     },
     "revoked": {
       "notice": "Votre badge a été retiré : {reason}"
@@ -79,6 +84,86 @@
       "audienceRestart": "Redéposer une capture",
       "audienceRefresh": "Rafraîchir mon audience",
       "fillIdentifier": "Renseigner le pseudo et le lien"
+    }
+  },
+  "revocation": {
+    "reason": {
+      "forged_evidence": "Une pièce ou une information fournie pour cette vérification s'est révélée inexacte.",
+      "account_closed": "Le compte de réseau social concerné a été supprimé, fermé ou n'est plus accessible.",
+      "owner_changed": "Le compte de réseau social concerné a changé de titulaire.",
+      "terms_breach": "Votre profil ne respecte pas les conditions d'utilisation d'INFLUX.",
+      "influx_error": "INFLUX a accordé ce badge par erreur. Vous n'y êtes pour rien et nous vous présentons nos excuses.",
+      "company_dissolved": "La société a été radiée du registre public.",
+      "domain_transferred": "Le domaine de votre site a changé de titulaire."
+    }
+  },
+  "appeal": {
+    "title": "Contester une décision",
+    "badgeName": {
+      "account_verified": "Compte vérifié",
+      "audience_verified": "Audience vérifiée"
+    },
+    "window": "Vous pouvez contester cette décision pendant {days, plural, one {# jour} other {# jours}}.",
+    "until": "Vous pouvez la contester jusqu'au {date}.",
+    "cta": "Contester cette décision",
+    "see": "Voir ma contestation",
+    "about": {
+      "refusal": "Votre demande de vérification « {badge} » sur {network} a été refusée le {date}.",
+      "revocation": "Votre badge « {badge} » sur {network} a été retiré le {date}."
+    },
+    "gone": "Cette décision ne peut plus être contestée : le délai est écoulé, ou elle a déjà été contestée.",
+    "form": {
+      "reasonLegend": "Pourquoi contestez-vous cette décision ?",
+      "textLabel": "Votre explication",
+      "textRequired": "obligatoire",
+      "textOptional": "Facultative pour cette raison.",
+      "textHelp": "N'indiquez ni adresse e-mail, ni lien, ni numéro de téléphone : tout se passe dans INFLUX.",
+      "noAttachment": "Les pièces jointes ne sont pas acceptées ici. Pour apporter un nouveau justificatif, déposez une nouvelle demande de vérification.",
+      "characters": "{count} / {max} caractères",
+      "submit": "Envoyer ma contestation",
+      "sending": "Envoi en cours…"
+    },
+    "reason": {
+      "misread": "Ma pièce ou mon profil a été mal lu",
+      "evidence_valid": "Ma pièce respectait les consignes",
+      "reason_wrong": "Le motif ne correspond pas à ma situation",
+      "other": "Autre raison (à préciser)"
+    },
+    "problem": {
+      "reason": "Choisissez la raison de votre contestation.",
+      "text": "Expliquez votre contestation avec vos propres mots."
+    },
+    "sent": {
+      "title": "Contestation envoyée",
+      "received": "Nous avons bien reçu votre contestation concernant le badge « {badge} ». Nous la réexaminons et vous écrivons dès qu'elle est tranchée."
+    },
+    "state": {
+      "open": "Contestation envoyée le {date}. Elle est en cours d'examen.",
+      "decided": "Contestation tranchée le {date}.",
+      "withdrawn": "Cette contestation n'a plus d'objet : votre situation a changé depuis."
+    },
+    "yours": {
+      "reason": "Votre raison : {reason}",
+      "text": "Votre explication :"
+    },
+    "outcome": {
+      "title": "Issue de votre contestation",
+      "decision_confirmed": "Après réexamen, la décision est maintenue pour son motif initial : {reason}",
+      "decision_confirmedBare": "Après réexamen, la décision est maintenue.",
+      "new_request_needed": "Après réexamen, votre contestation ne peut aboutir en l'état : vous pouvez déposer une nouvelle demande depuis votre espace INFLUX.",
+      "other": "Après réexamen, la décision est maintenue. Le message de l'équipe INFLUX :",
+      "decision_overturned": "Après réexamen, INFLUX revient sur sa décision et vous présente ses excuses : votre badge « {badge} » est accordé à la date du {date}."
+    },
+    "failure": {
+      "notDisputable": "Cette décision ne peut pas être contestée.",
+      "alreadyDisputed": "Cette décision a déjà été contestée.",
+      "windowClosed": "Le délai pour contester cette décision est écoulé.",
+      "gone": "Cette décision n'existe plus. L'écran vient d'être mis à jour.",
+      "directContact": "Votre texte contient une adresse e-mail, un lien ou un numéro de téléphone. Retirez-les : tout se passe dans INFLUX.",
+      "textRequired": "Expliquez votre contestation avec vos propres mots.",
+      "invalidText": "Votre texte n'est pas accepté : il doit compter de 1 à 1 000 caractères, sans caractère de commande.",
+      "invalidReason": "Cette raison n'est pas acceptée : choisissez-en une dans la liste.",
+      "unavailable": "Le service ne répond pas. Rien n'est perdu : réessayez dans un instant."
     }
   },
   "state": {

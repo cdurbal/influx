@@ -17,6 +17,7 @@ export type MemberPage =
   | "accountProfile"
   | "accountVerificationOwnership"
   | "accountVerificationAudience"
+  | "accountVerificationAppeal"
   | "accountBrandVerification"
   | "accountPreferences"
   | "accountSessions"
@@ -47,6 +48,13 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   accountVerificationAudience: {
     fr: "compte/profil/verification/audience",
     en: "account/profile/verification/audience",
+  },
+  // "Contester une décision" (17 §5.3, C3; 08 RG77; L2F, commit 17): the contest of ONE refusal or withdrawal of
+  // a creator, a child of the profile; the decision is the `request` or the `badge` of the query (an
+  // identifier of the member's own, never a network account, EC-L2F-15).
+  accountVerificationAppeal: {
+    fr: "compte/profil/verification/contestation",
+    en: "account/profile/verification/appeal",
   },
   // "Faire vérifier ma marque" (17 §4.2, M2 block 4; 06 RG49 to RG52; L2E, commit 20): the one request of a
   // brand, a child of the profile; the badge is the account's, so no network and no query (modele.md §6).
@@ -89,6 +97,7 @@ export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
 export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
   accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
   accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
+  accountVerificationAppeal: PROFILE_ACCOUNT_PAGE,
   accountBrandVerification: PROFILE_ACCOUNT_PAGE,
 };
 
@@ -121,6 +130,24 @@ export function audienceJourneyHref(
   locale: AppLocale,
 ): string {
   return `${memberPageHref("accountVerificationAudience", locale)}?${NETWORK_QUERY_PARAMETER}=${networkCode}`;
+}
+
+/** The names of the query parameter that carries the decision of a contest: a refusal's request, or a withdrawn badge (L2F, commit 17). */
+export const APPEAL_REQUEST_PARAMETER = "request";
+export const APPEAL_BADGE_PARAMETER = "badge";
+
+/** A decision a creator contests: the refusal of a request, or the withdrawal of a badge, named by its own identifier. */
+export type AppealTarget =
+  | { kind: "refusal"; requestId: string }
+  | { kind: "revocation"; badgeId: string };
+
+/** The path of the contest of a decision, in the CURRENT language and without the prefix, the decision in the query. */
+export function appealHref(target: AppealTarget, locale: AppLocale): string {
+  const query =
+    target.kind === "refusal"
+      ? `${APPEAL_REQUEST_PARAMETER}=${target.requestId}`
+      : `${APPEAL_BADGE_PARAMETER}=${target.badgeId}`;
+  return `${memberPageHref("accountVerificationAppeal", locale)}?${query}`;
 }
 
 /**

@@ -15,6 +15,13 @@ import { retireInternals, seedColleague } from "./support/backoffice";
 import { expect, open, test, title } from "./support/journey";
 import { WEB_ORIGIN } from "./support/servers";
 import {
+  disputesOf,
+  seedNetworkLine,
+  seedRevokedBadge,
+  upholdDispute,
+  withSql,
+} from "./support/verification-cycle";
+import {
   accountRow,
   audienceRequestsOf,
   audienceRow,
@@ -279,7 +286,7 @@ test("a creator proves the ownership of a network account in French, from the li
   await expect(audienceRow(page)).toContainText(copy.line.absent.audience);
 });
 
-test("a creator proves the ownership of a network account in English, from the line to the badge (08 RG93, RG96, RG97)", async ({
+test("a creator proves the ownership of a network account in English, from the line to the badge, then appeals a badge withdrawn by INFLUX's own error (08 RG73, RG77, RG93, RG96, RG97, CA52)", async ({
   page,
 }) => {
   const copy = COPY.en.own;
@@ -292,6 +299,15 @@ test("a creator proves the ownership of a network account in English, from the l
   });
   await seedLines(accountId, false);
   const agent = await seedColleague("agent", "Noa");
+  // Another line whose badge INFLUX withdrew by its own error, read at the end of the case (RG73, RG77).
+  const badgeId = await withSql(async (sql) => {
+    await seedNetworkLine(sql, accountId, "tiktok", "camille_tt");
+    return seedRevokedBadge(sql, accountId, agent.accountId, {
+      networkCode: "tiktok",
+      reason: "influx_error",
+      memberMessage: null,
+    });
+  });
 
   await open(page, PROFILE.en);
   await expect(title(page)).toHaveText(enCreatorProfile.page.title);
@@ -338,6 +354,66 @@ test("a creator proves the ownership of a network account in English, from the l
   await expect(accountRow(page).locator("[data-badge]")).toContainText(
     new RegExp(`Account verified — ${network}, on \\w+ \\d{1,2}, 20\\d\\d`),
   );
+
+  // The withdrawn badge of the other line: its reason with the apologies and no accusation (RG73), the
+  // window written, then the contest and its outcome with a motive (RG77, CA52, CA53).
+  const withdrawn = page.locator(
+    '[data-verification-line="tiktok"] [data-contestable="revocation"]',
+  );
+  await expect(withdrawn).toContainText(
+    copy.verif.revoked.notice.replace(
+      "{reason}",
+      copy.revocation.reason.influx_error,
+    ),
+  );
+  await expect(withdrawn.locator("[data-appeal-window]")).toHaveText(
+    copy.verif.dispute.open,
+  );
+  await expect(withdrawn).not.toContainText(
+    copy.revocation.reason.terms_breach,
+  );
+  await withdrawn.getByRole("link", { name: copy.appeal.cta }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/en/account/profile/verification/appeal\\?badge=${badgeId}$`),
+  );
+  await expect(title(page)).toHaveText(copy.appeal.title);
+  await expect(main.locator('[data-about="revocation"]')).toContainText(
+    copy.appeal.about.revocation
+      .replace("{badge}", copy.appeal.badgeName.account_verified)
+      .replace("{network}", COPY.en.brand.reference.network.tiktok)
+      .split("{date}")[0] ?? "",
+  );
+  await expectAxe(page, "appeal, en", [375]);
+
+  // « Another reason » asks for his own words: nothing is sent without, and the focus goes to the field.
+  await main.getByRole("radio", { name: copy.appeal.reason.other }).check();
+  await main.getByRole("button", { name: copy.appeal.form.submit }).click();
+  await expect(main.getByText(copy.appeal.problem.text)).toBeVisible();
+  await expect(page.locator("#appeal-text")).toBeFocused();
+  expect(await disputesOf(accountId)).toEqual([]);
+  await page
+    .locator("#appeal-text")
+    .fill("The badge was withdrawn by mistake.");
+  await main.getByRole("button", { name: copy.appeal.form.submit }).click();
+  await expect(
+    page.getByRole("heading", { name: copy.appeal.sent.title }),
+  ).toBeVisible();
+  expect(await disputesOf(accountId)).toEqual([
+    {
+      state: "open",
+      reason: "other",
+      text: "The badge was withdrawn by mistake.",
+      kind: "revocation",
+    },
+  ]);
+  await upholdDispute(accountId, agent.accountId);
+  await main.getByRole("link", { name: copy.ownership.done.back }).click();
+  await expect(
+    page.locator(
+      '[data-verification-line="tiktok"] [data-outcome="new_request_needed"]',
+    ),
+  ).toHaveText(copy.appeal.outcome.new_request_needed);
+  await expect(page.locator("[data-contestable]")).toHaveCount(0);
 });
 
 test("a creator deposits the evidence of an audience in French, from the condition to the badge, a refused PDF costing nothing (08 RG12, RG19, RG31 à RG36, RG87, RG95, RG96)", async ({

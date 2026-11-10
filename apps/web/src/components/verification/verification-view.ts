@@ -155,6 +155,35 @@ export function badgeKeysOf(badge: OwnBadge): BadgeKeys | null {
   return null;
 }
 
+/**
+ * The sentence written under a badge that needs an action (08 RG10, RG70, RG78; 06 RG54; l2f/textes.md): « à
+ * rafraîchir » says until when it stays shown, the date being the end of its grace (`graceEndsAt`, which the
+ * API serves and the front never computes); « à reconfirmer » says why and what to do. Null for a badge
+ * that needs nothing, or one whose end date the API did not give.
+ */
+export type BadgeNotice = {
+  key:
+    | "verif.expiry.toRefresh"
+    | "verif.expiry.brandToRefresh"
+    | "verif.reconfirm.notice";
+  /** The end of the grace, an instant; null when the sentence carries no date. */
+  date: string | null;
+};
+
+export function badgeNoticeOf(badge: OwnBadge): BadgeNotice | null {
+  if (badge.state === "to_refresh" && badge.graceEndsAt !== null) {
+    if (badge.level === "audience_verified") {
+      return { key: "verif.expiry.toRefresh", date: badge.graceEndsAt };
+    }
+    return badge.level === "brand_verified"
+      ? { key: "verif.expiry.brandToRefresh", date: badge.graceEndsAt }
+      : null;
+  }
+  return badge.state === "to_reconfirm" && badge.level === "account_verified"
+    ? { key: "verif.reconfirm.notice", date: null }
+    : null;
+}
+
 // --- A refusal: its text and what the creator can do next ------------------------------------
 
 /** What the creator can do after a refusal (08 RG57, last column); the texts are `refusal.next.*`. */
