@@ -402,7 +402,7 @@ describe("L2F-D17: the verification opened by an agent (D83 A, 0234)", () => {
         responsible_agent: true,
         taken_over: false,
       });
-      await claim(tx, agentA, mine.request_id);
+      const mineToken = await claim(tx, agentA, mine.request_id);
       expect(
         await asAgent(tx, agentA, () => run(tx, DOSSIER, [mine.request_id])),
       ).toEqual({
@@ -424,6 +424,167 @@ describe("L2F-D17: the verification opened by an agent (D83 A, 0234)", () => {
           [mine.request_id],
         ),
       ).toEqual(refused(NOT_IN_PREREQUISITE_STATE, "request_opening"));
+
+      // L2FS-1 (0241): the responsible agent grants his client; the register says so (D83 Q3)
+      const [mineCode] = await codesOf(tx, mine.request_id);
+      const mineGranted = await asAgent(tx, agentA, () =>
+        run<{ outcome: string; badge_id: string }>(tx, GRANT_ACCOUNT, [
+          mine.request_id,
+          mineToken,
+          mineCode?.code,
+          "t2_creator_b",
+          null,
+          null,
+        ]),
+      );
+      expect(mineGranted).toMatchObject({
+        outcome: "rows",
+        rows: [{ outcome: "granted" }],
+      });
+      const mineBadge =
+        mineGranted.outcome === "rows"
+          ? mineGranted.rows[0]?.badge_id
+          : undefined;
+      const mineLine = (await registerOf(tx, mine.request_id)).find(
+        (line) => line.code === "verification.granted",
+      );
+      expect(mineLine).toEqual({
+        code: "verification.granted",
+        actor: agentA,
+        payload: {
+          level: "account_verified",
+          badge_id: mineBadge,
+          late: false,
+          channel: "network",
+          agent_opened: true,
+          responsible_agent: true,
+        },
+      });
+      expect(JSON.stringify(mineLine)).not.toMatch(/t2_creator|INFLUX-/);
+    });
+  });
+
+  it("L2FS-1 (0241): every decision registers its channel and origin, read at the decision: a member's TXT grant, a refusal of an agent-opened request by the responsible agent, a closure", async () => {
+    await scenario(async (tx) => {
+      const source = await frSource(tx);
+      const decisionOf = async (request: string, code: string) => {
+        const line = (await registerOf(tx, request)).find(
+          (found) => found.code === code,
+        );
+        if (line === undefined) throw new Error(`no ${code}`);
+        return line;
+      };
+
+      // « Marque vérifiée » by TXT, on a request of the brand itself, nobody holding the account
+      await tx`update profiles.advertiser_profiles set website_domain = ${DOMAIN} where account_id = ${brandA}`;
+      await tx`update identity.accounts set owner_agent_id = null where id = ${brandA}`;
+      const [brandRequest] = await tx<{ id: string }[]>`
+        insert into verification.verification_requests (account_id, level, status)
+        values (${brandA}, 'brand_verified', 'pending')
+        returning id::text as id`;
+      if (brandRequest === undefined) throw new Error("no brand request");
+      await tx`
+        insert into verification.ownership_codes (request_id, account_id, kind, code, expires_at)
+        values (${brandRequest.id}, ${brandA}, 'domain', 'INFLUX-TXT23456', now() + interval '7 days')`;
+      const brandToken = await claim(tx, agentA, brandRequest.id);
+      const brandGranted = await asAgent(tx, agentA, () =>
+        run<{ outcome: string; badge_id: string }>(tx, GRANT_BRAND, [
+          brandRequest.id,
+          brandToken,
+          "INFLUX-TXT23456",
+          DOMAIN,
+          "dns_txt",
+          source,
+          null,
+        ]),
+      );
+      expect(brandGranted).toMatchObject({
+        outcome: "rows",
+        rows: [{ outcome: "granted" }],
+      });
+      expect(
+        (await decisionOf(brandRequest.id, "verification.granted")).payload,
+      ).toEqual({
+        level: "brand_verified",
+        badge_id:
+          brandGranted.outcome === "rows"
+            ? brandGranted.rows[0]?.badge_id
+            : undefined,
+        late: false,
+        channel: "dns_txt",
+        agent_opened: false,
+        responsible_agent: false,
+      });
+
+      // a refusal by the responsible agent of a request he opened: both booleans true, no channel
+      await tx`update identity.accounts set owner_agent_id = ${agentA} where id = ${creatorB}`;
+      const refusedRequest = await opened(tx, agentA, [
+        creatorB,
+        lineB,
+        "account_verified",
+        "existing_client",
+        null,
+        null,
+        null,
+        null,
+      ]);
+      const refusedToken = await claim(tx, agentA, refusedRequest.request_id);
+      expect(
+        await asAgent(tx, agentA, () =>
+          run(
+            tx,
+            "select * from verification.reject_request($1::uuid, $2::text, $3::text, $4::text, $5::text)",
+            [
+              refusedRequest.request_id,
+              refusedToken,
+              "ownership_not_proven",
+              null,
+              null,
+            ],
+          ),
+        ),
+      ).toMatchObject({ outcome: "rows", rows: [{ status: "rejected" }] });
+      expect(
+        (await decisionOf(refusedRequest.request_id, "verification.rejected"))
+          .payload,
+      ).toEqual({
+        level: "account_verified",
+        reason_code: "ownership_not_proven",
+        late: false,
+        agent_opened: true,
+        responsible_agent: true,
+      });
+
+      // a closure of a member's request by an agent who does not hold the account: the same keys
+      await tx`update identity.accounts set owner_agent_id = ${agentA} where id = ${creatorA}`;
+      const [memberRequest] = await tx<{ id: string }[]>`
+        insert into verification.verification_requests
+          (account_id, social_account_id, network_code, level, status)
+        values (${creatorA}, ${lineA}, 'instagram', 'account_verified', 'pending')
+        returning id::text as id`;
+      if (memberRequest === undefined) throw new Error("no member request");
+      await tx`
+        insert into verification.ownership_codes (request_id, account_id, kind, code, expires_at)
+        values (${memberRequest.id}, ${creatorA}, 'network', 'INFLUX-NET23456', now() + interval '7 days')`;
+      const memberToken = await claim(tx, agentB, memberRequest.id);
+      expect(
+        await asAgent(tx, agentB, () =>
+          run(
+            tx,
+            "select * from verification.reject_request($1::uuid, $2::text, $3::text, $4::text, $5::text)",
+            [memberRequest.id, memberToken, "account_unavailable", null, null],
+          ),
+        ),
+      ).toMatchObject({ outcome: "rows", rows: [{ status: "closed" }] });
+      expect(
+        (await decisionOf(memberRequest.id, "verification.closed")).payload,
+      ).toEqual({
+        level: "account_verified",
+        reason_code: "account_unavailable",
+        late: false,
+        agent_opened: false,
+        responsible_agent: false,
+      });
     });
   });
 

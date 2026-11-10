@@ -891,6 +891,15 @@ describe("CA13, CA30: the agent reads the code on line and types the handle; the
       "verification.rejected",
       "verification.escalated",
     ]);
+    // L2FS-1 (0241): the refusal carries the channel and the origin of the decision
+    expect(found.loserLines.at(-2)?.payload).toEqual({
+      level: "account_verified",
+      reason_code: "ownership_not_proven",
+      late: false,
+      channel: "network",
+      agent_opened: false,
+      responsible_agent: false,
+    });
     expect(found.winnerLines.at(-1)).toMatchObject({
       event_type: "verification.escalated",
       payload: { cause: "handle_already_verified" },
