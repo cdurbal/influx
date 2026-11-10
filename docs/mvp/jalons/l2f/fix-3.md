@@ -1,0 +1,11 @@
+# L2F-fix-3 — `fix(db): verification decisions register their channel and origin`
+Grille `expert-database` (tests : grille `testeur`). Skill : `supabase-schema`. **I-4.** L2FS-1 (jalon) : fiche § Revue ; `l2f/revue-constats-securite.md` l. 11 (fait foi).
+**Lire :** fiche § Invariants 9, 12, 17 ; `modele.md` l. 42 (« Repris : `granted` ») ; `0228` l. 86-240 (`grant_account_verified` : refus l. 196-199, octroi l. 235-237) ; `0224` l. 1466-1595 (`grant_brand_verified` : canal l. 1498, registre l. 1590-1592), l. 1610-1695 (`reject_request` : registre l. 1681-1685) ; `0234` l. 439-452, 1078-1090, 1166-1171 (le modèle), 1191-1212 ; `verification-agent-opening.test.ts` l. 387-418 ; `t14-verification-opening-route.test.ts` l. 700-711.
+**Livrer :** migration `0241` (dernière : `0240`, relire `ls`), sous `influx_verification_definer` comme `0234` §7 :
+- `grant_account_verified` et `grant_brand_verified` recréées à l'identique, plus dans `verification.granted` : `channel` (`network` ; ou `p_observed_channel`, `dns_txt` · `web_page`), `agent_opened` (`opened_by = 'agent'`), `responsible_agent` (`owner_agent_id` = appelant, lu à la décision, `coalesce(…, false)`).
+- Par symétrie, `agent_opened` et `responsible_agent` sur `verification.rejected` : refus `handle_already_verified` de `grant_account_verified` (plus `channel` `network`) et `reject_request` (même charge pour `verification.closed`).
+- Propriétaire, `search_path`, signatures, `EXECUTE` inchangés ; assertions de fin.
+**Ne pas toucher :** `grant_audience_verified`, `grant_brand_verified_by_login`, API, écrans, `expected-rights.ts`.
+**Prouver :** cas base (l. 387-418 étendu ou cas neuf) : le commercial responsable accorde « Compte vérifié » d'une demande qu'il a ouverte → `network`, `true`, `true` ; « Marque vérifiée » par `TXT` d'une demande de membre → `dns_txt`, `false`, `false` ; un refus → les deux booléens ; plancher relevé, attendus existants inchangés ; **toute la suite base** ; `pnpm check:fast`.
+**I-4 :** aucun marqueur ici (pas d'auto-attestation) ; relecture courte d'`expert-cybersecurite`, attestée à part (`security-reviewed: <date> covers <sha>`) avant la ligne C.
+**Arrêt si :** un droit nouveau est requis ; un attendu existant devrait changer.

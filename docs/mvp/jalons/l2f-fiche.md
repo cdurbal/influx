@@ -142,4 +142,29 @@ Fichiers neufs dans `e2e/case-floors.ts` et `db-tests/case-floors.ts` dans le co
 
 ## Revue
 
-*(Rempli par `/jalon-run` : `L2FT-n`, `L2FS-n`, `L2FU-n`.)*
+Fin de jalon (2026-11-11, `c4d21dc..fd92d71`) : **0 bloquant**. Font foi : `l2f/revue-constats-testeur.md` (T), `l2f/revue-constats-securite.md` (S) ; L2FU : `l2f/ux-constats.md` (fix-1, fix-2).
+
+| Id | Gravité | Où | Correctif | Échéance |
+|---|---|---|---|---|
+| L2FT-1 | jalon | `verification-creator.spec.ts:244-253` | page cible attendue, `reload(page)`, DS-flaky | jalon (fix-4) |
+| L2FT-2 | avant prod. | `periodic.ts:273-283` | `badge_lifecycle` par `createPeriodicStore` en base | avant prod. |
+| L2FT-3 | avant prod. | `0233:1283` | = L2FS-4 | avant prod. |
+| L2FT-4 | avant prod. | `0230:450-522` | cas sous chaque seuil ; `to_reconfirm` à + 29 et + 30 j | avant prod. |
+| L2FT-5 | plus tard | `run.md` l. 01 | 264, pas 261 ; levier L2D-E2E épuisé | jalon (C) |
+| L2FT-6 | plus tard | `run.md` l. 17-21 | § Mesures, trois passages | jalon (C) |
+| L2FT-7 | plus tard | `t1-anonymisation.test.ts:1137` | un 500 par route web, pas un cardinal | plus tard |
+| L2FT-8 | plus tard | `verification-lifecycle.test.ts:290` | Apollo à 0 dans `queueOf` | plus tard |
+| L2FT-9 | plus tard | `verification-revocation.spec.ts` | e2e « adresse de connexion » (D83) | plus tard |
+| L2FT-10 | plus tard | `0230:450-498` | tâche arrêtée > 30 j : cas D3 bis (`product-owner`) | plus tard |
+| L2FT-11 | plus tard | job base, 461 s | durée en § Mesures, alerte à 8 min | jalon (C) |
+| L2FS-1 | jalon | `0228:235`, `0224:1590` | `0241` : `channel`, `agent_opened`, `responsible_agent` sur `granted`, `rejected` | jalon (fix-3) |
+| L2FS-2 | avant prod. | `0234:1166` | liste hebdomadaire des accords d'un agent, revue admin | avant prod. |
+| L2FS-3 | avant prod. | `0234:233-242` | liste publique des messageries ; A-bis si ouvert par un agent | avant prod. |
+| L2FS-4 | avant prod. | `0228:175`, `0232:1623`, `0233:1283` | `verified_handle_of()` pour les quatre comparaisons | avant prod. |
+| L2FS-5 | avant prod. | `0233:519-594` | débit par compte, registre agrégé, décision sans jeton à jour | avant prod. |
+| L2FS-6 | plus tard | `0232:509`, `0233:349` | droits agent colonne par colonne | plus tard |
+| L2FS-7 | plus tard | `0232:838-853` | détenteur hors « autre personne » | plus tard |
+| L2FS-8 | plus tard | `0130:750-766` | dégradé du retrait refusé si un agent peut demander | plus tard |
+| L2FS-9 | plus tard | `0233:510-517` | déclencheur fermé (42501) | avant écriture interne du handle |
+
+Avant production et plus tard : reliquat de `21` §8. fix-3 et fix-4 : à valider par le fondateur.
