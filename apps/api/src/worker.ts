@@ -42,6 +42,7 @@ import {
   createWorkerQueue,
   readApolloSubjectOf,
   readBrandProfileAttributesOf,
+  readBrevoBadgeEmailOf,
   readBrevoVerificationEmailOf,
   readVerifiedBadgeOf,
   readBrevoErasureSubjectOf,
@@ -67,6 +68,7 @@ import {
   createOpsRetention,
   createPeriodicScheduler,
   createPeriodicStore,
+  createBadgeLifecycle,
   createVerificationExpiry,
   type PeriodicLogger,
   type PeriodicScheduler,
@@ -117,6 +119,8 @@ function connectorsOf(
         readBrandProfileAttributesOf(database, randomUUID(), line, worker),
       readVerificationEmail: (line) =>
         readBrevoVerificationEmailOf(database, randomUUID(), line, worker),
+      readBadgeEmail: (line) =>
+        readBrevoBadgeEmailOf(database, randomUUID(), line, worker),
       readVerifiedBadge: (line) =>
         readVerifiedBadgeOf(database, randomUUID(), line, worker),
       logger,
@@ -159,6 +163,8 @@ function periodicSchedulerOf(
     ops_retention: createOpsRetention(store),
     // 0223: the draft verification requests whose code expired (08 edge case 1)
     verification_expiry: createVerificationExpiry(store),
+    // 0230: the cycle of the badges, then the retention of their findings (08 RG69 to RG71)
+    badge_lifecycle: createBadgeLifecycle(store),
   };
   if (config.brevoTransport.apiKey !== null) {
     runners.brevo_reconciliation = createBrevoReconciliation({

@@ -8,7 +8,8 @@ import { STORAGE_BUCKETS, type StorageBucket } from "../../platform/storage.ts";
 
 /**
  * The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8; ops_retention:
- * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09; verification_expiry: 0223, L2E commit 07).
+ * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09; verification_expiry: 0223, L2E commit 07;
+ * badge_lifecycle: 0230, L2F commit 05).
  */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
@@ -18,6 +19,7 @@ export const PERIODIC_TASKS = [
   "ops_retention",
   "storage_purge",
   "verification_expiry",
+  "badge_lifecycle",
 ] as const;
 export type PeriodicTask = (typeof PERIODIC_TASKS)[number];
 
@@ -235,6 +237,39 @@ export async function expireVerificationRequests(
 ): Promise<number> {
   const rows = await tx.execute<{ count: number }>(
     sql`select ops.expire_verification_requests(${run.runId}::uuid, ${run.attempt}::smallint)
+                 as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** 0230: badges moved per call of ops.run_badge_lifecycle(), and rows purged per call of the purge. */
+export const BADGE_LIFECYCLE_BATCH = 500;
+
+/**
+ * 0230 (08 RG69 to RG71; modele §3): the reminder, « à rafraîchir » and expiry of the badges due,
+ * their e-mails, lead.updated and public rows written by the database; the count (at most
+ * BADGE_LIFECYCLE_BATCH: call again).
+ */
+export async function runBadgeLifecycle(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.run_badge_lifecycle(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * 0230 (08 RG100; modele point 3): the findings kept past their retention erased; the count (about
+ * BADGE_LIFECYCLE_BATCH per call: call again while it is full).
+ */
+export async function purgeVerificationFindings(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.purge_verification_findings(${run.runId}::uuid, ${run.attempt}::smallint)
                  as count`,
   );
   return Number(rows[0]?.count ?? 0);

@@ -51,6 +51,13 @@
 // the closed list, a granted badge without its date or an `other` refusal without its message is a
 // visible failure. Every contact upsert carries the level of the account's badge and its date
 // (VERIFIED_LEVEL, VERIFIED_AT; leads.read_verified_badge, 0227; Brevo only, 08 RG92).
+// The eight e-mails of the life of the badge (08 RG93, RG94; L2F commit 12): verification.expiry_reminder,
+// .expiry_to_refresh, .expiry_removed, .revoked_notice, .dispute_received, .dispute_outcome,
+// .reconfirm_required and .agent_opened_notice, written from the facts read at consumption
+// (leads.read_brevo_badge_email, 0236) and never from the payload (ids only). A badge replaced or
+// ended since the line was queued, an appeal withdrawn, a proof no longer required is skipped (never
+// announced); a reason or outcome outside the closed lists, or a message that is required and
+// absent, is a visible failure.
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import {
   UNIDENTIFIED_USER_AGENT,
@@ -70,6 +77,13 @@ import {
   rejectionReasonOf,
 } from "../../../profiles/brand-decision-email.ts";
 import {
+  disputeOutcomeOf,
+  renderBadgeNoticeEmail,
+  revocationReasonOf,
+  type BadgeNoticeInput,
+  type ContestedReason,
+} from "../../../verification/badge-notice-email.ts";
+import {
   renderVerificationEmail,
   verificationLevelOf,
   verificationNetworkOf,
@@ -86,6 +100,7 @@ import type {
   BrandProfileAttributes,
   BrevoErasureSubject,
   BrevoProfileDecision,
+  BrevoBadgeEmail,
   BrevoVerificationEmail,
   ClaimedLine,
   VerifiedBadge,
@@ -138,6 +153,14 @@ export const WORKER_RENDERED_EMAILS = [
   "verification.code_issued",
   "verification.decision",
   "verification.request_expired",
+  "verification.expiry_reminder",
+  "verification.expiry_to_refresh",
+  "verification.expiry_removed",
+  "verification.revoked_notice",
+  "verification.dispute_received",
+  "verification.dispute_outcome",
+  "verification.reconfirm_required",
+  "verification.agent_opened_notice",
 ] as const;
 
 type RenderedEmailCode = (typeof WORKER_RENDERED_EMAILS)[number];
@@ -185,6 +208,15 @@ export type BrevoVerificationEmailReader = (
   line: ClaimedLine,
 ) => Promise<BrevoVerificationEmail | null>;
 
+/**
+ * The facts of an e-mail of the life of the badge (0236): the object the line names (a badge, a
+ * request, a dispute, a review), its level, reason and dates, and the account's language; never a
+ * figure, a handle, the creator's text nor the agent.
+ */
+export type BrevoBadgeEmailReader = (
+  line: ClaimedLine,
+) => Promise<BrevoBadgeEmail | null>;
+
 /** The level of the badges an account holds and its date (0227): a contact line of Brevo only. */
 export type VerifiedBadgeReader = (
   line: ClaimedLine,
@@ -208,6 +240,8 @@ export type BrevoConnectorDependencies = {
   readProfileDecision: BrevoProfileDecisionReader;
   /** Reads the facts of a verification e-mail line (0227), its own transaction. */
   readVerificationEmail: BrevoVerificationEmailReader;
+  /** Reads the facts of an e-mail of the life of the badge (0236), its own transaction. */
+  readBadgeEmail: BrevoBadgeEmailReader;
   /** Reads the badge level of the account of a contact line (0227), its own transaction. */
   readVerifiedBadge: VerifiedBadgeReader;
   /** Reads the contact of an erased account on an account.deleted line (0136), its own transaction. */
@@ -776,8 +810,204 @@ export function createBrevoConnectors(
           kind: "rejected",
           reason,
           memberMessage: needsMessage ? read.memberMessage : null,
+          // a creator's refusal can be appealed; a closed request and a brand's refusal cannot
+          disputeWindowDays:
+            level !== "brand_verified" && read.requestStatus === "rejected"
+              ? read.disputeWindowDays
+              : null,
         }),
       );
+    };
+  }
+
+  /**
+   * The eight e-mails of the life of the badge (08 RG94; modele §4 "Outbox"). The address and the
+   * account checks come from the subject; the level, network, state, reason and dates from the facts
+   * read at consumption (0236), never from the payload. What would mislead if sent now (the object
+   * changed since the line was queued) is skipped.
+   */
+  function badgeEmail(code: RenderedEmailCode) {
+    return async (
+      line: ClaimedLine,
+      _account: NonNullable<AttemptState["account"]>,
+      subject: BrevoSubject,
+    ): Promise<Preparation> => {
+      const read = await dependencies.readBadgeEmail(line);
+      if (read === null) {
+        // No such object of this account behind the line: nothing to announce, visible.
+        return { kind: "fail", errorCode: "badge_notice_not_found" };
+      }
+      const locale = read.preferredLanguage === "fr" ? "fr" : "en";
+      const level = verificationLevelOf(read.level);
+      if (level === null) {
+        return { kind: "fail", errorCode: "verification_level_unknown" };
+      }
+      const networkName =
+        level === "brand_verified"
+          ? null
+          : verificationNetworkOf(locale, read.networkCode);
+      if (level !== "brand_verified" && networkName === null) {
+        return { kind: "fail", errorCode: "network_unknown" };
+      }
+      const common = {
+        locale,
+        timeZone: subject.timeZone,
+        level,
+        networkName,
+      } as const;
+      const send = (input: BadgeNoticeInput) =>
+        rendered(
+          line,
+          code,
+          subject.email,
+          renderBadgeNoticeEmail(input),
+          locale,
+        );
+      const date = (iso: string | null) =>
+        iso === null ? null : new Date(iso);
+
+      if (
+        code === "verification.expiry_reminder" ||
+        code === "verification.expiry_to_refresh" ||
+        code === "verification.expiry_removed"
+      ) {
+        // only an audience badge and a brand badge expire (RG30, RG71)
+        if (level === "account_verified") {
+          return { kind: "fail", errorCode: "badge_level_unexpected" };
+        }
+        const expected =
+          code === "verification.expiry_reminder"
+            ? ["active"]
+            : code === "verification.expiry_to_refresh"
+              ? ["to_refresh", "to_reconfirm"]
+              : ["expired"];
+        if (!expected.includes(read.objectState)) {
+          // replaced, refreshed or ended since: the e-mail would mislead, never sent
+          return { kind: "skip", reason: "badge_changed" };
+        }
+        if (code === "verification.expiry_removed") {
+          return send({ ...common, kind: "expiry_removed" });
+        }
+        if (code === "verification.expiry_reminder") {
+          const expiresAt = date(read.badgeExpiresAt);
+          return expiresAt === null
+            ? { kind: "fail", errorCode: "badge_dates_missing" }
+            : send({ ...common, kind: "expiry_reminder", expiresAt });
+        }
+        const graceEndsAt = date(read.graceEndsAt);
+        return graceEndsAt === null
+          ? { kind: "fail", errorCode: "badge_dates_missing" }
+          : send({ ...common, kind: "expiry_to_refresh", graceEndsAt });
+      }
+
+      if (code === "verification.revoked_notice") {
+        if (read.objectState !== "revoked") {
+          return { kind: "skip", reason: "badge_changed" };
+        }
+        const reason =
+          read.reasonCode === null ? null : revocationReasonOf(read.reasonCode);
+        if (reason === null) {
+          return { kind: "fail", errorCode: "revocation_reason_unknown" };
+        }
+        if (reason === "terms_breach" && read.memberMessage === null) {
+          return { kind: "fail", errorCode: "member_message_missing" };
+        }
+        return send({
+          ...common,
+          kind: "revoked",
+          reason,
+          memberMessage: read.memberMessage,
+          disputeWindowDays:
+            level === "brand_verified" ? null : read.disputeWindowDays,
+        });
+      }
+
+      if (code === "verification.dispute_received") {
+        return send({ ...common, kind: "dispute_received" });
+      }
+
+      if (code === "verification.dispute_outcome") {
+        if (read.objectState === "withdrawn") {
+          return { kind: "skip", reason: "dispute_withdrawn" };
+        }
+        const outcome =
+          read.outcomeReasonCode === null
+            ? null
+            : disputeOutcomeOf(read.outcomeReasonCode);
+        if (
+          outcome === null ||
+          (read.objectState === "upheld") !==
+            (outcome !== "decision_overturned") ||
+          (read.objectState !== "upheld" && read.objectState !== "overturned")
+        ) {
+          return { kind: "fail", errorCode: "dispute_outcome_unknown" };
+        }
+        if (outcome === "new_request_needed") {
+          return send({
+            ...common,
+            kind: "dispute_outcome",
+            outcome: { code: "new_request_needed" },
+          });
+        }
+        if (outcome === "other") {
+          return read.memberMessage === null
+            ? { kind: "fail", errorCode: "member_message_missing" }
+            : send({
+                ...common,
+                kind: "dispute_outcome",
+                outcome: { code: "other", memberMessage: read.memberMessage },
+              });
+        }
+        if (outcome === "decision_overturned") {
+          const restoredAt = date(read.restoredAt);
+          return restoredAt === null
+            ? { kind: "fail", errorCode: "badge_dates_missing" }
+            : send({
+                ...common,
+                kind: "dispute_outcome",
+                outcome: { code: "decision_overturned", restoredAt },
+              });
+        }
+        // decision_confirmed: the reason the decision stood on
+        let contested: ContestedReason | null = null;
+        if (read.reasonCode !== null) {
+          if (read.contestedDecision === "revocation") {
+            const reason = revocationReasonOf(read.reasonCode);
+            contested =
+              reason === null ? null : { decision: "revocation", code: reason };
+          } else if (read.contestedDecision === "refusal") {
+            const reason = verificationReasonOf(level, read.reasonCode);
+            contested =
+              reason === null || reason.population !== "creator"
+                ? null
+                : { decision: "refusal", code: reason.code };
+          }
+        }
+        return contested === null
+          ? { kind: "fail", errorCode: "rejection_reason_unknown" }
+          : send({
+              ...common,
+              kind: "dispute_outcome",
+              outcome: { code: "decision_confirmed", contested },
+            });
+      }
+
+      if (code === "verification.reconfirm_required") {
+        if (read.objectState !== "proof_required") {
+          return { kind: "skip", reason: "review_changed" };
+        }
+        return send({ ...common, kind: "reconfirm_required" });
+      }
+
+      // verification.agent_opened_notice
+      if (
+        !["pending", "approved", "rejected", "closed"].includes(
+          read.objectState,
+        )
+      ) {
+        return { kind: "skip", reason: "request_closed" };
+      }
+      return send({ ...common, kind: "agent_opened_notice" });
     };
   }
 
@@ -833,6 +1063,22 @@ export function createBrevoConnectors(
     "verification.decision": verificationEmail("verification.decision"),
     "verification.request_expired": verificationEmail(
       "verification.request_expired",
+    ),
+    "verification.expiry_reminder": badgeEmail("verification.expiry_reminder"),
+    "verification.expiry_to_refresh": badgeEmail(
+      "verification.expiry_to_refresh",
+    ),
+    "verification.expiry_removed": badgeEmail("verification.expiry_removed"),
+    "verification.revoked_notice": badgeEmail("verification.revoked_notice"),
+    "verification.dispute_received": badgeEmail(
+      "verification.dispute_received",
+    ),
+    "verification.dispute_outcome": badgeEmail("verification.dispute_outcome"),
+    "verification.reconfirm_required": badgeEmail(
+      "verification.reconfirm_required",
+    ),
+    "verification.agent_opened_notice": badgeEmail(
+      "verification.agent_opened_notice",
     ),
   };
 

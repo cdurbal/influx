@@ -32,6 +32,7 @@ import type { ErasureNotificationSubject } from "../src/domains/privacy/erasure-
 import type {
   AttemptState,
   BrandProfileAttributes,
+  BrevoBadgeEmail,
   BrevoErasureSubject,
   BrevoProfileDecision,
   BrevoVerificationEmail,
@@ -60,6 +61,7 @@ let reads: string[];
 /** The reads of 0227, kept apart so that the order of `reads` stays the one of the older cases. */
 let verificationReads: string[];
 let badgeReads: string[];
+let badgeEmailReads: string[];
 
 function logger() {
   const write = (level: string) => (object: object, message: string) => {
@@ -158,6 +160,8 @@ type Setup = {
   brandProfile?: BrandProfileAttributes | null;
   /** The facts of a verification e-mail line (0227); none by default. */
   verification?: BrevoVerificationEmail | null;
+  /** The facts of an e-mail of the life of the badge (0236); none by default. */
+  badgeEmail?: BrevoBadgeEmail | null;
   /** The badge level of a contact line (0227); none by default. */
   badge?: VerifiedBadge | null;
   mapContact?: typeof mapContact;
@@ -223,6 +227,12 @@ function connectors(setup: Setup = {}): {
         verificationReads.push(claimed.id);
         return Promise.resolve(
           setup.verification === undefined ? null : setup.verification,
+        );
+      },
+      readBadgeEmail: (claimed) => {
+        badgeEmailReads.push(claimed.id);
+        return Promise.resolve(
+          setup.badgeEmail === undefined ? null : setup.badgeEmail,
         );
       },
       readVerifiedBadge: (claimed) => {
@@ -291,6 +301,7 @@ beforeEach(() => {
   reads = [];
   verificationReads = [];
   badgeReads = [];
+  badgeEmailReads = [];
 });
 
 describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () => {
@@ -2407,6 +2418,7 @@ describe("L2E commit 16, 08 RG92, RG94: the badge level of a contact, the verifi
       codeKind: null,
       codeExpiresAt: null,
       codeRevoked: false,
+      disputeWindowDays: null,
       preferredLanguage: "fr",
       ...overrides,
     };
@@ -2527,6 +2539,40 @@ describe("L2E commit 16, 08 RG92, RG94: the badge level of a contact, the verifi
         "Votre capture montre des informations concernant d'autres personnes.",
       );
       expect(text).toContain("redemander la vérification");
+    });
+
+    it("the refusal of a creator says how long an appeal stays open, one of a brand or of a closed request does not (L2F commit 12)", async () => {
+      const refused = {
+        requestStatus: "rejected",
+        reasonCode: "evidence_too_wide",
+        grantedAt: null,
+        badgeExpiresAt: null,
+        disputeWindowDays: 30,
+      } as const;
+      const { transactional } = connectors({ verification: facts(refused) });
+      await run(transactional, verificationLine("verification.decision"));
+      expect(textOfFirstMessage()).toContain(
+        "Vous pouvez contester cette décision pendant 30 jours.",
+      );
+
+      for (const [override, status] of [
+        [
+          {
+            level: "brand_verified",
+            networkCode: null,
+            reasonCode: "name_mismatch",
+          },
+          "brand",
+        ],
+        [{ requestStatus: "closed" }, "closed"],
+      ] as const) {
+        double.reset();
+        const { transactional: other } = connectors({
+          verification: facts({ ...refused, ...override }),
+        });
+        await run(other, verificationLine("verification.decision"));
+        expect(textOfFirstMessage(), status).not.toContain("contester");
+      }
     });
 
     it("a brand refusal uses the brand list: a creator reason is a visible failure, never the wrong text", async () => {
@@ -2768,5 +2814,478 @@ describe("L2E commit 16, 08 RG92, RG94: the badge level of a contact, the verifi
       ).toMatchObject({ kind: "skip" });
       expect(verificationReads).toEqual([]);
     });
+  });
+});
+
+describe("L2F commit 12, 08 RG93, RG94: the eight e-mails of the life of the badge, written from the facts of 0236", () => {
+  const OBJECT = "b3a4c5d6-1f20-4e3a-9b8c-0d1e2f3a4b5c";
+  const CODES = [
+    "verification.expiry_reminder",
+    "verification.expiry_to_refresh",
+    "verification.expiry_removed",
+    "verification.revoked_notice",
+    "verification.dispute_received",
+    "verification.dispute_outcome",
+    "verification.reconfirm_required",
+    "verification.agent_opened_notice",
+  ] as const;
+  type Code = (typeof CODES)[number];
+
+  /** The payload names the object by its id, as the migrations 0230 to 0234 queue it (ids only). */
+  function badgeLine(code: Code): ClaimedLine {
+    const key = code.startsWith("verification.dispute_")
+      ? "dispute_id"
+      : code === "verification.reconfirm_required"
+        ? "review_id"
+        : code === "verification.agent_opened_notice"
+          ? "request_id"
+          : "badge_id";
+    return line("brevo_transactional", {
+      eventType: code,
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000e170",
+        account_id: ACCOUNT,
+        [key]: OBJECT,
+        email_code: code,
+      },
+      idempotencyKey: `${code}:${OBJECT}`,
+    });
+  }
+
+  function facts(overrides: Partial<BrevoBadgeEmail> = {}): BrevoBadgeEmail {
+    return {
+      level: "audience_verified",
+      networkCode: "instagram",
+      objectState: "active",
+      contestedDecision: null,
+      badgeExpiresAt: "2027-02-01T10:00:00.000Z",
+      graceEndsAt: "2027-03-03T10:00:00.000Z",
+      reasonCode: null,
+      memberMessage: null,
+      outcomeReasonCode: null,
+      restoredAt: null,
+      disputeWindowDays: null,
+      preferredLanguage: "fr",
+      ...overrides,
+    };
+  }
+
+  const BRAND = { level: "brand_verified", networkCode: null } as const;
+
+  function body(): Record<string, unknown> {
+    return double.delivered[0]?.body ?? {};
+  }
+
+  it("the eight codes are worker-rendered e-mails, written by INFLUX, never from a Brevo template", () => {
+    for (const code of CODES) {
+      expect(WORKER_RENDERED_EMAILS).toContain(code);
+    }
+  });
+
+  it("each e-mail is read from the facts of its line alone, leaves with its code as tag and its key, no template, no link", async () => {
+    const cases: [Code, Partial<BrevoBadgeEmail>][] = [
+      ["verification.expiry_reminder", {}],
+      ["verification.expiry_to_refresh", { objectState: "to_refresh" }],
+      ["verification.expiry_removed", { objectState: "expired" }],
+      [
+        "verification.revoked_notice",
+        {
+          objectState: "revoked",
+          reasonCode: "influx_error",
+          disputeWindowDays: 30,
+        },
+      ],
+      ["verification.dispute_received", { objectState: "open" }],
+      [
+        "verification.dispute_outcome",
+        {
+          objectState: "overturned",
+          outcomeReasonCode: "decision_overturned",
+          restoredAt: "2026-11-09T09:00:00.000Z",
+        },
+      ],
+      [
+        "verification.reconfirm_required",
+        { level: "account_verified", objectState: "proof_required" },
+      ],
+      ["verification.agent_opened_notice", { objectState: "pending" }],
+    ];
+    for (const [code, override] of cases) {
+      double.reset();
+      badgeEmailReads = [];
+      const { transactional } = connectors({ badgeEmail: facts(override) });
+      const claimed = badgeLine(code);
+      expect(await run(transactional, claimed), code).toMatchObject({
+        kind: "succeeded",
+        locale: "fr",
+      });
+      const [message] = double.delivered;
+      expect(message?.body, code).toMatchObject({
+        to: [{ email: EMAIL }],
+        tags: [code],
+      });
+      expect(message?.body.templateId, code).toBeUndefined();
+      expect(message?.headers["idempotency-key"], code).toBe(
+        `${code}:${OBJECT}`,
+      );
+      expect(
+        checkRenderedTransactionalOutput(message?.body ?? {}),
+        code,
+      ).toEqual([]);
+      expect(badgeEmailReads, code).toEqual([claimed.id]);
+    }
+  });
+
+  it("the reminder and the \"to refresh\" e-mail say the date, the creator's audience or the brand's badge, in the language read", async () => {
+    const creator = connectors({
+      badgeEmail: facts({ preferredLanguage: "en" }),
+    });
+    await run(creator.transactional, badgeLine("verification.expiry_reminder"));
+    expect(String(body().textContent)).toContain(
+      "Your verified audience expires on February 1, 2027. Upload a recent screenshot to keep it.",
+    );
+
+    double.reset();
+    const brand = connectors({
+      badgeEmail: facts({ ...BRAND, objectState: "to_refresh" }),
+    });
+    await run(brand.transactional, badgeLine("verification.expiry_to_refresh"));
+    expect(body().subject).toBe("Votre badge Marque vérifiée est à rafraîchir");
+    expect(String(body().textContent)).toContain(
+      "Il reste affiché avec sa date jusqu'au 3 mars 2027.",
+    );
+  });
+
+  it("a badge replaced, refreshed or ended since the line was queued is skipped, never announced", async () => {
+    const stale: [Code, string][] = [
+      ["verification.expiry_reminder", "to_refresh"],
+      ["verification.expiry_to_refresh", "expired"],
+      ["verification.expiry_removed", "active"],
+      ["verification.revoked_notice", "replaced"],
+    ];
+    for (const [code, objectState] of stale) {
+      const { transactional } = connectors({
+        badgeEmail: facts({ objectState }),
+      });
+      const prepared = await prepare(transactional, badgeLine(code), state());
+      expect(prepared, code).toMatchObject({
+        kind: "skip",
+        reason: "badge_changed",
+      });
+    }
+    expect(double.delivered).toHaveLength(0);
+  });
+
+  it("a withdrawal gives the text of its reason, the agent's message where one is required, and the appeal window to a creator only", async () => {
+    const revoked = facts({
+      objectState: "revoked",
+      reasonCode: "terms_breach",
+      memberMessage: "Votre profil contient des contenus interdits.",
+      disputeWindowDays: 30,
+    });
+    await run(
+      connectors({ badgeEmail: revoked }).transactional,
+      badgeLine("verification.revoked_notice"),
+    );
+    const text = String(body().textContent);
+    expect(text).toContain(
+      "Votre badge a été retiré : Votre profil ne respecte pas",
+    );
+    expect(text).toContain("Votre profil contient des contenus interdits.");
+    expect(text).toContain(
+      "Vous pouvez contester cette décision pendant 30 jours.",
+    );
+
+    double.reset();
+    await run(
+      connectors({
+        badgeEmail: facts({
+          ...BRAND,
+          objectState: "revoked",
+          reasonCode: "company_dissolved",
+          disputeWindowDays: 30,
+        }),
+      }).transactional,
+      badgeLine("verification.revoked_notice"),
+    );
+    const brandText = String(body().textContent);
+    expect(brandText).toContain("La société a été radiée du registre public.");
+    expect(brandText).not.toContain("contester");
+  });
+
+  it("influx_error apologises and never accuses the member", async () => {
+    const { transactional } = connectors({
+      badgeEmail: facts({
+        objectState: "revoked",
+        reasonCode: "influx_error",
+        preferredLanguage: "en",
+      }),
+    });
+    await run(transactional, badgeLine("verification.revoked_notice"));
+    expect(String(body().textContent)).toContain(
+      "INFLUX granted this badge by mistake. You are not at fault, and we apologise.",
+    );
+  });
+
+  it("a reason outside the list, or a required message that is missing, is a visible failure, never guessed", async () => {
+    for (const [override, errorCode] of [
+      [{ reasonCode: "pirate" }, "revocation_reason_unknown"],
+      [{ reasonCode: null }, "revocation_reason_unknown"],
+      [
+        { reasonCode: "terms_breach", memberMessage: null },
+        "member_message_missing",
+      ],
+    ] as const) {
+      const { transactional } = connectors({
+        badgeEmail: facts({ objectState: "revoked", ...override }),
+      });
+      expect(
+        await prepare(
+          transactional,
+          badgeLine("verification.revoked_notice"),
+          state(),
+        ),
+      ).toMatchObject({ kind: "fail", errorCode });
+    }
+  });
+
+  it("an appeal received names the badge; an outcome upheld names the original reason, a refusal's or a withdrawal's", async () => {
+    await run(
+      connectors({ badgeEmail: facts({ objectState: "open" }) }).transactional,
+      badgeLine("verification.dispute_received"),
+    );
+    expect(String(body().textContent)).toContain(
+      "concernant le badge « Audience vérifiée — Instagram »",
+    );
+
+    double.reset();
+    await run(
+      connectors({
+        badgeEmail: facts({
+          objectState: "upheld",
+          outcomeReasonCode: "decision_confirmed",
+          contestedDecision: "refusal",
+          reasonCode: "evidence_too_old",
+        }),
+      }).transactional,
+      badgeLine("verification.dispute_outcome"),
+    );
+    expect(String(body().textContent)).toContain(
+      "la décision est maintenue pour son motif initial : La période affichée sur votre capture se termine il y a plus de 30 jours.",
+    );
+
+    double.reset();
+    await run(
+      connectors({
+        badgeEmail: facts({
+          objectState: "upheld",
+          outcomeReasonCode: "decision_confirmed",
+          contestedDecision: "revocation",
+          reasonCode: "owner_changed",
+          preferredLanguage: "en",
+        }),
+      }).transactional,
+      badgeLine("verification.dispute_outcome"),
+    );
+    expect(String(body().textContent)).toContain(
+      "the decision stands for its original reason: The social media account concerned has changed hands.",
+    );
+  });
+
+  it("an overturned appeal gives the date of the badge handed back; the team's message follows `other` only", async () => {
+    await run(
+      connectors({
+        badgeEmail: facts({
+          objectState: "overturned",
+          outcomeReasonCode: "decision_overturned",
+          restoredAt: "2026-11-09T09:00:00.000Z",
+        }),
+      }).transactional,
+      badgeLine("verification.dispute_outcome"),
+    );
+    expect(String(body().textContent)).toContain(
+      "votre badge « Audience vérifiée — Instagram » est accordé à la date du 9 novembre 2026.",
+    );
+
+    double.reset();
+    await run(
+      connectors({
+        badgeEmail: facts({
+          objectState: "upheld",
+          outcomeReasonCode: "other",
+          memberMessage: "Merci de redéposer une capture récente.",
+        }),
+      }).transactional,
+      badgeLine("verification.dispute_outcome"),
+    );
+    const text = String(body().textContent);
+    expect(text).toContain("Le message de l'équipe INFLUX :");
+    expect(text).toContain("Merci de redéposer une capture récente.");
+  });
+
+  it("an outcome that contradicts its state, an unknown code, or a missing message is a visible failure; a withdrawn appeal is skipped", async () => {
+    for (const [override, errorCode] of [
+      [
+        { objectState: "upheld", outcomeReasonCode: "decision_overturned" },
+        "dispute_outcome_unknown",
+      ],
+      [
+        { objectState: "overturned", outcomeReasonCode: "decision_confirmed" },
+        "dispute_outcome_unknown",
+      ],
+      [
+        { objectState: "open", outcomeReasonCode: null },
+        "dispute_outcome_unknown",
+      ],
+      [
+        {
+          objectState: "upheld",
+          outcomeReasonCode: "other",
+          memberMessage: null,
+        },
+        "member_message_missing",
+      ],
+      [
+        {
+          objectState: "overturned",
+          outcomeReasonCode: "decision_overturned",
+          restoredAt: null,
+        },
+        "badge_dates_missing",
+      ],
+      [
+        {
+          objectState: "upheld",
+          outcomeReasonCode: "decision_confirmed",
+          contestedDecision: "refusal",
+          reasonCode: "pirate",
+        },
+        "rejection_reason_unknown",
+      ],
+    ] as const) {
+      const { transactional } = connectors({ badgeEmail: facts(override) });
+      expect(
+        await prepare(
+          transactional,
+          badgeLine("verification.dispute_outcome"),
+          state(),
+        ),
+      ).toMatchObject({ kind: "fail", errorCode });
+    }
+    const { transactional } = connectors({
+      badgeEmail: facts({ objectState: "withdrawn" }),
+    });
+    expect(
+      await prepare(
+        transactional,
+        badgeLine("verification.dispute_outcome"),
+        state(),
+      ),
+    ).toMatchObject({ kind: "skip", reason: "dispute_withdrawn" });
+  });
+
+  it("the proof to reconfirm names the network, and only while it is still required", async () => {
+    await run(
+      connectors({
+        badgeEmail: facts({
+          level: "account_verified",
+          objectState: "proof_required",
+        }),
+      }).transactional,
+      badgeLine("verification.reconfirm_required"),
+    );
+    expect(String(body().textContent)).toContain(
+      "Vous avez modifié l'identifiant de votre compte Instagram. Pour conserver votre badge",
+    );
+    const { transactional } = connectors({
+      badgeEmail: facts({
+        level: "account_verified",
+        objectState: "withdrawn",
+      }),
+    });
+    expect(
+      await prepare(
+        transactional,
+        badgeLine("verification.reconfirm_required"),
+        state(),
+      ),
+    ).toMatchObject({ kind: "skip", reason: "review_changed" });
+  });
+
+  it("the verification opened by an agent tells a creator where the code is, a brand that anything needed is in its space; no code, no agent", async () => {
+    await run(
+      connectors({
+        badgeEmail: facts({ objectState: "pending", preferredLanguage: "en" }),
+      }).transactional,
+      badgeLine("verification.agent_opened_notice"),
+    );
+    const creatorText = String(body().textContent);
+    expect(creatorText).toContain(
+      "Your INFLUX salesperson started the verification of your Instagram account. Find the code to publish in your INFLUX space.",
+    );
+
+    double.reset();
+    await run(
+      connectors({ badgeEmail: facts({ ...BRAND, objectState: "pending" }) })
+        .transactional,
+      badgeLine("verification.agent_opened_notice"),
+    );
+    expect(String(body().textContent)).toContain(
+      "Si une action de votre part est nécessaire, elle est indiquée dans votre espace INFLUX.",
+    );
+
+    const { transactional } = connectors({
+      badgeEmail: facts({ objectState: "cancelled" }),
+    });
+    expect(
+      await prepare(
+        transactional,
+        badgeLine("verification.agent_opened_notice"),
+        state(),
+      ),
+    ).toMatchObject({ kind: "skip", reason: "request_closed" });
+  });
+
+  it("an object that is not the account's, a level or a network outside the lists, or an account badge that expires: visible failures", async () => {
+    expect(
+      await prepare(
+        connectors({ badgeEmail: null }).transactional,
+        badgeLine("verification.expiry_reminder"),
+        state(),
+      ),
+    ).toMatchObject({ kind: "fail", errorCode: "badge_notice_not_found" });
+    for (const [override, errorCode] of [
+      [{ level: "gold" }, "verification_level_unknown"],
+      [{ networkCode: "myspace" }, "network_unknown"],
+      [{ level: "account_verified" }, "badge_level_unexpected"],
+    ] as const) {
+      expect(
+        await prepare(
+          connectors({ badgeEmail: facts(override) }).transactional,
+          badgeLine("verification.expiry_reminder"),
+          state(),
+        ),
+      ).toMatchObject({ kind: "fail", errorCode });
+    }
+  });
+
+  it("a message of the agent that looks like a link is refused by its name, never sent (RG158)", async () => {
+    const { transactional } = connectors({
+      badgeEmail: facts({
+        objectState: "revoked",
+        reasonCode: "terms_breach",
+        memberMessage: "Voir https://example.test/regles pour les détails.",
+      }),
+    });
+    const prepared = await prepare(
+      transactional,
+      badgeLine("verification.revoked_notice"),
+      state(),
+    );
+    expect(prepared.kind).toBe("mapped");
+    if (prepared.kind === "mapped") {
+      expect(prepared.description.rejectedAttributeNames).not.toEqual([]);
+    }
+    expect(double.delivered).toHaveLength(0);
   });
 });

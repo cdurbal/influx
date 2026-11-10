@@ -26,6 +26,7 @@ import {
   isLineNotInProcessing,
   readApolloSubject,
   readBrandProfileAttributes,
+  readBrevoBadgeEmail,
   readBrevoErasureSubject,
   readBrevoProfileDecision,
   readBrevoSubject,
@@ -37,6 +38,7 @@ import {
   type ApolloSubject,
   type AttemptState,
   type BrandProfileAttributes,
+  type BrevoBadgeEmail,
   type BrevoErasureSubject,
   type BrevoProfileDecision,
   type BrevoSubject,
@@ -240,6 +242,36 @@ export async function readBrevoVerificationEmailOf(
       requestId,
       async (tx) => {
         const facts = await readBrevoVerificationEmail(tx, line.id, worker);
+        return {
+          value: facts,
+          auditSubject:
+            facts === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of the facts of an e-mail of the life of the badge (0236,
+ * verification.expiry_*, .revoked_notice, .dispute_received, .dispute_outcome, .reconfirm_required,
+ * .agent_opened_notice) for a line in processing for this worker: the object the line names, its
+ * level, reason and dates, and the account's language. No address (readBrevoSubjectOf), no figure,
+ * no handle. Its own short transaction, closed before the call (G4).
+ */
+export async function readBrevoBadgeEmailOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoBadgeEmail | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const facts = await readBrevoBadgeEmail(tx, line.id, worker);
         return {
           value: facts,
           auditSubject:

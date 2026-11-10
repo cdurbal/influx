@@ -179,18 +179,24 @@ export type VerificationEmailInput =
       reason: VerificationReason;
       /** The text written by the agent: `other` and `terms_breach` only, never for another reason. */
       memberMessage: string | null;
+      /**
+       * The days an appeal stays open (08 RG77, annex textes.md): a creator's refusal only, null
+       * for a brand (it corrects and submits again, 06 l. 718) and for a closed request.
+       */
+      disputeWindowDays?: number | null;
     })
   | (Common & { kind: "expired" });
 
 /** The lines of a written message, blank ones dropped: one paragraph each. */
-function linesOf(message: string): string[] {
+export function linesOf(message: string): string[] {
   return message
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter((line) => line !== "");
 }
 
-type Parts = {
+/** What an e-mail of the life of the badge says, before it is laid out. */
+export type Parts = {
   subject: string;
   preheader: string;
   title: string;
@@ -288,6 +294,17 @@ function partsOf(input: VerificationEmailInput): Parts {
       if (step !== null) {
         paragraphs.push(decision.nextStep[step]);
       }
+      const days = input.disputeWindowDays ?? null;
+      if (days !== null) {
+        paragraphs.push(
+          f(
+            days === 1
+              ? decision.rejected.disputeOpenOne
+              : decision.rejected.disputeOpen,
+            { days: String(days) },
+          ),
+        );
+      }
       return {
         subject: decision.rejected.subject,
         preheader: decision.rejected.preheader,
@@ -307,11 +324,8 @@ function partsOf(input: VerificationEmailInput): Parts {
   }
 }
 
-export function renderVerificationEmail(
-  input: VerificationEmailInput,
-): RenderedEmail {
-  const { locale } = input;
-  const parts = partsOf(input);
+/** Lays out the parts of an e-mail: a plain text and an HTML body, every value escaped. */
+export function renderParts(locale: UiLocale, parts: Parts): RenderedEmail {
   const text = [
     parts.title,
     "",
@@ -328,4 +342,10 @@ export function renderVerificationEmail(
     "</body></html>",
   ].join("");
   return { subject: parts.subject, html, text };
+}
+
+export function renderVerificationEmail(
+  input: VerificationEmailInput,
+): RenderedEmail {
+  return renderParts(input.locale, partsOf(input));
 }

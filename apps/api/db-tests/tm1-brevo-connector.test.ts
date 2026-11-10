@@ -48,6 +48,7 @@ import {
   readBrevoErasureSubjectOf,
   readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
+  readBrevoBadgeEmailOf,
   readBrevoVerificationEmailOf,
   readVerifiedBadgeOf,
 } from "../src/domains/leads/queue.ts";
@@ -243,6 +244,8 @@ async function turn(): Promise<number> {
         readBrevoProfileDecisionOf(database, randomUUID(), line, worker),
       readBrandProfile: (line) =>
         readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+      readBadgeEmail: (line) =>
+        readBrevoBadgeEmailOf(database, randomUUID(), line, worker),
       readVerificationEmail: (line) =>
         readBrevoVerificationEmailOf(database, randomUUID(), line, worker),
       readVerifiedBadge: (line) =>
@@ -1294,6 +1297,7 @@ describe("L2E commit 16, 08 RG92, RG94, fiche invariants 14 and 17: the verifica
         codeKind: null,
         codeExpiresAt: null,
         codeRevoked: false,
+        disputeWindowDays: 30,
         preferredLanguage: "en",
       });
       const register = await migration<
@@ -1495,6 +1499,461 @@ describe("L2E commit 16, 08 RG92, RG94, fiche invariants 14 and 17: the verifica
           "tm1-verif-reader",
         ),
       ).toBeNull();
+    });
+  });
+
+  describe("leads.read_brevo_badge_email(), the facts of the e-mails of the life of the badge (0236, L2F commit 12)", () => {
+    const WORKER = "tm1-badge-reader";
+
+    /** The queue line as 0230 to 0234 shape it: ids and the e-mail code only. */
+    async function badgeLine(
+      account: string,
+      eventType: string,
+      payloadKey: string,
+      object: string,
+      keySuffix = "",
+    ): Promise<string> {
+      const event = randomUUID();
+      const [row] = await migration<{ id: string }[]>`
+        insert into leads.outbox_events
+          (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+        values (${event}, ${eventType}, 'brevo_transactional', ${`account:${account}`}, 100,
+                jsonb_build_object('event_id', ${event}::text, 'account_id', ${account}::text,
+                                   ${payloadKey}::text, ${object}::text,
+                                   'email_code', ${eventType}::text),
+                ${`${eventType}:${object}${keySuffix}`})
+        returning id::text as id`;
+      lines.push(row?.id ?? "");
+      await processing(row?.id ?? "", WORKER);
+      return row?.id ?? "";
+    }
+
+    function read(line: string, account: string, eventType: string) {
+      return readBrevoBadgeEmailOf(
+        database,
+        randomUUID(),
+        claimed(line, account, eventType),
+        WORKER,
+      );
+    }
+
+    async function decider(): Promise<string> {
+      const [row] = await migration<{ id: string }[]>`
+        select account_id::text as id from identity.agent_profiles limit 1`;
+      return row?.id ?? "";
+    }
+
+    it("an expiry line reads the level, the state, the expiry and the end of the grace period, in the language of the account; never a handle nor a figure; journals the read", async () => {
+      const account = await createAccount({ role: "creator", language: "en" });
+      const { badge } = await fixture({
+        account,
+        level: "audience_verified",
+        status: "approved",
+        badge: { expiresInDays: 10, state: "to_refresh" },
+      });
+      const line = await badgeLine(
+        account,
+        "verification.expiry_to_refresh",
+        "badge_id",
+        badge ?? "",
+      );
+      const requestId = `tm1-badge-${randomUUID()}`;
+      const facts = await readBrevoBadgeEmailOf(
+        database,
+        requestId,
+        claimed(line, account, "verification.expiry_to_refresh"),
+        WORKER,
+      );
+      expect(facts).toEqual({
+        level: "audience_verified",
+        networkCode: "instagram",
+        objectState: "to_refresh",
+        contestedDecision: null,
+        badgeExpiresAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        graceEndsAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+        reasonCode: null,
+        memberMessage: null,
+        outcomeReasonCode: null,
+        restoredAt: null,
+        disputeWindowDays: null,
+        preferredLanguage: "en",
+      });
+      // the grace period is the parameter of the database, added to the expiry (EC-L2F-12-2)
+      const gap =
+        Date.parse(facts?.graceEndsAt ?? "") -
+        Date.parse(facts?.badgeExpiresAt ?? "");
+      expect(gap).toBe(30 * 24 * 3600 * 1000);
+      expect(JSON.stringify(facts)).not.toMatch(/tm1_fixture_handle/);
+      const register = await migration<
+        { event_type: string; subject_id: string }[]
+      >`
+        select event_type, subject_id::text as subject_id
+          from audit.audit_events where request_id = ${requestId}`;
+      expect(register).toEqual([
+        { event_type: "elevated.leads.drain_outbox", subject_id: account },
+      ]);
+    });
+
+    it("a withdrawal line reads the reason and the message of its 2V request, and the window of an appeal", async () => {
+      const account = await createAccount({ role: "creator" });
+      const { badge } = await fixture({
+        account,
+        level: "account_verified",
+        status: "approved",
+        badge: { expiresInDays: null, state: "revoked" },
+      });
+      await admin.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        const who = await decider();
+        await tx`
+          insert into verification.badge_revocation_requests
+            (dual_control_request_id, badge_id, account_id, reason_code, member_message,
+             requested_by_account_id, executed_by_account_id, executed_at)
+          values (${randomUUID()}, ${badge}, ${account}, 'terms_breach',
+                  'Votre profil contient des contenus interdits.', ${who}, ${who}, now())`;
+        await tx`
+          update verification.badges
+             set revocation_request_id =
+                   (select dual_control_request_id from verification.badge_revocation_requests
+                     where badge_id = ${badge})
+           where id = ${badge}`;
+      });
+      const line = await badgeLine(
+        account,
+        "verification.revoked_notice",
+        "badge_id",
+        badge ?? "",
+      );
+      expect(
+        await read(line, account, "verification.revoked_notice"),
+      ).toMatchObject({
+        level: "account_verified",
+        objectState: "revoked",
+        reasonCode: "terms_breach",
+        memberMessage: "Votre profil contient des contenus interdits.",
+        disputeWindowDays: 30,
+      });
+    });
+
+    it("an outcome line reads the reason of the decision contested (a refusal's or a withdrawal's), and the date of the badge handed back", async () => {
+      const account = await createAccount({ role: "creator" });
+      const refused = await fixture({
+        account,
+        level: "audience_verified",
+        status: "rejected",
+        reason: "evidence_too_old",
+      });
+      const who = await decider();
+      const upheld = randomUUID();
+      const overturned = randomUUID();
+      const restored = await fixture({
+        account,
+        level: "audience_verified",
+        status: "approved",
+        badge: { grantedAt: "2026-11-09T09:00:00Z", expiresInDays: 60 },
+      });
+      const withdrawn = await fixture({
+        account,
+        level: "audience_verified",
+        status: "approved",
+        badge: { state: "revoked", expiresInDays: 60 },
+      });
+      await admin.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into verification.disputes
+            (id, account_id, request_id, badge_id, level, network_code, reason_code, submitted_at,
+             sla_due_at, escalate_at, state, original_decider_ids, decided_by_account_id, decided_at,
+             outcome_reason_code, review_mode, member_message, closed_at)
+          values (${upheld}, ${account}, ${refused.request}, null, 'audience_verified', 'instagram',
+                  'misread', now() - interval '3 days', now() - interval '2 days',
+                  now() - interval '1 day', 'upheld', array[${who}]::uuid[], ${who},
+                  now() - interval '1 day', 'other', 'independent',
+                  'Merci de redéposer une capture récente.', now() - interval '1 day'),
+                 (${overturned}, ${account}, null, ${withdrawn.badge}, 'audience_verified', 'instagram',
+                  'misread',
+                  now() - interval '3 days', now() - interval '2 days', now() - interval '1 day',
+                  'overturned', array[${who}]::uuid[], ${who}, now() - interval '1 day',
+                  'decision_overturned', 'independent', null, now() - interval '1 day')`;
+        await tx`
+          insert into verification.badge_revocation_requests
+            (dual_control_request_id, badge_id, account_id, reason_code, requested_by_account_id,
+             executed_by_account_id, executed_at)
+          values (${randomUUID()}, ${withdrawn.badge}, ${account}, 'account_closed', ${who},
+                  ${who}, now())`;
+        await tx`
+          update verification.badges
+             set revocation_request_id =
+                   (select dual_control_request_id from verification.badge_revocation_requests
+                     where badge_id = ${withdrawn.badge})
+           where id = ${withdrawn.badge}`;
+        await tx`
+          update verification.badges set dispute_id = ${overturned} where id = ${restored.badge}`;
+      });
+      const first = await badgeLine(
+        account,
+        "verification.dispute_outcome",
+        "dispute_id",
+        upheld,
+      );
+      expect(
+        await read(first, account, "verification.dispute_outcome"),
+      ).toMatchObject({
+        objectState: "upheld",
+        contestedDecision: "refusal",
+        reasonCode: "evidence_too_old",
+        outcomeReasonCode: "other",
+        memberMessage: "Merci de redéposer une capture récente.",
+        restoredAt: null,
+      });
+      // the second dispute names no request: it contests a withdrawal, and gave a badge back
+      const second = await badgeLine(
+        account,
+        "verification.dispute_outcome",
+        "dispute_id",
+        overturned,
+      );
+      expect(
+        await read(second, account, "verification.dispute_outcome"),
+      ).toMatchObject({
+        objectState: "overturned",
+        contestedDecision: "revocation",
+        reasonCode: "account_closed",
+        outcomeReasonCode: "decision_overturned",
+        restoredAt: "2026-11-09T09:00:00.000Z",
+      });
+      // the text of the creator is out of reach of the owner of the read
+      expect(
+        JSON.stringify(
+          await read(first, account, "verification.dispute_outcome"),
+        ),
+      ).not.toMatch(/text/);
+    });
+
+    it("the proof to reconfirm and the opening by an agent read the network and the state, and a dispute received its level", async () => {
+      const account = await createAccount({ role: "creator" });
+      const who = await decider();
+      const held = await fixture({
+        account,
+        level: "account_verified",
+        status: "approved",
+        badge: { expiresInDays: null },
+      });
+      const review = randomUUID();
+      const dispute = randomUUID();
+      const opened = await fixture({
+        account,
+        level: "account_verified",
+        status: "rejected",
+        reason: "other",
+        memberMessage: "Merci de préciser votre activité.",
+      });
+      await admin.begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into verification.identifier_change_reviews
+            (id, account_id, social_account_id, network_code, badge_id, previous_handle, new_handle,
+             created_at, last_changed_at, sla_due_at, escalate_at, state, decided_by_account_id,
+             decided_at, closed_at)
+          values (${review}, ${account}, ${randomUUID()}, 'instagram', ${held.badge},
+                  'tm1_previous_handle', 'tm1_new_handle', now() - interval '3 days',
+                  now() - interval '3 days', now() - interval '2 days', now() - interval '1 day',
+                  'proof_required', ${who}, now() - interval '1 day', now() - interval '1 day')`;
+        await tx`
+          insert into verification.disputes
+            (id, account_id, request_id, level, network_code, reason_code, text, submitted_at,
+             sla_due_at, escalate_at, state, original_decider_ids)
+          values (${dispute}, ${account}, ${opened.request}, 'account_verified', 'instagram',
+                  'other', 'tm1_dispute_text', now(), now() + interval '1 day',
+                  now() + interval '2 days', 'open', array[${who}]::uuid[])`;
+      });
+      const reconfirm = await badgeLine(
+        account,
+        "verification.reconfirm_required",
+        "review_id",
+        review,
+      );
+      const facts = await read(
+        reconfirm,
+        account,
+        "verification.reconfirm_required",
+      );
+      expect(facts).toMatchObject({
+        level: "account_verified",
+        networkCode: "instagram",
+        objectState: "proof_required",
+      });
+      // never a handle, previous or new: the owner of the read holds no column of them
+      expect(JSON.stringify(facts)).not.toMatch(/tm1_(previous|new)_handle/);
+      const received = await badgeLine(
+        account,
+        "verification.dispute_received",
+        "dispute_id",
+        dispute,
+      );
+      const receivedFacts = await read(
+        received,
+        account,
+        "verification.dispute_received",
+      );
+      expect(receivedFacts).toMatchObject({
+        level: "account_verified",
+        networkCode: "instagram",
+        objectState: "open",
+      });
+      expect(JSON.stringify(receivedFacts)).not.toMatch(/tm1_dispute_text/);
+      const notice = await badgeLine(
+        account,
+        "verification.agent_opened_notice",
+        "request_id",
+        opened.request,
+      );
+      expect(
+        await read(notice, account, "verification.agent_opened_notice"),
+      ).toMatchObject({ level: "account_verified", objectState: "rejected" });
+    });
+
+    it("an object of ANOTHER account, an unknown id and an account erased since give nothing (T14)", async () => {
+      const mine = await createAccount({ role: "creator" });
+      const theirs = await createAccount({ role: "creator" });
+      const stranger = await fixture({
+        account: theirs,
+        level: "audience_verified",
+        status: "approved",
+        badge: { expiresInDays: 10 },
+      });
+      const crossed = await badgeLine(
+        mine,
+        "verification.expiry_reminder",
+        "badge_id",
+        stranger.badge ?? "",
+      );
+      expect(
+        await read(crossed, mine, "verification.expiry_reminder"),
+      ).toBeNull();
+      const unknown = await badgeLine(
+        mine,
+        "verification.expiry_reminder",
+        "badge_id",
+        randomUUID(),
+      );
+      expect(
+        await read(unknown, mine, "verification.expiry_reminder"),
+      ).toBeNull();
+      const own = await badgeLine(
+        theirs,
+        "verification.expiry_reminder",
+        "badge_id",
+        stranger.badge ?? "",
+        "-own",
+      );
+      expect(
+        await read(own, theirs, "verification.expiry_reminder"),
+      ).toMatchObject({ objectState: "active" });
+      await migration`
+        update identity.accounts set status = 'deleted', deleted_at = now() where id = ${theirs}`;
+      const gone = await badgeLine(
+        theirs,
+        "verification.expiry_reminder",
+        "badge_id",
+        stranger.badge ?? "",
+        "-gone",
+      );
+      expect(
+        await read(gone, theirs, "verification.expiry_reminder"),
+      ).toBeNull();
+    });
+
+    it("refuses a line of another worker or not in processing (55000), and any other event or destination (22023)", async () => {
+      const account = await createAccount({ role: "creator" });
+      const { badge } = await fixture({
+        account,
+        level: "audience_verified",
+        status: "approved",
+        badge: { expiresInDays: 10 },
+      });
+      const line = await badgeLine(
+        account,
+        "verification.expiry_reminder",
+        "badge_id",
+        badge ?? "",
+      );
+      await migration`
+        update leads.outbox_events set locked_by = 'tm1-badge-other' where id = ${line}`;
+      await expect(
+        read(line, account, "verification.expiry_reminder"),
+      ).rejects.toBeInstanceOf(LineTakenBackError);
+      await migration`
+        update leads.outbox_events set locked_by = ${WORKER}, status = 'pending' where id = ${line}`;
+      await expect(
+        read(line, account, "verification.expiry_reminder"),
+      ).rejects.toBeInstanceOf(LineTakenBackError);
+      // a request e-mail has its own read; a contact line none of these
+      const request = await emailLine(
+        account,
+        "verification.received",
+        randomUUID(),
+        randomUUID(),
+      );
+      await processing(request, WORKER);
+      const wrong = await read(request, account, "verification.received").catch(
+        (caught: unknown) => caught,
+      );
+      expect(sqlCode(wrong)).toBe(INVALID_PARAMETER);
+      const contact = await contactLine(account, "lead.updated");
+      await processing(contact, WORKER);
+      const contactError = await readBrevoBadgeEmailOf(
+        database,
+        randomUUID(),
+        {
+          ...claimed(contact, account, "lead.updated"),
+          destination: "brevo_contact",
+        },
+        WORKER,
+      ).catch((caught: unknown) => caught);
+      expect(sqlCode(contactError)).toBe(INVALID_PARAMETER);
+    });
+
+    it("the owner of the read reaches no handle, text, agent, lock nor comment of the new tables, and the brand reaches none of them (fiche invariant 10)", async () => {
+      const rows = await migration<{ reached: boolean; what: string }[]>`
+        select has_column_privilege('influx_leads_definer', 'verification.disputes', 'text', 'SELECT') as reached, 'disputes.text' as what
+        union all select has_column_privilege('influx_leads_definer', 'verification.disputes', 'internal_comment', 'SELECT'), 'disputes.internal_comment'
+        union all select has_column_privilege('influx_leads_definer', 'verification.disputes', 'decided_by_account_id', 'SELECT'), 'disputes.decided_by_account_id'
+        union all select has_column_privilege('influx_leads_definer', 'verification.disputes', 'claimed_by_account_id', 'SELECT'), 'disputes.claimed_by_account_id'
+        union all select has_column_privilege('influx_leads_definer', 'verification.identifier_change_reviews', 'previous_handle', 'SELECT'), 'reviews.previous_handle'
+        union all select has_column_privilege('influx_leads_definer', 'verification.identifier_change_reviews', 'new_handle', 'SELECT'), 'reviews.new_handle'
+        union all select has_column_privilege('influx_leads_definer', 'verification.identifier_change_reviews', 'observed_handle', 'SELECT'), 'reviews.observed_handle'
+        union all select has_column_privilege('influx_leads_definer', 'verification.identifier_change_reviews', 'internal_comment', 'SELECT'), 'reviews.internal_comment'
+        union all select has_column_privilege('influx_leads_definer', 'verification.badge_revocation_requests', 'requested_by_account_id', 'SELECT'), 'revocation.requested_by'
+        union all select has_column_privilege('influx_leads_definer', 'verification.badge_revocation_requests', 'executed_by_account_id', 'SELECT'), 'revocation.executed_by'
+        union all select has_column_privilege('influx_leads_definer', 'verification.badges', 'observed_handle_at_decision', 'SELECT'), 'badges.handle'
+        union all select has_any_column_privilege('influx_leads_definer', 'backoffice.dual_control_requests', 'SELECT'), 'dual_control_requests'
+        union all select has_any_column_privilege('influx_advertiser', 'verification.disputes', 'SELECT'), 'advertiser.disputes'
+        union all select has_any_column_privilege('influx_advertiser', 'verification.identifier_change_reviews', 'SELECT'), 'advertiser.reviews'
+        union all select has_any_column_privilege('influx_advertiser', 'verification.badge_revocation_requests', 'SELECT'), 'advertiser.revocation'`;
+      expect(rows.filter((row) => row.reached)).toEqual([]);
+      expect(rows).toHaveLength(15);
+      // the settings it reads are the two it names, nothing else
+      const settings = await migration<{ key: string }[]>`
+        select key from backoffice.operational_settings
+         where key in ('badge_grace_days', 'dispute_window_days')`;
+      expect(settings).toHaveLength(2);
+    });
+
+    it("the texts of the translation files and the closed lists of the database name the same reasons and outcomes", async () => {
+      const reasons = await migration<{ code: string }[]>`
+        select code from verification.revocation_reasons order by code`;
+      const outcomes = await migration<{ code: string }[]>`
+        select code from verification.dispute_outcome_reasons order by code`;
+      expect(reasons.map((row) => row.code)).toEqual(
+        Object.keys(french.email.badgeNotice.revoked.reason).sort(),
+      );
+      expect(outcomes.map((row) => row.code)).toEqual(
+        Object.keys(french.email.badgeNotice.disputeOutcome.outcome).sort(),
+      );
+      expect(
+        Object.keys(english.email.badgeNotice.revoked.reason).sort(),
+      ).toEqual(reasons.map((row) => row.code));
     });
   });
 

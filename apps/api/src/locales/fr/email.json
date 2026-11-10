@@ -219,7 +219,9 @@
         "preheader": "Un commercial INFLUX a examiné votre demande : voici pourquoi.",
         "title": "Votre demande de vérification n'a pas abouti",
         "body": "Un commercial INFLUX a examiné votre demande du badge « {badge} » et ne l'a pas accordée.",
-        "why": "votre demande de vérification a été examinée par un commercial INFLUX"
+        "why": "votre demande de vérification a été examinée par un commercial INFLUX",
+        "disputeOpen": "Vous pouvez contester cette décision pendant {days} jours.",
+        "disputeOpenOne": "Vous pouvez contester cette décision pendant {days} jour."
       },
       "reason": {
         "creator": {
@@ -410,6 +412,99 @@
         "signIn": "Pour vous connecter, saisissez votre adresse e-mail sur INFLUX : un code à 6 chiffres vous est envoyé. Il n'y a pas de mot de passe.",
         "never": "INFLUX ne vous demandera jamais votre code de connexion.",
         "reason": "vous venez de créer un compte créateur sur INFLUX"
+      }
+    },
+    "badgeNotice": {
+      "expiryReminder": {
+        "creator": {
+          "subject": "Votre audience vérifiée arrive à échéance",
+          "preheader": "Votre audience vérifiée arrive à échéance le {expiresAt, date, long}.",
+          "body": "Votre audience vérifiée arrive à échéance le {expiresAt, date, long}. Déposez une capture récente pour la conserver."
+        },
+        "brand": {
+          "subject": "Votre badge Marque vérifiée arrive à échéance",
+          "preheader": "Votre badge « Marque vérifiée » arrive à échéance le {expiresAt, date, long}.",
+          "body": "Votre badge « Marque vérifiée » arrive à échéance le {expiresAt, date, long}. Redemandez la vérification depuis votre espace INFLUX pour le conserver."
+        },
+        "why": "votre badge de vérification INFLUX arrive à échéance"
+      },
+      "expiryToRefresh": {
+        "creator": {
+          "subject": "Votre audience vérifiée est à rafraîchir",
+          "preheader": "Votre audience vérifiée est à rafraîchir.",
+          "body": "Votre audience vérifiée est à rafraîchir. Elle reste affichée avec sa date jusqu'au {graceEndsAt, date, long}."
+        },
+        "brand": {
+          "subject": "Votre badge Marque vérifiée est à rafraîchir",
+          "preheader": "Votre badge « Marque vérifiée » est à rafraîchir.",
+          "body": "Votre badge « Marque vérifiée » est à rafraîchir. Il reste affiché avec sa date jusqu'au {graceEndsAt, date, long}."
+        },
+        "why": "votre badge de vérification INFLUX est à rafraîchir"
+      },
+      "expiryRemoved": {
+        "creator": {
+          "subject": "Votre audience vérifiée a expiré",
+          "preheader": "Votre audience vérifiée a expiré.",
+          "body": "Votre audience vérifiée a expiré. Vos chiffres sont de nouveau affichés comme déclarés."
+        },
+        "brand": {
+          "subject": "Votre badge Marque vérifiée a expiré",
+          "preheader": "Votre badge « Marque vérifiée » a expiré.",
+          "body": "Votre badge « Marque vérifiée » a expiré. Vous pouvez redemander la vérification depuis votre espace INFLUX."
+        },
+        "why": "votre badge de vérification INFLUX a expiré"
+      },
+      "revoked": {
+        "subject": "Votre badge INFLUX a été retiré",
+        "preheader": "Un badge de votre compte INFLUX a été retiré.",
+        "body": "Votre badge a été retiré : {reason}",
+        "disputeOpen": "Vous pouvez contester cette décision pendant {days} jours.",
+        "disputeOpenOne": "Vous pouvez contester cette décision pendant {days} jour.",
+        "why": "un badge de votre compte INFLUX a été retiré",
+        "reason": {
+          "forged_evidence": "Une pièce ou une information fournie pour cette vérification s'est révélée inexacte.",
+          "account_closed": "Le compte de réseau social concerné a été supprimé, fermé ou n'est plus accessible.",
+          "owner_changed": "Le compte de réseau social concerné a changé de titulaire.",
+          "terms_breach": "Votre profil ne respecte pas les conditions d'utilisation d'INFLUX.",
+          "influx_error": "INFLUX a accordé ce badge par erreur. Vous n'y êtes pour rien et nous vous présentons nos excuses.",
+          "company_dissolved": "La société a été radiée du registre public.",
+          "domain_transferred": "Le domaine de votre site a changé de titulaire."
+        }
+      },
+      "disputeReceived": {
+        "subject": "Votre contestation est reçue",
+        "preheader": "Nous avons bien reçu votre contestation concernant le badge « {badge} ».",
+        "body": "Nous avons bien reçu votre contestation concernant le badge « {badge} ». Nous la réexaminons et vous écrivons dès qu'elle est tranchée.",
+        "why": "vous avez contesté une décision d'INFLUX"
+      },
+      "disputeOutcome": {
+        "subject": "Votre contestation est tranchée",
+        "preheader": "Votre contestation est tranchée.",
+        "why": "vous avez contesté une décision d'INFLUX",
+        "outcome": {
+          "decision_confirmed": "Après réexamen, la décision est maintenue pour son motif initial : {reason}",
+          "new_request_needed": "Après réexamen, votre contestation ne peut aboutir en l'état : vous pouvez déposer une nouvelle demande depuis votre espace INFLUX.",
+          "other": "Après réexamen, la décision est maintenue. Le message de l'équipe INFLUX :",
+          "decision_overturned": "Après réexamen, INFLUX revient sur sa décision et vous présente ses excuses : votre badge « {badge} » est accordé à la date du {restoredAt, date, long}."
+        }
+      },
+      "reconfirmRequired": {
+        "subject": "Votre badge est à reconfirmer",
+        "preheader": "Vous avez modifié l'identifiant de votre compte {network}.",
+        "body": "Vous avez modifié l'identifiant de votre compte {network}. Pour conserver votre badge, refaites la preuve de propriété depuis votre espace INFLUX.",
+        "why": "l'identifiant d'un compte vérifié de votre profil INFLUX a changé"
+      },
+      "agentOpened": {
+        "subject": "Votre commercial INFLUX a lancé votre vérification",
+        "creator": {
+          "preheader": "Votre commercial INFLUX a lancé la vérification de votre compte {network}.",
+          "body": "Votre commercial INFLUX a lancé la vérification de votre compte {network}. Retrouvez dans votre espace INFLUX le code à publier."
+        },
+        "brand": {
+          "preheader": "Votre commercial INFLUX a lancé la vérification de votre marque.",
+          "body": "Votre commercial INFLUX a lancé la vérification de votre marque. Si une action de votre part est nécessaire, elle est indiquée dans votre espace INFLUX."
+        },
+        "why": "un commercial INFLUX a lancé une vérification sur votre compte"
       }
     }
   },

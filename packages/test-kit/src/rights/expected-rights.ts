@@ -4805,6 +4805,36 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_leads_definer|schema|verification|USAGE",
   "influx_worker|function|leads.read_brevo_verification_email(bigint,text)|EXECUTE",
   "influx_worker|function|leads.read_verified_badge(bigint,text)|EXECUTE",
+  // 0236 (L2F commit 12, l2f/modele.md §4 "Outbox", fiche invariants 10 and 12): the worker's read of the
+  // eight e-mails of the life of the badge. influx_leads_definer reads named columns of the withdrawal
+  // requests (request, badge, account, reason, message), the disputes (never the creator's text, the
+  // deciders, the lock nor the comment), the identifier reviews (never a handle) and the two
+  // parameters it names (badge_grace_days, dispute_window_days); nothing for influx_advertiser.
+  "influx_leads_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_leads_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_leads_definer|column|verification.badge_revocation_requests.account_id|SELECT",
+  "influx_leads_definer|column|verification.badge_revocation_requests.badge_id|SELECT",
+  "influx_leads_definer|column|verification.badge_revocation_requests.dual_control_request_id|SELECT",
+  "influx_leads_definer|column|verification.badge_revocation_requests.member_message|SELECT",
+  "influx_leads_definer|column|verification.badge_revocation_requests.reason_code|SELECT",
+  "influx_leads_definer|column|verification.badges.dispute_id|SELECT",
+  "influx_leads_definer|column|verification.badges.id|SELECT",
+  "influx_leads_definer|column|verification.badges.revocation_request_id|SELECT",
+  "influx_leads_definer|column|verification.disputes.account_id|SELECT",
+  "influx_leads_definer|column|verification.disputes.badge_id|SELECT",
+  "influx_leads_definer|column|verification.disputes.id|SELECT",
+  "influx_leads_definer|column|verification.disputes.level|SELECT",
+  "influx_leads_definer|column|verification.disputes.member_message|SELECT",
+  "influx_leads_definer|column|verification.disputes.network_code|SELECT",
+  "influx_leads_definer|column|verification.disputes.outcome_reason_code|SELECT",
+  "influx_leads_definer|column|verification.disputes.request_id|SELECT",
+  "influx_leads_definer|column|verification.disputes.state|SELECT",
+  "influx_leads_definer|column|verification.identifier_change_reviews.account_id|SELECT",
+  "influx_leads_definer|column|verification.identifier_change_reviews.id|SELECT",
+  "influx_leads_definer|column|verification.identifier_change_reviews.network_code|SELECT",
+  "influx_leads_definer|column|verification.identifier_change_reviews.state|SELECT",
+  "influx_leads_definer|function|leads.read_brevo_badge_email(bigint,text)|EXECUTE",
+  "influx_worker|function|leads.read_brevo_badge_email(bigint,text)|EXECUTE",
   // 0230 (L2F commit 05, l2f/modele.md §2, §3 "0230", fiche invariants 1, 10, 12): the daily task
   // badge_lifecycle. influx_maintenance_definer reads the state and dates of the badges (never a
   // handle, a figure, a reference nor an agent), writes their state and reminder and erases their
@@ -5581,6 +5611,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0227 (L2E commit 16): the worker's reads of the verification e-mails and of the badge level.
   "leads.read_brevo_verification_email(bigint,text)": "influx_leads_definer",
   "leads.read_verified_badge(bigint,text)": "influx_leads_definer",
+  // 0236 (L2F commit 12): the worker's read of the e-mails of the life of the badge.
+  "leads.read_brevo_badge_email(bigint,text)": "influx_leads_definer",
   // 0230 (L2F commit 05): the daily task badge_lifecycle (cycle, then retention); the helper
   // ops.queue_badge_change() is SECURITY INVOKER, same owner.
   "ops.run_badge_lifecycle(uuid,smallint)": "influx_maintenance_definer",

@@ -15,6 +15,8 @@
 //   storage_purge          hourly: the objects of Storage of the logo and evidence rows to purge,
 //                          then the rows (0205, L2B commit 09; 0223, L2E commit 07; storage-purge.ts)
 //   verification_expiry    hourly: the draft verification requests whose code expired (0223)
+//   badge_lifecycle        daily: the reminder, « à rafraîchir » and expiry of the badges (a SYSTEM
+//                          event, no agent), then the retention of the findings (0230, L2F commit 12)
 //
 // A task without its key in this process (no Brevo key, no GoTrue key) is never claimed. A task
 // that fails closes its run `failed` with the counts reached and a closed code in pino (D60): the
@@ -36,13 +38,16 @@ import {
   finishPeriodicRun,
   gotrueRealignmentCandidates,
   PERIODIC_TASKS,
+  BADGE_LIFECYCLE_BATCH,
   claimStoragePurges,
   completeStoragePurges,
   expireVerificationRequests,
   purgeBrevoInboundEvents,
   purgeDataExports,
   purgeStorageUsage,
+  purgeVerificationFindings,
   recordAuthOrphanPurge,
+  runBadgeLifecycle,
   runOpsRetention,
   recordReconciliationEvent,
   type PeriodicCounts,
@@ -55,6 +60,7 @@ import {
 } from "./repository.ts";
 
 export {
+  BADGE_LIFECYCLE_BATCH,
   PERIODIC_TASKS,
   type PeriodicCounts,
   type PeriodicRun,
@@ -83,6 +89,8 @@ export const EXPORT_PURGE_MAX_BATCHES = 10;
 export const OPS_RETENTION_MAX_STEPS = 50;
 /** Calls of ops.expire_verification_requests() per run at most; beyond, the next hour goes on. */
 export const VERIFICATION_EXPIRY_MAX_BATCHES = 10;
+/** Calls of the cycle of the badges, and of the retention of their findings, per run at most. */
+export const BADGE_LIFECYCLE_MAX_BATCHES = 20;
 
 const INVALID_PARAMETER_VALUE = "22023";
 
@@ -127,6 +135,10 @@ export type PeriodicStore = {
   purgeStorageUsage(run: PeriodicRun): Promise<number>;
   /** 0223: the draft requests whose code expired, expired; the count (one call). */
   expireVerificationRequests(run: PeriodicRun): Promise<number>;
+  /** 0230: one call of ops.run_badge_lifecycle() (at most BADGE_LIFECYCLE_BATCH badges); the count. */
+  runBadgeLifecycle(run: PeriodicRun): Promise<number>;
+  /** 0230: one call of ops.purge_verification_findings(); the count. */
+  purgeVerificationFindings(run: PeriodicRun): Promise<number>;
 };
 
 export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
@@ -254,6 +266,19 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
     expireVerificationRequests: (run) =>
       elevated(async (tx) => {
         const count = await expireVerificationRequests(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    // the database writes the register lines of the cycle itself (system events, no actor)
+    runBadgeLifecycle: (run) =>
+      elevated(async (tx) => {
+        const count = await runBadgeLifecycle(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    purgeVerificationFindings: (run) =>
+      elevated(async (tx) => {
+        const count = await purgeVerificationFindings(tx, run);
         return { value: count, auditSubject: count > 0 ? run.runId : null };
       }),
   };
@@ -520,6 +545,35 @@ export function createVerificationExpiry(
       const expired = await store.expireVerificationRequests(run);
       counts.expired += expired;
       if (expired < VERIFICATION_EXPIRY_BATCH) {
+        return;
+      }
+    }
+  };
+}
+
+/**
+ * 0230 (08 RG69 to RG71, RG100): the cycle of the badges by batches, each in its own transaction
+ * (the reminder, « à rafraîchir », expiry, their e-mails and lead.updated written by the database),
+ * then the retention of the findings, by batches too; a stop requested leaves the run open for
+ * another instance to take back. The dates are the database's: nothing here reads a clock.
+ */
+export function createBadgeLifecycle(store: PeriodicStore): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    counts.moved = 0;
+    for (let batch = 0; batch < BADGE_LIFECYCLE_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const moved = await store.runBadgeLifecycle(run);
+      counts.moved += moved;
+      if (moved < BADGE_LIFECYCLE_BATCH) {
+        break;
+      }
+    }
+    counts.purged = 0;
+    for (let batch = 0; batch < BADGE_LIFECYCLE_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const purged = await store.purgeVerificationFindings(run);
+      counts.purged += purged;
+      if (purged < BADGE_LIFECYCLE_BATCH) {
         return;
       }
     }

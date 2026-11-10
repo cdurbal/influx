@@ -1,6 +1,7 @@
 // E-4 in the loop of the worker (J7 commit 5, decision 3): the scheduler over an in-memory store,
 // the reads of the reconciliation over a fake fetch, and the pure parts of the two tasks. The real
 // database, the Brevo double and the GoTrue double are db-tests/tm1-periodic-tasks.
+import { OPS_PERIODIC_TASKS } from "@influx/contracts/backoffice-ops";
 import { describe, expect, it } from "vitest";
 import {
   AUTH_ORPHAN_AGE_MS,
@@ -26,10 +27,14 @@ import {
   isDue,
   createDataExportPurge,
   createOpsRetention,
+  createBadgeLifecycle,
   createVerificationExpiry,
+  BADGE_LIFECYCLE_BATCH,
+  BADGE_LIFECYCLE_MAX_BATCHES,
   EXPORT_PURGE_BATCH,
   OPS_RETENTION_MAX_STEPS,
   periodKeyOf,
+  PERIODIC_TASKS,
   PeriodicRunInterrupted,
   PeriodicTaskError,
   type PeriodicCounts,
@@ -96,6 +101,12 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
       return 0;
     },
     async expireVerificationRequests() {
+      return 0;
+    },
+    async runBadgeLifecycle() {
+      return 0;
+    },
+    async purgeVerificationFindings() {
       return 0;
     },
   };
@@ -865,5 +876,74 @@ describe("verification_expiry (0223; 08 edge case 1)", () => {
       signal(),
     );
     expect(calls).toBe(VERIFICATION_EXPIRY_MAX_BATCHES);
+  });
+});
+
+describe("badge_lifecycle (0230; 08 RG69 to RG71, RG100; L2F commit 12)", () => {
+  it("is in the list of the tasks of the backoffice's health screen, which reads the same enum (0230)", () => {
+    expect([...PERIODIC_TASKS].sort()).toEqual([...OPS_PERIODIC_TASKS].sort());
+  });
+
+  it("is a daily task, keyed by UTC day: one run a day whatever the clock of the instance", () => {
+    expect(periodKeyOf("badge_lifecycle", AT_0259)).toBe("2026-10-13");
+    expect(periodKeyOf("badge_lifecycle", AT_0300)).toBe("2026-10-13");
+    expect(isDue("badge_lifecycle", AT_0259, 3)).toBe(true);
+  });
+
+  it("runs the cycle, then the purge, each by full batches, and adds up what moved and what was erased", async () => {
+    const { store } = memoryStore();
+    const order: string[] = [];
+    const cycle = [BADGE_LIFECYCLE_BATCH, 7];
+    const purge = [BADGE_LIFECYCLE_BATCH, BADGE_LIFECYCLE_BATCH, 2];
+    store.runBadgeLifecycle = async () => {
+      order.push("cycle");
+      return cycle.shift() ?? 0;
+    };
+    store.purgeVerificationFindings = async () => {
+      order.push("purge");
+      return purge.shift() ?? 0;
+    };
+    const counts: PeriodicCounts = {};
+    await createBadgeLifecycle(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(order).toEqual(["cycle", "cycle", "purge", "purge", "purge"]);
+    expect(counts).toEqual({
+      moved: BADGE_LIFECYCLE_BATCH + 7,
+      purged: BADGE_LIFECYCLE_BATCH * 2 + 2,
+    });
+  });
+
+  it("is bounded per run, and stops between two steps when asked, leaving the run open", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.runBadgeLifecycle = async () => {
+      calls += 1;
+      return BADGE_LIFECYCLE_BATCH;
+    };
+    await createBadgeLifecycle(store)(
+      { runId: "run-2", attempt: 1 },
+      {},
+      signal(),
+    );
+    expect(calls).toBe(BADGE_LIFECYCLE_MAX_BATCHES);
+
+    const stop = new AbortController();
+    let cycles = 0;
+    store.runBadgeLifecycle = async () => {
+      cycles += 1;
+      stop.abort();
+      return BADGE_LIFECYCLE_BATCH;
+    };
+    await expect(
+      createBadgeLifecycle(store)(
+        { runId: "run-3", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+    expect(cycles).toBe(1);
   });
 });

@@ -197,6 +197,36 @@ export type BrevoVerificationEmail = {
   codeKind: string | null;
   codeExpiresAt: string | null;
   codeRevoked: boolean;
+  /** 0236: the days an appeal stays open (a refusal of a creator says it), null if unset. */
+  disputeWindowDays: number | null;
+  preferredLanguage: string;
+};
+
+/**
+ * What the worker reads of an e-mail of the life of the badge (0236; 08 RG94; modele §4 "Outbox"):
+ * the object the line names (a badge, a request, a dispute or a review) and the facts of its e-mail.
+ * Never a figure, a handle, the text of a dispute, the agent nor an internal comment.
+ */
+export type BrevoBadgeEmail = {
+  /** account_verified, audience_verified or brand_verified. */
+  level: string;
+  /** The network line (reference.networks), null for a brand. */
+  networkCode: string | null;
+  /** The state of the object: a badge, a request, a dispute or a review. */
+  objectState: string;
+  /** A dispute outcome: which decision it contested, `refusal` or `revocation`. */
+  contestedDecision: string | null;
+  /** ISO 8601: the badge's expiry, and the end of its grace period (expires_at + grace). */
+  badgeExpiresAt: string | null;
+  graceEndsAt: string | null;
+  /** The reason of the withdrawal, or of the decision a dispute contested. */
+  reasonCode: string | null;
+  /** The text written for the member by an agent (a withdrawal, an outcome). */
+  memberMessage: string | null;
+  outcomeReasonCode: string | null;
+  /** ISO 8601: the grant date of the badge a successful dispute handed back. */
+  restoredAt: string | null;
+  disputeWindowDays: number | null;
   preferredLanguage: string;
 };
 
@@ -582,6 +612,7 @@ export async function readBrevoVerificationEmail(
     code_expires_at: string | null;
     code_revoked: boolean;
     preferred_language: string;
+    dispute_window_days: number | null;
   }>(
     sql`select level, network_code, request_status, reason_code, member_message,
                to_char(granted_at at time zone 'UTC',
@@ -591,7 +622,7 @@ export async function readBrevoVerificationEmail(
                code_kind,
                to_char(code_expires_at at time zone 'UTC',
                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as code_expires_at,
-               code_revoked, preferred_language
+               code_revoked, preferred_language, dispute_window_days
           from leads.read_brevo_verification_email(${lineId}::bigint, ${worker}::text)`,
   );
   const row = rows[0];
@@ -608,6 +639,63 @@ export async function readBrevoVerificationEmail(
         codeKind: row.code_kind,
         codeExpiresAt: row.code_expires_at,
         codeRevoked: row.code_revoked,
+        disputeWindowDays:
+          row.dispute_window_days === null
+            ? null
+            : Number(row.dispute_window_days),
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The facts of an e-mail of the life of the badge, on a line to brevo_transactional in processing
+ * for this worker (0236): null when the object is not the line's account's or the account is erased.
+ */
+export async function readBrevoBadgeEmail(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoBadgeEmail | null> {
+  const rows = await tx.execute<{
+    level: string;
+    network_code: string | null;
+    object_state: string;
+    contested_decision: string | null;
+    badge_expires_at: string | null;
+    grace_ends_at: string | null;
+    reason_code: string | null;
+    member_message: string | null;
+    outcome_reason_code: string | null;
+    restored_at: string | null;
+    dispute_window_days: number | null;
+    preferred_language: string;
+  }>(
+    sql`select level, network_code, object_state, contested_decision,
+               to_char(badge_expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as badge_expires_at,
+               to_char(grace_ends_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as grace_ends_at,
+               reason_code, member_message, outcome_reason_code,
+               to_char(restored_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as restored_at,
+               dispute_window_days, preferred_language
+          from leads.read_brevo_badge_email(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        level: row.level,
+        networkCode: row.network_code,
+        objectState: row.object_state,
+        contestedDecision: row.contested_decision,
+        badgeExpiresAt: row.badge_expires_at,
+        graceEndsAt: row.grace_ends_at,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        outcomeReasonCode: row.outcome_reason_code,
+        restoredAt: row.restored_at,
+        disputeWindowDays:
+          row.dispute_window_days === null
+            ? null
+            : Number(row.dispute_window_days),
         preferredLanguage: row.preferred_language,
       };
 }

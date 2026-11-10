@@ -298,6 +298,7 @@ async function turn(options: TurnOptions = {}): Promise<number> {
       readBrandProfile: (line) =>
         readBrandProfileAttributesOf(database, randomUUID(), line, worker),
       readVerificationEmail: () => Promise.resolve(null),
+      readBadgeEmail: () => Promise.resolve(null),
       readVerifiedBadge: (line) =>
         readVerifiedBadgeOf(database, randomUUID(), line, worker),
       logger,
