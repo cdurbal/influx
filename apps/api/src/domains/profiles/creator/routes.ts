@@ -26,6 +26,9 @@
 // - POST   .../submit                       "Publier mon profil": the required fields still missing, or the
 //                                           entry of queue 2 (07 RG4, RG10); the status moves by that door alone
 // - PUT    .../visibility                   « visible dans la recherche » (07 RG8), any state but suspended
+// and, from L2G commit 09, "ce que voit une marque" (public-projection.ts, the one public projection):
+// - GET    .../preview                      the tabs "before" (layer A as a brand will read it) and
+//                                           "after" (plus his own layer I), 07 RG104
 // Nothing publishes but a decision of an agent (07 RG5). Any role
 // but creator (a brand included) gets the answer of a route that does not exist: the same code and
 // the same body as an unknown address (T14.3, T14.4). The terms gate applies to a creator only, for
@@ -77,6 +80,10 @@ import {
   type PortfolioUploadQuery,
   type PortfolioUploadResponse,
 } from "@influx/contracts/creator-portfolio";
+import {
+  creatorPreviewResponseSchema,
+  type CreatorPreviewResponse,
+} from "@influx/contracts/creator-projection";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ApiDatabase, Transaction } from "../../../db/index.ts";
 import { ApiError } from "../../../platform/errors.ts";
@@ -110,6 +117,7 @@ import {
   setCreatorVisibility,
   submitCreatorProfile,
 } from "./profile.ts";
+import { readCreatorPreview } from "./public-projection.ts";
 
 const NETWORKS_ROUTE = "/v1/me/creator-profile/networks";
 const NETWORK_ROUTE = `${NETWORKS_ROUTE}/:id`;
@@ -140,7 +148,7 @@ export function registerCreatorProfileRoutes(
   function asCreator<T>(
     request: FastifyRequest,
     reply: FastifyReply,
-    work: (tx: Transaction) => Promise<T>,
+    work: (tx: Transaction, context: MemberContext) => Promise<T>,
   ): Promise<T> {
     // Personal data of the member: never kept by a cache.
     void reply.header("cache-control", "no-store");
@@ -156,7 +164,7 @@ export function registerCreatorProfileRoutes(
         if (context.termsToAccept !== null) {
           throw new ApiError("terms_acceptance_required");
         }
-        return work(tx);
+        return work(tx, context);
       },
       { terms: "exempt" },
     );
@@ -210,6 +218,21 @@ export function registerCreatorProfileRoutes(
         setCreatorVisibility(tx, body.isSearchable),
       );
     },
+  );
+
+  app.get(
+    "/v1/me/creator-profile/preview",
+    { schema: { response: { 200: creatorPreviewResponseSchema } } },
+    async (request, reply): Promise<CreatorPreviewResponse> =>
+      asCreator(request, reply, async (tx, context) => {
+        // the account is the session's: the creator previews himself, never another (T14)
+        const preview = await readCreatorPreview(tx, context.accountId);
+        if (preview === null) {
+          // a creator role granted after the sign-up holds no storefront: nothing a brand could see
+          throw new ApiError("not_found");
+        }
+        return preview;
+      }),
   );
 
   /** The line of the path, lower case as the database writes it; the account is the session's. */

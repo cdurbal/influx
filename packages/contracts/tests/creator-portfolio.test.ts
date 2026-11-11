@@ -234,8 +234,10 @@ describe("L2G-06 what a brand sees (07 RG16, RG84, RG104)", () => {
     mainAudienceCountry: "FR",
     mainAudienceShareBand: "50_74",
     audienceGenderBand: null,
+    audienceBands: [{ dimension: "age", code: "25_34", shareBand: "25_50" }],
     formats: ["instagram_reel"],
     usageRights: [{ code: "organic_repost", inclusion: "included" }],
+    deliveryLead: null,
     maxExclusivity: "le_1m",
     acceptsNonMonetary: false,
     availability: "lt_1m",
@@ -247,6 +249,7 @@ describe("L2G-06 what a brand sees (07 RG16, RG84, RG104)", () => {
         reachBand: null,
         publicationFrequency: "weekly",
         commentBand: null,
+        engagementBand: null,
         figuresSource: "declared",
         figuresMeasuredAt: "2026-11-10T09:00:00.000Z",
         badges: [],
@@ -296,6 +299,7 @@ describe("L2G-06 what a brand sees (07 RG16, RG84, RG104)", () => {
             avgReachPerPost: null,
           },
         ],
+        audienceShares: [{ dimension: "country", code: "FR", share: 70 }],
       },
     };
     expect(creatorPreviewResponseSchema.safeParse(preview).success).toBe(true);

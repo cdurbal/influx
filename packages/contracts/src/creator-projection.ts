@@ -16,6 +16,7 @@ import {
   collaborationExperienceBandSchema,
   creatorExclusivityBandSchema,
   creatorUsageRightSchema,
+  deliveryLeadBandSchema,
   travelScopeSchema,
   CREATOR_FIGURES_SOURCES,
 } from "./creator-profile.ts";
@@ -51,12 +52,27 @@ export const creatorProjectionNetworkSchema = z.strictObject({
   reachBand: z.string().nullable(),
   publicationFrequency: z.string().nullable(),
   commentBand: z.string().nullable(),
+  /** Only while an audience badge of the line holds (07 RG48, RG102): never from a declared rate. */
+  engagementBand: z.string().nullable(),
   figuresSource: z.enum(CREATOR_FIGURES_SOURCES),
   figuresMeasuredAt: z.iso.datetime().nullable(),
   badges: z.array(creatorProjectionBadgeSchema),
 });
 export type CreatorProjectionNetwork = z.infer<
   typeof creatorProjectionNetworkSchema
+>;
+
+/**
+ * A share band of the audience of the main line (07 RG58, RG102 « tranches »): the other countries and
+ * the age bands, a share under 10 % absent; the main country and the gender band are on the profile.
+ */
+export const creatorProjectionAudienceBandSchema = z.strictObject({
+  dimension: z.enum(["country", "age"]),
+  code: z.string(),
+  shareBand: z.string(),
+});
+export type CreatorProjectionAudienceBand = z.infer<
+  typeof creatorProjectionAudienceBandSchema
 >;
 
 /** The layer A of a published profile, and of its draft for the owner. */
@@ -75,8 +91,10 @@ export const creatorProjectionBeforeSchema = z.strictObject({
   mainAudienceCountry: countryCodeSchema.nullable(),
   mainAudienceShareBand: z.string().nullable(),
   audienceGenderBand: z.string().nullable(),
+  audienceBands: z.array(creatorProjectionAudienceBandSchema),
   formats: z.array(z.string()),
   usageRights: z.array(creatorUsageRightSchema),
+  deliveryLead: deliveryLeadBandSchema.nullable(),
   maxExclusivity: creatorExclusivityBandSchema.nullable(),
   acceptsNonMonetary: z.boolean(),
   availability: availabilityBandSchema.nullable(),
@@ -88,7 +106,12 @@ export type CreatorProjectionBefore = z.infer<
   typeof creatorProjectionBeforeSchema
 >;
 
-/** A listed line with its layer I, for the creator reading his own "after" tab (modele §6, EC-L2G-9). */
+/**
+ * A listed line with its layer I, for the creator reading his own "after" tab (modele §6, EC-L2G-9). The
+ * exact figures are the declared ones while `figuresSource` is `declared`; on a line whose figures are
+ * `agent_observed` they are null: the creator's session reads no observed value (0221 §12.5), and a
+ * declared value never stands for an observed one (08 RG19, RG40).
+ */
 export const creatorProjectionIdentifiedNetworkSchema =
   creatorProjectionNetworkSchema.extend({
     handle: z.string().nullable(),
@@ -102,9 +125,20 @@ export type CreatorProjectionIdentifiedNetwork = z.infer<
   typeof creatorProjectionIdentifiedNetworkSchema
 >;
 
+/** An exact share of the audience of the main line (07 RG102 « pourcentages exacts »), as the creator typed it. */
+export const creatorProjectionAudienceShareSchema = z.strictObject({
+  dimension: z.enum(["country", "age", "gender"]),
+  code: z.string(),
+  share: z.number().int().min(0).max(100),
+});
+export type CreatorProjectionAudienceShare = z.infer<
+  typeof creatorProjectionAudienceShareSchema
+>;
+
 export const creatorProjectionAfterSchema =
   creatorProjectionBeforeSchema.extend({
     networks: z.array(creatorProjectionIdentifiedNetworkSchema),
+    audienceShares: z.array(creatorProjectionAudienceShareSchema),
   });
 export type CreatorProjectionAfter = z.infer<
   typeof creatorProjectionAfterSchema

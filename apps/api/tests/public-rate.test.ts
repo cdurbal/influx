@@ -66,6 +66,7 @@ const SESSION_ROUTES: readonly string[] = [
   "PATCH /v1/me/creator-profile/portfolio/:id",
   "DELETE /v1/me/creator-profile/portfolio/:id",
   "GET /v1/me/creator-profile/portfolio/:id/image",
+  "GET /v1/me/creator-profile/preview",
   "POST /v1/me/creator-profile/submit",
   "PUT /v1/me/creator-profile/visibility",
   "GET /v1/me/verification",

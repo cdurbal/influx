@@ -23,6 +23,10 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import * as z from "zod";
 import {
+  creatorProjectionAfterSchema,
+  creatorProjectionBeforeSchema,
+} from "@influx/contracts/creator-projection";
+import {
   routeInventoryOf,
   buildServer,
   type ApiServer,
@@ -303,6 +307,26 @@ describe("TM11.1: no contract of packages/contracts declares an identifying fiel
     expect(findings).toEqual([]);
   });
 
+  it("holds the « before » tab of the public projection, the layer A Lot 3 reuses, free of every identifying name (L2G 09)", () => {
+    // The module is left out above for its « after » tab only: its layer A is checked here. Four names
+    // of a line are shared with the identifying tables and are layer A by 07 RG102 (the networks
+    // covered, the main account, the source and the date of the figures): nothing else.
+    const fieldNames = (schema: z.ZodType) =>
+      forbiddenFieldsOf(schema).map(
+        (found) => found.split(" ")[0]?.split(".").pop() ?? found,
+      );
+    expect(fieldNames(creatorProjectionBeforeSchema).sort()).toEqual([
+      "figuresMeasuredAt",
+      "figuresSource",
+      "isPrimary",
+      "networkCode",
+    ]);
+    // witness: the « after » tab does hold the layer I the check looks for
+    expect(fieldNames(creatorProjectionAfterSchema)).toEqual(
+      expect.arrayContaining(["handle", "profileUrl", "followersCount"]),
+    );
+  });
+
   it("keeps each allowance on a field its module still declares", async () => {
     const modules = new Map(
       (await contractModules()).map((entry) => [entry.name, entry]),
@@ -347,7 +371,8 @@ describe("TM11.2: no response schema of the web routes declares an identifying f
     );
     expect(covered.length).toBeGreaterThan(30);
     expect(covered.every((entry) => entry.schemas.length > 0)).toBe(true);
-    // The exempted routes are the L2D ones: profile (2) and networks (6); and the portfolio (6, L2G 07).
+    // The exempted routes are the L2D ones: profile (2) and networks (6); the portfolio (6, L2G 07),
+    // the submission and the switch (2, L2G 08), and the preview, whose "after" tab is layer I (L2G 09).
     expect(exempt.map((entry) => entry.route).sort()).toEqual([
       "DELETE /v1/me/creator-profile/networks/:id",
       "DELETE /v1/me/creator-profile/portfolio/:id",
@@ -355,6 +380,7 @@ describe("TM11.2: no response schema of the web routes declares an identifying f
       "GET /v1/me/creator-profile/networks",
       "GET /v1/me/creator-profile/portfolio",
       "GET /v1/me/creator-profile/portfolio/:id/image",
+      "GET /v1/me/creator-profile/preview",
       "PATCH /v1/me/creator-profile",
       "PATCH /v1/me/creator-profile/networks/:id",
       "PATCH /v1/me/creator-profile/portfolio/:id",
@@ -371,6 +397,7 @@ describe("TM11.2: no response schema of the web routes declares an identifying f
       "db-tests/profiles-creator-route.test.ts",
       "db-tests/profiles-creator-networks.test.ts",
       "db-tests/profiles-portfolio-route.test.ts",
+      "db-tests/profiles-creator-preview-route.test.ts",
     ]) {
       const source = readFileSync(path.resolve(HERE, "..", file), "utf8");
       expect(source, file).toContain("T14.3");
