@@ -15,7 +15,7 @@
 | **Lot 1** — inscription et leads (J5 à J9) | ✅ Clos le 2026-10-27 sur `staging` ; production préparée, non créée (portes §5.8, J9T-1) |
 | Hors jalon — suppression de compte en libre-service (D72) | ✅ Livré (`0150`) |
 | Extras **DS** (D73), **SN** (D74), **RK** (D75) | ✅ Clos les 2026-10-29, 2026-10-30 et 2026-10-30 ; reliquat RK au §8 |
-| **Lot 2** — profils, réseaux, badge | Découpé en sept jalons L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; L2A à L2F clos (L2F le 2026-11-11, D83 réalisée) ; L2G suivant |
+| **Lot 2** — profils, réseaux, badge | Découpé en sept jalons L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; L2A à L2F clos (L2F le 2026-11-11, D83 réalisée) ; L2G ouvert le 2026-11-11 |
 
 **Deux niveaux de « prêt », à ne pas confondre :** *prêt en `staging`* (démontrable, `staging` iso-production depuis D70 : envois et contacts réels sur les comptes de `staging`, exploité par les agents) et *prêt en production* (ouvert au public : en plus, les portes non techniques de §5.8 et l'accord explicite du fondateur).
 
@@ -208,7 +208,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 
 **Plus tard** (sans action au Lot 2) : *avant production* J9T-1, J9S-2, J9S-4, AL53, J4S-8, manques du commit J9-11 et points `expert-ux` du commit J9-5 (`archives/jalons/j9-fiche.md`) ; *Lot 3* T15.2, F3 ; *Lot 5* classement des groupes d'erreurs, J9T-3, J9T-10, J8S-8, J8S-9, RK-16, effacement Apollo, écran des identifiants Brevo (option) ; *Lot 6* F8, J7T-6 ; *Lot 6bis* reports D70 (`archives/jalons/d70-plan.md` l. 125 à 130) ; décisions DZ-1, 2, 4 à 7 (`decisions.md`).
 
-**Jalons** (D77) : le Lot 2 est découpé en L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; suivant : `/lot-decoupe` fait, `/jalon-prepare L2G`. Un jalon se suit dans `jalons/<id>/run.md` (une ligne par commit) ; ici, une ligne à son ouverture et une à sa clôture.
+**Jalons** (D77) : le Lot 2 est découpé en L2A à L2G (`jalons/lot2-plan.md`, validé le 2026-11-01) ; en cours : `/jalon-run L2G`. Un jalon se suit dans `jalons/<id>/run.md` (une ligne par commit) ; ici, une ligne à son ouverture et une à sa clôture.
 
 - **PL** (préparation du Lot 2, corrections K1 et K3 à K10 de `archives/revue-pre-lot2-2026-10-31.md`) : ouvert le 2026-10-31, **clos le 2026-10-31** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/pl-fiche.md`, `archives/jalons/pl/run.md`.
 - **L2A** (reliquat RK-fin, PLS-1, PLS-3, PLT-6, SNT-3, J4S-7, listes de départ des référentiels, migration `0201`) : ouvert le 2026-11-01, **clos le 2026-11-01** (critère de fin prouvé, reliquat soldé ou reporté ci-dessus, revue attestée) ; `archives/jalons/l2a-fiche.md`, `archives/jalons/l2a/run.md`.
@@ -217,6 +217,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 - **L2D** (profil créateur, blocs 1 à 5, T1, TM11, migrations `0216` à `0219`) : ouvert le 2026-11-05, **clos le 2026-11-06** ; un attendu assoupli (`member-shell.spec.ts:193`, EC-L2D-15-1) ; `archives/jalons/l2d-fiche.md`, `archives/jalons/l2d/run.md`.
 - **L2E** (propriété, pièces, constat, file 4, T9.6, migrations `0220` à `0227`) : ouvert le 2026-11-07, **clos le 2026-11-08** ; dépassement e2e accepté (L2D-E2E reste ouvert) ; `archives/jalons/l2e-fiche.md`, `archives/jalons/l2e/run.md`.
 - **L2F** (péremption, retrait 2V, files 5 et 6, D83, migrations `0228` à `0241`) : ouvert le 2026-11-08, **clos le 2026-11-11** ; critère de fin prouvé, revue attestée (`988388e`, `c07e0b0`), L2D-E2E reste ouvert ; `archives/jalons/l2f-fiche.md`, `archives/jalons/l2f/run.md`.
+- **L2G** (portfolio modéré, profil créateur publié, files 2 et 3, clôture du Lot 2, migrations `0242` à `0245`) : ouvert le 2026-11-11 ; `jalons/l2g-fiche.md`, `jalons/l2g/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 
