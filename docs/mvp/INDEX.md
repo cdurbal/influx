@@ -503,7 +503,7 @@
 | 48 | 32 | Besoin | RG9–RG78 |
 | 80 | 20 | Acteurs | RG90 |
 | 100 | 57 | User stories | RG35 |
-| 157 | 1503 | Règles de gestion | RG1–RG162 |
+| 157 | 1506 | Règles de gestion | RG1–RG162 |
 | 159 | 94 | ↳ A — Portée, vocabulaire et principes | RG1–RG93 |
 | 253 | 154 | ↳ B — Le parcours d'envoi de masse, écran par écran | RG4–RG102 |
 | 407 | 52 | ↳ C — Source 1 : les contacts de la plateforme | RG22–RG93 |
@@ -518,25 +518,25 @@
 | 1214 | 96 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
 | 1310 | 65 | ↳ K — La supervision | RG15–RG134 |
 | 1375 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
-| 1411 | 204 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
-| 1615 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
-| 1660 | 51 | Cas limites | RG7–RG146 |
-| 1711 | 435 | Critères d'acceptation | RG85–RG160 |
-| 1713 | 68 | ↳ Le parcours d'envoi de masse |  |
-| 1781 | 36 | ↳ Source 1 — contacts de la plateforme |  |
-| 1817 | 29 | ↳ Source 2 — segment Brevo |  |
-| 1846 | 51 | ↳ Source 3 — saisie libre |  |
-| 1897 | 26 | ↳ Les modèles |  |
-| 1923 | 22 | ↳ La cadence |  |
-| 1945 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
-| 2014 | 23 | ↳ Le suivi des résultats |  |
-| 2037 | 29 | ↳ Environnement et interrupteur d'urgence |  |
-| 2066 | 25 | ↳ La supervision |  |
-| 2091 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
-| 2130 | 16 | ↳ Langue et accessibilité | RG155 |
-| 2146 | 88 | Impacts | RG6–RG146 |
-| 2234 | 19 | Hors périmètre | RG44–RG107 |
-| 2253 | 27 | Questions ouvertes | RG9–RG160 |
+| 1411 | 207 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
+| 1618 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
+| 1663 | 51 | Cas limites | RG7–RG146 |
+| 1714 | 435 | Critères d'acceptation | RG85–RG160 |
+| 1716 | 68 | ↳ Le parcours d'envoi de masse |  |
+| 1784 | 36 | ↳ Source 1 — contacts de la plateforme |  |
+| 1820 | 29 | ↳ Source 2 — segment Brevo |  |
+| 1849 | 51 | ↳ Source 3 — saisie libre |  |
+| 1900 | 26 | ↳ Les modèles |  |
+| 1926 | 22 | ↳ La cadence |  |
+| 1948 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
+| 2017 | 23 | ↳ Le suivi des résultats |  |
+| 2040 | 29 | ↳ Environnement et interrupteur d'urgence |  |
+| 2069 | 25 | ↳ La supervision |  |
+| 2094 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
+| 2133 | 16 | ↳ Langue et accessibilité | RG155 |
+| 2149 | 88 | Impacts | RG6–RG146 |
+| 2237 | 19 | Hors périmètre | RG44–RG107 |
+| 2256 | 27 | Questions ouvertes | RG9–RG160 |
 
 ## 17-parcours-et-ecrans-espaces-membres.md (~60k tokens)
 
@@ -678,7 +678,7 @@
 | 39 | 42 | 2. Stratégie de développement | RG44–RG148 |
 | 81 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
 | 87 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 93 | 21 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
-| 114 | 9 | 6. Configuration des services externes |  |
-| 123 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 140 | 86 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 93 | 22 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
+| 115 | 9 | 6. Configuration des services externes |  |
+| 124 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 141 | 86 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |

@@ -6,6 +6,7 @@
 import type {
   BrandProfileAttributes,
   BrevoSubject,
+  CreatorProfileAttributes,
   SubjectAccount,
   VerifiedBadge,
 } from "../../repository.ts";
@@ -25,6 +26,9 @@ export const BREVO_CONTACT_ATTRIBUTES = [
   "FUNNEL_STAGE",
   "PROFILE_COMPLETENESS",
   "MAIN_TOPIC",
+  "NETWORKS",
+  "MAIN_AUDIENCE_BAND",
+  "MAIN_AUDIENCE_COUNTRY",
   "SECTOR",
   "COMPANY_SIZE",
   "TARGET_MARKETS",
@@ -104,7 +108,11 @@ export function languageOf(account: SubjectAccount): "fr" | "en" {
  * of a brand (0212; 06 RG79), null for a creator or a brand without one: its attributes are then
  * sent empty (RG81, 16 RG142), the funnel stage and the completeness at their defaults. `badge`: the
  * level the account holds and its date (0227; 16 §M4, 08 RG92: a level and a date, nothing else);
- * none, and an empty date, without one.
+ * none, and an empty date, without one. `creator`: the live storefront of a creator (0245; 07
+ * RG107 to RG110), null for a brand or a creator without one: its attributes are then sent empty
+ * (RG110). The state, the score, the first topic and the funnel stage take the creator's values
+ * where a brand's would sit (an account is one or the other); the networks, the band and the
+ * country of the main audience are the creator's only, codes and a band, never a figure (RG108).
  */
 export function mapContact(
   account: SubjectAccount,
@@ -112,6 +120,7 @@ export function mapContact(
   listId: number | null,
   profile: BrandProfileAttributes | null = null,
   badge: VerifiedBadge | null = null,
+  creator: CreatorProfileAttributes | null = null,
 ): BrevoContactBody {
   const attributes: Record<BrevoContactAttribute, string | number | boolean> = {
     INFLUX_ACCOUNT_ID: account.id,
@@ -124,16 +133,24 @@ export function mapContact(
     SIGNED_UP_AT: subject.signedUpAt,
     // 05 RG120, RG122: "direct" by default (§M4), "invitation" through a member invitation (D54)
     SIGNUP_SOURCE: subject.viaInvitation ? "invitation" : "direct",
-    // 06 RG78: a brand is "profile_completed" from its first publication, "registered" before
+    // 06 RG78, 07 RG106: a brand or a creator is "profile_completed" from its first publication,
+    // "registered" before
     FUNNEL_STAGE:
-      profile?.everPublished === true ? "profile_completed" : "registered",
-    PROFILE_COMPLETENESS: profile?.completenessPercent ?? 0,
-    MAIN_TOPIC: profile?.mainTopic ?? "",
+      profile?.everPublished === true || creator?.everPublished === true
+        ? "profile_completed"
+        : "registered",
+    PROFILE_COMPLETENESS:
+      profile?.completenessPercent ?? creator?.completenessPercent ?? 0,
+    MAIN_TOPIC: profile?.mainTopic ?? creator?.mainTopic ?? "",
+    // 07 RG107: codes of the listed networks, comma-separated in code order; a band; a country
+    NETWORKS: creator?.networks.join(",") ?? "",
+    MAIN_AUDIENCE_BAND: creator?.mainAudienceBand ?? "",
+    MAIN_AUDIENCE_COUNTRY: creator?.mainAudienceCountry ?? "",
     SECTOR: profile?.primarySector ?? "",
     COMPANY_SIZE: profile?.companySizeBand ?? "",
     // ISO 3166-1 codes in the order of the brand's slots, comma-separated (16 §M4)
     TARGET_MARKETS: profile?.targetMarkets.join(",") ?? "",
-    PROFILE_STATUS: profile?.status ?? "",
+    PROFILE_STATUS: profile?.status ?? creator?.status ?? "",
     VERIFIED_LEVEL: badge?.level ?? "none",
     VERIFIED_AT: badge?.at ?? "",
     MARKETING_CONSENT: account.marketingEmailConsent,

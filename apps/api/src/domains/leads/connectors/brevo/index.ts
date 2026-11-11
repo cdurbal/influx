@@ -58,6 +58,14 @@
 // ended since the line was queued, an appeal withdrawn, a proof no longer required is skipped (never
 // announced); a reason or outcome outside the closed lists, or a message that is required and
 // absent, is a visible failure.
+// creator_profile.decision and portfolio.decision (07 RG96, RG97, RG99; EC-L2G-8; L2G commit 10): the
+// answer to the examination of a creator profile (a submission or a revision of a published one) and
+// to the moderation of one visual, written like profile.decision from the facts read at consumption
+// (leads.read_brevo_creator_profile_decision and read_brevo_portfolio_decision, 0245) and never from
+// the payload (ids only): a decision, reason or kind outside the closed lists, or `other` without its
+// message, is a visible failure. The contact of a creator carries the attributes of RG107 from the
+// live storefront (leads.read_creator_profile_attributes, 0245), read on a Brevo contact line only
+// (the base refuses an Apollo line, RG109); absent, they are sent empty (RG110).
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import {
   UNIDENTIFIED_USER_AGENT,
@@ -76,6 +84,12 @@ import {
   renderBrandDecisionEmail,
   rejectionReasonOf,
 } from "../../../profiles/brand-decision-email.ts";
+import {
+  creatorRejectionReasonOf,
+  portfolioRejectionReasonOf,
+  renderCreatorProfileDecisionEmail,
+  renderPortfolioDecisionEmail,
+} from "../../../profiles/creator/decision-email.ts";
 import {
   disputeOutcomeOf,
   renderBadgeNoticeEmail,
@@ -98,11 +112,14 @@ import {
 import type {
   AttemptState,
   BrandProfileAttributes,
+  BrevoCreatorProfileDecision,
   BrevoErasureSubject,
+  BrevoPortfolioDecision,
   BrevoProfileDecision,
   BrevoBadgeEmail,
   BrevoVerificationEmail,
   ClaimedLine,
+  CreatorProfileAttributes,
   VerifiedBadge,
 } from "../../repository.ts";
 import {
@@ -149,6 +166,8 @@ export const WORKER_RENDERED_EMAILS = [
   "privacy.export_ready",
   "privacy.erasure_completed",
   "profile.decision",
+  "creator_profile.decision",
+  "portfolio.decision",
   "verification.received",
   "verification.code_issued",
   "verification.decision",
@@ -200,6 +219,24 @@ export type BrandProfileReader = (
   line: ClaimedLine,
 ) => Promise<BrandProfileAttributes | null>;
 
+/** The decision of a creator_profile.decision line (0245), without any address nor internal comment. */
+export type BrevoCreatorProfileDecisionReader = (
+  line: ClaimedLine,
+) => Promise<BrevoCreatorProfileDecision | null>;
+
+/** The decision of a portfolio.decision line (0245), without any address, caption nor file. */
+export type BrevoPortfolioDecisionReader = (
+  line: ClaimedLine,
+) => Promise<BrevoPortfolioDecision | null>;
+
+/**
+ * The live storefront of a creator contact line (0245; 07 RG107): read only for a creator, in its
+ * own short transaction; null when the account holds none.
+ */
+export type CreatorProfileReader = (
+  line: ClaimedLine,
+) => Promise<CreatorProfileAttributes | null>;
+
 /**
  * The facts of a verification e-mail line (0227): the request, its reason or badge date, the line's
  * code and the account's language; never the code, a handle nor a figure.
@@ -238,6 +275,12 @@ export type BrevoConnectorDependencies = {
   readErasureNotificationSubject: ErasureNotificationSubjectReader;
   /** Reads the decision of a profile.decision line (0211), its own transaction. */
   readProfileDecision: BrevoProfileDecisionReader;
+  /** Reads the decision of a creator_profile.decision line (0245), its own transaction. */
+  readCreatorProfileDecision: BrevoCreatorProfileDecisionReader;
+  /** Reads the decision of a portfolio.decision line (0245), its own transaction. */
+  readPortfolioDecision: BrevoPortfolioDecisionReader;
+  /** Reads the live storefront of a creator contact line (0245), its own transaction. */
+  readCreatorProfile: CreatorProfileReader;
   /** Reads the facts of a verification e-mail line (0227), its own transaction. */
   readVerificationEmail: BrevoVerificationEmailReader;
   /** Reads the facts of an e-mail of the life of the badge (0236), its own transaction. */
@@ -690,6 +733,127 @@ export function createBrevoConnectors(
   }
 
   /**
+   * creator_profile.decision (07 RG96, RG99; L2G commit 10): the answer to the examination of a
+   * creator profile. The address and the account checks come from the subject; the kind of the
+   * entry, the decision, its reason, the agent's message and the language from the decision read at
+   * consumption (0245), never from the payload. One decision, one e-mail: the idempotency key is
+   * the entry's. A kind, decision or reason outside the closed lists, or `other` without its
+   * message, is a visible failure, never guessed.
+   */
+  async function creatorProfileDecision(
+    line: ClaimedLine,
+    _account: NonNullable<AttemptState["account"]>,
+    subject: BrevoSubject,
+  ): Promise<Preparation> {
+    const read = await dependencies.readCreatorProfileDecision(line);
+    if (read === null) {
+      // No decided entry of this account behind the line: nothing to announce, visible.
+      return { kind: "fail", errorCode: "decision_not_found" };
+    }
+    const locale = read.preferredLanguage === "fr" ? "fr" : "en";
+    if (read.kind !== "submission" && read.kind !== "revision") {
+      return { kind: "fail", errorCode: "entry_kind_unknown" };
+    }
+    const kind = read.kind;
+    if (read.decision === "published") {
+      return rendered(
+        line,
+        "creator_profile.decision",
+        subject.email,
+        renderCreatorProfileDecisionEmail({
+          locale,
+          kind,
+          decision: "published",
+        }),
+        locale,
+      );
+    }
+    if (read.decision !== "rejected") {
+      return { kind: "fail", errorCode: "decision_unknown" };
+    }
+    const reason =
+      read.reasonCode === null
+        ? null
+        : creatorRejectionReasonOf(read.reasonCode);
+    if (reason === null) {
+      return { kind: "fail", errorCode: "rejection_reason_unknown" };
+    }
+    if (reason === "other" && read.memberMessage === null) {
+      return { kind: "fail", errorCode: "member_message_missing" };
+    }
+    return rendered(
+      line,
+      "creator_profile.decision",
+      subject.email,
+      renderCreatorProfileDecisionEmail({
+        locale,
+        kind,
+        decision: "rejected",
+        reason,
+        memberMessage: read.memberMessage,
+      }),
+      locale,
+    );
+  }
+
+  /**
+   * portfolio.decision (07 RG78, RG79, RG99; L2G commit 10): the answer to the moderation of one
+   * visual. The decision, its reason of the grid of RG79, whether it replaces another visual, the
+   * day of its deposit and the language come from the read at consumption (0245), never from the
+   * payload. One decision, one e-mail: the key is the visual's. A decision or reason outside the
+   * closed lists is a visible failure, never guessed.
+   */
+  async function portfolioDecision(
+    line: ClaimedLine,
+    _account: NonNullable<AttemptState["account"]>,
+    subject: BrevoSubject,
+  ): Promise<Preparation> {
+    const read = await dependencies.readPortfolioDecision(line);
+    if (read === null) {
+      // No decided visual of this account behind the line: nothing to announce, visible.
+      return { kind: "fail", errorCode: "decision_not_found" };
+    }
+    const locale = read.preferredLanguage === "fr" ? "fr" : "en";
+    if (read.decision === "approved") {
+      return rendered(
+        line,
+        "portfolio.decision",
+        subject.email,
+        renderPortfolioDecisionEmail({
+          locale,
+          decision: "approved",
+          replacement: read.replacement,
+          depositedOn: read.depositedOn,
+        }),
+        locale,
+      );
+    }
+    if (read.decision !== "rejected") {
+      return { kind: "fail", errorCode: "decision_unknown" };
+    }
+    const reason =
+      read.reasonCode === null
+        ? null
+        : portfolioRejectionReasonOf(read.reasonCode);
+    if (reason === null) {
+      return { kind: "fail", errorCode: "rejection_reason_unknown" };
+    }
+    return rendered(
+      line,
+      "portfolio.decision",
+      subject.email,
+      renderPortfolioDecisionEmail({
+        locale,
+        decision: "rejected",
+        reason,
+        replacement: read.replacement,
+        depositedOn: read.depositedOn,
+      }),
+      locale,
+    );
+  }
+
+  /**
    * The five e-mails of the verification (08 RG94, EC-L2E-3). The address and the account checks
    * come from the subject; the level, network line, reason, badge date, code and language from the
    * facts read at consumption (0227), never from the payload. A refusal speaks with the text of its
@@ -1058,6 +1222,8 @@ export function createBrevoConnectors(
     "privacy.request_received": dataRequestReceived,
     "privacy.export_ready": exportReady,
     "profile.decision": profileDecision,
+    "creator_profile.decision": creatorProfileDecision,
+    "portfolio.decision": portfolioDecision,
     "verification.received": verificationEmail("verification.received"),
     "verification.code_issued": verificationEmail("verification.code_issued"),
     "verification.decision": verificationEmail("verification.decision"),
@@ -1134,16 +1300,20 @@ export function createBrevoConnectors(
         role === "advertiser"
           ? await dependencies.readBrandProfile(line)
           : null;
+      // 07 RG107 to RG110: the live storefront of a creator enriches the contact the same way; read
+      // for a creator only, on this Brevo line only (the base refuses an Apollo line, RG109).
+      const creator =
+        role === "creator" ? await dependencies.readCreatorProfile(line) : null;
       // 0227, 08 RG92: the level of the badge and its date, read from the base at every rewrite of
       // the contact, never guessed from the event (a replayed lead.created must not erase a badge)
       const badge = await dependencies.readVerifiedBadge(line);
       const body =
         line.eventType === "consent.granted"
           ? {
-              ...map(account, subject, listId, profile, badge),
+              ...map(account, subject, listId, profile, badge, creator),
               emailBlacklisted: false,
             }
-          : map(account, subject, listId, profile, badge);
+          : map(account, subject, listId, profile, badge, creator);
       const description: CallDescription = {
         operation: "upsert_contact",
         templateCode: null,

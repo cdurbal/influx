@@ -50,6 +50,7 @@ import {
   readBrandProfileAttributesOf,
   readBrevoErasureSubjectOf,
   readBrevoSubjectOf,
+  readCreatorProfileAttributesOf,
   readVerifiedBadgeOf,
 } from "../src/domains/leads/queue.ts";
 import type {
@@ -148,6 +149,11 @@ afterEach(async () => {
       delete from profiles.advertiser_target_markets where account_id = any (${accountIds}::uuid[])`;
     await migration`
       delete from leads.contact_sync_states where account_id = any (${accountIds}::uuid[])`;
+    // L2G commit 10: the creator storefront of RG108's case
+    await migration`
+      delete from profiles.creator_public_networks where account_id = any (${accountIds}::uuid[])`;
+    await migration`
+      delete from profiles.creator_social_accounts where account_id = any (${accountIds}::uuid[])`;
   }
 });
 
@@ -295,6 +301,9 @@ async function turn(options: TurnOptions = {}): Promise<number> {
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       readErasureNotificationSubject: () => Promise.resolve(null),
       readProfileDecision: () => Promise.resolve(null),
+      readCreatorProfileDecision: () => Promise.resolve(null),
+      readPortfolioDecision: () => Promise.resolve(null),
+      readCreatorProfile: () => Promise.resolve(null),
       readBrandProfile: (line) =>
         readBrandProfileAttributesOf(database, randomUUID(), line, worker),
       readVerificationEmail: () => Promise.resolve(null),
@@ -1156,6 +1165,70 @@ describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed on the
       await migration`
         update identity.accounts set status = 'active', deleted_at = null where id = ${brand}`;
     }
+  });
+
+  it("L2G commit 10, 07 RG108, RG109: a published creator reaches Apollo with nothing of its storefront, and the base refuses the Apollo line to the creator read (22023)", async () => {
+    const handle = "secret_handle_tm1_apollo";
+    const creator = await createAccount({ role: "creator" });
+    await migration`
+      insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+      values (${creator}, profiles.new_creator_alias(), 'BE')`;
+    await migration`
+      update profiles.creator_public_profiles
+         set status = 'published', published_at = now(), primary_topic_code = 'food'
+       where account_id = ${creator}`;
+    await migration`
+      insert into profiles.creator_social_accounts
+        (account_id, network_code, is_primary, handle, profile_url, followers_count)
+      values (${creator}, 'instagram', true, ${handle},
+              ${`https://www.instagram.com/${handle}`}, 250017)`;
+    await migration`
+      update profiles.creator_public_networks set listed_at = now()
+       where account_id = ${creator}`;
+    await setting("apollo_scope", "tous_les_inscrits");
+    const ids = await insertLines(
+      creator,
+      ["brevo_contact", "apollo_contact"],
+      "creator",
+      "lead.updated",
+    );
+
+    await turn();
+
+    expect((await lineRow(ids.apollo_contact)).status).toBe("succeeded");
+    expect((await lineRow(ids.brevo_contact)).status).toBe("succeeded");
+    expect(apollo.requests.length).toBeGreaterThan(0);
+    const apolloRaw = apollo.requests
+      .map((request) => JSON.stringify(request.body))
+      .join(" ");
+    // RG108: no handle, no URL, no figure; RG109: none of the Brevo attributes of RG107 either
+    expect(
+      valuesFoundIn(apolloRaw, [
+        handle,
+        "instagram",
+        "250017",
+        "NETWORKS",
+        "MAIN_AUDIENCE_BAND",
+        "MAIN_AUDIENCE_COUNTRY",
+      ]),
+    ).toEqual([]);
+    const brevoRaw = brevo.requests.map((request) => request.raw).join(" ");
+    expect(valuesFoundIn(brevoRaw, [handle, "250017"])).toEqual([]);
+    expect(brevoRaw).toContain("NETWORKS");
+
+    // RG109 in the base: the creator read refuses an Apollo line
+    await replay(ids.apollo_contact);
+    await migration`
+      update leads.outbox_events
+         set status = 'processing', locked_by = 'tm1-creator-reader', locked_at = now()
+       where id = ${ids.apollo_contact}`;
+    const error = await readCreatorProfileAttributesOf(
+      database,
+      randomUUID(),
+      claimed(ids.apollo_contact, creator, "apollo_contact"),
+      "tm1-creator-reader",
+    ).catch((caught: unknown) => caught);
+    expect(await code(error)).toBe(INVALID_PARAMETER);
   });
 
   it("0212, 03 P7: the worker holds no right on the profile tables, only the function", async () => {

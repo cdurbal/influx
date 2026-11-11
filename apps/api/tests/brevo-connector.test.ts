@@ -33,10 +33,13 @@ import type {
   AttemptState,
   BrandProfileAttributes,
   BrevoBadgeEmail,
+  BrevoCreatorProfileDecision,
   BrevoErasureSubject,
+  BrevoPortfolioDecision,
   BrevoProfileDecision,
   BrevoVerificationEmail,
   ClaimedLine,
+  CreatorProfileAttributes,
   OutboxDestination,
   SubjectAccount,
   VerifiedBadge,
@@ -62,6 +65,8 @@ let reads: string[];
 let verificationReads: string[];
 let badgeReads: string[];
 let badgeEmailReads: string[];
+/** The reads of 0245, kept apart for the same reason. */
+let creatorReads: string[];
 
 function logger() {
   const write = (level: string) => (object: object, message: string) => {
@@ -158,6 +163,12 @@ type Setup = {
   decision?: BrevoProfileDecision | null;
   /** The live brand profile read of a contact line (0212); none by default. */
   brandProfile?: BrandProfileAttributes | null;
+  /** The decision read of a creator_profile.decision line (0245); none by default. */
+  creatorDecision?: BrevoCreatorProfileDecision | null;
+  /** The decision read of a portfolio.decision line (0245); none by default. */
+  portfolioDecision?: BrevoPortfolioDecision | null;
+  /** The live storefront read of a creator contact line (0245); none by default. */
+  creatorProfile?: CreatorProfileAttributes | null;
   /** The facts of a verification e-mail line (0227); none by default. */
   verification?: BrevoVerificationEmail | null;
   /** The facts of an e-mail of the life of the badge (0236); none by default. */
@@ -222,6 +233,18 @@ function connectors(setup: Setup = {}): {
         return Promise.resolve(
           setup.brandProfile === undefined ? null : setup.brandProfile,
         );
+      },
+      readCreatorProfileDecision: (claimed) => {
+        creatorReads.push(`profile-decision:${claimed.id}`);
+        return Promise.resolve(setup.creatorDecision ?? null);
+      },
+      readPortfolioDecision: (claimed) => {
+        creatorReads.push(`portfolio-decision:${claimed.id}`);
+        return Promise.resolve(setup.portfolioDecision ?? null);
+      },
+      readCreatorProfile: (claimed) => {
+        creatorReads.push(`creator:${claimed.id}`);
+        return Promise.resolve(setup.creatorProfile ?? null);
       },
       readVerificationEmail: (claimed) => {
         verificationReads.push(claimed.id);
@@ -302,6 +325,7 @@ beforeEach(() => {
   verificationReads = [];
   badgeReads = [];
   badgeEmailReads = [];
+  creatorReads = [];
 });
 
 describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () => {
@@ -328,6 +352,9 @@ describe("operation 1: create or update a contact (16 §M1, §M4; 05 CA38)", () 
       FUNNEL_STAGE: "registered",
       PROFILE_COMPLETENESS: 0,
       MAIN_TOPIC: "",
+      NETWORKS: "",
+      MAIN_AUDIENCE_BAND: "",
+      MAIN_AUDIENCE_COUNTRY: "",
       SECTOR: "",
       COMPANY_SIZE: "",
       TARGET_MARKETS: "",
@@ -2373,6 +2400,422 @@ describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed enrich
         state(BRAND_STATE),
       ),
     ).toMatchObject({ kind: "retry", errorMessage: "Brevo answered 503" });
+  });
+});
+
+describe("L2G commit 10, 07 RG107 to RG110: the creator contact carries the codes and bands of its storefront, nothing identifying", () => {
+  const PUBLISHED_CREATOR: CreatorProfileAttributes = {
+    status: "published",
+    completenessPercent: 100,
+    mainTopic: "food",
+    networks: ["instagram", "tiktok"],
+    mainAudienceBand: "micro",
+    mainAudienceCountry: "FR",
+    everPublished: true,
+  };
+
+  it("RG107: lead.updated after the publication rewrites the contact with the state, the score, the topic, the networks, the band and the country", async () => {
+    const { contact } = connectors({ creatorProfile: PUBLISHED_CREATOR });
+    const updated = line("brevo_contact", { eventType: "lead.updated" });
+    expect(await run(contact, updated)).toEqual({
+      kind: "succeeded",
+      providerContactId: "1",
+    });
+    const stored = double.contacts.get(EMAIL);
+    expect(stored?.listIds).toEqual([CREATORS_LIST]);
+    expect(stored?.attributes).toMatchObject({
+      PROFILE_TYPE: "creator",
+      COMPANY: "",
+      FUNNEL_STAGE: "profile_completed",
+      PROFILE_COMPLETENESS: 100,
+      MAIN_TOPIC: "food",
+      NETWORKS: "instagram,tiktok",
+      MAIN_AUDIENCE_BAND: "micro",
+      MAIN_AUDIENCE_COUNTRY: "FR",
+      PROFILE_STATUS: "published",
+      SECTOR: "",
+      COMPANY_SIZE: "",
+      TARGET_MARKETS: "",
+    });
+    expect(Object.keys(stored?.attributes ?? {}).sort()).toEqual(
+      [...BREVO_CONTACT_ATTRIBUTES].sort(),
+    );
+    expect(creatorReads).toEqual([`creator:${updated.id}`]);
+  });
+
+  it("profile.completed rewrites the contact the same way, and without marketing consent it is skipped no_consent before any read", async () => {
+    const { contact } = connectors({ creatorProfile: PUBLISHED_CREATOR });
+    const completed = line("brevo_contact", {
+      eventType: "profile.completed",
+      idempotencyKey: `profile.completed:${ACCOUNT}`,
+    });
+    await run(contact, completed);
+    expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+      FUNNEL_STAGE: "profile_completed",
+      PROFILE_STATUS: "published",
+    });
+    creatorReads = [];
+    expect(
+      await prepare(
+        contact,
+        line("brevo_contact", { eventType: "profile.completed" }),
+        state({ marketingEmailConsent: false }),
+      ),
+    ).toEqual({ kind: "skip", reason: "no_consent" });
+    expect(creatorReads).toEqual([]);
+  });
+
+  it("RG110, 16 RG142: a draft is registered and every field not filled is sent empty, never invented", async () => {
+    const { contact } = connectors({
+      creatorProfile: {
+        status: "draft",
+        completenessPercent: null,
+        mainTopic: null,
+        networks: [],
+        mainAudienceBand: null,
+        mainAudienceCountry: null,
+        everPublished: false,
+      },
+    });
+    await run(contact, line("brevo_contact"));
+    expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+      FUNNEL_STAGE: "registered",
+      PROFILE_COMPLETENESS: 0,
+      MAIN_TOPIC: "",
+      NETWORKS: "",
+      MAIN_AUDIENCE_BAND: "",
+      MAIN_AUDIENCE_COUNTRY: "",
+      PROFILE_STATUS: "draft",
+    });
+  });
+
+  it("a creator without any storefront keeps the defaults; a brand never reads the creator storefront", async () => {
+    const { contact } = connectors({ creatorProfile: null });
+    await run(contact, line("brevo_contact"));
+    expect(double.contacts.get(EMAIL)?.attributes).toMatchObject({
+      FUNNEL_STAGE: "registered",
+      PROFILE_STATUS: "",
+      NETWORKS: "",
+    });
+    creatorReads = [];
+    const brands = connectors({ creatorProfile: PUBLISHED_CREATOR });
+    await run(brands.contact, line("brevo_contact"), state(BRAND_STATE));
+    expect(creatorReads).toEqual([]);
+    expect(double.contacts.get(EMAIL)?.attributes.NETWORKS).toBe("");
+  });
+
+  it("RG108: the three new attributes join the closed list, and a handle, a URL, a figure or a caption stays refused", () => {
+    for (const name of [
+      "NETWORKS",
+      "MAIN_AUDIENCE_BAND",
+      "MAIN_AUDIENCE_COUNTRY",
+    ]) {
+      expect(BREVO_CONTACT_ATTRIBUTES).toContain(name);
+      expect(
+        checkContactOutput({ email: EMAIL, attributes: { [name]: "x" } }),
+      ).toEqual([]);
+    }
+    for (const name of [
+      "HANDLE",
+      "PROFILE_URL",
+      "FOLLOWERS",
+      "AUDIENCE_EXACT",
+      "ENGAGEMENT",
+      "CAPTION",
+      "FILE_NAME",
+      "ALIAS",
+    ]) {
+      expect(
+        checkContactOutput({ email: EMAIL, attributes: { [name]: "x" } }),
+      ).toEqual([name]);
+    }
+  });
+});
+
+describe("L2G commit 10, 07 RG96, RG99: creator_profile.decision answers the examination of a creator profile", () => {
+  const ENTRY = "6d1e2f3a-4b5c-4d6e-9f7a-8b9c0d1e2f3a";
+
+  function decided(entry = ENTRY): ClaimedLine {
+    return line("brevo_transactional", {
+      eventType: "creator_profile.decision",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000e801",
+        account_id: ACCOUNT,
+        entry_id: entry,
+        email_code: "creator_profile.decision",
+      },
+      idempotencyKey: `creator_profile.decision:${entry}`,
+    });
+  }
+
+  const PUBLISHED: BrevoCreatorProfileDecision = {
+    kind: "submission",
+    decision: "published",
+    reasonCode: null,
+    memberMessage: null,
+    preferredLanguage: "fr",
+  };
+
+  const OTHER: BrevoCreatorProfileDecision = {
+    kind: "submission",
+    decision: "rejected",
+    reasonCode: "other",
+    memberMessage:
+      "Merci de nous écrire pour préciser la nature de vos contenus.",
+    preferredLanguage: "fr",
+  };
+
+  it("a publication leaves in the language read, with its code and the key of the decision, without any template", async () => {
+    const { transactional } = connectors({
+      creatorDecision: { ...PUBLISHED, preferredLanguage: "en" },
+    });
+    const claimed = decided();
+    expect(await run(transactional, claimed)).toMatchObject({
+      kind: "succeeded",
+      locale: "en",
+    });
+    const [message] = double.delivered;
+    expect(message?.body).toMatchObject({
+      to: [{ email: EMAIL }],
+      subject: "Your INFLUX creator profile is published",
+      tags: ["creator_profile.decision"],
+    });
+    expect(message?.body.templateId).toBeUndefined();
+    expect(message?.headers["idempotency-key"]).toBe(
+      `creator_profile.decision:${ENTRY}`,
+    );
+    expect(reads).toEqual([claimed.id]);
+    expect(creatorReads).toEqual([`profile-decision:${claimed.id}`]);
+  });
+
+  it("a revision speaks of the change, not of the profile; a refused one keeps the previous version", async () => {
+    const approved = connectors({
+      creatorDecision: { ...PUBLISHED, kind: "revision" },
+    });
+    await run(approved.transactional, decided());
+    expect(double.delivered[0]?.body.subject).toBe(
+      "Votre modification de profil INFLUX est publiée",
+    );
+    const refused = connectors({
+      creatorDecision: {
+        kind: "revision",
+        decision: "rejected",
+        reasonCode: "bio_insufficient",
+        memberMessage: null,
+        preferredLanguage: "fr",
+      },
+    });
+    await run(
+      refused.transactional,
+      decided("6d1e2f3a-4b5c-4d6e-9f7a-8b9c0d1e2f3b"),
+    );
+    expect(double.delivered[1]?.body.subject).toBe(
+      "Votre modification de profil INFLUX n'a pas été publiée",
+    );
+    expect(double.delivered[1]?.body.textContent).toContain(
+      "Votre profil reste visible dans sa version précédente.",
+    );
+  });
+
+  it("a refusal carries the message of its reason, and the message of the agent for other only, escaped in the HTML part", async () => {
+    const { transactional } = connectors({
+      creatorDecision: {
+        ...OTHER,
+        memberMessage:
+          "Votre bio <b>mélange</b> deux univers & deux activités.",
+      },
+    });
+    await run(transactional, decided());
+    const [message] = double.delivered;
+    expect(message?.body.subject).toBe(
+      "Votre profil créateur INFLUX n'a pas été publié",
+    );
+    expect(message?.body.htmlContent).toContain(
+      "Votre bio &lt;b&gt;mélange&lt;/b&gt; deux univers &amp; deux activités.",
+    );
+    expect(message?.body.htmlContent).not.toContain("<b>");
+    expect(message?.body.textContent).toContain(
+      "Le message de l'équipe INFLUX :",
+    );
+  });
+
+  it("a message of the agent that looks like a link is refused by the output check, nothing sent", async () => {
+    for (const message of [
+      "Voyez notre page sur https://exemple.invalid/profil pour comprendre.",
+      "Écrivez-nous à contact@exemple.invalid pour en discuter ensemble.",
+      "Passez par exemple.com pour corriger votre présentation de profil.",
+    ]) {
+      const { transactional } = connectors({
+        creatorDecision: { ...OTHER, memberMessage: message },
+      });
+      expect(await run(transactional, decided())).toEqual({
+        kind: "failed",
+        errorCode: "output_check_rejected",
+      });
+    }
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("fails visibly, nothing sent: no decided entry, a kind, a decision or a reason outside the lists, other without its message", async () => {
+    const failure = (creatorDecision: BrevoCreatorProfileDecision | null) =>
+      prepare(
+        connectors({ creatorDecision }).transactional,
+        decided(),
+        state(),
+      );
+    expect(await failure(null)).toEqual({
+      kind: "fail",
+      errorCode: "decision_not_found",
+    });
+    expect(await failure({ ...PUBLISHED, kind: "resubmission" })).toEqual({
+      kind: "fail",
+      errorCode: "entry_kind_unknown",
+    });
+    expect(await failure({ ...PUBLISHED, decision: "withdrawn" })).toEqual({
+      kind: "fail",
+      errorCode: "decision_unknown",
+    });
+    expect(
+      await failure({ ...OTHER, reasonCode: "made_up", memberMessage: null }),
+    ).toEqual({ kind: "fail", errorCode: "rejection_reason_unknown" });
+    expect(await failure({ ...OTHER, reasonCode: "duplicate_brand" })).toEqual({
+      kind: "fail",
+      errorCode: "rejection_reason_unknown",
+    });
+    expect(await failure({ ...OTHER, memberMessage: null })).toEqual({
+      kind: "fail",
+      errorCode: "member_message_missing",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("an account that is not active gets nothing and its decision is not read; redirect skips an address outside the list", async () => {
+    const { transactional } = connectors({ creatorDecision: PUBLISHED });
+    expect(
+      (await prepare(transactional, decided(), state({ status: "deleted" })))
+        .kind,
+    ).toBe("skip");
+    expect(creatorReads).toEqual([]);
+    const redirect = connectors({
+      creatorDecision: PUBLISHED,
+      settings: { testRecipients: ["someone-else@example.test"] },
+    });
+    expect(await prepare(redirect.transactional, decided(), state())).toEqual({
+      kind: "skip",
+      reason: "skipped_non_production",
+    });
+  });
+});
+
+describe("L2G commit 10, 07 RG78, RG79, RG99: portfolio.decision answers the moderation of one visual", () => {
+  const ITEM = "7e2f3a4b-5c6d-4e7f-8a8b-9c0d1e2f3a4b";
+
+  function decided(item = ITEM): ClaimedLine {
+    return line("brevo_transactional", {
+      eventType: "portfolio.decision",
+      payload: {
+        event_id: "0a1b2c3d-0000-4000-8000-00000000f801",
+        account_id: ACCOUNT,
+        item_id: item,
+        email_code: "portfolio.decision",
+      },
+      idempotencyKey: `portfolio.decision:${item}`,
+    });
+  }
+
+  const APPROVED: BrevoPortfolioDecision = {
+    decision: "approved",
+    reasonCode: null,
+    replacement: false,
+    depositedOn: "2026-11-09",
+    preferredLanguage: "fr",
+  };
+
+  it("an approval names the day of the deposit in the language read, with its code and the key of the visual, without any template", async () => {
+    const { transactional } = connectors({
+      portfolioDecision: { ...APPROVED, preferredLanguage: "en" },
+    });
+    const claimed = decided();
+    expect(await run(transactional, claimed)).toMatchObject({
+      kind: "succeeded",
+      locale: "en",
+    });
+    const [message] = double.delivered;
+    expect(message?.body).toMatchObject({
+      to: [{ email: EMAIL }],
+      subject: "Your INFLUX visual is approved",
+      tags: ["portfolio.decision"],
+    });
+    expect(message?.body.templateId).toBeUndefined();
+    expect(message?.body.textContent).toContain("uploaded on November 9, 2026");
+    expect(message?.headers["idempotency-key"]).toBe(
+      `portfolio.decision:${ITEM}`,
+    );
+    expect(creatorReads).toEqual([`portfolio-decision:${claimed.id}`]);
+  });
+
+  it("a replacement says which visual leaves the profile, approved or refused", async () => {
+    const approved = connectors({
+      portfolioDecision: { ...APPROVED, replacement: true },
+    });
+    await run(approved.transactional, decided());
+    expect(double.delivered[0]?.body.textContent).toContain(
+      "Il remplace le visuel précédent, retiré de votre profil.",
+    );
+    const refused = connectors({
+      portfolioDecision: {
+        decision: "rejected",
+        reasonCode: "watermark",
+        replacement: true,
+        depositedOn: "2026-11-09",
+        preferredLanguage: "fr",
+      },
+    });
+    await run(
+      refused.transactional,
+      decided("7e2f3a4b-5c6d-4e7f-8a8b-9c0d1e2f3a4c"),
+    );
+    const text = double.delivered[1]?.body.textContent ?? "";
+    expect(double.delivered[1]?.body.subject).toBe(
+      "Votre visuel INFLUX n'a pas été approuvé",
+    );
+    expect(text).toContain(
+      "Le visuel porte un filigrane, une signature ou un logo personnel.",
+    );
+    expect(text).toContain("Le visuel précédent reste en place.");
+    expect(text).toContain("sera supprimé dans 30 jours");
+  });
+
+  it("fails visibly, nothing sent: no decided visual, a decision or a reason outside the lists", async () => {
+    const failure = (portfolioDecision: BrevoPortfolioDecision | null) =>
+      prepare(
+        connectors({ portfolioDecision }).transactional,
+        decided(),
+        state(),
+      );
+    expect(await failure(null)).toEqual({
+      kind: "fail",
+      errorCode: "decision_not_found",
+    });
+    expect(await failure({ ...APPROVED, decision: "pending" })).toEqual({
+      kind: "fail",
+      errorCode: "decision_unknown",
+    });
+    for (const reasonCode of ["made_up", "other", null]) {
+      expect(
+        await failure({ ...APPROVED, decision: "rejected", reasonCode }),
+      ).toEqual({ kind: "fail", errorCode: "rejection_reason_unknown" });
+    }
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("an account that is not active gets nothing and its decision is not read", async () => {
+    const { transactional } = connectors({ portfolioDecision: APPROVED });
+    expect(
+      (await prepare(transactional, decided(), state({ status: "deleted" })))
+        .kind,
+    ).toBe("skip");
+    expect(creatorReads).toEqual([]);
   });
 });
 

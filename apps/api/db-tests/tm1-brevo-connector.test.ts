@@ -39,17 +39,22 @@ import {
   createWorkerDatabase,
   type WorkerDatabase,
 } from "../src/db/index.ts";
+import { PORTFOLIO_REJECTION_REASON_CODES } from "@influx/contracts/creator-portfolio";
+import { CREATOR_REJECTION_REASON_CODES } from "@influx/contracts/creator-profile";
 import { createBrevoConnectors } from "../src/domains/leads/connectors/brevo/index.ts";
 import { createOutboxDrain } from "../src/domains/leads/drain.ts";
 import {
   createWorkerQueue,
   LineTakenBackError,
   readBrandProfileAttributesOf,
+  readBrevoCreatorProfileDecisionOf,
   readBrevoErasureSubjectOf,
+  readBrevoPortfolioDecisionOf,
   readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
   readBrevoBadgeEmailOf,
   readBrevoVerificationEmailOf,
+  readCreatorProfileAttributesOf,
   readVerifiedBadgeOf,
 } from "../src/domains/leads/queue.ts";
 import type { ClaimedLine } from "../src/domains/leads/repository.ts";
@@ -122,6 +127,15 @@ afterEach(async () => {
       delete from profiles.advertiser_review_entries where account_id = any (${accountIds}::uuid[])`;
     await migration`
       delete from leads.contact_sync_states where account_id = any (${accountIds}::uuid[])`;
+    // L2G commit 10: the creator fixtures (decided entries and visuals, then the storefront)
+    await migration`
+      delete from profiles.portfolio_items where account_id = any (${accountIds}::uuid[])`;
+    await migration`
+      delete from profiles.creator_review_entries where account_id = any (${accountIds}::uuid[])`;
+    await migration`
+      delete from profiles.creator_public_networks where account_id = any (${accountIds}::uuid[])`;
+    await migration`
+      delete from profiles.creator_social_accounts where account_id = any (${accountIds}::uuid[])`;
   }
 });
 
@@ -244,6 +258,12 @@ async function turn(): Promise<number> {
         readBrevoProfileDecisionOf(database, randomUUID(), line, worker),
       readBrandProfile: (line) =>
         readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+      readCreatorProfileDecision: (line) =>
+        readBrevoCreatorProfileDecisionOf(database, randomUUID(), line, worker),
+      readPortfolioDecision: (line) =>
+        readBrevoPortfolioDecisionOf(database, randomUUID(), line, worker),
+      readCreatorProfile: (line) =>
+        readCreatorProfileAttributesOf(database, randomUUID(), line, worker),
       readBadgeEmail: (line) =>
         readBrevoBadgeEmailOf(database, randomUUID(), line, worker),
       readVerificationEmail: (line) =>
@@ -1065,6 +1085,504 @@ describe("L2C commit 10, 06 RG78, RG79, CA40, CA41: profile.completed reaches Br
       last_error_code: null,
     });
     expect(double.requests).toHaveLength(0);
+  });
+});
+
+describe("L2G commit 10, 07 RG96, RG99, RG107, RG108: the creator decisions and the creator contact, through the real queue (0245)", () => {
+  const OTHER_MESSAGE =
+    "Merci de nous écrire pour préciser la nature de vos contenus.";
+
+  /** The storefront row a sign-up leaves for a creator (0216); the identity row follows by trigger. */
+  async function storefront(account: string): Promise<void> {
+    await migration`
+      insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+      values (${account}, profiles.new_creator_alias(), 'BE')`;
+  }
+
+  async function creatorWithStorefront(
+    language: "fr" | "en",
+    consent = true,
+  ): Promise<{ creator: string; address: string; decider: string }> {
+    const creator = await createAccount({ role: "creator", language, consent });
+    const address = emails[emails.length - 1] ?? "";
+    await storefront(creator);
+    const decider = await createAccount({ role: "creator" });
+    return { creator, address, decider };
+  }
+
+  /** A committed decided entry of queue 2, as the decisions of 0244 leave it; its id. */
+  async function decidedEntry(
+    account: string,
+    decider: string,
+    kind: "submission" | "revision",
+    outcome:
+      | { state: "published" }
+      | { state: "rejected"; reason: string; message?: string },
+  ): Promise<string> {
+    const [row] = await migration<{ id: string }[]>`
+      insert into profiles.creator_review_entries
+        (account_id, kind, state, sla_due_at, decided_by_account_id, decided_at, closed_at,
+         rejection_reason_code, member_message, internal_comment)
+      values (${account}, ${kind}::profiles.review_entry_kind,
+              ${outcome.state}::profiles.review_entry_state, now() + interval '1 day', ${decider},
+              now(), now(),
+              ${outcome.state === "rejected" ? outcome.reason : null},
+              ${outcome.state === "rejected" ? (outcome.message ?? null) : null},
+              ${outcome.state === "rejected" ? "Internal: never in an e-mail." : null})
+      returning id::text as id`;
+    return row?.id ?? "";
+  }
+
+  /** A committed visual of queue 3 as a decision leaves it; its id. */
+  async function decidedVisual(
+    account: string,
+    decider: string,
+    outcome: { state: "approved" } | { state: "rejected"; reason: string },
+    replaces: string | null = null,
+  ): Promise<string> {
+    const [row] = await migration<{ id: string }[]>`
+      insert into profiles.portfolio_items
+        (account_id, state, replaces_item_id, received_bytes, byte_size, width, height, checksum,
+         exif_stripped, stored_at, sla_due_at, escalate_at, decided_by_account_id, decided_at,
+         rejection_reason_code, retention_due_at, internal_comment, caption)
+      values (${account}, ${outcome.state}::profiles.portfolio_item_state, ${replaces},
+              500000, 400000, 1080, 1350, ${randomUUID().replaceAll("-", "").repeat(2)},
+              ${outcome.state === "approved"}, now() - interval '2 days',
+              now() - interval '1 day', now() + interval '1 day', ${decider}, now(),
+              ${outcome.state === "rejected" ? outcome.reason : null},
+              case when ${outcome.state === "rejected"}::boolean
+                   then now() + interval '30 days' end,
+              'Internal: never in an e-mail.', 'Légende privée du visuel')
+      returning id::text as id`;
+    return row?.id ?? "";
+  }
+
+  async function queued(
+    account: string,
+    event: "creator_profile.decision" | "portfolio.decision",
+    key: "entry_id" | "item_id",
+    id: string,
+  ): Promise<string> {
+    const eventId = randomUUID();
+    const [row] = await migration<{ id: string }[]>`
+      insert into leads.outbox_events
+        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+      values (${eventId}, ${event}, 'brevo_transactional', ${`account:${account}`}, 100,
+              jsonb_build_object('event_id', ${eventId}::text, 'account_id', ${account}::text,
+                                 ${key}::text, ${id}::text, 'email_code', ${event}::text),
+              ${`${event}:${id}`})
+      returning id::text as id`;
+    lines.push(row?.id ?? "");
+    return row?.id ?? "";
+  }
+
+  function messageTo(address: string | undefined) {
+    return double.delivered.find((sent) =>
+      JSON.stringify(sent.body.to).includes(address ?? "-"),
+    );
+  }
+
+  for (const language of ["fr", "en"] as const) {
+    it(`${language}: a publication, a refusal for each reason of RG96 and a revision, each e-mail with its code, written by INFLUX, journaled P1`, async () => {
+      const texts = (language === "fr" ? french : english).email
+        .creatorProfileDecision;
+      const cases: {
+        kind: "submission" | "revision";
+        outcome:
+          | { state: "published" }
+          | { state: "rejected"; reason: string; message?: string };
+        subject: string;
+        body: string;
+      }[] = [
+        {
+          kind: "submission",
+          outcome: { state: "published" },
+          subject: texts.published.subject,
+          body: texts.published.body,
+        },
+        {
+          kind: "revision",
+          outcome: { state: "published" },
+          subject: texts.revisionApproved.subject,
+          body: texts.revisionApproved.body,
+        },
+        ...CREATOR_REJECTION_REASON_CODES.map((reason) => ({
+          kind: "submission" as const,
+          outcome:
+            reason === "other"
+              ? { state: "rejected" as const, reason, message: OTHER_MESSAGE }
+              : { state: "rejected" as const, reason },
+          subject: texts.rejected.subject,
+          body: reason === "other" ? OTHER_MESSAGE : texts.reason[reason],
+        })),
+        {
+          kind: "revision",
+          outcome: { state: "rejected", reason: "bio_insufficient" },
+          subject: texts.revisionRejected.subject,
+          body: texts.revisionRejected.body,
+        },
+      ];
+      const sentLines: string[] = [];
+      for (const item of cases) {
+        // one line per turn: the client of the connector paces its calls (16 RG, rate_limited)
+        const { creator, address, decider } =
+          await creatorWithStorefront(language);
+        const entry = await decidedEntry(
+          creator,
+          decider,
+          item.kind,
+          item.outcome,
+        );
+        const line = await queued(
+          creator,
+          "creator_profile.decision",
+          "entry_id",
+          entry,
+        );
+        sentLines.push(line);
+
+        expect(await turn()).toBe(1);
+
+        expect(await lineRow(line)).toMatchObject({ status: "succeeded" });
+        const sent = messageTo(address);
+        expect(sent?.body.subject).toBe(item.subject);
+        expect(sent?.body.templateId).toBeUndefined();
+        expect(sent?.body.tags).toEqual(["creator_profile.decision"]);
+        expect(sent?.body.textContent).toContain(item.body);
+        const written = `${String(sent?.body.htmlContent)}${String(sent?.body.textContent)}`;
+        // the internal comment of the agent never leaves (0245); no link, no domain, no address
+        expect(written).not.toContain("Internal");
+        expect(written).not.toMatch(/href|https?:|www\.|@/i);
+      }
+      expect(double.delivered).toHaveLength(cases.length);
+      const journal = await migration<
+        { email_code: string; priority: string; locale: string }[]
+      >`
+        select distinct email_code, priority::text as priority, locale
+          from leads.transactional_sends
+         where outbox_event_id = any (${sentLines}::bigint[])`;
+      expect(journal).toEqual([
+        {
+          email_code: "creator_profile.decision",
+          priority: "p1",
+          locale: language,
+        },
+      ]);
+    });
+
+    it(`${language}: an approval, a refusal for each reason of RG79 and a replacement, with the day of the deposit, never the caption`, async () => {
+      const texts = (language === "fr" ? french : english).email
+        .portfolioDecision;
+      const sentLines: string[] = [];
+      const cases = [
+        {
+          outcome: { state: "approved" as const },
+          subject: texts.approved.subject,
+        },
+        ...PORTFOLIO_REJECTION_REASON_CODES.map((reason) => ({
+          outcome: { state: "rejected" as const, reason },
+          subject: texts.rejected.subject,
+          body: texts.reason[reason],
+        })),
+      ];
+      for (const item of cases) {
+        const { creator, address, decider } =
+          await creatorWithStorefront(language);
+        const visual = await decidedVisual(creator, decider, item.outcome);
+        const line = await queued(
+          creator,
+          "portfolio.decision",
+          "item_id",
+          visual,
+        );
+        sentLines.push(line);
+
+        expect(await turn()).toBe(1);
+
+        expect(await lineRow(line)).toMatchObject({ status: "succeeded" });
+        const sent = messageTo(address);
+        expect(sent?.body.subject).toBe(item.subject);
+        expect(sent?.body.templateId).toBeUndefined();
+        expect(sent?.body.tags).toEqual(["portfolio.decision"]);
+        if ("body" in item) {
+          expect(sent?.body.textContent).toContain(item.body);
+        }
+        const written = `${String(sent?.body.htmlContent)}${String(sent?.body.textContent)}`;
+        // the caption, the internal comment and any file name never leave (RG99)
+        expect(written).not.toContain("Internal");
+        expect(written).not.toContain("Légende privée");
+        expect(written).not.toContain(".webp");
+        expect(written).not.toMatch(/href|https?:|www\.|@/i);
+      }
+      // a replacement says which visual leaves the profile
+      const { creator, address, decider } =
+        await creatorWithStorefront(language);
+      const previous = await decidedVisual(creator, decider, {
+        state: "approved",
+      });
+      const replacing = await decidedVisual(
+        creator,
+        decider,
+        { state: "approved" },
+        previous,
+      );
+      const replacement = await queued(
+        creator,
+        "portfolio.decision",
+        "item_id",
+        replacing,
+      );
+      sentLines.push(replacement);
+      expect(await turn()).toBe(1);
+      expect(messageTo(address)?.body.textContent).toContain(
+        texts.approved.replacement,
+      );
+      const journal = await migration<
+        { email_code: string; priority: string; locale: string }[]
+      >`
+        select distinct email_code, priority::text as priority, locale
+          from leads.transactional_sends
+         where outbox_event_id = any (${sentLines}::bigint[])`;
+      expect(journal).toEqual([
+        { email_code: "portfolio.decision", priority: "p1", locale: language },
+      ]);
+    });
+  }
+
+  it("a message of the agent that looks like a link is refused by the output check: failed, nothing sent", async () => {
+    const { creator, decider } = await creatorWithStorefront("fr");
+    const entry = await decidedEntry(creator, decider, "submission", {
+      state: "rejected",
+      reason: "other",
+      message: "Écrivez-nous à contact@exemple.invalid pour en discuter ici.",
+    });
+    const line = await queued(
+      creator,
+      "creator_profile.decision",
+      "entry_id",
+      entry,
+    );
+
+    expect(await turn()).toBe(1);
+
+    expect(await lineRow(line)).toMatchObject({
+      status: "failed",
+      last_error_code: "output_check_rejected",
+    });
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("a replay sends no second e-mail: the key of the decision is the entry's, the visual's", async () => {
+    const { creator, decider } = await creatorWithStorefront("en");
+    const entry = await decidedEntry(creator, decider, "submission", {
+      state: "published",
+    });
+    const line = await queued(
+      creator,
+      "creator_profile.decision",
+      "entry_id",
+      entry,
+    );
+    await turn();
+    expect(double.delivered).toHaveLength(1);
+    expect(double.messages[0]?.headers["idempotency-key"]).toBe(
+      `creator_profile.decision:${entry}`,
+    );
+
+    await replay(line);
+    await turn();
+
+    expect(double.delivered).toHaveLength(1);
+    const [{ count } = { count: -1 }] = await migration<{ count: number }[]>`
+      select count(*)::int as count from leads.transactional_sends where account_id = ${creator}`;
+    expect(count).toBe(1);
+  });
+
+  it("an account erased since the decision gets nothing: skipped, the decision is not read", async () => {
+    const { creator, decider } = await creatorWithStorefront("fr");
+    const entry = await decidedEntry(creator, decider, "submission", {
+      state: "rejected",
+      reason: "age_doubt",
+    });
+    const line = await queued(
+      creator,
+      "creator_profile.decision",
+      "entry_id",
+      entry,
+    );
+    await migration`
+      update identity.accounts set status = 'deleted', deleted_at = now() where id = ${creator}`;
+
+    expect(await turn()).toBe(1);
+
+    expect((await lineRow(line)).status).toBe("skipped");
+    expect(double.requests).toHaveLength(0);
+  });
+
+  it("an entry or a visual of ANOTHER account named by the line is never read: failed decision_not_found, nothing sent", async () => {
+    const { creator, decider } = await creatorWithStorefront("fr");
+    const other = await creatorWithStorefront("fr");
+    const foreignEntry = await decidedEntry(
+      other.creator,
+      decider,
+      "submission",
+      {
+        state: "published",
+      },
+    );
+    const foreignVisual = await decidedVisual(other.creator, decider, {
+      state: "approved",
+    });
+    const entryLine = await queued(
+      creator,
+      "creator_profile.decision",
+      "entry_id",
+      foreignEntry,
+    );
+    const visualLine = await queued(
+      creator,
+      "portfolio.decision",
+      "item_id",
+      foreignVisual,
+    );
+
+    // one line per turn: the client of the connector paces its calls
+    await turn();
+    await turn();
+
+    for (const line of [entryLine, visualLine]) {
+      expect(await lineRow(line)).toMatchObject({
+        status: "failed",
+        last_error_code: "decision_not_found",
+      });
+    }
+    expect(double.requests).toHaveLength(0);
+  });
+
+  describe("the contact of a creator, from the live storefront", () => {
+    async function listedStorefront(consent = true): Promise<string> {
+      const creator = await createAccount({ role: "creator", consent });
+      await storefront(creator);
+      await migration`
+        update profiles.creator_public_profiles
+           set status = 'published', published_at = now(), primary_topic_code = 'food'
+         where account_id = ${creator}`;
+      // two lines: the primary one is listed, the other is not (RG107: the listed lines only)
+      await migration`
+        insert into profiles.creator_social_accounts
+          (account_id, network_code, is_primary, handle, profile_url, followers_count)
+        values (${creator}, 'instagram', true, 'secret_handle_tm1',
+                'https://www.instagram.com/secret_handle_tm1', 25001),
+               (${creator}, 'tiktok', false, 'other_handle_tm1',
+                'https://www.tiktok.com/@other_handle_tm1', 800)`;
+      await migration`
+        update profiles.creator_public_networks set listed_at = now()
+         where account_id = ${creator} and network_code = 'instagram'`;
+      // after the lines: the derivation of the public audience may rewrite the country (0218)
+      await migration`
+        update profiles.creator_public_profiles set main_audience_country = 'FR'
+         where account_id = ${creator}`;
+      return creator;
+    }
+
+    async function updatedLine(account: string): Promise<string> {
+      const event = randomUUID();
+      const [row] = await migration<{ id: string }[]>`
+        insert into leads.outbox_events
+          (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+        values (${event}, 'lead.updated', 'brevo_contact', ${`account:${account}`}, 100,
+                ${JSON.stringify({ event_id: event, account_id: account })}::text::jsonb,
+                ${`lead.updated:${event}`})
+        returning id::text as id`;
+      lines.push(row?.id ?? "");
+      return row?.id ?? "";
+    }
+
+    it("RG107: the contact carries the state, the topic, the listed networks, the band and the country; RG108: never a handle, a URL or a figure", async () => {
+      const creator = await listedStorefront();
+      const line = await updatedLine(creator);
+
+      expect(await turn()).toBe(1);
+
+      expect((await lineRow(line)).status).toBe("succeeded");
+      const stored = double.contacts.get(emails[0] ?? "");
+      expect(stored?.listIds).toEqual([LISTS.creators]);
+      expect(stored?.attributes).toMatchObject({
+        PROFILE_TYPE: "creator",
+        FUNNEL_STAGE: "profile_completed",
+        MAIN_TOPIC: "food",
+        NETWORKS: "instagram",
+        MAIN_AUDIENCE_BAND: "micro",
+        MAIN_AUDIENCE_COUNTRY: "FR",
+        PROFILE_STATUS: "published",
+        SECTOR: "",
+        TARGET_MARKETS: "",
+      });
+      const raw = double.requests[0]?.raw ?? "";
+      for (const marker of [
+        "secret_handle_tm1",
+        "other_handle_tm1",
+        "instagram.com",
+        "25001",
+        "tiktok",
+      ]) {
+        expect(raw).not.toContain(marker);
+      }
+    });
+
+    it("RG110: a creator without any storefront is a contact with every creator attribute empty, never invented", async () => {
+      const creator = await createAccount({ role: "creator" });
+      const line = await updatedLine(creator);
+
+      expect(await turn()).toBe(1);
+
+      expect((await lineRow(line)).status).toBe("succeeded");
+      expect(double.contacts.get(emails[0] ?? "")?.attributes).toMatchObject({
+        FUNNEL_STAGE: "registered",
+        PROFILE_COMPLETENESS: 0,
+        MAIN_TOPIC: "",
+        NETWORKS: "",
+        MAIN_AUDIENCE_BAND: "",
+        MAIN_AUDIENCE_COUNTRY: "",
+        PROFILE_STATUS: "",
+      });
+    });
+
+    it("CA41: without marketing consent the contact is unsubscribed, the storefront is not read", async () => {
+      const creator = await listedStorefront(false);
+      const line = await updatedLine(creator);
+
+      expect(await turn()).toBe(1);
+
+      expect((await lineRow(line)).status).toBe("succeeded");
+      const raw = double.requests.map((request) => request.raw).join("");
+      expect(raw).not.toContain("NETWORKS");
+    });
+  });
+
+  describe("the translation files and the database hold the same closed lists", () => {
+    it("every message_key of the two creator reason tables resolves in both languages", async () => {
+      const profile = await migration<{ code: string; message_key: string }[]>`
+        select code, message_key from profiles.creator_rejection_reasons`;
+      const visual = await migration<{ code: string; message_key: string }[]>`
+        select code, message_key from profiles.portfolio_rejection_reasons`;
+      expect(profile.map((row) => row.code).sort()).toEqual(
+        [...CREATOR_REJECTION_REASON_CODES].sort(),
+      );
+      expect(visual.map((row) => row.code).sort()).toEqual(
+        [...PORTFOLIO_REJECTION_REASON_CODES].sort(),
+      );
+      for (const messages of [french, english]) {
+        for (const { message_key: key } of [...profile, ...visual]) {
+          const [, block, , code] = /^(\w+)\.(reason)\.(\w+)$/.exec(key) ?? [];
+          expect(block === undefined, key).toBe(false);
+          const texts = (messages.email as Record<string, unknown>)[
+            block ?? ""
+          ] as { reason: Record<string, string> } | undefined;
+          expect(typeof texts?.reason[code ?? ""], key).toBe("string");
+        }
+      }
+    });
   });
 });
 

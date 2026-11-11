@@ -264,6 +264,58 @@ export type BrandProfileAttributes = {
   everPublished: boolean;
 };
 
+/**
+ * What the worker reads of a creator_profile.decision line (0245; 07 RG96, RG99): the kind of the
+ * entry (submission or revision), its decision, its reason, the message of the agent to the creator
+ * (reason `other` only) and the account's language. Never the internal comment, the agent nor a
+ * value of the profile.
+ */
+export type BrevoCreatorProfileDecision = {
+  kind: string;
+  decision: string;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  preferredLanguage: string;
+};
+
+/**
+ * What the worker reads of a portfolio.decision line (0245; 07 RG78, RG79, RG99): the decision of
+ * the visual (approved or rejected), its reason of the grid of RG79, whether it replaces another
+ * visual, the day of its deposit in the account's time zone (`YYYY-MM-DD`) and the account's
+ * language. Never the caption, the statement, the key, the file nor the agent.
+ */
+export type BrevoPortfolioDecision = {
+  decision: string;
+  reasonCode: string | null;
+  replacement: boolean;
+  depositedOn: string;
+  preferredLanguage: string;
+};
+
+/**
+ * What the Brevo contact connector reads of a creator profile (0245; 07 RG107 to RG110): the live
+ * row of the storefront, as codes, bands, a score and a boolean only, never a handle, a pseudonym,
+ * a URL, an exact figure, a caption nor a file name (RG108). A field the creator has not filled is
+ * null (sent empty, RG110), never a guess. Brevo only: Apollo receives nothing more than at Lot 1
+ * (RG109), and the base refuses its line.
+ */
+export type CreatorProfileAttributes = {
+  /** The state as stored: draft, pending_review, published, rejected or suspended. */
+  status: string;
+  /** The stored completeness (07 RG88), 0 to 100; null when never computed. */
+  completenessPercent: number | null;
+  /** Code of reference.topics. */
+  mainTopic: string | null;
+  /** Codes of reference.networks of the listed lines, in code order. */
+  networks: readonly string[];
+  /** The audience band of the listed primary line (a band, never a figure). */
+  mainAudienceBand: string | null;
+  /** ISO 3166-1 alpha-2. */
+  mainAudienceCountry: string | null;
+  /** The profile was published once at least (published_at): the funnel stage. */
+  everPublished: boolean;
+};
+
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
 export type ApolloSubject = {
   email: string;
@@ -587,6 +639,111 @@ export async function readBrevoProfileDecision(
         reasonCode: row.reason_code,
         memberMessage: row.member_message,
         preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The decision of a creator_profile.decision line to brevo_transactional in processing for this
+ * worker (0245): the kind of the entry, published or rejected, the reason code, the message of the
+ * agent (`other` only) and the account's language. null: no decided entry of the line's account, or
+ * the account is erased.
+ */
+export async function readBrevoCreatorProfileDecision(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoCreatorProfileDecision | null> {
+  const rows = await tx.execute<{
+    kind: string;
+    decision: string;
+    reason_code: string | null;
+    member_message: string | null;
+    preferred_language: string;
+  }>(
+    sql`select kind, decision, reason_code, member_message, preferred_language
+          from leads.read_brevo_creator_profile_decision(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        kind: row.kind,
+        decision: row.decision,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The decision of a portfolio.decision line to brevo_transactional in processing for this worker
+ * (0245): approved or rejected, the reason code, whether the visual replaces another, the day of its
+ * deposit and the account's language. null: no decided visual of the line's account, or the account
+ * is erased. The day is cast to `YYYY-MM-DD` by the base: the driver never builds a Date from it.
+ */
+export async function readBrevoPortfolioDecision(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoPortfolioDecision | null> {
+  const rows = await tx.execute<{
+    decision: string;
+    reason_code: string | null;
+    replacement: boolean;
+    deposited_on: string;
+    preferred_language: string;
+  }>(
+    sql`select decision, reason_code, replacement,
+               to_char(deposited_on, 'YYYY-MM-DD') as deposited_on, preferred_language
+          from leads.read_brevo_portfolio_decision(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        decision: row.decision,
+        reasonCode: row.reason_code,
+        replacement: row.replacement,
+        depositedOn: row.deposited_on,
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The creator attributes of a Brevo contact line in processing for this worker (0245): the live
+ * storefront of the line's account. The base refuses an Apollo line (22023, RG109): this is called
+ * for a Brevo contact only. null: no storefront (an advertiser, an account without one, or an
+ * erased account).
+ */
+export async function readCreatorProfileAttributes(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<CreatorProfileAttributes | null> {
+  const rows = await tx.execute<{
+    profile_status: string;
+    completeness_percent: number | null;
+    primary_topic_code: string | null;
+    network_codes: string;
+    main_audience_band: string | null;
+    main_audience_country: string | null;
+    ever_published: boolean;
+  }>(
+    sql`select profile_status, completeness_percent, primary_topic_code, network_codes,
+                main_audience_band, main_audience_country, ever_published
+          from leads.read_creator_profile_attributes(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        status: row.profile_status,
+        completenessPercent: row.completeness_percent,
+        mainTopic: row.primary_topic_code,
+        networks: row.network_codes === "" ? [] : row.network_codes.split(","),
+        mainAudienceBand: row.main_audience_band,
+        mainAudienceCountry: row.main_audience_country,
+        everPublished: row.ever_published,
       };
 }
 

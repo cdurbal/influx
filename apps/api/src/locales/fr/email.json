@@ -153,6 +153,82 @@
         "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
       }
     },
+    "creatorProfileDecision": {
+      "published": {
+        "subject": "Votre profil créateur INFLUX est publié",
+        "preheader": "Un commercial INFLUX a relu et publié votre profil.",
+        "title": "Votre profil est publié",
+        "body": "Un commercial INFLUX a relu votre profil et l'a publié. Seule sa version anonyme, sous votre alias, peut être présentée aux marques.",
+        "edit": "Si vous modifiez ensuite votre titre, votre bio, une légende, un visuel, un réseau, un pseudo ou un lien, la modification sera relue avant d'être publiée ; en attendant, la version publiée reste en place. Vos chiffres, thématiques et disponibilités changent aussitôt.",
+        "why": "votre profil créateur a été relu par un commercial INFLUX"
+      },
+      "rejected": {
+        "subject": "Votre profil créateur INFLUX n'a pas été publié",
+        "preheader": "Un commercial INFLUX a relu votre profil : voici pourquoi il n'est pas publié.",
+        "title": "Votre profil n'a pas été publié",
+        "body": "Un commercial INFLUX a relu votre profil et ne l'a pas publié en l'état.",
+        "why": "votre profil créateur a été relu par un commercial INFLUX"
+      },
+      "revisionApproved": {
+        "subject": "Votre modification de profil INFLUX est publiée",
+        "preheader": "Un commercial INFLUX a relu et publié votre modification.",
+        "title": "Votre modification est publiée",
+        "body": "Un commercial INFLUX a relu votre modification et l'a publiée.",
+        "why": "une modification de votre profil créateur a été relue par un commercial INFLUX"
+      },
+      "revisionRejected": {
+        "subject": "Votre modification de profil INFLUX n'a pas été publiée",
+        "preheader": "Un commercial INFLUX a relu votre modification : voici pourquoi elle n'est pas publiée.",
+        "title": "Votre modification n'a pas été publiée",
+        "body": "Un commercial INFLUX a relu votre modification et ne l'a pas publiée. Votre profil reste visible dans sa version précédente.",
+        "why": "une modification de votre profil créateur a été relue par un commercial INFLUX"
+      },
+      "reason": {
+        "identifier_in_text": "Votre titre ou votre bio contient un pseudo, un arobase, un lien ou un nom. Ces informations ne sont visibles qu'une fois la mise en relation ouverte.",
+        "bio_insufficient": "Votre bio ne permet pas à une marque de comprendre ce que vous faites.",
+        "portfolio_insufficient": "Il faut au moins 3 éléments déposés pour publier votre profil.",
+        "portfolio_non_compliant": "Un ou plusieurs de vos visuels permettent de vous identifier.",
+        "network_link_inconsistent": "Le lien déclaré ne correspond pas au réseau choisi.",
+        "figures_inconsistent": "Les chiffres déclarés ne sont pas cohérents entre eux.",
+        "topic_inconsistent": "La thématique déclarée ne correspond pas au contenu montré.",
+        "illicit_content": "Le contenu de votre profil ne peut pas être publié : il est contraire à la loi ou aux conditions d'utilisation d'INFLUX.",
+        "age_doubt": "INFLUX est réservé aux personnes majeures : nous ne pouvons pas publier votre profil en l'état.",
+        "other": "Le message de l'équipe INFLUX :"
+      },
+      "nextStep": {
+        "fix": "Corrigez-le depuis votre espace INFLUX : votre correction sera relue à son tour.",
+        "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
+      }
+    },
+    "portfolioDecision": {
+      "approved": {
+        "subject": "Votre visuel INFLUX est approuvé",
+        "preheader": "Un commercial INFLUX a approuvé un visuel de votre portfolio.",
+        "title": "Votre visuel est approuvé",
+        "body": "Un commercial INFLUX a approuvé le visuel que vous avez déposé le {date}. Il fait désormais partie de la version anonyme de votre profil.",
+        "replacement": "Il remplace le visuel précédent, retiré de votre profil."
+      },
+      "rejected": {
+        "subject": "Votre visuel INFLUX n'a pas été approuvé",
+        "preheader": "Un commercial INFLUX n'a pas approuvé un visuel de votre portfolio.",
+        "title": "Votre visuel n'a pas été approuvé",
+        "body": "Un commercial INFLUX n'a pas approuvé le visuel que vous avez déposé le {date}.",
+        "replacement": "Le visuel précédent reste en place.",
+        "nextStep": "Vous pouvez déposer un autre visuel depuis votre espace INFLUX. Le fichier refusé sera supprimé dans {days} jours."
+      },
+      "why": "un visuel de votre portfolio a été relu par un commercial INFLUX",
+      "reason": {
+        "watermark": "Le visuel porte un filigrane, une signature ou un logo personnel.",
+        "handle_in_image": "Le visuel montre un arobase, un nom de compte ou un pseudo.",
+        "app_interface": "Le visuel montre l'interface d'une application : bandeau de profil, avatar ou commentaires.",
+        "text_naming_account_or_brand": "Un texte du visuel cite votre compte, ou une marque sans votre déclaration d'autorisation.",
+        "identifiable_place": "Le visuel permet de reconnaître un lieu : enseigne, plaque d'immatriculation, numéro de rue ou lieu connu.",
+        "statistics_screenshot": "Une capture de statistiques n'est pas admise au portfolio : elle montre votre pseudo.",
+        "illicit_content": "Le visuel est contraire à la loi ou aux conditions d'utilisation d'INFLUX.",
+        "caption_identifier": "La légende contient un pseudo, un arobase, un lien ou un nom.",
+        "caption_brand_unauthorised": "La légende cite une marque sans que vous ayez déclaré y être autorisé."
+      }
+    },
     "verificationNotice": {
       "network": {
         "instagram": "Instagram",
