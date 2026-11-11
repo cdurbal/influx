@@ -191,7 +191,7 @@ describe("the completeness is computed in packages/domain only (stockage.md §9)
 });
 
 describe("@influx/domain at L2B", () => {
-  it("is imported by the profile domain of apps/api, the alerts of queue 1 (L2C 11) the gap of the typing of queue 4 (L2E 14), the reasons of a withdrawal (L2F 13), the end of a grace period (L2F 13) and the text of a contest (L2F 14), the count of the portfolio (L2G 07), and nobody else (no front yet)", () => {
+  it("is imported by the profile domain of apps/api, the alerts of queue 1 (L2C 11) the gap of the typing of queue 4 (L2E 14), the reasons of a withdrawal (L2F 13), the end of a grace period (L2F 13) and the text of a contest (L2F 14), the count of the portfolio (L2G 07), the alerts of queues 2 and 3 (L2G 11), and nobody else (no front yet)", () => {
     const importers = sourcesOf(
       SOURCE_ROOTS.filter((root) => root !== "packages/domain/src"),
     )
@@ -202,6 +202,7 @@ describe("@influx/domain at L2B", () => {
       )
       .map(relative);
     expect(importers).toEqual([
+      "apps/api/src/domains/backoffice/creator-queues/alerts.ts",
       "apps/api/src/domains/backoffice/queues/entry-alerts.ts",
       "apps/api/src/domains/backoffice/verification-badges-routes.ts",
       "apps/api/src/domains/backoffice/verification-queues-decision-routes.ts",

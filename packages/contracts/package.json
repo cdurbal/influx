@@ -23,6 +23,7 @@
     "./backoffice-actions": "./src/backoffice-actions.ts",
     "./backoffice-invitations": "./src/backoffice-invitations.ts",
     "./backoffice-queues": "./src/backoffice-queues.ts",
+    "./creator-queues": "./src/creator-queues.ts",
     "./backoffice-ops": "./src/backoffice-ops.ts",
     "./ops": "./src/ops.ts",
     "./terms": "./src/terms.ts",

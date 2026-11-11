@@ -127,14 +127,28 @@ function viewBody(view: DualControlView): DualControlViewBody {
 
 /**
  * 0231: a withdrawal whose badge no longer holds (the task or a grant ended it since the request) is a
- * 409 on `badge`; the confirmation is rolled back with it, the request stays as it was. Anything else,
- * unchanged (the deliberate 42501 of the database stays the 403 of runSensitiveAction).
+ * 409 on `badge`; the confirmation is rolled back with it, the request stays as it was. 0243 (L2DS-6,
+ * l2g/modele.md point 15): a role change on an account whose creator profile is no longer a draft
+ * (submitted, published, refused or suspended: the profile is the creator's, not a form to throw away)
+ * is a 409 on `account`, `creator_profile_not_draft`, the confirmation rolled back with it. Anything
+ * else, unchanged (the deliberate 42501 of the database stays the 403 of runSensitiveAction).
  */
-function confirmRefusalOf(error: unknown): unknown {
-  return sqlStateOf(error) === "55000" &&
-    sqlDetailOf(error) === "badge_not_holding"
-    ? new ApiError("conflict", [{ path: "badge", issue: "badge_not_holding" }])
-    : error;
+export function confirmRefusalOf(error: unknown): unknown {
+  if (sqlStateOf(error) !== "55000") {
+    return error;
+  }
+  switch (sqlDetailOf(error)) {
+    case "badge_not_holding":
+      return new ApiError("conflict", [
+        { path: "badge", issue: "badge_not_holding" },
+      ]);
+    case "creator_profile_not_draft":
+      return new ApiError("conflict", [
+        { path: "account", issue: "creator_profile_not_draft" },
+      ]);
+    default:
+      return error;
+  }
 }
 
 export function registerDualControlRoutes(

@@ -90,6 +90,37 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release": {
     body: { reasonCode: "holder_absent" },
   },
+  // L2G 11: queue 2 (the creator profiles, 0243, 0244) and queue 3 (the visuals of the portfolios)
+  "GET /v1/bo/queues/profiles-creator/entries": {},
+  "POST /v1/bo/queues/profiles-creator/entries/search": { body: {} },
+  "POST /v1/bo/queues/profiles-creator/entries/:id/open": {},
+  "POST /v1/bo/queues/profiles-creator/entries/:id/publish": {
+    body: { reviewToken: "0".repeat(64) },
+  },
+  "POST /v1/bo/queues/profiles-creator/entries/:id/reject": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "bio_insufficient" },
+  },
+  "POST /v1/bo/queues/profiles-creator/entries/:id/release": {},
+  "POST /v1/bo/queues/profiles-creator/entries/:id/extend": {},
+  "POST /v1/bo/queues/profiles-creator/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "GET /v1/bo/queues/profiles-creator/entries/:id/portfolio/:itemId/image": {},
+  "GET /v1/bo/queues/portfolio-moderation/entries": {},
+  "POST /v1/bo/queues/portfolio-moderation/entries/search": { body: {} },
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/open": {},
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/approve": {
+    body: { reviewToken: "0".repeat(64) },
+  },
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/reject": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "watermark" },
+  },
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/release": {},
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/extend": {},
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "GET /v1/bo/queues/portfolio-moderation/entries/:id/image": {},
   "GET /v1/bo/queues/verification-creators/entries": {},
   "POST /v1/bo/queues/verification-creators/entries/search": { body: {} },
   "POST /v1/bo/queues/verification-creators/entries/:id/open": {},
@@ -396,7 +427,7 @@ function concrete(route: string, id: string): { method: Method; url: string } {
   const query = path.endsWith("/logo") ? `?logo=${NIL}` : "";
   return {
     method: method as Method,
-    url: `${path.replace(":id", id).replace(":evidenceId", NIL).replace(":badgeId", NIL)}${query}`,
+    url: `${path.replace(":id", id).replace(":evidenceId", NIL).replace(":badgeId", NIL).replace(":itemId", NIL)}${query}`,
   };
 }
 
@@ -584,6 +615,48 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     ],
     "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release":
       async () => [{ who: agent, id: await ownBrandEntry() }],
+    // L2G 11: an entry of queue 2 and a visual of queue 3 on the caller's own account are hidden by the
+    // database (0242, 0243, C(3)): the answer of an unknown entry, on every route of both queues. (An
+    // account the caller holds answers its own 403, 17b §2.5: t14-creator-queue-route.)
+    "POST /v1/bo/queues/profiles-creator/entries/:id/open": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/publish": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/reject": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/release": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/extend": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/force-release":
+      async () => [{ who: agent, id: (await ownCreatorFixture()).entryId }],
+    "GET /v1/bo/queues/profiles-creator/entries/:id/portfolio/:itemId/image":
+      async () => [{ who: agent, id: (await ownCreatorFixture()).entryId }],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/open": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/approve": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/reject": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/release": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/extend": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/force-release":
+      async () => [{ who: agent, id: (await ownCreatorFixture()).itemId }],
+    "GET /v1/bo/queues/portfolio-moderation/entries/:id/image": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
     // L2E 14: a verification request of the caller's own account is hidden by the database (0221,
     // C(3)): the answer of an unknown request, on every route of both views (an own request of the
     // creator view on the creator routes, of the brand view on the brand routes).
@@ -746,6 +819,56 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
   }
 
   const ownEntries: string[] = [];
+
+  type OwnCreator = { entryId: string; itemId: string };
+  let ownCreator: Promise<OwnCreator> | undefined;
+
+  /**
+   * A storefront of the agent's own account with an open entry of queue 2 and a pending visual of queue
+   * 3 (L2G 11): the doors never write them (one role per account, D41), so the superuser writes them with
+   * the foreign keys and the triggers out of the way; the policies of 0242 and 0243 are a second line,
+   * and this is how they are tried. Removed with the file.
+   */
+  function ownCreatorFixture(): Promise<OwnCreator> {
+    ownCreator ??= (async () => {
+      const entryId = randomUUID();
+      const itemId = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into profiles.creator_public_profiles
+            (account_id, alias, residence_country_code, status)
+          values (${agent.accountId}, profiles.new_creator_alias(), 'FR', 'pending_review')
+          on conflict do nothing`;
+        await tx`
+          insert into profiles.creator_review_entries
+            (id, account_id, kind, created_at, sla_due_at, escalate_at)
+          values (${entryId}, ${agent.accountId}, 'submission', now(), now() + interval '1 day',
+                  now() + interval '2 days')`;
+        await tx`
+          insert into profiles.portfolio_items
+            (id, account_id, state, received_bytes, byte_size, width, height, checksum,
+             exif_stripped, stored_at, sla_due_at, escalate_at)
+          values (${itemId}, ${agent.accountId}, 'pending', 1000, 900, 1080, 1350,
+                  ${"a".repeat(64)}, true, now(), now() + interval '1 day',
+                  now() + interval '2 days')`;
+      });
+      return { entryId, itemId };
+    })();
+    return ownCreator;
+  }
+
+  afterAll(async () => {
+    if (ownCreator !== undefined) {
+      const { entryId, itemId } = await ownCreator;
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`delete from profiles.portfolio_items where id = ${itemId}`;
+        await tx`delete from profiles.creator_review_entries where id = ${entryId}`;
+        await tx`delete from profiles.creator_public_profiles where account_id = ${agent.accountId}`;
+      });
+    }
+  });
 
   const ownRequests: Partial<Record<"creator" | "brand", Promise<string>>> = {};
   const ownRequestIds: string[] = [];

@@ -213,3 +213,35 @@ export function renderPortfolioDecisionEmail(
   );
   return assemble(locale, texts.rejected, paragraphs, texts.why);
 }
+
+/**
+ * The text of a refusal of a creator profile as its owner receives it (07 RG96, textes.md §1), and the
+ * step that follows: what the decision screen shows the agent BEFORE the decision, read from the same
+ * translation files as the e-mail so that the preview cannot drift from the message. For `other`, the
+ * message is the lead-in; the agent's own text follows it.
+ */
+export function creatorRejectionReasonPreview(
+  locale: UiLocale,
+  reason: CreatorRejectionReasonCode,
+): {
+  message: string;
+  nextStep: "fix" | "contact";
+  nextStepMessage: string;
+} {
+  const texts: ProfileTexts = MESSAGES[locale].email.creatorProfileDecision;
+  const nextStep = CREATOR_REJECTION_NEXT_STEP_OF[reason];
+  return {
+    message: texts.reason[reason],
+    nextStep,
+    nextStepMessage: texts.nextStep[nextStep],
+  };
+}
+
+/** The text of a refusal of a visual as its owner receives it (07 RG79, RG82, RG83, textes.md §2). */
+export function portfolioRejectionReasonPreview(
+  locale: UiLocale,
+  reason: PortfolioRejectionReasonCode,
+): string {
+  const texts: PortfolioTexts = MESSAGES[locale].email.portfolioDecision;
+  return texts.reason[reason];
+}

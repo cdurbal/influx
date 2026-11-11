@@ -16,7 +16,9 @@
 // entry: queues-logo-routes.ts (commit 18b); both registered
 // from here: one registration point for queue 1. Queue 4, "vérifications" (L2E commit 14), has its own
 // files (verification-queues-routes.ts, verification-queues-decision-routes.ts), registered from here
-// too, and its two counters join the answer of GET /v1/bo/queues/counters.
+// too, and its two counters join the answer of GET /v1/bo/queues/counters. Queue 2, "profils créateur",
+// and queue 3, "visuels de portfolio" (L2G commit 11), are in creator-queues-routes.ts and
+// creator-queues-decision-routes.ts; their counters ride on their own lists (EC-L2G-11-1).
 // - An unknown entry, the one of the caller's own account and a closed one that the caller cannot see
 //   answer exactly alike (404, T14.3, T14.4); an entry of an account the caller HOLDS answers 403
 //   with the issue `conflict_of_interest` (17b §2.5, RG36), the attempt journaled first (CA19,
@@ -49,6 +51,7 @@ import { ApiError, RequestValidationError } from "../../platform/errors.ts";
 import type { ObjectStore } from "../../platform/storage.ts";
 import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
+import { registerCreatorQueueRoutes } from "./creator-queues-routes.ts";
 import { registerBackofficeQueueDecisionRoutes } from "./queues-decision-routes.ts";
 import { registerBackofficeQueueLogoRoutes } from "./queues-logo-routes.ts";
 import {
@@ -235,6 +238,8 @@ export function registerBackofficeQueueRoutes(
   registerBackofficeQueueDecisionRoutes(app, dependencies);
   registerBackofficeQueueLogoRoutes(app, dependencies);
   registerVerificationQueueRoutes(app, dependencies);
+  // Queues 2 and 3 (L2G 11): their own files, their counters on their lists (creator-queues-routes.ts)
+  registerCreatorQueueRoutes(app, dependencies);
 
   app.get(
     "/v1/bo/queues/counters",

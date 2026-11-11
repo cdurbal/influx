@@ -1071,6 +1071,58 @@ describe("Apollo settings under 2V + R (05 RG81, CA63; 03 PD1 to PD7)", () => {
   });
 });
 
+describe("L2DS-6 (0243, L2G 11): a creator whose profile is no longer a draft keeps his role", () => {
+  it("answers 409 creator_profile_not_draft at the confirmation of a role change, the role unchanged and the request still pending", async () => {
+    const server = app();
+    const creator = await newMember("creator");
+    await migration()`
+      insert into profiles.creator_public_profiles
+        (account_id, alias, residence_country_code, status)
+      values (${creator.accountId}, profiles.new_creator_alias(), 'FR', 'pending_review')`;
+    const requested = await call(
+      server,
+      "POST",
+      "/v1/bo/dual-control",
+      adminA.session,
+      {
+        code: "identity.change_member_role",
+        accountId: creator.accountId,
+        legalName: "Atelier Refusé SAS",
+        reasonCode: "member_request",
+      },
+    );
+    expect(requested.statusCode, requested.body).toBe(200);
+    const id = requested.json<{ id: string }>().id;
+    const confirmed = await call(
+      server,
+      "POST",
+      `/v1/bo/dual-control/${id}/confirm`,
+      adminB.session,
+      {},
+    );
+    expect(confirmed.statusCode, confirmed.body).toBe(409);
+    expect(
+      confirmed.json<{
+        error: { details: { path: string; issue: string }[] };
+      }>().error.details,
+    ).toEqual([{ path: "account", issue: "creator_profile_not_draft" }]);
+    const [account] = await migration()<{ role: string }[]>`
+      select r.role::text as role from identity.account_roles r
+       where r.account_id = ${creator.accountId}`;
+    expect(account?.role).toBe("creator");
+    const view = (
+      await call(server, "GET", `/v1/bo/dual-control/${id}`, adminA.session)
+    ).json<{ state: string; executed: boolean }>();
+    expect(view).toMatchObject({ state: "pending", executed: false });
+    await call(
+      server,
+      "POST",
+      `/v1/bo/dual-control/${id}/cancel`,
+      adminA.session,
+    );
+  });
+});
+
 describe("POST /v1/bo/accounts/:id/brevo-suppression/lift (05 RG93, CA55)", () => {
   it("an admin with R lifts a complaint; a consent given after it is sent again to Brevo", async () => {
     const member = await newMember("creator", {
