@@ -174,7 +174,7 @@ async function fillCreatorProfile(tx: Tx, creator: Creator): Promise<Creator> {
          set legal_first_name = ${`${tag}first`}, legal_last_name = ${`${tag}last`},
              contact_email = ${`${tag}@example.test`}, contact_phone = '+33698765432',
              address_line = ${`12 rue ${tag}`}, postal_code = '29200',
-             city = ${`${tag}ville`}, country_code = 'FR', completeness_percent = 72
+             city = ${`${tag}ville`}, country_code = 'FR'
        where account_id = ${id}`;
     const [row] = await tx<{ id: string }[]>`
       insert into profiles.creator_social_accounts
@@ -210,6 +210,9 @@ async function fillCreatorProfile(tx: Tx, creator: Creator): Promise<Creator> {
       (account_id, social_account_id, network_code, followers_count, posts_last_30_days,
        avg_comments_per_post, figures_source, confirmed, recorded_by_account_id)
     values (${id}, ${line}, 'instagram', 880000, 15, 36, 'agent_observed', true, ${agentA})`;
+  // the stored score, the database's from 0243 (L2DS-4): written here as the fixture's value
+  await tx`
+    update profiles.creator_identities set completeness_percent = 72 where account_id = ${id}`;
   return { ...creator, line };
 }
 

@@ -168,7 +168,7 @@ describe("file.md A4, A6: the two closed catalogues of queue 1", () => {
   it("lists the six moderated brand fields, their table and their label key", async () => {
     const rows = await localSuperuser()<Row[]>`
       select code, profile_kind::text as kind, target_table, label_key, is_active
-        from profiles.moderated_fields order by code`;
+        from profiles.moderated_fields where profile_kind = 'advertiser' order by code`;
     const field = (code: string, table: string): Row => ({
       code,
       kind: "advertiser",

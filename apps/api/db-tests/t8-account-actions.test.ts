@@ -563,6 +563,50 @@ describe("identity.change_member_role() (05 RG108, 03 §3.1 J · 2V · R · C(3)
     expect(outcome.queue).toEqual(["apollo_contact", "brevo_contact"]);
   });
 
+  it("L2G-D7 (L2DS-6, 0243): refuses a creator whose profile is not a draft (55000 creator_profile_not_draft), the 2V left unconsumed", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "creator");
+      await tx`
+        insert into profiles.creator_public_profiles
+          (account_id, alias, residence_country_code, status, published_at)
+        values (${member}, profiles.new_creator_alias(), 'FR', 'published', now())`;
+      const requested = await requestRoleChange(tx, member);
+      const request = String(
+        requested.outcome === "rows" ? requested.rows[0]?.id : "",
+      );
+      const sessionB = await freshSession(tx, adminB);
+      await asInternal(tx, "admin", adminB, () =>
+        attemptInSession(
+          tx,
+          "select backoffice.confirm_dual_control($1::uuid, $2::uuid)",
+          [sessionB, request],
+        ),
+      );
+      const changed = await asInternal(tx, "admin", adminB, () =>
+        attemptInSession(tx, CHANGE_ROLE, [
+          sessionB,
+          request,
+          member,
+          "advertiser",
+          "signup_error",
+          "Acme SAS",
+        ]),
+      );
+      const [state] = await tx<{ roles: string[]; consumed: boolean }[]>`
+        select array(select role::text from identity.account_roles where account_id = ${member})
+                 as roles,
+               (select consumed_at is not null from backoffice.dual_control_requests
+                 where id = ${request}) as consumed`;
+      return { changed, state };
+    });
+    expect(outcome.changed).toMatchObject({
+      outcome: "error",
+      code: "55000",
+      message: "creator_profile_not_draft",
+    });
+    expect(outcome.state).toEqual({ roles: ["creator"], consumed: false });
+  });
+
   it("refuses advertiser -> creator at the request (D15, Q9), and a creator target for a creator role", async () => {
     const outcome = await scenario(async (tx) => {
       const advertiser = await newMember(tx, "advertiser");

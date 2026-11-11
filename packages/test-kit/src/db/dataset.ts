@@ -166,6 +166,21 @@ export const PORTFOLIO_IDS = {
   },
 } as const;
 
+/**
+ * 0243 (L2G commit 03): one WITHDRAWN entry of queue 2 per creator and one withdrawn revision on it,
+ * so that T2 observes `propre` against account B. Inert: closed, nothing open in queue 2.
+ */
+export const CREATOR_REVIEW_IDS = {
+  entry: {
+    a: "00000000-0000-4000-8000-00000000ff25",
+    b: "00000000-0000-4000-8000-00000000ff26",
+  },
+  revision: {
+    a: "00000000-0000-4000-8000-00000000ff27",
+    b: "00000000-0000-4000-8000-00000000ff28",
+  },
+} as const;
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -547,6 +562,23 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
           (id, account_id, portfolio_item_id, caption, statement_key)
         values (${PORTFOLIO_IDS.declaration[side]}, ${account}, ${PORTFOLIO_IDS.item[side]},
                 ${`T2 caption ${side}`}, 'creatorProfile.portfolio.brandConsent')
+        on conflict do nothing`;
+    }
+    // 0243 (L2G): one withdrawn entry of queue 2 per creator and its withdrawn revision
+    // (CREATOR_REVIEW_IDS), inert
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      await tx`
+        insert into profiles.creator_review_entries (id, account_id, kind, state, closed_at)
+        values (${CREATOR_REVIEW_IDS.entry[side]}, ${account}, 'revision', 'withdrawn',
+                now() + interval '1 second')
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_field_revisions
+          (id, account_id, field_code, proposed_value, status, creator_review_entry_id, closed_at)
+        values (${CREATOR_REVIEW_IDS.revision[side]}, ${account}, 'creator.headline',
+                ${tx.json(`T2 headline proposal ${side}`)}, 'withdrawn',
+                ${CREATOR_REVIEW_IDS.entry[side]}, now() + interval '1 second')
         on conflict do nothing`;
     }
     // 0222 (L2E): the internal block of each advertiser, so that agent and admin read both (T2)

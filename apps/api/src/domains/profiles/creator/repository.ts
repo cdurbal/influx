@@ -8,7 +8,8 @@
 //   are the system's, guarded by the database).
 // - The lists are replaced as a whole: delete, then insert with a `slot` where the list is ordered.
 // - The identifying fields (layer N) live in creator_identities, which also holds the stored score
-//   (EC-02-2): never on the storefront, never served to a brand.
+//   (EC-02-2): never on the storefront, never served to a brand. The score is the database's (0243):
+//   recomputed by `record_own_creator_profile_change()`, never written from here.
 // - The network lines and their exact audience are read here to compute the completeness, and
 //   written by the routes of commit 09 (the second half of this file). A creator reads and writes
 //   them as their owner (layer I, 0217); the bands, the date of the figures and their history are
@@ -535,17 +536,18 @@ export async function updateCreatorIdentity(
   );
 }
 
-/** Stores the score as packages/domain computed it (07 RG86); the base never recomputes it. */
-export async function storeCreatorScore(
+/**
+ * After a save: the database recomputes the score from what is stored and keeps it (07 RG86; 0243
+ * `profiles.record_own_creator_profile_change()`, L2DS-4: the member no longer writes the column),
+ * and emits ONE lead.updated when the profile is published. True when it did.
+ */
+export async function recordOwnCreatorProfileChange(
   tx: Transaction,
-  percent: number,
-): Promise<void> {
-  await tx.execute(
-    sql`update profiles.creator_identities
-           set completeness_percent = ${percent}::smallint
-         where account_id = (select influx.current_account_id())
-           and completeness_percent is distinct from ${percent}::smallint`,
+): Promise<boolean> {
+  const rows = await tx.execute<{ recorded: boolean }>(
+    sql`select profiles.record_own_creator_profile_change() as recorded`,
   );
+  return rows[0]?.recorded === true;
 }
 
 // --- Network lines, figures and audience (07 RG41 to RG61; 0217, 0218; commit 09) -----------------

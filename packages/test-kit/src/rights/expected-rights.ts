@@ -1242,6 +1242,73 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       }),
     ),
   },
+  // 0243 (L2G commit 03, jalons/l2g/modele.md §2): queue 2. influx_advertiser holds nothing on it
+  // (fiche invariant 16, modele point 1: a creator revision carries a handle of layer I); nobody
+  // writes it directly: the creator doors (influx_creator_profile_definer), the decisions (0244).
+  {
+    table: "profiles.creator_rejection_reasons",
+    source:
+      "0243 (07 RG96; modele §2): the closed list of queue 2, written by the migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "07 RG96: the agent refuses with a reason of the list; agent and admin, aal2",
+      },
+    }),
+  },
+  {
+    table: "profiles.creator_review_entries",
+    source:
+      "0243 (07 RG4 to RG10; modele point 1): the entries of queue 2, opened by the creator doors",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "07 RG10: the creator reads his own entries, never the lock, the agent, the " +
+              "deadlines nor the internal comment (column grants)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "07 RG93, 15 RG26, RG36 C(3): agent and admin read queue 2 in aal2, never their own " +
+            "account",
+        },
+      }),
+    ),
+  },
+  {
+    table: "profiles.creator_field_revisions",
+    source:
+      "0243 (07 RG9, CA48; modele point 1): the values proposed on a published creator profile",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source: "07 RG9: the creator reads the values he proposed",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "07 RG9, RG93: the agent examines the proposed values in aal2, never his own account",
+        },
+      }),
+    ),
+  },
   // 0221 (L2E commit 05, jalons/l2e/modele.md §3): the schema verification. influx_advertiser holds
   // nothing on it, USAGE included (fiche invariant 1, EC-L2E-18, 04 §7.5): every cell of his is
   // refus_droit. Nobody writes directly: the doors (0222, 0223) and the decisions (0224).
@@ -1984,7 +2051,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * with those of 0222 (L2E commit 06, the member doors), each line checked against its sections 2
  * to 4 and 8; then with those of 0224 (L2E commit 08, the claims and decisions), each line checked
  * against its sections 2 and 7; and on 2026-11-11 with those of 0242 (L2G commit 02, the portfolio),
- * each line checked against its sections 8 to 10 and 12 and l2g/modele.md §2.
+ * each line checked against its sections 8 to 10 and 12 and l2g/modele.md §2; then with those of 0243
+ * (L2G commit 03, the creator submission), each line checked against its sections 8, 9 and 12.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -4067,7 +4135,6 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator|column|profiles.creator_audience_genders.social_account_id|INSERT",
   "influx_creator|column|profiles.creator_identities.address_line|UPDATE",
   "influx_creator|column|profiles.creator_identities.city|UPDATE",
-  "influx_creator|column|profiles.creator_identities.completeness_percent|UPDATE",
   "influx_creator|column|profiles.creator_identities.contact_email|UPDATE",
   "influx_creator|column|profiles.creator_identities.contact_phone|UPDATE",
   "influx_creator|column|profiles.creator_identities.country_code|UPDATE",
@@ -5419,7 +5486,6 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_profile_definer|column|identity.accounts.id|SELECT",
   "influx_creator_profile_definer|column|identity.accounts.status|SELECT",
   "influx_creator_profile_definer|column|profiles.creator_public_profiles.account_id|SELECT",
-  "influx_creator_profile_definer|column|profiles.creator_public_profiles.status|SELECT",
   "influx_creator_profile_definer|column|profiles.portfolio_items.account_id|INSERT,SELECT",
   "influx_creator_profile_definer|column|profiles.portfolio_items.byte_size|SELECT,UPDATE",
   "influx_creator_profile_definer|column|profiles.portfolio_items.checksum|SELECT,UPDATE",
@@ -5496,6 +5562,139 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_maintenance_definer|column|profiles.portfolio_items.purge_requested_at|SELECT",
   "influx_maintenance_definer|column|profiles.portfolio_items.retention_due_at|SELECT",
   "influx_maintenance_definer|column|profiles.portfolio_items.state|SELECT,UPDATE",
+  // 0243 (L2G commit 03, l2g/modele §2, §3 "0243", §3 bis, fiche invariants 7 to 9, 16): the
+  // submission and the regime of a published creator profile. The creator reads his entries of queue
+  // 2 (never the lock, the agent, the deadlines nor the comment) and his revisions, executes the five
+  // doors, writes is_searchable (RG8) and no longer the score (L2DS-4); agent and admin read queue 2
+  // and the grid of RG96 in aal2. influx_creator_profile_definer reads what the rules read on the
+  // caller's own rows, stores the score, opens the entry, writes the revisions, the caption and the
+  // statement of RG83, lead.updated. Nothing for influx_advertiser nor influx_identity_definer.
+  "influx_admin|table|profiles.creator_field_revisions|SELECT",
+  "influx_admin|table|profiles.creator_rejection_reasons|SELECT",
+  "influx_admin|table|profiles.creator_review_entries|SELECT",
+  "influx_agent|table|profiles.creator_field_revisions|SELECT",
+  "influx_agent|table|profiles.creator_rejection_reasons|SELECT",
+  "influx_agent|table|profiles.creator_review_entries|SELECT",
+  "influx_creator_profile_definer|column|leads.outbox_events.destination|INSERT",
+  "influx_creator_profile_definer|column|leads.outbox_events.event_id|INSERT",
+  "influx_creator_profile_definer|column|leads.outbox_events.event_type|INSERT",
+  "influx_creator_profile_definer|column|leads.outbox_events.idempotency_key|INSERT",
+  "influx_creator_profile_definer|column|leads.outbox_events.payload|INSERT",
+  "influx_creator_profile_definer|column|leads.outbox_events.priority|INSERT",
+  "influx_creator_profile_definer|column|leads.outbox_events.subject_key|INSERT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_ages.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_ages.age_band_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_ages.share_percent|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_ages.social_account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_countries.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_countries.country_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_countries.share_percent|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_countries.slot|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_countries.social_account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_genders.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_genders.gender_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_genders.share_percent|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_audience_genders.social_account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_field_revisions.account_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_field_revisions.closed_at|UPDATE",
+  "influx_creator_profile_definer|column|profiles.creator_field_revisions.creator_review_entry_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_field_revisions.field_code|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_field_revisions.id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_field_revisions.proposed_value|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_field_revisions.row_key|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_field_revisions.status|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.creator_formats.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_formats.format_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_identities.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_identities.completeness_percent|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.creator_public_networks.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_networks.listed_at|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_networks.social_account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.availability_band|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.bio|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.headline|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.max_exclusivity_band|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.primary_topic_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.residence_country_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.status|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.travel_scope|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_publication_languages.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_publication_languages.language_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_publication_languages.slot|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_review_entries.account_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_review_entries.closed_at|UPDATE",
+  "influx_creator_profile_definer|column|profiles.creator_review_entries.id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_review_entries.kind|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_review_entries.state|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.avg_comments_per_post|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.avg_reach_per_post|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.created_at|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.figures_measured_at|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.followers_count|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.handle|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.is_primary|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.network_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.posts_last_30_days|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_social_accounts.profile_url|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_tones.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_tones.slot|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_tones.tone_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_topics.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_topics.slot|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_topics.topic_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_usage_rights.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_usage_rights.inclusion|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_usage_rights.usage_right_code|SELECT",
+  "influx_creator_profile_definer|column|profiles.moderated_fields.code|SELECT",
+  "influx_creator_profile_definer|column|profiles.moderated_fields.is_active|SELECT",
+  "influx_creator_profile_definer|column|profiles.moderated_fields.profile_kind|SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_brand_declarations.account_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_brand_declarations.caption|INSERT",
+  "influx_creator_profile_definer|column|profiles.portfolio_brand_declarations.id|SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_brand_declarations.portfolio_item_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_brand_declarations.statement_key|INSERT",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.brand_declaration_id|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.caption|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|verification.badges.account_id|SELECT",
+  "influx_creator_profile_definer|column|verification.badges.level|SELECT",
+  "influx_creator_profile_definer|column|verification.badges.social_account_id|SELECT",
+  "influx_creator_profile_definer|column|verification.badges.state|SELECT",
+  "influx_creator_profile_definer|column|verification.verification_requests.account_id|SELECT",
+  "influx_creator_profile_definer|column|verification.verification_requests.population|SELECT",
+  "influx_creator_profile_definer|column|verification.verification_requests.status|SELECT",
+  "influx_creator_profile_definer|column|verification.verification_requests.submitted_at|SELECT",
+  "influx_creator_profile_definer|function|profiles.creator_completeness_percent(jsonb)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.creator_missing_required_fields(jsonb)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.creator_moderated_field_is_active(text)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.creator_profile_input(uuid)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.record_own_creator_profile_change()|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.refuse_creator_role_removal()|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.set_own_portfolio_caption(uuid,text,boolean)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.submit_own_creator_profile()|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.submit_own_creator_revision(text,text,jsonb)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.trimmed_char_length(text)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.withdraw_creator_revisions_of_line()|EXECUTE",
+  "influx_creator_profile_definer|schema|leads|USAGE",
+  "influx_creator_profile_definer|schema|verification|USAGE",
+  "influx_creator|column|profiles.creator_public_profiles.is_searchable|UPDATE",
+  "influx_creator|column|profiles.creator_review_entries.account_id|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.closed_at|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.created_at|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.decided_at|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.id|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.kind|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.member_message|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.rejection_reason_code|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.state|SELECT",
+  "influx_creator|column|profiles.creator_review_entries.updated_at|SELECT",
+  "influx_creator|function|profiles.creator_moderated_field_is_active(text)|EXECUTE",
+  "influx_creator|function|profiles.record_own_creator_profile_change()|EXECUTE",
+  "influx_creator|function|profiles.set_own_portfolio_caption(uuid,text,boolean)|EXECUTE",
+  "influx_creator|function|profiles.submit_own_creator_profile()|EXECUTE",
+  "influx_creator|function|profiles.submit_own_creator_revision(text,text,jsonb)|EXECUTE",
+  "influx_creator|table|profiles.creator_field_revisions|SELECT",
 ];
 
 /**
@@ -5977,4 +6176,20 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "profiles.remove_own_portfolio_item(uuid)": "influx_creator_profile_definer",
   "profiles.withdraw_portfolio_of_former_creator()":
     "influx_creator_profile_definer",
+  // 0243 (L2G commit 03): the five creator doors of the submission and the two triggers (a line
+  // deleted, a creator role removed); the rules (trimmed_char_length, creator_missing_required_fields,
+  // creator_completeness_percent, creator_profile_input), the guard and the two other triggers of the
+  // file are SECURITY INVOKER.
+  "profiles.creator_moderated_field_is_active(text)":
+    "influx_creator_profile_definer",
+  "profiles.submit_own_creator_profile()": "influx_creator_profile_definer",
+  "profiles.submit_own_creator_revision(text,text,jsonb)":
+    "influx_creator_profile_definer",
+  "profiles.set_own_portfolio_caption(uuid,text,boolean)":
+    "influx_creator_profile_definer",
+  "profiles.record_own_creator_profile_change()":
+    "influx_creator_profile_definer",
+  "profiles.withdraw_creator_revisions_of_line()":
+    "influx_creator_profile_definer",
+  "profiles.refuse_creator_role_removal()": "influx_creator_profile_definer",
 };

@@ -4,6 +4,7 @@
 // the run. Raise a floor when a file gains cases. LOWERING a floor is done in a commit whose
 // message says which cases disappear and why (18 §3 rule 2).
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
+  "db-tests/creator-profile-parity.test.ts": 14,
   "db-tests/ops-schema.test.ts": 12,
   "db-tests/profiles-brand-logo-route.test.ts": 18,
   "db-tests/profiles-brand-decision.test.ts": 62,
@@ -18,6 +19,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/profiles-creator-privacy.test.ts": 12,
   "db-tests/profiles-creator-route.test.ts": 28,
   "db-tests/profiles-portfolio.test.ts": 17,
+  "db-tests/profiles-creator-submission.test.ts": 16,
   "db-tests/profiles-creator-public.test.ts": 54,
   "db-tests/reference-labels.test.ts": 37,
   "db-tests/reference-taxonomies.test.ts": 177,
@@ -37,7 +39,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t3-audit-chain.test.ts": 46,
   "db-tests/t3-elevated-audit.test.ts": 41,
   "db-tests/t4-roles.test.ts": 37,
-  "db-tests/t8-account-actions.test.ts": 20,
+  "db-tests/t8-account-actions.test.ts": 21,
   "db-tests/t8-auth-settings.test.ts": 26,
   "db-tests/t8-backoffice-screen-reads.test.ts": 7,
   "db-tests/t8-backoffice-sign-in.test.ts": 18,

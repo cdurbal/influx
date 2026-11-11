@@ -31,9 +31,9 @@ import {
   lockOwnCreatorStorefront,
   readActiveCreatorReferences,
   readOwnCreatorProfile,
+  recordOwnCreatorProfileChange,
   replaceCreatorProfileList,
   replaceCreatorUsageRights,
-  storeCreatorScore,
   updateCreatorIdentity,
   updateCreatorStorefrontColumns,
   type ActiveCreatorReferences,
@@ -256,7 +256,8 @@ function identityChangesOf(
 /**
  * PATCH: autosave of what changed, in ONE transaction (the storefront locked first). The main topic is
  * removed from the secondary ones (07 RG33: once, whichever list the creator touched); lists are
- * replaced as a whole; the completeness is recomputed by packages/domain and stored (RG86). Country
+ * replaced as a whole; the stored completeness is recomputed by the database (RG86, 0243
+ * record_own_creator_profile_change, its copy held equal to packages/domain by parity). Country
  * and language are the account's and are never written here (RG2, CA2). The answer carries the
  * non-blocking warnings of the detection (RG27), which are never stored.
  */
@@ -341,13 +342,14 @@ export async function saveCreatorProfile(
   if (stored === null) {
     throw new ApiError("not_found");
   }
-  await storeCreatorScore(tx, scoreOf(stored).score);
+  await recordOwnCreatorProfileChange(tx);
   return viewOf(stored, references);
 }
 
 /**
- * The completeness after a change of a network line or of the audience (commit 09), recomputed by
- * packages/domain and stored (RG86); the one door to the score besides the autosave. With it, the
+ * The completeness after a change of a network line or of the audience (commit 09): shown as
+ * packages/domain computes it, stored as the database recomputes it (RG86, 0243); the one door to the
+ * score besides the autosave. With it, the
  * required fields still missing, in the order of the form (RG90).
  */
 export async function refreshStoredCreatorScore(
@@ -358,7 +360,7 @@ export async function refreshStoredCreatorScore(
     throw new ApiError("not_found");
   }
   const progress = progressOf(stored);
-  await storeCreatorScore(tx, progress.completeness.score);
+  await recordOwnCreatorProfileChange(tx);
   return progress;
 }
 

@@ -438,8 +438,13 @@ describe("0217: every storefront holds its identity row, empty", () => {
           `update profiles.creator_identities
               set legal_first_name = 'Camille', legal_last_name = 'Martin', city = 'Lyon',
                   postal_code = '69001', country_code = 'FR', contact_phone = '+33612345678',
-                  contact_email = 'camille@example.test', address_line = '1 rue de la Paix',
-                  completeness_percent = 40
+                  contact_email = 'camille@example.test', address_line = '1 rue de la Paix'
+            where account_id = '${creatorA}'`,
+        ),
+        // 0243 (L2DS-4, l2g/modele point 7): the score is the database's, no member writes it
+        score: await run(
+          tx,
+          `update profiles.creator_identities set completeness_percent = 40
             where account_id = '${creatorA}'`,
         ),
         other: await run(
@@ -463,6 +468,7 @@ describe("0217: every storefront holds its identity row, empty", () => {
     );
     expect(outcomes.read.map((row) => row.account_id)).toEqual([creatorA]);
     expect(outcomes.own).toEqual(ACCEPTED_ONE);
+    expect(outcomes.score).toEqual(refusedBy(INSUFFICIENT_PRIVILEGE));
     expect(outcomes.other).toEqual(NONE);
     expect(outcomes.rekey).toEqual(refusedBy(INSUFFICIENT_PRIVILEGE));
     expect(outcomes.insert).toEqual(refusedBy(INSUFFICIENT_PRIVILEGE));

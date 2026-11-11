@@ -370,7 +370,8 @@ describe("L2D-D3: no member writes the alias, the reference, the status nor a de
     ["alias", "alias = 'ZZZZZZ'"],
     ["public_ref", "public_ref = gen_random_uuid()"],
     ["published_at", "published_at = now()"],
-    ["is_searchable", "is_searchable = false"],
+    // 0243 (L2G, 07 RG8, l2g/modele point 11): is_searchable became the creator's own switch (the
+    // case below)
     ["residence_country_code", "residence_country_code = 'BE'"],
     ["main_audience_share_band", "main_audience_share_band = 'ge_80'"],
     ["audience_gender_band", "audience_gender_band = 'mixed'"],
@@ -390,6 +391,25 @@ describe("L2D-D3: no member writes the alias, the reference, the status nor a de
       expect(outcome).toEqual(refusedBy(INSUFFICIENT_PRIVILEGE));
     },
   );
+
+  it("lets the creator switch is_searchable on his own storefront from 0243 (07 RG8), never on another's", async () => {
+    const outcomes = await inRolledBackTransaction(localSuperuser(), (tx) =>
+      asCreator(tx, creatorA, async () => ({
+        own: await run(
+          tx,
+          `update profiles.creator_public_profiles set is_searchable = false
+            where account_id = '${creatorA}'`,
+        ),
+        other: await run(
+          tx,
+          `update profiles.creator_public_profiles set is_searchable = false
+            where account_id = '${creatorB}'`,
+        ),
+      })),
+    );
+    expect(outcomes.own).toMatchObject({ outcome: "rows", count: 1 });
+    expect(outcomes.other).toMatchObject({ outcome: "rows", count: 0 });
+  });
 
   it("lets the creator write an entered column of his own row, never of another's", async () => {
     const outcomes = await inRolledBackTransaction(localSuperuser(), (tx) =>
