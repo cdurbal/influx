@@ -3,7 +3,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | F0 | e2e.md | fondateur | — | — | — | fait | Tranchée le 2026-11-11 à la validation de la fiche : « option A ». Budget révisé : chaque éclat CI ≤ 7 min 30 et le job ≤ 8 min font foi ; somme des médianes indicative ; cible de 20 s par jalon gardée ; `21` §2.3 point 1 amendé à la clôture |
-| 01 | 01.md | arbitrage | opus | xhigh | architecte | à faire | `l2g/modele.md` : EC-L2G-1 à 16 |
+| 01 | 01.md | arbitrage | opus | xhigh | architecte | fait | `l2g/modele.md` + `textes.md` : EC-L2G-1 à 16 tranchés ; aucun droit annonceur ni de son propriétaire atteint sur le portfolio (`influx_creator_profile_definer`) ; RG16 (D79 (6)), Q9 (30 j), D69 (aucun modèle Brevo) |
 | 02 | 02.md | commit | opus | high | expert-database | à faire | I-4. `0242` |
 | 03 | 03.md | commit | opus | high | expert-database | à faire | I-4. `0243` ; L2DS-4, L2DS-6 |
 | 04 | 04.md | commit | opus | high | expert-database | à faire | I-4. `0244` ; TM5.5 (base) |
