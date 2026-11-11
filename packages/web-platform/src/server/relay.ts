@@ -36,9 +36,10 @@ export const API_PATH_PATTERN = /^\/v1\/[A-Za-z0-9/_-]{0,200}$/;
 export const MAX_BODY_BYTES = 2_097_152;
 
 /**
- * 03 PP-9, amended by D82 (1): the ONLY exceptions to MAX_BODY_BYTES, by method and raw API path. The
- * deposit of a piece of verification, one image of 8 MiB at most (the identifier as apps/api writes
- * it, lowercase). Nothing else is read about the request.
+ * 03 PP-9, amended by D82 (1), (7): the ONLY exceptions to MAX_BODY_BYTES, by method and raw API path
+ * (the query is not part of it). The deposit of a piece of verification and the deposit of a visual of
+ * the portfolio, one image of 8 MiB at most each (the identifier as apps/api writes it, lowercase).
+ * Nothing else is read about the request.
  */
 export const BODY_LIMIT_EXCEPTIONS: readonly {
   method: string;
@@ -48,6 +49,11 @@ export const BODY_LIMIT_EXCEPTIONS: readonly {
   {
     method: "PUT",
     path: /^\/v1\/me\/verification\/requests\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/evidence$/,
+    maxBytes: 8_388_608,
+  },
+  {
+    method: "PUT",
+    path: /^\/v1\/me\/creator-profile\/portfolio$/,
     maxBytes: 8_388_608,
   },
 ];

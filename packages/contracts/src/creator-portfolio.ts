@@ -62,20 +62,42 @@ export type PortfolioRejectionReasonCode = z.infer<
   typeof portfolioRejectionReasonCodeSchema
 >;
 
+/** The longest side of a visual must reach it (the parameters of a piece, D82 (7); `portfolio_items_sides`, 0242). */
+export const PORTFOLIO_MIN_SIDE = 320;
+/** The longest side WebP can hold (`portfolio_items_sides`, 0242). */
+export const PORTFOLIO_MAX_SIDE = 16_383;
+
 /**
  * The reasons of an `image_rejected` on the deposit (path `portfolio`): no bytes, a type other than
- * PNG, JPEG or WebP (PDF and SVG included, T9.4), bytes that do not decode, more than 4 096² pixels,
- * an output over the limit of the bucket.
+ * PNG, JPEG or WebP (PDF and SVG included, T9.4), bytes that do not decode, more than 4 096² pixels or
+ * a side over 16 383, a longest side under 320 px, an output over the limit of the bucket.
  */
 export const PORTFOLIO_UPLOAD_REJECTIONS = [
   "empty",
   "unsupported_type",
   "undecodable",
   "too_many_pixels",
+  "too_small",
   "output_too_large",
 ] as const;
 export type PortfolioUploadRejection =
   (typeof PORTFOLIO_UPLOAD_REJECTIONS)[number];
+
+/**
+ * The issues of a 409 `conflict` on the portfolio routes, the DETAIL of the base (0242, 0243): path
+ * `replaces` for the two refusals of a replacement (RG81), `portfolio` otherwise. `portfolio_full`:
+ * eight places taken (RG77); `portfolio_minimum`: a published profile keeps three; `item_state`: the
+ * visual is neither pending nor approved; `profile_state`: the profile is suspended.
+ */
+export const PORTFOLIO_CONFLICT_ISSUES = [
+  "portfolio_full",
+  "portfolio_minimum",
+  "not_replaceable",
+  "replacement_pending",
+  "item_state",
+  "profile_state",
+] as const;
+export type PortfolioConflictIssue = (typeof PORTFOLIO_CONFLICT_ISSUES)[number];
 
 /** A caption: one line of 200 characters at most, never blank, no control character (RG82; 0242). */
 export const portfolioCaptionSchema = z

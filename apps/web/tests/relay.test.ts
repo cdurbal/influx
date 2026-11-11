@@ -518,6 +518,27 @@ describe("PP-9: body size and delay", () => {
     expect(received).toHaveLength(1);
   });
 
+  // D82 (7): 8 MiB on the deposit of a visual of the portfolio too, its query left out of the path.
+  const portfolioPath = "/api/v1/me/creator-profile/portfolio";
+
+  it("forwards 8 MiB exactly on the deposit of a visual, a replacement included, refuses one byte more", async () => {
+    for (const path of [
+      portfolioPath,
+      `${portfolioPath}?replaces=0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10`,
+    ]) {
+      await call(path, { method: "PUT", body: "x".repeat(8_388_608) });
+    }
+    expect(received.map((request) => request.body.byteLength)).toEqual([
+      8_388_608, 8_388_608,
+    ]);
+    const over = await call(portfolioPath, {
+      method: "PUT",
+      body: "x".repeat(8_388_609),
+    });
+    await expectRefusal(over, 413, "payload_too_large");
+    expect(received).toHaveLength(2);
+  });
+
   it("keeps 2 MiB for any other method or path, an uppercase identifier included", async () => {
     for (const [method, path] of [
       ["POST", evidencePath],
@@ -525,6 +546,9 @@ describe("PP-9: body size and delay", () => {
       ["PUT", `${evidencePath}/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10`],
       ["PUT", "/api/v1/me/brand-profile/logo"],
       ["PUT", evidencePath.toUpperCase().replace("/API/V1/", "/api/v1/")],
+      ["POST", portfolioPath],
+      ["PUT", `${portfolioPath}/order`],
+      ["PATCH", `${portfolioPath}/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10`],
     ] as const) {
       const response = await call(path, {
         method,

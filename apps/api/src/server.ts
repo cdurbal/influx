@@ -568,7 +568,7 @@ export function buildServer(
 
   // Storage, with the secret key of the service: the logo of the brand profile and its read by an agent.
   const objectStore = options.storage ?? createObjectStore(config.supabase);
-  // The two slots of re-encoding of the process, shared by the logo and the pieces (D82 (2)).
+  // The two slots of re-encoding of the process, shared by the logo, the pieces and the visuals (D82 (2), (7)).
   const imageSlots = createImageSlots();
 
   // The brand profile: read, autosave, submission (docs/mvp/06; jalon L2B commit 07); its logo
@@ -580,10 +580,13 @@ export function buildServer(
     slots: imageSlots,
   });
 
-  // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08).
+  // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08); its
+  // portfolio (L2G commit 07, D82 (7)), through Storage with the secret key of the service.
   registerCreatorProfileRoutes(app, {
     database,
     now: options.identity?.now ?? (() => new Date()),
+    store: objectStore,
+    slots: imageSlots,
   });
 
   // The creator's own verification requests: state by network line, open, code, submit, cancel (docs/mvp/08;

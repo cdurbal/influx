@@ -347,21 +347,28 @@ describe("TM11.2: no response schema of the web routes declares an identifying f
     );
     expect(covered.length).toBeGreaterThan(30);
     expect(covered.every((entry) => entry.schemas.length > 0)).toBe(true);
-    // The exempted routes are the L2D ones: profile (2) and networks (6).
+    // The exempted routes are the L2D ones: profile (2) and networks (6); and the portfolio (6, L2G 07).
     expect(exempt.map((entry) => entry.route).sort()).toEqual([
       "DELETE /v1/me/creator-profile/networks/:id",
+      "DELETE /v1/me/creator-profile/portfolio/:id",
       "GET /v1/me/creator-profile",
       "GET /v1/me/creator-profile/networks",
+      "GET /v1/me/creator-profile/portfolio",
+      "GET /v1/me/creator-profile/portfolio/:id/image",
       "PATCH /v1/me/creator-profile",
       "PATCH /v1/me/creator-profile/networks/:id",
+      "PATCH /v1/me/creator-profile/portfolio/:id",
       "POST /v1/me/creator-profile/networks",
       "POST /v1/me/creator-profile/networks/:id/figures",
       "PUT /v1/me/creator-profile/networks/:id/audience",
+      "PUT /v1/me/creator-profile/portfolio",
+      "PUT /v1/me/creator-profile/portfolio/order",
     ]);
-    // Unreachable by a brand (T14.3, T14.4) and swept by value (T1): both files name the proof.
+    // Unreachable by a brand (T14.3, T14.4) and swept by value (T1): each file names the proof.
     for (const file of [
       "db-tests/profiles-creator-route.test.ts",
       "db-tests/profiles-creator-networks.test.ts",
+      "db-tests/profiles-portfolio-route.test.ts",
     ]) {
       const source = readFileSync(path.resolve(HERE, "..", file), "utf8");
       expect(source, file).toContain("T14.3");

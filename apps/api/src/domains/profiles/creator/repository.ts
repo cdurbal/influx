@@ -110,6 +110,18 @@ export type StoredCreatorProfile = {
    * pending or decided, never withdrawn (07 RG87, RG88; counted as filed, never as obtained).
    */
   badgeRequested: boolean;
+  /**
+   * His pending and approved visuals (L2G 07), for packages/domain to count the ones « déposés »
+   * (RG4, RG88): never the approvals alone.
+   */
+  portfolio: StoredPortfolioCountItem[];
+};
+
+/** What the count of the deposited visuals reads of one (packages/domain `depositedPortfolioCount`). */
+export type StoredPortfolioCountItem = {
+  id: string;
+  state: "pending" | "approved";
+  replacesItemId: string | null;
 };
 
 /** Codes still active in each reference list the form draws from. */
@@ -167,6 +179,7 @@ type StoredRow = {
   city: string | null;
   identity_country: string | null;
   badge_requested: boolean;
+  portfolio: StoredPortfolioCountItem[];
   secondary_topics: string[];
   tones: string[];
   publication_languages: string[];
@@ -225,6 +238,12 @@ export async function readOwnCreatorProfile(
                     where v.account_id = a.id and v.population = 'creator'
                       and v.submitted_at is not null and v.status <> 'cancelled')
              as badge_requested,
+           coalesce((select jsonb_agg(jsonb_build_object(
+                        'id', v.id::text, 'state', v.state::text,
+                        'replacesItemId', v.replaces_item_id::text) order by v.created_at, v.id)
+                       from profiles.portfolio_items v
+                      where v.account_id = a.id and v.state in ('pending', 'approved')),
+                    '[]'::jsonb) as portfolio,
            ${slottedList("secondaryTopics")} as secondary_topics,
            ${slottedList("tones")} as tones,
            ${slottedList("publicationLanguages")} as publication_languages,
@@ -332,6 +351,7 @@ export async function readOwnCreatorProfile(
       audienceGenders: line.genders,
     })),
     badgeRequested: row.badge_requested === true,
+    portfolio: row.portfolio,
   };
 }
 

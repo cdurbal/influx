@@ -21,6 +21,7 @@ import {
   creatorProfileCompleteness,
   locateDirectContact,
   missingCreatorRequiredFields,
+  portfolioInputOf,
   type CreatorProfileInput,
 } from "@influx/domain/creator-profile";
 import type { Transaction } from "../../../db/index.ts";
@@ -99,6 +100,8 @@ function profileInputOf(stored: StoredCreatorProfile): CreatorProfileInput {
     maxExclusivityBand: stored.maxExclusivity,
     availabilityBand: stored.availability,
     badgeRequested: stored.badgeRequested,
+    // L2G 07: the visuals deposited, counted by packages/domain (RG4, RG88)
+    ...portfolioInputOf(stored.portfolio),
   };
 }
 
@@ -362,6 +365,29 @@ export async function refreshStoredCreatorScore(
   const progress = progressOf(stored);
   await recordOwnCreatorProfileChange(tx);
   return progress;
+}
+
+/**
+ * The same after a change of the portfolio (L2G 07): the score stored by the database, and what the
+ * answer of the deposit or of the removal carries (the visuals deposited, the score shown, the status).
+ */
+export async function refreshCreatorScoreAfterPortfolio(
+  tx: Transaction,
+): Promise<{
+  deposited: number;
+  completeness: CreatorProfileResponse["completeness"];
+  status: CreatorProfileResponse["status"];
+}> {
+  const stored = await readOwnCreatorProfile(tx);
+  if (stored === null) {
+    throw new ApiError("not_found");
+  }
+  await recordOwnCreatorProfileChange(tx);
+  return {
+    deposited: portfolioInputOf(stored.portfolio).portfolioDeposited ?? 0,
+    completeness: progressOf(stored).completeness,
+    status: creatorProfileResponseSchema.shape.status.parse(stored.status),
+  };
 }
 
 /** The same, read only: what a GET of the lines answers, nothing stored. */

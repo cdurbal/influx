@@ -15,6 +15,7 @@ import {
   IMAGE_MAX_CONCURRENT,
   reencodeEvidence,
   reencodeLogo,
+  reencodePortfolio,
   sniffImageType,
 } from "../src/platform/images.ts";
 
@@ -403,6 +404,67 @@ describe("a piece of verification: the same pixels, no metadata (D82 (2); 08 CA2
       reason: "too_many_pixels",
     });
     expect(await reencodeEvidence(await png(16_384, 64))).toEqual({
+      ok: false,
+      reason: "too_many_pixels",
+    });
+  });
+});
+
+describe("a visual of the portfolio: the chain of a piece (D82 (7); 07 RG80; T9.4, T9.5)", () => {
+  it.each(FIXTURES)(
+    "%s: a WebP without EXIF, GPS, XMP, ICC nor text, read in its bytes (T9.5)",
+    async (name) => {
+      const outcome = await reencodePortfolio(fixture(name));
+      // 300 × 200: under the 320 px of a visual
+      if (name === "logo-metadata.png") {
+        expect(outcome).toEqual({ ok: false, reason: "too_small" });
+        return;
+      }
+      expect(outcome.ok).toBe(true);
+      if (!outcome.ok) {
+        return;
+      }
+      expectNoMetadata(outcome.value.bytes);
+      const metadata = await sharp(outcome.value.bytes).metadata();
+      expect(metadata.format).toBe("webp");
+      expect(metadata.exif).toBeUndefined();
+      expect(metadata.xmp).toBeUndefined();
+      expect(metadata.icc).toBeUndefined();
+    },
+  );
+
+  it("keeps every pixel, orientation applied: never resized, never cropped", async () => {
+    const oriented = await reencodePortfolio(fixture("logo-geotagged.jpg"));
+    expect(
+      oriented.ok && [oriented.value.width, oriented.value.height],
+    ).toEqual([300, 600]);
+    const wide = await reencodePortfolio(await png(2400, 1350));
+    expect(wide.ok && [wide.value.width, wide.value.height]).toEqual([
+      2400, 1350,
+    ]);
+  });
+
+  it("refuses a PDF, an SVG, an empty body, under 320 px and over 4 096² pixels (T9.4)", async () => {
+    const pdf = Buffer.from("%PDF-1.4\n%%EOF", "latin1");
+    const svg = Buffer.from(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800"/>',
+    );
+    for (const bytes of [pdf, svg]) {
+      expect(await reencodePortfolio(bytes)).toEqual({
+        ok: false,
+        reason: "unsupported_type",
+      });
+    }
+    expect(await reencodePortfolio(Buffer.alloc(0))).toEqual({
+      ok: false,
+      reason: "empty",
+    });
+    expect((await reencodePortfolio(await png(320, 40))).ok).toBe(true);
+    expect(await reencodePortfolio(await png(319, 319))).toEqual({
+      ok: false,
+      reason: "too_small",
+    });
+    expect(await reencodePortfolio(await png(4097, 4096))).toEqual({
       ok: false,
       reason: "too_many_pixels",
     });

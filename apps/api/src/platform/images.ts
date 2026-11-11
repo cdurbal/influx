@@ -10,18 +10,26 @@
 // - A PIECE of verification (reencodeEvidence, D82 (2)): a longest side of 320 px at least, each side
 //   16 383 px at most (the limit of WebP); NEITHER resized NOR cropped (the figures must stay
 //   readable); WebP with loss, quality 90, 8 MiB at most.
-// - Both WITHOUT ANY METADATA: no EXIF (GPS, device, dates, thumbnail), XMP, IPTC, ICC profile
+// - A VISUAL of the portfolio (reencodePortfolio, D82 (7), l2g/modele point 4): the parameters of a
+//   piece, neither resized nor cropped, WebP quality 90, 8 MiB at most.
+// - All WITHOUT ANY METADATA: no EXIF (GPS, device, dates, thumbnail), XMP, IPTC, ICC profile
 //   (converted to sRGB), PNG text, comment, secondary image nor trailing bytes (E1-6, I-1, 18 T9.5,
 //   08 CA22). sharp writes none unless asked: the methods keep* and with* that would ask are
 //   forbidden in this file by a static guard.
-// - Two re-encodings at most at a time in the process, logo and pieces together; beyond, the caller
-//   answers 503.
+// - Two re-encodings at most at a time in the process, logo, pieces and visuals together; beyond, the
+//   caller answers 503.
 import {
   BRAND_LOGO_MAX_STORED_BYTES,
   BRAND_LOGO_MIN_SIDE,
   BRAND_LOGO_SIDE,
   type BrandLogoRejection,
 } from "@influx/contracts/brand-profile";
+import {
+  PORTFOLIO_MAX_SIDE,
+  PORTFOLIO_MAX_STORED_BYTES,
+  PORTFOLIO_MIN_SIDE,
+  type PortfolioUploadRejection,
+} from "@influx/contracts/creator-portfolio";
 import {
   VERIFICATION_EVIDENCE_MAX_SIDE,
   VERIFICATION_EVIDENCE_MAX_STORED_BYTES,
@@ -41,6 +49,8 @@ export const IMAGE_MAX_CONCURRENT = 2;
 export const LOGO_WEBP_QUALITY = 90;
 /** WebP quality of a stored piece (D82 (2): with loss, quality 90). */
 export const EVIDENCE_WEBP_QUALITY = 90;
+/** WebP quality of a stored visual (l2g/modele point 4: the parameters of a piece). */
+export const PORTFOLIO_WEBP_QUALITY = 90;
 
 export type SniffedImageType = "png" | "jpeg" | "webp";
 
@@ -75,8 +85,10 @@ export function sniffImageType(bytes: Uint8Array): SniffedImageType | null {
   return null;
 }
 
-/** The reasons both chains share; each contract names them for its own path. */
-type ImageRejection = BrandLogoRejection & VerificationEvidenceRejection;
+/** The reasons the chains share; each contract names them for its own path. */
+type ImageRejection = BrandLogoRejection &
+  VerificationEvidenceRejection &
+  PortfolioUploadRejection;
 
 export type ReencodedImage = {
   bytes: Buffer;
@@ -93,6 +105,10 @@ export type LogoReencoding =
 export type EvidenceReencoding =
   | { ok: true; value: ReencodedImage }
   | { ok: false; reason: VerificationEvidenceRejection };
+
+export type PortfolioReencoding =
+  | { ok: true; value: ReencodedImage }
+  | { ok: false; reason: PortfolioUploadRejection };
 
 type Refusal = { ok: false; reason: ImageRejection };
 
@@ -234,7 +250,32 @@ export async function reencodeEvidence(
 }
 
 /**
- * The two slots of the process (stockage.md §1; D82 (2): the logo and the pieces share them); a busy
+ * A visual of the portfolio from the bytes received (D82 (7), l2g/modele point 4): the chain of a
+ * piece, the same pixels (orientation applied, never resized nor cropped) in a WebP of quality 90
+ * without any metadata (RG80, T9.5); or the reason of the refusal (never a value of the file).
+ */
+export async function reencodePortfolio(
+  bytes: Uint8Array,
+): Promise<PortfolioReencoding> {
+  const inspected = await inspect(bytes, {
+    minSide: PORTFOLIO_MIN_SIDE,
+    maxSide: PORTFOLIO_MAX_SIDE,
+  });
+  if (!inspected.ok) {
+    return inspected;
+  }
+  return encoded(
+    inputOf(bytes, "decode")
+      .autoOrient()
+      .toColourspace("srgb")
+      .webp({ quality: PORTFOLIO_WEBP_QUALITY }),
+    PORTFOLIO_MAX_STORED_BYTES,
+  );
+}
+
+/**
+ * The two slots of the process (stockage.md §1; D82 (2), (7): the logo, the pieces and the visuals
+ * share them); a busy
  * process answers 503 before any work.
  */
 export type ImageSlots = {
