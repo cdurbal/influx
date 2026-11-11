@@ -150,6 +150,22 @@ export const IDENTIFIER_CHANGE_IDS = {
   b: "00000000-0000-4000-8000-00000000ff20",
 } as const;
 
+/**
+ * 0242 (L2G commit 02): one PURGED visual per creator (withdrawn, its object removed: rows only, no
+ * object in Storage) and one statement of RG83 on it, so that T2 observes `propre` against account
+ * B. Inert: no place held, nothing for queue 3 nor for the purge task.
+ */
+export const PORTFOLIO_IDS = {
+  item: {
+    a: "00000000-0000-4000-8000-00000000ff21",
+    b: "00000000-0000-4000-8000-00000000ff22",
+  },
+  declaration: {
+    a: "00000000-0000-4000-8000-00000000ff23",
+    b: "00000000-0000-4000-8000-00000000ff24",
+  },
+} as const;
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -514,6 +530,24 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
                ${account}
          where not exists (select 1 from profiles.creator_network_metrics_history
                             where account_id = ${account})`;
+    }
+    // 0242 (L2G): one purged visual per creator and its statement of RG83 (PORTFOLIO_IDS), inert
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      await tx`
+        insert into profiles.portfolio_items
+          (id, account_id, state, received_bytes, byte_size, width, height, checksum, exif_stripped,
+           stored_at, sla_due_at, withdrawn_at, retention_due_at, purge_requested_at, purged_at)
+        values (${PORTFOLIO_IDS.item[side]}, ${account}, 'purged', 40000, 20000, 1080, 1350,
+                encode(sha256(${`t2-portfolio-${side}`}::bytea), 'hex'), true, now(),
+                now() + interval '1 day', now(), now(), now(), now())
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.portfolio_brand_declarations
+          (id, account_id, portfolio_item_id, caption, statement_key)
+        values (${PORTFOLIO_IDS.declaration[side]}, ${account}, ${PORTFOLIO_IDS.item[side]},
+                ${`T2 caption ${side}`}, 'creatorProfile.portfolio.brandConsent')
+        on conflict do nothing`;
     }
     // 0222 (L2E): the internal block of each advertiser, so that agent and admin read both (T2)
     for (const side of ["a", "b"] as const) {

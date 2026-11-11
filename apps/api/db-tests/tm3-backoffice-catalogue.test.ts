@@ -111,10 +111,31 @@ describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG2
         is_active: true,
         retired_at: null,
       },
+      // 0242 (L2G): queue 3, 07 RG77-RG83, a lock; a bulk action allowed (15 RG29), no route before
+      // Lot 6bis (l2g/modele point 2)
+      {
+        code: "portfolio_moderation",
+        label_key: "queue.portfolio_moderation",
+        roles: ["agent", "admin"],
+        bulk: true,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
       // 0206 (L2C): 06 RG63-RG72, a lock of 30 minutes, no bulk action
       {
         code: "profiles_advertiser",
         label_key: "queue.profiles_advertiser",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
+      // 0242 (L2G): queue 2, 07 RG4-RG10 and RG93-RG97, a lock, no bulk action
+      {
+        code: "profiles_creator",
+        label_key: "queue.profiles_creator",
         roles: ["agent", "admin"],
         bulk: false,
         lock: true,
@@ -240,9 +261,29 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
         is_provisional: true,
         is_active: true,
       },
+      // 0242 (L2G): queue 3, the delay of queue 1 (l2g/modele §4)
+      {
+        queue_code: "portfolio_moderation",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
       // 06 RG7: 1 business day, escalated at 3 business days of age (480 + 960), decided
       {
         queue_code: "profiles_advertiser",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
+      // 0242 (L2G): queue 2, 07 RG6 (one business day), the delay of queue 1
+      {
+        queue_code: "profiles_creator",
         claim: 240,
         decision: 480,
         business_hours: D39_BUSINESS_HOURS,
@@ -604,7 +645,7 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
     ]);
   });
 
-  it("is executed by its writers only: influx_identity_definer (queue 1, 0207), influx_creator_verification_definer (queue 4, 0222) and influx_verification_definer (queue 4 opened by an agent, 0234)", async () => {
+  it("is executed by its writers only: influx_identity_definer (queue 1, 0207), influx_creator_verification_definer (queue 4, 0222), influx_verification_definer (queue 4 opened by an agent, 0234) and influx_creator_profile_definer (queue 3, 0242)", async () => {
     const rows = await migration<{ rolname: string }[]>`
       select rolname from pg_catalog.pg_roles
        where rolname like 'influx\\_%'
@@ -613,8 +654,10 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
        order by rolname`;
     // 0222: the creator doors submit to queue 4, whose deadlines the invoker trigger
     // verification.prepare_request() computes with the writer's rights; 0234 (D83 A): the agent's
-    // opening makes the request pending at once, through the same trigger
+    // opening makes the request pending at once, through the same trigger; 0242: a stored visual
+    // enters queue 3 through the invoker trigger profiles.prepare_portfolio_item_entry()
     expect(rows).toEqual([
+      { rolname: "influx_creator_profile_definer" },
       { rolname: "influx_creator_verification_definer" },
       { rolname: "influx_identity_definer" },
       { rolname: "influx_verification_definer" },

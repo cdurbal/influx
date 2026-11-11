@@ -287,6 +287,8 @@ describe("queue 4 and the parameters of 08 RG100 (modele §4, D79)", () => {
         evidence_retention_days: 45,
         figures_gap_alert_percent: 30,
         findings_retention_days: 1095,
+        // 0242 (L2G commit 02): a refused or withdrawn visual kept that long (07 Q9, D79 (8))
+        portfolio_retention_days: 30,
         rejection_cap_count: 3,
         rejection_cap_window_days: 30,
         request_retry_hours: 24,

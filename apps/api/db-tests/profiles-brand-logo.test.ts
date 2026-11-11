@@ -416,9 +416,10 @@ const CONSTRAINT_CASES: Readonly<Record<string, readonly string[]>> = {
     logoInsert("received_bytes, purge_requested_at", "10, now()"),
   ],
   brand_logo_objects_purge_attempts: [logoUpdate("purge_attempts = -1")],
+  // a bucket of 04 §5.11 outside the closed list (portfolio joined it with 0242)
   storage_quotas_bucket: [
     `insert into profiles.storage_quotas (bucket_id, max_uploads_per_day, max_bytes_per_day)
-     values ('portfolio', 10, 10)`,
+     values ('legal-documents', 10, 10)`,
   ],
   storage_quotas_positive: [
     "update profiles.storage_quotas set max_uploads_per_day = 0 where bucket_id = 'brand-logo'",

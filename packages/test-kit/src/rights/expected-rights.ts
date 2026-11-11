@@ -1171,6 +1171,77 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     }),
   },
+  // 0242 (L2G commit 02, jalons/l2g/modele.md §2): the portfolio. influx_advertiser holds nothing on
+  // it (fiche invariant 1, D82 (7): the brand's read of a visual comes at Lot 3); nobody writes it
+  // directly: the creator doors (influx_creator_profile_definer), the decisions (0244), the purge.
+  {
+    table: "profiles.portfolio_rejection_reasons",
+    source:
+      "0242 (07 RG79, RG82, RG83; modele §2): the closed grid of queue 3, written by the " +
+      "migrations only",
+    probeColumn: "code",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "07 RG78, RG79: the moderator applies the closed grid; agent and admin, aal2",
+      },
+    }),
+  },
+  {
+    table: "profiles.portfolio_items",
+    source:
+      "0242 (04 l. 1286, §5.11; modele §2): the visuals and the entries of queue 3, never the " +
+      "key to an internal (read through its functions, 0244, journalled)",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source:
+              "modele §2: the creator reads his own visuals, never the lock, the agent, the " +
+              "deadlines, the internal comment nor the checksum (column grants)",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "07 RG78, 15 RG26, RG36 C(3): agent and admin read queue 3 in aal2, never their own " +
+            "account, never the key",
+        },
+      }),
+    ),
+  },
+  {
+    table: "profiles.portfolio_brand_declarations",
+    source:
+      "0242 (07 RG83; modele §2): the statement of a creator, timestamped and immutable; written " +
+      "by the caption door of 0243, deleted by the erasure only",
+    probeColumn: "account_id",
+    ownerColumn: "account_id",
+    expected: merge(
+      {
+        influx_creator: {
+          select: {
+            form: "propre",
+            source: "07 RG83: the creator reads the statements he made",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "07 RG83: the moderator checks the statement of a caption naming a brand; aal2, " +
+            "never his own account",
+        },
+      }),
+    ),
+  },
   // 0221 (L2E commit 05, jalons/l2e/modele.md §3): the schema verification. influx_advertiser holds
   // nothing on it, USAGE included (fiche invariant 1, EC-L2E-18, 04 §7.5): every cell of his is
   // refus_droit. Nobody writes directly: the doors (0222, 0223) and the decisions (0224).
@@ -1912,7 +1983,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * the verification core), each line checked against its section 12 and l2e/modele.md §3; then
  * with those of 0222 (L2E commit 06, the member doors), each line checked against its sections 2
  * to 4 and 8; then with those of 0224 (L2E commit 08, the claims and decisions), each line checked
- * against its sections 2 and 7.
+ * against its sections 2 and 7; and on 2026-11-11 with those of 0242 (L2G commit 02, the portfolio),
+ * each line checked against its sections 8 to 10 and 12 and l2g/modele.md §2.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -5251,6 +5323,179 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|column|verification.verification_requests.opened_by|SELECT",
   "influx_privacy_definer|column|verification.verification_requests.opening_comment|UPDATE",
   "influx_privacy_definer|column|verification.verification_requests.opening_reason_code|SELECT",
+  // 0242 (L2G commit 02, l2g/modele.md §2, §3 "0242", fiche invariants 1, 14, 16): the portfolio.
+  // The creator reads his visuals (never the lock, the agent, the deadlines, the comment nor the
+  // checksum) and his statements, and executes the six deposit doors; agent and admin read queue 3
+  // in aal2 (never the key) and the grid. influx_creator_profile_definer (new owner of the doors)
+  // reads and writes the caller's own visuals, his quota and usage of the bucket, the delay of queue
+  // 3 and the retention, the creator role rows (a former creator); influx_maintenance_definer purges
+  // the uploads left, the refused and withdrawn visuals at their date. Nothing for influx_advertiser
+  // nor influx_identity_definer.
+  "influx_admin|column|profiles.portfolio_items.account_id|SELECT",
+  "influx_admin|column|profiles.portfolio_items.brand_declaration_id|SELECT",
+  "influx_admin|column|profiles.portfolio_items.byte_size|SELECT",
+  "influx_admin|column|profiles.portfolio_items.caption|SELECT",
+  "influx_admin|column|profiles.portfolio_items.checksum|SELECT",
+  "influx_admin|column|profiles.portfolio_items.claim_expires_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.claimed_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.claimed_by_account_id|SELECT",
+  "influx_admin|column|profiles.portfolio_items.created_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.decided_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.decided_by_account_id|SELECT",
+  "influx_admin|column|profiles.portfolio_items.display_order|SELECT",
+  "influx_admin|column|profiles.portfolio_items.escalate_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.exif_stripped|SELECT",
+  "influx_admin|column|profiles.portfolio_items.forced_release_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.forced_release_by_account_id|SELECT",
+  "influx_admin|column|profiles.portfolio_items.forced_release_holder_account_id|SELECT",
+  "influx_admin|column|profiles.portfolio_items.forced_release_reason_code|SELECT",
+  "influx_admin|column|profiles.portfolio_items.height|SELECT",
+  "influx_admin|column|profiles.portfolio_items.id|SELECT",
+  "influx_admin|column|profiles.portfolio_items.internal_comment|SELECT",
+  "influx_admin|column|profiles.portfolio_items.last_purge_attempt_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.purge_attempts|SELECT",
+  "influx_admin|column|profiles.portfolio_items.purge_requested_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.purged_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.received_bytes|SELECT",
+  "influx_admin|column|profiles.portfolio_items.rejection_reason_code|SELECT",
+  "influx_admin|column|profiles.portfolio_items.replaces_item_id|SELECT",
+  "influx_admin|column|profiles.portfolio_items.retention_due_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.sla_breached|SELECT",
+  "influx_admin|column|profiles.portfolio_items.sla_due_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.state|SELECT",
+  "influx_admin|column|profiles.portfolio_items.stored_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.updated_at|SELECT",
+  "influx_admin|column|profiles.portfolio_items.width|SELECT",
+  "influx_admin|column|profiles.portfolio_items.withdrawn_at|SELECT",
+  "influx_admin|table|profiles.portfolio_brand_declarations|SELECT",
+  "influx_admin|table|profiles.portfolio_rejection_reasons|SELECT",
+  "influx_agent|column|profiles.portfolio_items.account_id|SELECT",
+  "influx_agent|column|profiles.portfolio_items.brand_declaration_id|SELECT",
+  "influx_agent|column|profiles.portfolio_items.byte_size|SELECT",
+  "influx_agent|column|profiles.portfolio_items.caption|SELECT",
+  "influx_agent|column|profiles.portfolio_items.checksum|SELECT",
+  "influx_agent|column|profiles.portfolio_items.claim_expires_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.claimed_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.claimed_by_account_id|SELECT",
+  "influx_agent|column|profiles.portfolio_items.created_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.decided_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.decided_by_account_id|SELECT",
+  "influx_agent|column|profiles.portfolio_items.display_order|SELECT",
+  "influx_agent|column|profiles.portfolio_items.escalate_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.exif_stripped|SELECT",
+  "influx_agent|column|profiles.portfolio_items.forced_release_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.forced_release_by_account_id|SELECT",
+  "influx_agent|column|profiles.portfolio_items.forced_release_holder_account_id|SELECT",
+  "influx_agent|column|profiles.portfolio_items.forced_release_reason_code|SELECT",
+  "influx_agent|column|profiles.portfolio_items.height|SELECT",
+  "influx_agent|column|profiles.portfolio_items.id|SELECT",
+  "influx_agent|column|profiles.portfolio_items.internal_comment|SELECT",
+  "influx_agent|column|profiles.portfolio_items.last_purge_attempt_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.purge_attempts|SELECT",
+  "influx_agent|column|profiles.portfolio_items.purge_requested_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.purged_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.received_bytes|SELECT",
+  "influx_agent|column|profiles.portfolio_items.rejection_reason_code|SELECT",
+  "influx_agent|column|profiles.portfolio_items.replaces_item_id|SELECT",
+  "influx_agent|column|profiles.portfolio_items.retention_due_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.sla_breached|SELECT",
+  "influx_agent|column|profiles.portfolio_items.sla_due_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.state|SELECT",
+  "influx_agent|column|profiles.portfolio_items.stored_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.updated_at|SELECT",
+  "influx_agent|column|profiles.portfolio_items.width|SELECT",
+  "influx_agent|column|profiles.portfolio_items.withdrawn_at|SELECT",
+  "influx_agent|table|profiles.portfolio_brand_declarations|SELECT",
+  "influx_agent|table|profiles.portfolio_rejection_reasons|SELECT",
+  "influx_creator_profile_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_creator_profile_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_creator_profile_definer|column|backoffice.sla_policies.business_hours|SELECT",
+  "influx_creator_profile_definer|column|backoffice.sla_policies.escalate_after_minutes|SELECT",
+  "influx_creator_profile_definer|column|backoffice.sla_policies.is_active|SELECT",
+  "influx_creator_profile_definer|column|backoffice.sla_policies.queue_code|SELECT",
+  "influx_creator_profile_definer|column|backoffice.sla_policies.target_decision_minutes|SELECT",
+  "influx_creator_profile_definer|column|identity.account_roles.account_id|SELECT",
+  "influx_creator_profile_definer|column|identity.account_roles.role|SELECT",
+  "influx_creator_profile_definer|column|identity.accounts.id|SELECT",
+  "influx_creator_profile_definer|column|identity.accounts.status|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.account_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.creator_public_profiles.status|SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.account_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.byte_size|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.checksum|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.created_at|SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.display_order|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.exif_stripped|UPDATE",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.height|UPDATE",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.id|SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.object_key|SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.received_bytes|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.replaces_item_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.state|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.stored_at|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.portfolio_items.width|UPDATE",
+  "influx_creator_profile_definer|column|profiles.storage_daily_usage.account_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.storage_daily_usage.bucket_id|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.storage_daily_usage.received_bytes|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.storage_daily_usage.upload_count|SELECT,UPDATE",
+  "influx_creator_profile_definer|column|profiles.storage_daily_usage.usage_day|INSERT,SELECT",
+  "influx_creator_profile_definer|column|profiles.storage_quotas.bucket_id|SELECT",
+  "influx_creator_profile_definer|column|profiles.storage_quotas.max_bytes_per_day|SELECT",
+  "influx_creator_profile_definer|column|profiles.storage_quotas.max_uploads_per_day|SELECT",
+  "influx_creator_profile_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_creator_profile_definer|function|backoffice.business_deadline(text,timestamp with time zone,integer)|EXECUTE",
+  "influx_creator_profile_definer|function|influx.current_account_id()|EXECUTE",
+  "influx_creator_profile_definer|function|influx.current_account_role()|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.begin_portfolio_upload(integer,uuid)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.deposited_portfolio_count(uuid)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.discard_portfolio_upload(uuid)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.fail_portfolio_upload(uuid)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.remove_own_portfolio_item(uuid)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.reorder_own_portfolio(uuid[])|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.store_portfolio_item(uuid,integer,integer,integer,text)|EXECUTE",
+  "influx_creator_profile_definer|function|profiles.withdraw_portfolio_of_former_creator()|EXECUTE",
+  "influx_creator_profile_definer|schema|audit|USAGE",
+  "influx_creator_profile_definer|schema|backoffice|USAGE",
+  "influx_creator_profile_definer|schema|identity|USAGE",
+  "influx_creator_profile_definer|schema|influx|USAGE",
+  "influx_creator_profile_definer|schema|profiles|USAGE",
+  "influx_creator_profile_definer|table|profiles.portfolio_items|DELETE",
+  "influx_creator|column|profiles.portfolio_items.account_id|SELECT",
+  "influx_creator|column|profiles.portfolio_items.brand_declaration_id|SELECT",
+  "influx_creator|column|profiles.portfolio_items.byte_size|SELECT",
+  "influx_creator|column|profiles.portfolio_items.caption|SELECT",
+  "influx_creator|column|profiles.portfolio_items.created_at|SELECT",
+  "influx_creator|column|profiles.portfolio_items.decided_at|SELECT",
+  "influx_creator|column|profiles.portfolio_items.display_order|SELECT",
+  "influx_creator|column|profiles.portfolio_items.exif_stripped|SELECT",
+  "influx_creator|column|profiles.portfolio_items.height|SELECT",
+  "influx_creator|column|profiles.portfolio_items.id|SELECT",
+  "influx_creator|column|profiles.portfolio_items.object_key|SELECT",
+  "influx_creator|column|profiles.portfolio_items.purged_at|SELECT",
+  "influx_creator|column|profiles.portfolio_items.received_bytes|SELECT",
+  "influx_creator|column|profiles.portfolio_items.rejection_reason_code|SELECT",
+  "influx_creator|column|profiles.portfolio_items.replaces_item_id|SELECT",
+  "influx_creator|column|profiles.portfolio_items.retention_due_at|SELECT",
+  "influx_creator|column|profiles.portfolio_items.state|SELECT",
+  "influx_creator|column|profiles.portfolio_items.stored_at|SELECT",
+  "influx_creator|column|profiles.portfolio_items.updated_at|SELECT",
+  "influx_creator|column|profiles.portfolio_items.width|SELECT",
+  "influx_creator|column|profiles.portfolio_items.withdrawn_at|SELECT",
+  "influx_creator|function|profiles.begin_portfolio_upload(integer,uuid)|EXECUTE",
+  "influx_creator|function|profiles.discard_portfolio_upload(uuid)|EXECUTE",
+  "influx_creator|function|profiles.fail_portfolio_upload(uuid)|EXECUTE",
+  "influx_creator|function|profiles.remove_own_portfolio_item(uuid)|EXECUTE",
+  "influx_creator|function|profiles.reorder_own_portfolio(uuid[])|EXECUTE",
+  "influx_creator|function|profiles.store_portfolio_item(uuid,integer,integer,integer,text)|EXECUTE",
+  "influx_creator|table|profiles.portfolio_brand_declarations|SELECT",
+  "influx_maintenance_definer|column|profiles.portfolio_items.created_at|SELECT",
+  "influx_maintenance_definer|column|profiles.portfolio_items.id|SELECT",
+  "influx_maintenance_definer|column|profiles.portfolio_items.last_purge_attempt_at|SELECT,UPDATE",
+  "influx_maintenance_definer|column|profiles.portfolio_items.object_key|SELECT",
+  "influx_maintenance_definer|column|profiles.portfolio_items.purge_attempts|SELECT,UPDATE",
+  "influx_maintenance_definer|column|profiles.portfolio_items.purge_requested_at|SELECT",
+  "influx_maintenance_definer|column|profiles.portfolio_items.retention_due_at|SELECT",
+  "influx_maintenance_definer|column|profiles.portfolio_items.state|SELECT,UPDATE",
 ];
 
 /**
@@ -5258,7 +5503,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
  * influx_leads_definer, 0111, sixteen from J7 with influx_maintenance_definer, 0117, nineteen from
  * J8 with influx_privacy, influx_privacy_login and influx_privacy_definer, 0136, twenty from L2C with
  * influx_moderation_definer, 0210, twenty-one from L2E with influx_creator_verification_definer,
- * 0222, twenty-two with influx_verification_definer, 0224), memberships.
+ * 0222, twenty-two with influx_verification_definer, 0224, twenty-three from L2G with
+ * influx_creator_profile_definer, 0242), memberships.
  */
 export const EXPECTED_ROLES: Readonly<
   Record<string, { login: boolean; memberOf: readonly string[] }>
@@ -5297,6 +5543,8 @@ export const EXPECTED_ROLES: Readonly<
   influx_creator_verification_definer: { login: false, memberOf: [] },
   // 0224 (L2E, modele §1 point 3): the owner of the claims and decisions of queue 4
   influx_verification_definer: { login: false, memberOf: [] },
+  // 0242 (L2G, l2g/modele -4): the owner of the creator doors of the portfolio and of the profile
+  influx_creator_profile_definer: { login: false, memberOf: [] },
 };
 
 /** Owners of SECURITY DEFINER functions: no login, NO member (only C-9 tolerance). */
@@ -5310,6 +5558,7 @@ export const FUNCTION_OWNER_ROLES = [
   "influx_moderation_definer",
   "influx_creator_verification_definer",
   "influx_verification_definer",
+  "influx_creator_profile_definer",
 ] as const;
 
 /** Execution roles (T4.4: own nothing). */
@@ -5714,4 +5963,18 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
     "influx_verification_definer",
   // 0239 (L2F commit 20): the read of what the opening offers on an account.
   "verification.read_account_openings(uuid)": "influx_verification_definer",
+  // 0242 (L2G commit 02): the six deposit doors of the portfolio and the trigger of a former
+  // creator; profiles.deposited_portfolio_count() and the two triggers of the visual
+  // (rereview_changed_portfolio_item, prepare_portfolio_item_entry) are SECURITY INVOKER.
+  // ops.claim_storage_purges() and complete_storage_purges() keep their 0205 lines (recreated).
+  "profiles.begin_portfolio_upload(integer,uuid)":
+    "influx_creator_profile_definer",
+  "profiles.discard_portfolio_upload(uuid)": "influx_creator_profile_definer",
+  "profiles.fail_portfolio_upload(uuid)": "influx_creator_profile_definer",
+  "profiles.store_portfolio_item(uuid,integer,integer,integer,text)":
+    "influx_creator_profile_definer",
+  "profiles.reorder_own_portfolio(uuid[])": "influx_creator_profile_definer",
+  "profiles.remove_own_portfolio_item(uuid)": "influx_creator_profile_definer",
+  "profiles.withdraw_portfolio_of_former_creator()":
+    "influx_creator_profile_definer",
 };

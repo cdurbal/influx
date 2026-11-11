@@ -7,7 +7,8 @@
 // - The secret key of the service (SUPABASE_SECRET_KEY, already in api and worker, 03 §6.7 point 4),
 //   as `apikey` and `Authorization: Bearer`, and our fixed User-Agent; 10 s per call.
 // - Every key is checked before any call against the shape the base generates for its bucket
-//   (0204: `<account_id>/<id>.webp`; 0223: `<account_id>/<request_id>/<id>.webp`; T9.3, T9.9).
+//   (0204 and 0242: `<account_id>/<id>.webp`; 0223: `<account_id>/<request_id>/<id>.webp`; T9.3,
+//   T9.9).
 //   Anything else is refused without a call.
 // - An error is reduced to the HTTP status and the error code of Storage, never its message (D60);
 //   no key, no byte, no address is logged here.
@@ -17,14 +18,22 @@ import { boundedFetch, GOTRUE_USER_AGENT } from "./supabase.ts";
 /** Bound of each call to Storage (stockage.md §2). */
 export const STORAGE_CALL_TIMEOUT_MS = 10_000;
 
-/** The buckets apps/api writes (a closed list, as the quotas of 0204 and 0223). */
-export const STORAGE_BUCKETS = ["brand-logo", "verification-evidence"] as const;
+/** The buckets apps/api writes (a closed list, as the quotas of 0204, 0223 and 0242). */
+export const STORAGE_BUCKETS = [
+  "brand-logo",
+  "verification-evidence",
+  "portfolio",
+] as const;
 export type StorageBucket = (typeof STORAGE_BUCKETS)[number];
 
-/** What a read accepts at most: the limit of each bucket (0204: 1 MiB; 0223, D82 (3): 8 MiB). */
+/**
+ * What a read accepts at most: the limit of each bucket (0204: 1 MiB; 0223, D82 (3): 8 MiB; 0242,
+ * D82 (7): 8 MiB).
+ */
 export const STORAGE_READ_MAX_BYTES: Readonly<Record<StorageBucket, number>> = {
   "brand-logo": 1_048_576,
   "verification-evidence": 8_388_608,
+  portfolio: 8_388_608,
 };
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -35,6 +44,8 @@ export const OBJECT_KEY_PATTERNS: Readonly<Record<StorageBucket, RegExp>> = {
   "brand-logo": new RegExp(`^${UUID}/${UUID}\\.webp$`),
   /** `<account uuid>/<request uuid>/<object uuid>.webp` (0223). */
   "verification-evidence": new RegExp(`^${UUID}/${UUID}/${UUID}\\.webp$`),
+  /** `<account uuid>/<visual uuid>.webp` (0242). */
+  portfolio: new RegExp(`^${UUID}/${UUID}\\.webp$`),
 };
 
 /** Where Storage is, and the key that opens it (SUPABASE_URL, SUPABASE_SECRET_KEY). */
