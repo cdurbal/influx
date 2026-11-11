@@ -416,6 +416,99 @@ export type CreatorProfileReferences = z.infer<
   typeof creatorProfileReferencesSchema
 >;
 
+// --- Submission, refusal and visibility (07 RG4, RG5, RG8, RG10, RG96; jalons/l2g/modele.md §2, §6) --
+// POST /v1/me/creator-profile/submit and PUT .../visibility. The account is the session's; no path
+// carries an identifier. The answer of a refusal comes from the closed list of RG96: the message the
+// member reads is the one of its code (translations), and only `other` carries a free message.
+
+/** The closed list of the reasons a creator profile is refused (07 RG96; `profiles.creator_rejection_reasons`). */
+export const CREATOR_REJECTION_REASON_CODES = [
+  "identifier_in_text",
+  "bio_insufficient",
+  "portfolio_insufficient",
+  "portfolio_non_compliant",
+  "network_link_inconsistent",
+  "figures_inconsistent",
+  "topic_inconsistent",
+  "illicit_content",
+  "age_doubt",
+  "other",
+] as const;
+export const creatorRejectionReasonCodeSchema = z.enum(
+  CREATOR_REJECTION_REASON_CODES,
+);
+export type CreatorRejectionReasonCode = z.infer<
+  typeof creatorRejectionReasonCodeSchema
+>;
+
+/** What the member does next: correct and submit again (`fix`), or write to INFLUX (`contact`). */
+export const CREATOR_REJECTION_NEXT_STEPS = ["fix", "contact"] as const;
+
+/**
+ * The step of each reason, as `profiles.creator_rejection_reasons.next_step` holds it (0243): the
+ * creator reads no catalogue, so the API serves the step from this table, held equal to the base by
+ * db-tests/profiles-creator-submission-route.test.ts.
+ */
+export const CREATOR_REJECTION_NEXT_STEP_OF: Readonly<
+  Record<(typeof CREATOR_REJECTION_REASON_CODES)[number], "fix" | "contact">
+> = {
+  identifier_in_text: "fix",
+  bio_insufficient: "fix",
+  portfolio_insufficient: "fix",
+  portfolio_non_compliant: "fix",
+  network_link_inconsistent: "fix",
+  figures_inconsistent: "fix",
+  topic_inconsistent: "fix",
+  illicit_content: "contact",
+  age_doubt: "contact",
+  other: "contact",
+};
+
+/** The free message of the reason `other`, the only one to carry one (0243: 20 to 500 characters). */
+export const CREATOR_MEMBER_MESSAGE_MIN_LENGTH = 20;
+export const CREATOR_MEMBER_MESSAGE_MAX_LENGTH = 500;
+
+/**
+ * The last refusal of a submission or of a revision of a published profile (RG10, RG96): the
+ * reason, the step that follows and, for `other` alone, the message of the agent. Never the agent,
+ * nor the internal comment (T14). `kind` `revision`: the profile stays published with its previous
+ * version (CA48).
+ */
+export const creatorProfileRefusalSchema = z.strictObject({
+  kind: z.enum(["submission", "revision"]),
+  reasonCode: creatorRejectionReasonCodeSchema,
+  nextStep: z.enum(CREATOR_REJECTION_NEXT_STEPS),
+  memberMessage: z
+    .string()
+    .min(CREATOR_MEMBER_MESSAGE_MIN_LENGTH)
+    .max(CREATOR_MEMBER_MESSAGE_MAX_LENGTH)
+    .nullable(),
+  decidedAt: z.iso.datetime(),
+});
+export type CreatorProfileRefusal = z.infer<typeof creatorProfileRefusalSchema>;
+
+/**
+ * The moderated fields of a creator profile (`profiles.moderated_fields`, 07 RG9, modele point 6) as
+ * the member names them. A change of one of them on a PUBLISHED profile waits for a decision while
+ * the validated version is served (CA48). `rowKey`: the visual or the network line, null for the
+ * storefront texts.
+ */
+export const CREATOR_MODERATED_FIELDS = [
+  "headline",
+  "bio",
+  "portfolio_caption",
+  "network_line",
+  "network_handle",
+  "network_url",
+] as const;
+export const creatorPendingRevisionSchema = z.strictObject({
+  field: z.enum(CREATOR_MODERATED_FIELDS),
+  rowKey: z.uuid().nullable(),
+});
+export type CreatorPendingRevision = z.infer<
+  typeof creatorPendingRevisionSchema
+>;
+
 /**
  * GET /v1/me/creator-profile: the profile of the session's own account, blocks 1, 2 and 5. The
  * country of residence and the language are read from the account (07 RG2, CA2): they are not
@@ -450,6 +543,15 @@ export const creatorProfileResponseSchema = z.strictObject({
   completeness: creatorProfileCompletenessSchema,
   /** Required fields still missing, in the order of the form (07 RG4, RG90); empty: the profile may be submitted. */
   missingRequired: z.array(creatorProfileRequiredFieldSchema),
+  /** The switch « visible dans la recherche » (07 RG8), on by default; no effect readable before Lot 3. */
+  isSearchable: z.boolean(),
+  /** The last refusal, while it stands (07 RG10, CA51): never the agent nor the internal comment (T14). */
+  refusal: creatorProfileRefusalSchema.nullable(),
+  /**
+   * The changes of a published profile waiting for a decision (CA48). `headline` and `bio` above then
+   * carry what the creator typed, the validated version being the one served to a brand.
+   */
+  pendingRevisions: z.array(creatorPendingRevisionSchema),
   /** Identifying elements the detection sees in the public texts: signals, never blocking, never stored (07 RG27, RG28). */
   warnings: z.array(creatorTextWarningSchema),
   references: creatorProfileReferencesSchema,
@@ -673,57 +775,6 @@ export const creatorNetworksResponseSchema = z.strictObject({
 export type CreatorNetworksResponse = z.infer<
   typeof creatorNetworksResponseSchema
 >;
-
-// --- Submission, refusal and visibility (07 RG4, RG5, RG8, RG10, RG96; jalons/l2g/modele.md §2, §6) --
-// POST /v1/me/creator-profile/submit and PUT .../visibility. The account is the session's; no path
-// carries an identifier. The answer of a refusal comes from the closed list of RG96: the message the
-// member reads is the one of its code (translations), and only `other` carries a free message.
-
-/** The closed list of the reasons a creator profile is refused (07 RG96; `profiles.creator_rejection_reasons`). */
-export const CREATOR_REJECTION_REASON_CODES = [
-  "identifier_in_text",
-  "bio_insufficient",
-  "portfolio_insufficient",
-  "portfolio_non_compliant",
-  "network_link_inconsistent",
-  "figures_inconsistent",
-  "topic_inconsistent",
-  "illicit_content",
-  "age_doubt",
-  "other",
-] as const;
-export const creatorRejectionReasonCodeSchema = z.enum(
-  CREATOR_REJECTION_REASON_CODES,
-);
-export type CreatorRejectionReasonCode = z.infer<
-  typeof creatorRejectionReasonCodeSchema
->;
-
-/** What the member does next: correct and submit again (`fix`), or write to INFLUX (`contact`). */
-export const CREATOR_REJECTION_NEXT_STEPS = ["fix", "contact"] as const;
-
-/** The free message of the reason `other`, the only one to carry one (0243: 20 to 500 characters). */
-export const CREATOR_MEMBER_MESSAGE_MIN_LENGTH = 20;
-export const CREATOR_MEMBER_MESSAGE_MAX_LENGTH = 500;
-
-/**
- * The last refusal of a submission or of a revision of a published profile (RG10, RG96): the
- * reason, the step that follows and, for `other` alone, the message of the agent. Never the agent,
- * nor the internal comment (T14). `kind` `revision`: the profile stays published with its previous
- * version (CA48).
- */
-export const creatorProfileRefusalSchema = z.strictObject({
-  kind: z.enum(["submission", "revision"]),
-  reasonCode: creatorRejectionReasonCodeSchema,
-  nextStep: z.enum(CREATOR_REJECTION_NEXT_STEPS),
-  memberMessage: z
-    .string()
-    .min(CREATOR_MEMBER_MESSAGE_MIN_LENGTH)
-    .max(CREATOR_MEMBER_MESSAGE_MAX_LENGTH)
-    .nullable(),
-  decidedAt: z.iso.datetime(),
-});
-export type CreatorProfileRefusal = z.infer<typeof creatorProfileRefusalSchema>;
 
 /**
  * The answer of POST .../submit (modele §3, `submit_own_creator_profile()`): `status` after the

@@ -68,6 +68,9 @@ const PROFILE: CreatorProfileResponse = {
   },
   completeness: { score: 0, earnedPoints: 0, attainablePoints: 90, blocks: [] },
   missingRequired: [],
+  isSearchable: true,
+  refusal: null,
+  pendingRevisions: [],
   warnings: [],
   references: {
     topics: ["beauty", "fashion"],

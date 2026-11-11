@@ -7,12 +7,25 @@
 //   this file checks first only to say WHICH field is wrong;
 // - the alias, the status, the bands derived from exact figures and the date of the availability: the
 //   system's, written by no member and by no route of this file (invariant 7 of the fiche).
-// There is no submission and no publication at L2D (the status stays `draft`), no tariff (D78, D48),
-// and no network line or audience here (commit 09: networks.ts; read here for the completeness).
+// And, from L2G commit 08, the submission, the regime of a published profile and the switch of RG8:
+// - POST submit: the door of 0243 lists what is missing (RG4, RG90, nothing written) or opens the entry
+//   of queue 2; the status is moved by that door alone, never by a write of the member (L2DS-4);
+// - a PUBLISHED profile (RG9): a change of its title or its bio waits for review, the validated version
+//   being the one served (CA48); every other field is immediate (CA49); `suspended` is frozen;
+// - the refusal and the revisions waiting are served to their owner (RG10), never the agent, the lock
+//   nor the internal comment (T14).
+// There is no tariff (D78, D48), and no network line or audience here (networks.ts; read here for the
+// completeness).
 import {
+  CREATOR_REJECTION_NEXT_STEP_OF,
   creatorProfileResponseSchema,
+  creatorRejectionReasonCodeSchema,
+  creatorVisibilityResponseSchema,
+  submitCreatorProfileResponseSchema,
   type CreatorProfileResponse,
   type CreatorTextWarning,
+  type CreatorVisibilityResponse,
+  type SubmitCreatorProfileResponse,
   type UpdateCreatorProfileBody,
   type UpdateCreatorProfileResponse,
 } from "@influx/contracts/creator-profile";
@@ -25,7 +38,11 @@ import {
   type CreatorProfileInput,
 } from "@influx/domain/creator-profile";
 import type { Transaction } from "../../../db/index.ts";
-import { sqlStateOf } from "../../../db/sql-state.ts";
+import {
+  sqlDetailOf,
+  sqlMessageOf,
+  sqlStateOf,
+} from "../../../db/sql-state.ts";
 import { ApiError, RequestValidationError } from "../../../platform/errors.ts";
 import {
   CREATOR_PROFILE_LISTS,
@@ -35,6 +52,9 @@ import {
   recordOwnCreatorProfileChange,
   replaceCreatorProfileList,
   replaceCreatorUsageRights,
+  setOwnCreatorSearchable,
+  submitOwnCreatorProfile,
+  submitOwnCreatorRevision,
   updateCreatorIdentity,
   updateCreatorStorefrontColumns,
   type ActiveCreatorReferences,
@@ -43,28 +63,51 @@ import {
 } from "./repository.ts";
 
 /**
- * The states a creator may write in. A published profile has a regime of its own (a moderated field
- * waits for review, 07 RG10), which arrives with the submission at L2G: until then nothing publishes,
- * and a state this code does not know is as frozen as a suspended one (EC-L2D-08-3).
+ * The states a creator writes in. A published profile has the regime of RG9 (a moderated field waits for
+ * review, the others are immediate); `suspended` is frozen, and so is a state this code does not know
+ * (EC-L2D-08-3).
  */
 const WRITABLE_STATUSES: ReadonlySet<string> = new Set([
   "draft",
   "pending_review",
+  "published",
   "rejected",
 ]);
 
 /**
  * Locks the storefront for the rest of the transaction (two saves at the same moment are serialised)
  * and refuses a write when the profile is not in a state a creator writes in, or does not exist: an
- * empty draft the member cannot create (0216 §5.3). Shared by the autosave and the network routes.
+ * empty draft the member cannot create (0216 §5.3). Shared by the autosave and the network routes;
+ * answers the status, which a published profile reads differently (RG9).
  */
 export async function lockWritableCreatorProfile(
   tx: Transaction,
-): Promise<void> {
+): Promise<string> {
   const status = await lockOwnCreatorStorefront(tx);
   if (status === null || !WRITABLE_STATUSES.has(status)) {
     throw new ApiError("conflict");
   }
+  return status;
+}
+
+/**
+ * A write the guard of 0243 refused on a moderated field (55000 `moderated_field`, the field code in
+ * the DETAIL): a conflict naming the field, never its value. Null for any other error.
+ */
+export function moderatedFieldConflict(error: unknown): ApiError | null {
+  if (
+    sqlStateOf(error) !== "55000" ||
+    sqlMessageOf(error) !== "moderated_field"
+  ) {
+    return null;
+  }
+  const field = (sqlDetailOf(error) ?? "").replace(/^creator\./, "");
+  return new ApiError("conflict", [{ path: field, issue: "moderated_field" }]);
+}
+
+/** The database's code of a required field (snake_case) as the contract names it (camelCase). */
+function requiredFieldOf(code: string): string {
+  return code.replace(/_([a-z])/g, (_, letter: string) => letter.toUpperCase());
 }
 
 /** The profile as packages/domain reads it: the entered values, never a decision of INFLUX (RG88). */
@@ -102,6 +145,8 @@ function profileInputOf(stored: StoredCreatorProfile): CreatorProfileInput {
     badgeRequested: stored.badgeRequested,
     // L2G 07: the visuals deposited, counted by packages/domain (RG4, RG88)
     ...portfolioInputOf(stored.portfolio),
+    // L2G 08 (08 RG16): an active « Compte vérifié », read by the list of the required fields only
+    accountVerified: stored.accountVerified,
   };
 }
 
@@ -114,15 +159,57 @@ function scoreOf(stored: StoredCreatorProfile) {
  * The identifying elements the detection sees in the two public texts (07 RG27, RG28): the signal and
  * its place, never the text. Computed here, answered, forgotten: nothing is stored, nothing logged.
  */
-function warningsOf(stored: StoredCreatorProfile): CreatorTextWarning[] {
+function warningsOf(texts: Texts): CreatorTextWarning[] {
   return (["headline", "bio"] as const).flatMap((field) =>
-    locateDirectContact(stored[field]).map((finding): CreatorTextWarning => ({
+    locateDirectContact(texts[field]).map((finding): CreatorTextWarning => ({
       field,
       signal: finding.signal,
       start: finding.start,
       end: finding.end,
     })),
   );
+}
+
+type Texts = { headline: string | null; bio: string | null };
+
+/**
+ * The two texts as their owner reads them: on a published profile, what he typed while it waits for
+ * review (CA48), else what is stored. A brand is served the stored ones, never these.
+ */
+function textsOf(stored: StoredCreatorProfile): Texts {
+  const typed = (field: "headline" | "bio"): string | null => {
+    const revision = stored.pendingRevisions.find(
+      (pending) => pending.fieldCode === `creator.${field}`,
+    );
+    return typeof revision?.proposed === "string"
+      ? revision.proposed
+      : stored[field];
+  };
+  return { headline: typed("headline"), bio: typed("bio") };
+}
+
+/**
+ * The last refusal while it stands (RG10, CA51): a refused submission of a profile that is still
+ * `rejected`, a refused revision of a profile that is still `published`. The step is the catalogue's.
+ */
+function refusalOf(
+  stored: StoredCreatorProfile,
+): CreatorProfileResponse["refusal"] {
+  const refusal = stored.lastRefusal;
+  if (
+    refusal === null ||
+    (refusal.kind === "submission" ? "rejected" : "published") !== stored.status
+  ) {
+    return null;
+  }
+  const reasonCode = creatorRejectionReasonCodeSchema.parse(refusal.reasonCode);
+  return {
+    kind: refusal.kind,
+    reasonCode,
+    nextStep: CREATOR_REJECTION_NEXT_STEP_OF[reasonCode],
+    memberMessage: refusal.memberMessage,
+    decidedAt: refusal.decidedAt,
+  };
 }
 
 /** The answer of both routes, from the stored profile and the active reference codes. */
@@ -135,8 +222,8 @@ function viewOf(
     alias: stored.alias,
     residenceCountry: stored.residenceCountry,
     preferredLanguage: stored.preferredLanguage,
-    headline: stored.headline,
-    bio: stored.bio,
+    headline: textsOf(stored).headline,
+    bio: textsOf(stored).bio,
     collaborationExperience: stored.collaborationExperience,
     primaryTopic: stored.primaryTopic,
     secondaryTopics: stored.lists.secondaryTopics,
@@ -155,7 +242,13 @@ function viewOf(
     identity: stored.identity,
     completeness: scoreOf(stored),
     missingRequired: missingCreatorRequiredFields(profileInputOf(stored)),
-    warnings: warningsOf(stored),
+    isSearchable: stored.isSearchable,
+    refusal: refusalOf(stored),
+    pendingRevisions: stored.pendingRevisions.map((pending) => ({
+      field: pending.fieldCode.replace(/^creator\./, ""),
+      rowKey: pending.rowKey,
+    })),
+    warnings: warningsOf(textsOf(stored)),
     references,
   });
 }
@@ -259,7 +352,8 @@ function identityChangesOf(
 /**
  * PATCH: autosave of what changed, in ONE transaction (the storefront locked first). The main topic is
  * removed from the secondary ones (07 RG33: once, whichever list the creator touched); lists are
- * replaced as a whole; the stored completeness is recomputed by the database (RG86, 0243
+ * replaced as a whole; on a PUBLISHED profile the title and the bio go to review while the validated
+ * ones stay served (RG9, CA48), every other field being saved at once (CA49); the stored completeness is recomputed by the database (RG86, 0243
  * record_own_creator_profile_change, its copy held equal to packages/domain by parity). Country
  * and language are the account's and are never written here (RG2, CA2). The answer carries the
  * non-blocking warnings of the detection (RG27), which are never stored.
@@ -268,7 +362,8 @@ export async function saveCreatorProfile(
   tx: Transaction,
   body: UpdateCreatorProfileBody,
 ): Promise<UpdateCreatorProfileResponse> {
-  await lockWritableCreatorProfile(tx);
+  const status = await lockWritableCreatorProfile(tx);
+  const published = status === "published";
   const before = await readOwnCreatorProfile(tx);
   if (before === null) {
     throw new ApiError("not_found");
@@ -297,9 +392,22 @@ export async function saveCreatorProfile(
     secondaryTopics.length !== before.lists.secondaryTopics.length;
 
   try {
-    await updateCreatorStorefrontColumns(tx, {
+    const texts = {
       headline: nullIfBlankOrAbsent(body.headline),
       bio: nullIfBlankOrAbsent(body.bio),
+    };
+    if (published) {
+      // RG9: a text of a published profile waits for review, the live row keeps the validated one
+      for (const field of ["headline", "bio"] as const) {
+        const value = texts[field];
+        if (value !== undefined) {
+          await submitOwnCreatorRevision(tx, `creator.${field}`, null, value);
+        }
+      }
+    }
+    await updateCreatorStorefrontColumns(tx, {
+      headline: published ? undefined : texts.headline,
+      bio: published ? undefined : texts.bio,
       collaborationExperience: body.collaborationExperience,
       primaryTopic: body.primaryTopic,
       residenceRegion: body.residenceRegion,
@@ -332,11 +440,20 @@ export async function saveCreatorProfile(
   } catch (error) {
     // What the checks above cannot know: a constraint the database holds (0216, 0217), or the guard.
     const state = sqlStateOf(error);
+    const detail = sqlDetailOf(error);
+    if (
+      state === "23514" &&
+      published &&
+      (detail === "headline" || detail === "bio")
+    ) {
+      // the door of RG9 refuses a title or a bio a published profile cannot do without (RG16, RG90)
+      throw new RequestValidationError([{ path: detail, issue: "required" }]);
+    }
     if (state === "23514" || state === "23503" || state === "22023") {
       throw new RequestValidationError([{ path: "", issue: "invalid" }]);
     }
     if (state === "55000") {
-      throw new ApiError("conflict");
+      throw moderatedFieldConflict(error) ?? new ApiError("conflict");
     }
     throw error;
   }
@@ -347,6 +464,65 @@ export async function saveCreatorProfile(
   }
   await recordOwnCreatorProfileChange(tx);
   return viewOf(stored, references);
+}
+
+/**
+ * POST submit: "Publier mon profil" (07 RG4, RG10). The door of 0243 answers the required fields still
+ * missing, in the order of the form (nothing is written: the profile keeps its state, RG90), or moves a
+ * `draft` or `rejected` profile to `pending_review` and opens its entry in queue 2; a profile already
+ * waiting answers as it is. A published or suspended one is left by a decision of INFLUX alone (RG5): 409.
+ * The detection of RG27 only warns: a bio holding an identifier is submitted and signalled to the agent.
+ */
+export async function submitCreatorProfile(
+  tx: Transaction,
+): Promise<SubmitCreatorProfileResponse> {
+  let result: { status: string; missing: string[] };
+  try {
+    result = await submitOwnCreatorProfile(tx);
+  } catch (error) {
+    const state = sqlStateOf(error);
+    if (state === "42501") {
+      throw new ApiError("not_found");
+    }
+    if (state === "55000") {
+      throw new ApiError("conflict");
+    }
+    throw error;
+  }
+  return submitCreatorProfileResponseSchema.parse({
+    status: result.status,
+    missing: result.missing.map(requiredFieldOf),
+  });
+}
+
+/**
+ * PUT visibility: the switch « visible dans la recherche » (07 RG8), in any state but `suspended`. A
+ * column the member writes himself; no effect is readable before the search of Lot 3.
+ */
+export async function setCreatorVisibility(
+  tx: Transaction,
+  isSearchable: boolean,
+): Promise<CreatorVisibilityResponse> {
+  const status = await lockOwnCreatorStorefront(tx);
+  if (status === null) {
+    throw new ApiError("not_found");
+  }
+  if (status === "suspended") {
+    throw new ApiError("conflict");
+  }
+  let stored: boolean | null;
+  try {
+    stored = await setOwnCreatorSearchable(tx, isSearchable);
+  } catch (error) {
+    if (sqlStateOf(error) === "55000") {
+      throw new ApiError("conflict");
+    }
+    throw error;
+  }
+  if (stored === null) {
+    throw new ApiError("not_found");
+  }
+  return creatorVisibilityResponseSchema.parse({ isSearchable: stored });
 }
 
 /**

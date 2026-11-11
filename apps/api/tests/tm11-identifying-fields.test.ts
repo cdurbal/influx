@@ -360,9 +360,11 @@ describe("TM11.2: no response schema of the web routes declares an identifying f
       "PATCH /v1/me/creator-profile/portfolio/:id",
       "POST /v1/me/creator-profile/networks",
       "POST /v1/me/creator-profile/networks/:id/figures",
+      "POST /v1/me/creator-profile/submit",
       "PUT /v1/me/creator-profile/networks/:id/audience",
       "PUT /v1/me/creator-profile/portfolio",
       "PUT /v1/me/creator-profile/portfolio/order",
+      "PUT /v1/me/creator-profile/visibility",
     ]);
     // Unreachable by a brand (T14.3, T14.4) and swept by value (T1): each file names the proof.
     for (const file of [

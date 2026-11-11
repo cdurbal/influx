@@ -903,11 +903,20 @@ describe("T1.2 the inventory is the server's own, never a list kept by hand (18 
     expect(inventory.filter((route) => !swept.includes(route))).toEqual([
       HEALTH,
     ]);
-    // the routes added at L2D are swept by themselves
+    // the routes added at L2D, and at L2G 07 and 08 (the portfolio, the submission, the switch), are
+    // swept by themselves
     expect(swept.filter((route) => route.includes(PROFILE)).sort()).toEqual(
       [
         `GET ${PROFILE}`,
         `PATCH ${PROFILE}`,
+        `POST ${PROFILE}/submit`,
+        `PUT ${PROFILE}/visibility`,
+        `GET ${PROFILE}/portfolio`,
+        `PUT ${PROFILE}/portfolio`,
+        `PUT ${PROFILE}/portfolio/order`,
+        `PATCH ${PROFILE}/portfolio/:id`,
+        `DELETE ${PROFILE}/portfolio/:id`,
+        `GET ${PROFILE}/portfolio/:id/image`,
         `GET ${NETWORKS}`,
         `POST ${NETWORKS}`,
         `PATCH ${NETWORKS}/:id`,

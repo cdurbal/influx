@@ -11,7 +11,12 @@
 //   (RG50, RG116, EC-L2D-6). The source of the figures is never touched here;
 // - the bands derived from the figures are read back for the MAIN line only, for its owner (RG22);
 // - nothing typed is ever logged or stored besides the line itself: a refusal names a field and a
-//   rule, never the value (RG14, D60).
+//   rule, never the value (RG14, D60);
+// - on a PUBLISHED profile (07 RG9, L2G 08): the figures and the audience are immediate (CA49); a new
+//   line is saved unlisted and waits for review (`creator.network_line`), the handle and the URL of a
+//   listed line wait too (`creator.network_handle`, `creator.network_url`), the validated ones being
+//   served meanwhile (CA48). The handle of a line holding an active « Compte vérifié » is immediate:
+//   queue 6 alone controls it (modele point 6). The guard of 0243 refuses everything else.
 import {
   CREATOR_FIGURES_CONFIRM_NOTICE,
   creatorNetworkLineSchema,
@@ -37,6 +42,7 @@ import { sqlConstraintOf, sqlStateOf } from "../../../db/sql-state.ts";
 import { ApiError, RequestValidationError } from "../../../platform/errors.ts";
 import {
   lockWritableCreatorProfile,
+  moderatedFieldConflict,
   readCreatorProgress,
   refreshStoredCreatorScore,
 } from "./profile.ts";
@@ -46,9 +52,11 @@ import {
   insertNetworkLine,
   readActiveAgeBandCodes,
   readNetworkHosts,
+  readOwnLineModeration,
   readOwnNetworkLines,
   replaceNetworkAudience,
   settleAudienceSums,
+  submitOwnCreatorRevision,
   uncheckPrimaryNetworkLines,
   updateNetworkLineColumns,
   type NetworkLineColumns,
@@ -243,7 +251,7 @@ function refusalOf(error: unknown): never {
     throw new RequestValidationError([{ path: "", issue: "invalid" }]);
   }
   if (state === "55000") {
-    throw new ApiError("conflict");
+    throw moderatedFieldConflict(error) ?? new ApiError("conflict");
   }
   throw error;
 }
@@ -272,7 +280,7 @@ export async function createCreatorNetwork(
   tx: Transaction,
   body: CreateCreatorNetworkBody,
 ): Promise<CreatorNetworksResponse> {
-  await lockWritableCreatorProfile(tx);
+  const status = await lockWritableCreatorProfile(tx);
   const network = await readNetworkHosts(tx, body.networkCode, true);
   if (network === null) {
     throw new RequestValidationError([
@@ -286,6 +294,10 @@ export async function createCreatorNetwork(
       await uncheckPrimaryNetworkLines(tx, null);
     }
     lineId = await insertNetworkLine(tx, body.networkCode, columns);
+    if (status === "published") {
+      // RG9: the line is listed by the decision that follows, never by its author
+      await submitOwnCreatorRevision(tx, "creator.network_line", lineId, {});
+    }
   } catch (error) {
     return refusalOf(error);
   }
@@ -302,14 +314,56 @@ export async function updateCreatorNetwork(
   lineId: string,
   body: UpdateCreatorNetworkBody,
 ): Promise<CreatorNetworksResponse> {
-  await lockWritableCreatorProfile(tx);
+  const status = await lockWritableCreatorProfile(tx);
   const [before] = await readOwnNetworkLines(tx, lineId);
   if (before === undefined) {
     throw new ApiError("not_found");
   }
   const network = await readNetworkHosts(tx, before.networkCode, false);
-  const columns = columnsOf(body, network?.hosts ?? []);
+  const typed = columnsOf(body, network?.hosts ?? []);
+  // RG9: the handle and the URL of a line listed on a published profile wait for review
+  const moderation =
+    status === "published" ? await readOwnLineModeration(tx, lineId) : null;
+  const handleWaits =
+    moderation?.listed === true &&
+    !moderation.accountVerified &&
+    typed.handle !== undefined;
+  const urlWaits =
+    moderation?.listed === true && typed.profileUrl !== undefined;
+  if (
+    (handleWaits && typed.handle === null) ||
+    (urlWaits && typed.profileUrl === null)
+  ) {
+    // a line of a published profile keeps both (RG16): the same refusal as the revision's
+    throw new RequestValidationError([
+      {
+        path: handleWaits && typed.handle === null ? "handle" : "profileUrl",
+        issue: "required",
+      },
+    ]);
+  }
+  const columns: NetworkLineColumns = {
+    ...typed,
+    handle: handleWaits ? undefined : typed.handle,
+    profileUrl: urlWaits ? undefined : typed.profileUrl,
+  };
   try {
+    if (handleWaits) {
+      await submitOwnCreatorRevision(
+        tx,
+        "creator.network_handle",
+        lineId,
+        typed.handle,
+      );
+    }
+    if (urlWaits) {
+      await submitOwnCreatorRevision(
+        tx,
+        "creator.network_url",
+        lineId,
+        typed.profileUrl,
+      );
+    }
     if (columns.isPrimary === true) {
       await uncheckPrimaryNetworkLines(tx, lineId);
     }
@@ -320,7 +374,7 @@ export async function updateCreatorNetwork(
   return answerAfterWrite(
     tx,
     lineId,
-    confirmNotice(priorityMetricChanged(before, columns)),
+    confirmNotice(priorityMetricChanged(before, typed)),
   );
 }
 

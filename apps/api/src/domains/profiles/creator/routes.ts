@@ -22,7 +22,11 @@
 // - PATCH  .../portfolio/:id                the caption and the box of RG83
 // - DELETE .../portfolio/:id                a visual withdrawn (kept 30 days)
 // - GET    .../portfolio/:id/image          one of his visuals, as JSON in base64 (no URL, T9.2)
-// There is no route of submission or publication at L2D (the status stays `draft`, L2G). Any role
+// and, from L2G commit 08, the submission and the switch of RG8 (profile.ts), no identifier in the path:
+// - POST   .../submit                       "Publier mon profil": the required fields still missing, or the
+//                                           entry of queue 2 (07 RG4, RG10); the status moves by that door alone
+// - PUT    .../visibility                   « visible dans la recherche » (07 RG8), any state but suspended
+// Nothing publishes but a decision of an agent (07 RG5). Any role
 // but creator (a brand included) gets the answer of a route that does not exist: the same code and
 // the same body as an unknown address (T14.3, T14.4). The terms gate applies to a creator only, for
 // that reason checked here and not by the session helper (the same shape as the brand's).
@@ -32,7 +36,10 @@ import {
   creatorNetworkParamsSchema,
   creatorNetworksResponseSchema,
   creatorProfileResponseSchema,
+  creatorVisibilityBodySchema,
+  creatorVisibilityResponseSchema,
   putCreatorNetworkAudienceBodySchema,
+  submitCreatorProfileResponseSchema,
   updateCreatorNetworkBodySchema,
   updateCreatorProfileBodySchema,
   updateCreatorProfileResponseSchema,
@@ -41,7 +48,10 @@ import {
   type CreatorNetworkParams,
   type CreatorNetworksResponse,
   type CreatorProfileResponse,
+  type CreatorVisibilityBody,
+  type CreatorVisibilityResponse,
   type PutCreatorNetworkAudienceBody,
+  type SubmitCreatorProfileResponse,
   type UpdateCreatorNetworkBody,
   type UpdateCreatorProfileBody,
   type UpdateCreatorProfileResponse,
@@ -94,7 +104,12 @@ import {
   uploadPortfolioItem,
   type PortfolioDependencies,
 } from "./portfolio.ts";
-import { readCreatorProfile, saveCreatorProfile } from "./profile.ts";
+import {
+  readCreatorProfile,
+  saveCreatorProfile,
+  setCreatorVisibility,
+  submitCreatorProfile,
+} from "./profile.ts";
 
 const NETWORKS_ROUTE = "/v1/me/creator-profile/networks";
 const NETWORK_ROUTE = `${NETWORKS_ROUTE}/:id`;
@@ -171,6 +186,29 @@ export function registerCreatorProfileRoutes(
     async (request, reply): Promise<UpdateCreatorProfileResponse> => {
       const body = request.body as UpdateCreatorProfileBody;
       return asCreator(request, reply, (tx) => saveCreatorProfile(tx, body));
+    },
+  );
+
+  app.post(
+    "/v1/me/creator-profile/submit",
+    { schema: { response: { 200: submitCreatorProfileResponseSchema } } },
+    async (request, reply): Promise<SubmitCreatorProfileResponse> =>
+      asCreator(request, reply, (tx) => submitCreatorProfile(tx)),
+  );
+
+  app.put(
+    "/v1/me/creator-profile/visibility",
+    {
+      schema: {
+        body: creatorVisibilityBodySchema,
+        response: { 200: creatorVisibilityResponseSchema },
+      },
+    },
+    async (request, reply): Promise<CreatorVisibilityResponse> => {
+      const body = request.body as CreatorVisibilityBody;
+      return asCreator(request, reply, (tx) =>
+        setCreatorVisibility(tx, body.isSearchable),
+      );
     },
   );
 

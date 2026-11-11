@@ -115,6 +115,29 @@ export type StoredCreatorProfile = {
    * (RG4, RG88): never the approvals alone.
    */
   portfolio: StoredPortfolioCountItem[];
+  /** An active « Compte vérifié » on one of his lines (08 RG16): read by the list of the required fields only. */
+  accountVerified: boolean;
+  /** The switch « visible dans la recherche » (07 RG8). */
+  isSearchable: boolean;
+  /** The last examination, when a human refused it and nothing came after (07 RG10), else null. */
+  lastRefusal: StoredCreatorRefusal | null;
+  /** His changes waiting for a decision (07 RG9): the proposed value is his own, shown to nobody else. */
+  pendingRevisions: StoredCreatorRevision[];
+};
+
+/** The last refused entry of queue 2, as the creator reads it (never the agent, the lock nor the comment). */
+export type StoredCreatorRefusal = {
+  kind: "submission" | "revision";
+  reasonCode: string;
+  memberMessage: string | null;
+  decidedAt: string;
+};
+
+/** A submitted value of a moderated field, waiting (profiles.creator_field_revisions). */
+export type StoredCreatorRevision = {
+  fieldCode: string;
+  rowKey: string | null;
+  proposed: unknown;
 };
 
 /** What the count of the deposited visuals reads of one (packages/domain `depositedPortfolioCount`). */
@@ -179,6 +202,16 @@ type StoredRow = {
   city: string | null;
   identity_country: string | null;
   badge_requested: boolean;
+  account_verified: boolean;
+  is_searchable: boolean | null;
+  last_entry: {
+    kind: "submission" | "revision";
+    state: string;
+    reasonCode: string | null;
+    memberMessage: string | null;
+    decidedAt: string | null;
+  } | null;
+  revisions: StoredCreatorRevision[];
   portfolio: StoredPortfolioCountItem[];
   secondary_topics: string[];
   tones: string[];
@@ -238,6 +271,24 @@ export async function readOwnCreatorProfile(
                     where v.account_id = a.id and v.population = 'creator'
                       and v.submitted_at is not null and v.status <> 'cancelled')
              as badge_requested,
+           exists (select 1 from verification.badges b
+                    where b.account_id = a.id and b.level = 'account_verified'
+                      and b.state = 'active') as account_verified,
+           p.is_searchable,
+           (select jsonb_build_object(
+                     'kind', e.kind::text, 'state', e.state::text,
+                     'reasonCode', e.rejection_reason_code,
+                     'memberMessage', e.member_message,
+                     'decidedAt', to_char(e.decided_at at time zone 'UTC', ${ISO_UTC}))
+              from profiles.creator_review_entries e
+             where e.account_id = a.id
+             order by e.created_at desc, e.id desc limit 1) as last_entry,
+           coalesce((select jsonb_agg(jsonb_build_object(
+                        'fieldCode', r.field_code, 'rowKey', r.row_key,
+                        'proposed', r.proposed_value) order by r.submitted_at, r.id)
+                       from profiles.creator_field_revisions r
+                      where r.account_id = a.id and r.status = 'pending_review'),
+                    '[]'::jsonb) as revisions,
            coalesce((select jsonb_agg(jsonb_build_object(
                         'id', v.id::text, 'state', v.state::text,
                         'replacesItemId', v.replaces_item_id::text) order by v.created_at, v.id)
@@ -352,6 +403,21 @@ export async function readOwnCreatorProfile(
     })),
     badgeRequested: row.badge_requested === true,
     portfolio: row.portfolio,
+    accountVerified: row.account_verified === true,
+    isSearchable: row.is_searchable !== false,
+    lastRefusal:
+      row.last_entry !== null &&
+      row.last_entry.state === "rejected" &&
+      row.last_entry.reasonCode !== null &&
+      row.last_entry.decidedAt !== null
+        ? {
+            kind: row.last_entry.kind,
+            reasonCode: row.last_entry.reasonCode,
+            memberMessage: row.last_entry.memberMessage,
+            decidedAt: row.last_entry.decidedAt,
+          }
+        : null,
+    pendingRevisions: row.revisions,
   };
 }
 
@@ -568,6 +634,83 @@ export async function recordOwnCreatorProfileChange(
     sql`select profiles.record_own_creator_profile_change() as recorded`,
   );
   return rows[0]?.recorded === true;
+}
+
+/**
+ * The submission door (0243 `submit_own_creator_profile()`, 07 RG4): the codes still missing (snake_case,
+ * the base's) with the status after the call. Nothing is written while one is missing. The identifier of
+ * the entry opened stays here (T14): the route answers `{status, missing}` only.
+ */
+export async function submitOwnCreatorProfile(
+  tx: Transaction,
+): Promise<{ status: string; missing: string[] }> {
+  const rows = await tx.execute<{ status: string; missing: string[] | null }>(
+    sql`select s.status, to_jsonb(s.missing_fields) as missing
+          from profiles.submit_own_creator_profile() s`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error("profiles.submit_own_creator_profile() returned no row");
+  }
+  return { status: row.status, missing: row.missing ?? [] };
+}
+
+/**
+ * The door of 07 RG9 (0243 `submit_own_creator_revision()`): a value of a moderated field of a PUBLISHED
+ * profile waits for review, the validated one served meanwhile; the same value as the validated one
+ * withdraws the pending revision. The value is never logged (D60).
+ */
+export async function submitOwnCreatorRevision(
+  tx: Transaction,
+  fieldCode: string,
+  rowKey: string | null,
+  value: unknown,
+): Promise<void> {
+  await tx.execute(
+    sql`select r.revision_status
+          from profiles.submit_own_creator_revision(
+                 ${fieldCode}::text, ${rowKey}::text, ${JSON.stringify(value)}::jsonb) r`,
+  );
+}
+
+/**
+ * The switch « visible dans la recherche » (07 RG8): a column the member writes himself (0243 §8.4, no
+ * door, no register, no lead.updated). Null: no storefront.
+ */
+export async function setOwnCreatorSearchable(
+  tx: Transaction,
+  isSearchable: boolean,
+): Promise<boolean | null> {
+  const rows = await tx.execute<{ is_searchable: boolean }>(
+    sql`update profiles.creator_public_profiles
+           set is_searchable = ${isSearchable}::boolean
+         where account_id = (select influx.current_account_id())
+     returning is_searchable`,
+  );
+  return rows[0]?.is_searchable ?? null;
+}
+
+/** Whether a line is served in layer A and holds an active « Compte vérifié » (07 RG9, modele point 6). */
+export async function readOwnLineModeration(
+  tx: Transaction,
+  lineId: string,
+): Promise<{ listed: boolean; accountVerified: boolean } | null> {
+  const rows = await tx.execute<{ listed: boolean; account_verified: boolean }>(
+    sql`select exists (select 1 from profiles.creator_public_networks c
+                        where c.social_account_id = n.id and c.listed_at is not null) as listed,
+               exists (select 1 from verification.badges b
+                        where b.account_id = n.account_id and b.social_account_id = n.id
+                          and b.level = 'account_verified' and b.state = 'active') as account_verified
+          from profiles.creator_social_accounts n
+         where n.id = ${lineId}::uuid and n.account_id = (select influx.current_account_id())`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        listed: row.listed === true,
+        accountVerified: row.account_verified === true,
+      };
 }
 
 // --- Network lines, figures and audience (07 RG41 to RG61; 0217, 0218; commit 09) -----------------

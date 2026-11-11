@@ -294,7 +294,7 @@ describe("L2D-A1 GET /v1/me/creator-profile (07 RG1, RG2, RG86, RG90, CA2)", () 
       "mainAudienceShare",
       "formats",
       "availability",
-      // L2G 06: required too; the route reads neither the portfolio nor the badge until commit 08
+      // L2G 06, 08: required too (the visuals deposited, an active « Compte vérifié »)
       "portfolio",
       "accountVerified",
     ]);
@@ -341,7 +341,7 @@ describe("L2D-A1 GET /v1/me/creator-profile (07 RG1, RG2, RG86, RG90, CA2)", () 
     );
   });
 
-  it("serves no storefront identifier: no account, no public reference, no visibility, no band of the storefront", async () => {
+  it("serves no storefront identifier: no account, no public reference, no band of the storefront (the switch of RG8 is his own, L2G 08)", async () => {
     const server = app();
     const member = await newMember("creator");
     await save(server, member, completeBody());
@@ -354,7 +354,6 @@ describe("L2D-A1 GET /v1/me/creator-profile (07 RG1, RG2, RG86, RG90, CA2)", () 
     for (const key of [
       "accountId",
       "publicRef",
-      "isSearchable",
       "publishedAt",
       "audienceBand",
       "reachBand",
@@ -462,7 +461,7 @@ describe("L2D-A2 PATCH /v1/me/creator-profile: partial autosave, merged, with th
     const saved = await save(server, member, completeBody());
     // 48 + the first line 16 + the main audience country 10
     expect(saved.completeness.score).toBe(74);
-    // blocks 1 to 5 are complete; the portfolio and the badge are the two left (read at commit 08)
+    // blocks 1 to 5 are complete; the portfolio and the badge are the two left
     expect(saved.missingRequired).toEqual(["portfolio", "accountVerified"]);
     expect(await storedScore(member.accountId)).toBe(74);
     // the exact figures of the line are never part of the answer of the profile
@@ -624,11 +623,11 @@ describe("L2D-A2 PATCH /v1/me/creator-profile: partial autosave, merged, with th
     expect(row).toEqual({ status: "draft", alias: before.alias });
   });
 
-  it("freezes the profile outside the states a creator writes in, and still reads it", async () => {
+  it("freezes the profile outside the states a creator writes in, and still reads it (a published one has the regime of RG9, L2G 08)", async () => {
     const server = app();
     const member = await newMember("creator");
     await save(server, member, { headline: HEADLINE });
-    for (const status of ["published", "suspended"]) {
+    for (const status of ["suspended"]) {
       await migration`
         update profiles.creator_public_profiles set status = ${status}::profiles.creator_profile_status
          where account_id = ${member.accountId}`;

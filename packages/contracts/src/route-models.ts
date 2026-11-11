@@ -128,6 +128,8 @@ export const API_ROUTE_MODELS: readonly string[] = [
   "/v1/me/creator-profile/portfolio/:id",
   "/v1/me/creator-profile/portfolio/:id/image",
   "/v1/me/creator-profile/portfolio/order",
+  "/v1/me/creator-profile/submit",
+  "/v1/me/creator-profile/visibility",
   "/v1/me/data-export",
   "/v1/me/data-export/:id/download",
   "/v1/me/data-requests",
