@@ -202,7 +202,7 @@ describe("07 RG16, RG86 to RG90: the rules of the base equal those of packages/d
     expect(verified.missing).toEqual([]);
   });
 
-  it("are pure and closed: IMMUTABLE, SECURITY INVOKER, executed by influx_creator_profile_definer only", async () => {
+  it("are pure and closed: IMMUTABLE, SECURITY INVOKER, executed by the creator doors and the decisions only", async () => {
     const found = await localSuperuser()<
       {
         name: string;
@@ -232,7 +232,11 @@ describe("07 RG16, RG86 to RG90: the rules of the base equal those of packages/d
         volatility: "i",
         definer: false,
         config: ['search_path=""'],
-        grantees: ["influx_creator_profile_definer"],
+        // 0244: the decisions recontrol the required fields and store the score (modele §3)
+        grantees: [
+          "influx_creator_profile_definer",
+          "influx_moderation_definer",
+        ],
       })),
     );
   });
