@@ -1,10 +1,9 @@
-// L2G commit 03 — the PARITY of the rules of a creator profile between the base (0243:
+// L2G commits 03 and 06 — the PARITY of the rules of a creator profile between the base (0243:
 // profiles.creator_missing_required_fields, profiles.creator_completeness_percent) and packages/domain
 // (missingCreatorRequiredFields, creatorProfileCompleteness): both copies answer the same input, the
-// JSON of CreatorProfileInput (l2g/modele -5, the pattern of 0203). The base adds what the domain
-// learns at commit 06: the codes `portfolio` and `account_verified` after those of required.ts, and
-// the points of the portfolio (RG87 block 6). Until then the parity is stated on the domain's codes
-// and on profiles without a visual; commit 06 extends it (portfolioDeposited, accountVerified).
+// JSON of CreatorProfileInput (l2g/modele -5, the pattern of 0203). Since commit 06 the domain knows
+// the portfolio (portfolioDeposited: RG77, RG87 block 6, RG88) and « Compte vérifié » (accountVerified:
+// 08 RG16, D79 (6)): the equality is total, the codes in their order and the score, whatever the input.
 import {
   CREATOR_PROFILE_REQUIRED_FIELDS,
   creatorProfileCompleteness,
@@ -18,16 +17,8 @@ import { localSuperuser } from "./support.ts";
 const snake = (code: string) =>
   code.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 
-/** The codes the base adds to the domain's at L2G (RG4, RG77; 08 RG16). */
-const BASE_ONLY = ["portfolio", "account_verified"];
-
-type BaseInput = CreatorProfileInput & {
-  portfolioDeposited?: number;
-  accountVerified?: boolean;
-};
-
 async function inBase(
-  input: BaseInput,
+  input: CreatorProfileInput,
 ): Promise<{ missing: string[]; score: number }> {
   const [row] = await localSuperuser()<{ missing: string[]; score: number }[]>`
     select profiles.creator_missing_required_fields(${JSON.stringify(input)}::text::jsonb)
@@ -159,45 +150,102 @@ const PARITY_CASES: [string, CreatorProfileInput][] = [
       ],
     },
   ],
+  [
+    "a complete profile, no visual deposited",
+    { ...COMPLETE, accountVerified: true },
+  ],
+  [
+    "a complete profile, two visuals deposited (under the minimum of RG77)",
+    { ...COMPLETE, portfolioDeposited: 2, accountVerified: true },
+  ],
+  [
+    "a complete profile, three visuals deposited: the first 6 points of RG87",
+    { ...COMPLETE, portfolioDeposited: 3, accountVerified: true },
+  ],
+  [
+    "a complete profile, four visuals deposited",
+    { ...COMPLETE, portfolioDeposited: 4, accountVerified: true },
+  ],
+  [
+    "a complete profile, five visuals deposited: 100 points",
+    { ...COMPLETE, portfolioDeposited: 5, accountVerified: true },
+  ],
+  [
+    "a complete profile, eight visuals deposited (the maximum of RG77)",
+    { ...COMPLETE, portfolioDeposited: 8, accountVerified: true },
+  ],
+  [
+    "five visuals deposited and no « Compte vérifié »: the list misses it, the score does not (RG88)",
+    { ...COMPLETE, portfolioDeposited: 5, accountVerified: false },
+  ],
+  [
+    "a « Compte vérifié » only: the badge is no point (RG88)",
+    { accountVerified: true },
+  ],
+  [
+    "visuals deposited on an empty profile",
+    { portfolioDeposited: 8, accountVerified: true },
+  ],
+  [
+    "a badge request filed and nothing else: 2 points",
+    { badgeRequested: true },
+  ],
 ];
 
 describe("07 RG16, RG86 to RG90: the rules of the base equal those of packages/domain (0243, l2g/modele -5)", () => {
-  it("names the codes of CREATOR_PROFILE_REQUIRED_FIELDS in their order, then portfolio and account_verified, for an empty profile", async () => {
-    expect((await inBase({})).missing).toEqual([
-      ...CREATOR_PROFILE_REQUIRED_FIELDS.map(snake),
-      ...BASE_ONLY,
+  it("names the codes of CREATOR_PROFILE_REQUIRED_FIELDS in their order, portfolio and account_verified last, for an empty profile", async () => {
+    expect((await inBase({})).missing).toEqual(
+      CREATOR_PROFILE_REQUIRED_FIELDS.map(snake),
+    );
+    expect(CREATOR_PROFILE_REQUIRED_FIELDS.slice(-2)).toEqual([
+      "portfolio",
+      "accountVerified",
     ]);
   });
 
   it.each(PARITY_CASES)(
-    "answers as the domain for %s (codes and score, no visual)",
+    "answers as the domain for %s (codes and score)",
     async (_label, input) => {
       const base = await inBase(input);
-      expect(base.missing.filter((code) => !BASE_ONLY.includes(code))).toEqual(
+      expect(base.missing).toEqual(
         missingCreatorRequiredFields(input).map(snake),
       );
       expect(base.score).toBe(creatorProfileCompleteness(input).score);
     },
   );
 
-  it("counts the visuals deposited (RG87 block 6: 6 from 3, 2 more from 5) and lists portfolio and account_verified until they are there", async () => {
-    const at = async (portfolioDeposited: number, accountVerified: boolean) =>
-      inBase({ ...COMPLETE, portfolioDeposited, accountVerified });
+  it("counts the visuals deposited (RG87 block 6: 6 from 3, 2 more from 5) and lists portfolio and account_verified until they are there, as the domain", async () => {
+    const at = async (portfolioDeposited: number, accountVerified: boolean) => {
+      const input = { ...COMPLETE, portfolioDeposited, accountVerified };
+      const base = await inBase(input);
+      // the base and the domain agree on every step, whatever the number
+      expect(base.score, `${portfolioDeposited}`).toBe(
+        creatorProfileCompleteness(input).score,
+      );
+      expect(base.missing, `${portfolioDeposited}`).toEqual(
+        missingCreatorRequiredFields(input).map(snake),
+      );
+      return base;
+    };
     const [two, three, five, verified] = await Promise.all([
       at(2, false),
       at(3, false),
       at(5, false),
       at(3, true),
     ]);
-    const domain = creatorProfileCompleteness(COMPLETE).score;
+    const without = creatorProfileCompleteness(COMPLETE).score;
     expect([two.score, three.score, five.score]).toEqual([
-      domain,
-      domain + 6,
-      domain + 8,
+      without,
+      without + 6,
+      without + 8,
     ]);
     // a complete profile reaches 100 with five visuals (RG87, the badge request filed)
     expect(five.score).toBe(100);
-    expect(two.missing).toEqual(BASE_ONLY);
+    expect(
+      creatorProfileCompleteness({ ...COMPLETE, portfolioDeposited: 5 })
+        .attainablePoints,
+    ).toBe(100);
+    expect(two.missing).toEqual(["portfolio", "account_verified"]);
     expect(three.missing).toEqual(["account_verified"]);
     expect(verified.missing).toEqual([]);
   });

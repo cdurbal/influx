@@ -29,7 +29,9 @@
     "editorial": "Ligne éditoriale",
     "networks": "Réseaux sociaux",
     "audience": "Audience",
-    "offer": "Mon offre"
+    "offer": "Mon offre",
+    "portfolio": "Portfolio",
+    "trust": "Confiance"
   },
   "blocks": {
     "missing": "À compléter : {fields}.",
@@ -69,7 +71,9 @@
     "mainAudienceCountry": "pays principal de votre audience",
     "mainAudienceShare": "part de ce pays dans votre audience",
     "formats": "formats proposés",
-    "availability": "disponibilité"
+    "availability": "disponibilité",
+    "portfolio": "au moins 3 visuels déposés",
+    "accountVerified": "un compte vérifié par INFLUX"
   },
   "field": {
     "required": "obligatoire",

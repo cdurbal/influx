@@ -294,12 +294,15 @@ describe("L2D-A1 GET /v1/me/creator-profile (07 RG1, RG2, RG86, RG90, CA2)", () 
       "mainAudienceShare",
       "formats",
       "availability",
+      // L2G 06: required too; the route reads neither the portfolio nor the badge until commit 08
+      "portfolio",
+      "accountVerified",
     ]);
-    // the country of residence is the only point earned: 1 of the 92 reachable today (RG87, EC-L2D-5, L2E-11: the badge request is offered)
+    // the country of residence is the only point earned: 1 of the 100 reachable since L2G 06 (RG87, EC-L2D-5: every criterion is offered)
     expect(profile.completeness).toMatchObject({
       score: 1,
       earnedPoints: 1,
-      attainablePoints: 92,
+      attainablePoints: 100,
     });
     expect(profile.identity).toEqual({
       legalFirstName: null,
@@ -415,7 +418,8 @@ describe("L2D-A2 PATCH /v1/me/creator-profile: partial autosave, merged, with th
     const saved = await save(server, member, completeBody());
     // blocks 1 and 2: 5+10+5+2+2+3+1+1 = 29 · block 5: 8+3+3+2+1+2 = 19 · no network line yet
     expect(saved.completeness.score).toBe(48);
-    expect(saved.completeness.attainablePoints).toBe(92);
+    // every criterion is offered since L2G 06 (the portfolio counts once deposited, RG88)
+    expect(saved.completeness.attainablePoints).toBe(100);
     expect(saved.missingRequired).toEqual([
       "networkLines",
       "primaryAccount",
@@ -425,6 +429,8 @@ describe("L2D-A2 PATCH /v1/me/creator-profile: partial autosave, merged, with th
       "figuresDate",
       "mainAudienceCountry",
       "mainAudienceShare",
+      "portfolio",
+      "accountVerified",
     ]);
     expect(await storedScore(member.accountId)).toBe(48);
     await save(server, member, { formats: [] });
@@ -456,7 +462,8 @@ describe("L2D-A2 PATCH /v1/me/creator-profile: partial autosave, merged, with th
     const saved = await save(server, member, completeBody());
     // 48 + the first line 16 + the main audience country 10
     expect(saved.completeness.score).toBe(74);
-    expect(saved.missingRequired).toEqual([]);
+    // blocks 1 to 5 are complete; the portfolio and the badge are the two left (read at commit 08)
+    expect(saved.missingRequired).toEqual(["portfolio", "accountVerified"]);
     expect(await storedScore(member.accountId)).toBe(74);
     // the exact figures of the line are never part of the answer of the profile
     const raw = (await call(server, "GET", URL_PROFILE, member.session)).body;

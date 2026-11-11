@@ -279,15 +279,32 @@ export function afterSave(
 // --- Where each section and each required field stands ------------------------------------------
 
 export type SectionId =
-  "presentation" | "editorial" | "networks" | "audience" | "offer";
+  | "presentation"
+  | "editorial"
+  | "networks"
+  | "audience"
+  | "offer"
+  | "portfolio"
+  | "trust";
 
-/** The five sections of the summary, in the order of the form (17 §5.2). */
+/** The five sections of the form built so far, in the order of the form (17 §5.2). */
 export const SECTION_IDS: readonly SectionId[] = [
   "presentation",
   "editorial",
   "networks",
   "audience",
   "offer",
+];
+
+/**
+ * What the summary of what is missing counts by: the five sections plus the portfolio (block 6) and
+ * the badge (block 7), which are required since L2G (RG77, RG16) and whose blocks of the form arrive
+ * with the screen of L2G (commit 13). Until then they are named in the count and not yet drawn.
+ */
+export const SUMMARY_SECTION_IDS: readonly SectionId[] = [
+  ...SECTION_IDS,
+  "portfolio",
+  "trust",
 ];
 
 /** The sections the screen holds: all five since commit 14; a section not in this set would be told "coming soon". */
@@ -318,6 +335,8 @@ const SECTION_OF_REQUIRED: Readonly<Record<RequiredCode, SectionId>> = {
   mainAudienceShare: "audience",
   formats: "offer",
   availability: "offer",
+  portfolio: "portfolio",
+  accountVerified: "trust",
 };
 
 export function sectionOfRequired(code: RequiredCode): SectionId {
@@ -335,7 +354,7 @@ export type SectionCount = { section: SectionId; count: number };
 export function missingBySectionOf(
   missing: readonly RequiredCode[],
 ): SectionCount[] {
-  return SECTION_IDS.map((section) => ({
+  return SUMMARY_SECTION_IDS.map((section) => ({
     section,
     count: missing.filter((code) => SECTION_OF_REQUIRED[code] === section)
       .length,

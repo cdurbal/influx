@@ -25,6 +25,9 @@ const REQUIRED: CreatorProfileInput = {
   ],
   offerLines: [{ networkCode: "instagram", formatCode: "reel" }],
   availabilityBand: "lt_2w",
+  // L2G: the portfolio (RG77) and « Compte vérifié » (RG16) are required too
+  portfolioDeposited: 3,
+  accountVerified: true,
 };
 
 describe("L2D-U2 required fields of blocks 1 to 5 (RG16, Q15)", () => {
@@ -45,6 +48,8 @@ describe("L2D-U2 required fields of blocks 1 to 5 (RG16, Q15)", () => {
       "mainAudienceShare",
       "formats",
       "availability",
+      "portfolio",
+      "accountVerified",
     ]);
   });
 
@@ -173,5 +178,43 @@ describe("L2D-U2 required fields of blocks 1 to 5 (RG16, Q15)", () => {
         /price|tariff|currency|^rate|^net[A-Z]/.test(field),
       ),
     ).toBe(false);
+  });
+});
+
+describe("L2G-U1 the portfolio and the badge among the required fields (RG4, RG16, RG77, RG88)", () => {
+  it("asks three visuals deposited, and counts none of the approvals (RG88)", () => {
+    const missing = (portfolioDeposited?: number) =>
+      missingCreatorRequiredFields({
+        ...REQUIRED,
+        portfolioDeposited,
+      });
+    expect(missing(undefined)).toEqual(["portfolio"]);
+    expect(missing(0)).toEqual(["portfolio"]);
+    expect(missing(2)).toEqual(["portfolio"]);
+    expect(missing(3)).toEqual([]);
+    expect(missing(8)).toEqual([]);
+  });
+
+  it("asks an active « Compte vérifié », and only a true one counts (RG16, D79 (6))", () => {
+    const missing = (accountVerified?: boolean) =>
+      missingCreatorRequiredFields({ ...REQUIRED, accountVerified });
+    expect(missing(undefined)).toEqual(["accountVerified"]);
+    expect(missing(false)).toEqual(["accountVerified"]);
+    expect(missing(true)).toEqual([]);
+  });
+
+  it("puts the portfolio then the badge after block 5, and lists both for a profile of the first five blocks", () => {
+    expect(
+      missingCreatorRequiredFields({
+        ...REQUIRED,
+        portfolioDeposited: undefined,
+        accountVerified: undefined,
+      }),
+    ).toEqual(["portfolio", "accountVerified"]);
+    expect(CREATOR_PROFILE_REQUIRED_FIELDS.slice(-3)).toEqual([
+      "availability",
+      "portfolio",
+      "accountVerified",
+    ]);
   });
 });

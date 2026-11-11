@@ -65,6 +65,10 @@ function isWebVerificationRoute(url: string): boolean {
 
 /**
  * Modules left out of TM11.1: served to the creator alone, or to the agents of the backoffice.
+ * `creator-portfolio` and `creator-projection` (L2G 06) are the creator's own routes under
+ * /v1/me/creator-profile (T14 keeps every other role off them): the second one is his PREVIEW, whose
+ * `after` tab holds layer I by design. The search of Lot 3 serves a brand the layer A alone from a
+ * module of its own, covered by this test, which will name the lines without the identifying names.
  * `verification` (L2E): the creator's own requests, the agent's decisions (the handle and the three
  * figures are typed by the agent) and the brand's own internal block; the public badge it holds
  * names a network by design (08 RG89) and is held free of handle, URL, agent and gap by
@@ -73,6 +77,8 @@ function isWebVerificationRoute(url: string): boolean {
 function isExcludedModule(name: string): boolean {
   return (
     name === "creator-profile" ||
+    name === "creator-portfolio" ||
+    name === "creator-projection" ||
     name === "verification" ||
     name.startsWith("backoffice-")
   );

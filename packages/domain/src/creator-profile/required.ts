@@ -2,8 +2,11 @@
 // RG4, RG16, RG113, Q15; jalons/l2d/modele.md; EC-L2D-6). Codes only, no label: the screens translate
 // them. Under Q15 only the community (abonnés) of the MAIN account is required among the three
 // priority metrics; the rhythm and the comments stay optional. No price is asked (D78): the offer
-// asks for formats and an availability. Submission itself, with the portfolio, is L2G.
+// asks for formats and an availability. L2G adds the portfolio (RG4, RG77: three visuals deposited)
+// and « Compte vérifié » (08 RG16, D79 (6)): the list is the one `submit_own_creator_profile()` checks
+// in the base (0243), held equal by db-tests/creator-profile-parity.test.ts.
 import { hasBio, hasHeadline } from "./limits.ts";
+import { PORTFOLIO_MIN_ITEMS } from "./portfolio.ts";
 import {
   linesOf,
   listEntered,
@@ -14,7 +17,7 @@ import {
   type CreatorProfileInput,
 } from "./input.ts";
 
-/** Required field codes, in the order of the form: blocks 1 to 5 of RG16. */
+/** Required field codes, in the order of the form: blocks 1 to 5 of RG16, then the portfolio and the badge. */
 export const CREATOR_PROFILE_REQUIRED_FIELDS = [
   // Block 1, presentation
   "headline",
@@ -36,16 +39,14 @@ export const CREATOR_PROFILE_REQUIRED_FIELDS = [
   // Block 5, offer
   "formats",
   "availability",
+  // Block 6, portfolio (RG77): at least three visuals deposited, approved or not (RG88)
+  "portfolio",
+  // Block 7, trust (08 RG16): an active « Compte vérifié », granted by an agent and never by the score
+  "accountVerified",
 ] as const;
 
 export type CreatorProfileRequiredField =
   (typeof CREATOR_PROFILE_REQUIRED_FIELDS)[number];
-
-/**
- * Required by `07` yet not asked at L2D, and never prices: the portfolio (RG77, block 6) and the
- * badge request come with L2G and L2E. The indicative rate stays out for good while D78 holds.
- */
-export const CREATOR_PROFILE_DEFERRED_REQUIRED_FIELDS = ["portfolio"] as const;
 
 /**
  * The required fields still missing, in the order of the form (RG90: the message names what is
@@ -76,6 +77,8 @@ export function missingCreatorRequiredFields(
     mainAudienceShare: numberEntered(mainCountry?.share),
     formats: listEntered(input.offerLines),
     availability: textEntered(input.availabilityBand),
+    portfolio: (input.portfolioDeposited ?? 0) >= PORTFOLIO_MIN_ITEMS,
+    accountVerified: input.accountVerified === true,
   };
   return CREATOR_PROFILE_REQUIRED_FIELDS.filter((field) => !present[field]);
 }

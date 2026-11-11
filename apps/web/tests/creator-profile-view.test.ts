@@ -26,6 +26,7 @@ import {
   sectionAnchorOf,
   sectionOfRequired,
   SECTION_IDS,
+  SUMMARY_SECTION_IDS,
   singleFieldPatch,
   type CreatorDraft,
 } from "@/components/creator-profile/creator-profile-view";
@@ -402,7 +403,7 @@ describe("L2D-12: sections, anchors and required fields", () => {
       "offer",
     ]);
     for (const code of CREATOR_PROFILE_REQUIRED_FIELD_CODES) {
-      expect(SECTION_IDS, code).toContain(sectionOfRequired(code));
+      expect(SUMMARY_SECTION_IDS, code).toContain(sectionOfRequired(code));
     }
     // blocks 4 and 5 came with commit 14: no section is told "coming soon" any more
     expect([...BUILT_SECTIONS]).toEqual([...SECTION_IDS]);

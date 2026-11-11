@@ -12,6 +12,13 @@ import {
   COMPLETENESS_CRITERION_CODES,
 } from "@influx/contracts/brand-profile";
 import {
+  PORTFOLIO_CAPTION_MAX_LENGTH as CONTRACT_PORTFOLIO_CAPTION_MAX_LENGTH,
+  PORTFOLIO_MAX_ITEMS as CONTRACT_PORTFOLIO_MAX_ITEMS,
+  PORTFOLIO_MEMBER_ITEM_STATES,
+  PORTFOLIO_MIN_ITEMS as CONTRACT_PORTFOLIO_MIN_ITEMS,
+  portfolioCaptionBodySchema,
+} from "@influx/contracts/creator-portfolio";
+import {
   CREATOR_BIO_MAX_LENGTH,
   CREATOR_COMPLETENESS_BLOCK_IDS,
   CREATOR_COMPLETENESS_CRITERION_CODES,
@@ -27,6 +34,11 @@ import {
   CREATOR_PROFILE_REQUIRED_FIELDS,
   CREATOR_PROFILE_WEIGHTS,
   HEADLINE_MAX_LENGTH,
+  PORTFOLIO_CAPTION_MAX_LENGTH,
+  PORTFOLIO_ITEM_STATES,
+  PORTFOLIO_MAX_ITEMS,
+  PORTFOLIO_MIN_ITEMS,
+  checkPortfolioCaption,
 } from "@influx/domain/creator-profile";
 import {
   CREATOR_VERIFICATION_LEVELS as CONTRACT_CREATOR_LEVELS,
@@ -260,6 +272,39 @@ describe("the contract repeats the code lists of the domain, equal (it has no de
   it("repeats the ceilings of the short title and the bio, equal (L2D 08)", () => {
     expect(CREATOR_HEADLINE_MAX_LENGTH).toBe(HEADLINE_MAX_LENGTH);
     expect(CREATOR_BIO_MAX_LENGTH).toBe(BIO_MAX_LENGTH);
+  });
+
+  it("repeats the bounds, the states and the caption rule of the portfolio, equal (L2G 06)", () => {
+    expect(CONTRACT_PORTFOLIO_MIN_ITEMS).toBe(PORTFOLIO_MIN_ITEMS);
+    expect(CONTRACT_PORTFOLIO_MAX_ITEMS).toBe(PORTFOLIO_MAX_ITEMS);
+    expect(CONTRACT_PORTFOLIO_CAPTION_MAX_LENGTH).toBe(
+      PORTFOLIO_CAPTION_MAX_LENGTH,
+    );
+    // a creator reads every state of the base but the line before the object and the purged one
+    expect([...PORTFOLIO_MEMBER_ITEM_STATES]).toEqual(
+      PORTFOLIO_ITEM_STATES.filter(
+        (state) => state !== "uploading" && state !== "purged",
+      ),
+    );
+    for (const [caption, declared] of [
+      [null, false],
+      [null, true],
+      ["", false],
+      ["  ", false],
+      ["deux\nlignes", false],
+      ["a".repeat(200), true],
+      ["a".repeat(201), false],
+      ["🌿".repeat(200), false],
+      ["🌿".repeat(201), false],
+    ] as const) {
+      expect(
+        portfolioCaptionBodySchema.safeParse({
+          caption,
+          brandDeclared: declared,
+        }).success,
+        JSON.stringify([caption?.length, declared]),
+      ).toBe(checkPortfolioCaption(caption, declared).ok);
+    }
   });
 
   it("lists the levels, states and sources of the verification in the same order (L2E 11)", () => {

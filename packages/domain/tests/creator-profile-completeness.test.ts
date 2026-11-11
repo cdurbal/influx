@@ -130,7 +130,7 @@ describe("the score of a creator profile (RG86, RG88)", () => {
     expect(creatorProfileCompleteness({ networkLines: [] }).score).toBe(0);
   });
 
-  it("offers the badge request in block 7, and nothing else of that block is out of reach", () => {
+  it("offers every criterion from L2G: the portfolio of block 6 and the badge request of block 7 included", () => {
     const notOffered = creatorProfileCompleteness({}).blocks.map((block) => [
       block.id,
       block.criteria.filter((c) => !c.offered).map((c) => c.code),
@@ -141,7 +141,7 @@ describe("the score of a creator profile (RG86, RG88)", () => {
       ["networks", []],
       ["audience", []],
       ["offer", []],
-      ["portfolio", ["portfolioThree", "portfolioFive"]],
+      ["portfolio", []],
       ["trust", []],
     ]);
     expect(CREATOR_PROFILE_WEIGHTS.reduce((sum, w) => sum + w.points, 0)).toBe(
@@ -149,21 +149,46 @@ describe("the score of a creator profile (RG86, RG88)", () => {
     );
   });
 
-  it("caps at 92 from L2E: the portfolio cannot be earned yet, the badge request can", () => {
+  it("reaches 100 from L2G: every criterion is offered, the portfolio counts once deposited", () => {
     const full = creatorProfileCompleteness(FULL);
-    expect(full.attainablePoints).toBe(92);
+    expect(full.attainablePoints).toBe(100);
+    // the 90 of L2D, without the badge request (2) nor the portfolio (8)
     expect(full.score).toBe(90);
     const filed = creatorProfileCompleteness({ ...FULL, badgeRequested: true });
     expect(filed.score).toBe(92);
-    expect(filed.score).toBe(filed.attainablePoints);
+    const three = creatorProfileCompleteness({
+      ...FULL,
+      badgeRequested: true,
+      portfolioDeposited: 3,
+    });
+    expect(three.score).toBe(98);
+    const five = creatorProfileCompleteness({
+      ...FULL,
+      badgeRequested: true,
+      portfolioDeposited: 5,
+    });
+    expect(five.score).toBe(100);
+    expect(five.score).toBe(five.attainablePoints);
     expect(
       full.blocks.flatMap((block) => block.criteria).filter((c) => !c.offered),
-    ).toHaveLength(2);
+    ).toHaveLength(0);
+  });
+
+  it("counts the visuals deposited, never the approved ones, and keeps the badge out of the score (RG88)", () => {
+    const portfolio = (input: CreatorProfileInput) =>
+      creatorProfileCompleteness(input).blocks.find(
+        (block) => block.id === "portfolio",
+      )?.earnedPoints;
+    expect(portfolio(FULL)).toBe(0);
+    expect(portfolio({ ...FULL, portfolioDeposited: 2 })).toBe(0);
+    expect(portfolio({ ...FULL, portfolioDeposited: 3 })).toBe(6);
+    expect(portfolio({ ...FULL, portfolioDeposited: 4 })).toBe(6);
+    expect(portfolio({ ...FULL, portfolioDeposited: 5 })).toBe(8);
+    expect(portfolio({ ...FULL, portfolioDeposited: 8 })).toBe(8);
+    // « Compte vérifié » is a required field, not a point: nothing INFLUX decides moves the score
     expect(
-      full.blocks
-        .find((block) => block.id === "portfolio")
-        ?.criteria.every((c) => !c.earned),
-    ).toBe(true);
+      creatorProfileCompleteness({ ...FULL, accountVerified: true }),
+    ).toEqual(creatorProfileCompleteness(FULL));
   });
 
   it("counts the points of what was entered, block by block, without rescaling", () => {

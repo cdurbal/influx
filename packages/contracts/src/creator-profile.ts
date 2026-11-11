@@ -13,7 +13,10 @@ import { z } from "./zod.ts";
 import { uiLocaleSchema } from "./auth.ts";
 import { countryCodeSchema } from "./signup.ts";
 
-/** The five states of a creator profile (04 §5.2, 0216). No member writes any: `draft` all of L2D. */
+/**
+ * The five states of a creator profile (04 §5.2, 0216). A member never writes one: the submission
+ * door moves `draft` or `rejected` to `pending_review` (L2G), an agent publishes or refuses.
+ */
 export const CREATOR_PROFILE_STATUSES = [
   "draft",
   "pending_review",
@@ -266,7 +269,7 @@ export type UpdateCreatorProfileBody = z.infer<
   typeof updateCreatorProfileBodySchema
 >;
 
-/** Required fields (07 RG4, RG16, Q15) in the order of the form; the twin of packages/domain, held equal by a test. */
+/** Required fields (07 RG4, RG16, RG77, Q15) in the order of the form; the twin of packages/domain, held equal by a test. */
 export const CREATOR_PROFILE_REQUIRED_FIELD_CODES = [
   "headline",
   "bio",
@@ -283,6 +286,9 @@ export const CREATOR_PROFILE_REQUIRED_FIELD_CODES = [
   "mainAudienceShare",
   "formats",
   "availability",
+  // L2G: three visuals deposited (07 RG77) and an active « Compte vérifié » (08 RG16)
+  "portfolio",
+  "accountVerified",
 ] as const;
 export const creatorProfileRequiredFieldSchema = z.enum(
   CREATOR_PROFILE_REQUIRED_FIELD_CODES,
@@ -328,7 +334,7 @@ export const CREATOR_COMPLETENESS_BLOCK_IDS = [
 export const creatorCompletenessCriterionSchema = z.strictObject({
   code: z.enum(CREATOR_COMPLETENESS_CRITERION_CODES),
   points: z.number().int().min(0).max(100),
-  /** False: the creator cannot earn it today (portfolio L2G); left out of the reachable points. */
+  /** False: the creator cannot earn it today; left out of the reachable points (none since L2G: all are offered). */
   offered: z.boolean(),
   earned: z.boolean(),
 });
@@ -340,7 +346,7 @@ export const creatorCompletenessBlockSchema = z.strictObject({
   criteria: z.array(creatorCompletenessCriterionSchema),
 });
 
-/** Score of 0 to 100 (07 RG86), 92 at most while the portfolio does not exist (L2G); the badge request counts once filed (RG88, L2E). It opens no right (RG89). */
+/** Score of 0 to 100 (07 RG86), every criterion being offered since L2G; the portfolio counts once deposited and the badge request once filed (RG88). It opens no right (RG89). */
 export const creatorProfileCompletenessSchema = z.strictObject({
   score: z.number().int().min(0).max(100),
   earnedPoints: z.number().int().min(0).max(100),
@@ -442,7 +448,7 @@ export const creatorProfileResponseSchema = z.strictObject({
   refusedSectors: z.array(z.string()),
   identity: creatorIdentitySchema,
   completeness: creatorProfileCompletenessSchema,
-  /** Required fields still missing, in the order of the form (07 RG4, RG90); empty: nothing left to fill at L2D. */
+  /** Required fields still missing, in the order of the form (07 RG4, RG90); empty: the profile may be submitted. */
   missingRequired: z.array(creatorProfileRequiredFieldSchema),
   /** Identifying elements the detection sees in the public texts: signals, never blocking, never stored (07 RG27, RG28). */
   warnings: z.array(creatorTextWarningSchema),
@@ -666,4 +672,82 @@ export const creatorNetworksResponseSchema = z.strictObject({
 });
 export type CreatorNetworksResponse = z.infer<
   typeof creatorNetworksResponseSchema
+>;
+
+// --- Submission, refusal and visibility (07 RG4, RG5, RG8, RG10, RG96; jalons/l2g/modele.md §2, §6) --
+// POST /v1/me/creator-profile/submit and PUT .../visibility. The account is the session's; no path
+// carries an identifier. The answer of a refusal comes from the closed list of RG96: the message the
+// member reads is the one of its code (translations), and only `other` carries a free message.
+
+/** The closed list of the reasons a creator profile is refused (07 RG96; `profiles.creator_rejection_reasons`). */
+export const CREATOR_REJECTION_REASON_CODES = [
+  "identifier_in_text",
+  "bio_insufficient",
+  "portfolio_insufficient",
+  "portfolio_non_compliant",
+  "network_link_inconsistent",
+  "figures_inconsistent",
+  "topic_inconsistent",
+  "illicit_content",
+  "age_doubt",
+  "other",
+] as const;
+export const creatorRejectionReasonCodeSchema = z.enum(
+  CREATOR_REJECTION_REASON_CODES,
+);
+export type CreatorRejectionReasonCode = z.infer<
+  typeof creatorRejectionReasonCodeSchema
+>;
+
+/** What the member does next: correct and submit again (`fix`), or write to INFLUX (`contact`). */
+export const CREATOR_REJECTION_NEXT_STEPS = ["fix", "contact"] as const;
+
+/** The free message of the reason `other`, the only one to carry one (0243: 20 to 500 characters). */
+export const CREATOR_MEMBER_MESSAGE_MIN_LENGTH = 20;
+export const CREATOR_MEMBER_MESSAGE_MAX_LENGTH = 500;
+
+/**
+ * The last refusal of a submission or of a revision of a published profile (RG10, RG96): the
+ * reason, the step that follows and, for `other` alone, the message of the agent. Never the agent,
+ * nor the internal comment (T14). `kind` `revision`: the profile stays published with its previous
+ * version (CA48).
+ */
+export const creatorProfileRefusalSchema = z.strictObject({
+  kind: z.enum(["submission", "revision"]),
+  reasonCode: creatorRejectionReasonCodeSchema,
+  nextStep: z.enum(CREATOR_REJECTION_NEXT_STEPS),
+  memberMessage: z
+    .string()
+    .min(CREATOR_MEMBER_MESSAGE_MIN_LENGTH)
+    .max(CREATOR_MEMBER_MESSAGE_MAX_LENGTH)
+    .nullable(),
+  decidedAt: z.iso.datetime(),
+});
+export type CreatorProfileRefusal = z.infer<typeof creatorProfileRefusalSchema>;
+
+/**
+ * The answer of POST .../submit (modele §3, `submit_own_creator_profile()`): `status` after the
+ * call and the required fields still missing, in the order of the form. `missing` empty and `status`
+ * `pending_review`: submitted. `missing` not empty: nothing was written, the profile keeps its state
+ * (RG4, RG90). No identifier of the entry of the queue leaves the API (T14).
+ */
+export const submitCreatorProfileResponseSchema = z.strictObject({
+  status: creatorProfileStatusSchema,
+  missing: z.array(creatorProfileRequiredFieldSchema),
+});
+export type SubmitCreatorProfileResponse = z.infer<
+  typeof submitCreatorProfileResponseSchema
+>;
+
+/** The body of PUT .../visibility: the one global switch of RG8, writable in any state but `suspended`. */
+export const creatorVisibilityBodySchema = z.strictObject({
+  isSearchable: z.boolean(),
+});
+export type CreatorVisibilityBody = z.infer<typeof creatorVisibilityBodySchema>;
+
+export const creatorVisibilityResponseSchema = z.strictObject({
+  isSearchable: z.boolean(),
+});
+export type CreatorVisibilityResponse = z.infer<
+  typeof creatorVisibilityResponseSchema
 >;

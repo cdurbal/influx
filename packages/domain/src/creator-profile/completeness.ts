@@ -4,10 +4,17 @@
 // The weights are RG87 exactly, and they add up to 100 by construction. The score counts what the
 // creator entered, never what INFLUX decided (RG88): no moderation state, no badge, no approval is an
 // input. It opens no right (RG89): publication depends on the required fields.
-// From L2E the badge request can be earned, as a request FILED (RG88), never a badge obtained; the
-// portfolio cannot before L2G: the score cannot pass 92, and no screen announces 92 as a goal. There is no price line (D78): the 11 points of the two rate
-// lines of RG87 go to the two lines of the offer, with the same weights (EC-L2D-4).
+// From L2E the badge request can be earned, as a request FILED (RG88), never a badge obtained; from
+// L2G the portfolio can, as visuals DEPOSITED, never approved: every criterion is offered and a full
+// profile reaches 100. There is no price line (D78): the 11 points of the two rate lines of RG87 go
+// to the two lines of the offer, with the same weights (EC-L2D-4).
+// The base holds the same weights (profiles.creator_completeness_percent, 0243): db-tests/
+// creator-profile-parity.test.ts holds both copies equal.
 import { hasBio, hasHeadline } from "./limits.ts";
+import {
+  PORTFOLIO_FULL_BLOCK_ITEMS,
+  PORTFOLIO_MIN_ITEMS,
+} from "./portfolio.ts";
 import {
   linesOf,
   listEntered,
@@ -59,7 +66,7 @@ type CriterionWeight = {
   readonly block: CreatorCompletenessBlockId;
   /** Points of RG87, exactly. */
   readonly points: number;
-  /** Whether the creator can earn it today; if not, the score of a full profile stays under 100. */
+  /** Whether the creator can earn it today; if not, the score of a full profile stays under 100 (every criterion is offered since L2G). */
   readonly offered: boolean;
 };
 
@@ -94,8 +101,8 @@ export const CREATOR_PROFILE_WEIGHTS: readonly CriterionWeight[] = [
   { code: "exclusivity", block: "offer", points: 1, offered: true },
   { code: "availability", block: "offer", points: 2, offered: true },
   // The portfolio is block 6 (L2G); counted when deposited, never when approved (RG88).
-  { code: "portfolioThree", block: "portfolio", points: 6, offered: false },
-  { code: "portfolioFive", block: "portfolio", points: 2, offered: false },
+  { code: "portfolioThree", block: "portfolio", points: 6, offered: true },
+  { code: "portfolioFive", block: "portfolio", points: 2, offered: true },
   // L2E: a request for « Compte vérifié » or « Audience vérifiée » filed (pending or decided, never
   // withdrawn), counted as "filed", never "obtained" (RG88). The only criterion of block 7.
   { code: "badgeRequested", block: "trust", points: 2, offered: true },
@@ -128,10 +135,10 @@ export type CreatorCompletenessBlock = {
 };
 
 export type CreatorProfileCompleteness = {
-  /** Points earned, an integer from 0 to the attainable points (90 at L2D): no rescaling. */
+  /** Points earned, an integer from 0 to the attainable points (100 from L2G): no rescaling. */
   readonly score: number;
   readonly earnedPoints: number;
-  /** What can be reached today: 90 while the portfolio and the badge request do not exist. */
+  /** What can be reached today: 100 from L2G, every criterion being offered. */
   readonly attainablePoints: number;
   /** Detail block by block, in the order of RG87. */
   readonly blocks: readonly CreatorCompletenessBlock[];
@@ -214,15 +221,16 @@ function entered(
     case "badgeRequested":
       return input.badgeRequested === true;
     case "portfolioThree":
+      return (input.portfolioDeposited ?? 0) >= PORTFOLIO_MIN_ITEMS;
     case "portfolioFive":
-      return false;
+      return (input.portfolioDeposited ?? 0) >= PORTFOLIO_FULL_BLOCK_ITEMS;
   }
 }
 
 /**
  * Score of a profile (RG86 to RG88): the points of the criteria the creator has entered, among
- * those he can earn today. A profile with every offered criterion reaches the attainable points
- * (92 from L2E, the portfolio of L2G still out of reach), never 100. Whole numbers only: the weights are points, nothing is divided.
+ * those he can earn today. A profile with every criterion reaches the attainable points, 100 since
+ * L2G (the portfolio counts once deposited, RG88). Whole numbers only: the weights are points, nothing is divided.
  */
 export function creatorProfileCompleteness(
   input: CreatorProfileInput,

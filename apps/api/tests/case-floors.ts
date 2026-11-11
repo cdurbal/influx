@@ -28,7 +28,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/database-variables.test.ts": 8,
   "tests/db-tests-never-skipped.test.ts": 1,
   "tests/db-unit.test.ts": 28,
-  "tests/domain-guards.test.ts": 14,
+  "tests/domain-guards.test.ts": 15,
   "tests/dual-control.test.ts": 7,
   "tests/email-change-email.test.ts": 6,
   "tests/email-switch.test.ts": 5,

@@ -29,7 +29,9 @@
     "editorial": "Editorial line",
     "networks": "Social networks",
     "audience": "Audience",
-    "offer": "My offer"
+    "offer": "My offer",
+    "portfolio": "Portfolio",
+    "trust": "Trust"
   },
   "blocks": {
     "missing": "To complete: {fields}.",
@@ -69,7 +71,9 @@
     "mainAudienceCountry": "main country of your audience",
     "mainAudienceShare": "share of that country in your audience",
     "formats": "formats offered",
-    "availability": "availability"
+    "availability": "availability",
+    "portfolio": "at least 3 uploaded visuals",
+    "accountVerified": "an account verified by INFLUX"
   },
   "field": {
     "required": "required",

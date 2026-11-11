@@ -63,8 +63,15 @@ export type CreatorProfileInput = {
   readonly usageRights?: readonly CreatorUsageRightInput[] | null;
   readonly maxExclusivityBand?: string | null;
   readonly availabilityBand?: string | null;
+  // Block 6, portfolio (RG77, RG88): the visuals DEPOSITED (pending or approved, a pending replacement
+  // sharing the place of its original), never the approved ones. Read by the list of the required
+  // fields and by the score; the base counts them (profiles.deposited_portfolio_count).
+  readonly portfolioDeposited?: number;
   // Block 7, trust (RG87, RG88): a badge request FILED on one of his lines, never a badge obtained.
   readonly badgeRequested?: boolean;
+  // « Compte vérifié » active on one of the lines (08 RG16, D79 (6)): read by the list of the required
+  // fields ONLY, never by the score (RG88: nothing INFLUX decides moves the score).
+  readonly accountVerified?: boolean;
 };
 
 export function textEntered(value: string | null | undefined): boolean {

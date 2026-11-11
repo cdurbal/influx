@@ -4,5 +4,7 @@ export * from "./completeness.ts";
 export * from "./input.ts";
 export * from "./limits.ts";
 export * from "./network-line.ts";
+export * from "./portfolio.ts";
 export * from "./required.ts";
+export * from "./submission-message.ts";
 export * from "../shared/contact-detection.ts";
