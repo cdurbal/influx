@@ -2053,7 +2053,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * against its sections 2 and 7; and on 2026-11-11 with those of 0242 (L2G commit 02, the portfolio),
  * each line checked against its sections 8 to 10 and 12 and l2g/modele.md §2; then with those of 0243
  * (L2G commit 03, the creator submission), each line checked against its sections 8, 9 and 12; then
- * with those of 0244 (L2G commit 04, the decisions of queues 2 and 3), against its sections 2 and 4.
+ * with those of 0244 (L2G commit 04, the decisions of queues 2 and 3), against its sections 2 and 4;
+ * then with those of 0245 (L2G commit 05, the export, the erasure and the reads of the worker),
+ * against its sections 1 and 3.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -5886,6 +5888,84 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_moderation_definer|function|profiles.trimmed_char_length(text)|EXECUTE",
   "influx_moderation_definer|schema|reference|USAGE",
   "influx_moderation_definer|schema|verification|USAGE",
+  // 0245 (L2G commit 05, l2g/modele §1 point 14, §3 "0245", fiche invariants 11, 13, 15): the export
+  // and the erasure of the data of L2G, influx_privacy_definer column by column (the visuals without
+  // the key, the checksum, an agent, the lock, the deadlines nor the internal comment; the statements
+  // of RG83; the entries of queue 2 without an agent nor the internal comment; the revisions without
+  // the row key), its writes bound to an erased account; the three E-3 reads of the worker,
+  // influx_leads_definer reading the decided entries and visuals, the storefront codes of RG107, the
+  // stored score and the listed lines, never a column of RG108.
+  "influx_leads_definer|column|profiles.creator_identities.account_id|SELECT",
+  "influx_leads_definer|column|profiles.creator_identities.completeness_percent|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_networks.account_id|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_networks.audience_band|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_networks.is_primary|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_networks.listed_at|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_networks.network_code|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_profiles.account_id|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_profiles.main_audience_country|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_profiles.primary_topic_code|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_profiles.published_at|SELECT",
+  "influx_leads_definer|column|profiles.creator_public_profiles.status|SELECT",
+  "influx_leads_definer|column|profiles.creator_review_entries.account_id|SELECT",
+  "influx_leads_definer|column|profiles.creator_review_entries.id|SELECT",
+  "influx_leads_definer|column|profiles.creator_review_entries.kind|SELECT",
+  "influx_leads_definer|column|profiles.creator_review_entries.member_message|SELECT",
+  "influx_leads_definer|column|profiles.creator_review_entries.rejection_reason_code|SELECT",
+  "influx_leads_definer|column|profiles.creator_review_entries.state|SELECT",
+  "influx_leads_definer|column|profiles.portfolio_items.account_id|SELECT",
+  "influx_leads_definer|column|profiles.portfolio_items.decided_at|SELECT",
+  "influx_leads_definer|column|profiles.portfolio_items.id|SELECT",
+  "influx_leads_definer|column|profiles.portfolio_items.rejection_reason_code|SELECT",
+  "influx_leads_definer|column|profiles.portfolio_items.replaces_item_id|SELECT",
+  "influx_leads_definer|column|profiles.portfolio_items.stored_at|SELECT",
+  "influx_leads_definer|function|leads.read_brevo_creator_profile_decision(bigint,text)|EXECUTE",
+  "influx_leads_definer|function|leads.read_brevo_portfolio_decision(bigint,text)|EXECUTE",
+  "influx_leads_definer|function|leads.read_creator_profile_attributes(bigint,text)|EXECUTE",
+  "influx_privacy_definer|column|profiles.creator_field_revisions.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.creator_field_revisions.closed_at|SELECT",
+  "influx_privacy_definer|column|profiles.creator_field_revisions.field_code|SELECT",
+  "influx_privacy_definer|column|profiles.creator_field_revisions.proposed_value|SELECT",
+  "influx_privacy_definer|column|profiles.creator_field_revisions.status|SELECT",
+  "influx_privacy_definer|column|profiles.creator_field_revisions.submitted_at|SELECT",
+  "influx_privacy_definer|column|profiles.creator_review_entries.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.creator_review_entries.closed_at|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.creator_review_entries.created_at|SELECT",
+  "influx_privacy_definer|column|profiles.creator_review_entries.decided_at|SELECT",
+  "influx_privacy_definer|column|profiles.creator_review_entries.id|SELECT",
+  "influx_privacy_definer|column|profiles.creator_review_entries.internal_comment|UPDATE",
+  "influx_privacy_definer|column|profiles.creator_review_entries.kind|SELECT",
+  "influx_privacy_definer|column|profiles.creator_review_entries.member_message|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.creator_review_entries.rejection_reason_code|SELECT",
+  "influx_privacy_definer|column|profiles.creator_review_entries.state|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.portfolio_brand_declarations.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_brand_declarations.caption|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_brand_declarations.declared_at|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_brand_declarations.id|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_brand_declarations.portfolio_item_id|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_brand_declarations.statement_key|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.account_id|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.brand_declaration_id|UPDATE",
+  "influx_privacy_definer|column|profiles.portfolio_items.byte_size|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.caption|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.portfolio_items.created_at|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.decided_at|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.display_order|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.height|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.id|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.internal_comment|UPDATE",
+  "influx_privacy_definer|column|profiles.portfolio_items.purged_at|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.rejection_reason_code|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.replaces_item_id|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.state|SELECT,UPDATE",
+  "influx_privacy_definer|column|profiles.portfolio_items.stored_at|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.width|SELECT",
+  "influx_privacy_definer|column|profiles.portfolio_items.withdrawn_at|SELECT",
+  "influx_privacy_definer|table|profiles.creator_field_revisions|DELETE",
+  "influx_privacy_definer|table|profiles.portfolio_brand_declarations|DELETE",
+  "influx_worker|function|leads.read_brevo_creator_profile_decision(bigint,text)|EXECUTE",
+  "influx_worker|function|leads.read_brevo_portfolio_decision(bigint,text)|EXECUTE",
+  "influx_worker|function|leads.read_creator_profile_attributes(bigint,text)|EXECUTE",
 ];
 
 /**
@@ -6406,4 +6486,10 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "profiles.reject_portfolio_item(uuid,text,text,text)":
     "influx_moderation_definer",
   "profiles.read_portfolio_item_for_review(uuid)": "influx_moderation_definer",
+  // 0245 (L2G commit 05): the worker's reads of the two decision e-mails and of the creator
+  // attributes of a Brevo contact (E-3); E-5 keeps its 0137 lines (recreated).
+  "leads.read_brevo_creator_profile_decision(bigint,text)":
+    "influx_leads_definer",
+  "leads.read_brevo_portfolio_decision(bigint,text)": "influx_leads_definer",
+  "leads.read_creator_profile_attributes(bigint,text)": "influx_leads_definer",
 };

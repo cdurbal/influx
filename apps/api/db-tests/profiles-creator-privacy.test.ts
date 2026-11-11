@@ -464,6 +464,10 @@ describe("L2D-D14: the creator profile in the export (art. 15, 15 RG81)", () => 
         disputes: [],
         identifier_changes: [],
       },
+      // 0245 (L2G): no visual, no entry of queue 2, no revision for this creator
+      portfolio: [],
+      review_entries: [],
+      field_revisions: [],
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),
     });
@@ -865,7 +869,8 @@ describe("influx_privacy_definer on the creator objects (0219 §1)", () => {
       inserts: "",
       key_updates: "",
       reads_public_ref: false,
-      read_tables: 15,
+      // 0219: the fifteen creator tables; 0245: the entries of queue 2 and the creator revisions
+      read_tables: 17,
     });
   });
 });
