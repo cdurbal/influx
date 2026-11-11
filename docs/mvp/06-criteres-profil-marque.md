@@ -416,6 +416,8 @@ domaine ; **l'agent constate lui-même le code en ligne** et enregistre son cons
 identité de l'agent). Une capture d'écran fournie par la marque ne vaut pas preuve : elle se
 fabrique. Le code est valide **7 jours** (valeur de départ, paramétrable, voir **Q6**).
 
+*Amendé à la clôture de L2F (D83 A-bis, `0234`) : la preuve peut aussi être l'adresse de connexion vérifiée du compte, sur ce domaine ou un sous-domaine, hors messageries grand public (liste en table `consumer_email_domains`) ; la base la lit sans la montrer, l'agent enregistre le constat (`login_address`). L'immatriculation reste constatée par l'agent (RG52). Le `TXT` et la page restent possibles. Réserve de sécurité avant `production` (L2FS-3) : liste trop courte, portée de A-bis à rétrécir aux demandes ouvertes par un agent.*
+
 **RG52** — Le contrôle de l'immatriculation est fait par l'agent dans un **registre public
 accessible en ligne**. Si le registre du pays déclaré n'est pas consultable, la demande est
 **refusée** avec le motif « immatriculation non vérifiable dans ce pays » : le badge n'est pas
@@ -438,6 +440,8 @@ délai de grâce (**30 jours**, valeur proposée) il est retiré.
 déclaration reconnue fausse, société radiée, changement de titulaire du domaine, manquement grave
 aux CGU. Chaque retrait porte un motif typé, est journalisé nominativement et est notifié à la
 marque.
+
+*Amendé à la clôture de L2F (`0231`, `08` RG73) : cinq motifs pour la marque, `forged_evidence`, `terms_breach`, `influx_error` (excuses d'INFLUX, jamais d'accusation) et deux neufs, `company_dissolved` et `domain_transferred` ; `account_closed` et `owner_changed` sont propres au créateur. Le retrait passe par la double validation (`03` §3.2) ; la marque ne conteste pas, elle corrige et resoumet (`08` RG77).*
 
 **RG56** — Les pièces et les constats de vérification vivent en **stockage privé**. **Aucun
 créateur n'y accède, dans aucun cas** — y compris à sa demande, y compris par l'intermédiaire d'un

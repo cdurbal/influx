@@ -1500,6 +1500,8 @@ champ, et son ancienne version reste affichée tant que la nouvelle n'est pas ap
 ### 5.3 `verification` — preuves, badge, péremption (Lot 2)
 
 > **Amendé à la clôture de L2E (2026-11-08 ; `0220` à `0227`, modèle arbitré en `archives/jalons/l2e/modele.md`).** Le schéma réel prime sur les blocs ci-dessous : **états** `draft` · `pending` · `approved` · `rejected` · `cancelled` · `expired` · `closed` (aucun état `in_review` : le verrou est porté par les colonnes de prise, et « à réexaminer » est un motif interne qui garde `pending`) ; **index de prise** : un seul `draft` ou `pending` par `(account_id, social_account_id, level)`, et non plus l'index `where status = 'in_review'` ci-dessous, qui est retiré ; `level` : `account_verified` · `audience_verified` · `brand_verified` ; acteur de décision par compte (`decided_by_account_id`) ; `badges` : `network_code`, `request_id`, `registry_source_id`, constat et déclaré à la décision, `observed_engagement_bp`, `evidence_source`, état `replaced`. Propriétaires des fonctions : `influx_verification_definer`, `influx_creator_verification_definer` (neufs), `influx_identity_definer` (portes marque, sans droit sur les pièces). L'annonceur n'a aucun droit sur le schéma `verification`, `USAGE` compris (T9.6).
+>
+> **Amendé à la clôture de L2F (2026-11-11 ; `0228` à `0241`, modèle arbitré en `archives/jalons/l2f/modele.md`).** `badges` : `reminder_sent_at`, `ended_at` (⇔ `expired`, `revoked`, `replaced`, posé par `stamp_badge_end()`), `findings_erased_at`, `revocation_request_id`, `dispute_id`. Tables neuves : `badge_revocation_requests` (2V `verification.revoke_badge`), `disputes` (remplace le bloc de la l. 1656 : cible `request_id` ou `badge_id`, exactement une, chacune unique), `dispute_reasons`, `dispute_outcome_reasons`, `identifier_change_reviews` (file 6), `opening_reasons`, `consumer_email_domains` ; `verification_requests` + `opened_by`, `opened_by_account_id`, `opening_reason_code`, `opening_comment` (D83) ; `registry_sources.subdivision_code` ; `revocation_reasons` + `levels`. États de contestation : `open`, `upheld`, `overturned`, `withdrawn`. Handle constaté comparé au déclaré par `verification.normalize_handle()` (`0228`). Même règle : l'annonceur n'a aucun droit sur `verification`.
 
 #### `verification.verification_requests`
 
@@ -1657,6 +1659,8 @@ publié : c'est un signal interne pour le commercial (règle 5 de l'étape 4 de 
 `check (num_nonnulls(...) = 1)`), `account_id`, `submitted_at`, `reason`, `reviewed_by_agent_id`
 (**différent du décideur initial** — contrôlé applicativement dès que l'équipe compte deux
 personnes), `decided_at`, `outcome`.
+
+> *Amendé à la clôture de L2F (`0232`) : voir la note de §5.3. Aucune pièce jointe à la contestation ; issue `upheld` ou `overturned` avec motif fermé ; décideurs figés au dépôt.*
 
 ---
 
@@ -5795,7 +5799,7 @@ les préparer serait inventer.
 | Compte actif | `identity.accounts`, `profiles.*` | Vie du compte + **3 ans** d'inactivité | `last_seen_at` | Un créateur inactif 3 ans n'est plus une offre commerciale |
 | Preuves d'acceptation | `identity.terms_acceptances`, `identity.consent_events` | **5 ans** après la fin de la relation | `deleted_at` du compte | Preuve du consentement et de l'acceptation des CGU (durée usuelle de prescription) |
 | Pièces de vérification | `verification.evidence_files` | **45 jours** après la décision *(fondateur, 2026-11-01, `08` Q2)* | `decided_at` | La pièce n'a plus de raison d'être une fois le constat saisi. C'est le constat qui vaut, pas la pièce (`profile-verification` règle 27) |
-| Badges et décisions | `verification.badges`, `verification_requests` | **3 ans** | `decided_at` | Historique de responsabilité : INFLUX répond de ce qu'il a affirmé |
+| Badges et décisions | `verification.badges`, `verification_requests` | **3 ans** | `decided_at` ; *depuis L2F (`0230`), pour un badge fini (`expired`, `revoked`, `replaced`), `ended_at`* | Historique de responsabilité : INFLUX répond de ce qu'il a affirmé. *L2F : à `findings_retention_days`, la ligne du badge fini est gardée, ses chiffres, valeurs déclarées, période et référence sont effacés (handle `[deleted]`, `findings_erased_at`) ; pièces `purged` et codes supprimés ; textes des contestations, retraits et entrées de la file 6 vidés sur lignes closes (`ops.purge_verification_findings()`)* |
 | Messages | `messaging.messages` | **3 ans** après la clôture de la conversation | `closed_at` | Preuve d'une négociation d'où peut naître une créance V2 (D29) |
 | Journal des lectures | `messaging.conversation_access_log` | **3 ans** | `accessed_at` | Contrepartie de la supervision annoncée (A10) : elle doit être vérifiable aussi longtemps que les échanges |
 | **Documents et téléchargements** | `messaging.documents`, **`messaging.document_downloads`** | **3 ans** après la clôture de la conversation | `closed_at` du fil | **Même durée que les messages** : un brief transmis fait partie de la négociation. Les octets sortent du Storage à la même échéance, le journal des téléchargements reste pendant la même durée |
@@ -6164,6 +6168,20 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0225 | `profiles_observed_figures_bands` (L2E) | Tranches publiques dérivées du badge d'audience tenant, engagement, historique `agent_observed`, L2DS-2 | Non |
 | 0226 | `privacy_verification` (L2E) | Catégorie `verification` de l'export et effacement dans la même transaction | Non |
 | 0227 | `leads_verification_email_reads` (L2E) | Lectures du worker `read_brevo_verification_email` et `read_verified_badge` | Non |
+| 0228 | `verification_observed_handle_match` (L2F) | `verification.normalize_handle()` (IMMUTABLE) ; les deux octrois comparent constaté et déclaré, 22023 `observed_handle_mismatch` (L2ES-2) | Non |
+| 0229 | `verification_registry_sources_by_subdivision` (L2F) | `registry_sources.subdivision_code`, `verification.add_registry_source()` (admin), codes refusés de `record_refused_action()` (L2E-US, L2ES-3, EC-L2C-fix-2-2) | Non |
+| 0230 | `verification_badge_lifecycle` (L2F) | TM5.3 : `ops.run_badge_lifecycle()`, `ops.purge_verification_findings()`, `reminder_sent_at`, `ended_at`, `badge_reminder_days` | Non |
+| 0231 | `verification_badge_revocation` (L2F) | TM5.4 : `badge_revocation_requests`, `request_badge_revocation()`, `revoke_badge()`, enveloppes 2V `backoffice.*_for`, `revocation_reasons.levels` ; PLT-5, PLS-5, PLS-6 | Non |
+| 0232 | `verification_badge_disputes` (L2F) | File 5 : `disputes`, `dispute_reasons`, `dispute_outcome_reasons`, `badges.dispute_id`, `dispute_reflection_hours` | Non |
+| 0233 | `verification_identifier_changes` (L2F) | File 6 : `identifier_change_reviews`, déclencheurs sur `handle` et sur la suppression de ligne | Non |
+| 0234 | `verification_agent_opening` (L2F) | D83 : `opened_by`, `opening_reasons`, `open_request_for_member()`, A-bis (`login_domain_of()`, `consumer_email_domains`, `grant_brand_verified_by_login()`) | Non |
+| 0235 | `privacy_verification_l2f` (L2F) | Export et effacement des tables neuves, purge recréée | Non |
+| 0236 | `leads_badge_email_reads` (L2F) | Lectures du worker `read_brevo_badge_email()` et `read_brevo_verification_email()` recréée | Non |
+| 0237 | `profiles_badge_grace_read` (L2F) | `profiles.read_badge_grace_days()` (rôles membres, un entier de réglage) | Non |
+| 0238 | `verification_contestable_read` (L2F) | `verification.read_own_contestable_decisions()` (créateur) | Non |
+| 0239 | `verification_account_openings_read` (L2F) | `verification.read_account_openings()` (agent, admin) | Non |
+| 0240 | `profiles_badge_reminder_read` (L2F) | `profiles.read_badge_reminder_days()` | Non |
+| 0241 | `verification_decision_origin` (L2F) | `verification.granted`, `rejected` et `closed` portent `channel`, `agent_opened`, `responsible_agent` (L2FS-1) | Non |
 
 > **Numéros réels du L2B (EC-L2B-1).** `check-migrations.ts` impose l'ordre des noms : L2B a pris `0202` `profiles_advertiser_full`, `0203` `profiles_advertiser_submission` (soumission gardée par la base), `0204` `profiles_brand_logo_storage` (compartiment `brand-logo`, quotas, politiques Storage) et `0205` `ops_storage_purge`. Les lignes `0203` à `0207` ci-dessus prennent les numéros libres suivants au jalon qui les livre. **L2C** prend `0206` `backoffice_profiles_advertiser_queue` : file 1 et son délai (escalade 960, `15` RG29), `backoffice.operational_settings` (EC-L2C-2), `backoffice.business_deadline()` (§5.6), puis `0207` ci-dessus.
 | **Lot 3** | | | |

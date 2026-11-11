@@ -193,6 +193,8 @@ aucun montant, et n'a aucun effet sur un montant.
 Aucune attribution automatique, aucune attribution par un connecteur d'API, aucune attribution par
 lot, aucune attribution par expiration d'un délai. Une attribution automatique est un défaut bloquant.
 
+*Amendé à la clôture de L2F (D83) : un agent peut ouvrir la demande d'un membre connu (motif fermé, origine `agent` figée) ; il ne lui accorde rien, le badge reste attribué à la main, sur constat. Une décision d'un commercial pour son propre client se relit au registre : `channel`, `agent_opened` et `responsible_agent` sur `verification.granted` (`0228`, `0234`, `0241`).*
+
 **RG10** — **Libellés proposés au titre de D34** (proposition du `product-owner`, à valider par le
 fondateur et relire par un juriste avant tout affichage — **Q1**) :
 
@@ -557,6 +559,8 @@ dont INFLUX répond.
 | **Délai de grâce : 30 jours** (proposition, **Q5**) | « à rafraîchir » | Redépôt possible **sans refaire la preuve de propriété** | Idem |
 | **Fin du délai de grâce** | **Expiré** : le badge d'audience **disparaît** | Le profil reste publié, les chiffres repassent en « déclaré » | Plus aucun badge d'audience ; la tranche d'engagement redevient masquée |
 
+*Amendé à la clôture de L2F (`0230`, TM5.3) : une seule tâche quotidienne du worker, `badge_lifecycle` (`ops.run_badge_lifecycle()`, 500 par appel), écrit le rappel (à `expires_at` − `badge_reminder_days`, 15, une seule fois), « à rafraîchir » à `expires_at`, puis « expiré » à `expires_at` + `badge_grace_days` (« à reconfirmer » compris) ; événement système sans agent (sujet `verification_badge`), idempotent par période ; la marque suit le même cycle ; un badge tenu d'une ligne de réseau supprimée expire par la même tâche, sans e-mail (`line_deleted`) ; à l'expiration la ligne publique repasse au déclaré dans la transaction et `lead.updated` part en file.*
+
 **RG71** — **« Compte vérifié » n'est pas affecté par la péremption d'audience** (RG30). Un créateur
 dont le badge d'audience expire reste publié : il ne redevient pas un inconnu.
 
@@ -575,6 +579,8 @@ constaté est une friction sans contrepartie.
 | `terms_breach` | Manquement grave aux CGU | Oui | Administrateur |
 | `influx_error` | **Erreur d'INFLUX** : badge accordé à tort | Oui, avec excuses explicites | Administrateur |
 
+*Amendé à la clôture de L2F (`0231`, `06` RG55) : la liste vit en table `revocation_reasons`, avec une colonne `levels`. Côté créateur : les cinq codes ci-dessus, inchangés. Côté marque : `forged_evidence`, `terms_breach`, `influx_error` (communs) et deux codes neufs, `company_dissolved` et `domain_transferred` ; `account_closed` et `owner_changed` restent propres au créateur. `terms_breach` exige un message de l'agent au membre (20 à 500 caractères) ; `influx_error` présente les excuses d'INFLUX et n'accuse jamais le membre.*
+
 **RG74** — `influx_error` existe parce qu'un agent se trompe. Sans ce motif, une erreur interne se
 range sous un motif qui accuse le créateur — ce qui est à la fois faux et déloyal. Sa fréquence est
 suivie comme un indicateur de qualité de la procédure, pas comme une faute individuelle.
@@ -587,6 +593,8 @@ intégral, confirmation dans un second temps séparé du premier geste, trace no
 horodatages. **C'est un contrôle affaibli, et il est dit comme tel** : il protège contre l'erreur et la
 précipitation, pas contre la malveillance.
 
+*Amendé à la clôture de L2F (`0231`, TM5.4) : l'agent ou l'administrateur demande par `verification.request_badge_revocation()` ; la 2V `verification.revoke_badge` est ouverte et consommée par deux enveloppes `backoffice.*_for` (charge `{account_id, badge_id, reason_code}` comparée entière, une demande vivante par badge, expirée à 24 h sans effet) ; seul un administrateur distinct la confirme (forme dégradée : `degraded_single_operator`) ; le compte propre ou détenu par le confirmeur est refusé ; retirer un « Compte vérifié » emporte l'audience tenue de la même ligne, dite au récapitulatif. Aucun autre retrait que la péremption (RG70) et l'effacement du compte.*
+
 **RG76** — Un badge retiré **disparaît immédiatement de tous les écrans** : recherche, fiche, campagne,
 conversation, e-mail en préparation. **Aucun historique de badge n'est affiché à un annonceur** — ni
 « badge retiré le… », ni « anciennement vérifié ». L'historique est interne.
@@ -598,6 +606,8 @@ personnes ; tant qu'elle n'en compte qu'une, elle est réexaminée **après un d
 moins 24 heures**, et la décision est journalisée nominativement. **Toute contestation, son examen et
 son issue sont journalisés**, et le créateur est notifié de l'issue avec un motif.
 
+*Amendé à la clôture de L2F (`0232`, file 5 de `15` RG29) : table `verification.disputes`. Créateur seul ; cible : un refus `rejected` ou le retrait sous 2V d'un badge nommé ; fenêtre `dispute_window_days` (30) comptée depuis `decided_at` ou `revoked_at`, inclusive ; une contestation par décision ; motif fermé (`misread`, `evidence_valid`, `reason_wrong`, `other` avec texte), texte de 1 000 caractères au plus, ni lien ni contact, **aucune pièce jointe** (une pièce neuve passe par une demande, `17` l. 1768). Décideurs figés au dépôt ; « autre personne » = compte interne actif (profil actif, hors bris de glace) hors décideurs ; sinon décision au plus tôt `dispute_reflection_hours` (24) après le dépôt, `review_mode` `independent` ou `delayed`. Issues `upheld` et `overturned`, chacune avec un motif fermé notifié ; infirmation : refus tranché sur le dossier d'origine (pièces gardées 45 j), octroi à la nouvelle date, identifiant constaté retapé ; retrait : badge neuf, `expires_at` d'origine.*
+
 **RG78** — **Changement d'identifiant (pseudo) déclaré après vérification** : le badge **reste**,
 l'ancien et le nouvel identifiant sont **conservés en interne**, une entrée « identifiant modifié à
 contrôler » est créée dans la file et le commercial est alerté. L'agent décide sous le même SLA : soit
@@ -605,6 +615,8 @@ il constate que le compte est le même et enregistre son constat, soit il **exig
 propriété**, et le badge « Compte vérifié » passe alors en **« à reconfirmer »** (visible du créateur,
 **non affiché comme actif** à un annonceur) jusqu'au nouveau constat. Hypothèse retenue faute
 d'automatisme : INFLUX n'a aucun moyen de détecter seul un changement d'identifiant au MVP.
+
+*Amendé à la clôture de L2F (`0233`, file 6 `identity_change_review`) : un déclencheur sur la seule colonne `handle` d'une ligne dont « Compte vérifié » est `active` ouvre une entrée (une `open` par ligne, mise à jour à chaque changement, retour à l'ancien identifiant = `withdrawn`, `reverted`) ; ancien et nouvel identifiants restent internes, jamais au registre ni en file d'envoi. « Même compte » : constat tapé, égal au déclaré (22023 `observed_handle_mismatch`, comme tout octroi depuis `0228`), badge jamais réécrit ; « preuve exigée » : compte et audience tenue en `to_reconfirm`, ligne publique au déclaré, e-mail `reconfirm_required`. Une audience est refusée tant qu'une entrée est ouverte. Limite connue (L2FS-4, avant production) : l'unicité compare l'identifiant du constat, non l'identifiant confirmé en file 6.*
 
 **RG79** — **Chute brutale d'audience** : le badge **n'est pas retiré** — il constate une date passée,
 et il le dit. Une chute déclarée ou constatée de plus de **40 %** par rapport au dernier constat
@@ -726,7 +738,7 @@ d'appréciation exportée hors du périmètre qui la justifie.
 **RG94** — Notifications transactionnelles envoyées au créateur, toutes dans sa langue : demande reçue,
 code généré, **décision favorable**, **refus avec son message de motif**, rappel J-15, passage en « à
 rafraîchir », expiration, **retrait avec son motif**, contestation reçue, issue de la contestation,
-demande expirée. *(Amendé à la clôture de L2E, EC-L2E-3 : cinq notifications sont livrées au L2E, par le worker depuis `email.json`, sans lien ni chiffre : demande reçue, code généré, décision favorable, refus avec son message de motif, demande expirée ; les six autres suivent avec L2F et le Lot 5.)* **Aucune de ces notifications n'est marketing** : elles ne dépendent d'aucun
+demande expirée. *(Amendé à la clôture de L2E, EC-L2E-3 : cinq notifications sont livrées au L2E, par le worker depuis `email.json`, sans lien ni chiffre : demande reçue, code généré, décision favorable, refus avec son message de motif, demande expirée ; les six autres sont livrées à la clôture de L2F, par le même worker et sans lien, chiffre, identifiant ni nom d'agent : rappel, « à rafraîchir », expiration (audience et marque), retrait avec son motif, contestation reçue, issue ; s'y ajoutent « preuve à reconfirmer » (RG78) et « votre commercial a lancé la vérification » (D83).)* **Aucune de ces notifications n'est marketing** : elles ne dépendent d'aucun
 consentement et ne passent par aucun scénario de nurturing.
 
 **RG95** — Chaque écran de ce périmètre possède **quatre états explicites** : repos, chargement,
@@ -756,7 +768,7 @@ redéploiement, chaque modification étant journalisée : validité du code (7 j
 (30 jours), péremption du badge d'audience (90 jours), délai de grâce (30 jours), SLA (1 jour ouvré),
 alerte SLA (3 jours ouvrés), expiration du verrou (30 minutes), délai entre deux demandes (24 heures),
 plafond de refus (3 par 30 jours), seuils d'alerte d'écart (30 %) et de chute (40 %), délai de
-contestation (30 jours), rétention des pièces (45 jours), rétention des constats (3 ans).
+contestation (30 jours), rétention des pièces (45 jours), rétention des constats (3 ans). *Amendé à la clôture de L2F : deux paramètres neufs, `badge_reminder_days` (15, de 1 à 90) et `dispute_reflection_hours` (24, de 24 à 168).*
 
 **RG101** — **Aucun de ces paramètres n'est modifiable par un agent** : la modification est réservée à
 un administrateur, journalisée nominativement, avec l'ancienne et la nouvelle valeur.
@@ -1194,6 +1206,8 @@ Tables prévues et utilisées telles quelles : `verification.verification_reques
    utile en cas de contestation portant sur les données de tiers (**Q2**).
 
 **État à la clôture de L2E (2026-11-08) :** écart 1 levé (images, WebP, `0221`) ; 2 levé (`revocation_reasons`, `0221`) ; 3 levé (état `to_reconfirm`, `0221`) ; 4 **reporté à L2F** (`verification.disputes`, EC-L2E-2) ; 5 levé (`observed_handle` et colonnes d'observation de `ownership_codes`, `0221`) ; 6 levé (`reference.engagement_bands` existe depuis `0201`) ; 7 levé (RG60 calculé sur les demandes, aucune table de compteurs, `0222`) ; 8 **non traité** (version des instructions de capture, ouvert, Q2).
+
+**État à la clôture de L2F (2026-11-11) :** écart 4 levé (`verification.disputes`, `dispute_reasons`, `dispute_outcome_reasons`, file 5 aux délais de `15` RG29 ; `0232`) ; l'écart 8 reste ouvert.
 
 **Écart levé le 2026-09-24 (D51, arbitrage du fondateur ; `06` le disait déjà dans ses acteurs et cas limites).** *Texte d'origine :* `06` (cas limite « droit insuffisant ») dit
 que **seul un administrateur** peut retirer un badge, alors que `03` §3.2 autorise un **agent avec

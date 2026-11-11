@@ -18,7 +18,7 @@ Le badge vit. « Audience vérifiée » (90 j) et « Marque vérifiée » (12 mo
 6. **Contestation (RG77, CA52, CA53).** Créateur seul, refus ou retrait, dans `dispute_window_days` (30) depuis la notification, une par décision ; traitée par une autre personne que le décideur dès que l'équipe en compte deux, sinon pas avant 24 h, contrôlé en base ; deux issues ; issue notifiée avec motif ; badge rendu = nouvelle date de décision.
 7. **Identifiant modifié (RG78, CA54, L2ES-2).** Le badge reste ; ancien et nouvel identifiant gardés en interne, jamais publics ; une entrée ouverte par ligne ; l'agent confirme (constat écrit) ou exige une preuve : `to_reconfirm`, visible du créateur, jamais actif ailleurs. Tout octroi compare l'identifiant constaté au déclaré (22023 `observed_handle_mismatch`).
 8. **Files 5 et 6 (`15` RG27 C1 à C8, RG29, RG36).** Règles des files 1 et 4 : prise atomique, 30 min, prolongation, levée forcée admin, jeton de version, `sla_due_at` figé (5 j ouvrés provisoire ; 1 j ouvré), hors délai décidable et marqué, ni compte propre ni détenu (`queue.conflict_of_interest`), aucune sortie sans décision.
-9. **D83 (A + A-bis, tranchée le 2026-11-08).** Même demande, même file, même unicité, mêmes décisions ; origine `agent` et motif fermé portés par la demande ; aucun badge sans constat ; « Audience vérifiée » exclue ; compte propre, détenu ou inactif refusé ; ni lot ni import ; membre informé par e-mail ; second regard a posteriori, le commercial responsable peut valider son client. **A-bis :** le domaine de la marque est prouvé par l'adresse de connexion du compte sur ce domaine, lue par la base, jamais saisie ; messageries grand public exclues (liste en table) ; l'immatriculation reste constatée par l'agent ; le `TXT` et la page restent possibles.
+9. **D83 (A + A-bis, tranchée le 2026-11-08).** Même demande, même file, même unicité, mêmes décisions ; origine `agent` et motif fermé portés par la demande ; aucun badge sans constat ; « Audience vérifiée » exclue ; compte propre ou inactif refusé, compte détenu admis (Q4 : l'ouverture, et la décision du détenteur pour une demande `opened_by = 'agent'` seulement, `15` RG36 amendé à la clôture, lecture du code) ; ni lot ni import ; membre informé par e-mail ; second regard a posteriori, le commercial responsable peut valider son client. **A-bis :** le domaine de la marque est prouvé par l'adresse de connexion du compte sur ce domaine, lue par la base, jamais saisie ; messageries grand public exclues (liste en table) ; l'immatriculation reste constatée par l'agent ; le `TXT` et la page restent possibles.
 10. **T9.6 tenu (EC-L2E-18).** Aucune table neuve lisible par `influx_advertiser`, `USAGE` compris ; aucune fonction qu'il exécute ne nomme une pièce ni `storage.`.
 11. **Sorties (RG91, RG92, RG94, D69).** `VERIFIED_LEVEL` et `VERIFIED_AT` recalculés à chaque changement de badge, baisse comprise ; Apollo : rien ; e-mails transactionnels du worker depuis `email.json`, sans lien, chiffre ni identifiant de réseau.
 12. **Journaux (D60, RG99).** Identifiants (ancien, nouveau, constaté), texte de contestation, message de retrait, chiffres : absents de pino, `ops.*`, du registre et des charges `outbox` ; registre : codes et identifiants.
@@ -91,7 +91,7 @@ Le badge vit. « Audience vérifiée » (90 j) et « Marque vérifiée » (12 mo
 | **L2F-D7 à D10** | Base | D7 agent demande, admin distinct confirme, charge entière (CA49) ; D8 disparition, `lead.updated` (CA50) ; D9 chaque motif, message, escalade (CA51, `06` CA32) ; D10 PLT-5, PLS-6 : charge lax refusée à la création | 4 |
 | **L2F-D11 à D13** | Base | D11 30 j acceptée, 31 j refusée, une par décision (CA52) ; D12 décideur refusé à deux personnes, 24 h à une ; D13 infirmée : nouvelle date (CA53) | 3 |
 | **L2F-D14 à D16** | Base | D14 entrée, badge tenu, identifiants gardés (CA54) ; D15 preuve exigée : `to_reconfirm`, déclaré, reconfirmation ; D16 ligne supprimée | 3 |
-| **L2F-D17** | Base | D83 : origine, motif, unicité, refus (propre, détenu, inactif, audience) ; A-bis : adresse du domaine acceptée, messagerie grand public et autre domaine refusés, immatriculation toujours exigée | 2 |
+| **L2F-D17** | Base | D83 : origine, motif, unicité, refus (propre, inactif, audience ; détenu admis, Q4) ; A-bis : adresse du domaine acceptée, messagerie grand public et autre domaine refusés, immatriculation toujours exigée | 2 |
 | **L2F-D18** | Base | Export ; effacement sans résidu (balayage) | 1 |
 | **L2F-D19, D20** | Base | D19 constaté ≠ déclaré : 22023 ; D20 source d'État, une active par subdivision, refus d'écriture journalisé | 2 |
 | **L2F-U1 à U4** | Unitaire | Libellé de chaque état ; fenêtre ; motifs par niveau ; suite affichée au membre | Chaque RG citée |
@@ -103,15 +103,15 @@ Fichiers neufs dans `e2e/case-floors.ts` et `db-tests/case-floors.ts` dans le co
 
 ## Critère de fin
 
-- [ ] Péremption prouvée et journalisée comme événement système. *Preuve : TM5.3 vert ×3, L2F-D1 à D6 (ligne 16).*
-- [ ] Retrait refusé sans 2V. *Preuve : TM5.4 vert ×3, L2F-D7 à D10 ; retrait sous 2V sur `staging` (ligne F).*
-- [ ] Contestation et identifiant modifié traités de bout en bout. *Preuve : L2F-D11 à D16, e2e ligne 19.*
-- [ ] D83 (A + A-bis) réalisée : un commercial lance la vérification d'une marque connue, qui n'a aucun geste à faire. *Preuve : L2F-D17, e2e ligne 20, ligne F.*
-- [ ] L2ES-2, L2E-US, PLT-5, PLS-5, PLS-6, L2ES-3, EC-L2C-fix-2-2 soldés ; L2D-E2E : levier appliqué, gain écrit. *Preuve : lignes 01 à 03, 06.*
-- [ ] T9.6, T1, TM11, T14, T2, T16 verts ; suite base verte. *Preuve : CI réelle.*
-- [ ] e2e ajouté ≤ 20 s, éclats sous 7 min 30. *Preuve : `run.md` § Mesures.*
-- [ ] `pnpm check` et `pnpm test:e2e` verts ; CI verte. *Preuve : `gh run list --json conclusion`.*
-- [ ] Revue soldée, attestation `security-reviewed:`. *Preuve : ligne R, commit d'attestation.*
+- [x] Péremption prouvée et journalisée comme événement système. *Preuve : TM5.3 vert ×3, L2F-D1 à D6 (ligne 16).*
+- [x] Retrait refusé sans 2V. *Preuve : TM5.4 vert ×3, L2F-D7 à D10 ; retrait sous 2V sur `staging` (ligne F).*
+- [x] Contestation et identifiant modifié traités de bout en bout. *Preuve : L2F-D11 à D16, e2e ligne 19.*
+- [x] D83 (A + A-bis) réalisée : un commercial lance la vérification d'une marque connue, qui n'a aucun geste à faire. *Preuve : L2F-D17, e2e ligne 20, ligne F.*
+- [x] L2ES-2, L2E-US, PLT-5, PLS-5, PLS-6, L2ES-3, EC-L2C-fix-2-2 soldés ; L2D-E2E : levier appliqué, gain écrit (1,3 s, levier épuisé ; le dépassement reste ouvert, `21` §8). *Preuve : lignes 01 à 03, 06.*
+- [x] T9.6, T1, TM11, T14, T2, T16 verts ; suite base verte. *Preuve : CI réelle.*
+- [x] e2e ajouté ≤ 20 s, éclats sous 7 min 30. *Preuve : `run.md` § Mesures (19,5 s ; éclats 316, 351, 309 s).*
+- [x] `pnpm check` et `pnpm test:e2e` verts ; CI verte. *Preuve : `gh run list --json conclusion`, run 42926484723 `success` sur `988388e` ; local : `pnpm check` vert, `pnpm test:e2e` vert aux passages 2 et 3, deux échecs connus au passage 1 (`backoffice-queue.spec.ts:82` et `:422`, L2ET-6), voir `run.md` § Mesures.*
+- [x] Revue soldée, attestation `security-reviewed:`. *Preuve : ligne R, commits d'attestation `988388e` (0241) et `c07e0b0` (0228 à 0240).*
 
 ## Écarts, décisions ouvertes, risques
 
@@ -167,4 +167,4 @@ Fin de jalon (2026-11-11, `c4d21dc..fd92d71`) : **0 bloquant**. Font foi : `l2f/
 | L2FS-8 | plus tard | `0130:750-766` | dégradé du retrait refusé si un agent peut demander | plus tard |
 | L2FS-9 | plus tard | `0233:510-517` | déclencheur fermé (42501) | avant écriture interne du handle |
 
-Avant production et plus tard : reliquat de `21` §8. fix-3 et fix-4 : à valider par le fondateur.
+Avant production et plus tard : reliquat de `21` §8. fix-3 et fix-4 : validés par le fondateur le 2026-11-11.

@@ -305,6 +305,8 @@ les motifs et les messages ; ce document-ci ne fait autorité que sur les colonn
 | 14 | `data_subject_requests` | **Demandes relatives aux données personnelles** | Demande d'un membre ou d'un tiers | **§G de ce document** | **30 j calendaires** (délai légal), **objectif interne 10 j ouvrés** | 1 j ouvré | 30 min | Instruction `agent` ; **exécution `admin`** (`03` §3.5) | Non |
 | 15 | `dual_control_pending` | **Actions en attente de seconde validation** | Toute action `2V` demandée et non encore confirmée | **§E et §J de ce document** | **24 h**, puis **expiration** (RG31) | — | Aucun | `admin` distinct du demandeur, ou le demandeur en mode dégradé | Non |
 
+*Amendé à la clôture de L2F (`0232`, `0233`) : files 5 et 6 en service. File 5 : décision sous 5 jours ouvrés (2 400 min, provisoire), prise en charge 1 jour ouvré (480 min), escalade 960 min ; le décideur d'origine ouvre en lecture seule tant qu'une autre personne existe, sinon 24 h de réflexion (`08` RG77). File 6 : décision sous 1 jour ouvré (480 min), prise en charge 240 min, escalade 960 min ; l'entrée ne porte l'ancien et le nouvel identifiant qu'au seul détenteur du verrou. Les deux : prise atomique de 30 min, jeton de version, levée forcée par un administrateur. La 2V du retrait de badge (`verification.revoke_badge`) passe par la file 15.*
+
 **Escalade de la file 1** (L2C, `0206`) : `escalate_after_minutes = 960`, compté **après** l'échéance de
 décision ; 480 + 960 = **3 jours ouvrés d'ancienneté** (`06` RG7). Échéance et escalade sont calculées une
 seule fois, à l'entrée, par `backoffice.business_deadline()` (`04` §5.6), sans jours fériés.
@@ -342,6 +344,8 @@ consultation anodine : c'est un acte. *Amendé au L2C (`l2c/file.md`)* : ouvrir 
 **RG36** — **Un rôle interne ne traite jamais une entrée impliquant un compte qu'il détient ou
 représente** (`13` RG35, `03` C(3)). L'entrée lui est masquée ; si le conflit apparaît en cours de
 traitement, il **réattribue** avec le motif `conflict_of_interest`.
+
+*Amendé à la clôture de L2F (D83 Q4, `0234`, lecture du code) : la levée du refus `owner_agent_id` ne vaut que pour une demande de la file 4 ouverte par un agent (`opened_by = 'agent'`) : le commercial responsable peut l'ouvrir pour son client, la prendre et la décider. La demande d'un membre reprise par un agent garde le refus ; les files 5 et 6 et le retrait refusent toujours le compte détenu (42501, `queue.conflict_of_interest` journalisé) ; le compte propre est refusé partout. Contrepartie : second regard a posteriori (D83 Q3), lu au registre sur `channel`, `agent_opened` et `responsible_agent` (`0241`) ; liste hebdomadaire des accords concernés avant `production` (L2FS-2).*
 
 **RG37 — Écarts d'harmonisation assumés, et pourquoi.** Trois files divergent volontairement, et il
 faut le dire pour que personne ne « corrige » l'écart par mégarde :

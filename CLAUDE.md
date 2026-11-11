@@ -281,7 +281,7 @@ chacun indique quand l'invoquer ; `contract-commission` est hors MVP).
 ## 10. Lots du MVP
 
 0 Socle ✅ · 1 Inscription et leads ✅ (`staging` ; production préparée, non ouverte) · extras DS,
-SN, RK ✅ (D73 à D75) · **2 Profils et badge (prochain)** · 3 Campagnes et recherche anonymisée ·
+SN, RK ✅ (D73 à D75) · **2 Profils et badge (en cours : L2A à L2F clos, L2G suivant)** · 3 Campagnes et recherche anonymisée ·
 4 Mise en relation et messagerie · 5 Backoffice, pipeline, e-mails · 6 Recette, audit, ouverture ·
 6bis rattrapage du mode normal. Périmètre : `docs/mvp/00-cadrage-mvp-v2.md` ; état : `21` §0 et §8.
 

@@ -1765,7 +1765,7 @@ confidentialité le couvre.
 | Invitations reçues | Les mises en relation à l'état 3 : proposition INFLUX ou demande de marque validée. Une carte, une action : `[■ Examiner]` → §7.2 | `13` RG66, RG100 |
 | Mon profil vu par une marque | Prévisualisation de la **carte anonyme réelle** servie par l'API, pas une reconstitution | Symétrique de `09` RG102 ; **manque dans `07`**, voir §10 |
 | Preuves déposées | Liste des pièces, état, motif de refus, rappel que les pièces ne sont **jamais** visibles d'une marque | `07` RG54, `08` §I |
-| Contester un badge retiré | Formulaire de contestation, motif, pièce | `08` §H |
+| Contester un badge retiré ou une demande refusée | Formulaire de contestation (C3) : motif fermé, texte de 1 000 caractères au plus, **aucune pièce jointe** (une preuve neuve passe par une nouvelle demande) ; dans la fenêtre de `dispute_window_days` (30) ; une par décision | `08` §H, RG77 |
 
 ---
 

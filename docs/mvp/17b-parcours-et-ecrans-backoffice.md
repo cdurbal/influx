@@ -1160,6 +1160,7 @@ Même gabarit, **contenu et vocabulaire propres** (`15` RG42). Les différences 
 | **Pièces de vérification** | **Relayées par l'API, jamais par une URL signée remise au navigateur** (`03` C(13), C(14), BO-5). **Chaque consultation est journalisée séparément** — pas une fois pour la fiche : le bouton porte donc « (consultation journalisée) » sur **chaque** pièce |
 | **Badge à échéance** | `⚑` + libellé écrit « expire le 19/11 » ; à J-15, AL14 s'ouvre |
 | **Aucun blanchiment de chiffre** | Les tranches de la vue marque n'apparaissent pas ici : la fiche interne montre les valeurs exactes, avec leur source (`10` RG71) |
+| **Badges** *(L2F)* | Bloc « Badges » (`AccountBadgesBlock`) : niveau, réseau, état écrit, date (« expire le », « échéance dépassée », « retiré le », « sans échéance » pour Compte vérifié), motif d'un retrait exécuté, demande 2V vivante, contestation ; jamais un chiffre ni un identifiant de réseau. `[· Demander le retrait]` : motif du niveau, message au membre exigé pour `terms_breach`, récapitulatif ; l'envoi n'ouvre que la 2V. `[· Lancer la vérification]` (D83) : motif fermé, commentaire interne, niveaux « Compte vérifié » et « Marque vérifiée » seuls ; le membre est prévenu par e-mail |
 
 **États communs aux deux fiches**
 
@@ -1595,6 +1596,8 @@ un. Ligne distincte, libellé « bris de glace », et un encadré permanent au-d
 > 24 heures. Il n'est jamais utilisé pour le travail quotidien.
 
 #### 3.13.c La double validation — et sa forme dégradée
+
+*Amendé à la clôture de L2F (`0231`) : l'action `verification.revoke_badge` s'ajoute au catalogue ; elle est **demandée depuis la fiche du compte** par un agent ou un administrateur (jamais par la porte générique), cible `badge` (niveau, réseau, état, message au membre, nombre de badges emportés ; jamais un chiffre ni un identifiant), conséquences écrites : badge retiré, audience retirée avec lui, ligne publique recalculée, membre notifié, contestation possible. Seul un administrateur confirme ; l'agent reste sur la fiche.*
 
 Deux écrans, selon qu'il existe ou non un second `admin` actif. **La bascule est automatique**
 (`03` PD7, `15` CA72) : aucun changement de code, aucun réglage.
