@@ -101,6 +101,12 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
       "queues",
       "brandReviewQueue",
     ],
+    ["/files/profils-createur", "queues", "creatorReviewQueue"],
+    [
+      "/files/profils-createur/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "creatorReviewQueue",
+    ],
     ["/files/verifications-createurs", "queues", "verificationCreators"],
     [
       "/files/verifications-createurs/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
@@ -162,10 +168,11 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     }
   });
 
-  it("gives Files its three screens in order, queue 1 then the two views of queue 4, the entry opening the first (L2E-21)", () => {
+  it("gives Files its screens in order, queue 1, queue 2, the two views of queue 4, then queues 5 and 6, the entry opening the first (L2E-21, L2G-15)", () => {
     const queues = itemOf("queues");
     expect(subEntriesOf(queues).map((section) => section.key)).toEqual([
       "brandReviewQueue",
+      "creatorReviewQueue",
       "verificationCreators",
       "verificationBrands",
       "verificationDisputes",
@@ -174,6 +181,7 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     expect(queues.href).toBe("/files/profils-marque");
     expect(subEntriesOf(queues).map((section) => section.href)).toEqual([
       "/files/profils-marque",
+      "/files/profils-createur",
       "/files/verifications-createurs",
       "/files/verifications-marques",
       "/files/contestations",
@@ -222,6 +230,7 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     expect(agent.map((item) => item.key)).not.toContain("admin");
     expect(agent.flatMap(subEntriesOf).map((section) => section.key)).toEqual([
       "brandReviewQueue",
+      "creatorReviewQueue",
       "verificationCreators",
       "verificationBrands",
       "verificationDisputes",

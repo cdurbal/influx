@@ -192,3 +192,53 @@ export async function approveVisualsAsAgent(
 export function seededHandle(accountId: string): string {
   return `l2g_${accountId.slice(0, 8)}`;
 }
+
+/**
+ * The creator hands the profile in (07 RG4), as the button "Publier mon profil" does: the API's own door, so
+ * that the entry of queue 2 is the one the database opens, with its deadlines. The journey of the backoffice
+ * starts from it, never from the screens of the member.
+ */
+export async function submitProfile(page: Page): Promise<void> {
+  const sent = await page.request.post(`${PROFILE_URL}/submit`, {
+    headers: HEADERS,
+  });
+  expect(sent.ok()).toBe(true);
+  expect(await sent.json()).toMatchObject({ status: "pending_review" });
+}
+
+/**
+ * What a journey of the backoffice needs of the account it reads, written by the migration role: the
+ * colleague who owns it (15 RG36: a journey reads its own entries alone, by `?owner=`), and a bio that raises
+ * the alert of a direct contact (07 RG93), which no member's save would let through.
+ */
+export async function ownCreatorWithContactInBio(
+  accountId: string,
+  ownerAgentId: string,
+  contact: string,
+): Promise<void> {
+  await withSql(async (sql) => {
+    await sql`update identity.accounts set owner_agent_id = ${ownerAgentId} where id = ${accountId}`;
+    await sql`
+      update profiles.creator_public_profiles set bio = ${`${BIO} ${contact}`}
+       where account_id = ${accountId}`;
+  });
+}
+
+/** The open entry of queue 2 of the account, and what the decisions left on the entries as the database holds them. */
+export async function reviewEntriesOf(accountId: string): Promise<
+  {
+    id: string;
+    state: string;
+    decidedBy: string | null;
+    reasonCode: string | null;
+    internalComment: string | null;
+  }[]
+> {
+  return withSql(
+    (sql) => sql`
+      select id::text, state::text as state, decided_by_account_id::text as "decidedBy",
+             rejection_reason_code as "reasonCode", internal_comment as "internalComment"
+        from profiles.creator_review_entries
+       where account_id = ${accountId} order by created_at, id`,
+  );
+}

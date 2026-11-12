@@ -110,6 +110,7 @@ export const messages = {
     dashboard: "Tableau de bord",
     queues: "Files",
     brandReviewQueue: "Profils marque à valider",
+    creatorReviewQueue: "Profils créateur à valider",
     verificationCreators: "Vérifications créateurs",
     verificationBrands: "Vérifications marques",
     verificationDisputes: "Contestations",
@@ -131,6 +132,7 @@ export const messages = {
   /** Names of the queues, key `queue.<code>` of backoffice.queues (15 RG29); L2C: queue 1. */
   queue: {
     profiles_advertiser: "Profils marque à valider",
+    profiles_creator: "Profils créateur à valider",
     verification_creators: "Vérifications des créateurs",
     verification_brands: "Vérifications des marques",
     verification_disputes: "Contestations de badge",
@@ -2688,6 +2690,15 @@ export const messages = {
       handleMismatchDispute: `L’identifiant constaté ne correspond pas à l’identifiant que le créateur déclare. Relisez-le sur le profil ; s’il diffère, confirmez la décision avec le motif « ${NEW_REQUEST_NEEDED} ».`,
       accountUnavailable:
         "Le compte n’est plus actif : rien n’a été enregistré.",
+      // queue 2 (creator profiles)
+      profileState:
+        "Le profil n’est plus dans un état que cette entrée peut décider : rien n’a été enregistré. Relisez l’entrée ou rendez la main.",
+      requiredFieldMissing:
+        "Un champ obligatoire manque au profil, ou le portfolio est tombé sous trois visuels : la publication est impossible. Vous pouvez refuser avec un motif.",
+      verifiedHandle:
+        "Le pseudo d’une ligne porteuse d’un badge « Compte vérifié » actif se contrôle dans la file Identifiants modifiés : rien n’a été enregistré.",
+      notReplaceable:
+        "Un visuel de remplacement ne peut plus prendre la place de l’original : rien n’a été enregistré.",
     },
     shortcuts: {
       title: "Raccourcis de l’écran de décision",
@@ -2919,6 +2930,314 @@ export const messages = {
       keys: "‹v› constater le même compte (panneau) · ‹r› exiger une nouvelle preuve (panneau) · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
       confirm: "ouvrir le panneau du constat (ne constate jamais seul)",
       proof: "ouvrir la demande de preuve (n’exige jamais seule)",
+    },
+  },
+  /**
+   * L2G-15 (07 RG4 to RG10, RG93 to RG99; 17b §2.7 line 2; l2g/modele.md §6, textes.md §4): queue 2, the
+   * creator profiles to validate, as a list. The list carries an alias, a country, network codes, a score and
+   * the badges in force: never a handle, a link, a figure or a text of the creator (the decision screen holds
+   * them, behind a logged opening). A state is written, the colour only underlines it.
+   */
+  creatorQueue: {
+    lead: "Première soumission d’un profil créateur, ou modification d’un champ d’un profil publié : prenez l’entrée en charge, lisez-la, puis publiez ou refusez. La liste ne montre ni pseudo, ni lien, ni chiffre exact : l’écran de décision les montre à la personne qui a pris l’entrée en charge.",
+    tableLabel: "Entrées de la file Profils créateur à valider",
+    overdueTableLabel:
+      "Entrées de la file Profils créateur à valider dont le délai est dépassé",
+    columns: {
+      state: "État",
+      due: "Échéance",
+      kind: "Origine",
+      alias: "Alias",
+      country: "Pays",
+      networks: "Réseaux déclarés",
+      completeness: "Complétude",
+      badges: "Badges",
+      modified: "Champs modifiés",
+      owner: "Responsable",
+      holder: "Verrou",
+    },
+    filters: {
+      network: "Réseau",
+      badge: "Badge",
+      badgeOptions: { with: "Avec badge", without: "Sans badge" },
+    },
+    wholeProfile: "Tout le profil",
+    none: "aucun",
+    badgeOf: (level: string, network: string) => `${level} (${network})`,
+    fields: {
+      headline: "Titre court",
+      bio: "Bio",
+      portfolio_caption: "Légende d’un visuel",
+      network_line: "Réseau ajouté",
+      network_handle: "Pseudo",
+      network_url: "Lien du profil",
+    },
+    alerts: {
+      direct_contact: "Coordonnée possible dans un texte public",
+    },
+    openEntryOf: (alias: string) => `Ouvrir l’entrée de ${alias}`,
+  },
+  /**
+   * L2G-15 (07 RG4 to RG10, RG16, RG84, RG93 to RG99; 15 RG27 C1 to C8, RG114 to RG117; 17b §2.4 to §2.6;
+   * l2g/modele.md §1 points 6, 10, 12, §3 « 0244 », textes.md §4): the decision screen of a creator profile.
+   * The sentences sent to the creator are never written here: they come from apps/api with the reasons, from
+   * the very files of the e-mail (what the agent reads is what is sent). The labels of the closed list are the
+   * « Motif » column of 07 RG96. The screen shows layer I (handle, link, exact figures) to the holder of the
+   * entry only, behind a logged opening: it is marked, as the contact person of a brand is.
+   */
+  creatorReview: {
+    title: (alias: string) => `Profil créateur — ${alias}`,
+    subtitle: (kind: string, createdAt: string) =>
+      `${kind} · créée le ${createdAt}`,
+    mark: "▮",
+    markerLabel: "vue identifiée, consultation enregistrée",
+    parenthesized: (words: string) => `(${words})`,
+    sections: {
+      profile: "Le profil validé",
+      lines: "Réseaux et chiffres exacts",
+      written: "Ce qui a changé depuis la dernière validation",
+      visuals: "Portfolio",
+      alerts: "Alertes",
+      decision: "Décision",
+    },
+    facts: {
+      alias: "Alias public",
+      status: "État du profil",
+      firstPublished: "Première publication",
+      completeness: "Complétude",
+      country: "Pays",
+      language: "Langue du compte",
+      owner: "Responsable",
+      headline: "Titre court",
+      bio: "Bio",
+      primaryTopic: "Thématique principale",
+      secondaryTopics: "Thématiques secondaires",
+      tones: "Tons",
+      publicationLanguages: "Langues de publication",
+      formats: "Formats",
+      usageRights: "Droits d’usage acceptés",
+      refusedSectors: "Secteurs refusés",
+      residenceRegion: "Région de résidence",
+      travelScope: "Déplacements",
+      collaborationExperience: "Expérience de collaboration",
+      deliveryLead: "Délai de livraison",
+      maxExclusivity: "Exclusivité maximale",
+      acceptsNonMonetary: "Contreparties non monétaires",
+      availability: "Disponibilité",
+    },
+    statuses: {
+      draft: "En cours de saisie",
+      pending_review: "En attente de validation",
+      published: "Publié",
+      rejected: "Refusé",
+      suspended: "Suspendu",
+    } as Readonly<Record<string, string>>,
+    inclusions: {
+      included: "inclus",
+      optional: "en option",
+    } as Readonly<Record<string, string>>,
+    /** The bands of the form (07 RG32, RG39, RG74, block 5), in the words the creator reads. */
+    bands: {
+      travelScope: {
+        none: "Non",
+        domestic: "Dans son pays",
+        international: "À l’international",
+      },
+      collaborationExperience: {
+        none: "Aucune",
+        "1_5": "De 1 à 5",
+        "6_20": "De 6 à 20",
+        gt_20: "Plus de 20",
+      },
+      deliveryLead: {
+        lt_7d: "Moins de 7 jours",
+        "7_14d": "De 7 à 14 jours",
+        "15_30d": "De 15 à 30 jours",
+        gt_30d: "Plus de 30 jours",
+      },
+      maxExclusivity: {
+        none: "Aucune",
+        le_1m: "Jusqu’à 1 mois",
+        le_3m: "Jusqu’à 3 mois",
+        negotiable: "À discuter",
+      },
+      availability: {
+        lt_2w: "Disponible sous moins de 2 semaines",
+        lt_1m: "Disponible sous moins d’un mois",
+        full: "Agenda plein",
+      },
+    } as Readonly<Record<string, Readonly<Record<string, string>>>>,
+    yes: "oui",
+    no: "non",
+    unset: "non renseigné",
+    none: "aucun",
+    pendingChange:
+      "modification proposée, voir « Ce qui a changé depuis la dernière validation »",
+    lines: {
+      lead: "Vue identifiée, réservée aux agents INFLUX : jamais d’une marque avant la mise en relation. L’ouverture de cet écran est enregistrée.",
+      none: "Aucun réseau déclaré.",
+      primary: "Réseau principal",
+      listed: "Visible des marques",
+      unlisted: "En attente de validation : pas encore visible des marques",
+      facts: {
+        status: "Statut",
+        handle: "Pseudo",
+        pseudonym: "Nom affiché",
+        url: "Lien du profil",
+        followers: "Abonnés",
+        posts: "Publications sur 30 jours",
+        comments: "Commentaires moyens par publication",
+        reach: "Portée moyenne",
+        engagement: "Taux d’engagement",
+        source: "Source des chiffres",
+        measuredAt: "Chiffres du",
+        badge: "Badge",
+      },
+      sources: {
+        declared: "déclarés par le créateur",
+        agent_observed: "constatés par un agent INFLUX",
+      } as Readonly<Record<string, string>>,
+      engagement: (percent: string) => `${percent} %`,
+      noBadge: "aucun",
+    },
+    written: {
+      submission:
+        "Première soumission : tout le profil est à examiner, aucune version validée n’existe encore.",
+      none: "Aucune modification n’est en attente sur cette entrée.",
+      columns: {
+        field: "Champ",
+        validated: "Version validée",
+        proposed: "Version proposée",
+      },
+      tableLabel: "Modifications proposées en regard de la version validée",
+      emptyValue: "(vide)",
+      newLine: (network: string) => `Réseau ajouté : ${network}`,
+      declared: "autorisation de citer une marque déclarée",
+      notDeclared: "aucune marque citée",
+      noneListed: "(pas encore visible des marques)",
+      summary: (fields: string) =>
+        `Champs modifiés depuis la dernière validation : ${fields}.`,
+    },
+    visuals: {
+      lead: "Les visuels ne se modèrent pas ici : chacun a sa décision dans la file « Visuels de portfolio à modérer ». Un profil se publie sans visuel approuvé (carte sans image).",
+      none: "Aucun visuel déposé.",
+      states: {
+        pending: "En attente de modération",
+        approved: "Approuvé",
+      } as Readonly<Record<string, string>>,
+      order: (position: number) => `Visuel ${position}`,
+      unordered: "Visuel en attente",
+      captionLabel: "Légende :",
+      separator: " · ",
+      noCaption: "aucune légende",
+      declared: "marque citée : autorisation déclarée",
+      replacement: "remplace un visuel approuvé",
+      dimensions: (width: number, height: number) => `${width} × ${height} px`,
+      kilobytes: (kilobytes: number) => `${kilobytes} Ko`,
+      deposited: (date: string) => `déposé le ${date}`,
+      show: "Afficher le visuel",
+      showHelp:
+        "La lecture d’un visuel est enregistrée : n’affichez que ceux dont vous avez besoin.",
+      alt: (position: string, alias: string) =>
+        `${position} du portfolio de ${alias}`,
+      loading: "Chargement du visuel…",
+      failed:
+        "Le visuel n’a pas pu être lu pour l’instant. La décision n’en dépend pas : réessayez avec le bouton.",
+      holderOnly:
+        "Les visuels ne sont lisibles que par la personne qui a pris l’entrée en charge.",
+    },
+    alerts: {
+      none: "Aucune alerte sur cette entrée.",
+      intro: "Les alertes informent : aucune ne bloque la décision.",
+      direct_contact: (field: string, signals: string) =>
+        `Coordonnée possible dans « ${field} » (${signals}).`,
+      captionOf: (position: string) => `légende du ${position.toLowerCase()}`,
+      fields: {
+        headline: "Titre court",
+        bio: "Bio",
+        portfolio_caption: "Légende d’un visuel",
+      } as Readonly<Record<string, string>>,
+      signals: {
+        email: "adresse e-mail",
+        url: "lien",
+        domain: "nom de domaine",
+        phone: "numéro de téléphone",
+        handle: "pseudo",
+        messenger: "messagerie",
+      } as Readonly<Record<string, string>>,
+    },
+    decision: {
+      lead: "Deux issues : publier, ou refuser avec un motif. La décision porte sur la version affichée ici.",
+      publish: "Publier",
+      reject: "Refuser avec motif",
+      busy: "Enregistrement…",
+      publishTitle: "Publier ce profil ?",
+      publishLead:
+        "Le profil est publié tel qu’affiché ici ; les modifications en attente sont appliquées.",
+      publishRecap: (alias: string, language: string) =>
+        `Le profil de ${alias} sera publié, et le créateur en sera informé par e-mail, en ${language}.`,
+      publishRevisions: (count: number) =>
+        count === 1
+          ? "Une modification en attente sera appliquée."
+          : `${count} modifications en attente seront appliquées.`,
+      publishConfirm: "Confirmer la publication",
+      publishCommentRecap: "Commentaire interne joint :",
+      publishFirst:
+        "C’est la première publication de ce profil : il devient visible des marques sous son alias.",
+      rejectTitle: "Refuser ce profil",
+      rejectLead:
+        "Le créateur reçoit par e-mail le motif et ce qu’il peut faire ensuite ; son profil reste modifiable et se soumet de nouveau sans délai.",
+      reasonLegend: "Motif du refus (liste fermée)",
+      reasonRequired: "Choisissez un motif avant de refuser.",
+      reasonConfirm: "Refuser",
+      messageToCreator: "Message envoyé au créateur :",
+      nextStep: "Ce que le créateur pourra faire :",
+      otherMessage:
+        "Message au créateur (20 à 500 caractères, sans coordonnée)",
+      otherMessageHelp:
+        "Ce texte est envoyé tel quel au créateur, à la suite de la phrase ci-dessus.",
+      otherCount: (length: number, max: number, min: number) =>
+        `${length} / ${max} caractères (${min} au moins).`,
+      otherTooShort:
+        "Le message au créateur doit compter au moins 20 caractères.",
+      otherTooLong: "Le message au créateur dépasse 500 caractères.",
+      commentTooLong: "Le commentaire dépasse 1 000 caractères.",
+      reasonLabels: {
+        identifier_in_text: "Élément identifiant dans un texte",
+        bio_insufficient: "Bio trop courte ou incompréhensible",
+        portfolio_insufficient: "Portfolio insuffisant",
+        portfolio_non_compliant: "Portfolio non conforme",
+        network_link_inconsistent: "Handle ou lien incohérent",
+        figures_inconsistent: "Chiffres manifestement incohérents",
+        topic_inconsistent: "Thématique manifestement incohérente",
+        illicit_content: "Contenu illicite ou contraire aux CGU",
+        age_doubt: "Doute sur la majorité",
+        other: "Autre — message rédigé par vous",
+      } as Readonly<Record<string, string>>,
+      publishedNotice: (alias: string) =>
+        `Profil de ${alias} publié. Le créateur en est informé par e-mail.`,
+      rejectedNotice: (alias: string, reason: string) =>
+        `Profil de ${alias} refusé — ${reason}. Le créateur en est informé par e-mail.`,
+      lateMark:
+        "Décision prise après l’échéance : elle est marquée comme telle.",
+    },
+    closed: {
+      published: "Cette entrée est close : le profil a été publié.",
+      rejected: "Cette entrée est close : le profil a été refusé.",
+      withdrawn: "Cette entrée est close : elle a été retirée de la file.",
+      open: "Cette entrée est close.",
+      decidedBy: (name: string, at: string) => `Décidée par ${name}, le ${at}.`,
+      decidedAt: (at: string) => `Décidée le ${at}.`,
+      late: "Décision prise après l’échéance.",
+      reason: (reason: string) => `Motif : ${reason}.`,
+      message: "Message reçu par le créateur :",
+      comment: "Commentaire interne :",
+    },
+    shortcuts: {
+      keys: "‹v› publier (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      publish:
+        "ouvrir le récapitulatif de la publication (ne publie jamais seul)",
+      reject: "ouvrir le choix du motif (ne refuse jamais seul)",
     },
   },
   /**

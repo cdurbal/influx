@@ -232,6 +232,8 @@ export const BACKOFFICE_PAGE_MODELS: readonly string[] = [
   "/double-validation/:id",
   "/files/profils-marque",
   "/files/profils-marque/:id",
+  "/files/profils-createur",
+  "/files/profils-createur/:id",
   "/files/verifications-createurs",
   "/files/verifications-createurs/:id",
   "/files/verifications-marques",

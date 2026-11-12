@@ -2,7 +2,6 @@
 // L2F-19). Pure functions, outside the components: the own filters of each list, its sorts, the words of a
 // line and the empty state. No rule is decided here (apps/api says what is overdue, who holds what and
 // which entries the caller may see); the lists show no handle, no text of the creator and no figure.
-import type { QueueCounters } from "@influx/contracts/backoffice-queues";
 import type {
   DisputeEntryRow,
   IdentifierChangeEntryRow,
@@ -13,6 +12,7 @@ import {
   durationWords,
   minutesBetween,
   type OwnFilter,
+  type QueueFigures,
   type QueueFilters,
 } from "./queue-view-model";
 import { networkWords } from "./verification-queue-view";
@@ -151,7 +151,7 @@ export function disputeReasonWords(code: string): string {
 
 /** CA44 for these queues: the empty one says when the last entry was handled. */
 export function disputeEmptyWords(
-  counters: QueueCounters | null,
+  counters: QueueFigures | null,
   asOf: string,
 ): string {
   const last = counters?.lastDecidedAt ?? null;
@@ -161,7 +161,7 @@ export function disputeEmptyWords(
 }
 
 export function identifierEmptyWords(
-  counters: QueueCounters | null,
+  counters: QueueFigures | null,
   asOf: string,
 ): string {
   const last = counters?.lastDecidedAt ?? null;

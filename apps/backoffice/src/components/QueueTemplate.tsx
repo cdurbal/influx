@@ -13,7 +13,6 @@
 import {
   QUEUE_PAGE_SIZE_MAX,
   type EntriesSearchBody,
-  type QueueCounters,
   type QueueCountersResponse,
   type QueueEntryRow,
 } from "@influx/contracts/backoffice-queues";
@@ -63,6 +62,7 @@ import {
   splitByDeadline,
   steppedIndex,
   type OwnFilter,
+  type QueueFigures,
   type QueueFilters,
   type QueuePaging,
 } from "./queue-view-model";
@@ -75,6 +75,17 @@ export type QueueRowFacts = Pick<
   QueueEntryRow,
   "id" | "overdue" | "claim" | "slaDueAt" | "escalateAt"
 >;
+
+/**
+ * A page of a list, whatever the queue. The two creator queues carry their counters on it (L2G-15,
+ * EC-L2G-11-1): the others have their own call.
+ */
+export type QueuePage<Row> = {
+  asOf: string;
+  items: Row[];
+  nextCursor: string | null;
+  counters?: QueueFigures | null;
+};
 
 export type QueueColumn<Row> = {
   key: string;
@@ -102,8 +113,8 @@ export type QueueTemplateProps<
 > = {
   title: string;
   lead: string;
-  /** The code of the queue in the counters answer. */
-  queueCode: QueueCountersResponse["queues"][number]["queue"];
+  /** The code of the queue in the counters answer; none for a queue whose list carries its own counters. */
+  queueCode?: QueueCountersResponse["queues"][number]["queue"];
   tableLabel: string;
   ownFilters: readonly OwnFilter[];
   /** The columns, or a function of the filters in force (queue 4 marks the column its sort follows). */
@@ -114,16 +125,13 @@ export type QueueTemplateProps<
   rowNote?: (row: Row) => ReactNode;
   /** The entry of a row: its address and the name that labels its link. */
   entryOf: (row: Row) => { href: string; label: string };
-  loadEntries: (
-    body: Body,
-  ) => Promise<
-    RelayResult<{ asOf: string; items: Row[]; nextCursor: string | null }>
-  >;
-  loadCounters: () => Promise<RelayResult<QueueCountersResponse>>;
+  loadEntries: (body: Body) => Promise<RelayResult<QueuePage<Row>>>;
+  /** Absent: the counters are those the list answers with (`counters`). */
+  loadCounters?: () => Promise<RelayResult<QueueCountersResponse>>;
   /** The sentence over the table: the count and the sort in force (default: by deadline). */
   resultsLine?: (count: number, filters: QueueFilters) => string;
   /** The empty state (15 RG32): "Aucune entrée en attente" by default, queue 4 says "demande". */
-  emptyLine?: (counters: QueueCounters | null, asOf: string) => string;
+  emptyLine?: (counters: QueueFigures | null, asOf: string) => string;
   splitOverdue?: OverdueSplit;
   /** Queues 5 and 6 carry no alert: the filter is neither offered nor sent (default: offered). */
   withAlertFilter?: boolean;
@@ -212,7 +220,7 @@ export function QueueTemplate<
   }>({ scope: "", cursors: {} });
   const [entries, setEntries] = useState<{
     key: string;
-    load: Load<{ asOf: string; items: Row[]; nextCursor: string | null }>;
+    load: Load<QueuePage<Row>>;
   } | null>(null);
   const [counters, setCounters] = useState<{
     key: string;
@@ -260,6 +268,9 @@ export function QueueTemplate<
   }, [filters, period, paging, loadKey, loadEntries, router]);
 
   useEffect(() => {
+    if (loadCounters === undefined) {
+      return undefined;
+    }
     let active = true;
     void loadCounters().then((result) => {
       if (!active) {
@@ -278,9 +289,7 @@ export function QueueTemplate<
   }, [loadKey, loadCounters, router]);
 
   // A period that ends before it starts is said, and nothing is asked.
-  const entriesLoad:
-    | Load<{ asOf: string; items: Row[]; nextCursor: string | null }>
-    | { kind: "invalid" } =
+  const entriesLoad: Load<QueuePage<Row>> | { kind: "invalid" } =
     period === "invalid"
       ? { kind: "invalid" }
       : entries?.key === loadKey
@@ -368,11 +377,23 @@ export function QueueTemplate<
       ? props.columns(filters)
       : props.columns;
   const asOf = entriesLoad.kind === "ok" ? entriesLoad.data.asOf : "";
-  const queueCounters =
-    countersLoad.kind === "ok"
+  // the counters of the queue: from their own call, or carried by the list
+  const embedded = loadCounters === undefined;
+  const queueCounters: QueueFigures | null = embedded
+    ? entriesLoad.kind === "ok"
+      ? (entriesLoad.data.counters ?? null)
+      : null
+    : countersLoad.kind === "ok"
       ? (countersLoad.data.queues.find((queue) => queue.queue === queueCode) ??
         null)
       : null;
+  const countersAsOf =
+    embedded || countersLoad.kind !== "ok" ? asOf : countersLoad.data.asOf;
+  const countersState = embedded
+    ? entriesLoad.kind === "ok"
+      ? "ok"
+      : "loading"
+    : countersLoad.kind;
   const filtered = Object.keys(filters).length > 0;
 
   /** One dense table of `rows`: the columns of the queue, then the link that opens the entry. */
@@ -451,13 +472,12 @@ export function QueueTemplate<
 
       {/* The counters come last: never a "0" that the answer has not given (17b §2.8). */}
       {entriesLoad.kind === "loading" ||
-      countersLoad.kind === "loading" ? null : countersLoad.kind ===
-        "failed" ? (
+      countersState === "loading" ? null : countersState === "failed" ? (
         <ErrorNotice>{messages.queueSummary.error}</ErrorNotice>
       ) : queueCounters === null ? null : (
         <section aria-label={t.countersTitle} className={SECTION_CLASSES}>
           <p className="text-md font-semibold text-text-primary tabular-nums">
-            {counterWords(queueCounters, countersLoad.data.asOf).join(" · ")}
+            {counterWords(queueCounters, countersAsOf).join(" · ")}
           </p>
           <p className={HELP_CLASSES}>{policyLine(queueCounters)}</p>
         </section>

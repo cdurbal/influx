@@ -15,6 +15,12 @@ import { formatDateTime, formatTime } from "./view-model";
 
 const t = messages.queueList;
 
+/**
+ * What the head banner reads of the counters of a queue (15 RG28): the figures and the policy, whichever
+ * queue they belong to. The two creator queues carry theirs on the answer of their list (L2G-15).
+ */
+export type QueueFigures = Omit<QueueCounters, "queue">;
+
 /** The screen of each queue (the rail, the dashboard): queue 4 is two views, never a mixed screen. */
 export const QUEUE_ADDRESS: Readonly<Record<QueueCode, string>> = {
   profiles_advertiser: "/files/profils-marque",
@@ -243,7 +249,7 @@ export function policyWords(minutes: number, businessHours: boolean): string {
 
 /** The head banner (15 RG28): the volume, the age of the oldest, the overdue, the unclaimed. */
 export function counterWords(
-  counters: QueueCounters,
+  counters: QueueFigures,
   asOf: string,
 ): readonly string[] {
   return [
@@ -259,7 +265,7 @@ export function counterWords(
 }
 
 /** The delay of the queue, in clear under the counters (17b §2.2). */
-export function policyLine(counters: QueueCounters): string {
+export function policyLine(counters: QueueFigures): string {
   const { policy } = counters;
   return t.policy(
     policyWords(policy.decisionMinutes, policy.businessHours),
@@ -271,7 +277,7 @@ export function policyLine(counters: QueueCounters): string {
 
 /** The empty state of a queue (15 RG32): normal, with how long ago the last entry was handled. */
 export function emptyWords(
-  counters: QueueCounters | null,
+  counters: QueueFigures | null,
   asOf: string,
 ): string {
   const last = counters?.lastDecidedAt ?? null;

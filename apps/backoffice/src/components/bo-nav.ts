@@ -20,6 +20,7 @@ export type RailKey =
 export type SectionKey =
   | "home"
   | "brandReviewQueue"
+  | "creatorReviewQueue"
   | "verificationCreators"
   | "verificationBrands"
   | "verificationDisputes"
@@ -52,6 +53,12 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       {
         key: "brandReviewQueue",
         href: "/files/profils-marque",
+        adminOnly: false,
+      },
+      // queue 2, the creator profiles to validate (07 RG4; L2G-15)
+      {
+        key: "creatorReviewQueue",
+        href: "/files/profils-createur",
         adminOnly: false,
       },
       // queue 4, two views of one table, never a mixed screen (08 RG61, 17b §3.7)

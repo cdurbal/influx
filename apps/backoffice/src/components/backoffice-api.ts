@@ -93,6 +93,21 @@ import {
   type ReleaseEntryResponse,
 } from "@influx/contracts/backoffice-queues";
 import {
+  creatorEntriesResponseSchema,
+  decidedEntryResponseSchema,
+  openCreatorEntryResponseSchema,
+  publishCreatorEntryResponseSchema,
+  reviewImageResponseSchema,
+  type CreatorEntriesResponse,
+  type CreatorEntriesSearchBody,
+  type DecidedEntryResponse,
+  type OpenCreatorEntryResponse,
+  type PublishCreatorEntryRequest,
+  type PublishCreatorEntryResponse,
+  type RejectCreatorEntryRequest,
+  type ReviewImageResponse,
+} from "@influx/contracts/creator-queues";
+import {
   accountBadgesResponseSchema,
   accountOpeningsResponseSchema,
   openVerificationForMemberResponseSchema,
@@ -1060,5 +1075,103 @@ export function requireIdentifierProofEntry(
     `${IDENTIFIER_ENTRIES}/${idSegment(id)}/require-proof`,
     requireIdentifierProofResponseSchema,
     body,
+  );
+}
+
+// --- Queue 2, the creator profiles to validate (07 RG4 to RG10, RG93 to RG99; 15 RG27; l2g/modele.md §6; L2G-15) ---
+
+const CREATOR_REVIEW_ENTRIES = "/v1/bo/queues/profiles-creator/entries";
+
+/** One page: filters, period and cursor in the BODY, as queue 1; the counters ride on the answer. */
+export function searchCreatorEntries(
+  body: CreatorEntriesSearchBody,
+): Promise<RelayResult<CreatorEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/search`,
+    creatorEntriesResponseSchema,
+    body,
+  );
+}
+
+/** Opening is claiming (15 C1): the decision view, its version token and the closed reasons with their messages. */
+export function openCreatorEntry(
+  id: string,
+): Promise<RelayResult<OpenCreatorEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/open`,
+    openCreatorEntryResponseSchema,
+  );
+}
+
+export function publishCreatorEntry(
+  id: string,
+  body: PublishCreatorEntryRequest,
+): Promise<RelayResult<PublishCreatorEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/publish`,
+    publishCreatorEntryResponseSchema,
+    body,
+  );
+}
+
+export function rejectCreatorEntry(
+  id: string,
+  body: RejectCreatorEntryRequest,
+): Promise<RelayResult<DecidedEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/reject`,
+    decidedEntryResponseSchema,
+    body,
+  );
+}
+
+export function releaseCreatorEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendCreatorEntryClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseCreatorEntryClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/**
+ * A visual of the profile, by the id the decision view served (D82 (7)): to the holder of the live claim
+ * only, one line of the register per read, so the screen asks when the agent asks, never on its own.
+ */
+export function readCreatorEntryVisual(
+  id: string,
+  itemId: string,
+): Promise<RelayResult<ReviewImageResponse>> {
+  return callRelay(
+    "GET",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/portfolio/${idSegment(itemId)}/image`,
+    reviewImageResponseSchema,
   );
 }

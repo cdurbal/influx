@@ -3,7 +3,6 @@
 // words of a line (level, network, age, alerts, lock) and the split between the entries past their
 // deadline and the others. No rule is decided here (apps/api says what is overdue, who holds what and
 // which requests the caller may see); the list shows no handle, no figure and no code (RG47, modele -19).
-import type { QueueCounters } from "@influx/contracts/backoffice-queues";
 import type {
   VerificationQueueEntryRow,
   VerificationQueueSort,
@@ -14,6 +13,7 @@ import {
   durationWords,
   minutesBetween,
   type OwnFilter,
+  type QueueFigures,
   type QueueFilters,
 } from "./queue-view-model";
 import { formatDateTime } from "./view-model";
@@ -176,7 +176,7 @@ export function verificationName(
 
 /** CA44: the empty queue says when the last request was handled, in « demande » words. */
 export function verificationEmptyWords(
-  counters: QueueCounters | null,
+  counters: QueueFigures | null,
   asOf: string,
 ): string {
   const last = counters?.lastDecidedAt ?? null;

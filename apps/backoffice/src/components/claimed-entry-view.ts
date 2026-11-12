@@ -32,7 +32,7 @@ export type ClaimedView = {
     /** `open` while the entry waits in its queue; any other state is a decision or a withdrawal. */
     state: string;
     slaDueAt: string;
-    escalateAt: string;
+    escalateAt: string | null;
     overdue: boolean;
     claim: EntryClaim;
     lastForcedRelease: {
@@ -206,10 +206,19 @@ const ISSUE_TEXT: Readonly<Record<string, string>> = {
   ownership_prerequisite: t.refusals.ownershipPrerequisite,
   missing_evidence: t.refusals.missingEvidence,
   account_unavailable: t.refusals.accountUnavailable,
+  // queue 2 (0244): a profile no longer in a state the entry can decide, a required field missing at the
+  // publication, the handle of a line under an active badge (queue 6 holds it)
+  profile_state: t.refusals.profileState,
+  required_field_missing: t.refusals.requiredFieldMissing,
+  verified_handle: t.refusals.verifiedHandle,
+  not_replaceable: t.refusals.notReplaceable,
 };
 
-/** The two queues that share the screens: 5 (contests of a decision) and 6 (identifier changed). */
-export type ClaimedQueue = "dispute" | "identifier";
+/**
+ * The queues that share the screens: 5 (contests of a decision), 6 (identifier changed) and, since L2G-15,
+ * 2 (the creator profiles to validate: a publication, or a refusal with a typed reason).
+ */
+export type ClaimedQueue = "dispute" | "identifier" | "creator";
 
 /**
  * What a refused call of these queues means: a lost claim, a stale version or a closed entry read the
