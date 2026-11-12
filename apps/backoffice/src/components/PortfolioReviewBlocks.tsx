@@ -20,6 +20,7 @@ import {
 } from "./bo-classes";
 import { CreatorVisual } from "./CreatorVisual";
 import { DenseTableRegion } from "./DenseTableRegion";
+import type { VisualDisplay } from "./use-visual-display";
 import {
   alertLine,
   captionWords,
@@ -35,9 +36,11 @@ const t = messages.portfolioReview;
 export function VisualAndGridBlock({
   view,
   canRead,
+  display,
 }: {
   view: PortfolioReviewView;
   canRead: boolean;
+  display: VisualDisplay;
 }) {
   const rows = gridRows();
   return (
@@ -55,6 +58,9 @@ export function VisualAndGridBlock({
               read={() => readPortfolioEntryImage(view.item.id)}
               position={t.visual.position}
               alt={t.visual.alt(view.account.alias)}
+              showTicket={display.ticket}
+              next={!display.shownIds.includes(view.item.id)}
+              onShown={() => display.markShown(view.item.id)}
             />
           </div>
         ) : null}

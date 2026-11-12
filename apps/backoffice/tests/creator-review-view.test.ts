@@ -27,6 +27,7 @@ import {
   lineView,
   modifiedFieldsWords,
   profileFacts,
+  profileTitle,
   publishCheck,
   publishedLines,
   reasonPreview,
@@ -273,6 +274,14 @@ describe("L2G-15 queue 2, the decision screen: the profile as validated and its 
     expect(bio?.field).toBe("bio");
     expect(bio?.multiline).toBe(true);
     expect(facts.filter((fact) => fact.field !== null)).toHaveLength(2);
+  });
+
+  it("titles block ① « Le profil soumis » on a first submission and « Le profil validé (version en ligne) » on a revision (L2GU-9)", () => {
+    const first = view();
+    expect(first.entry.kind).toBe("submission");
+    expect(profileTitle(first)).toBe("Le profil soumis");
+    const revision = view({ entry: { ...first.entry, kind: "revision" } });
+    expect(profileTitle(revision)).toBe("Le profil validé (version en ligne)");
   });
 
   it("words an empty value as « non renseigné », a list as its codes, a right with its inclusion", () => {

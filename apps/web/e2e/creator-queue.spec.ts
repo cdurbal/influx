@@ -89,6 +89,9 @@ test("an agent reads the creator profiles to validate, opens one, reads the exac
     page.getByText(/Vous avez pris cette entrée en charge à \d{2}:\d{2}\./),
   ).toBeVisible();
   await expect(page.getByText(R.written.submission)).toBeVisible();
+  await expect(
+    page.getByRole("heading", { level: 2, name: R.sections.profileSubmitted }),
+  ).toBeVisible();
   const lines = page.getByRole("region", {
     name: new RegExp(R.sections.lines),
   });
@@ -109,6 +112,11 @@ test("an agent reads the creator profiles to validate, opens one, reads the exac
   await visuals.first().getByRole("button", { name: R.visuals.show }).click();
   await expect(visuals.first().locator("img")).toHaveAttribute("src", /^blob:/);
   await expect(page.locator("[data-visual] img")).toHaveCount(1);
+  // the image took the focus; ‹i› shows the next visual not displayed (L2GU-10, L2GU-21)
+  await expect(visuals.first().locator("img")).toBeFocused();
+  await page.keyboard.press("i");
+  await expect(page.locator("[data-visual] img")).toHaveCount(2);
+  await expect(visuals.nth(1).locator("img")).toBeFocused();
   await expectNoAxeViolation(page, "creator review entry, 1 440", {
     wcag22: true,
   });

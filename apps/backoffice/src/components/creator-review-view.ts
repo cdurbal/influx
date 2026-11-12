@@ -48,6 +48,19 @@ export function entryTitle(view: OpenCreatorEntryResponse): string {
   return t.title(view.profile.alias);
 }
 
+/**
+ * The title of block ①: a first submission has no validated version, so the block shows what is submitted
+ * (L2GU-9: it must not contradict the « première soumission » sentence of block ③); a revision shows the
+ * version in line.
+ */
+export function profileTitle(
+  view: Pick<OpenCreatorEntryResponse, "entry">,
+): string {
+  return view.entry.kind === "submission"
+    ? t.sections.profileSubmitted
+    : t.sections.profile;
+}
+
 export function entrySubtitle(view: OpenCreatorEntryResponse): string {
   return t.subtitle(
     messages.queueList.kinds[view.entry.kind],

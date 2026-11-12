@@ -315,6 +315,16 @@ export function rejectCheck(
   };
 }
 
+// --- The recap of the approval ------------------------------------------------------------------
+
+/**
+ * L2GU-21: the recap of an approval says when the visual was not displayed. A sentence of information, never
+ * a block: whether an agent may approve unseen is a rule for `product-owner`, not for the screen.
+ */
+export function approveNotShownLine(shown: boolean): string | null {
+  return shown ? null : t.decision.approveNotShown;
+}
+
 // --- The exit (17b §2.6) ------------------------------------------------------------------------
 
 /** The confirmation that stays above the next entry: what was decided, in a sentence. */

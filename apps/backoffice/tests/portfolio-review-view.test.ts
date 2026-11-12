@@ -27,6 +27,7 @@ import {
 import {
   alertLine,
   approveCheck,
+  approveNotShownLine,
   approvedLines,
   captionWords,
   closedLines,
@@ -430,6 +431,15 @@ describe("L2G-16 queue 3, the refusal: a reason of the grid, no message (07 RG79
         expect(checked.problem.field).toBe("internalComment");
       }
     }
+  });
+});
+
+describe("L2G-16 queue 3, the recap of an approval and the visual displayed (L2GU-21)", () => {
+  it("says « Vous n’avez pas affiché ce visuel. » while the visual was not displayed, and nothing once it was; it never blocks", () => {
+    expect(approveNotShownLine(false)).toBe(
+      "Vous n’avez pas affiché ce visuel.",
+    );
+    expect(approveNotShownLine(true)).toBeNull();
   });
 });
 

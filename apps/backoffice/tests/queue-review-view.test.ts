@@ -32,6 +32,7 @@ import {
   publishCheck,
   refusalOf,
   rejectCheck,
+  isShowShortcut,
   reviewShortcutOf,
   stashChainNotice,
   withClaimExpiry,
@@ -452,6 +453,41 @@ describe("the keyboard (15 RG114, RG115, RG116)", () => {
     expect(key("Escape", field)).toBe("escape");
     expect(key("v", null, { ctrlKey: true })).toBeNull();
     expect(key("Escape", null, { ctrlKey: true })).toBeNull();
+  });
+});
+
+describe("the key that shows a visual (L2GU-21)", () => {
+  const press = (
+    key: string,
+    target: { tagName: string; isContentEditable: boolean } | null = null,
+    extra = {},
+  ) =>
+    isShowShortcut({
+      key,
+      ctrlKey: false,
+      metaKey: false,
+      altKey: false,
+      target,
+      ...extra,
+    });
+
+  it("is ‹i› alone, taken from nobody typing and from no modified key, and is no gesture of the decision keys", () => {
+    expect(press("i")).toBe(true);
+    expect(press("v")).toBe(false);
+    expect(press("i", { tagName: "TEXTAREA", isContentEditable: false })).toBe(
+      false,
+    );
+    expect(press("i", { tagName: "DIV", isContentEditable: true })).toBe(false);
+    expect(press("i", null, { ctrlKey: true })).toBe(false);
+    expect(
+      reviewShortcutOf({
+        key: "i",
+        ctrlKey: false,
+        metaKey: false,
+        altKey: false,
+        target: null,
+      }),
+    ).toBeNull();
   });
 });
 

@@ -102,11 +102,13 @@ test("an agent reads the visuals to moderate, narrows the list to one profile, r
   await expect(grid).toContainText(R.grid.rows[5]?.label ?? "");
   await expect(grid).toContainText(R.grid.rows[7]?.label ?? "");
   await expect(page.locator("main img")).toHaveCount(0);
-  await page.getByRole("button", { name: /Afficher le visuel/ }).click();
+  // ‹i› shows the visual without a click, and the image takes the focus the button held (L2GU-10, L2GU-21)
+  await page.keyboard.press("i");
   await expect(page.locator("[data-visual] img")).toHaveAttribute(
     "src",
     /^blob:/,
   );
+  await expect(page.locator("[data-visual] img")).toBeFocused();
   const imageBox = await page.locator("[data-visual]").boundingBox();
   const gridBox = await grid.boundingBox();
   expect(imageBox?.x ?? 0).toBeLessThan(gridBox?.x ?? 0);
@@ -160,6 +162,8 @@ test("an agent reads the visuals to moderate, narrows the list to one profile, r
   await page.keyboard.press("v");
   const approve = page.getByRole("form", { name: R.decision.approveTitle });
   await expect(approve).toBeVisible();
+  // this visual was never displayed: the recap says so, and does not block (L2GU-21)
+  await expect(approve.getByText(R.decision.approveNotShown)).toBeVisible();
   expect(
     (await portfolioEntriesOf(accountId)).filter(
       (entry) => entry.state === "pending",

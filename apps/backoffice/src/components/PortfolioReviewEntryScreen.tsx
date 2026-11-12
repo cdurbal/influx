@@ -46,6 +46,7 @@ import {
   type ClaimedApi,
   type ClaimedKeys,
 } from "./use-claimed-entry";
+import { useVisualDisplay } from "./use-visual-display";
 
 const t = messages.portfolioReview;
 
@@ -67,6 +68,7 @@ const SHORTCUTS = {
   rows: [
     ["v", t.shortcuts.approve],
     ["r", t.shortcuts.reject],
+    ["i", t.shortcuts.show],
     ["l", messages.claimedReview.shortcuts.release],
     ["Échap", messages.claimedReview.shortcuts.escape],
     ["?", messages.claimedReview.shortcuts.help],
@@ -74,12 +76,14 @@ const SHORTCUTS = {
 } as const;
 
 export function PortfolioReviewEntryScreen({ id }: { id: string }) {
+  const display = useVisualDisplay(id);
   const entry = useClaimedEntry<PortfolioReviewView, PortfolioPanel>(
     id,
     PORTFOLIO_REVIEW_LIST,
     API,
     KEYS,
     "portfolio",
+    display.requestShow,
   );
   const { perform, finish, draft, setProblem, setDraft, panel, problem, busy } =
     entry;
@@ -140,13 +144,18 @@ export function PortfolioReviewEntryScreen({ id }: { id: string }) {
       {(view, mode) => (
         <>
           {mode === "closed" ? <ClosedBlock view={view} /> : null}
-          <VisualAndGridBlock view={view} canRead={mode === "deciding"} />
+          <VisualAndGridBlock
+            view={view}
+            canRead={mode === "deciding"}
+            display={display}
+          />
           <CaptionBlock view={view} />
           <FactsBlock view={view} />
           <AlertsBlock view={view} />
           {mode === "deciding" ? (
             <PortfolioReviewDecision
               view={view}
+              shown={display.shownIds.includes(view.item.id)}
               panel={panel}
               draft={draft}
               reasonCode={reasonCode}

@@ -471,6 +471,25 @@ export function reviewShortcutOf(event: KeyFacts): ReviewShortcut | null {
   }
 }
 
+/**
+ * ‹i› shows a visual on the screens of queues 2 and 3 (L2GU-21; D82 (7): the read is the agent's own act and
+ * journaled). It is its own function, not a member of `ReviewShortcut`: the other claimed screens have no
+ * visual to show and must never route it. Same guard as the others: never from a modified key, never from
+ * someone typing.
+ */
+export function isShowShortcut(event: KeyFacts): boolean {
+  return (
+    event.key === "i" &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey &&
+    !(
+      event.target !== null &&
+      (FIELD_TAGS.has(event.target.tagName) || event.target.isContentEditable)
+    )
+  );
+}
+
 // --- The exit (17b §2.6) ---------------------------------------------------------------------
 
 /** The confirmation that stays above the next entry: what was decided, in a sentence. */

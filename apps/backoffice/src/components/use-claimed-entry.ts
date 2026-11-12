@@ -29,6 +29,7 @@ import {
 import {
   chainNoticeFor,
   clockOffset,
+  isShowShortcut,
   reviewShortcutOf,
   stashChainNotice,
   type ChainNotice,
@@ -87,8 +88,14 @@ export function useClaimedEntry<
   api: ClaimedApi<View>,
   keys: ClaimedKeys<Decision>,
   queue: ClaimedQueue,
+  /** ‹i›: the screen shows a visual (queues 2 and 3, L2GU-21); absent on the screens that have none. */
+  onShow?: () => void,
 ) {
   const router = useRouter();
+  const showRef = useRef(onShow);
+  useEffect(() => {
+    showRef.current = onShow;
+  });
   const alive = useRef(false);
   const [screen, setScreen] = useState<ClaimedScreen<View>>({
     kind: "loading",
@@ -349,7 +356,7 @@ export function useClaimedEntry<
     const mode = claimedModeOf(readyView);
     function onKey(event: KeyboardEvent) {
       const target = event.target instanceof HTMLElement ? event.target : null;
-      const shortcut = reviewShortcutOf({
+      const facts = {
         key: event.key,
         ctrlKey: event.ctrlKey,
         metaKey: event.metaKey,
@@ -361,7 +368,15 @@ export function useClaimedEntry<
                 tagName: target.tagName,
                 isContentEditable: target.isContentEditable,
               },
-      });
+      };
+      if (isShowShortcut(facts)) {
+        if (showRef.current !== undefined && mode === "deciding") {
+          event.preventDefault();
+          showRef.current();
+        }
+        return;
+      }
+      const shortcut = reviewShortcutOf(facts);
       if (shortcut === null) {
         return;
       }

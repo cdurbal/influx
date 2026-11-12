@@ -357,6 +357,13 @@ type OpenedCreator = {
       handle: string | null;
       listed: boolean;
       badge: string | null;
+      followers: number | null;
+      postsLast30Days: number | null;
+      avgComments: number | null;
+      avgReach: number | null;
+      engagementRateBp: number | null;
+      figuresSource: string;
+      figuresMeasuredAt: string | null;
     }[];
     visuals: { id: string; state: string; caption: string | null }[];
   };
@@ -762,6 +769,61 @@ describe("queue 2: the opening is the claim (15 C1, C2; l2c/file.md A3, A9, A10)
     const again = await openCreator(server, plain.entryId, agent);
     expect(again.outcome).toBe("held");
     expect(again.reviewToken).toBe(first.reviewToken);
+    await call(
+      server,
+      "POST",
+      `${CREATORS}/${plain.entryId}/release`,
+      agent.session,
+    );
+  });
+
+  it("serves the exact figures of a line as the creator record does: the audience badge's observed ones with their date and source, else the declared ones (modele point 9)", async () => {
+    const server = app();
+    const declared = await openCreator(server, plain.entryId, agent);
+    expect(declared.profile.lines[0]).toMatchObject({
+      id: plain.lineId,
+      followers: 48000,
+      postsLast30Days: 12,
+      avgComments: 30,
+      avgReach: null,
+      figuresSource: "declared",
+      figuresMeasuredAt: expect.any(String) as string,
+    });
+    // an agent read the dashboard: the audience badge now holds the exact figures of the line (08 RG19, RG20)
+    await sharedMigrationRole().begin(async (tx) => {
+      const [request] = await tx<{ id: string }[]>`
+        insert into verification.verification_requests
+          (account_id, social_account_id, network_code, level, status)
+        values (${plain.accountId}, ${plain.lineId}, 'instagram', 'audience_verified', 'pending')
+        returning id::text`;
+      await tx`
+        update verification.verification_requests
+           set status = 'approved', decided_by_account_id = ${agent.accountId},
+               decided_at = now(), closed_at = now()
+         where id = ${request?.id ?? null}`;
+      await tx`
+        insert into verification.badges
+          (account_id, social_account_id, network_code, request_id, level, granted_by_account_id,
+           granted_at, expires_at, evidence_source, observed_followers, observed_posts_last_30_days,
+           observed_avg_comments, observed_engagement_bp, observed_period_start, observed_period_end,
+           declared_posts_at_decision, declared_comments_at_decision, observed_handle_at_decision)
+        values (${plain.accountId}, ${plain.lineId}, 'instagram', ${request?.id ?? null},
+                'audience_verified', ${agent.accountId}, '2026-08-21T09:00:00Z',
+                '2026-11-19T09:00:00Z', 'native_dashboard', 84210, 14, 137, 420,
+                '2026-07-22', '2026-08-20', 12, 30, ${plain.handle})`;
+    });
+    const observed = await openCreator(server, plain.entryId, agent);
+    expect(observed.profile.lines[0]).toMatchObject({
+      id: plain.lineId,
+      followers: 84210,
+      postsLast30Days: 14,
+      avgComments: 137,
+      engagementRateBp: 420,
+      avgReach: null,
+      figuresSource: "agent_observed",
+      figuresMeasuredAt: "2026-08-21T09:00:00.000Z",
+      badge: "audience_verified",
+    });
     await call(
       server,
       "POST",

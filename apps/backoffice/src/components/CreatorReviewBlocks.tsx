@@ -30,12 +30,14 @@ import {
   lineView,
   modifiedFieldsWords,
   profileFacts,
+  profileTitle,
   revisionRows,
   visualFacts,
   visualName,
 } from "./creator-review-view";
 import { CreatorVisual } from "./CreatorVisual";
 import { DenseTableRegion } from "./DenseTableRegion";
+import type { VisualDisplay } from "./use-visual-display";
 
 const t = messages.creatorReview;
 
@@ -45,7 +47,7 @@ export function ProfileBlock({ view }: { view: OpenCreatorEntryResponse }) {
   return (
     <section aria-labelledby="creator-profile" className={SECTION_CLASSES}>
       <h2 id="creator-profile" className={SECTION_TITLE}>
-        {t.sections.profile}
+        {profileTitle(view)}
       </h2>
       <dl className={DL_CLASSES}>
         {profileFacts(view).map((fact) => (
@@ -175,11 +177,17 @@ export function WrittenBlock({ view }: { view: OpenCreatorEntryResponse }) {
 export function VisualsBlock({
   view,
   canRead,
+  display,
 }: {
   view: OpenCreatorEntryResponse;
   canRead: boolean;
+  display: VisualDisplay;
 }) {
   const { visuals } = view.profile;
+  // ‹i› shows the first visual not displayed yet, in the creator's order
+  const nextId = visuals.find(
+    (visual) => !display.shownIds.includes(visual.id),
+  )?.id;
   return (
     <section aria-labelledby="creator-visuals" className={SECTION_CLASSES}>
       <h2 id="creator-visuals" className={SECTION_TITLE}>
@@ -222,6 +230,9 @@ export function VisualsBlock({
                       }
                       position={position}
                       alt={t.visuals.alt(position, view.profile.alias)}
+                      showTicket={display.ticket}
+                      next={visual.id === nextId}
+                      onShown={() => display.markShown(visual.id)}
                     />
                   ) : null}
                 </li>

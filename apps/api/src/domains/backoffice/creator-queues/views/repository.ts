@@ -10,6 +10,7 @@
 //   a visual are not read here either: a journaled door gives them, one visual at a time (acts.ts).
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../../../db/index.ts";
+import { EXACT_FIGURES_JOINS } from "../../account-creator/repository.ts";
 import { ISO_UTC } from "../../sql-formats.ts";
 
 type Instant = string | null;
@@ -307,7 +308,11 @@ export type ReviewedLineRow = {
   badge: string | null;
 };
 
-/** The lines of the account (layer I), the main one first, with the badge in force on each. */
+/**
+ * The lines of the account (layer I), the main one first, with the badge in force on each. The exact figures
+ * follow the rule of the creator record (account-creator/repository.ts, one definition): those the
+ * audience badge observed, else those the creator declared, each with its date and its source.
+ */
 export async function readReviewedLines(
   tx: Transaction,
   accountId: string,
@@ -331,10 +336,10 @@ export async function readReviewedLines(
   }>(sql`
     select n.id::text as id, n.network_code::text as network_code, n.is_primary,
            (c.listed_at is not null) as listed, n.handle, n.pseudonym, n.profile_url,
-           n.followers_count::float8 as followers, n.posts_last_30_days::float8 as posts,
-           n.avg_comments_per_post::float8 as comments, n.avg_reach_per_post::float8 as reach,
-           n.engagement_rate_bp::float8 as engagement, n.figures_source,
-           to_char(n.figures_measured_at at time zone 'UTC', ${ISO_UTC}) as figures_measured_at,
+           f.followers::float8 as followers, f.posts::float8 as posts,
+           f.comments::float8 as comments, f.reach::float8 as reach,
+           f.engagement::float8 as engagement, f.source as figures_source,
+           to_char(f.measured_at at time zone 'UTC', ${ISO_UTC}) as figures_measured_at,
            (select b.level::text
               from verification.badges b
              where b.account_id = n.account_id and b.social_account_id = n.id
@@ -343,6 +348,7 @@ export async function readReviewedLines(
              limit 1) as badge
       from profiles.creator_social_accounts n
       left join profiles.creator_public_networks c on c.social_account_id = n.id
+      ${EXACT_FIGURES_JOINS}
      where n.account_id = ${accountId}::uuid
      order by n.is_primary desc, n.network_code, n.id`);
   return rows.map((row) => ({

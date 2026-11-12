@@ -8,7 +8,9 @@
 // screen asks once, for the visual the agent chose. The bytes come as JSON (base64) from apps/api and are
 // drawn from a `blob:` URL (the CSP of the backoffice allows `img-src 'self' blob:`, nothing else); the URL is
 // revoked when the screen leaves. A failure is a sentence and the button stays: the decision never waits for
-// an image.
+// an image. On display the image takes the focus (the button that held it is gone, L2GU-10) and the status
+// region says « Visuel affiché »; ‹i› (the screen's `showTicket`) shows the `next` visual without a click
+// (L2GU-21).
 import type { ReviewImageResponse } from "@influx/contracts/creator-queues";
 import type { RelayResult } from "@influx/web-platform/relay-client";
 import { useEffect, useRef, useState } from "react";
@@ -32,6 +34,9 @@ export function CreatorVisual({
   read,
   position,
   alt,
+  showTicket = 0,
+  next = false,
+  onShown,
 }: {
   /** The journaled read of this visual, by the route of the queue (it throws on an id outside the UUID shape). */
   read: () => Promise<RelayResult<ReviewImageResponse>>;
@@ -39,10 +44,40 @@ export function CreatorVisual({
   position: string;
   /** The alternative text of the image once drawn. */
   alt: string;
+  /** Changes at each ‹i› of the screen. */
+  showTicket?: number;
+  /** This is the visual ‹i› shows: it carries the hint of the key. */
+  next?: boolean;
+  /** Called once the image is drawn: the screen remembers which visuals were shown. */
+  onShown?: () => void;
 }) {
   const [state, setState] = useState<VisualState>({ kind: "idle" });
   const alive = useRef(true);
   const url = useRef<string | null>(null);
+  const image = useRef<HTMLImageElement | null>(null);
+  const latest = useRef({ state, next, show: () => {}, onShown });
+  const seenTicket = useRef(showTicket);
+
+  useEffect(() => {
+    latest.current = { state, next, show, onShown };
+  });
+
+  useEffect(() => {
+    if (showTicket === seenTicket.current) {
+      return;
+    }
+    seenTicket.current = showTicket;
+    const { state: now, next: wanted, show: open } = latest.current;
+    if (wanted && (now.kind === "idle" || now.kind === "failed")) {
+      void open();
+    }
+  }, [showTicket]);
+
+  useEffect(() => {
+    if (state.kind === "ready") {
+      image.current?.focus();
+    }
+  }, [state.kind]);
 
   useEffect(() => {
     alive.current = true;
@@ -73,43 +108,65 @@ export function CreatorVisual({
     }
     if (alive.current) {
       setState(next);
+      if (next.kind === "ready") {
+        latest.current.onShown?.();
+      }
     } else if (url.current !== null) {
       URL.revokeObjectURL(url.current);
       url.current = null;
     }
   }
 
-  if (state.kind === "ready") {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element -- a blob: URL built from the API's bytes
-      <img src={state.url} alt={alt} className={IMAGE_CLASSES} />
-    );
-  }
+  const ready = state.kind === "ready";
   return (
     <div className="flex flex-col items-start gap-1">
-      <button
-        type="button"
-        aria-disabled={state.kind === "loading" || undefined}
-        onClick={() => {
-          if (state.kind !== "loading") {
-            void show();
-          }
-        }}
-        className={SMALL_SECONDARY_CLASSES}
+      {state.kind === "ready" ? (
+        // eslint-disable-next-line @next/next/no-img-element -- a blob: URL built from the API's bytes
+        <img
+          ref={image}
+          src={state.url}
+          alt={alt}
+          tabIndex={-1}
+          className={IMAGE_CLASSES}
+        />
+      ) : (
+        <button
+          type="button"
+          aria-disabled={state.kind === "loading" || undefined}
+          aria-keyshortcuts={next ? "i" : undefined}
+          onClick={() => {
+            if (state.kind !== "loading") {
+              void show();
+            }
+          }}
+          className={SMALL_SECONDARY_CLASSES}
+        >
+          {t.show}
+          <span className="sr-only"> {position}</span>
+          {next ? (
+            <span aria-hidden="true" className="ml-2">
+              {t.keyHint}
+            </span>
+          ) : null}
+        </button>
+      )}
+      {/* one live region for the whole life of the visual, so that each change is announced */}
+      <p
+        role="status"
+        className={
+          state.kind === "loading" || state.kind === "failed"
+            ? HELP_CLASSES
+            : "sr-only"
+        }
       >
-        {t.show}
-        <span className="sr-only"> {position}</span>
-      </button>
-      {state.kind === "loading" ? (
-        <p role="status" className={HELP_CLASSES}>
-          {t.loading}
-        </p>
-      ) : null}
-      {state.kind === "failed" ? (
-        <p role="status" className={HELP_CLASSES}>
-          {t.failed}
-        </p>
-      ) : null}
+        {state.kind === "loading"
+          ? t.loading
+          : state.kind === "failed"
+            ? t.failed
+            : ready
+              ? t.shown
+              : ""}
+      </p>
     </div>
   );
 }

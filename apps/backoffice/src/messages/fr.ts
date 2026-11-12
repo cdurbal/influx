@@ -3040,7 +3040,8 @@ export const messages = {
     markerLabel: "vue identifiée, consultation enregistrée",
     parenthesized: (words: string) => `(${words})`,
     sections: {
-      profile: "Le profil validé",
+      profile: "Le profil validé (version en ligne)",
+      profileSubmitted: "Le profil soumis",
       lines: "Réseaux et chiffres exacts",
       written: "Ce qui a changé depuis la dernière validation",
       visuals: "Portfolio",
@@ -3183,8 +3184,10 @@ export const messages = {
       kilobytes: (kilobytes: number) => `${kilobytes} Ko`,
       deposited: (date: string) => `déposé le ${date}`,
       show: "Afficher le visuel",
+      shown: "Visuel affiché",
+      keyHint: "‹i›",
       showHelp:
-        "La lecture d’un visuel est enregistrée : n’affichez que ceux dont vous avez besoin.",
+        "La lecture d’un visuel est enregistrée : n’affichez que ceux dont vous avez besoin. La touche ‹i› affiche le prochain visuel non affiché.",
       alt: (position: string, alias: string) =>
         `${position} du portfolio de ${alias}`,
       loading: "Chargement du visuel…",
@@ -3281,9 +3284,10 @@ export const messages = {
       comment: "Commentaire interne :",
     },
     shortcuts: {
-      keys: "‹v› publier (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      keys: "‹v› publier (récapitulatif) · ‹r› refuser avec motif · ‹i› afficher le visuel · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
       publish:
         "ouvrir le récapitulatif de la publication (ne publie jamais seul)",
+      show: "afficher le prochain visuel non affiché (la lecture est enregistrée)",
       reject: "ouvrir le choix du motif (ne refuse jamais seul)",
     },
   },
@@ -3457,6 +3461,7 @@ export const messages = {
         `Le visuel de ${alias} sera approuvé, et le créateur en sera informé par e-mail, en ${language}.`,
       approveReplacement:
         "Il remplace le visuel approuvé actuel, qui sera retiré du profil.",
+      approveNotShown: "Vous n’avez pas affiché ce visuel.",
       approveCommentRecap: "Commentaire interne joint :",
       approveConfirm: "Confirmer l’approbation",
       rejectTitle: "Refuser ce visuel",
@@ -3498,9 +3503,10 @@ export const messages = {
       comment: "Commentaire interne :",
     },
     shortcuts: {
-      keys: "‹v› approuver (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      keys: "‹v› approuver (récapitulatif) · ‹r› refuser avec motif · ‹i› afficher le visuel · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
       approve:
         "ouvrir le récapitulatif de l’approbation (n’approuve jamais seul)",
+      show: "afficher le visuel (la lecture est enregistrée)",
       reject: "ouvrir le choix du motif (ne refuse jamais seul)",
     },
   },

@@ -47,6 +47,7 @@ import {
   type ClaimedApi,
   type ClaimedKeys,
 } from "./use-claimed-entry";
+import { useVisualDisplay } from "./use-visual-display";
 
 const t = messages.creatorReview;
 
@@ -68,6 +69,7 @@ const SHORTCUTS = {
   rows: [
     ["v", t.shortcuts.publish],
     ["r", t.shortcuts.reject],
+    ["i", t.shortcuts.show],
     ["l", messages.claimedReview.shortcuts.release],
     ["Échap", messages.claimedReview.shortcuts.escape],
     ["?", messages.claimedReview.shortcuts.help],
@@ -75,12 +77,14 @@ const SHORTCUTS = {
 } as const;
 
 export function CreatorReviewEntryScreen({ id }: { id: string }) {
+  const display = useVisualDisplay(id);
   const entry = useClaimedEntry<OpenCreatorEntryResponse, CreatorPanel>(
     id,
     CREATOR_REVIEW_LIST,
     API,
     KEYS,
     "creator",
+    display.requestShow,
   );
   const { perform, finish, draft, setProblem, setDraft, panel, problem, busy } =
     entry;
@@ -143,7 +147,11 @@ export function CreatorReviewEntryScreen({ id }: { id: string }) {
           <ProfileBlock view={view} />
           <LinesBlock profile={view.profile} />
           <WrittenBlock view={view} />
-          <VisualsBlock view={view} canRead={mode === "deciding"} />
+          <VisualsBlock
+            view={view}
+            canRead={mode === "deciding"}
+            display={display}
+          />
           <AlertsBlock view={view} />
           {mode === "deciding" ? (
             <CreatorReviewDecision

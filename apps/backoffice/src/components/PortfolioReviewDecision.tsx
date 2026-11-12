@@ -20,6 +20,7 @@ import {
 import { CommentField, DecisionPanel } from "./ClaimedDecisionParts";
 import { ErrorNotice } from "./ErrorNotice";
 import {
+  approveNotShownLine,
   reasonChoices,
   type PortfolioReviewView,
 } from "./portfolio-review-view";
@@ -39,6 +40,7 @@ function KeyHint({ keys }: { keys: string }) {
 
 export function PortfolioReviewDecision({
   view,
+  shown,
   panel,
   draft,
   reasonCode,
@@ -51,6 +53,8 @@ export function PortfolioReviewDecision({
   onReject,
 }: {
   view: PortfolioReviewView;
+  /** The visual was displayed on this screen: the recap of the approval says so when it was not (L2GU-21). */
+  shown: boolean;
   /** The panel of the screen: the two of this block, or another (the release, the help). */
   panel: string | null;
   draft: Draft;
@@ -66,6 +70,7 @@ export function PortfolioReviewDecision({
 }) {
   const ids = { reason: useId() };
   const busyNow = busy !== null;
+  const notShown = approveNotShownLine(shown);
   const language = (messages.languages as Readonly<Record<string, string>>)[
     view.account.preferredLanguage
   ];
@@ -134,6 +139,9 @@ export function PortfolioReviewDecision({
           </p>
           {view.item.replaces === null ? null : (
             <p className="text-sm text-text-primary">{t.approveReplacement}</p>
+          )}
+          {notShown === null ? null : (
+            <p className="text-sm text-text-secondary">{notShown}</p>
           )}
           {comment === "" ? null : (
             <p className="text-sm text-text-secondary">
