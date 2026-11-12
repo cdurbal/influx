@@ -158,6 +158,7 @@ describe("TD2.4: the active entry of each page", () => {
     accountHub: "account",
     accountDetails: "account",
     accountProfile: "account",
+    accountProfilePreview: "account",
     accountVerificationOwnership: "account",
     accountVerificationAudience: "account",
     accountVerificationAppeal: "account",
@@ -392,6 +393,7 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
       memberPageOfPath("/account/profile/verification/ownership", "fr"),
     ).toBeNull();
     expect(PARENT_PAGES).toEqual({
+      accountProfilePreview: "accountProfile",
       accountVerificationOwnership: "accountProfile",
       accountVerificationAudience: "accountProfile",
       accountVerificationAppeal: "accountProfile",
@@ -403,6 +405,25 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     });
     expect(ACCOUNT_PAGES).not.toContain("accountVerificationOwnership");
     expect(isTermsExempt("accountVerificationOwnership")).toBe(false);
+  });
+
+  it("addresses the preview of what a brand sees below the profile too, in both languages, with no query (L2G 14)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountProfilePreview).toEqual({
+      fr: "compte/profil/apercu",
+      en: "account/profile/preview",
+    });
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountProfilePreview", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountProfilePreview",
+      );
+    }
+    expect(activePlaceOf("accountProfilePreview")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountProfilePreview");
+    expect(isTermsExempt("accountProfilePreview")).toBe(false);
   });
 
   it("addresses the audience journey below the profile too, in both languages, with the network in the query (L2E 19)", () => {

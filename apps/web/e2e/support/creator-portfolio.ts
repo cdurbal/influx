@@ -164,3 +164,31 @@ export async function depositVisuals(page: Page, count: number): Promise<void> {
     expect(sent.ok()).toBe(true);
   }
 }
+
+/**
+ * The approval of every visual the creator holds as an agent's decision leaves it (0244): approved by
+ * `agentId`, the first one with its caption. Written straight into the base, like the publication above.
+ */
+export async function approveVisualsAsAgent(
+  accountId: string,
+  agentId: string,
+  firstCaption: string,
+): Promise<void> {
+  await withSql(async (sql) => {
+    await sql`
+      update profiles.portfolio_items
+         set state = 'approved', decided_by_account_id = ${agentId}, decided_at = now()
+       where account_id = ${accountId} and state = 'pending'`;
+    await sql`
+      update profiles.portfolio_items
+         set caption = ${firstCaption}
+       where id = (select id from profiles.portfolio_items
+                    where account_id = ${accountId} and state = 'approved'
+                    order by display_order, created_at, id limit 1)`;
+  });
+}
+
+/** The handle the seed gives the main line: what the tab "before" must never show. */
+export function seededHandle(accountId: string): string {
+  return `l2g_${accountId.slice(0, 8)}`;
+}

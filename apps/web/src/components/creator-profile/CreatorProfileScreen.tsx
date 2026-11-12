@@ -32,6 +32,7 @@ import { MemberButton } from "@/components/member/ui/MemberButton";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { ScoreGauge } from "@/components/member/ui/ScoreGauge";
+import { memberButtonClasses } from "@/components/member/ui/button-classes";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import {
@@ -39,6 +40,7 @@ import {
   ChevronLeftIcon,
   CheckIcon,
   CircleAlertIcon,
+  EyeIcon,
 } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
@@ -310,6 +312,7 @@ function LoadedProfile({
 /** The five sections and where each stands, as anchors (17 §5.2): text AND icon, never the icon alone. */
 function Summary({ missing }: { missing: readonly RequiredCode[] }) {
   const t = useTranslations("creatorProfile");
+  const locale = useLocale();
   return (
     <nav aria-label={t("summary.title")} className={SUMMARY_CLASSES}>
       <ol className="flex flex-col gap-1">
@@ -336,6 +339,18 @@ function Summary({ missing }: { missing: readonly RequiredCode[] }) {
           );
         })}
       </ol>
+      {/* The way to the card as a brand reads it (07 RG104): a page of its own, below the profile. */}
+      <Link
+        href={memberPageHref("accountProfilePreview", locale)}
+        data-preview-link=""
+        className={memberButtonClasses("secondary")}
+      >
+        <EyeIcon
+          aria-hidden="true"
+          className="size-(--size-icon-md) shrink-0"
+        />
+        {t("preview.title")}
+      </Link>
     </nav>
   );
 }

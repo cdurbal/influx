@@ -494,5 +494,74 @@
     "on": "Les marques pourront vous trouver dans la recherche, une fois votre profil publié.",
     "off": "Vous êtes retiré de la recherche : vous ne recevrez plus de demande de marque.",
     "failed": "Ce réglage n'a pas pu être enregistré. Réessayez dans un instant."
+  },
+  "preview": {
+    "title": "Ce que voit une marque",
+    "before": "Avant la mise en relation",
+    "after": "Après la mise en relation",
+    "explain": "Exactement ce que la plateforme sert à une marque, rien de plus.",
+    "tabs": "Choisir la vue de l'aperçu",
+    "back": "Mon profil",
+    "loading": "Chargement de l'aperçu…",
+    "unavailable": "Nous ne parvenons pas à afficher l'aperçu pour le moment. Réessayez dans quelques minutes.",
+    "notPublished": "Votre profil n'est pas encore publié : aucune marque ne le voit. Voici ce qu'elle verrait une fois qu'il le sera.",
+    "beforeIntro": "Avant la mise en relation, une marque ne voit que des tranches : ni pseudo, ni lien, ni chiffre exact.",
+    "afterIntro": "Après la mise en relation, la marque lit en plus votre pseudo, le lien de votre profil et vos chiffres exacts, avec leur source et leur date. Jamais votre e-mail ni votre téléphone.",
+    "noVisual": "Aucun visuel approuvé pour l'instant : votre carte s'affiche sans image.",
+    "sections": {
+      "networks": "Réseaux",
+      "audience": "Audience",
+      "offer": "Offre"
+    },
+    "metrics": {
+      "rhythm": "Rythme de publication",
+      "engagement": "Engagement",
+      "reach": "Portée moyenne par publication"
+    },
+    "exact": "chiffre exact : {value}",
+    "observed": "Chiffres constatés par INFLUX : ils ne s'affichent pas dans cet aperçu.",
+    "source": {
+      "declared": "Déclarés par le créateur",
+      "agent_observed": "Constatés par INFLUX"
+    },
+    "figuresAt": "{source} · chiffres au {date}",
+    "figuresUndated": "{source} · chiffres non datés",
+    "badge": {
+      "account_verified": "Compte vérifié le {date}",
+      "audience_verified": "Audience vérifiée le {date}"
+    },
+    "shares": "Audience, pourcentages exacts",
+    "share": {
+      "ge_80": "80 % ou plus",
+      "50_80": "De 50 à 80 %",
+      "lt_50": "Moins de 50 %",
+      "10_25": "De 10 à 25 %",
+      "25_50": "De 25 à 50 %",
+      "gt_50": "Plus de 50 %"
+    },
+    "gender": {
+      "female_majority": "Majorité de femmes",
+      "male_majority": "Majorité d'hommes",
+      "mixed": "Audience mixte",
+      "female": "Femmes",
+      "male": "Hommes",
+      "other": "Autres ou non déclaré"
+    },
+    "age": {
+      "18_24": "18-24 ans",
+      "25_34": "25-34 ans",
+      "35_44": "35-44 ans",
+      "45_plus": "45 ans et plus"
+    },
+    "engagementBand": {
+      "under_1": "Moins de 1 %",
+      "1_3": "De 1 à 3 %",
+      "3_6": "De 3 à 6 %",
+      "6_plus": "6 % et plus"
+    },
+    "mainAudience": "Pays principal de l'audience",
+    "audienceCountries": "Autres pays de l'audience",
+    "audienceAges": "Âges de l'audience",
+    "audienceGender": "Genre de l'audience"
   }
 }

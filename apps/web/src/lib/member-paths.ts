@@ -15,6 +15,7 @@ export type MemberPage =
   | "accountHub"
   | "accountDetails"
   | "accountProfile"
+  | "accountProfilePreview"
   | "accountVerificationOwnership"
   | "accountVerificationAudience"
   | "accountVerificationAppeal"
@@ -38,6 +39,12 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   accountDetails: { fr: "compte/informations", en: "account/details" },
   // "Mon profil de marque" (17 §4.2, M2; EC-L2B-7) for a brand, "Mon profil" (17 §5.2, C2; L2D) for a creator
   accountProfile: { fr: "compte/profil", en: "account/profile" },
+  // "Ce que voit une marque" (17 §5.2, C2; 07 RG104; L2G, commit 14): the creator reads his own card as served, a
+  // child of the profile, nothing to enter; no query.
+  accountProfilePreview: {
+    fr: "compte/profil/apercu",
+    en: "account/profile/preview",
+  },
   // "Faire vérifier mon compte" (17 §5.3, C3; L2E): the ownership journey of one network line, a child of
   // the profile (modele.md §6); the network is the `network` of the query, never a segment (J4S-7).
   accountVerificationOwnership: {
@@ -95,6 +102,7 @@ export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
  * a creator verifies a network line (L2E, commit 18). They are not entries of their own.
  */
 export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
+  accountProfilePreview: PROFILE_ACCOUNT_PAGE,
   accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
   accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
   accountVerificationAppeal: PROFILE_ACCOUNT_PAGE,

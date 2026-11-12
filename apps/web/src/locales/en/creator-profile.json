@@ -494,5 +494,74 @@
     "on": "Brands will be able to find you in search, once your profile is published.",
     "off": "You are hidden from search: you will no longer receive requests from brands.",
     "failed": "This setting could not be saved. Please try again in a moment."
+  },
+  "preview": {
+    "title": "What a brand sees",
+    "before": "Before an introduction",
+    "after": "After an introduction",
+    "explain": "Exactly what the platform serves a brand, nothing more.",
+    "tabs": "Choose the preview view",
+    "back": "My profile",
+    "loading": "Loading the preview…",
+    "unavailable": "We cannot show the preview right now. Try again in a few minutes.",
+    "notPublished": "Your profile is not published yet: no brand sees it. This is what a brand would see once it is.",
+    "beforeIntro": "Before an introduction, a brand sees ranges only: no handle, no link, no exact figure.",
+    "afterIntro": "After an introduction, the brand also reads your handle, the link to your profile and your exact figures, with their source and date. Never your e-mail or your phone number.",
+    "noVisual": "No approved visual yet: your card is shown without an image.",
+    "sections": {
+      "networks": "Networks",
+      "audience": "Audience",
+      "offer": "Offer"
+    },
+    "metrics": {
+      "rhythm": "Publication rhythm",
+      "engagement": "Engagement",
+      "reach": "Average reach per post"
+    },
+    "exact": "exact figure: {value}",
+    "observed": "Figures observed by INFLUX: they are not shown in this preview.",
+    "source": {
+      "declared": "Declared by the creator",
+      "agent_observed": "Observed by INFLUX"
+    },
+    "figuresAt": "{source} · figures as of {date}",
+    "figuresUndated": "{source} · figures not dated",
+    "badge": {
+      "account_verified": "Account verified on {date}",
+      "audience_verified": "Audience verified on {date}"
+    },
+    "shares": "Audience, exact percentages",
+    "share": {
+      "ge_80": "80% or more",
+      "50_80": "50 to 80%",
+      "lt_50": "Under 50%",
+      "10_25": "10 to 25%",
+      "25_50": "25 to 50%",
+      "gt_50": "Over 50%"
+    },
+    "gender": {
+      "female_majority": "Mostly women",
+      "male_majority": "Mostly men",
+      "mixed": "Mixed audience",
+      "female": "Women",
+      "male": "Men",
+      "other": "Other or not declared"
+    },
+    "age": {
+      "18_24": "Ages 18-24",
+      "25_34": "Ages 25-34",
+      "35_44": "Ages 35-44",
+      "45_plus": "Ages 45 and over"
+    },
+    "engagementBand": {
+      "under_1": "Under 1%",
+      "1_3": "1 to 3%",
+      "3_6": "3 to 6%",
+      "6_plus": "6% or more"
+    },
+    "mainAudience": "Main audience country",
+    "audienceCountries": "Other audience countries",
+    "audienceAges": "Audience ages",
+    "audienceGender": "Audience gender"
   }
 }

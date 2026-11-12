@@ -59,6 +59,11 @@ test("a creator deposits visuals and submits the profile in French at 375 px, th
   await page.setViewportSize({ width: 375, height: 900 });
   await open(page, PATHS.fr);
 
+  // The summary leads to "ce que voit une marque" (17 §5.2, RG104; the page itself: creator-preview.spec.ts).
+  await expect(page.locator("[data-preview-link]")).toHaveAttribute(
+    "href",
+    `${PATHS.fr}/apercu`,
+  );
   const block = page.locator("[data-section=portfolio]");
   const items = block.locator("[data-portfolio-item]");
   const publish = page.getByRole("button", { name: fr.publish.action });

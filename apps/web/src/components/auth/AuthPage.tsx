@@ -27,6 +27,7 @@ const PAGE_TITLES = {
   accountHub: "account.meta.hub",
   accountDetails: "account.meta.details",
   accountProfile: "account.meta.profile",
+  accountProfilePreview: "account.meta.profilePreview",
   accountVerificationOwnership: "verification.meta.ownership",
   accountVerificationAudience: "verification.meta.audience",
   accountVerificationAppeal: "verification.meta.appeal",
