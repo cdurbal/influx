@@ -7,6 +7,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/account-badges-view.test.ts": 13,
   "tests/account-opening-view.test.ts": 8,
   "tests/account-brand-view.test.ts": 7,
+  "tests/account-creator-view.test.ts": 9,
   "tests/account-record-forms.test.ts": 14,
   "tests/bo-nav-ui.test.ts": 8,
   "tests/bo-nav.test.ts": 34,

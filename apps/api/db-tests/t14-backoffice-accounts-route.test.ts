@@ -43,6 +43,8 @@ let startedAt: string;
 const internals: string[] = [];
 const members: string[] = [];
 const watchedValues: string[] = [];
+/** The creators whose visuals this file wrote (L2G-17): removed at the end, they would sit in queue 3. */
+const profiled: string[] = [];
 const logStreams: (() => string)[] = [];
 
 function localConnection(role: LoginRole) {
@@ -349,6 +351,14 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await closeDatabase(database);
+  if (profiled.length > 0) {
+    // the visuals only: they would sit in queue 3 of the other files. The profile and its lines stay, as the
+    // fixtures of the verification files stay (an audience badge writes an append-only history)
+    await migrationRole().begin(async (tx) => {
+      await tx`delete from profiles.portfolio_items where account_id = any(${profiled}::uuid[]) and replaces_item_id is not null`;
+      await tx`delete from profiles.portfolio_items where account_id = any(${profiled}::uuid[])`;
+    });
+  }
   if (members.length > 0) {
     await migrationRole()`
       delete from leads.outbox_events
@@ -953,6 +963,239 @@ describe("GET /v1/bo/accounts/:id, the brand blocks (15 RG41 blocks 2 and 3, RG1
     );
     expect(response.json<BrandDetail>().brand?.contact.email).toContain(
       "@brand.example.test",
+    );
+    const after = await linesOf();
+    expect(after.slice(before.length)).toEqual([
+      { event_type: "history.account_read", actor: agent.accountId },
+    ]);
+  });
+});
+
+describe("GET /v1/bo/accounts/:id, the creator blocks (17b §3.6 blocks 2 to 4; 07 RG71, RG4, RG88; L2G-17)", () => {
+  type CreatorBlocks = {
+    networks: {
+      id: string;
+      networkCode: string;
+      isPrimary: boolean;
+      awaitingValidation: boolean;
+      followers: number | null;
+      postsLast30Days: number | null;
+      avgComments: number | null;
+      engagementRateBp: number | null;
+      measuredAt: string | null;
+      source: string;
+    }[];
+    portfolio: { deposited: number; pending: number };
+  };
+  type CreatorDetail = { creator: CreatorBlocks | null };
+
+  const SECRETS = [
+    "t14-secret-handle",
+    "t14-secret-pseudonym",
+    "t14-secret-caption",
+    "t14-secret-comment",
+  ];
+
+  const sha = (seed: string) => createHash("sha256").update(seed).digest("hex");
+
+  /**
+   * A published creator: a main line listed, whose declared figures an audience badge supersedes with the
+   * ones an agent observed, a line added since that no decision listed (declared figures only), and four visuals (two approved, a pending replacement of one of them, a
+   * pending first deposit): three count as deposited, two wait for queue 3.
+   */
+  async function publishedCreator(): Promise<Member> {
+    const member = await newMember("creator");
+    profiled.push(member.accountId);
+    await migrationRole().begin(async (tx) => {
+      await tx`
+        insert into profiles.creator_public_profiles
+          (account_id, alias, residence_country_code, status, published_at)
+        values (${member.accountId}, profiles.new_creator_alias(), 'FR', 'published', now())`;
+      const [main] = await tx<{ id: string }[]>`
+        insert into profiles.creator_social_accounts
+          (account_id, network_code, is_primary, handle, pseudonym, profile_url, followers_count,
+           posts_last_30_days, avg_comments_per_post, engagement_rate_bp, figures_measured_at)
+        values (${member.accountId}, 'instagram', true, 't14-secret-handle', 't14-secret-pseudonym',
+                'https://www.instagram.com/t14-secret-handle', 48000, 9, 31, 150,
+                '2026-06-01T09:00:00Z')
+        returning id::text`;
+      await tx`
+        update profiles.creator_public_networks set listed_at = now()
+         where social_account_id = ${main?.id ?? null}`;
+      // the audience badge of the line: the exact figures an agent read on the dashboard (08 RG19, RG20)
+      const [request] = await tx<{ id: string }[]>`
+        insert into verification.verification_requests
+          (account_id, social_account_id, network_code, level, status)
+        values (${member.accountId}, ${main?.id ?? null}, 'instagram', 'audience_verified', 'pending')
+        returning id::text`;
+      await tx`
+        update verification.verification_requests
+           set status = 'approved', decided_by_account_id = ${agent.accountId},
+               decided_at = now(), closed_at = now()
+         where id = ${request?.id ?? null}`;
+      await tx`
+        insert into verification.badges
+          (account_id, social_account_id, network_code, request_id, level, granted_by_account_id,
+           granted_at, expires_at, evidence_source, observed_followers, observed_posts_last_30_days,
+           observed_avg_comments, observed_engagement_bp, observed_period_start, observed_period_end,
+           declared_posts_at_decision, declared_comments_at_decision, observed_handle_at_decision)
+        values (${member.accountId}, ${main?.id ?? null}, 'instagram', ${request?.id ?? null},
+                'audience_verified', ${agent.accountId}, '2026-08-21T09:00:00Z',
+                '2026-11-19T09:00:00Z', 'native_dashboard', 84210, 14, 137, 420,
+                '2026-07-22', '2026-08-20', 9, 31, 't14-secret-handle')`;
+      await tx`
+        insert into profiles.creator_social_accounts
+          (account_id, network_code, is_primary, handle, followers_count, posts_last_30_days,
+           engagement_rate_bp, figures_measured_at)
+        values (${member.accountId}, 'tiktok', false, 't14-secret-handle-2', 3200, 0, 275,
+                '2026-07-01T09:00:00Z')`;
+      const stored: string[] = [];
+      for (let at = 0; at < 2; at += 1) {
+        const [visual] = await tx<{ id: string }[]>`
+          insert into profiles.portfolio_items
+            (account_id, state, received_bytes, byte_size, width, height, checksum, exif_stripped,
+             stored_at)
+          values (${member.accountId}, 'pending', 1000, 900, 1080, 1350, ${sha(randomUUID())}, true,
+                  now())
+          returning id::text`;
+        stored.push(visual?.id ?? "");
+      }
+      await tx`
+        update profiles.portfolio_items
+           set state = 'approved', decided_by_account_id = ${agent.accountId}, decided_at = now(),
+               caption = 't14-secret-caption', internal_comment = 't14-secret-comment'
+         where id = any(${stored}::uuid[])`;
+      // a replacement is a new row that names the visual it replaces (the column is written once)
+      await tx`
+        insert into profiles.portfolio_items
+          (account_id, state, replaces_item_id, received_bytes, byte_size, width, height, checksum,
+           exif_stripped, stored_at)
+        values (${member.accountId}, 'pending', ${stored[0] ?? null}, 1000, 900, 1080, 1350,
+                ${sha(randomUUID())}, true, now())`;
+      await tx`
+        insert into profiles.portfolio_items
+          (account_id, state, received_bytes, byte_size, width, height, checksum, exif_stripped,
+           stored_at)
+        values (${member.accountId}, 'pending', 1000, 900, 1080, 1350, ${sha(randomUUID())}, true,
+                now())`;
+    });
+    return member;
+  }
+
+  it("a creator record carries the exact figures of each line (the badge's observed ones, else the declared) with their date and source, and the portfolio as counts, the same for an agent and an admin", async () => {
+    const member = await publishedCreator();
+    const url = `/v1/bo/accounts/${member.accountId}`;
+    const asAgent = await get(app(), url, agent.session);
+    const asAdmin = await get(app(), url, admin.session);
+    expect(asAgent.statusCode).toBe(200);
+    const creator = asAgent.json<CreatorDetail>().creator;
+    expect(creator).toEqual({
+      networks: [
+        {
+          id: expect.any(String) as string,
+          networkCode: "instagram",
+          isPrimary: true,
+          awaitingValidation: false,
+          followers: 84210,
+          postsLast30Days: 14,
+          avgComments: 137,
+          engagementRateBp: 420,
+          measuredAt: "2026-08-21T09:00:00.000Z",
+          source: "agent_observed",
+        },
+        {
+          id: expect.any(String) as string,
+          networkCode: "tiktok",
+          isPrimary: false,
+          awaitingValidation: true,
+          followers: 3200,
+          postsLast30Days: 0,
+          avgComments: null,
+          engagementRateBp: 275,
+          measuredAt: "2026-07-01T09:00:00.000Z",
+          source: "declared",
+        },
+      ],
+      // 07 RG88: the pending replacement shares the place of its approved original
+      portfolio: { deposited: 3, pending: 2 },
+    });
+    expect(asAdmin.json<CreatorDetail>().creator).toEqual(creator);
+    // layer I of the lines and the moderated texts stay on the queues: neither a handle, a pseudonym, an
+    // address, a caption nor an internal comment is on the record
+    for (const secret of SECRETS) {
+      expect(asAgent.body, secret).not.toContain(secret);
+    }
+    // the observed figures supersede the declared ones of the line, which are never shown beside them
+    expect(asAgent.body).not.toContain("48000");
+    expect(asAgent.body).not.toContain("instagram.com");
+    expect(asAgent.body).not.toMatch(/object_?key|checksum/i);
+  });
+
+  it("a creator who never started a profile says so by empty values, and a brand record has no creator block", async () => {
+    const bare = await get(
+      app(),
+      `/v1/bo/accounts/${beta.accountId}`,
+      agent.session,
+    );
+    expect(bare.json<CreatorDetail>().creator).toEqual({
+      networks: [],
+      portfolio: { deposited: 0, pending: 0 },
+    });
+    const brand = await get(
+      app(),
+      `/v1/bo/accounts/${alpha.accountId}`,
+      agent.session,
+    );
+    expect(brand.json<CreatorDetail>().creator).toBeNull();
+  });
+
+  it("a profile never published lists no line as waiting for a decision (modele point 6), and an internal id still answers as unknown (T14.3)", async () => {
+    const member = await newMember("creator");
+    profiled.push(member.accountId);
+    await migrationRole().begin(async (tx) => {
+      await tx`
+        insert into profiles.creator_public_profiles
+          (account_id, alias, residence_country_code, status)
+        values (${member.accountId}, profiles.new_creator_alias(), 'FR', 'draft')`;
+      await tx`
+        insert into profiles.creator_social_accounts (account_id, network_code, is_primary, handle)
+        values (${member.accountId}, 'instagram', true, 't14-secret-handle-3')`;
+    });
+    const draft = await get(
+      app(),
+      `/v1/bo/accounts/${member.accountId}`,
+      agent.session,
+    );
+    expect(
+      draft
+        .json<CreatorDetail>()
+        .creator?.networks.map((line) => line.awaitingValidation),
+    ).toEqual([false]);
+    const internal = await get(
+      app(),
+      `/v1/bo/accounts/${agent.accountId}`,
+      agent.session,
+    );
+    expect(internal.statusCode).toBe(404);
+    expect(internal.body).not.toContain("networks");
+  });
+
+  it("reading the figures journals nothing of its own: the one line of the opening, named, covers the record", async () => {
+    const member = await publishedCreator();
+    const linesOf = () =>
+      migrationRole()<{ event_type: string; actor: string | null }[]>`
+        select event_type, actor_account_id::text as actor
+          from audit.audit_events
+         where subject_id = ${member.accountId}
+         order by seq`;
+    const before = await linesOf();
+    const response = await get(
+      app(),
+      `/v1/bo/accounts/${member.accountId}`,
+      agent.session,
+    );
+    expect(response.json<CreatorDetail>().creator?.networks[0]?.followers).toBe(
+      84210,
     );
     const after = await linesOf();
     expect(after.slice(before.length)).toEqual([

@@ -274,3 +274,49 @@ export async function portfolioEntriesOf(accountId: string): Promise<
        where account_id = ${accountId} order by created_at, id`,
   );
 }
+
+/**
+ * What the record of a creator account reads (L2G-17), written by the migration role: a published profile whose
+ * main line is listed, with the exact figures the creator declared and their date, a second line added since
+ * that no decision listed and that holds no figure but its followers, and two visuals (one approved, one waiting
+ * for queue 3), as an agent's decision leaves them. The visuals are rows, not uploads: the record counts them.
+ */
+export async function seedRecordOfCreator(
+  accountId: string,
+  agentId: string,
+): Promise<void> {
+  await withSql(async (sql) => {
+    const [main] = await sql<{ id: string }[]>`
+      insert into profiles.creator_social_accounts
+        (account_id, network_code, is_primary, handle, followers_count, posts_last_30_days,
+         avg_comments_per_post, engagement_rate_bp, figures_measured_at)
+      values (${accountId}, 'instagram', true, ${seededHandle(accountId)}, 48210, 12, 30, 350,
+              '2026-08-21T09:00:00Z')
+      returning id::text`;
+    await sql`
+      update profiles.creator_public_networks set listed_at = now()
+       where social_account_id = ${main?.id ?? ""}`;
+    await sql`
+      update profiles.creator_public_profiles set status = 'published', published_at = now()
+       where account_id = ${accountId}`;
+    await sql`
+      insert into profiles.creator_social_accounts
+        (account_id, network_code, is_primary, handle, followers_count)
+      values (${accountId}, 'tiktok', false, ${`${seededHandle(accountId)}_t`}, 3200)`;
+    for (const state of ["approved", "pending"] as const) {
+      const [visual] = await sql<{ id: string }[]>`
+        insert into profiles.portfolio_items
+          (account_id, state, received_bytes, byte_size, width, height, checksum, exif_stripped,
+           stored_at)
+        values (${accountId}, 'pending', 1000, 900, 1080, 1350,
+                encode(sha256(gen_random_uuid()::text::bytea), 'hex'), true, now())
+        returning id::text`;
+      if (state === "approved") {
+        await sql`
+          update profiles.portfolio_items
+             set state = 'approved', decided_by_account_id = ${agentId}, decided_at = now()
+           where id = ${visual?.id ?? ""}`;
+      }
+    }
+  });
+}

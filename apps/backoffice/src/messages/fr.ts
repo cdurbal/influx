@@ -684,6 +684,51 @@ export const messages = {
     masked:
       "Les messages envoyés à la marque et les commentaires internes des décisions ne sont pas repris sur cette fiche.",
   },
+  /** L2G-17 (07 RG71, RG4; 17b §3.6 blocks 2 to 4; jalons/l2g/textes.md §4): what the record of a creator adds. */
+  accountCreator: {
+    networksTitle: "Réseaux et audience",
+    mark: "▮",
+    markLabel: "chiffres exacts, visibles des seuls rôles internes",
+    networksLead:
+      "Chaque chiffre porte sa date de mesure et sa source : un chiffre sans date n’est pas une donnée. Ce sont les chiffres exacts, jamais une tranche. L’ouverture de cette fiche est enregistrée.",
+    tableLabel: "Réseaux du créateur et chiffres exacts",
+    noNetwork: "Aucun réseau déclaré.",
+    columns: {
+      network: "Réseau",
+      followers: "Abonnés",
+      posts: "Publications sur 30 jours",
+      comments: "Commentaires moyens par publication",
+      engagement: "Engagement",
+      measuredAt: "Mesure du",
+      source: "Source",
+    },
+    primary: "Réseau principal",
+    /** The words of textes.md § 4 « bo.account.creator.unlisted », reserved for this record (EC-L2G-15-4). */
+    unlisted: "Réseau ajouté, en attente de validation.",
+    engagement: (percent: string) => `${percent} %`,
+    sources: {
+      declared: "déclarés",
+      agent_observed: "constatés",
+    } as Readonly<Record<string, string>>,
+    historyNote:
+      "L’évolution datée des chiffres n’est pas encore consultable ici.",
+    ratesTitle: "Tarifs",
+    /** The words of textes.md § 4 « bo.account.creator.rates » (D78). */
+    rates: "Aucun tarif saisi : les coûts se négocient avec le commercial.",
+    portfolioTitle: "Portfolio",
+    portfolioNone: "Aucun visuel déposé.",
+    portfolioCount: (count: number) =>
+      count === 1 ? "1 visuel déposé" : `${count} visuels déposés`,
+    portfolioPending: (count: number) =>
+      count === 0
+        ? "aucun en attente de modération"
+        : `${count} en attente de modération`,
+    portfolioLine: (deposited: string, pending: string) =>
+      `${deposited} · ${pending}`,
+    openQueue: "Voir ces visuels dans la file de modération",
+    portfolioMasked:
+      "Aucune vignette ici : un visuel se lit, à la demande, sur l’écran de décision de la file.",
+  },
   /** L2F-18 (08 RG70, RG73 to RG77; 06 RG55; 15 RG75): the badges of an account and the ask for a withdrawal. */
   accountBadges: {
     title: "Badges de vérification",

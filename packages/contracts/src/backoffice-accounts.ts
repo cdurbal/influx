@@ -22,6 +22,7 @@ import {
   DATA_REQUEST_STATUSES,
   dataRequestTypeSchema,
 } from "./account.ts";
+import { CREATOR_FIGURES_SOURCES } from "./creator-profile.ts";
 import {
   countryCodeSchema,
   declaredStatusSchema,
@@ -437,6 +438,46 @@ export const accountBrandSchema = z.strictObject({
 export type AccountBrand = z.infer<typeof accountBrandSchema>;
 
 /**
+ * L2G-17 (07 RG71, RG119; 17b §3.6 blocks 2 to 4; jalons/l2g/modele.md §1 point 13): one network line of a
+ * CREATOR record, with the EXACT figures the creator declared or an agent observed, their date and their
+ * source (10 RG71: never a band in place of a figure; a figure absent is null, never zero). No handle,
+ * no address, no pseudonym: the record names the line by its network, the queue shows the rest.
+ */
+export const accountCreatorNetworkSchema = z.strictObject({
+  id: z.uuid(),
+  /** A code of `reference.networks`, worded by the screen. */
+  networkCode: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/),
+  isPrimary: z.boolean(),
+  /** A line added to a profile already published, which no decision has listed yet (modele point 6). */
+  awaitingValidation: z.boolean(),
+  followers: z.number().int().nonnegative().nullable(),
+  postsLast30Days: z.number().int().nonnegative().nullable(),
+  avgComments: z.number().int().nonnegative().nullable(),
+  /** Basis points (350 = 3.50 %), as stored. */
+  engagementRateBp: z.number().int().min(0).max(10000).nullable(),
+  measuredAt: z.iso.datetime().nullable(),
+  source: z.enum(CREATOR_FIGURES_SOURCES),
+});
+export type AccountCreatorNetwork = z.infer<typeof accountCreatorNetworkSchema>;
+
+/**
+ * L2G-17: what the record of a CREATOR account adds, read in the transaction of the opening, which the
+ * history read journals once (`history.account_read`, RG40): the lines with their exact figures, and the
+ * visuals of the portfolio as counts only (never a caption, a file name nor a key). Block 3 (« aucun
+ * tarif saisi », D78) carries no datum. The history of the metrics (RG119) has no reading yet: reliquat.
+ */
+export const accountCreatorSchema = z.strictObject({
+  networks: z.array(accountCreatorNetworkSchema),
+  portfolio: z.strictObject({
+    /** The visuals that count as deposited (07 RG4, RG88): a pending replacement shares its original's place. */
+    deposited: z.number().int().nonnegative(),
+    /** The visuals waiting for a decision of queue 3, replacements included. */
+    pending: z.number().int().nonnegative(),
+  }),
+});
+export type AccountCreator = z.infer<typeof accountCreatorSchema>;
+
+/**
  * GET /v1/bo/accounts/:id: the record of a member account (15 RG41 / RG42, blocks of the Lot 1).
  * Its opening is journaled (RG40) by the history read itself (EC-J8-24). Never a sign-in code, a
  * password, an e-mail content nor an Apollo datum (05 RG107, 15 RG43).
@@ -452,6 +493,8 @@ export const accountDetailResponseSchema = z.strictObject({
   ownership: z.array(ownershipEntrySchema),
   /** Blocks 2 and 3 of a brand record; null for a creator, or a brand without a profile row (L2C-18). */
   brand: accountBrandSchema.nullable(),
+  /** Blocks 2 to 4 of a creator record (L2G-17); null for a brand. */
+  creator: accountCreatorSchema.nullable(),
   /** The most recent first (15 §G, J8 commit 8). */
   dataRequests: z.array(accountDataRequestSchema),
   history: z.strictObject({

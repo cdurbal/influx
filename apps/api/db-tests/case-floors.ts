@@ -30,7 +30,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/reference-taxonomies.test.ts": 177,
   "db-tests/t1-anonymisation.test.ts": 15,
   "db-tests/t13-ops-recording.test.ts": 10,
-  "db-tests/t14-backoffice-accounts-route.test.ts": 23,
+  "db-tests/t14-backoffice-accounts-route.test.ts": 27,
   "db-tests/t14-backoffice-actions-route.test.ts": 37,
   "db-tests/t14-backoffice-invitations-route.test.ts": 15,
   "db-tests/t14-backoffice-ops-route.test.ts": 10,
