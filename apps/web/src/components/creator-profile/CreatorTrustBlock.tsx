@@ -71,16 +71,27 @@ export function TrustFields({
             name="is-searchable"
             className={memberChoiceInputClasses(disabled)}
             checked={shown}
-            disabled={disabled || saving}
-            onChange={(event) =>
-              publication.setSearchable(event.target.checked)
-            }
+            disabled={disabled}
+            // L2GU-6: `aria-disabled`, never `disabled`, while saving: the switch keeps its focus.
+            aria-disabled={saving || undefined}
+            onChange={(event) => {
+              if (!saving) {
+                publication.setSearchable(event.target.checked);
+              }
+            }}
           />
           <span className="font-semibold">{t("visibility.label")}</span>
         </label>
-        <p className={MEMBER_FIELD_HELP_CLASSES}>
-          {shown ? t("visibility.on") : t("visibility.off")}
-        </p>
+        <div role="status" className="flex flex-col gap-1">
+          <p className={MEMBER_FIELD_HELP_CLASSES}>
+            {shown ? t("visibility.on") : t("visibility.off")}
+          </p>
+          {saving || visibility.kind === "saved" ? (
+            <p className={MEMBER_FIELD_HELP_CLASSES}>
+              {saving ? t("save.saving") : t("visibility.saved")}
+            </p>
+          ) : null}
+        </div>
         {visibility.kind === "failed" ? (
           <ErrorNotice>{t("visibility.failed")}</ErrorNotice>
         ) : null}

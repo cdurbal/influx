@@ -17,6 +17,8 @@ type TextFieldProps = FieldTexts & {
   autoComplete?: string;
   disabled?: boolean;
   className?: string;
+  /** The id of a text that tells which one this is (a card title), read before the layer and the help. */
+  describedBy?: string;
 };
 
 /** One line of text with its label, layer, help and error (06 RG85); the value is cut at `maxLength`. */
@@ -32,11 +34,13 @@ export function TextField({
   autoComplete = "off",
   disabled,
   className,
+  describedBy: extraDescribedBy,
   ...texts
 }: TextFieldProps) {
   const ids = useFieldIds(id);
   const hasError = texts.error !== undefined && texts.error !== null;
   const describedBy = describedByOf(
+    extraDescribedBy,
     texts.layer && ids.layer,
     texts.help && ids.help,
     hasError && ids.error,

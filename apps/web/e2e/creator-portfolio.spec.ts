@@ -128,10 +128,31 @@ test("a creator deposits visuals and submits the profile in French at 375 px, th
     .fill("Mon plat du jour");
   await expect(consent).not.toBeChecked();
   await consent.check();
-  await first.getByRole("button", { name: fr.portfolio.saveCaption }).click();
+  // L2GU-5: the change not yet sent is written under the field, the button is primary.
+  await expect(first.getByText(fr.portfolio.unsaved)).toBeVisible();
+  await first
+    .getByRole("button", {
+      name: fr.portfolio.saveCaptionNamed.replace("{position}", "1"),
+    })
+    .click();
+  await expect(first.getByText(fr.portfolio.unsaved)).toHaveCount(0);
   await expect(
     block.getByText(fr.portfolio.status.captionApplied),
   ).toBeVisible();
+  // L2GU-4: the removal asks first; « Garder » leaves the visual where it is (nothing is sent).
+  await first
+    .getByRole("button", {
+      name: fr.portfolio.removeNamed.replace("{position}", "1"),
+    })
+    .click();
+  await expect(first.getByText(fr.portfolio.removeConfirm)).toBeVisible();
+  await first
+    .getByRole("button", {
+      name: fr.portfolio.removeKeepNamed.replace("{position}", "1"),
+    })
+    .click();
+  await expect(first.getByText(fr.portfolio.removeConfirm)).toHaveCount(0);
+  await expect(items).toHaveCount(3);
   // RG84: the order is the creator's, moved one place at a time.
   const idsOf = () =>
     items.evaluateAll((nodes) =>

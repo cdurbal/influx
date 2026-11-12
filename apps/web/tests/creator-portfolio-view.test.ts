@@ -20,6 +20,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   captionPlanOf,
+  captionSaveOf,
   orderAfterMove,
   placedIdsOf,
   portfolioFailureOf,
@@ -244,6 +245,33 @@ describe("L2G-13: the caption sent (07 RG82, RG83)", () => {
   });
 });
 
+describe("L2GU-5: the caption not yet saved is told (07 RG9)", () => {
+  const base = { caption: "Mon plat", brandDeclared: false };
+
+  it("tells nothing and keeps the button secondary while the caption is as saved", () => {
+    expect(captionSaveOf(base, base, false)).toEqual({
+      unsaved: false,
+      variant: "secondary",
+    });
+  });
+
+  it("tells a changed caption or a changed box, and turns the button primary", () => {
+    expect(
+      captionSaveOf({ ...base, caption: "Mon plat du jour" }, base, false),
+    ).toEqual({ unsaved: true, variant: "primary" });
+    expect(
+      captionSaveOf({ ...base, brandDeclared: true }, base, false),
+    ).toEqual({ unsaved: true, variant: "primary" });
+  });
+
+  it("still tells the change when a gesture runs or the profile is frozen, but leaves the button secondary", () => {
+    expect(captionSaveOf({ ...base, caption: "Autre" }, base, true)).toEqual({
+      unsaved: true,
+      variant: "secondary",
+    });
+  });
+});
+
 describe("L2G-13: the card of the publication (07 RG4, RG5, RG9, RG10)", () => {
   it("offers the button to a draft and to a refused profile, the answer to a waiting one", () => {
     expect(publicationModeOf("draft")).toBe("submit");
@@ -455,6 +483,28 @@ describe("L2G-13: the translations of the blocks (07 RG112; textes.md; EC-L2G-10
     for (const locale of ["fr", "en"] as const) {
       expect(messages[locale].frozen.suspended, locale).toBeTruthy();
     }
+  });
+
+  it("names each gesture of a card with its position, and writes the removal in two steps (L2GU-4, L2GU-18)", () => {
+    for (const locale of ["fr", "en"] as const) {
+      const { portfolio } = messages[locale];
+      for (const key of [
+        "removeNamed",
+        "removeNow",
+        "removeKeepNamed",
+        "replaceNamed",
+        "saveCaptionNamed",
+      ] as const) {
+        expect(portfolio[key], `${locale} ${key}`).toContain("{position}");
+      }
+      expect(portfolio.removeConfirm, locale).toMatch(/\?$/);
+      expect(portfolio.removeKeep, locale).toBeTruthy();
+      expect(portfolio.unsaved, locale).toBeTruthy();
+    }
+    expect(messages.fr.portfolio.errors.quota).toMatch(
+      /Réessayez plus tard\.$/,
+    );
+    expect(messages.en.portfolio.errors.quota).toMatch(/try again later\.$/);
   });
 
   it("says the label of the draft as the founder chose it (L2DU-15)", () => {

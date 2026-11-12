@@ -8,7 +8,7 @@
 // not saved at every key (RG9). The box of authorisation is never pre-ticked.
 import type { PortfolioImageResponse } from "@influx/contracts/creator-portfolio";
 import { useLocale, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/components/ui/class-names";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { MemberButton } from "@/components/member/ui/MemberButton";
@@ -32,6 +32,7 @@ import {
   CAPTION_MAX_LENGTH,
   captionDraftOf,
   captionPlanOf,
+  captionSaveOf,
   sameCaption,
   type PortfolioFailure,
   type PortfolioShownItem,
@@ -110,9 +111,27 @@ export function PortfolioItemCard({
     setBase(incoming);
     setDraft(incoming);
   }
-  const changed = !sameCaption(draft, base);
   const hasCaption = draft.caption.trim() !== "";
   const blocked = !editable || busy;
+  const { unsaved: changed, variant: saveVariant } = captionSaveOf(
+    draft,
+    base,
+    blocked,
+  );
+  const titleId = `portfolio-item-title-${item.id}`;
+  const unsavedId = `portfolio-item-unsaved-${item.id}`;
+  // L2GU-4: the removal in two steps, as block 3 does (focus goes to « Garder », then comes back).
+  const [confirming, setConfirming] = useState(false);
+  const removeButton = useRef<HTMLButtonElement>(null);
+  const keepButton = useRef<HTMLButtonElement>(null);
+  const answered = useRef(false);
+  useEffect(() => {
+    if (confirming) {
+      keepButton.current?.focus();
+    } else if (answered.current) {
+      removeButton.current?.focus();
+    }
+  }, [confirming]);
 
   function save() {
     if (blocked || !changed) {
@@ -133,7 +152,7 @@ export function PortfolioItemCard({
       data-portfolio-item={item.id}
       data-state={state}
     >
-      <h3 className={cn(CARD_TITLE, "text-text-primary")}>
+      <h3 id={titleId} className={cn(CARD_TITLE, "text-text-primary")}>
         {t("portfolio.item", { position })}
       </h3>
       <Picture image={actions.image} alt={t("portfolio.item", { position })} />
@@ -176,6 +195,7 @@ export function PortfolioItemCard({
         value={draft.caption}
         maxLength={CAPTION_MAX_LENGTH}
         disabled={blocked}
+        describedBy={titleId}
         error={invalid ? t("portfolio.errors.captionInvalid") : null}
         onChange={(caption) => {
           setInvalid(false);
@@ -186,6 +206,12 @@ export function PortfolioItemCard({
           });
         }}
       />
+      {/* L2GU-5: a caption is not saved at every key (RG9), so the change not yet sent is told. */}
+      {changed ? (
+        <p id={unsavedId} className="text-sm font-semibold text-text-primary">
+          {t("portfolio.unsaved")}
+        </p>
+      ) : null}
       {hasCaption ? (
         <>
           <label className={memberChoiceRowClasses(blocked)}>
@@ -195,7 +221,7 @@ export function PortfolioItemCard({
               className={memberChoiceInputClasses(blocked)}
               checked={draft.brandDeclared}
               disabled={blocked}
-              aria-describedby={`brand-declared-help-${item.id}`}
+              aria-describedby={`${titleId} brand-declared-help-${item.id}`}
               onChange={(event) =>
                 setDraft({ ...draft, brandDeclared: event.target.checked })
               }
@@ -213,7 +239,9 @@ export function PortfolioItemCard({
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <MemberButton
-          variant="secondary"
+          variant={saveVariant}
+          aria-label={t("portfolio.saveCaptionNamed", { position })}
+          aria-describedby={changed ? unsavedId : undefined}
           aria-disabled={blocked || !changed || undefined}
           onClick={save}
         >
@@ -252,6 +280,7 @@ export function PortfolioItemCard({
         {state === "approved" ? (
           <MemberButton
             variant="secondary"
+            aria-label={t("portfolio.replaceNamed", { position })}
             aria-disabled={blocked || undefined}
             onClick={() => {
               if (!blocked) {
@@ -266,21 +295,65 @@ export function PortfolioItemCard({
             {t("portfolio.replace")}
           </MemberButton>
         ) : null}
-        <MemberButton
-          variant="secondary"
-          aria-disabled={blocked || undefined}
-          onClick={() => {
-            if (!blocked) {
-              actions.remove();
-            }
-          }}
-        >
-          <Trash2Icon
-            aria-hidden="true"
-            className="size-(--size-icon-md) shrink-0"
-          />
-          {t("portfolio.remove")}
-        </MemberButton>
+        {confirming ? (
+          <div
+            role="group"
+            aria-labelledby={`${titleId}-confirm`}
+            className="flex flex-wrap items-center gap-2"
+          >
+            <p
+              id={`${titleId}-confirm`}
+              className="text-md font-semibold text-text-primary"
+            >
+              {t("portfolio.removeConfirm")}
+            </p>
+            <MemberButton
+              variant="danger"
+              aria-label={t("portfolio.removeNow", { position })}
+              aria-disabled={blocked || undefined}
+              onClick={() => {
+                if (!blocked) {
+                  actions.remove();
+                }
+              }}
+            >
+              <Trash2Icon
+                aria-hidden="true"
+                className="size-(--size-icon-md) shrink-0"
+              />
+              {t("portfolio.remove")}
+            </MemberButton>
+            <MemberButton
+              ref={keepButton}
+              variant="secondary"
+              aria-label={t("portfolio.removeKeepNamed", { position })}
+              onClick={() => {
+                answered.current = true;
+                setConfirming(false);
+              }}
+            >
+              {t("portfolio.removeKeep")}
+            </MemberButton>
+          </div>
+        ) : (
+          <MemberButton
+            ref={removeButton}
+            variant="secondary"
+            aria-label={t("portfolio.removeNamed", { position })}
+            aria-disabled={blocked || undefined}
+            onClick={() => {
+              if (!blocked) {
+                setConfirming(true);
+              }
+            }}
+          >
+            <Trash2Icon
+              aria-hidden="true"
+              className="size-(--size-icon-md) shrink-0"
+            />
+            {t("portfolio.remove")}
+          </MemberButton>
+        )}
       </div>
       {actions.failure === null ? null : (
         <ErrorNotice>{t(`portfolio.errors.${actions.failure}`)}</ErrorNotice>

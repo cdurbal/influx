@@ -25,6 +25,8 @@ export type VisibilityActivity =
   | { kind: "idle" }
   /** The value being saved: the switch shows it at once, the API's answer confirms it. */
   | { kind: "saving"; value: boolean }
+  /** The API answered: the live region of the switch says so (L2GU-6). */
+  | { kind: "saved" }
   | { kind: "failed" };
 
 export type CreatorPublicationState = {
@@ -86,7 +88,7 @@ export function useCreatorPublication(options: {
     const result = await saveCreatorVisibility(value);
     if (result.kind === "ok") {
       callbacks.current.onSearchable(result.data.isSearchable);
-      setVisibility({ kind: "idle" });
+      setVisibility({ kind: "saved" });
     } else if (result.kind === "unauthenticated") {
       callbacks.current.onSignedOut();
     } else {

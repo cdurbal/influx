@@ -151,7 +151,7 @@ export function PortfolioFields({
         <p className={MEMBER_FIELD_HELP_CLASSES}>{t("portfolio.empty")}</p>
       ) : null}
       {view.placed.length === 0 ? null : (
-        <ol className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
+        <ol className="m-0 grid list-none gap-4 p-0 xl:grid-cols-2">
           {view.placed.map((shown, index) => (
             <PortfolioItemCard
               key={shown.item.id}
@@ -186,7 +186,7 @@ export function PortfolioFields({
           <h3 className={cn(CARD_TITLE, "text-text-primary")}>
             {t("portfolio.refusedTitle")}
           </h3>
-          <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
+          <ul className="m-0 grid list-none gap-4 p-0 xl:grid-cols-2">
             {view.refused.map((shown, index) => (
               <RefusedItemCard
                 key={shown.item.id}

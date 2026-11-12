@@ -193,6 +193,19 @@ export function sameCaption(
 }
 
 /**
+ * What the caption of a card says of itself (L2GU-5): a change not yet saved is written under the
+ * field and the button turns primary; nothing changed, or a gesture running, leaves it secondary.
+ */
+export function captionSaveOf(
+  draft: CaptionDraft,
+  base: CaptionDraft,
+  blocked: boolean,
+): { unsaved: boolean; variant: "primary" | "secondary" } {
+  const unsaved = !sameCaption(draft, base);
+  return { unsaved, variant: unsaved && !blocked ? "primary" : "secondary" };
+}
+
+/**
  * What a save of the caption sends, or why it is not sent. A blank text is no caption (the API
  * empties on `null`); a caption of its own line, 200 characters at most (RG82, the very schema of the
  * API). The box of RG83 means nothing without a caption and is never pre-ticked: it travels as ticked.
