@@ -129,4 +129,32 @@ Fichiers neufs dans `e2e/case-floors.ts` et `db-tests/case-floors.ts` dans le co
 
 ## Revue
 
-*(rempli par `/jalon-run` : L2GT-n, L2GS-n)*
+Fin de jalon (2026-11-12, `696f625..6f1aeed`, lancée en local : CI bloquée par la facturation depuis `de69db7`) : **0 bloquant**, 3 jalon, 10 avant production, 10 plus tard. Font foi : `l2g/revue-constats-testeur.md` (T), `l2g/revue-constats-securite.md` (S), à la ligne citée. Verdict S : `production` autorisée sous conditions L2GS-1 à 4.
+
+| Id | Gravité | Revue | Où | Correctif | Suite |
+|---|---|---|---|---|---|
+| L2GT-1 | jalon | T l. 46 | `ci.yml:180-244` | job base 494 s en CI (474-481 s local) pour 8 min (F0) : deux éclats ou plafond relevé par écrit | fix-5 (fondateur) |
+| L2GT-2 | jalon | T l. 52 | `verification-revocation.test.ts:949-952` | n'annuler que les 2V de la transaction ; 2V échues expirées au `global-setup` ; rouge dès le 2026-11-13 07:32 UTC | fix-6 |
+| L2GT-3 | jalon | T l. 58 | fiche l. 93, 97 ; `18` l. 1552, 1559 | `staging` et dix visuels sans preuve écrite ; T1 adapté (T1.3, T1.6 « après » au Lot 4) | C (réserve) |
+| L2GT-4 | avant prod. | T l. 64 | `profiles-creator-preview-route.test.ts` | texte en révision absent de l'aperçu, servi après `approve` (L2G-P3) | avant prod. |
+| L2GT-5 | avant prod. | T l. 70 | `0242` à `0244` (`for update`) | `profiles-creator-concurrency.test.ts`, quatre cas à deux connexions | avant prod. |
+| L2GT-6 | avant prod. | T l. 76 | `profiles-creator-decisions.test.ts:717-745` | verrou = 30 min ; échéances = `business_deadline(…)` | avant prod. |
+| L2GT-7 | avant prod. | T l. 82 | `CreatorPreviewScreen.tsx:173, 254` | e2e de l'avis (axe FR 375, EN 1 440) ; EC-L2G-09-3 (`product-owner`) | avant prod. |
+| L2GT-8 | avant prod. | T l. 88 | `creator-portfolio.spec.ts:122-124` | RG83 contre sa chaîne littérale FR et EN ; version conservée | avant prod. |
+| L2GT-9 | avant prod. | T l. 94 | `run.md` l. 27-28 | aucune CI verte sur `de69db7`, `6f1aeed` : acceptée, relancée avant attestation | C, puis avant prod. |
+| L2GT-10 | plus tard | T l. 100 | `profiles-portfolio.test.ts:341-367` | « échéances neuves » creuse : file changée, égalité | plus tard |
+| L2GT-11 | plus tard | T l. 106 | `apps/web/tests/case-floors.ts:17` | plancher 18 → 21 | plus tard |
+| L2GT-12 | plus tard | T l. 112 | `profiles-portfolio-route.test.ts:240-261` | minuit UTC : attente ou horloge injectée | plus tard |
+| L2GT-13 | plus tard | T l. 118 | `t14-creator-queue-route.test.ts:896-920` | hôte, jeton, URL interdits aux lectures de l'agent | plus tard |
+| L2GT-14 | plus tard | T l. 124 | `tm1-storage-purge.test.ts` | objet `portfolio` retiré du double de Storage | plus tard |
+| L2GT-15 | plus tard | T l. 130 | `creator-profile-completeness.test.ts:152` | `L2G-U2` nommé ; commentaire `t1-anonymisation.test.ts:456` | plus tard |
+| L2GS-1 | avant prod. | S l. 13 | `creator-queues-routes.ts:522-532, 605-611` | couche I servie hors `claimed`, `held` (dont `closed`) : retirée, cas T14, note `run.md` l. 20 | avant prod. |
+| L2GS-2 | avant prod. | S l. 14 | `0244:1542-1599` | visuel approuvé sans lecture : 55000 `not_displayed` ; `product-owner` d'abord | avant prod. |
+| L2GS-3 | avant prod. | S l. 15 | `0244:991-1005`, `0233:510-517` | L2FS-9 échu : déclencheur lit le badge `account_verified` de tout compte | avant prod. |
+| L2GS-4 | avant prod. | S l. 16 | `creator/profile.ts:401-405` | autosave publié : limite par compte, `lead.updated` coalescé | avant prod. |
+| L2GS-5 | plus tard | S l. 17 | `0242:808-851`, `0243:861-871` | lectures de `influx_creator_profile_definer` restreintes | avant toute porte neuve de ce propriétaire |
+| L2GS-6 | plus tard | S l. 18 | `t9-evidence-unreachable.test.ts:524-540` | T9.6-O suit les déclencheurs `prosecdef` | plus tard |
+| L2GS-7 | plus tard | S l. 19 | `0242:752-775`, `0243:818-833` | droits agent colonne par colonne (comme L2FS-6) | plus tard |
+| L2GS-8 | plus tard | S l. 20 | `public-projection.ts:8-14, 105-113` | recherche : `published`, `is_searchable`, compte `active` en SQL | avant le Lot 3 |
+
+Avant production et plus tard : reliquat de `21` §8 (L2FS-9 passé « avant production », L2GS-3). fix-5 et fix-6 : à valider par le fondateur. SHA de l'attestation : S § Marqueur I-4.
