@@ -77,6 +77,8 @@ export function QueueFilterBar({
   onReset: () => void;
 }) {
   const active = Object.entries(filters);
+  // a filter that names a record (queue 3, « Profil ») has no list to choose from: its chip is its control
+  const selectable = own.filter((filter) => filter.byIdentifier === undefined);
   const periodHelp = useId();
   return (
     <section aria-label={t.filters} className="flex flex-col gap-3">
@@ -118,14 +120,14 @@ export function QueueFilterBar({
             onChange={(value) => onChange("alert", value)}
           />
         ) : null}
-        {own.length === 0 ? null : (
+        {selectable.length === 0 ? null : (
           <span
             role="separator"
             aria-orientation="vertical"
             className="h-(--size-bo-control) w-(--border-width-thin) self-end bg-border-strong"
           />
         )}
-        {own.map((filter) => (
+        {selectable.map((filter) => (
           <FilterSelect
             key={filter.key}
             filterKey={filter.key}

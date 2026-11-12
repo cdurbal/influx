@@ -11,6 +11,7 @@ import type {
 } from "@influx/contracts/creator-queues";
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES } from "./auth-classes";
+import { readCreatorEntryVisual } from "./backoffice-api";
 import {
   BLOCK_TITLE,
   DD_CLASSES,
@@ -216,10 +217,11 @@ export function VisualsBlock({
                   </p>
                   {canRead ? (
                     <CreatorVisual
-                      entryId={view.entry.id}
-                      itemId={visual.id}
+                      read={() =>
+                        readCreatorEntryVisual(view.entry.id, visual.id)
+                      }
                       position={position}
-                      alias={view.profile.alias}
+                      alt={t.visuals.alt(position, view.profile.alias)}
                     />
                   ) : null}
                 </li>

@@ -96,15 +96,21 @@ import {
   creatorEntriesResponseSchema,
   decidedEntryResponseSchema,
   openCreatorEntryResponseSchema,
+  openPortfolioItemResponseSchema,
+  portfolioEntriesResponseSchema,
   publishCreatorEntryResponseSchema,
   reviewImageResponseSchema,
+  type ApprovePortfolioItemRequest,
   type CreatorEntriesResponse,
   type CreatorEntriesSearchBody,
   type DecidedEntryResponse,
   type OpenCreatorEntryResponse,
+  type PortfolioEntriesResponse,
+  type PortfolioEntriesSearchBody,
   type PublishCreatorEntryRequest,
   type PublishCreatorEntryResponse,
   type RejectCreatorEntryRequest,
+  type RejectPortfolioItemRequest,
   type ReviewImageResponse,
 } from "@influx/contracts/creator-queues";
 import {
@@ -171,6 +177,10 @@ import {
   type VerificationRegistrySourcesResponse,
 } from "@influx/contracts/verification";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
+import {
+  portfolioViewOf,
+  type PortfolioReviewView,
+} from "./portfolio-review-view";
 
 /** A path segment from a server-issued id: a UUID, or nothing is called. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -1172,6 +1182,110 @@ export function readCreatorEntryVisual(
   return callRelay(
     "GET",
     `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/portfolio/${idSegment(itemId)}/image`,
+    reviewImageResponseSchema,
+  );
+}
+
+// --- Queue 3, the visuals of the portfolio to moderate (07 RG77 to RG85, RG95 to RG97; l2g/modele.md §6; L2G-16) ---
+
+const PORTFOLIO_REVIEW_ENTRIES = "/v1/bo/queues/portfolio-moderation/entries";
+
+/** One page: filters, period and cursor in the BODY, as queue 2; the counters ride on the answer. */
+export function searchPortfolioEntries(
+  body: PortfolioEntriesSearchBody,
+): Promise<RelayResult<PortfolioEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/search`,
+    portfolioEntriesResponseSchema,
+    body,
+  );
+}
+
+/**
+ * Opening is claiming (15 C1): the decision view of ONE visual (the entry IS the visual), its version token
+ * and the grid of RG79 with the message of the e-mail of each reason. The answer is given the shape of the
+ * other claimed screens (`entry`), by `portfolioViewOf`; the bytes are not in it (see `readPortfolioEntryImage`).
+ */
+export async function openPortfolioItem(
+  id: string,
+): Promise<RelayResult<PortfolioReviewView>> {
+  const result = await callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/open`,
+    openPortfolioItemResponseSchema,
+  );
+  return result.kind === "ok"
+    ? { kind: "ok", data: portfolioViewOf(result.data) }
+    : result;
+}
+
+export function approvePortfolioItem(
+  id: string,
+  body: ApprovePortfolioItemRequest,
+): Promise<RelayResult<DecidedEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/approve`,
+    decidedEntryResponseSchema,
+    body,
+  );
+}
+
+export function rejectPortfolioItem(
+  id: string,
+  body: RejectPortfolioItemRequest,
+): Promise<RelayResult<DecidedEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/reject`,
+    decidedEntryResponseSchema,
+    body,
+  );
+}
+
+export function releasePortfolioItem(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendPortfolioItemClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleasePortfolioItemClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/**
+ * The visual of the entry (D82 (7)): to the holder of the live claim only, one line of the register per
+ * read, so the screen asks when the agent asks, never on its own. No thumbnail in the list.
+ */
+export function readPortfolioEntryImage(
+  id: string,
+): Promise<RelayResult<ReviewImageResponse>> {
+  return callRelay(
+    "GET",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/image`,
     reviewImageResponseSchema,
   );
 }

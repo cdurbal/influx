@@ -107,6 +107,12 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
       "queues",
       "creatorReviewQueue",
     ],
+    ["/files/visuels", "queues", "portfolioQueue"],
+    [
+      "/files/visuels/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "portfolioQueue",
+    ],
     ["/files/verifications-createurs", "queues", "verificationCreators"],
     [
       "/files/verifications-createurs/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
@@ -168,11 +174,12 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     }
   });
 
-  it("gives Files its screens in order, queue 1, queue 2, the two views of queue 4, then queues 5 and 6, the entry opening the first (L2E-21, L2G-15)", () => {
+  it("gives Files its screens in order, queues 1 to 3, the two views of queue 4, then queues 5 and 6, the entry opening the first (L2E-21, L2G-15, L2G-16)", () => {
     const queues = itemOf("queues");
     expect(subEntriesOf(queues).map((section) => section.key)).toEqual([
       "brandReviewQueue",
       "creatorReviewQueue",
+      "portfolioQueue",
       "verificationCreators",
       "verificationBrands",
       "verificationDisputes",
@@ -182,6 +189,7 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     expect(subEntriesOf(queues).map((section) => section.href)).toEqual([
       "/files/profils-marque",
       "/files/profils-createur",
+      "/files/visuels",
       "/files/verifications-createurs",
       "/files/verifications-marques",
       "/files/contestations",
@@ -231,6 +239,7 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     expect(agent.flatMap(subEntriesOf).map((section) => section.key)).toEqual([
       "brandReviewQueue",
       "creatorReviewQueue",
+      "portfolioQueue",
       "verificationCreators",
       "verificationBrands",
       "verificationDisputes",

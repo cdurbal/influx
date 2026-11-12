@@ -242,3 +242,35 @@ export async function reviewEntriesOf(accountId: string): Promise<
        where account_id = ${accountId} order by created_at, id`,
   );
 }
+
+/**
+ * The colleague who owns the account (15 RG36: a journey of the backoffice reads its own entries alone, by
+ * `?owner=`), written by the migration role: queue 3 moderates visuals, the account needs no profile text.
+ */
+export async function ownCreator(
+  accountId: string,
+  ownerAgentId: string,
+): Promise<void> {
+  await withSql(async (sql) => {
+    await sql`update identity.accounts set owner_agent_id = ${ownerAgentId} where id = ${accountId}`;
+  });
+}
+
+/** The visuals of the creator as queue 3 and its decisions left them: the state, the reason of the grid, the comment. */
+export async function portfolioEntriesOf(accountId: string): Promise<
+  {
+    id: string;
+    state: string;
+    decidedBy: string | null;
+    reasonCode: string | null;
+    internalComment: string | null;
+  }[]
+> {
+  return withSql(
+    (sql) => sql`
+      select id::text, state::text as state, decided_by_account_id::text as "decidedBy",
+             rejection_reason_code as "reasonCode", internal_comment as "internalComment"
+        from profiles.portfolio_items
+       where account_id = ${accountId} order by created_at, id`,
+  );
+}

@@ -216,9 +216,10 @@ const ISSUE_TEXT: Readonly<Record<string, string>> = {
 
 /**
  * The queues that share the screens: 5 (contests of a decision), 6 (identifier changed) and, since L2G-15,
- * 2 (the creator profiles to validate: a publication, or a refusal with a typed reason).
+ * 2 (the creator profiles to validate: a publication, or a refusal with a typed reason) and, since L2G-16,
+ * 3 (one visual of a portfolio: an approval, or a refusal with a reason of the grid of 07 RG79).
  */
-export type ClaimedQueue = "dispute" | "identifier" | "creator";
+export type ClaimedQueue = "dispute" | "identifier" | "creator" | "portfolio";
 
 /**
  * What a refused call of these queues means: a lost claim, a stale version or a closed entry read the

@@ -18,6 +18,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/charter-rendering.spec.ts": 29,
   "e2e/creator-portfolio.spec.ts": 1,
   "e2e/creator-queue.spec.ts": 1,
+  "e2e/portfolio-queue.spec.ts": 1,
   "e2e/creator-preview.spec.ts": 1,
   "e2e/creator-profile.spec.ts": 2,
   "e2e/global-net.spec.ts": 4,

@@ -53,6 +53,11 @@ export type OwnFilter = {
   options: readonly { value: string; label: string }[];
   /** What the empty choice says when it is not "Tous" (a sort's default: "Ancienneté"). */
   emptyLabel?: string;
+  /**
+   * A filter that names one record by its identifier (queue 3, « Profil »): set from a link, the address of
+   * the account record or the alias of a row, never from a list of options; the chip says what it is.
+   */
+  byIdentifier?: { chipValue: string };
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -95,7 +100,11 @@ export function filtersOf(
   }
   for (const filter of own) {
     const raw = read(filter.key);
-    if (raw !== null && filter.options.some((option) => option.value === raw)) {
+    if (
+      raw !== null &&
+      (filter.options.some((option) => option.value === raw) ||
+        (filter.byIdentifier !== undefined && UUID.test(raw)))
+    ) {
       found[filter.key] = raw;
     }
   }
@@ -203,6 +212,7 @@ export function chipWords(
         name: filter?.label ?? key,
         value:
           filter?.options.find((option) => option.value === value)?.label ??
+          filter?.byIdentifier?.chipValue ??
           value,
       };
     }

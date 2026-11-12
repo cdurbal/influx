@@ -21,6 +21,7 @@ export type SectionKey =
   | "home"
   | "brandReviewQueue"
   | "creatorReviewQueue"
+  | "portfolioQueue"
   | "verificationCreators"
   | "verificationBrands"
   | "verificationDisputes"
@@ -59,6 +60,12 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       {
         key: "creatorReviewQueue",
         href: "/files/profils-createur",
+        adminOnly: false,
+      },
+      // queue 3, the visuals of the portfolio to moderate (07 RG77 to RG85; L2G-16)
+      {
+        key: "portfolioQueue",
+        href: "/files/visuels",
         adminOnly: false,
       },
       // queue 4, two views of one table, never a mixed screen (08 RG61, 17b §3.7)

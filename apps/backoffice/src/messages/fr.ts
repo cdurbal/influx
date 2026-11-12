@@ -111,6 +111,7 @@ export const messages = {
     queues: "Files",
     brandReviewQueue: "Profils marque à valider",
     creatorReviewQueue: "Profils créateur à valider",
+    portfolioQueue: "Visuels de portfolio à modérer",
     verificationCreators: "Vérifications créateurs",
     verificationBrands: "Vérifications marques",
     verificationDisputes: "Contestations",
@@ -133,6 +134,7 @@ export const messages = {
   queue: {
     profiles_advertiser: "Profils marque à valider",
     profiles_creator: "Profils créateur à valider",
+    portfolio_moderation: "Visuels de portfolio à modérer",
     verification_creators: "Vérifications des créateurs",
     verification_brands: "Vérifications des marques",
     verification_disputes: "Contestations de badge",
@@ -3237,6 +3239,223 @@ export const messages = {
       keys: "‹v› publier (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
       publish:
         "ouvrir le récapitulatif de la publication (ne publie jamais seul)",
+      reject: "ouvrir le choix du motif (ne refuse jamais seul)",
+    },
+  },
+  /**
+   * L2G-16 (07 RG77 to RG85, RG93, RG95 to RG97; 15 RG26 to RG28, RG33; 17b §2.7 line 3; l2g/modele.md §2, §6,
+   * textes.md §4): queue 3, the visuals of the portfolio to moderate, as a list. The entry IS one visual: the
+   * list carries an alias, the kind, the date of the deposit and the number of visuals of the profile, and NO
+   * thumbnail (D82 (7)): the visual is read, on demand and journaled, on the decision screen. Mass actions come
+   * with Lot 6bis (00 §9): none here.
+   */
+  portfolioQueue: {
+    lead: "Un visuel déposé par un créateur, premier dépôt ou remplacement d’un visuel approuvé : prenez-le en charge, lisez-le, puis approuvez-le ou refusez-le avec un motif de la grille. La liste ne montre aucune vignette : le visuel se lit, à la demande, sur l’écran de décision.",
+    tableLabel: "Entrées de la file Visuels de portfolio à modérer",
+    columns: {
+      state: "État",
+      due: "Échéance",
+      kind: "Type",
+      alias: "Alias",
+      deposited: "Déposé le",
+      visualCount: "Visuels du profil",
+      owner: "Responsable",
+      holder: "Verrou",
+    },
+    filters: {
+      account: "Profil",
+      accountChip: "un profil précis",
+      kind: "Type",
+    },
+    kinds: {
+      deposit: "Premier dépôt",
+      replacement: "Remplacement",
+    } as Readonly<Record<string, string>>,
+    visualCount: (count: number) =>
+      `${count} ${count > 1 ? "visuels" : "visuel"}`,
+    openEntryOf: (alias: string) => `Ouvrir le visuel de ${alias}`,
+    onlyProfile: (alias: string) => `Ne voir que les visuels de ${alias}`,
+  },
+  /**
+   * L2G-16 (07 RG77 to RG85, RG93, RG95 to RG97; 15 RG27 C1 to C8, RG114 to RG117; 17b §2.4 to §2.6;
+   * l2g/modele.md §1 points 2, 10, §3 « 0244 », textes.md §4): the decision screen of ONE visual. The grid of
+   * RG79 is shown as it is written, beside the image (the nine controls, the face rule and the metadata rule
+   * included: they are read, never picked), then the reasons the database accepts are the radio buttons of the
+   * refusal. No message of the agent to the creator (RG97): the sentence of the e-mail is the reason's own,
+   * from the very files of the e-mail. The labels are those of textes.md §4 (`reason.portfolio_moderation.`).
+   */
+  portfolioReview: {
+    title: (alias: string) => `Visuel de portfolio — ${alias}`,
+    subtitle: (kind: string, createdAt: string) =>
+      `${kind} · déposé le ${createdAt}`,
+    sections: {
+      visual: "Visuel",
+      grid: "Grille de contrôle",
+      caption: "Légende",
+      profile: "Profil",
+      alerts: "Alertes",
+      decision: "Décision",
+    },
+    visual: {
+      lead: "La lecture du visuel est enregistrée à votre nom, une ligne par lecture : affichez-le une fois, puis décidez. Ses métadonnées ont été supprimées au dépôt, avant toute modération.",
+      holderOnly:
+        "Le visuel n’est lisible que par la personne qui a pris l’entrée en charge.",
+      alt: (alias: string) => `Visuel du portfolio de ${alias}, à modérer`,
+      position: "du portfolio",
+    },
+    grid: {
+      lead: "La grille est fermée et appliquée telle quelle (07 RG79) : un refus porte l’un de ces motifs, jamais un autre.",
+      tableLabel: "Grille de contrôle du modérateur",
+      columns: { control: "Contrôle", rule: "Règle" },
+      refusedIf: "refus si présent",
+      rows: [
+        {
+          number: 1,
+          code: "watermark",
+          label: "Filigrane, signature, logo personnel",
+        },
+        {
+          number: 2,
+          code: "handle_in_image",
+          label: "@, nom de compte, pseudo incrusté",
+        },
+        {
+          number: 3,
+          code: "app_interface",
+          label: "Interface d’application visible",
+        },
+        {
+          number: 4,
+          code: "text_naming_account_or_brand",
+          label: "Texte citant le compte ou une marque sans autorisation",
+        },
+        {
+          number: 5,
+          code: "identifiable_place",
+          label: "Enseigne, plaque, numéro de rue, lieu reconnaissable",
+        },
+        {
+          number: 6,
+          code: null,
+          label:
+            "Visage : admis ; refus seulement s’il s’ajoute un autre contrôle de la grille.",
+        },
+        {
+          number: 7,
+          code: "statistics_screenshot",
+          label: "Capture de statistiques",
+        },
+        {
+          number: 8,
+          code: null,
+          label: "Métadonnées : supprimées au dépôt, avant toute modération.",
+        },
+        {
+          number: 9,
+          code: "illicit_content",
+          label: "Contenu illicite ou contraire aux CGU",
+        },
+      ] as readonly {
+        number: number;
+        code: string | null;
+        label: string;
+      }[],
+      noRefusal: "règle de lecture, sans motif propre",
+      captionTitle: "Légende (07 RG82, RG83)",
+      captionRows: [
+        {
+          code: "caption_identifier",
+          label: "Légende : élément identifiant",
+        },
+        {
+          code: "caption_brand_unauthorised",
+          label: "Légende : marque citée sans autorisation",
+        },
+      ] as readonly { code: string; label: string }[],
+    },
+    caption: {
+      label: "Légende déposée :",
+      none: "aucune légende",
+      declared:
+        "Le créateur déclare être autorisé à citer cette marque et à publier ce visuel (07 RG83) : déclaration horodatée et conservée.",
+      notDeclared: "Aucune autorisation de citer une marque n’est déclarée.",
+    },
+    facts: {
+      alias: "Alias public",
+      country: "Pays",
+      language: "Langue du compte",
+      owner: "Responsable",
+      kind: "Type",
+      deposited: "Déposé le",
+      size: "Taille",
+      replaces: "Remplace",
+    },
+    replaces: (order: string, caption: string) =>
+      `le visuel approuvé ${order}${caption === "" ? "" : ` (légende : ${caption})`}, retiré du profil quand celui-ci est approuvé (07 RG81)`,
+    replacesUnordered: "actuel",
+    alerts: {
+      none: "Aucune alerte sur cette entrée.",
+      intro: "Les alertes informent : aucune ne bloque la décision.",
+      direct_contact: (field: string, signals: string) =>
+        `Coordonnée possible dans « ${field} » (${signals}).`,
+      captionField: "Légende du visuel",
+    },
+    decision: {
+      lead: "Deux issues : approuver, ou refuser avec un motif de la grille. Une décision par visuel, aucune action de masse.",
+      approve: "Approuver",
+      reject: "Refuser avec motif",
+      busy: "Enregistrement…",
+      approveTitle: "Approuver ce visuel ?",
+      approveLead:
+        "Approuvé, le visuel fait partie de la version anonyme du profil : toute marque inscrite peut le consulter, sans révélation d’identité (07 RG85).",
+      approveRecap: (alias: string, language: string) =>
+        `Le visuel de ${alias} sera approuvé, et le créateur en sera informé par e-mail, en ${language}.`,
+      approveReplacement:
+        "Il remplace le visuel approuvé actuel, qui sera retiré du profil.",
+      approveCommentRecap: "Commentaire interne joint :",
+      approveConfirm: "Confirmer l’approbation",
+      rejectTitle: "Refuser ce visuel",
+      rejectLead:
+        "Le créateur reçoit par e-mail le motif de la grille et ce qu’il peut faire ensuite ; le fichier refusé est supprimé au bout de 30 jours.",
+      reasonLegend: "Motif du refus (grille fermée)",
+      reasonRequired: "Choisissez un motif de la grille avant de refuser.",
+      reasonConfirm: "Refuser",
+      messageToCreator: "Phrase envoyée au créateur :",
+      reasonLabels: {
+        watermark: "Filigrane, signature, logo personnel",
+        handle_in_image: "@, nom de compte, pseudo incrusté",
+        app_interface: "Interface d’application visible",
+        text_naming_account_or_brand:
+          "Texte citant le compte ou une marque sans autorisation",
+        identifiable_place:
+          "Enseigne, plaque, numéro de rue, lieu reconnaissable",
+        statistics_screenshot: "Capture de statistiques",
+        illicit_content: "Contenu illicite ou contraire aux CGU",
+        caption_identifier: "Légende : élément identifiant",
+        caption_brand_unauthorised: "Légende : marque citée sans autorisation",
+      } as Readonly<Record<string, string>>,
+      reasonNumber: (number: number, label: string) => `${number} · ${label}`,
+      approvedNotice: (alias: string) =>
+        `Visuel de ${alias} approuvé. Le créateur en est informé par e-mail.`,
+      rejectedNotice: (alias: string, reason: string) =>
+        `Visuel de ${alias} refusé — ${reason}. Le créateur en est informé par e-mail.`,
+    },
+    closed: {
+      approved: "Cette entrée est close : le visuel a été approuvé.",
+      rejected: "Cette entrée est close : le visuel a été refusé.",
+      withdrawn:
+        "Cette entrée est close : le visuel a été retiré, par son créateur ou par un remplacement.",
+      open: "Cette entrée est close.",
+      decidedBy: (name: string, at: string) => `Décidée par ${name}, le ${at}.`,
+      decidedAt: (at: string) => `Décidée le ${at}.`,
+      late: "Décision prise après l’échéance.",
+      reason: (reason: string) => `Motif : ${reason}.`,
+      comment: "Commentaire interne :",
+    },
+    shortcuts: {
+      keys: "‹v› approuver (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      approve:
+        "ouvrir le récapitulatif de l’approbation (n’approuve jamais seul)",
       reject: "ouvrir le choix du motif (ne refuse jamais seul)",
     },
   },

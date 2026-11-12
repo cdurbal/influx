@@ -1,16 +1,19 @@
 "use client";
 
-// One visual of the portfolio on the decision screen of queue 2 (docs/mvp/07 RG77, RG78; D82 (7); jalons/
-// l2g/modele.md §1 point 10; L2G-15): read ON DEMAND, when the agent asks, never by the opening of the screen.
+// One visual of the portfolio on the decision screens of queue 2 (L2G-15) and queue 3 (L2G-16) (docs/mvp/07
+// RG77, RG78; D82 (7); jalons/l2g/modele.md §1 point 10): read ON DEMAND, when the agent asks, never by the
+// opening of the screen. The screen names the call (`read`): queue 2 reads one visual of the profile of its
+// entry, queue 3 the visual that IS its entry.
 // Each read is a nominative line of the register and the route serves the holder of a live claim only, so the
 // screen asks once, for the visual the agent chose. The bytes come as JSON (base64) from apps/api and are
 // drawn from a `blob:` URL (the CSP of the backoffice allows `img-src 'self' blob:`, nothing else); the URL is
 // revoked when the screen leaves. A failure is a sentence and the button stays: the decision never waits for
 // an image.
+import type { ReviewImageResponse } from "@influx/contracts/creator-queues";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 import { useEffect, useRef, useState } from "react";
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES } from "./auth-classes";
-import { readCreatorEntryVisual } from "./backoffice-api";
 import { SMALL_SECONDARY_CLASSES } from "./bo-classes";
 import { bytesOf } from "./use-review-logo";
 
@@ -26,16 +29,16 @@ type VisualState =
   | { kind: "failed" };
 
 export function CreatorVisual({
-  entryId,
-  itemId,
+  read,
   position,
-  alias,
+  alt,
 }: {
-  entryId: string;
-  itemId: string;
-  /** « Visuel 2 »: the place of the visual, written, for the button and the alternative text. */
+  /** The journaled read of this visual, by the route of the queue (it throws on an id outside the UUID shape). */
+  read: () => Promise<RelayResult<ReviewImageResponse>>;
+  /** « Visuel 2 »: the place of the visual, written, for the button. */
   position: string;
-  alias: string;
+  /** The alternative text of the image once drawn. */
+  alt: string;
 }) {
   const [state, setState] = useState<VisualState>({ kind: "idle" });
   const alive = useRef(true);
@@ -56,7 +59,7 @@ export function CreatorVisual({
     setState({ kind: "loading" });
     let next: VisualState = { kind: "failed" };
     try {
-      const result = await readCreatorEntryVisual(entryId, itemId);
+      const result = await read();
       if (result.kind === "ok") {
         url.current = URL.createObjectURL(
           new Blob([bytesOf(result.data.image.data)], {
@@ -79,11 +82,7 @@ export function CreatorVisual({
   if (state.kind === "ready") {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a blob: URL built from the API's bytes
-      <img
-        src={state.url}
-        alt={t.alt(position, alias)}
-        className={IMAGE_CLASSES}
-      />
+      <img src={state.url} alt={alt} className={IMAGE_CLASSES} />
     );
   }
   return (
