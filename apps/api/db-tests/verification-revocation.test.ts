@@ -946,10 +946,13 @@ describe("L2F-D9: the closed lists of the creator and of the brand, the message,
         );
         accepted[`creator.${reason}`] = asked.outcome;
         // the next reason needs no live 2V on this badge: the pending one cancelled by an admin
+        // (this transaction's own requests only: an older pending one, committed by another file,
+        // may be past its delay, and the guard then refuses its cancellation)
         await tx`
           update backoffice.dual_control_requests set state = 'cancelled',
                  cancelled_by_account_id = ${adminA}
-           where action_code = 'verification.revoke_badge' and state = 'pending'`;
+           where action_code = 'verification.revoke_badge' and state = 'pending'
+             and requested_at >= pg_catalog.transaction_timestamp()`;
       }
       const escalated = await tx<{ reason: string; escalated: boolean }[]>`
         select payload ->> 'reason_code' as reason, (payload ->> 'escalated')::boolean as escalated

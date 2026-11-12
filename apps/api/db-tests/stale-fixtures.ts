@@ -25,5 +25,13 @@ export async function sweepStaleFixtures(
          set is_active = false, deactivated_at = now(), deactivated_by_account_id = account_id
        where is_active and not is_break_glass
          and coalesce(first_name, '') not like 'T2%'`;
+    // Dual control requests still pending past their delay (24 h): the guard refuses to cancel or
+    // confirm one that has expired, but admits pending to expired once the delay is over. Left
+    // pending, such a row is a trap for any case that acts on every pending request. Only the
+    // rows past their delay move, to the state the guard itself allows; none is deleted.
+    await tx`
+      update backoffice.dual_control_requests
+         set state = 'expired'
+       where state = 'pending' and expires_at <= pg_catalog.now()`;
   });
 }
