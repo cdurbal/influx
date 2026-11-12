@@ -585,12 +585,12 @@ describe("L2D-12: the translations of the screen (T16-L2D, 07 RG112)", () => {
     }
   });
 
-  it("asks for no tariff, publication or portfolio, and carries no key named like a price", () => {
+  it("asks for no tariff, and carries no key named like a price (the portfolio and the publication came with L2G, commit 13)", () => {
     const forbidden = ["price", "rate", "net", "currency", "amount"];
     for (const messages of [frCreatorProfile, enCreatorProfile]) {
       for (const key of flatten(messages)) {
         expect(forbidden, key).not.toContain(key.split(".").at(-1));
-        expect(key, key).not.toMatch(/^(rate|publish|portfolio|visibility)\./);
+        expect(key, key).not.toMatch(/^rate\./);
       }
     }
   });

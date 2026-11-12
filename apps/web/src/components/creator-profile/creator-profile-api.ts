@@ -5,12 +5,16 @@
 import {
   creatorNetworksResponseSchema,
   creatorProfileResponseSchema,
+  creatorVisibilityResponseSchema,
+  submitCreatorProfileResponseSchema,
   updateCreatorProfileResponseSchema,
   type ConfirmCreatorFiguresBody,
   type CreateCreatorNetworkBody,
   type PutCreatorNetworkAudienceBody,
   type CreatorNetworksResponse,
   type CreatorProfileResponse,
+  type CreatorVisibilityResponse,
+  type SubmitCreatorProfileResponse,
   type UpdateCreatorNetworkBody,
   type UpdateCreatorProfileBody,
   type UpdateCreatorProfileResponse,
@@ -101,5 +105,29 @@ export function saveCreatorNetworkAudience(
     `${NETWORKS_PATH}/${lineId}/audience`,
     creatorNetworksResponseSchema,
     body,
+  );
+}
+
+// --- Publication (commit 13): "Publier mon profil" and the switch of RG8. Neither names an account;
+// the answer of a submission lists what is still missing (07 RG4, RG90).
+
+export function submitCreatorProfile(): Promise<
+  RelayResult<SubmitCreatorProfileResponse>
+> {
+  return callRelay(
+    "POST",
+    `${PROFILE_PATH}/submit`,
+    submitCreatorProfileResponseSchema,
+  );
+}
+
+export function saveCreatorVisibility(
+  isSearchable: boolean,
+): Promise<RelayResult<CreatorVisibilityResponse>> {
+  return callRelay(
+    "PUT",
+    `${PROFILE_PATH}/visibility`,
+    creatorVisibilityResponseSchema,
+    { isSearchable },
   );
 }

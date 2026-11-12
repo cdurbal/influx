@@ -297,9 +297,9 @@ export const SECTION_IDS: readonly SectionId[] = [
 ];
 
 /**
- * What the summary of what is missing counts by: the five sections plus the portfolio (block 6) and
- * the badge (block 7), which are required since L2G (RG77, RG16) and whose blocks of the form arrive
- * with the screen of L2G (commit 13). Until then they are named in the count and not yet drawn.
+ * What the summary of the page and the count of what is missing go by: the five sections plus the
+ * portfolio (block 6) and the trust block (block 7), required since L2G (RG77, RG16): the screen of
+ * L2G (commit 13) draws all seven.
  */
 export const SUMMARY_SECTION_IDS: readonly SectionId[] = [
   ...SECTION_IDS,
@@ -307,7 +307,10 @@ export const SUMMARY_SECTION_IDS: readonly SectionId[] = [
   "trust",
 ];
 
-/** The sections the screen holds: all five since commit 14; a section not in this set would be told "coming soon". */
+/**
+ * The sections of the form of L2D (blocks 1 to 5), all built since commit 14. Blocks 6 and 7 came with
+ * L2G (commit 13): they are in `SUMMARY_SECTION_IDS` and the summary names all seven.
+ */
 export const BUILT_SECTIONS: ReadonlySet<SectionId> = new Set<SectionId>([
   "presentation",
   "editorial",
@@ -379,11 +382,21 @@ export function controlIdOf(key: DraftKey): string {
   return `creator-profile-${key}`;
 }
 
-/** The profile can be edited: it has its storefront, and no state but the draft exists at L2D (07 RG111). */
+/**
+ * The profile can be edited: it has its storefront and it is open to writing (07 RG111). A draft and a
+ * refused profile are; a published one too, where a change of a moderated field waits for its review
+ * and the rest is immediate (RG9, CA48, CA49). A profile waiting for its decision (RG10) and a
+ * suspended one are frozen.
+ */
 export function isEditable(
   profile: Pick<CreatorProfileResponse, "alias" | "status">,
 ): boolean {
-  return profile.alias !== null && profile.status === "draft";
+  return (
+    profile.alias !== null &&
+    (profile.status === "draft" ||
+      profile.status === "rejected" ||
+      profile.status === "published")
+  );
 }
 
 // --- The summary of the home and of the column (commit 15) --------------------------------------
@@ -410,8 +423,8 @@ export function creatorSummaryOf(
 }
 
 /**
- * The way to the profile: "Compléter" while a required field is missing, "Voir" once none is. There
- * is no submission at L2D (L2G), so nothing else is ever proposed.
+ * The way to the profile: "Compléter" while a required field is missing, "Voir" once none is; the
+ * submission itself is on the profile page (L2G, commit 13).
  */
 export type CreatorNextAction = "complete" | "review";
 

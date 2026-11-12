@@ -39,7 +39,7 @@
     "allSet": "Toutes les informations demandées sont renseignées."
   },
   "state": {
-    "draft": "Brouillon",
+    "draft": "En cours de saisie",
     "pending_review": "En attente de validation",
     "published": "Publié",
     "rejected": "Refusé",
@@ -376,5 +376,123 @@
         "other": "Part de votre audience : autres ou non déclaré (%)"
       }
     }
+  },
+  "portfolio": {
+    "notice": "Vos visuels approuvés sont visibles de toutes les marques inscrites, avant toute mise en relation.",
+    "pending": "Ce visuel est en cours de modération. Il n'est pas encore visible des marques.",
+    "brandConsent": "Je confirme être autorisé à citer cette marque et à publier ce visuel.",
+    "faceNotice": "Un visage est admis, mais il peut permettre de vous retrouver par une recherche d'image.",
+    "approved": "Approuvé",
+    "rejected": "Refusé : {reason}",
+    "replacementPending": "Remplacement en cours de modération : le visuel actuel reste affiché.",
+    "captionPending": "Légende en cours de validation : la précédente reste affichée.",
+    "count": "{count, plural, one {# visuel déposé} other {# visuels déposés}} sur 8",
+    "full": "Vous avez déposé 8 visuels, le maximum : remplacez-en un pour en changer.",
+    "minimum": "Un profil publié garde au moins 3 visuels : remplacez celui-ci plutôt que de le retirer.",
+    "caption": "Légende (facultative, 200 caractères au plus)",
+    "help": "PNG, JPEG ou WebP, 8 Mo au plus, 320 px au moins sur le plus grand côté. Les informations cachées du fichier (lieu, appareil) sont retirées au dépôt.",
+    "empty": "Aucun visuel déposé pour l'instant. Il en faut au moins 3.",
+    "loading": "Chargement de votre portfolio…",
+    "unavailable": "Nous ne parvenons pas à afficher votre portfolio pour le moment. Réessayez dans quelques minutes.",
+    "reload": "Recharger le portfolio",
+    "add": "Déposer un visuel",
+    "replace": "Remplacer ce visuel",
+    "remove": "Retirer ce visuel",
+    "retry": "Réessayer le dépôt",
+    "moveUp": "Monter le visuel {position}",
+    "moveDown": "Descendre le visuel {position}",
+    "saveCaption": "Enregistrer la légende",
+    "item": "Visuel {position}",
+    "imageLoading": "Chargement du visuel…",
+    "replacementAlt": "Aperçu du visuel de remplacement, en cours de modération",
+    "refusedTitle": "Visuels refusés",
+    "refusedItem": "Visuel refusé {position}",
+    "deleteAfter": "Le fichier refusé sera supprimé le {date}.",
+    "reason": {
+      "watermark": "Le visuel porte un filigrane, une signature ou un logo personnel.",
+      "handle_in_image": "Le visuel montre un arobase, un nom de compte ou un pseudo.",
+      "app_interface": "Le visuel montre l'interface d'une application : bandeau de profil, avatar ou commentaires.",
+      "text_naming_account_or_brand": "Un texte du visuel cite votre compte, ou une marque sans votre déclaration d'autorisation.",
+      "identifiable_place": "Le visuel permet de reconnaître un lieu : enseigne, plaque d'immatriculation, numéro de rue ou lieu connu.",
+      "statistics_screenshot": "Une capture de statistiques n'est pas admise au portfolio : elle montre votre pseudo.",
+      "illicit_content": "Le visuel est contraire à la loi ou aux conditions d'utilisation d'INFLUX.",
+      "caption_identifier": "La légende contient un pseudo, un arobase, un lien ou un nom.",
+      "caption_brand_unauthorised": "La légende cite une marque sans que vous ayez déclaré y être autorisé."
+    },
+    "status": {
+      "busy": "Enregistrement…",
+      "uploaded": "Visuel déposé : il est en cours de modération.",
+      "removed": "Visuel retiré.",
+      "ordered": "Ordre enregistré.",
+      "captionApplied": "Légende enregistrée.",
+      "captionPending": "Légende envoyée : elle sera visible après validation par l'équipe INFLUX."
+    },
+    "errors": {
+      "empty": "Ce fichier est vide. Choisissez une image PNG, JPEG ou WebP.",
+      "tooLarge": "Ce fichier dépasse 8 Mo. Choisissez une image plus légère, au format PNG, JPEG ou WebP.",
+      "unsupported_type": "Ce format n'est pas accepté. Choisissez une image PNG, JPEG ou WebP (pas de PDF).",
+      "undecodable": "Cette image ne peut pas être lue. Essayez un autre fichier PNG, JPEG ou WebP.",
+      "too_many_pixels": "Cette image est trop grande : 4 096 px par côté au plus.",
+      "too_small": "Cette image est trop petite : son plus grand côté doit faire 320 px au moins.",
+      "output_too_large": "Cette image reste trop lourde après traitement. Choisissez une image plus simple.",
+      "quota": "Vous avez atteint le nombre de dépôts autorisés pour aujourd'hui. Réessayez demain.",
+      "portfolio_full": "Vous avez déposé 8 visuels, le maximum : remplacez-en un pour en changer.",
+      "portfolio_minimum": "Un profil publié garde au moins 3 visuels : remplacez celui-ci plutôt que de le retirer.",
+      "not_replaceable": "Ce visuel ne peut pas être remplacé : seul un visuel approuvé se remplace.",
+      "replacement_pending": "Un remplacement de ce visuel est déjà en cours de modération.",
+      "item_state": "Ce visuel a changé entre-temps. La liste est à jour : vérifiez-la, puis réessayez.",
+      "profile_state": "Votre profil n'est plus modifiable : le portfolio ne peut pas changer.",
+      "conflict": "Cette action n'est plus possible : le portfolio vient d'être relu. Vérifiez la liste.",
+      "captionInvalid": "La légende tient sur une ligne, 200 caractères au plus.",
+      "unavailable": "Cette action n'a pas abouti : le service ne répond pas. Réessayez dans un instant."
+    }
+  },
+  "publish": {
+    "action": "Publier mon profil",
+    "submitted": "Profil soumis à validation. Réponse sous 1 jour ouvré.",
+    "missing": "Il manque {count, plural, one {# information} other {# informations}} pour publier votre profil : {fields}.",
+    "failed": "Votre profil n'a pas pu être soumis. Réessayez dans un instant."
+  },
+  "status": {
+    "published": "Votre profil est publié. Seule sa version anonyme, sous votre alias, peut être présentée aux marques.",
+    "pendingWithPublished": "Vos modifications sont en cours de validation. Votre profil reste visible dans sa version précédente.",
+    "pendingFields": "En cours de validation : {fields}.",
+    "rejected": "Votre profil n'a pas été publié : {reason}",
+    "revisionRejected": "Votre modification n'a pas été publiée : {reason} Votre profil reste visible dans sa version précédente."
+  },
+  "refusal": {
+    "fix": "Corrigez-le depuis votre espace INFLUX : votre correction sera relue à son tour.",
+    "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
+  },
+  "rejection": {
+    "identifier_in_text": "Votre titre ou votre bio contient un pseudo, un arobase, un lien ou un nom. Ces informations ne sont visibles qu'une fois la mise en relation ouverte.",
+    "bio_insufficient": "Votre bio ne permet pas à une marque de comprendre ce que vous faites.",
+    "portfolio_insufficient": "Il faut au moins 3 éléments déposés pour publier votre profil.",
+    "portfolio_non_compliant": "Un ou plusieurs de vos visuels permettent de vous identifier.",
+    "network_link_inconsistent": "Le lien déclaré ne correspond pas au réseau choisi.",
+    "figures_inconsistent": "Les chiffres déclarés ne sont pas cohérents entre eux.",
+    "topic_inconsistent": "La thématique déclarée ne correspond pas au contenu montré.",
+    "illicit_content": "Le contenu de votre profil ne peut pas être publié : il est contraire à la loi ou aux conditions d'utilisation d'INFLUX.",
+    "age_doubt": "INFLUX est réservé aux personnes majeures : nous ne pouvons pas publier votre profil en l'état.",
+    "other": "Le message de l'équipe INFLUX :"
+  },
+  "revisionField": {
+    "headline": "titre court",
+    "bio": "bio",
+    "portfolio_caption": "légende d'un visuel",
+    "network_line": "réseau ajouté",
+    "network_handle": "pseudo d'un réseau",
+    "network_url": "lien d'un réseau"
+  },
+  "trust": {
+    "verified": "Votre compte est vérifié par INFLUX.",
+    "missing": "Un compte vérifié par INFLUX est nécessaire pour publier votre profil. Vous le demandez depuis le bloc « Réseaux sociaux », sur la ligne de votre réseau principal.",
+    "go": "Aller aux réseaux sociaux"
+  },
+  "visibility": {
+    "label": "Visible dans la recherche",
+    "on": "Les marques pourront vous trouver dans la recherche, une fois votre profil publié.",
+    "off": "Vous êtes retiré de la recherche : vous ne recevrez plus de demande de marque.",
+    "failed": "Ce réglage n'a pas pu être enregistré. Réessayez dans un instant."
   }
 }

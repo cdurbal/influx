@@ -227,7 +227,12 @@ async function expectScreen(
 
   // CA6, CA29: no photo, no avatar, no age nor gender of the creator; D78: no tariff. (The formats of
   // block 5 name "photo" content, a format and not a picture of the creator: they are looked at apart.)
-  await expect(page.locator("input[type=file]")).toHaveCount(0);
+  // L2G (commit 13): the one file picker of the page is the portfolio's (visuals of the work, never a
+  // photo of the creator: the face notice says so); no other block asks for a file.
+  await expect(page.locator("input[type=file]")).toHaveCount(1);
+  await expect(
+    page.locator("[data-section=portfolio] input[type=file]"),
+  ).toHaveCount(1);
   await expect(
     page
       .locator("[data-section]:not([data-section=offer])")

@@ -1,14 +1,14 @@
 "use client";
 
 // "Mon profil" of a creator (docs/mvp/17 §5.2, C2; 07 RG1, RG86 to RG91, RG111, RG112; jalons/l2d,
-// commit 12): a summary of five sections whose anchors work at every width, blocks 1 and 2 saved by
-// themselves, the completeness and what is still to fill in by name in a sticky column. There is no
-// submit button and the screen never speaks of publication: the portfolio and the badge do not exist
-// yet (L2E, L2G), so the score counts only what the creator typed (EC-L2D-5). Blocks 3 to 5 arrive
-// with the next commits and are told "coming soon" in the summary. This file draws; the state is
-// use-creator-profile.ts, the rules creator-profile-view.ts and apps/api. The page of a creator: a
-// brand reaches its own screen, whatever the address. No amount, rate, net or price (D78, D48).
-// Blocks 4 (audience) and 5 (offer, with no tariff) came with commit 14: all five sections are built.
+// commit 12): a summary of seven sections whose anchors work at every width, blocks 1 and 2 saved by
+// themselves, the completeness and what is still to fill in by name in a sticky column. Blocks 3 to 5
+// came with L2D (commits 13 and 14); block 6, the portfolio, block 7, the trust and the switch of
+// visibility, and the card of the publication (« Publier mon profil », the states, the refusal with
+// its reason) came with L2G (commit 13). This file draws; the state is use-creator-profile.ts,
+// use-creator-portfolio.ts and use-creator-publication.ts, the rules creator-profile-view.ts and
+// apps/api. The page of a creator: a brand reaches its own screen, whatever the address. No amount,
+// rate, net or price (D78, D48).
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, type ReactNode } from "react";
@@ -57,17 +57,25 @@ import {
   networkOptionsOf,
 } from "./creator-profile-options";
 import {
-  BUILT_SECTIONS,
   creatorSummaryOf,
-  SECTION_IDS,
   isEditable,
   isSectionComplete,
   sectionAnchorOf,
+  SUMMARY_SECTION_IDS,
   type RequiredCode,
   type SectionId,
 } from "./creator-profile-view";
+import { PortfolioFields } from "./CreatorPortfolioBlock";
+import { PublicationCard } from "./CreatorPublicationCard";
+import { TrustFields } from "./CreatorTrustBlock";
+import {
+  accountVerifiedOf,
+  firstMissingAnchorOf,
+} from "./creator-publication-view";
 import { useCreatorAudience } from "./use-creator-audience";
 import { useCreatorNetworks } from "./use-creator-networks";
+import { useCreatorPortfolio } from "./use-creator-portfolio";
+import { useCreatorPublication } from "./use-creator-publication";
 import {
   useCreatorProfile,
   type CreatorProfileState,
@@ -199,6 +207,24 @@ function LoadedProfile({
     report: state.reportSave,
   });
   const editable = isEditable(profile);
+  // Block 6 and the card of the publication change what the profile says (its count, its state, what
+  // is missing): the profile is read again after each gesture, the draft left alone.
+  const portfolio = useCreatorPortfolio({
+    onSignedOut: () => signedOut(null),
+    onChanged: () => void state.refresh(),
+  });
+  const publication = useCreatorPublication({
+    onSignedOut: () => signedOut(null),
+    onChanged: state.refresh,
+    onSearchable: state.applyVisibility,
+    onMissing: (missing) => {
+      // "Publier mon profil" leads to the first field that is missing, the list being in the order of the form.
+      const anchor = firstMissingAnchorOf(missing);
+      if (anchor !== null) {
+        window.location.hash = anchor;
+      }
+    },
+  });
   const labelOf = (code: string) =>
     networkOptions.find((option) => option.code === code)?.label ?? code;
   const fields: CreatorFieldsProps = {
@@ -221,6 +247,7 @@ function LoadedProfile({
             save={state.save}
             locale={locale}
           />
+          <PublicationCard profile={profile} publication={publication} />
         </aside>
         <Summary missing={profile.missingRequired} />
         <div className={FORM_CLASSES}>
@@ -255,6 +282,22 @@ function LoadedProfile({
               }
             />
           </ProfileSection>
+          <ProfileSection id="portfolio" disabled={!editable}>
+            <PortfolioFields state={portfolio} editable={editable} />
+          </ProfileSection>
+          <ProfileSection
+            id="trust"
+            disabled={profile.alias === null || profile.status === "suspended"}
+          >
+            <TrustFields
+              accountVerified={accountVerifiedOf(profile.missingRequired)}
+              isSearchable={profile.isSearchable}
+              publication={publication}
+              disabled={
+                profile.alias === null || profile.status === "suspended"
+              }
+            />
+          </ProfileSection>
         </div>
       </div>
       <div data-action-bar="" className={ACTION_BAR_CLASSES}>
@@ -270,21 +313,8 @@ function Summary({ missing }: { missing: readonly RequiredCode[] }) {
   return (
     <nav aria-label={t("summary.title")} className={SUMMARY_CLASSES}>
       <ol className="flex flex-col gap-1">
-        {SECTION_IDS.map((id, index) => {
+        {SUMMARY_SECTION_IDS.map((id, index) => {
           const name = `${index + 1}. ${t(`sections.${id}`)}`;
-          if (!BUILT_SECTIONS.has(id)) {
-            return (
-              <li
-                key={id}
-                className={cn(SUMMARY_LINK_CLASSES, "hover:bg-transparent")}
-              >
-                <span className="text-text-secondary">{name}</span>
-                <span className={SUMMARY_STATE_CLASSES}>
-                  {t("summary.soon")}
-                </span>
-              </li>
-            );
-          }
           const complete = isSectionComplete(id, missing);
           const StateIcon = complete ? CheckIcon : CircleAlertIcon;
           return (
@@ -322,7 +352,7 @@ function ProfileSection({
 }) {
   const t = useTranslations("creatorProfile");
   const titleId = `${sectionAnchorOf(id)}-title`;
-  const heading = `${SECTION_IDS.indexOf(id) + 1}. ${t(`sections.${id}`)}`;
+  const heading = `${SUMMARY_SECTION_IDS.indexOf(id) + 1}. ${t(`sections.${id}`)}`;
   return (
     <section
       id={sectionAnchorOf(id)}

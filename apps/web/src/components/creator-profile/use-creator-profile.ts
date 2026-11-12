@@ -5,7 +5,7 @@
 // autosave (a pause after the last key, one save at a time, what changed only), the new attempt 5 s
 // after a failure with the entry kept in memory. No rule is decided here: the patch comes from
 // creator-profile-view.ts, the score, the missing fields and the warnings from the API. There is no
-// submission at L2D (L2G). Nothing is kept in the browser's storage (D37): the draft lives in memory
+// submission at L2D: since L2G it is the API's answer, read again by `refresh`. Nothing is kept in the browser's storage (D37): the draft lives in memory
 // and in the database.
 import type { CreatorProfileResponse } from "@influx/contracts/creator-profile";
 import {
@@ -53,6 +53,13 @@ export type CreatorProfileState = {
   applyProgress: (
     progress: Pick<CreatorProfileResponse, "completeness" | "missingRequired">,
   ) => void;
+  /**
+   * Reads the profile again without touching the draft (L2G): after the portfolio changed, or a
+   * submission, the state, the completeness, the missing fields and the revisions are the API's.
+   */
+  refresh: () => Promise<void>;
+  /** The switch of RG8, as the API stored it. */
+  applyVisibility: (isSearchable: boolean) => void;
 };
 
 export function useCreatorProfile(options: {
@@ -315,6 +322,16 @@ export function useCreatorProfile(options: {
     [adopt],
   );
 
+  const applyVisibility = useCallback(
+    (isSearchable: boolean) => {
+      const held = profileRef.current;
+      if (held !== null) {
+        adopt({ ...held, isSearchable });
+      }
+    },
+    [adopt],
+  );
+
   return {
     phase,
     profile,
@@ -325,5 +342,7 @@ export function useCreatorProfile(options: {
     reload: () => void load(),
     reportSave: setSave,
     applyProgress,
+    refresh: refreshProfile,
+    applyVisibility,
   };
 }

@@ -39,7 +39,7 @@
     "allSet": "All the information asked for is filled in."
   },
   "state": {
-    "draft": "Draft",
+    "draft": "In progress",
     "pending_review": "Awaiting review",
     "published": "Published",
     "rejected": "Refused",
@@ -376,5 +376,123 @@
         "other": "Share of your audience: others or not declared (%)"
       }
     }
+  },
+  "portfolio": {
+    "notice": "Your approved visuals are visible to every registered brand, before any introduction.",
+    "pending": "This visual is being reviewed. It is not visible to brands yet.",
+    "brandConsent": "I confirm I am allowed to name this brand and publish this visual.",
+    "faceNotice": "A face is allowed, but it can let someone find you through an image search.",
+    "approved": "Approved",
+    "rejected": "Rejected: {reason}",
+    "replacementPending": "Replacement being reviewed: the current visual stays shown.",
+    "captionPending": "Caption being reviewed: the previous one stays shown.",
+    "count": "{count, plural, one {# of 8 visual uploaded} other {# of 8 visuals uploaded}}",
+    "full": "You have uploaded 8 visuals, the maximum: replace one to change it.",
+    "minimum": "A published profile keeps at least 3 visuals: replace this one rather than removing it.",
+    "caption": "Caption (optional, 200 characters at most)",
+    "help": "PNG, JPEG or WebP, 8 MB at most, 320 px at least on the longest side. Hidden information in the file (location, device) is removed when you upload.",
+    "empty": "No visual uploaded yet. At least 3 are needed.",
+    "loading": "Loading your portfolio…",
+    "unavailable": "We cannot show your portfolio right now. Please try again in a few minutes.",
+    "reload": "Reload the portfolio",
+    "add": "Upload a visual",
+    "replace": "Replace this visual",
+    "remove": "Remove this visual",
+    "retry": "Try the upload again",
+    "moveUp": "Move visual {position} up",
+    "moveDown": "Move visual {position} down",
+    "saveCaption": "Save the caption",
+    "item": "Visual {position}",
+    "imageLoading": "Loading the visual…",
+    "replacementAlt": "Preview of the replacement visual, being reviewed",
+    "refusedTitle": "Rejected visuals",
+    "refusedItem": "Rejected visual {position}",
+    "deleteAfter": "The rejected file will be deleted on {date}.",
+    "reason": {
+      "watermark": "The visual carries a watermark, a signature or a personal logo.",
+      "handle_in_image": "The visual shows an at sign, an account name or a handle.",
+      "app_interface": "The visual shows an app interface: profile banner, avatar or comments.",
+      "text_naming_account_or_brand": "Text in the visual names your account, or a brand without your authorisation statement.",
+      "identifiable_place": "The visual makes a place recognisable: a shop sign, a number plate, a street number or a known location.",
+      "statistics_screenshot": "A statistics screenshot is not allowed in the portfolio: it shows your handle.",
+      "illicit_content": "The visual goes against the law or INFLUX's terms of use.",
+      "caption_identifier": "The caption contains a handle, an at sign, a link or a name.",
+      "caption_brand_unauthorised": "The caption names a brand without your statement that you are allowed to."
+    },
+    "status": {
+      "busy": "Saving…",
+      "uploaded": "Visual uploaded: it is being reviewed.",
+      "removed": "Visual removed.",
+      "ordered": "Order saved.",
+      "captionApplied": "Caption saved.",
+      "captionPending": "Caption sent: it will be visible once the INFLUX team has reviewed it."
+    },
+    "errors": {
+      "empty": "This file is empty. Choose a PNG, JPEG or WebP image.",
+      "tooLarge": "This file is over 8 MB. Choose a lighter image, in PNG, JPEG or WebP format.",
+      "unsupported_type": "This format is not accepted. Choose a PNG, JPEG or WebP image (no PDF).",
+      "undecodable": "This image cannot be read. Try another PNG, JPEG or WebP file.",
+      "too_many_pixels": "This image is too large: 4,096 px per side at most.",
+      "too_small": "This image is too small: its longest side must be at least 320 px.",
+      "output_too_large": "This image is still too heavy after processing. Choose a simpler image.",
+      "quota": "You have reached the number of uploads allowed for today. Please try again tomorrow.",
+      "portfolio_full": "You have uploaded 8 visuals, the maximum: replace one to change it.",
+      "portfolio_minimum": "A published profile keeps at least 3 visuals: replace this one rather than removing it.",
+      "not_replaceable": "This visual cannot be replaced: only an approved visual can be.",
+      "replacement_pending": "A replacement of this visual is already being reviewed.",
+      "item_state": "This visual changed in the meantime. The list is up to date: check it, then try again.",
+      "profile_state": "Your profile can no longer be edited: the portfolio cannot change.",
+      "conflict": "This action is no longer possible: the portfolio was just reviewed. Check the list.",
+      "captionInvalid": "A caption fits on one line, 200 characters at most.",
+      "unavailable": "This action did not go through: the service is not answering. Please try again in a moment."
+    }
+  },
+  "publish": {
+    "action": "Publish my profile",
+    "submitted": "Profile submitted for review. Answer within 1 business day.",
+    "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to publish your profile: {fields}.",
+    "failed": "Your profile could not be submitted. Please try again in a moment."
+  },
+  "status": {
+    "published": "Your profile is published. Only its anonymous version, under your alias, can be shown to brands.",
+    "pendingWithPublished": "Your changes are being reviewed. Your profile remains visible in its previous version.",
+    "pendingFields": "Being reviewed: {fields}.",
+    "rejected": "Your profile was not published: {reason}",
+    "revisionRejected": "Your change was not published: {reason} Your profile stays visible in its previous version."
+  },
+  "refusal": {
+    "fix": "Correct it from your INFLUX space: your correction will be reviewed in turn.",
+    "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+  },
+  "rejection": {
+    "identifier_in_text": "Your headline or bio contains a handle, an at sign, a link or a name. This information is only visible once an introduction is opened.",
+    "bio_insufficient": "Your bio does not let a brand understand what you do.",
+    "portfolio_insufficient": "At least 3 uploaded items are needed to publish your profile.",
+    "portfolio_non_compliant": "One or more of your visuals make it possible to identify you.",
+    "network_link_inconsistent": "The link you entered does not match the network you chose.",
+    "figures_inconsistent": "The figures you entered are not consistent with each other.",
+    "topic_inconsistent": "The topic you chose does not match the content you show.",
+    "illicit_content": "The content of your profile cannot be published: it goes against the law or INFLUX's terms of use.",
+    "age_doubt": "INFLUX is for adults only: we cannot publish your profile as it stands.",
+    "other": "The message from the INFLUX team:"
+  },
+  "revisionField": {
+    "headline": "headline",
+    "bio": "bio",
+    "portfolio_caption": "a visual's caption",
+    "network_line": "an added network",
+    "network_handle": "a network handle",
+    "network_url": "a network link"
+  },
+  "trust": {
+    "verified": "Your account is verified by INFLUX.",
+    "missing": "An account verified by INFLUX is needed to publish your profile. You ask for it from the “Social networks” block, on the line of your main network.",
+    "go": "Go to the social networks"
+  },
+  "visibility": {
+    "label": "Visible in search",
+    "on": "Brands will be able to find you in search, once your profile is published.",
+    "off": "You are hidden from search: you will no longer receive requests from brands.",
+    "failed": "This setting could not be saved. Please try again in a moment."
   }
 }

@@ -1,6 +1,8 @@
 // Single import point for lucide-react icons (01 §7, §11 rule 7).
 // Icons are decorative by default: render them with aria-hidden and token size classes.
 export {
+  ArrowDown as ArrowDownIcon,
+  ArrowUp as ArrowUpIcon,
   BadgeCheck as BadgeCheckIcon,
   Briefcase as BriefcaseIcon,
   Camera as CameraIcon,
@@ -22,6 +24,7 @@ export {
   Heart as HeartIcon,
   House as HomeIcon,
   Inbox as InboxIcon,
+  ImagePlus as ImagePlusIcon,
   Info as InfoIcon,
   Lock as LockIcon,
   LogOut as LogOutIcon,
@@ -36,6 +39,7 @@ export {
   Play as PlayIcon,
   Repeat as RepeatIcon,
   Share2 as ShareIcon,
+  Trash2 as Trash2Icon,
   TrendingUp as TrendingUpIcon,
   TriangleAlert as TriangleAlertIcon,
   UserRound as UserRoundIcon,

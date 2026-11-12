@@ -525,6 +525,8 @@
   --size-profile-progress-min: 9rem;
   --grid-creator-profile: var(--size-profile-summary) minmax(0, 3fr)
     minmax(var(--size-profile-progress-min), 1fr);
+  /* A visual of the portfolio (17 §5.2, block 6; L2G): its preview never grows past this height. */
+  --size-portfolio-visual: 16rem;
   /* Derived, no new visual value: a sub-entry's label aligned on its rubric's (inset, icon, gap; D74) */
   --spacing-nav-sub-indent: calc(
     var(--spacing-3) + var(--size-icon-md) + var(--spacing-3)
