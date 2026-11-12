@@ -523,6 +523,10 @@
     "notPublished": "Your profile is not published yet: no brand sees it. This is what a brand would see once it is.",
     "beforeIntro": "Before an introduction, a brand sees ranges only: no handle, no link, no exact figure.",
     "afterIntro": "After an introduction, the brand also reads your handle, the link to your profile and your exact figures, with their source and date. Never your e-mail or your phone number.",
+    "afterEmpty": {
+      "noNetwork": "For now, a brand introduced to you would see the same card as before: your card does not show any network yet. Once a network is on it, the brand will also read its handle, its link and your exact figures. Never your e-mail or your phone number.",
+      "nothingIdentified": "For now, a brand introduced to you would see the same card as before: the networks on your card have no handle, link or exact figure to show yet. Never your e-mail or your phone number."
+    },
     "noVisual": "No approved visual yet: your card is shown without an image.",
     "sections": {
       "networks": "Networks",

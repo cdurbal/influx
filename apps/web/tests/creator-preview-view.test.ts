@@ -17,6 +17,7 @@ import {
 } from "@influx/contracts/creator-projection";
 import { describe, expect, it } from "vitest";
 import {
+  afterEmptyOf,
   PREVIEW_VISUALS_SHOWN,
   previewCardOf,
   renderedFieldsOf,
@@ -310,6 +311,94 @@ describe("L2G-14: what a brand cannot read before an introduction (RG102)", () =
     expect(
       previewCardOf(PREVIEW, "before", FR).networks[1]?.observedNote,
     ).toBeNull();
+  });
+});
+
+describe("L2G recette: the tab after says when it reveals nothing, and marks what it reveals", () => {
+  it("marks an exact figure as revealed, beside its band or alone, and never in the tab before", () => {
+    const after = previewCardOf(PREVIEW, "after", FR);
+    const declared = after.networks[0];
+    expect(
+      declared?.metrics.filter((metric) => metric.revealed).map((m) => m.field),
+    ).toEqual([
+      "audienceBand",
+      "publicationFrequency",
+      "commentBand",
+      "reachBand",
+    ]);
+    expect(after.networks[1]?.metrics.some((metric) => metric.revealed)).toBe(
+      false,
+    );
+    const alone = previewCardOf(
+      {
+        ...PREVIEW,
+        after: {
+          ...AFTER,
+          networks: [{ ...IDENTIFIED_DECLARED, audienceBand: null }],
+        },
+      },
+      "after",
+      FR,
+    ).networks[0]?.metrics[0];
+    expect(alone).toMatchObject({
+      value: "n48123",
+      exact: null,
+      revealed: true,
+    });
+    const before = previewCardOf(PREVIEW, "before", FR);
+    expect(
+      before.networks
+        .flatMap((network) => network.metrics)
+        .some((m) => m.revealed),
+    ).toBe(false);
+  });
+
+  it("reveals something when a line, an exact figure or an exact share is served", () => {
+    expect(afterEmptyOf(previewCardOf(PREVIEW, "after", FR))).toBeNull();
+    // an observed line still reveals its handle and its address
+    const observedOnly = previewCardOf(
+      {
+        ...PREVIEW,
+        after: {
+          ...AFTER,
+          networks: [IDENTIFIED_OBSERVED],
+          audienceShares: [],
+        },
+      },
+      "after",
+      FR,
+    );
+    expect(afterEmptyOf(observedOnly)).toBeNull();
+  });
+
+  it("says why the tab after is the tab before: no listed line, or nothing identified on the lines", () => {
+    const noNetwork = previewCardOf(
+      {
+        ...PREVIEW,
+        before: { ...BEFORE, networks: [] },
+        after: { ...AFTER, networks: [], audienceShares: [] },
+      },
+      "after",
+      FR,
+    );
+    expect(afterEmptyOf(noNetwork)).toBe("noNetwork");
+    const bare: CreatorProjectionIdentifiedNetwork = {
+      ...IDENTIFIED_OBSERVED,
+      handle: null,
+      profileUrl: null,
+    };
+    const nothing = previewCardOf(
+      { ...PREVIEW, after: { ...AFTER, networks: [bare], audienceShares: [] } },
+      "after",
+      FR,
+    );
+    expect(afterEmptyOf(nothing)).toBe("nothingIdentified");
+    for (const labels of [FR, EN]) {
+      for (const reason of ["noNetwork", "nothingIdentified"]) {
+        expect(labels.has(`preview.afterEmpty.${reason}`)).toBe(true);
+      }
+    }
+    expect(FR.has("layer.revealed") && EN.has("layer.revealed")).toBe(true);
   });
 });
 

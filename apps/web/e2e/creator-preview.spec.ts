@@ -95,6 +95,7 @@ test("a creator reads his card as a brand sees it, before an introduction in Fre
     expect(text, secret).not.toContain(secret);
   }
   await expect(card.locator("[data-field=followersCount]")).toHaveCount(0);
+  await expect(card.getByText(fr.layer.revealed)).toHaveCount(0);
   await expectNoAxeViolation(page, "what a brand sees, before, fr, 375", {
     wcag22: true,
   });
@@ -114,6 +115,14 @@ test("a creator reads his card as a brand sees it, before an introduction in Fre
   await expect(after.locator("[data-field=audienceBand]")).toContainText(
     en.preview.exact.replace("{value}", "48,000"),
   );
+  // What an introduction reveals is marked as such, in words beside the lock (L2G recette, RG85).
+  await expect(
+    after.locator("[data-revealed=identity]").getByText(en.layer.revealed),
+  ).toBeVisible();
+  await expect(
+    after.locator("[data-field=audienceBand]").getByText(en.layer.revealed),
+  ).toBeVisible();
+  await expect(page.locator("[data-preview-after-empty]")).toHaveCount(0);
   await expect(
     page.locator("[data-preview-card] [data-visual] img"),
   ).toHaveCount(2);

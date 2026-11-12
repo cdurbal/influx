@@ -45,6 +45,8 @@ export type PreviewRow = { field: string; label: string; value: string };
 export type PreviewMetric = PreviewRow & {
   /** The exact figure the "after" tab serves beside the band, as the API gave it; null when none. */
   exact: string | null;
+  /** True when the row shows an exact figure, beside a band or alone: what an introduction reveals. */
+  revealed: boolean;
 };
 
 export type PreviewBadge = { level: string; text: string };
@@ -348,6 +350,7 @@ function networkOf(
         exact === null || band === null
           ? null
           : labels.text("preview.exact", { value: labels.count(exact) }),
+      revealed: exact !== null,
     });
   };
   metric(
@@ -397,6 +400,7 @@ function networkOf(
       label: labels.text("preview.metrics.engagement"),
       value: labelOf(labels, "preview.engagementBand", network.engagementBand),
       exact: null,
+      revealed: false,
     });
   }
   const source = labels.text(`preview.source.${network.figuresSource}`);
@@ -503,6 +507,29 @@ export function previewCardOf(
     shares: tab === "after" ? sharesOf(preview.after, labels) : [],
     offer: offerRowsOf(projection, labels),
   };
+}
+
+/** Why the card of the "after" tab is the card of the "before" tab, word for word. */
+export type PreviewAfterEmpty = "noNetwork" | "nothingIdentified";
+
+/**
+ * Whether the card of the "after" tab reveals nothing more than the "before" one (no handle, no URL, no
+ * exact figure, no exact share), and why: no line is listed on the card, or the listed lines carry
+ * nothing identified yet. Null when something is revealed. The screen then says so rather than showing
+ * the same card twice, which reads as a tab that does not work (L2G recette).
+ */
+export function afterEmptyOf(card: PreviewCard): PreviewAfterEmpty | null {
+  const revealed =
+    card.shares.length > 0 ||
+    card.networks.some(
+      (network) =>
+        network.identity.length > 0 ||
+        network.metrics.some((metric) => metric.revealed),
+    );
+  if (revealed) {
+    return null;
+  }
+  return card.networks.length === 0 ? "noNetwork" : "nothingIdentified";
 }
 
 /**

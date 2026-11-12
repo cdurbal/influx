@@ -523,6 +523,10 @@
     "notPublished": "Votre profil n'est pas encore publié : aucune marque ne le voit. Voici ce qu'elle verrait une fois qu'il le sera.",
     "beforeIntro": "Avant la mise en relation, une marque ne voit que des tranches : ni pseudo, ni lien, ni chiffre exact.",
     "afterIntro": "Après la mise en relation, la marque lit en plus votre pseudo, le lien de votre profil et vos chiffres exacts, avec leur source et leur date. Jamais votre e-mail ni votre téléphone.",
+    "afterEmpty": {
+      "noNetwork": "Pour l'instant, une marque mise en relation avec vous verrait la même carte qu'avant : votre carte ne présente encore aucun réseau. Dès qu'un réseau y figure, elle lira en plus son pseudo, son lien et vos chiffres exacts. Jamais votre e-mail ni votre téléphone.",
+      "nothingIdentified": "Pour l'instant, une marque mise en relation avec vous verrait la même carte qu'avant : les réseaux de votre carte n'ont encore ni pseudo, ni lien, ni chiffre exact à montrer. Jamais votre e-mail ni votre téléphone."
+    },
     "noVisual": "Aucun visuel approuvé pour l'instant : votre carte s'affiche sans image.",
     "sections": {
       "networks": "Réseaux",

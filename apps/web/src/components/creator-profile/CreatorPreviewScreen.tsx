@@ -25,6 +25,7 @@ import {
 import { PROFILE_PAGE_CLASSES } from "@/components/brand-profile/brand-profile-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
+import { LayerBadge } from "@/components/member/ui/LayerBadge";
 import { MemberButton } from "@/components/member/ui/MemberButton";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
@@ -41,6 +42,7 @@ import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
 import { previewLabelsOf } from "./creator-preview-labels";
 import {
+  afterEmptyOf,
   previewCardOf,
   type PreviewCard,
   type PreviewLabels,
@@ -60,6 +62,17 @@ const VALUE_CLASSES = "text-md text-text-primary";
 /** Between a name and what qualifies it, on one line. */
 const SEPARATOR = " · ";
 const BLOCK_TITLE_CLASSES = cn(CARD_TITLE, "text-text-primary");
+/** A value and the badge that says an introduction reveals it, wrapping under it when space is short. */
+const REVEALED_VALUE_CLASSES = "flex flex-wrap items-center gap-x-2 gap-y-1";
+
+/**
+ * What an introduction reveals, marked as such in the "after" tab (L2G recette): the same badge as the
+ * fields of the profile form (`layer.revealed`, an icon and a text, never the green alone, RG85).
+ */
+function RevealedBadge() {
+  const t = useTranslations("creatorProfile");
+  return <LayerBadge layer="revealed" label={t("layer.revealed")} />;
+}
 
 /** The page of a creator; any other role finds a page that does not exist (18 T14.3, T14.4). */
 export function CreatorPreviewScreen() {
@@ -157,6 +170,7 @@ function Tabs({
     () => previewCardOf(preview, tab, labels),
     [preview, tab, labels],
   );
+  const empty = tab === "after" ? afterEmptyOf(card) : null;
   const select = (next: PreviewTab) => {
     setTab(next);
     refs.current[next]?.focus();
@@ -225,10 +239,23 @@ function Tabs({
         data-preview-panel={tab}
         className="flex flex-col gap-4"
       >
-        <p className="text-sm text-text-secondary">
-          {t(tab === "before" ? "preview.beforeIntro" : "preview.afterIntro")}
-        </p>
-        <PreviewCardView card={card} images={images} />
+        {empty === null ? (
+          <>
+            <p className="text-sm text-text-secondary">
+              {t(
+                tab === "before" ? "preview.beforeIntro" : "preview.afterIntro",
+              )}
+            </p>
+            <PreviewCardView card={card} images={images} />
+          </>
+        ) : (
+          // The same card twice would read as a tab that does not work: the screen says why instead.
+          <Notice tone="info">
+            <span data-preview-after-empty={empty}>
+              {t(`preview.afterEmpty.${empty}`)}
+            </span>
+          </Notice>
+        )}
       </div>
     </div>
   );
@@ -320,19 +347,32 @@ function NetworkLine({ network }: { network: PreviewNetwork }) {
         {network.metrics.map((metric) => (
           <div key={metric.field} data-field={metric.field}>
             <dt className={LABEL_CLASSES}>{metric.label}</dt>
-            <dd className={VALUE_CLASSES}>
-              {metric.value}
-              {metric.exact === null ? null : (
-                <span className="text-sm text-text-secondary">
-                  {SEPARATOR}
-                  {metric.exact}
-                </span>
+            <dd
+              className={cn(
+                VALUE_CLASSES,
+                metric.revealed && REVEALED_VALUE_CLASSES,
               )}
+            >
+              <span>
+                {metric.value}
+                {metric.exact === null ? null : (
+                  <span className="text-sm text-text-secondary">
+                    {SEPARATOR}
+                    {metric.exact}
+                  </span>
+                )}
+              </span>
+              {metric.revealed ? <RevealedBadge /> : null}
             </dd>
           </div>
         ))}
       </dl>
-      <Rows rows={network.identity} />
+      {network.identity.length === 0 ? null : (
+        <div data-revealed="identity" className="flex flex-col gap-2">
+          <RevealedBadge />
+          <Rows rows={network.identity} />
+        </div>
+      )}
       <p className="text-xs text-text-secondary">{network.figures}</p>
       {network.observedNote === null ? null : (
         <p data-observed="" className="text-sm text-text-secondary">
@@ -402,7 +442,10 @@ function PreviewCardView({
           <Rows rows={card.audience} />
           {card.shares.length === 0 ? null : (
             <>
-              <p className={LABEL_CLASSES}>{t("preview.shares")}</p>
+              <div data-revealed="shares" className={REVEALED_VALUE_CLASSES}>
+                <p className={LABEL_CLASSES}>{t("preview.shares")}</p>
+                <RevealedBadge />
+              </div>
               <Rows rows={card.shares} />
             </>
           )}
