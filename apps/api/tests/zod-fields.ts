@@ -264,6 +264,161 @@ export function forbiddenVerificationNames(): Map<string, string> {
   return forbidden;
 }
 
+/**
+ * The columns of the tables of L2G (0242, 0243), by table. These tables have no Drizzle declaration
+ * (apps/api reaches them through the functions of 0242 to 0245 alone), so the list is written here
+ * and held EQUAL to the catalogue of the migrated base by db-tests/tm11-drizzle-parity.test.ts
+ * (TM11-P3): a column a migration adds fails that check until it is listed, and so joins TM11.4.
+ */
+export const L2G_TABLE_COLUMNS: Readonly<Record<string, readonly string[]>> = {
+  creator_field_revisions: [
+    "id",
+    "account_id",
+    "field_code",
+    "row_key",
+    "proposed_value",
+    "status",
+    "submitted_at",
+    "creator_review_entry_id",
+    "closed_at",
+    "created_at",
+    "updated_at",
+  ],
+  creator_rejection_reasons: [
+    "code",
+    "label_key",
+    "message_key",
+    "requires_member_message",
+    "next_step",
+    "position",
+    "is_active",
+  ],
+  creator_review_entries: [
+    "id",
+    "account_id",
+    "kind",
+    "state",
+    "created_at",
+    "sla_due_at",
+    "escalate_at",
+    "claimed_by_account_id",
+    "claimed_at",
+    "claim_expires_at",
+    "forced_release_at",
+    "forced_release_by_account_id",
+    "forced_release_holder_account_id",
+    "forced_release_reason_code",
+    "decided_by_account_id",
+    "decided_at",
+    "rejection_reason_code",
+    "member_message",
+    "internal_comment",
+    "closed_at",
+    "sla_breached",
+    "updated_at",
+  ],
+  portfolio_brand_declarations: [
+    "id",
+    "account_id",
+    "portfolio_item_id",
+    "caption",
+    "statement_key",
+    "declared_at",
+  ],
+  portfolio_items: [
+    "id",
+    "account_id",
+    "object_key",
+    "state",
+    "replaces_item_id",
+    "display_order",
+    "received_bytes",
+    "byte_size",
+    "width",
+    "height",
+    "checksum",
+    "exif_stripped",
+    "caption",
+    "brand_declaration_id",
+    "stored_at",
+    "sla_due_at",
+    "escalate_at",
+    "claimed_by_account_id",
+    "claimed_at",
+    "claim_expires_at",
+    "forced_release_at",
+    "forced_release_by_account_id",
+    "forced_release_holder_account_id",
+    "forced_release_reason_code",
+    "decided_by_account_id",
+    "decided_at",
+    "rejection_reason_code",
+    "internal_comment",
+    "sla_breached",
+    "retention_due_at",
+    "withdrawn_at",
+    "purge_requested_at",
+    "purge_attempts",
+    "last_purge_attempt_at",
+    "purged_at",
+    "created_at",
+    "updated_at",
+  ],
+  portfolio_rejection_reasons: [
+    "code",
+    "label_key",
+    "message_key",
+    "grid_control",
+    "position",
+    "is_active",
+  ],
+};
+
+/**
+ * Columns of the L2G tables whose NAME identifies nothing and that other contracts carry for their
+ * own object (a key, a date, a state, a logo's width, a brand refusal's message, a code of a grid);
+ * `caption` is layer A once approved (07 RG82, RG102: the « before » tab serves it, and Lot 3 will).
+ * The value-level proof that no caption, revision, key nor visual leaks is T1 (markers) and T9.6.
+ * Each is checked to exist in the list, so the exemption cannot outlive its column.
+ */
+export const L2G_GENERIC_COLUMNS: readonly string[] = [
+  "account_id",
+  "byte_size",
+  "caption",
+  "closed_at",
+  "code",
+  "created_at",
+  "decided_at",
+  "height",
+  "id",
+  "is_active",
+  "kind",
+  "label_key",
+  "member_message",
+  "message_key",
+  "position",
+  "state",
+  "status",
+  "submitted_at",
+  "updated_at",
+  "width",
+];
+
+/** The names of the L2G tables no schema outside the creator's and the backoffice's may declare. */
+export function forbiddenL2gNames(): Map<string, string> {
+  const generic = new Set(L2G_GENERIC_COLUMNS.map(normalisedName));
+  const forbidden = new Map<string, string>();
+  for (const [tableName, columns] of Object.entries(L2G_TABLE_COLUMNS)) {
+    for (const column of columns) {
+      const key = normalisedName(column);
+      if (!generic.has(key) && !forbidden.has(key)) {
+        forbidden.set(key, `profiles ${tableName}.${column}`);
+      }
+    }
+  }
+  return forbidden;
+}
+
 /** True when the schema declares a field of that name, at any depth. */
 export function declaresField(schema: z.ZodType, name: string): boolean {
   const key = normalisedName(name);

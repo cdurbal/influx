@@ -366,6 +366,45 @@ describe("T9.10: an approved visual has its metadata removed; a changed object g
     );
   });
 
+  // L2G commit 12 (fiche L2G invariant 18): each half of T9.10 seen red, its guard dropped in the
+  // rolled-back transaction, so that neither passes by luck (the approval written directly, the
+  // checksum changed directly, as above).
+  it("accepts an approval without exif_stripped once the CHECK is dropped, and keeps a changed object approved once the trigger is dropped (mutations, rolled back)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const stored = await deposit(tx, creatorA);
+      await tx`
+        update profiles.portfolio_items set exif_stripped = false where id = ${stored.item_id}`;
+      await tx.unsafe(
+        "alter table profiles.portfolio_items drop constraint portfolio_items_approved_exif_stripped",
+      );
+      const approvedWithoutStrip = await run(
+        tx,
+        `update profiles.portfolio_items
+            set state = 'approved', decided_by_account_id = $2::uuid, decided_at = now()
+          where id = $1::uuid
+         returning state::text as state, exif_stripped`,
+        [stored.item_id, agentA],
+      );
+      const changed = await deposit(tx, creatorA);
+      await decide(tx, changed.item_id, "approved");
+      await tx.unsafe(
+        "drop trigger portfolio_items_rereview_changed on profiles.portfolio_items",
+      );
+      await tx`
+        update profiles.portfolio_items set checksum = ${sha(`mutated ${changed.item_id}`)}
+         where id = ${changed.item_id}`;
+      return {
+        approvedWithoutStrip,
+        changed: await itemOf(tx, changed.item_id),
+      };
+    });
+    expect(outcome.approvedWithoutStrip).toEqual({
+      outcome: "rows",
+      rows: [{ state: "approved", exif_stripped: false }],
+    });
+    expect(outcome.changed).toMatchObject({ state: "approved", decided: true });
+  });
+
   it("moves the life forward only: an approved visual never goes back to uploading, a purged one never leaves (55000 item_state)", async () => {
     const outcomes = await scenario(async (tx) => {
       const stored = await deposit(tx, creatorA);

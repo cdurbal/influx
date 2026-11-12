@@ -29,6 +29,10 @@
 //   L2F     (commit 16, fiche L2F invariant 10) the seven tables of 0231 to 0234 named one by one in
 //           T9.6-R; the routes of L2F (contests, queues 5 and 6, badges, opening) join T9.6-A by the
 //           inventory, and profiles.read_badge_grace_days() (0237) joins T9.6-F and T9.6-O by itself.
+//   L2G     (commit 12, fiche L2G invariants 1, 16, 18) the six tables of 0242 and 0243 (visuals,
+//           declarations, entries and revisions of queue 2, the two grids) named one by one: no right
+//           of the advertiser nor of any role it reaches, no function of theirs names them, 42501, the
+//           bucket `portfolio` private; seen red by a SELECT granted and a reached door naming them.
 // "After the reveal of identities" (18 T9.6) waits for Lot 4, where no reveal exists yet: this file
 // is replayed then. Fixtures are COMMITTED through the routes (random identifiers, disposable local
 // stack); the piece's row, the open requests and the usage are removed after the file. Storage is a
@@ -104,6 +108,20 @@ const L2F_TABLES = [
   "identifier_change_reviews",
   "opening_reasons",
 ];
+/**
+ * The tables of `profiles` the L2G migrations add (0242, 0243): the visuals, their declarations, the
+ * entries and revisions of queue 2, the two grids of reasons (fiche L2G invariants 1, 16; modele -4).
+ */
+const L2G_TABLES = [
+  "creator_field_revisions",
+  "creator_rejection_reasons",
+  "creator_review_entries",
+  "portfolio_brand_declarations",
+  "portfolio_items",
+  "portfolio_rejection_reasons",
+];
+/** The same tables named in a function body (`profiles.portfolio_items`, quoted or not). */
+const L2G_NAMED = `\\m"?profiles"?\\s*\\.\\s*"?(${L2G_TABLES.join("|")})\\M`;
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
@@ -554,10 +572,42 @@ async function reachedRightsFindings(
   return rows.map((row) => row.finding);
 }
 
+/**
+ * L2G (commit 12, fiche L2G invariants 1 and 16, modele -4): every right that influx_advertiser, or a
+ * role reached from it (`roles`), holds on a table of L2G, and every function among those `roles` can
+ * run that names one of them.
+ */
+async function l2gFindings(sql: Sql, roles: string[]): Promise<string[]> {
+  const rights = await sql<{ finding: string }[]>`
+    with reach as (select r::regrole::oid as r from unnest(${roles}::text[]) r),
+    l2g as (
+      select c.oid from pg_catalog.pg_class c
+       where c.relnamespace = 'profiles'::regnamespace and c.relname = any (${L2G_TABLES}::text[])
+    )
+    select reach.r::regrole::text || ' ' || p || ' on ' || l2g.oid::regclass::text as finding
+      from reach, l2g,
+           unnest(array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p
+     where pg_catalog.has_table_privilege(reach.r, l2g.oid, p)
+    union all
+    select reach.r::regrole::text || ' column ' || p || ' on ' || l2g.oid::regclass::text
+      from reach, l2g, unnest(array['SELECT', 'INSERT', 'UPDATE', 'REFERENCES']) p
+     where pg_catalog.has_any_column_privilege(reach.r, l2g.oid, p)
+    order by 1`;
+  const named = await sql.unsafe<{ finding: string }[]>(
+    `with executable as (${executableBy("(select array_agg(r::regrole::oid) from unnest($1::text[]) r)")})
+     select distinct e.oid::regprocedure::text || ' names ' || lower(m[1]) as finding
+       from executable e, regexp_matches(e.body, $2, 'gi') m
+     order by 1`,
+    [roles, L2G_NAMED] as postgres.ParameterOrJSON<never>[],
+  );
+  return [...rights, ...named].map((row) => row.finding);
+}
+
 /** Every catalogue check of T9.6, as the witnesses replay them. */
 async function catalogueFindings(sql: Sql): Promise<string[]> {
   const reached = await reachedRoles(sql);
   return [
+    ...(await l2gFindings(sql, reached)),
     ...(await advertiserRightsFindings(sql)),
     ...(await functionFindings(sql, ["influx_advertiser"])),
     ...(await advertiserNamesFindings(sql)),
@@ -998,6 +1048,64 @@ describe("T9.6-R influx_advertiser holds no right on `verification` nor on Stora
       Object.fromEntries(L2F_TABLES.map((table) => [table, "42501"])),
     );
   });
+
+  // L2G commit 12 (fiche L2G invariants 1 and 16, modele -4): the portfolio and queues 2 and 3 live in
+  // `profiles`, which the advertiser uses; this case names their tables one by one, for the advertiser
+  // AND every owner it reaches (influx_identity_definer among them), and their bucket.
+  it("names the tables of L2G: no right of the advertiser nor of a role it reaches, no function of theirs names them, 42501, a private bucket", async () => {
+    const sql = localSuperuser();
+    const [catalogue] = await sql<{ tables: string[] }[]>`
+      select coalesce(array_agg(c.relname::text order by 1), '{}') as tables
+        from pg_catalog.pg_class c
+       where c.relnamespace = 'profiles'::regnamespace
+         and c.relname = any (${L2G_TABLES}::text[]) and c.relkind = 'r'`;
+    expect(catalogue?.tables).toEqual([...L2G_TABLES].sort());
+    const reached = await reachedRoles(sql);
+    expect(reached).toEqual(
+      expect.arrayContaining(["influx_advertiser", "influx_identity_definer"]),
+    );
+    expect(await l2gFindings(sql, reached)).toEqual([]);
+    // the check reads the bodies it guards: the owner of the creator's doors names the visuals
+    expect(await l2gFindings(sql, ["influx_creator_profile_definer"])).toEqual(
+      expect.arrayContaining([
+        "influx_creator_profile_definer DELETE on profiles.portfolio_items",
+        "profiles.store_portfolio_item(uuid,integer,integer,integer,text) names portfolio_items",
+        "profiles.submit_own_creator_revision(text,text,jsonb) names creator_field_revisions",
+      ]),
+    );
+    const [bucket] = await sql<{ public: boolean; types: string[] }[]>`
+      select public, allowed_mime_types as types from storage.buckets where id = 'portfolio'`;
+    expect(bucket).toEqual({ public: false, types: ["image/webp"] });
+    const attempts = await inRolledBackTransaction(
+      loginRole("influx_app"),
+      async (tx) => {
+        await takeRole(tx, "influx_advertiser", {
+          accountId: brand.accountId,
+          role: "advertiser",
+          aal: "aal1",
+        });
+        const results: Record<string, string> = {};
+        for (const table of L2G_TABLES) {
+          const found = await probe(
+            tx,
+            `select 1 from profiles.${table} limit 1`,
+          );
+          results[table] = found.outcome === "error" ? found.code : "read";
+        }
+        const portfolioObject = await probe(
+          tx,
+          "select name from storage.objects where bucket_id = 'portfolio' limit 1",
+        );
+        results["storage.objects (portfolio)"] =
+          portfolioObject.outcome === "error" ? portfolioObject.code : "read";
+        return results;
+      },
+    );
+    expect(attempts).toEqual({
+      ...Object.fromEntries(L2G_TABLES.map((table) => [table, "42501"])),
+      "storage.objects (portfolio)": "42501",
+    });
+  });
 });
 
 describe("T9.6-F every function the advertiser can execute, every schema: neither the piece nor Storage", () => {
@@ -1161,6 +1269,53 @@ describe("T9.6-W witnesses: a leak makes the check fail", () => {
       },
     );
     expect(findings).toContain("schema verification USAGE");
+  });
+
+  // L2G commit 12 (fiche L2G invariant 18): TM5.5 and invariant 1 seen red, in a rolled-back
+  // transaction: a SELECT on the visuals granted to the advertiser, a door of the reached owner that
+  // names them
+  it("sees a right on the visuals granted to the advertiser, and a door of influx_identity_definer that names them (mutations)", async () => {
+    const outcome = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        await tx.unsafe(
+          "grant select on profiles.portfolio_items to influx_advertiser",
+        );
+        await tx.unsafe(`
+        create function profiles.t9_witness_visuals() returns bigint
+          language sql security definer set search_path = ''
+          begin atomic select count(*) from profiles.portfolio_items; end`);
+        await tx.unsafe(
+          "alter function profiles.t9_witness_visuals() owner to influx_identity_definer",
+        );
+        await tx.unsafe(
+          "grant execute on function profiles.t9_witness_visuals() to influx_advertiser",
+        );
+        const findings = await catalogueFindings(tx);
+        await takeRole(tx, "influx_advertiser", {
+          accountId: brand.accountId,
+          role: "advertiser",
+          aal: "aal1",
+        });
+        const read = await probe(
+          tx,
+          "select 1 from profiles.portfolio_items limit 1",
+        );
+        return {
+          findings,
+          read: read.outcome === "error" ? read.code : "read",
+        };
+      },
+    );
+    expect(outcome.findings).toEqual(
+      expect.arrayContaining([
+        "influx_advertiser SELECT on profiles.portfolio_items",
+        "influx_advertiser column SELECT on profiles.portfolio_items",
+        "profiles.t9_witness_visuals() names portfolio_items",
+      ]),
+    );
+    // the statement is no longer refused: RLS alone stands, the 42501 of the case above is lost
+    expect(outcome.read).toBe("read");
   });
 
   it("sees a definer door of the advertiser that names the piece, by its text, its dependency and its owner", async () => {

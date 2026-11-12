@@ -26,17 +26,29 @@
 //         new handle, the contest text and the withdrawal message join every sweep and C-1; his own
 //         reads carry the new handle and the text, the contestable decision the message; C-2 searches
 //         every table of `audit`, `ops` and `leads` for them (fiche L2F invariant 12), with a witness.
-// Deferred: T1.5 (signed URL of the portfolio) and the agent's identified view at L2G, which replays
-// this file; T1.3 and the "after" of T1.6 (a revealed introduction) at Lot 4. The rights side of the
+//   L2G   (commit 12) creator G, published by agent A through the decisions of 0244: three visuals
+//         deposited through PUT …/portfolio, each carrying a file name of origin in a header and in a
+//         text chunk of its PNG; a caption (RG83 box ticked) on a PENDING one; one approved; then a
+//         bio revised once published (a revision of queue 2). The caption, the file name, the
+//         revised text, a slice of the pending visual's bytes and the three object keys join every
+//         sweep and C-1 (TM5.5 on the routes: no pending visual reaches a brand); his own reads carry
+//         the caption, the revised text (CA48) and the bytes, never the file name, a key nor a URL;
+//         T1.5: no URL is emitted,
+//         the keys written to Storage are the base's and hold no marker, the bytes no file name; C-2
+//         over audit, ops and leads, and the file name in no table of any INFLUX schema.
+// Deferred: the agent's identified view (the queue routes of L2G 11 serve layer I to an agent, by
+// design); T1.3 and the "after" of T1.6 (a revealed introduction) at Lot 4. The rights side of the
 // same rule (influx_advertiser reaches no `creator_%` object, non reversible) is T1-R, in
 // profiles-creator-identity.test.ts.
 // Fixtures are COMMITTED by the migration role or through the routes (random identifiers,
 // disposable local stack, like the profile routes' files); the brands leave the queue after the
-// file. GoTrue, Brevo and Storage are doubles that answer "unavailable": nothing leaves the process.
+// file, creator G's visuals and entries too. GoTrue and Brevo are doubles that answer "unavailable",
+// Storage a double that keeps what is written: nothing leaves the process.
 import { accountIdOf, localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
 import { createHash, randomBytes, randomInt, randomUUID } from "node:crypto";
+import { crc32, deflateSync } from "node:zlib";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import * as z from "zod";
@@ -79,8 +91,10 @@ const PROFILE = "/v1/me/creator-profile";
 const NETWORKS = "/v1/me/creator-profile/networks";
 const VERIFICATION = "/v1/me/verification";
 const BRAND_VERIFICATION = "/v1/me/brand-verification";
+const PORTFOLIO = "/v1/me/creator-profile/portfolio";
 const HEALTH = "GET /health";
 const agentA = accountIdOf("agent", "a");
+const PORTFOLIO_BUCKET = "portfolio";
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
@@ -117,8 +131,22 @@ let l2f: {
   disputeId: string;
   reviewId: string;
 };
+/**
+ * L2G (commit 12): creator G, published, whose visuals carry a file name of origin, one pending visual
+ * a caption, and whose published bio waits for its revision. `texts` are the three values the base
+ * may hold where 0242 and 0243 keep them, and nowhere else (C-2); `ownMarkers` are served to him alone.
+ */
+let l2g: {
+  creator: Member;
+  ids: string[];
+  markers: Marker[];
+  ownMarkers: Marker[];
+  texts: Marker[];
+  items: { id: string; objectKey: string }[];
+  pendingItem: string;
+};
 
-/** Every marker of both parties, the verification's and L2F's included. */
+/** Every marker of both parties, the verification's, L2F's and L2G's included. */
 function allMarkers(): Marker[] {
   return [
     ...creator.markers,
@@ -126,6 +154,7 @@ function allMarkers(): Marker[] {
     ...verificationMarkers.creator,
     ...verificationMarkers.brand,
     ...l2f.markers,
+    ...l2g.markers,
   ];
 }
 /** The brand that sweeps (T1.1), and the creator that sweeps (T1.6). */
@@ -208,10 +237,22 @@ const sender: TransactionalSender = {
   send: async () => ({ status: "unavailable" }),
 };
 
+/** What the routes wrote to Storage, `bucket/key` → bytes, read back as written (T1.5, T9.9). */
+const objects = new Map<string, Buffer>();
+
 const store: ObjectStore = {
-  write: async () => ({ ok: true, value: null }),
-  read: async () => ({ ok: true, value: null }),
-  remove: async () => ({ ok: true, value: null }),
+  write: async (bucket, key, bytes) => {
+    objects.set(`${bucket}/${key}`, Buffer.from(bytes));
+    return { ok: true, value: null };
+  },
+  read: async (bucket, key) => ({
+    ok: true,
+    value: objects.get(`${bucket}/${key}`) ?? null,
+  }),
+  remove: async (bucket, key) => {
+    objects.delete(`${bucket}/${key}`);
+    return { ok: true, value: null };
+  },
 };
 
 /** Every log stream of the file, searched at the end (C-1, D60). */
@@ -455,6 +496,7 @@ beforeAll(async () => {
 
   verificationMarkers = await verificationFixtures(server, tag);
   l2f = await l2fFixtures(server);
+  l2g = await l2gFixtures(server);
 
   sweepingBrand = await newMember("advertiser");
   sweepingCreator = await newMember("creator");
@@ -840,8 +882,251 @@ async function l2fFixtures(server: Server): Promise<typeof l2f> {
   };
 }
 
+/**
+ * A PNG written byte for byte, of incompressible noise (distinct bytes at every call), carrying
+ * `fileName` in a text chunk, as a picture saved by a phone carries its title.
+ */
+function noisePngNamed(
+  width: number,
+  height: number,
+  fileName: string,
+): Buffer {
+  const stride = 1 + width * 3;
+  const raw = randomBytes(stride * height);
+  for (let y = 0; y < height; y += 1) {
+    raw[y * stride] = 0; // filter: none
+  }
+  const chunk = (type: string, data: Buffer): Buffer => {
+    const length = Buffer.alloc(4);
+    length.writeUInt32BE(data.length);
+    const typed = Buffer.concat([Buffer.from(type, "latin1"), data]);
+    const crc = Buffer.alloc(4);
+    crc.writeUInt32BE(crc32(typed));
+    return Buffer.concat([length, typed, crc]);
+  };
+  const header = Buffer.alloc(13);
+  header.writeUInt32BE(width, 0);
+  header.writeUInt32BE(height, 4);
+  header.set([8, 2, 0, 0, 0], 8); // 8 bits, RGB
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    chunk("IHDR", header),
+    chunk("tEXt", Buffer.from(`Title\0${fileName}`, "latin1")),
+    chunk("IDAT", deflateSync(raw, { level: 0 })),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
+}
+
+/** A deposit through PUT …/portfolio, the file name of origin in its headers as a browser sends it. */
+async function depositVisual(
+  server: Server,
+  member: Member,
+  fileName: string,
+): Promise<string> {
+  const response = await server.inject({
+    method: "PUT",
+    url: PORTFOLIO,
+    headers: {
+      "x-influx-internal": WEB_SECRET,
+      "x-request-id": randomUUID(),
+      origin: WEB_ORIGIN,
+      "sec-fetch-site": "same-origin",
+      "content-type": "application/octet-stream",
+      "content-disposition": `attachment; filename="${fileName}"`,
+      "x-file-name": fileName,
+      cookie: `__Host-influx-session=${await newSession(member.accountId)}`,
+    },
+    payload: noisePngNamed(640, 480, fileName),
+  });
+  expect(response.statusCode, response.body).toBe(200);
+  return (response.json() as { item: { id: string } }).item.id;
+}
+
+/**
+ * L2G: creator G fills every required field (blocks 1, 2 and 5 through the route; his line, its
+ * audience and « Compte vérifié » written as 0217 and 0224 would), deposits three visuals through
+ * the route, captions the second one (RG83 box ticked) and submits; agent A approves the first one
+ * (queue 3) then publishes the profile (queue 2), through the functions of 0244 in a COMMITTED
+ * transaction as apps/api calls them; G then revises his published bio (a revision of queue 2).
+ */
+async function l2gFixtures(server: Server): Promise<typeof l2g> {
+  const g = await newMember("creator");
+  const fileName = `story-t1-${letterName(hex(6))}.png`;
+  const caption = `Atelier lumiere ${letterName(hex(6))} ${letterName(hex(6))}`;
+  const revisionText = `Nouvelle saison ${letterName(hex(6))} ${letterName(hex(6))}`;
+  const bio = `${"Je partage des recettes simples, de saison, pensées pour les familles pressées. ".repeat(2)}Chaque semaine, une vidéo et une fiche pratique.`;
+  const code = async (table: string): Promise<string[]> =>
+    (
+      await migration.unsafe<{ code: string }[]>(
+        `select code from reference.${table} where retired_at is null order by code limit 3`,
+      )
+    ).map((row) => row.code);
+  const [topics, tones, formats] = [
+    await code("topics"),
+    await code("editorial_tones"),
+    await code("formats"),
+  ];
+  await through(server, g, "PATCH", PROFILE, {
+    headline: "Cuisine végétale de saison pour toute la famille",
+    bio,
+    primaryTopic: topics[0],
+    secondaryTopics: [topics[1], topics[2]],
+    tones: [tones[0]],
+    publicationLanguages: ["fr", "en"],
+    travelScope: "domestic",
+    formats: [formats[0], formats[1]],
+    usageRights: [],
+    maxExclusivity: "le_3m",
+    availability: "lt_1m",
+  });
+  const handle = `g_t1_${hex(5)}`;
+  const [line] = await migration<{ id: string }[]>`
+    insert into profiles.creator_social_accounts
+      (account_id, network_code, is_primary, handle, profile_url, followers_count,
+       posts_last_30_days, avg_comments_per_post, figures_measured_at)
+    values (${g.accountId}, 'instagram', true, ${handle},
+            ${`https://instagram.com/${handle}`}, 48000, 12, 30, now())
+    returning id::text`;
+  const lineId = line?.id ?? "";
+  await migration`
+    insert into profiles.creator_audience_countries
+      (social_account_id, account_id, slot, country_code, share_percent)
+    values (${lineId}, ${g.accountId}, 0, 'FR', 70)`;
+  const [request] = await migration<{ id: string }[]>`
+    insert into verification.verification_requests
+      (account_id, social_account_id, network_code, level, status)
+    values (${g.accountId}, ${lineId}, 'instagram', 'account_verified', 'pending')
+    returning id::text`;
+  await migration`
+    update verification.verification_requests
+       set status = 'approved', decided_by_account_id = ${agentA}, decided_at = now(),
+           closed_at = now()
+     where id = ${request?.id ?? null}`;
+  await migration`
+    insert into verification.badges
+      (account_id, social_account_id, network_code, request_id, level, granted_by_account_id,
+       granted_at, evidence_source, observed_handle_at_decision)
+    values (${g.accountId}, ${lineId}, 'instagram', ${request?.id ?? null}, 'account_verified',
+            ${agentA}, now(), 'public_profile', ${handle})`;
+
+  const deposited: string[] = [];
+  for (let index = 0; index < 3; index += 1) {
+    deposited.push(await depositVisual(server, g, fileName));
+  }
+  const [approvedItem = "", pendingItem = ""] = deposited;
+  await through(server, g, "PATCH", `${PORTFOLIO}/${pendingItem}`, {
+    caption,
+    brandDeclared: true,
+  });
+  const submitted = (await through(server, g, "POST", `${PROFILE}/submit`)) as {
+    status: string;
+  };
+  expect(submitted.status).toBe("pending_review");
+  const [submission] = await migration<{ id: string }[]>`
+    select id::text from profiles.creator_review_entries
+     where account_id = ${g.accountId} and state = 'open'`;
+  const submissionId = submission?.id ?? "";
+  await localSuperuser().begin((tx) =>
+    actAsInternal(
+      tx,
+      "influx_agent",
+      { accountId: agentA, role: "agent", aal: "aal2" },
+      async () => {
+        const [item] = await tx<{ review_token: string | null }[]>`
+          select review_token from profiles.open_portfolio_item(${approvedItem}::uuid)`;
+        await tx`
+          select * from profiles.approve_portfolio_item(${approvedItem}::uuid,
+                                                        ${item?.review_token ?? ""}, null)`;
+        const [entry] = await tx<{ review_token: string | null }[]>`
+          select review_token from profiles.open_creator_review_entry(${submissionId}::uuid)`;
+        await tx`
+          select * from profiles.publish_creator_review_entry(${submissionId}::uuid,
+                                                              ${entry?.review_token ?? ""}, null)`;
+      },
+    ),
+  );
+  // the bio of the published profile, revised: the typed text waits in queue 2, never live (RG9)
+  await through(server, g, "PATCH", PROFILE, {
+    bio: `${bio} ${revisionText}.`,
+  });
+  const [state] = await migration<
+    { status: string; bio: string | null; revision: string | null }[]
+  >`
+    select p.status::text, p.bio,
+           (select e.id::text from profiles.creator_review_entries e
+             where e.account_id = p.account_id and e.state = 'open' and e.kind = 'revision')
+             as revision
+      from profiles.creator_public_profiles p
+     where p.account_id = ${g.accountId}`;
+  expect(state).toMatchObject({ status: "published", bio });
+  expect(state?.revision ?? null).not.toBeNull();
+
+  const items = await migration<
+    { id: string; objectKey: string; state: string }[]
+  >`
+    select id::text, object_key as "objectKey", state::text from profiles.portfolio_items
+     where account_id = ${g.accountId} order by created_at, id`;
+  expect(items.map((item) => [item.id, item.state])).toEqual([
+    [approvedItem, "approved"],
+    [pendingItem, "pending"],
+    [deposited[2], "pending"],
+  ]);
+  const pendingKey = items[1]?.objectKey ?? "";
+  const pendingBytes = objects.get(`${PORTFOLIO_BUCKET}/${pendingKey}`);
+  if (pendingBytes === undefined) {
+    throw new Error("the deposit wrote no object");
+  }
+  // a slice of the bytes, base64 from an offset that is a multiple of 3, so that any base64 of the
+  // whole object carries it
+  const bytesMarker: Marker = {
+    name: "L2G pending visual bytes (base64)",
+    value: pendingBytes.subarray(300, 360).toString("base64"),
+  };
+  const captionMarker: Marker = { name: "L2G caption", value: caption };
+  const revisionMarker: Marker = {
+    name: "L2G revision text",
+    value: revisionText,
+  };
+  const texts: Marker[] = [
+    captionMarker,
+    { name: "L2G file name of origin", value: fileName },
+    revisionMarker,
+  ];
+  return {
+    creator: g,
+    ids: [...deposited, submissionId, state?.revision ?? "", g.accountId],
+    markers: [
+      ...texts,
+      bytesMarker,
+      ...items.map((item, index) => ({
+        name: `L2G object key ${index + 1}`,
+        value: item.objectKey,
+      })),
+    ],
+    // what he typed while it waits for review is his to read (CA48), never a brand's
+    ownMarkers: [captionMarker, revisionMarker, bytesMarker],
+    texts,
+    items: items.map(({ id, objectKey }) => ({ id, objectKey })),
+    pendingItem,
+  };
+}
+
 afterAll(async () => {
   await closeDatabase(database);
+  // no visual nor entry of creator G stays in queues 2 and 3 of the shared stack
+  if (l2g !== undefined) {
+    const account = l2g.creator.accountId;
+    await migration`
+      update profiles.portfolio_items set state = 'withdrawn'
+       where account_id = ${account} and state in ('pending', 'approved')`;
+    await migration`
+      update profiles.creator_review_entries set state = 'withdrawn', closed_at = now()
+       where account_id = ${account} and state = 'open'`;
+    await migration`
+      delete from profiles.storage_daily_usage where account_id = ${account}`;
+    await migration`
+      delete from leads.outbox_events where subject_key = ${`account:${account}`}`;
+  }
   // no entry of this file stays in queues 5 and 6 of the shared stack
   if (l2f !== undefined) {
     await migration`
@@ -1073,6 +1358,158 @@ describe("L2F (commit 16): the withdrawal, the contest and the changed handle jo
   });
 });
 
+describe("L2G (commit 12): the portfolio, the submission and the revision join the sweeps", () => {
+  it("T1.2: the routes of the portfolio, the preview and queues 2 and 3 are in the inventory the sweeps walk", async () => {
+    const swept = (await sweptRoutes(app())).map(routeName);
+    for (const route of [
+      `PUT ${PORTFOLIO}`,
+      `GET ${PORTFOLIO}/:id/image`,
+      `GET ${PROFILE}/preview`,
+      `POST ${PROFILE}/submit`,
+      "GET /v1/bo/queues/profiles-creator/entries",
+      "GET /v1/bo/queues/portfolio-moderation/entries",
+      "GET /v1/bo/queues/profiles-creator/entries/:id/portfolio/:itemId/image",
+      "GET /v1/bo/queues/portfolio-moderation/entries/:id/image",
+    ]) {
+      expect(swept, route).toContain(route);
+    }
+  });
+
+  it("T1.3 adapted: creator G reads his caption, his revised text (CA48) and his pending visual's bytes, never the file name of origin, an object key nor a URL (T1.5)", async () => {
+    const server = app();
+    const reads: { url: string; body: string }[] = [];
+    for (const url of [
+      PROFILE,
+      PORTFOLIO,
+      `${PORTFOLIO}/${l2g.pendingItem}/image`,
+      `${PROFILE}/preview`,
+    ]) {
+      const response = await call(
+        server,
+        "GET",
+        url,
+        await newSession(l2g.creator.accountId),
+      );
+      expect(response.statusCode, url).toBe(200);
+      reads.push({
+        url,
+        body: `${response.body}\n${JSON.stringify(response.headers)}`,
+      });
+    }
+    const all = reads.map((read) => read.body).join("\n");
+    expect(markersIn(all, l2g.ownMarkers)).toEqual(
+      l2g.ownMarkers.map((marker) => marker.name),
+    );
+    // the file name of origin was never kept; the keys never leave the base
+    expect(
+      markersIn(
+        all,
+        l2g.markers.filter((marker) => !l2g.ownMarkers.includes(marker)),
+      ),
+    ).toEqual([]);
+    // T1.5 (D82 (7)): no URL of a visual, no host of Storage, no token, in his portfolio reads
+    for (const read of reads.filter((entry) =>
+      entry.url.startsWith(PORTFOLIO),
+    )) {
+      expect(read.body, read.url).not.toMatch(/https?:|\/storage\/v1|token=/i);
+    }
+    // and nothing of creator A, of brand M nor of creator L comes to creator G
+    expect(
+      markersIn(all, [
+        ...creator.markers,
+        ...brand.markers,
+        ...verificationMarkers.creator,
+        ...verificationMarkers.brand,
+        ...l2f.markers,
+      ]),
+    ).toEqual([]);
+  });
+
+  it("T1.5, T9.9: the keys written to Storage are the base's, <account>/<item>.webp, without a marker; the bytes hold no file name", () => {
+    const written = [...objects.keys()].filter((key) =>
+      key.startsWith(`${PORTFOLIO_BUCKET}/${l2g.creator.accountId}/`),
+    );
+    expect(written.sort()).toEqual(
+      l2g.items.map((item) => `${PORTFOLIO_BUCKET}/${item.objectKey}`).sort(),
+    );
+    for (const item of l2g.items) {
+      // the key is generated by the base from the two identifiers (modele 4), and nothing else
+      expect(item.objectKey).toBe(`${l2g.creator.accountId}/${item.id}.webp`);
+    }
+    const identifying = allMarkers().filter(
+      (marker) =>
+        marker.name !== "account identifier" &&
+        !marker.name.startsWith("L2G object key"),
+    );
+    expect(markersIn(written.join("\n"), identifying)).toEqual([]);
+    for (const key of written) {
+      const bytes = objects.get(key) ?? Buffer.alloc(0);
+      expect(bytes.subarray(8, 12).toString("latin1"), key).toBe("WEBP");
+      expect(markersIn(bytes.toString("latin1"), l2g.texts), key).toEqual([]);
+    }
+  });
+
+  it("C-2 (D60, RG99; fiche L2G invariant 13): no L2G text in audit, ops nor leads, and the file name of origin in no table of any INFLUX schema", async () => {
+    const sql = localSuperuser();
+    const relations = await sql<{ name: string }[]>`
+      select n.nspname || '.' || c.relname as name
+        from pg_catalog.pg_class c
+        join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+       where n.nspowner = 'postgres'::regrole::oid and n.nspname !~ '^(_|pg_)'
+         and n.nspname <> 'supabase_migrations'
+         and c.relkind in ('r', 'p') and not c.relispartition
+       order by 1`;
+    const names = relations.map((relation) => relation.name);
+    const schemas = new Set(names.map((name) => name.split(".")[0]));
+    for (const schema of [
+      "audit",
+      "identity",
+      "leads",
+      "ops",
+      "profiles",
+      "verification",
+    ]) {
+      expect(schemas.has(schema), schema).toBe(true);
+    }
+    const values = l2g.texts.map((marker) => marker.value);
+    const findings: string[] = [];
+    for (const name of names) {
+      const rows = await sql.unsafe<{ marker: string }[]>(
+        `select distinct m.value as marker
+           from ${name} t, unnest($1::text[]) m(value)
+          where strpos(to_jsonb(t)::text, m.value) > 0`,
+        [values] as postgres.ParameterOrJSON<never>[],
+      );
+      for (const row of rows) {
+        const marker = l2g.texts.find((entry) => entry.value === row.marker);
+        findings.push(`${name}: ${marker?.name ?? "?"}`);
+      }
+    }
+    // the caption where 0242 keeps it (the visual, the declaration of RG83), the revised text where
+    // 0243 keeps it (the revision): nowhere else, and the file name nowhere at all
+    expect(findings.sort()).toEqual(
+      [
+        "profiles.creator_field_revisions: L2G revision text",
+        "profiles.portfolio_brand_declarations: L2G caption",
+        "profiles.portfolio_items: L2G caption",
+      ].sort(),
+    );
+    // the facts themselves are in the register, by their codes and identifiers
+    const [facts] = await sql<{ codes: string[] }[]>`
+      select coalesce(array_agg(distinct event_type order by event_type), '{}') as codes
+        from audit.audit_events
+       where subject_id::text = any (${l2g.ids}::text[])`;
+    expect(facts?.codes ?? []).toEqual(
+      expect.arrayContaining([
+        "creator_profile.published",
+        "creator_profile.revision_submitted",
+        "portfolio.approved",
+        "portfolio.deposited",
+      ]),
+    );
+  });
+});
+
 describe("T1.1, T1.4 every route, called as a brand on the web surface: no marker of a creator, errors included", () => {
   it("finds no marker in any body or header, over 2xx, 400 and 404 answers", async () => {
     const server = app();
@@ -1084,6 +1521,8 @@ describe("T1.1, T1.4 every route, called as a brand on the web surface: no marke
       "x",
       // L2F: creator L's line, withdrawn badge, contest and queue 6 entry
       ...l2f.ids,
+      // L2G: creator G's three visuals, his two entries of queue 2 and his account
+      ...l2g.ids,
     ];
     const result = await sweep(server, sweepingBrand, ids, allMarkers());
     expect(result.findings).toEqual([]);
@@ -1164,6 +1603,7 @@ describe("T1.6 before the reveal: no contact of the other party, no data of anot
       randomUUID(),
       "x",
       ...l2f.ids,
+      ...l2g.ids,
     ];
     const result = await sweep(server, sweepingCreator, ids, allMarkers());
     expect(result.findings).toEqual([]);
@@ -1180,11 +1620,23 @@ describe("T1.6 before the reveal: no contact of the other party, no data of anot
       `DELETE ${NETWORKS}/:id`,
       `POST ${NETWORKS}/:id/figures`,
       `PUT ${NETWORKS}/:id/audience`,
+      // L2G: nor a visual of another creator (T14)
+      `PATCH ${PORTFOLIO}/:id`,
+      `DELETE ${PORTFOLIO}/:id`,
+      `GET ${PORTFOLIO}/:id/image`,
     ]) {
       expect(result.statuses.get(route), route).not.toContain(200);
     }
-    // and nothing of creator A moved
+    // and nothing of creator A moved, nor of creator G's visuals
     await expectMarkersStillServedToTheCreator();
+    const states = await migration<{ state: string }[]>`
+      select state::text from profiles.portfolio_items
+       where account_id = ${l2g.creator.accountId} order by created_at, id`;
+    expect(states.map((row) => row.state)).toEqual([
+      "approved",
+      "pending",
+      "pending",
+    ]);
   });
 });
 

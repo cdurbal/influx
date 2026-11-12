@@ -7,6 +7,7 @@
 // verification.ts and profiles-creator-identity.ts has exactly the columns of its relation.
 //   TM11-P1  the schema `verification`: the same tables, the L2F ones among them (0231 to 0234)
 //   TM11-P2  every declared table: the same column names as the catalogue, generated ones included
+//   TM11-P3  (L2G 12) the six tables of 0242 and 0243, listed in tests/zod-fields.ts for TM11.4
 //   TM11-W   witness: a column the declaration does not know is reported
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -14,6 +15,7 @@ import {
   creatorIdentityColumns,
   verificationColumns,
 } from "../src/db/schema/introspection.ts";
+import { L2G_TABLE_COLUMNS } from "../tests/zod-fields.ts";
 import { localSuperuser } from "./support.ts";
 
 type Sql = postgres.Sql;
@@ -123,6 +125,30 @@ describe("TM11-P2 every declared table has the columns of its relation", () => {
   it("profiles-creator-identity.ts: the same column names as the catalogue", () => {
     const declared = creatorIdentityColumns();
     expect(Object.keys(declared).length).toBeGreaterThanOrEqual(7);
+    expect(gapsOf(declared, profilesCatalogue)).toEqual([]);
+  });
+});
+
+// L2G commit 12: the tables of 0242 and 0243 have no Drizzle declaration; TM11.4 reads their list in
+// tests/zod-fields.ts, held here to the base in both directions, every one of the six named.
+describe("TM11-P3 the list of the L2G tables has the columns of their relations", () => {
+  it("tests/zod-fields.ts: the six tables of 0242 and 0243, the same column names as the catalogue", () => {
+    expect(Object.keys(L2G_TABLE_COLUMNS).sort()).toEqual(
+      [
+        "creator_field_revisions",
+        "creator_rejection_reasons",
+        "creator_review_entries",
+        "portfolio_brand_declarations",
+        "portfolio_items",
+        "portfolio_rejection_reasons",
+      ].sort(),
+    );
+    const declared = Object.fromEntries(
+      Object.entries(L2G_TABLE_COLUMNS).map(([table, columns]) => [
+        table,
+        [...columns],
+      ]),
+    );
     expect(gapsOf(declared, profilesCatalogue)).toEqual([]);
   });
 });

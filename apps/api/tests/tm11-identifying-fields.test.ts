@@ -14,6 +14,13 @@
 //           by the agent, an internal comment, a registration number…), are declared by no contract
 //           but the verification module and the backoffice's, and by no response schema of the web
 //           surface but the verification routes; generic names (status, code, width…) apart.
+//   TM11.4  (L2G 12) the columns of the six tables of 0242 and 0243 (visuals, declarations, entries
+//           and revisions of queue 2, the grids), listed in zod-fields.ts and held to the base by
+//           db-tests/tm11-drizzle-parity (no Drizzle declaration exists for them): an object key, a
+//           checksum, a revised value, an internal comment, a claim… are declared by no contract but
+//           the creator's own, the verification module and the backoffice's, not by the « before »
+//           tab Lot 3 reuses, and by no
+//           response schema of the web surface but /v1/me/creator-profile*.
 // The allowances below are the member's OWN contact details in their own contracts (a brand's
 // e-mail on its account, a visitor's address on the support form). Each is checked to still be
 // declared, so that none outlives its field.
@@ -39,9 +46,12 @@ import {
   derivedColumnNames,
   derivedVerificationColumnNames,
   forbiddenFieldsOf,
+  forbiddenL2gNames,
   forbiddenNames,
   forbiddenVerificationNames,
   isZodSchema,
+  L2G_GENERIC_COLUMNS,
+  L2G_TABLE_COLUMNS,
   normalisedName,
   STRUCTURAL_COLUMNS,
   VERIFICATION_GENERIC_COLUMNS,
@@ -571,6 +581,151 @@ describe("TM11.3 (L2E 17): no field of verification.* outside the verification m
         expect.stringContaining(
           "GET /v1/me/tm11-verification-witness .checksum",
         ),
+      ]);
+    } finally {
+      await witness.close();
+    }
+  });
+});
+
+/**
+ * TM11.4 (L2G 12): the modules that may declare a column of the L2G tables: the creator's own (his
+ * profile, his portfolio, his preview), the backoffice's (queues 2 and 3), and `verification`, whose
+ * agent contracts of queues 4 to 6 carry the same mechanics of a queue (deadlines, claim, internal
+ * comment) for their own entries; its member answers are held by the route check below.
+ */
+function isL2gModule(name: string): boolean {
+  return (
+    name === "creator-profile" ||
+    name === "creator-portfolio" ||
+    name === "creator-projection" ||
+    isVerificationModule(name)
+  );
+}
+
+/** TM11.4 over a server's inventory: web responses but the creator's own routes, /v1/bo/ apart. */
+function l2gResponseFindings(server: ApiServer): string[] {
+  const forbidden = forbiddenL2gNames();
+  return webResponses(server)
+    .filter((entry) => !entry.url.startsWith(WEB_CREATOR_PREFIX))
+    .flatMap((entry) =>
+      entry.schemas.flatMap((schema) =>
+        forbiddenFieldsOf(schema, [], forbidden).map(
+          (found) => `${entry.route} ${found}`,
+        ),
+      ),
+    );
+}
+
+describe("TM11.4 (L2G 12): no column of the portfolio nor of queues 2 and 3 outside the creator's, the verification and the backoffice modules", () => {
+  it("lists the six tables of 0242 and 0243 (held to the base by tm11-drizzle-parity), beyond the generic names", () => {
+    expect(Object.keys(L2G_TABLE_COLUMNS).sort()).toEqual([
+      "creator_field_revisions",
+      "creator_rejection_reasons",
+      "creator_review_entries",
+      "portfolio_brand_declarations",
+      "portfolio_items",
+      "portfolio_rejection_reasons",
+    ]);
+    const listed = new Set(
+      Object.values(L2G_TABLE_COLUMNS).flat().map(normalisedName),
+    );
+    for (const column of L2G_GENERIC_COLUMNS) {
+      expect(listed.has(normalisedName(column)), column).toBe(true);
+    }
+    const forbidden = forbiddenL2gNames();
+    for (const name of [
+      "object_key",
+      "checksum",
+      "exif_stripped",
+      "received_bytes",
+      "replaces_item_id",
+      "brand_declaration_id",
+      "statement_key",
+      "proposed_value",
+      "row_key",
+      "internal_comment",
+      "claimed_by_account_id",
+      "decided_by_account_id",
+      "retention_due_at",
+      "sla_due_at",
+    ]) {
+      expect(forbidden.has(normalisedName(name)), name).toBe(true);
+    }
+    expect(forbidden.get(normalisedName("proposed_value"))).toBe(
+      "profiles creator_field_revisions.proposed_value",
+    );
+  });
+
+  it("finds none in the contracts but the creator's, the verification and the backoffice's, nor in the « before » tab Lot 3 reuses", async () => {
+    const forbidden = forbiddenL2gNames();
+    const modules = await contractModules();
+    const covered = modules.filter(({ name }) => !isL2gModule(name));
+    expect(covered.map(({ name }) => name)).toEqual(
+      expect.arrayContaining(["brand-profile", "account", "signup"]),
+    );
+    const findings = covered.flatMap(({ name, schemas }) =>
+      schemas.flatMap(([exported, schema]) =>
+        forbiddenFieldsOf(schema, [], forbidden).map(
+          (found) => `${name}/${exported} ${found}`,
+        ),
+      ),
+    );
+    expect(findings).toEqual([]);
+    expect(
+      forbiddenFieldsOf(creatorProjectionBeforeSchema, [], forbidden),
+    ).toEqual([]);
+    // the exclusion is real: the backoffice's queue contract declares names of the list
+    const held = modules
+      .filter(({ name }) => name === "creator-queues")
+      .flatMap(({ schemas }) =>
+        schemas.flatMap(([, schema]) =>
+          forbiddenFieldsOf(schema, [], forbidden),
+        ),
+      );
+    expect(held.length).toBeGreaterThan(0);
+  });
+
+  it("finds none in the response schemas of the web surface but the creator's own routes", async () => {
+    expect(l2gResponseFindings(await readyServer())).toEqual([]);
+  });
+
+  it("fails on a response or a contract that declares an object key, a revised value or an internal comment", async () => {
+    const forbidden = forbiddenL2gNames();
+    expect(
+      forbiddenFieldsOf(
+        z.strictObject({
+          visuals: z.array(
+            z.strictObject({
+              objectKey: z.string(),
+              exifStripped: z.boolean(),
+            }),
+          ),
+          proposedValue: z.string(),
+          internalComment: z.string(),
+        }),
+        [],
+        forbidden,
+      ),
+    ).toHaveLength(4);
+    const witness = buildServer(testApiConfig(), {
+      logDestination: captureLogs().destination,
+    });
+    witness.get(
+      "/v1/me/tm11-l2g-witness",
+      {
+        schema: {
+          response: {
+            200: z.strictObject({ replacesItemId: z.string() }),
+          },
+        },
+      },
+      async () => ({ replacesItemId: "" }),
+    );
+    await witness.ready();
+    try {
+      expect(l2gResponseFindings(witness)).toEqual([
+        expect.stringContaining("GET /v1/me/tm11-l2g-witness .replacesItemId"),
       ]);
     } finally {
       await witness.close();
