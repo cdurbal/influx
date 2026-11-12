@@ -678,7 +678,7 @@
 | 39 | 42 | 2. Stratégie de développement | RG44–RG148 |
 | 81 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
 | 87 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 93 | 22 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
-| 115 | 9 | 6. Configuration des services externes |  |
-| 124 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 141 | 86 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 93 | 23 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
+| 116 | 9 | 6. Configuration des services externes |  |
+| 125 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 142 | 86 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |

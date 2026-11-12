@@ -30,7 +30,10 @@ import { isEditable } from "@/components/creator-profile/creator-profile-view";
 import {
   accountVerifiedOf,
   firstMissingAnchorOf,
+  frozenNoticeKeyOf,
+  hasPublicationNotices,
   pendingFieldsOf,
+  PROFILE_PARTS_ORDER,
   publicationModeOf,
   refusalViewOf,
 } from "@/components/creator-profile/creator-publication-view";
@@ -336,6 +339,44 @@ describe("L2G-13: the card of the publication (07 RG4, RG5, RG9, RG10)", () => {
     expect(accountVerifiedOf(["bio"])).toBe(true);
     expect(accountVerifiedOf(["bio", "accountVerified"])).toBe(false);
   });
+
+  it("keeps the document in the order the summary needs: refusal, completeness, summary, form, notices, then the action (L2GU-1)", () => {
+    expect([...PROFILE_PARTS_ORDER]).toEqual([
+      "refusal",
+      "progress",
+      "summary",
+      "form",
+      "notices",
+      "action",
+    ]);
+  });
+
+  it("tells why the form is frozen for a profile under review and for a suspended one, and for no other (L2GU-3)", () => {
+    expect(frozenNoticeKeyOf("pending_review")).toBe("frozen.pending_review");
+    expect(frozenNoticeKeyOf("suspended")).toBe("frozen.suspended");
+    for (const status of ["draft", "rejected", "published"] as const) {
+      expect(frozenNoticeKeyOf(status), status).toBeNull();
+    }
+  });
+
+  it("keeps the answer awaited and the changes waiting out of the sticky card, and shows none when nothing waits (L2GU-2)", () => {
+    const revision = [{ field: "bio" as const, rowKey: null }];
+    expect(
+      hasPublicationNotices({ status: "pending_review", pendingRevisions: [] }),
+    ).toBe(true);
+    expect(
+      hasPublicationNotices({
+        status: "published",
+        pendingRevisions: revision,
+      }),
+    ).toBe(true);
+    expect(
+      hasPublicationNotices({ status: "published", pendingRevisions: [] }),
+    ).toBe(false);
+    expect(
+      hasPublicationNotices({ status: "draft", pendingRevisions: revision }),
+    ).toBe(false);
+  });
 });
 
 describe("L2G-13: the translations of the blocks (07 RG112; textes.md; EC-L2G-10-1)", () => {
@@ -386,6 +427,33 @@ describe("L2G-13: the translations of the blocks (07 RG112; textes.md; EC-L2G-10
       ] as const) {
         expect(own.state[status], `${locale} ${status}`).toBeTruthy();
       }
+    }
+  });
+
+  it("keeps the refusal of a change in two sentences: the reason alone, then what stays published (L2GU-7)", () => {
+    for (const locale of ["fr", "en"] as const) {
+      const { status } = messages[locale];
+      expect(status.revisionRejected, locale).toMatch(/{reason}$/);
+      expect(status.revisionRejected, locale).not.toBe("");
+      expect(status.revisionKept, locale).toBeTruthy();
+      expect(status.revisionRejected, locale).not.toContain(
+        status.revisionKept,
+      );
+    }
+  });
+
+  it("explains the frozen form, the review before publication and the box of the brand (L2GU-3, L2GU-16)", () => {
+    expect(messages.fr.frozen.pending_review).toBe(
+      "Votre profil est en cours de validation : il ne peut pas être modifié avant la réponse de l'équipe INFLUX.",
+    );
+    expect(messages.fr.publish.review).toBe(
+      "Un commercial INFLUX relit votre profil avant de le publier.",
+    );
+    expect(messages.fr.portfolio.brandConsentHelp).toBe(
+      "Sans cette case, la légende est publiée sans le nom de la marque, ou refusée.",
+    );
+    for (const locale of ["fr", "en"] as const) {
+      expect(messages[locale].frozen.suspended, locale).toBeTruthy();
     }
   });
 

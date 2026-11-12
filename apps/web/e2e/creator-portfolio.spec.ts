@@ -90,6 +90,8 @@ test("a creator deposits visuals and submits the profile in French at 375 px, th
 
   // RG90: the button is never disabled; a click names what is missing and leads to it.
   await expect(publish).not.toHaveAttribute("aria-disabled", "true");
+  // L2GU-16: « Publier » says that a salesperson reads first.
+  await expect(page.getByText(fr.publish.review)).toBeVisible();
   await publish.click();
   const missing = page.locator("[data-publish-missing]");
   await expect(missing).toContainText(fr.required.portfolio);
@@ -156,13 +158,12 @@ test("a creator deposits visuals and submits the profile in French at 375 px, th
     declarations: 1,
     order: 2,
   });
-  await expectNoAxeViolation(page, "my creator profile, portfolio, fr, 375", {
-    wcag22: true,
-  });
 
   // The submission: nothing is missing any more, the profile waits for its answer and is frozen (RG10).
   await publish.click();
   await expect(page.getByText(fr.publish.submitted)).toBeVisible();
+  // L2GU-3: the frozen form says why, in the form.
+  await expect(page.getByText(fr.frozen.pending_review)).toBeVisible();
   await expect(publish).toHaveCount(0);
   await expect(
     page.getByLabel(new RegExp(`^${fr.fields.headline.label}`)),
@@ -214,6 +215,13 @@ test("a creator deposits visuals and submits the profile in French at 375 px, th
   const switcher = page.getByRole("switch", { name: en.visibility.label });
   await expect(switcher).toBeChecked();
   await expect(page.getByText(en.visibility.on)).toBeVisible();
+  // The busiest state, in English, 1 440 px: the published profile, its changes waiting, the switch
+  // (L2GU-8; the pass moved here from the French deposit, the budget of the line being 6 s).
+  await expectNoAxeViolation(
+    page,
+    "my creator profile, published with a change waiting, en, 1440",
+    { wcag22: true },
+  );
   await switcher.uncheck();
   await expect(page.getByText(en.visibility.off)).toBeVisible();
   await expect

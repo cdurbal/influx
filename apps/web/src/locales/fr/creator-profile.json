@@ -381,6 +381,7 @@
     "notice": "Vos visuels approuvés sont visibles de toutes les marques inscrites, avant toute mise en relation.",
     "pending": "Ce visuel est en cours de modération. Il n'est pas encore visible des marques.",
     "brandConsent": "Je confirme être autorisé à citer cette marque et à publier ce visuel.",
+    "brandConsentHelp": "Sans cette case, la légende est publiée sans le nom de la marque, ou refusée.",
     "faceNotice": "Un visage est admis, mais il peut permettre de vous retrouver par une recherche d'image.",
     "approved": "Approuvé",
     "rejected": "Refusé : {reason}",
@@ -451,14 +452,20 @@
     "action": "Publier mon profil",
     "submitted": "Profil soumis à validation. Réponse sous 1 jour ouvré.",
     "missing": "Il manque {count, plural, one {# information} other {# informations}} pour publier votre profil : {fields}.",
+    "review": "Un commercial INFLUX relit votre profil avant de le publier.",
     "failed": "Votre profil n'a pas pu être soumis. Réessayez dans un instant."
+  },
+  "frozen": {
+    "pending_review": "Votre profil est en cours de validation : il ne peut pas être modifié avant la réponse de l'équipe INFLUX.",
+    "suspended": "Votre profil est suspendu : il ne peut pas être modifié pour le moment."
   },
   "status": {
     "published": "Votre profil est publié. Seule sa version anonyme, sous votre alias, peut être présentée aux marques.",
     "pendingWithPublished": "Vos modifications sont en cours de validation. Votre profil reste visible dans sa version précédente.",
     "pendingFields": "En cours de validation : {fields}.",
     "rejected": "Votre profil n'a pas été publié : {reason}",
-    "revisionRejected": "Votre modification n'a pas été publiée : {reason} Votre profil reste visible dans sa version précédente."
+    "revisionRejected": "Votre modification n'a pas été publiée : {reason}",
+    "revisionKept": "Votre profil reste visible dans sa version précédente."
   },
   "refusal": {
     "fix": "Corrigez-le depuis votre espace INFLUX : votre correction sera relue à son tour.",

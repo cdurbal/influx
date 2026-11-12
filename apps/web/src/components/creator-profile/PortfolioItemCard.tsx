@@ -187,19 +187,29 @@ export function PortfolioItemCard({
         }}
       />
       {hasCaption ? (
-        <label className={memberChoiceRowClasses(blocked)}>
-          <input
-            type="checkbox"
-            name={`brand-declared-${item.id}`}
-            className={memberChoiceInputClasses(blocked)}
-            checked={draft.brandDeclared}
-            disabled={blocked}
-            onChange={(event) =>
-              setDraft({ ...draft, brandDeclared: event.target.checked })
-            }
-          />
-          <span>{t("portfolio.brandConsent")}</span>
-        </label>
+        <>
+          <label className={memberChoiceRowClasses(blocked)}>
+            <input
+              type="checkbox"
+              name={`brand-declared-${item.id}`}
+              className={memberChoiceInputClasses(blocked)}
+              checked={draft.brandDeclared}
+              disabled={blocked}
+              aria-describedby={`brand-declared-help-${item.id}`}
+              onChange={(event) =>
+                setDraft({ ...draft, brandDeclared: event.target.checked })
+              }
+            />
+            <span>{t("portfolio.brandConsent")}</span>
+          </label>
+          {/* L2GU-16: what happens when the box stays unchecked (07 RG83). */}
+          <p
+            id={`brand-declared-help-${item.id}`}
+            className="text-sm text-text-secondary"
+          >
+            {t("portfolio.brandConsentHelp")}
+          </p>
+        </>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
         <MemberButton

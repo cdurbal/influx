@@ -11,7 +11,7 @@
 // rate, net or price (D78, D48).
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useEffect, useMemo, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, type ReactNode } from "react";
 import { useOnline } from "@/components/auth/use-online";
 import {
   BACK_ICON_CLASSES,
@@ -68,11 +68,18 @@ import {
   type SectionId,
 } from "./creator-profile-view";
 import { PortfolioFields } from "./CreatorPortfolioBlock";
-import { PublicationCard } from "./CreatorPublicationCard";
+import {
+  PublicationCard,
+  PublicationNotices,
+  PublicationRefusal,
+} from "./CreatorPublicationCard";
 import { TrustFields } from "./CreatorTrustBlock";
 import {
   accountVerifiedOf,
   firstMissingAnchorOf,
+  frozenNoticeKeyOf,
+  PROFILE_PARTS_ORDER,
+  type ProfilePart,
 } from "./creator-publication-view";
 import { useCreatorAudience } from "./use-creator-audience";
 import { useCreatorNetworks } from "./use-creator-networks";
@@ -83,14 +90,25 @@ import {
   type CreatorProfileState,
 } from "./use-creator-profile";
 
-/** The three columns of a wide screen: the summary, the form, the completeness (17 §5.2). */
+/**
+ * The three columns of a wide screen: the summary, the form, the completeness and the action (17 §5.2).
+ * The document keeps its own order (PROFILE_PARTS_ORDER, L2GU-1): the places are given here, row by
+ * row. Rows 1 and 2 are the refusal and the notices that wait, across the page; they have no gap of
+ * their own (a margin under each), so that an empty row costs nothing. Row 4 is the flexible one: the
+ * action card sits under the completeness and sticks within the height of the form.
+ */
 const GRID_CLASSES =
-  "flex flex-col gap-6 lg:grid lg:grid-cols-(--grid-creator-profile) lg:items-start lg:gap-6 xl:gap-8";
+  "flex flex-col gap-6 lg:grid lg:grid-cols-(--grid-creator-profile) lg:grid-rows-[auto_auto_auto_1fr] lg:items-start lg:gap-x-6 lg:gap-y-0 xl:gap-x-8";
 const SUMMARY_CLASSES =
-  "flex flex-col gap-3 lg:col-start-1 lg:row-start-1 lg:sticky lg:top-(--spacing-6)";
-const FORM_CLASSES = "flex flex-col gap-6 lg:col-start-2 lg:row-start-1";
+  "flex flex-col gap-3 lg:col-start-1 lg:row-span-2 lg:row-start-3 lg:sticky lg:top-(--spacing-6)";
+const FORM_CLASSES =
+  "flex flex-col gap-6 lg:col-start-2 lg:row-span-2 lg:row-start-3";
 const PROGRESS_CLASSES =
-  "flex flex-col gap-4 lg:col-start-3 lg:row-start-1 lg:sticky lg:top-(--spacing-6)";
+  "flex flex-col gap-4 lg:col-start-3 lg:row-start-3 lg:mb-6";
+const ACTION_COLUMN_CLASSES =
+  "lg:col-start-3 lg:row-start-4 lg:sticky lg:top-(--spacing-6)";
+const REFUSAL_BAND_CLASSES = "lg:col-span-3 lg:row-start-1 lg:mb-6";
+const NOTICES_BAND_CLASSES = "lg:col-span-3 lg:row-start-2 lg:mb-6";
 const SECTION_CLASSES = cn(PROFILE_CARD_CLASSES, "scroll-mt-(--spacing-6)");
 /** From lg the state always sits under the title, so that the summary column can stay narrow. */
 const SUMMARY_LINK_CLASSES =
@@ -237,70 +255,93 @@ function LoadedProfile({
     change: state.change,
   };
 
+  const frozenKey = frozenNoticeKeyOf(profile.status);
+  const parts: Record<ProfilePart, ReactNode> = {
+    refusal: (
+      <PublicationRefusal profile={profile} className={REFUSAL_BAND_CLASSES} />
+    ),
+    progress: (
+      <div className={PROGRESS_CLASSES}>
+        <ProfileProgress profile={profile} save={state.save} locale={locale} />
+      </div>
+    ),
+    summary: <Summary missing={profile.missingRequired} />,
+    form: (
+      <div className={FORM_CLASSES}>
+        {/* L2GU-3: a frozen form says why, in the form (never greyed out without a word). */}
+        {frozenKey === null ? null : (
+          <Notice tone="info" announce={false}>
+            {t(frozenKey)}
+          </Notice>
+        )}
+        <ProfileSection id="presentation" disabled={!editable}>
+          <PresentationFields {...fields} />
+        </ProfileSection>
+        <ProfileSection id="editorial" disabled={!editable}>
+          <EditorialFields {...fields} />
+        </ProfileSection>
+        <ProfileSection id="networks" disabled={!editable}>
+          <NetworksFields
+            state={networks}
+            networks={networkOptions}
+            labelOf={labelOf}
+            bandLabelOf={(group, code) => bandLabelOf(t, group, code)}
+          />
+        </ProfileSection>
+        <ProfileSection id="audience" disabled={!editable}>
+          <AudienceFields
+            networks={networks}
+            audience={audience}
+            labelOf={labelOf}
+          />
+        </ProfileSection>
+        <ProfileSection id="offer" disabled={!editable}>
+          <OfferFields
+            {...fields}
+            networkCodes={
+              networks.phase === "ready"
+                ? new Set(networks.lines.map((line) => line.networkCode))
+                : null
+            }
+          />
+        </ProfileSection>
+        <ProfileSection id="portfolio" disabled={!editable}>
+          <PortfolioFields state={portfolio} editable={editable} />
+        </ProfileSection>
+        <ProfileSection
+          id="trust"
+          disabled={profile.alias === null || profile.status === "suspended"}
+        >
+          <TrustFields
+            accountVerified={accountVerifiedOf(profile.missingRequired)}
+            isSearchable={profile.isSearchable}
+            publication={publication}
+            disabled={profile.alias === null || profile.status === "suspended"}
+          />
+        </ProfileSection>
+      </div>
+    ),
+    notices: (
+      <PublicationNotices profile={profile} className={NOTICES_BAND_CLASSES} />
+    ),
+    action: (
+      <PublicationCard
+        profile={profile}
+        publication={publication}
+        className={ACTION_COLUMN_CLASSES}
+      />
+    ),
+  };
+
   return (
     <>
       {profile.alias === null ? (
         <Notice tone="info">{t("page.noStorefront")}</Notice>
       ) : null}
       <div className={GRID_CLASSES}>
-        <aside className={PROGRESS_CLASSES}>
-          <ProfileProgress
-            profile={profile}
-            save={state.save}
-            locale={locale}
-          />
-          <PublicationCard profile={profile} publication={publication} />
-        </aside>
-        <Summary missing={profile.missingRequired} />
-        <div className={FORM_CLASSES}>
-          <ProfileSection id="presentation" disabled={!editable}>
-            <PresentationFields {...fields} />
-          </ProfileSection>
-          <ProfileSection id="editorial" disabled={!editable}>
-            <EditorialFields {...fields} />
-          </ProfileSection>
-          <ProfileSection id="networks" disabled={!editable}>
-            <NetworksFields
-              state={networks}
-              networks={networkOptions}
-              labelOf={labelOf}
-              bandLabelOf={(group, code) => bandLabelOf(t, group, code)}
-            />
-          </ProfileSection>
-          <ProfileSection id="audience" disabled={!editable}>
-            <AudienceFields
-              networks={networks}
-              audience={audience}
-              labelOf={labelOf}
-            />
-          </ProfileSection>
-          <ProfileSection id="offer" disabled={!editable}>
-            <OfferFields
-              {...fields}
-              networkCodes={
-                networks.phase === "ready"
-                  ? new Set(networks.lines.map((line) => line.networkCode))
-                  : null
-              }
-            />
-          </ProfileSection>
-          <ProfileSection id="portfolio" disabled={!editable}>
-            <PortfolioFields state={portfolio} editable={editable} />
-          </ProfileSection>
-          <ProfileSection
-            id="trust"
-            disabled={profile.alias === null || profile.status === "suspended"}
-          >
-            <TrustFields
-              accountVerified={accountVerifiedOf(profile.missingRequired)}
-              isSearchable={profile.isSearchable}
-              publication={publication}
-              disabled={
-                profile.alias === null || profile.status === "suspended"
-              }
-            />
-          </ProfileSection>
-        </div>
+        {PROFILE_PARTS_ORDER.map((part) => (
+          <Fragment key={part}>{parts[part]}</Fragment>
+        ))}
       </div>
       <div data-action-bar="" className={ACTION_BAR_CLASSES}>
         <SaveStatus save={state.save} locale={locale} />

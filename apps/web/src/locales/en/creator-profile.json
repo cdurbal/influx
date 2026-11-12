@@ -381,6 +381,7 @@
     "notice": "Your approved visuals are visible to every registered brand, before any introduction.",
     "pending": "This visual is being reviewed. It is not visible to brands yet.",
     "brandConsent": "I confirm I am allowed to name this brand and publish this visual.",
+    "brandConsentHelp": "Without this box, the caption is published without the brand name, or refused.",
     "faceNotice": "A face is allowed, but it can let someone find you through an image search.",
     "approved": "Approved",
     "rejected": "Rejected: {reason}",
@@ -451,14 +452,20 @@
     "action": "Publish my profile",
     "submitted": "Profile submitted for review. Answer within 1 business day.",
     "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to publish your profile: {fields}.",
+    "review": "An INFLUX salesperson reviews your profile before publishing it.",
     "failed": "Your profile could not be submitted. Please try again in a moment."
+  },
+  "frozen": {
+    "pending_review": "Your profile is being reviewed: it cannot be edited until the INFLUX team replies.",
+    "suspended": "Your profile is suspended: it cannot be edited for now."
   },
   "status": {
     "published": "Your profile is published. Only its anonymous version, under your alias, can be shown to brands.",
     "pendingWithPublished": "Your changes are being reviewed. Your profile remains visible in its previous version.",
     "pendingFields": "Being reviewed: {fields}.",
     "rejected": "Your profile was not published: {reason}",
-    "revisionRejected": "Your change was not published: {reason} Your profile stays visible in its previous version."
+    "revisionRejected": "Your change was not published: {reason}",
+    "revisionKept": "Your profile stays visible in its previous version."
   },
   "refusal": {
     "fix": "Correct it from your INFLUX space: your correction will be reviewed in turn.",

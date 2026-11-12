@@ -100,3 +100,46 @@ export function firstMissingAnchorOf(
 export function accountVerifiedOf(missing: readonly RequiredCode[]): boolean {
   return !missing.includes("accountVerified");
 }
+
+/**
+ * The parts of "mon profil", in the order of the document (L2GU-1; WCAG 1.3.2, 2.4.3): the refusal,
+ * which is urgent, then the completeness, the summary, the form, the notices that wait for an answer
+ * and the card of the action. A wide screen places the columns by CSS; the order of reading and of the
+ * keyboard stays this one, so that a phone shows the summary and the form before the button.
+ */
+export const PROFILE_PARTS_ORDER = [
+  "refusal",
+  "progress",
+  "summary",
+  "form",
+  "notices",
+  "action",
+] as const;
+
+export type ProfilePart = (typeof PROFILE_PARTS_ORDER)[number];
+
+/** The notice that tells why the form is frozen (L2GU-3): a profile under review or suspended; nothing otherwise. */
+export function frozenNoticeKeyOf(
+  status: CreatorProfileResponse["status"],
+): "frozen.pending_review" | "frozen.suspended" | null {
+  switch (status) {
+    case "pending_review":
+      return "frozen.pending_review";
+    case "suspended":
+      return "frozen.suspended";
+    default:
+      return null;
+  }
+}
+
+/** Whether the profile has a notice besides its refusal: the answer awaited, or changes waiting while published (L2GU-2). */
+export function hasPublicationNotices(
+  profile: Pick<CreatorProfileResponse, "status" | "pendingRevisions">,
+): boolean {
+  const mode = publicationModeOf(profile.status);
+  return (
+    mode === "waiting" ||
+    (mode === "published" &&
+      pendingFieldsOf(profile.pendingRevisions).length > 0)
+  );
+}
