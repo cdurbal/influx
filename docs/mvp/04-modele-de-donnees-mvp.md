@@ -585,14 +585,14 @@ Pourquoi une table plutôt qu'un `enum` : ajouter un type d'événement au Lot 5
 `ALTER TYPE` (non utilisable dans la même transaction que son usage), et l'on veut pouvoir compter
 les événements par domaine et par gravité par simple jointure.
 
-**Classification d'export (F3, `jalons/l3a/f3.md`).** Le journal d'activité de l'export « mes
+**Classification d'export (F3, `archives/jalons/l3a/f3.md`).** Le journal d'activité de l'export « mes
 données » ne sert que les codes `exported`. Exporté par défaut (art. 15) ; exclu seulement un code
 qui révèle une mesure de sécurité interne (détection, signal de fraude, garde déclenchée) ou la
 donnée d'un tiers. Toute migration qui ajoute un code nomme `export_class` ; une exclusion s'inscrit
 au tableau de F3 avec son motif.
 
 **Codes ajoutés au Lot 3** (`09`, Impacts ; `10` RG28). Ce sont des **données**, chargées par la
-migration `0301` : les ajouter n'exige aucun changement de schéma.
+migration `0303` : les ajouter n'exige aucun changement de schéma.
 
 | Code | `domain` | `subject_type` | `severity` | Fait relaté |
 |---|---|---|---|---|
@@ -6194,12 +6194,14 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 
 > **Numéros réels du L2B (EC-L2B-1).** `check-migrations.ts` impose l'ordre des noms : L2B a pris `0202` `profiles_advertiser_full`, `0203` `profiles_advertiser_submission` (soumission gardée par la base), `0204` `profiles_brand_logo_storage` (compartiment `brand-logo`, quotas, politiques Storage) et `0205` `ops_storage_purge`. Les lignes `0203` à `0207` ci-dessus prennent les numéros libres suivants au jalon qui les livre. **L2C** prend `0206` `backoffice_profiles_advertiser_queue` : file 1 et son délai (escalade 960, `15` RG29), `backoffice.operational_settings` (EC-L2C-2), `backoffice.business_deadline()` (§5.6), puis `0207` ci-dessus.
 | **Lot 3** | | | |
-| 0301 | `campaigns_core` | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** | Oui |
-| 0302 | `campaigns_publication` | `campaign_published_snapshots`, `campaign_price_bands`, fonction de publication (dérivation des tranches, contrôle des dates, revue renforcée à deux validateurs) | Oui |
-| 0303 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
-| 0304 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
-| 0305 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
-| 0306 | `backoffice_operational_settings` | Clés des plafonds et délais d'exploitation et leurs valeurs de départ (`11` P1 à P4, `09` RG15, RG88, `08` RG100), **ajoutées à la table de `0206`**, qui n'est plus créée ici (EC-L2C-2) | Oui |
+| 0301 | `profiles_lot2_carry_over` (L3A, EC-L3A-1) | `profiles.publish_creator_review_entry()` refuse en 55000 un compte non `active` ; deux index partiels sur `advertiser_duplicate_candidates()` ; `normalized_brand_name` accordée aux quatre écrivains | Non |
+| 0302 | `audit_export_allowlist` (L3A, F3) | `audit.event_types.export_class` (`not null`, sans défaut) ; `activity_log` de l'export « mes données » filtré sur `exported` | Oui |
+| 0303 | `campaigns_core` | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** | Oui |
+| 0304 | `campaigns_publication` | `campaign_published_snapshots`, `campaign_price_bands`, fonction de publication (dérivation des tranches, contrôle des dates, revue renforcée à deux validateurs) | Oui |
+| 0305 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
+| 0306 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
+| 0307 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
+| 0308 | `backoffice_operational_settings` | Clés des plafonds et délais d'exploitation et leurs valeurs de départ (`11` P1 à P4, `09` RG15, RG88, `08` RG100), **ajoutées à la table de `0206`**, qui n'est plus créée ici (EC-L2C-2) | Oui |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

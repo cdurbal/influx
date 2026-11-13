@@ -81,7 +81,7 @@ complétée par `expert-conformite-rgpd` le 2026-10-14 (un accès incomplet manq
 | Incidents de délivrance | `identity.email_delivery_incidents` : type, date, adresse concernée |
 | Signalements de secours | `backoffice.code_delivery_reports` dont `login_email` ou `contact_email` est une adresse, actuelle ou ancienne, du compte : adresses, message, date, statut |
 | Événements reçus de Brevo | `leads.brevo_inbound_outcomes` du compte (désinscription, plainte, rebond), dans la fenêtre de 30 jours |
-| Journal d'activité | `audit.audit_events` dont le compte est l'acteur ou le sujet, **codes `exported` seulement** (`audit.event_types.export_class`, F3 : `jalons/l3a/f3.md`) : code et date ; un agent apparaît comme « INFLUX » ; aucun hachage de chaîne ; les codes exclus révèlent une mesure de sécurité interne ou la donnée d'un tiers |
+| Journal d'activité | `audit.audit_events` dont le compte est l'acteur ou le sujet, **codes `exported` seulement** (`audit.event_types.export_class`, F3 : `archives/jalons/l3a/f3.md`) : code et date ; un agent apparaît comme « INFLUX » ; aucun hachage de chaîne ; les codes exclus révèlent une mesure de sécurité interne ou la donnée d'un tiers |
 | Rapports d'erreur | `ops.error_occurrences` du compte : date, page, message, navigateur résumé |
 | Demandes « mes données » | `backoffice.data_subject_requests` du demandeur |
 | Destinataires | `leads.contact_sync_states` (Brevo, Apollo) : identifiant externe, dernier état, désinscription. Brevo : attributs (`16` §M4), listes, liste noire, envois et événements rattachés au contact. Apollo : « aucune donnée transmise » tant que le connecteur est `skipped` |

@@ -3,7 +3,7 @@
 
 Sources : `00` §7 (Lot 3) et §9 (mode serré : fil chronologique côté créateur), `21` §7 et §8,
 `18` §10 (Lot 3 : T1 rejoué, T14, T15, TM5, TM12, I-9), questions ouvertes et critères de `09`, `10`,
-`11`, `04` §5.4, §5.5, §11 (`0301` à `0306`, numéros indicatifs), D78 étendue le 2026-11-13.
+`11`, `04` §5.4, §5.5, §11 (`0303` à `0308` ; `0301` et `0302` pris par L3A, numéros indicatifs), D78 étendue le 2026-11-13.
 
 **Frontière avec le Lot 4 (tranchée le 2026-11-13, question 1)** : la candidature (`11` §E à §J, C7, C8) et
 l'action « Demander une mise en relation » (`10` RG51) créent une `matching.introductions` (`0401`) :

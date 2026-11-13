@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/l3a-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -183,10 +180,10 @@
 | 5761 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
 | 5799 | 125 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
 | 5924 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6089 | 170 | 11. Plan de migrations | RG9–RG163 |
-| 6259 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6436 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6472 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 6089 | 172 | 11. Plan de migrations | RG9–RG163 |
+| 6261 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6438 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6474 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 
@@ -669,7 +666,7 @@
 | 860 | 56 | ↳ 11.8 Gabarits et composants |  |
 | 916 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~12k tokens)
+## 21-plan-de-developpement.md (~13k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -681,4 +678,4 @@
 | 93 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 117 | 9 | 6. Configuration des services externes |  |
 | 126 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 143 | 93 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 143 | 98 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |

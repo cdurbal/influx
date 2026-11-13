@@ -15,15 +15,15 @@ Budget : e2e 0 s (aucun parcours) ; base ≈ + 11 cas, moins de 10 s. Suite base
 seulement le domaine) pour 05 et 07 (migration, D76).
 
 ## Critère de fin
-- [ ] `design-system-influx` et `backoffice-ops` : `SKILL.md` ≤ 10 Ko, références ≤ 16 Ko — `wc -c`.
-- [ ] Chaque éclat base ≤ 7 min 30, éclat le plus long + contrôle ≤ 8 min — identifiant du run et
-      durées des jobs dans `run.md`.
-- [ ] Essai à blanc : un fichier retiré de la répartition fait échouer le contrôle — sortie citée.
-- [ ] `0301` et `0302` sur `staging` — job « Migrate staging » vert, identifiant du run.
-- [ ] Reliquat soldé dans `21` §8 : L2D-E2E, L2CS-6, L2GS-8 (volet publication ; volet recherche
-      repris par L3E), L2DS-3, L2DS-5, F3, L2GT-9 — SHA par ligne.
-- [ ] `pnpm check` puis `pnpm test:e2e` verts — sorties à la ligne C.
-- [ ] Revue groupée soldée et attestée (`security-reviewed:`).
+- [x] `design-system-influx` et `backoffice-ops` : `SKILL.md` ≤ 10 Ko, références ≤ 16 Ko — `wc -c` : 9 625 et 6 880 octets ; références 3 622 à 9 535 octets (`9c149d1`, `99bf9f2`).
+- [x] Chaque éclat base ≤ 7 min 30, éclat le plus long + contrôle ≤ 8 min — identifiant du run et
+      durées des jobs dans `run.md` : run 43430194053, 229 s et 249 s, contrôle 15 s (4 min 24 s).
+- [x] Essai à blanc : un fichier retiré de la répartition fait échouer le contrôle — sortie citée (L3AT-3) : `run.md` § Mesures de clôture.
+- [x] `0301` et `0302` sur `staging` — job « Migrate staging » vert, identifiant du run : 43430194053 (`7c5cd82`, 26 s).
+- [x] Reliquat soldé dans `21` §8 : L2D-E2E, L2CS-6, L2GS-8 (volet publication ; volet recherche
+      repris par L3E), L2DS-3, L2DS-5, F3, L2GT-9 — SHA par ligne (`0174f93`, `ba56aae`, `e886b37`, `7c5cd82`, `7a9b916`).
+- [x] `pnpm check` puis `pnpm test:e2e` verts — sorties à la ligne C : `run.md` § Mesures de clôture.
+- [x] Revue groupée soldée et attestée (`security-reviewed:`) : § Revue, 0 bloquant ; attestation `chore(security): attest the end-of-L3A review` (commit de clôture).
 
 ## Écarts, décisions ouvertes, risques
 - **EC-L3A-1** : `04` §11 numérote `0301` à `0306` pour le Lot 3 (indicatif) ; L3A prend `0301` et

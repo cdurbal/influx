@@ -11,5 +11,11 @@
 | 07 | 07.md | commit | opus | high | expert-database | fait | export_class not null sans défaut, 5/130 asserté ; activity_log filtré sur exported, reste du corps = 0245 ; GRANT (code, export_class) privacy_definer (I-4) |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | `bf5303f..7c5cd82` : 0 bloquant ; jalon L3AT-1 → fix-1, L3AT-2 → fix-2, L3AT-3 → C ; avant prod. L3AS-7 ; 12 plus tard ; annexe § Revue |
 | fix-1 | fix-1.md | fix | sonnet | medium | testeur | fait | runTag à lettre médiane : 12345678 rouge L2C-16/17 avant, 87654321 vert après, sans variable vert ; check:fast vert ; fondateur : valider tout |
-| fix-2 | fix-2.md | fix | sonnet | low | testeur | à faire | L3AT-2 : « L3A-T5: » en tête du describe de `t8-privacy-execution.test.ts:1392` ; planchers inchangés ; validé par le fondateur (valider tout) |
-| C | cloture.md | cloture | sonnet | medium | testeur | à faire | après fix-1 et fix-2 ; L3AT-3 fusionné (point 2) ; attestation I-4 (point 5) |
+| fix-2 | fix-2.md | fix | sonnet | low | testeur | fait | L3AT-2 : describe l.1392 préfixé « L3A-T5: » ; 98 cas verts, plancher 98 inchangé ; check:fast vert |
+| C | cloture.md | cloture | sonnet | medium | testeur | fait | critère de fin coché avec preuves ; reliquat soldé dans 21 §8 ; attestation I-4 en commit vide ; jalon archivé ; check et e2e verts |
+
+## Mesures de clôture
+- **`pnpm check`** (2026-11-13, local) : vert au second passage ; premier passage rouge sur `apps/web` `relay-integration.artifacts.ts` T7.3 (`ECONNRESET`, EPIPE intermittent connu de `21` §8, sans lien avec le diff), vert à la relance seule puis sur `pnpm check` entier. Base : 105 fichiers, 3 046 cas, 559 s (suite entière locale).
+- **`pnpm test:e2e`** : 260 cas verts en 5,2 min, plancher tenu ; aucun cas ajouté par L3A.
+- **CI, dernier run mesuré** 43430194053 (`7c5cd82`) : éclats base 229 s et 249 s, contrôle 15 s (4 min 24 s) ; « Migrate staging » vert (`0301`, `0302`). Les push de `5d17f21`, `50fd37a`, `d42086a` et de la clôture restent à faire par l'orchestrateur.
+- **Essai à blanc (L3AT-3, sortie de la revue)** : rapport sans `db-tests/t16-commission.test.ts`, contrôle rouge sur « shard 2: db-tests/t16-commission.test.ts is assigned to it but did not run » et « declared in the floor file, but absent from the report » ; cas complet vert : « every database test file ran in exactly one of 2 shards (105 files); floor of executed database cases met ».
