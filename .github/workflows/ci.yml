@@ -3,7 +3,10 @@
 # - `check`: security review markers, migration names, spec index and format, always; then types,
 #   lint, the tests without database, the build and its artefact checks;
 # - `db`: the local Supabase stack, rebuilt from the migrations, and the database tests (never
-#   skipped when code changed);
+#   skipped when code changed), in two shards on a stack of their own each (L3A-04, L2GT-1:
+#   apps/api/db-tests/shards.ts says which file runs where);
+# - `db-merge`: no stack; every database test file ran in exactly one shard and the floors of
+#   executed cases are met on the union of the two reports (apps/api/scripts/check-db-shards.ts);
 # - `e2e`: the J5 browser journeys (Playwright, Chromium headless shell only, 5-minute cap on the
 #   step) in three shards (L2C-14, docs/mvp/jalons/l2c/e2e.md; L2D-01), each against its own local stack,
 #   started in the background while both fronts build;
@@ -177,12 +180,21 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: pnpm -r run test:artifacts
 
+  # L3A-04 (L2GT-1): two shards (`fail-fast: false`: a red shard never hides the other). Each runs
+  # the files that apps/api/db-tests/shards.ts assigns to it, balanced by duration, on a stack of
+  # its own: a shard must stay under 7 min 30 s, the stack start-up included (L3A invariant 3).
+  # The floors of executed cases describe the whole project: a shard skips them, `db-merge` checks
+  # them on the union of the reports. Locally, `pnpm --filter @influx/api test:db` is unchanged.
   db:
-    name: Database tests
+    name: Database tests (${{ matrix.shard }}/2)
     needs: [changes]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     # Raised rate limits of the LOCAL Supabase Auth, read by `env()` in supabase/config.toml (EC-38
     # point 4): never a value that `supabase config push` would carry to a hosted project. Every
     # Supabase CLI command refuses to read the config when they are unset (EC-51). Set on the jobs
@@ -240,8 +252,54 @@ jobs:
       - name: Set the test passwords of the connection roles
         run: pnpm db:role-passwords
 
-      - name: Database tests
-        run: pnpm --filter @influx/api test:db
+      - name: Database tests (shard ${{ matrix.shard }}/2)
+        run: pnpm --filter @influx/api test:db -- --shard=${{ matrix.shard }}
+
+      # The JSON report of the shard, read by `db-merge`.
+      - name: Keep the report of the shard
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: db-report-${{ matrix.shard }}
+          path: apps/api/test-results/db-report-shard-${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 1
+
+  # L3A-04: no stack, no database. The union of the two shard reports against the declaration of
+  # db-tests/shards.ts (a file in no shard, in two, missing from its report) and against the floors
+  # of executed cases (db-tests/case-floors.ts). It replaces `db` in the `needs` of the migrations.
+  db-merge:
+    name: Database tests, merged
+    needs: [db]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download the reports of the shards
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: db-report-*
+          merge-multiple: true
+          path: apps/api/test-results/shards
+
+      - name: Every file ran in one shard, and the floors of executed cases are met
+        run: pnpm --filter @influx/api test:db:check-shards
 
   # L2C-14, L2D-01: three shards (`--project=chromium` is needed: without it, the `chromium` project, which the
   # TK3.1 project depends on, is never split and every case goes to shard 1). The 5-minute cap of the
@@ -473,7 +531,7 @@ jobs:
   migrate-staging:
     name: Migrate staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [check, db, e2e-merge, relay-node-24]
+    needs: [check, db-merge, e2e-merge, relay-node-24]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
@@ -555,7 +613,7 @@ jobs:
       github.event_name == 'push'
       && github.ref == 'refs/heads/production'
       && vars.PRODUCTION_MIGRATION_ENABLED == 'true'
-    needs: [check, db, e2e-merge, relay-node-24]
+    needs: [check, db-merge, e2e-merge, relay-node-24]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production

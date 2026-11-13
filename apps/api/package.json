@@ -14,6 +14,7 @@
     "test:unit": "node scripts/run-tests.ts unit",
     "db:demo-accounts": "node scripts/seed-demo-accounts.ts",
     "test:db": "node scripts/run-tests.ts db",
+    "test:db:check-shards": "node scripts/check-db-shards.ts",
     "db:staging-demo-accounts": "node --env-file=.env.local scripts/seed-staging-demo-accounts.ts",
     "db:publish-terms": "node scripts/publish-terms.ts",
     "db:publish-terms:staging": "node --env-file=.env.local scripts/publish-terms.ts --target=staging",

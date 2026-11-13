@@ -61,7 +61,7 @@ describe("J9T-2: the Migrate production job", () => {
   });
 
   it("waits for the required jobs", () => {
-    expect(JOB).toMatch(/needs: \[check, db, e2e-merge, relay-node-24\]/);
+    expect(JOB).toMatch(/needs: \[check, db-merge, e2e-merge, relay-node-24\]/);
   });
 
   it("is the only job that names the production environment", () => {
@@ -152,7 +152,7 @@ describe("D76: the documentation-only skip", () => {
 
   it("migrates staging after every check", () => {
     expect(code(JOBS.get("migrate-staging") ?? "")).toMatch(
-      /needs: \[check, db, e2e-merge, relay-node-24\]/,
+      /needs: \[check, db-merge, e2e-merge, relay-node-24\]/,
     );
   });
 });
