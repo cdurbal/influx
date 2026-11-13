@@ -1,6 +1,6 @@
 // T16.3 to T16.5 — the commission rates table stays empty and unwritable, and no amount is a
 // float (docs/mvp/18 T16; CLAUDE.md §3, transitional regime); T16.4 and T16.5 also cover
-// reference.price_bands (04 §4.2, 0201). T16.1, T16.2, T16.7: static, in
+// reference.price_bands (04 §4.2, 0201; grid of 0304). T16.1, T16.2, T16.7: static, in
 // packages/test-kit/tests/t16-static.test.ts.
 import {
   inRolledBackTransaction,
@@ -109,13 +109,40 @@ describe("T16.4: nobody can write it", () => {
   nobodyWrites(TABLE, INSERT);
 });
 
-// 04 §4.2: the net bounds of reference.price_bands are data written by a reviewed migration,
-// under the same regime as the rates; the table holds no row at L2A (0201, D78).
+// 04 §4.2: the price bands, and their net bounds, are data written by a reviewed migration only,
+// under the same regime as the rates. 0304 (L3B) loads the grid validated by the founder
+// (jalons/l3b/tranches.md §5), bounds written literally, no net.
+const GRID_CURRENCIES = ["CAD", "CHF", "EUR", "GBP", "USD"];
+const GRID_BANDS = [
+  "under_100 0-10000",
+  "100_250 10000-25000",
+  "250_500 25000-50000",
+  "500_1000 50000-100000",
+  "1000_2500 100000-250000",
+  "2500_5000 250000-500000",
+  "5000_10000 500000-1000000",
+  "10000_25000 1000000-2500000",
+  "25000_50000 2500000-5000000",
+  "50000_plus 5000000-null",
+];
+
 describe("T16.4 extended to reference.price_bands (04 §4.2)", () => {
-  it("holds no row at L2A, and is named by no seed file", async () => {
-    const [row] = await migration<{ count: number }[]>`
-      select count(*)::int as count from reference.price_bands`;
-    expect(row?.count).toBe(0);
+  it("holds exactly the grid of 0304 (tranches.md §5), and no net", async () => {
+    const rows = await migration<{ line: string }[]>`
+      select currency || ' ' || code || ' ' || min_amount_minor || '-'
+             || coalesce(max_amount_minor::text, 'null') as line
+        from reference.price_bands
+       where num_nulls(net_min_amount_minor, net_max_amount_minor, net_basis_label,
+                       net_computed_at) = 4
+       order by currency, min_amount_minor`;
+    expect(rows.map((row) => row.line)).toEqual(
+      GRID_CURRENCIES.flatMap((currency) =>
+        GRID_BANDS.map((band) => `${currency} ${band}`),
+      ),
+    );
+  });
+
+  it("is named by no seed file", () => {
     const seed = path.join(ROOT, "supabase/seed");
     const files = existsSync(seed) ? readdirSync(seed) : [];
     expect(

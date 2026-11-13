@@ -11,8 +11,8 @@
 // 2. every expectation cites its source; an absent cell means `refus_droit`: refusal is the
 //    default, never the exception;
 // 3. every table lists the templates its probes need, and the data set of test-kit places at
-//    least one row in it, except billing.commission_rates which stays EMPTY (T16.3) and
-//    reference.price_bands, EMPTY at L2A (0201, D78);
+//    least one row in it, except billing.commission_rates which stays EMPTY (T16.3)
+//    (reference.price_bands, empty at L2A, is loaded by 0304 since L3B);
 // 4. append-only tables carry `appendOnly` (T3.1, T3.2 apply to them);
 // 5. a table of our schemas absent from this file fails the build (T2.2), and an entry whose table
 //    no longer exists fails it too (T2.3).
@@ -48,7 +48,7 @@ export type Operation = (typeof OPERATIONS)[number];
  * Forms of 18 T2. `filtré` is not written here: it is what `propre` and `autorisé` become when
  * the role is taken without context, or in aal1 for agent and admin (T2.5), and is derived.
  * `vide` (added at J2, 21 §3 EC-35): the right exists but the table is empty BY DESIGN
- * (billing.commission_rates read by the administrator; reference.price_bands at L2A, 0201), so
+ * (billing.commission_rates read by the administrator; reference.price_bands until 0304), so
  * no row can be seen.
  */
 export type Form = "refus_droit" | "propre" | "autorisé" | "vide";
@@ -127,7 +127,8 @@ const REFERENCE_READ: Expectation = {
 };
 
 /**
- * The Lot 2 reference lists loaded by 0201 (04 §4.2), price_bands apart: it is EMPTY at L2A (D78).
+ * The Lot 2 reference lists loaded by 0201 (04 §4.2), price_bands apart: created by 0201, its rows
+ * are loaded by 0304 (L3B).
  * Same rights as 0003: SELECT to the four business roles, with a context (aal2 for agent, admin).
  */
 export const LOT2_REFERENCE_TABLES = [
@@ -363,13 +364,13 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
   })),
   {
     table: "reference.price_bands",
-    source: "0201 (rights of 0003; 04 §4.2 REVOKE)",
+    source: "0201 (rights of 0003; 04 §4.2 REVOKE); rows loaded by 0304",
     probeColumn: "code",
     expected: forRoles(BUSINESS, {
       select: {
-        form: "vide",
+        form: "autorisé",
         source:
-          "0201: read like every reference list, EMPTY at L2A by design (D78, L2A founder answer 2)",
+          "0201: read like every reference list (GRANT unchanged); the grid is loaded by 0304 (L3B)",
       },
     }),
   },

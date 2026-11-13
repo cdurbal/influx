@@ -6,7 +6,7 @@
 | B | B.md | arbitrage | opus | xhigh | expert-paiement-facturation | fait | EUR GBP USD CAD CHF × 10 tranches mêmes seuils (0 à 50 000+, min incluse, max exclue) ; nets nuls ; budget et dotation ; libellés traduits {currency} |
 | F1 | F1.md | fondateur | — | — | fondateur | fait | Fondateur, 2026-11-13 : « Grille validée » (telle quelle ; ligne 03 la recopie) |
 | 02 | 02.md | commit | opus | high | expert-database | fait | 0303 : 12 tables campaigns.*, RLS forcée, marque seule (jamais état, cycle, déclaration, fourchette) ; gel 55000 ; créateur rien ; 9 codes avec export_class |
-| 03 | 03.md | commit | opus | high | expert-database | à faire | |
+| 03 | 03.md | commit | opus | high | expert-database | fait | 0304 : grille de tranches.md mot pour mot (5 × 10), min incluse, max exclue, seule la dernière ouverte, nets nuls ; contiguïté + témoin ; T2 autorisé |
 | 04 | 04.md | commit | sonnet | high | dev-react-node | à faire | |
 | 05 | 05.md | commit | opus | high | expert-database | à faire | |
 | 06 | 06.md | commit | opus | high | expert-database | à faire | |

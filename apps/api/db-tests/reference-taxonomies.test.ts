@@ -1,6 +1,7 @@
 // The Lot 2 reference lists of 0201 (docs/mvp/04 §4.2, §12.12 points 3 and 4): the exact values of
 // jalons/l2a/referentiels.md, D79 point (10), 07 RG114 and RG115; contiguous bands; the shape of
-// codes and translation keys; no minor age band (D15); the net bounds of price_bands (04 §4.2).
+// codes and translation keys; no minor age band (D15); the net bounds of price_bands (04 §4.2) and
+// its grid of 0304 (jalons/l3b/tranches.md).
 // Rights per table are in T2, the write refusals of price_bands in T16.4; this file checks what
 // their probes do not reach. Each refusal runs as the local superuser, in a rolled-back
 // transaction, so that only the constraint can refuse.
@@ -175,6 +176,21 @@ const BANDS = [
   },
 ] as const;
 
+/** The grid of reference.price_bands loaded by 0304 (jalons/l3b/tranches.md, validated at F1). */
+const PRICE_BAND_CURRENCIES = ["CAD", "CHF", "EUR", "GBP", "USD"] as const;
+const PRICE_BAND_CODES = [
+  "under_100",
+  "100_250",
+  "250_500",
+  "500_1000",
+  "1000_2500",
+  "2500_5000",
+  "5000_10000",
+  "10000_25000",
+  "25000_50000",
+  "50000_plus",
+] as const;
+
 /** `code min-max` of a band table, ordered by lower bound; an open upper bound reads `null`. */
 async function bandsOf(band: (typeof BANDS)[number]): Promise<string[]> {
   const rows = await migration.unsafe<{ line: string }[]>(
@@ -328,8 +344,25 @@ describe("Exact values of jalons/l2a/referentiels.md (L2A-08)", () => {
     expect(rows).toHaveLength(89);
   });
 
-  it("loads no price band (D78, L2A founder answer 2)", async () => {
-    expect(await codesOf("price_bands")).toEqual([]);
+  it("loads the ten price band codes in each of the five currencies of 0304 (jalons/l3b/tranches.md)", async () => {
+    const rows = await migration<{ currency: string; codes: string[] }[]>`
+      select currency, array_agg(code order by min_amount_minor) as codes
+        from reference.price_bands group by currency order by currency`;
+    expect(rows).toEqual(
+      PRICE_BAND_CURRENCIES.map((currency) => ({
+        currency,
+        codes: [...PRICE_BAND_CODES],
+      })),
+    );
+  });
+
+  it("ties the price bands to five active currencies with a minor unit of 2 (tranches.md §1)", async () => {
+    const rows = await migration<{ code: string }[]>`
+      select code from reference.currencies
+       where is_active and minor_unit = 2
+         and code in (select currency from reference.price_bands)
+       order by code`;
+    expect(rows.map((row) => row.code)).toEqual([...PRICE_BAND_CURRENCIES]);
   });
 
   it("stores a translation key of the form <table in the singular>.<code> on every row (R8)", async () => {
@@ -374,6 +407,75 @@ describe("Bands: integer bounds, upper bound included, contiguous, the last one 
       }
     });
     expect(problems).toEqual([]);
+  });
+});
+
+/**
+ * L2AT-5 for reference.price_bands (tranches.md §2, NOT the rule of the Lot 2 bands above): per
+ * currency, the first band starts at 0, the lower bound is included and the upper bound excluded,
+ * so each band starts where the previous one ends; upper above lower; only the last band is open.
+ * One line per finding, read from the table itself.
+ */
+async function priceBandFindings(
+  sql: postgres.Sql | postgres.TransactionSql,
+): Promise<string[]> {
+  const rows = await sql<{ finding: string }[]>`
+    with ordered as (
+      select currency, code, min_amount_minor as low, max_amount_minor as high,
+             lag(code) over w as previous_code,
+             lag(max_amount_minor) over w as previous_high,
+             row_number() over w as rank,
+             count(*) over (partition by currency) as total
+        from reference.price_bands
+       where retired_at is null
+      window w as (partition by currency order by min_amount_minor, code)
+    )
+    select currency || ' ' || code || ': first band starts at ' || low as finding
+      from ordered where rank = 1 and low <> 0
+    union all
+    select currency || ' ' || code || ': gap after ' || previous_code
+           || ' (' || previous_high || ' then ' || low || ')'
+      from ordered where rank > 1 and low > previous_high
+    union all
+    select currency || ' ' || code || ': overlaps ' || previous_code
+           || ' (' || low || ' below ' || previous_high || ')'
+      from ordered where rank > 1 and low < previous_high
+    union all
+    select currency || ' ' || code || ': open before the last band'
+      from ordered where high is null and rank < total
+    union all
+    select currency || ' ' || code || ': last band not open'
+      from ordered where high is not null and rank = total
+    union all
+    select currency || ' ' || code || ': upper bound not above the lower one'
+      from ordered where high <= low
+    order by 1`;
+  return rows.map((row) => row.finding);
+}
+
+describe("L2AT-5: reference.price_bands is contiguous per currency, one open band (tranches.md §2)", () => {
+  it("finds no gap, no overlap and a single open band, the last, in each currency", async () => {
+    expect(await priceBandFindings(migration)).toEqual([]);
+  });
+
+  it("reports a gap, an overlap and an early open band (witness, rolled back)", async () => {
+    const findings = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        await tx`update reference.price_bands set min_amount_minor = 12000
+                  where currency = 'EUR' and code = '100_250'`;
+        await tx`update reference.price_bands set min_amount_minor = 240000
+                  where currency = 'GBP' and code = '2500_5000'`;
+        await tx`update reference.price_bands set max_amount_minor = null
+                  where currency = 'USD' and code = '25000_50000'`;
+        return priceBandFindings(tx);
+      },
+    );
+    expect(findings).toEqual([
+      "EUR 100_250: gap after under_100 (10000 then 12000)",
+      "GBP 2500_5000: overlaps 1000_2500 (240000 below 250000)",
+      "USD 25000_50000: open before the last band",
+    ]);
   });
 });
 
@@ -542,8 +644,8 @@ describe("04 §4.2: the net bounds of reference.price_bands", () => {
 // per case, so that no case passes by luck (R4, "seen red by mutation"): the statement is refused
 // BY THAT constraint (its name, read from the error), and, with that constraint dropped in the
 // rolled-back transaction, the same statement is accepted. A constraint added to these tables
-// without a case fails the inventory below. Contiguity of price_bands per currency is deferred
-// while the table is empty (D78): run.md of L2B, line 01.
+// without a case fails the inventory below. Contiguity of price_bands per currency is not a check
+// constraint: it is read from the table loaded by 0304, with its witness (L2AT-5 describe above).
 type Refusal =
   | { outcome: "accepted" }
   | { outcome: "refused"; code: string; constraint: string | undefined };
@@ -725,7 +827,7 @@ const CONSTRAINT_CASES: Readonly<Record<string, readonly string[]>> = (() => {
     `insert into reference.regions (country_code, code, label_key, introduced_at, retired_at)
      values ('FR', 'FR-ZZ', 'region.FR-ZZ', now(), now() - interval '1 day')`,
   );
-  // Price bands: the table is empty, the rows below exist in the transaction only.
+  // Price bands: codes outside the grid of 0304, the rows below exist in the transaction only.
   const band = (
     code: string,
     key: string,
