@@ -1,9 +1,10 @@
 "use client";
 
-// The campaign form (docs/mvp/17 §4.3, M3; 09 RG108 to RG110; jalons/l3b, commit 09): steps 1 to 3 of
-// five, the brand moving from one to another freely, "Étape n sur 5" at the head below lg, the draft
+// The campaign form (docs/mvp/17 §4.3, M3; 09 RG4, RG108 to RG110; jalons/l3b, commits 09 and 10): the
+// five steps, the brand moving from one to another freely, "Étape n sur 5" at the head below lg, the draft
 // saved by itself (what changed only), a failed save told by a banner that keeps the entry, the
-// campaign taken up again where it was left. The steps are links of the page itself, in the column
+// campaign taken up again where it was left, submitted from any step (the button always there, the
+// list of what is missing, by step, a way to each field). The steps are links of the page itself, in the column
 // from lg: a list, never a second navigation landmark (the space keeps one, 18 TD5.1). A campaign
 // the brand no longer writes (submitted, published) reads as it is, its fields set. The state is
 // use-campaign.ts, the rules campaign-view.ts and apps/api; this file draws. The page of a brand: a
@@ -43,6 +44,9 @@ import {
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
 import { CampaignAudienceFields } from "./CampaignAudienceFields";
+import { CampaignBudgetFields } from "./CampaignBudgetFields";
+import { CampaignCalendarFields } from "./CampaignCalendarFields";
+import { CampaignSubmitPanel } from "./CampaignSubmitPanel";
 import {
   CAMPAIGN_ASIDE_CLASSES,
   CAMPAIGN_CARD_CLASSES,
@@ -59,16 +63,20 @@ import {
   stepButtonClasses,
 } from "./campaign-classes";
 import { campaignOptionsOf } from "./campaign-options";
-import type { CampaignFieldsProps } from "./campaign-field-texts";
+import {
+  fieldErrorText,
+  type CampaignFieldsProps,
+} from "./campaign-field-texts";
 import {
   AVAILABLE_STEPS,
   controlIdOf,
   isEditable,
+  isKeyOfStep,
   missingOfStep,
   STATUS_TEXT_KEYS,
   STATUS_TONES,
-  STEP_OF_KEY,
   TOTAL_STEPS,
+  type CampaignDraft,
   type DraftKey,
   type FieldError,
 } from "./campaign-view";
@@ -189,6 +197,8 @@ function LoadedCampaign({
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const shownStep = useRef(step);
+  // The field a submission sends the brand to in another step: focused once that step is drawn.
+  const pendingFocus = useRef<DraftKey | null>(null);
   const options = useMemo(
     () => campaignOptionsOf(t, tBrand, locale, campaign.references),
     [t, tBrand, locale, campaign.references],
@@ -206,8 +216,24 @@ function LoadedCampaign({
       return;
     }
     shownStep.current = step;
-    headingRef.current?.focus();
+    const wanted = pendingFocus.current;
+    pendingFocus.current = null;
+    const control =
+      wanted === null ? null : document.getElementById(controlIdOf(wanted));
+    (control ?? headingRef.current)?.focus();
   }, [step]);
+  /** A way to a field (the list of what is missing): its step opens, its control takes the focus. */
+  const goToField = useCallback(
+    (target: CampaignStep, key: DraftKey) => {
+      if (target === step) {
+        document.getElementById(controlIdOf(key))?.focus();
+        return;
+      }
+      pendingFocus.current = key;
+      goTo(target);
+    },
+    [goTo, step],
+  );
 
   const fields: CampaignFieldsProps = {
     campaign,
@@ -224,6 +250,7 @@ function LoadedCampaign({
   return (
     <>
       <StatusLine campaign={campaign} />
+      {state.submitState === "done" ? <Submitted /> : null}
       {state.save.kind === "retrying" ? (
         <Notice tone="warning">
           <p className="font-semibold">{t("save.failedTitle")}</p>
@@ -261,7 +288,7 @@ function LoadedCampaign({
                 <p className="text-sm text-text-secondary">{t("form.intro")}</p>
               ) : null}
             </div>
-            <StepErrors state={state} step={step} />
+            <StepErrors state={state} step={step} draft={draft} />
             <fieldset
               disabled={!editable}
               className={CAMPAIGN_FIELDSET_CLASSES}
@@ -269,6 +296,8 @@ function LoadedCampaign({
               {step === 1 ? <CampaignOfferFields {...fields} /> : null}
               {step === 2 ? <CampaignWorkFields {...fields} /> : null}
               {step === 3 ? <CampaignAudienceFields {...fields} /> : null}
+              {step === 4 ? <CampaignBudgetFields {...fields} /> : null}
+              {step === 5 ? <CampaignCalendarFields {...fields} /> : null}
             </fieldset>
           </section>
           <div className={STEP_NAV_CLASSES}>
@@ -285,6 +314,14 @@ function LoadedCampaign({
               </MemberButton>
             )}
           </div>
+          {editable ? (
+            <CampaignSubmitPanel
+              state={state}
+              campaign={campaign}
+              draft={draft}
+              onGoTo={goToField}
+            />
+          ) : null}
           <SaveStatus
             save={state.save}
             locale={locale}
@@ -304,6 +341,34 @@ function LoadedCampaign({
         </aside>
       </div>
     </>
+  );
+}
+
+/**
+ * The success of a submission (17 §4.3 "succès"): the state in its own words, what follows and the way
+ * back to the list. The button it replaces is gone, so the focus comes here.
+ */
+function Submitted() {
+  const t = useTranslations("campaign");
+  const locale = useLocale();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    ref.current?.focus();
+  }, []);
+  return (
+    <div ref={ref} tabIndex={-1} role="status">
+      <Notice tone="success" announce={false}>
+        <p className="font-semibold">{t("publish.submittedTitle")}</p>
+        <p>{t("status.pending")}</p>
+        <p>{t("publish.submittedText")}</p>
+        <Link
+          href={memberPageHref("advertiserCampaigns", locale)}
+          className="mt-2 inline-block underline"
+        >
+          {t("publish.backToList")}
+        </Link>
+      </Notice>
+    </div>
   );
 }
 
@@ -329,15 +394,17 @@ function StatusLine({ campaign }: { campaign: CampaignResponse }) {
 function StepErrors({
   state,
   step,
+  draft,
 }: {
   state: CampaignState;
   step: CampaignStep;
+  draft: CampaignDraft;
 }) {
   const t = useTranslations("campaign");
   const entries = (
     Object.entries(state.fieldErrors) as [DraftKey, FieldError][]
   )
-    .filter(([key]) => STEP_OF_KEY[key] === step)
+    .filter(([key]) => isKeyOfStep(key, step, draft))
     .map(([key, error]) => ({ key, error }));
   if (entries.length === 0) {
     return null;
@@ -355,7 +422,9 @@ function StepErrors({
             >
               {t(`fields.${key}.label`)}
             </button>
-            <span className="block">{t(`fieldErrors.${error}`)}</span>
+            <span className="block">
+              {fieldErrorText(t, key, error, draft)}
+            </span>
           </li>
         ))}
       </ul>

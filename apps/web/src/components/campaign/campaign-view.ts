@@ -1,13 +1,16 @@
 // The rules of the screens "mes campagnes" and the campaign form that are not apps/api's (docs/mvp/17
-// §4.3; 09 RG14, RG21 to RG23, RG108; jalons/l3b, commit 09): the draft the form holds, the patch of
-// what changed, the dependents a change empties (EC-L3B-07-1), the checks the browser makes with the
-// very schema the API validates with (RG14), the warnings a text shows (RG21 to RG23, never a
-// refusal), which message an answer calls for, which state allows editing. Pure functions,
+// §4.3; 09 RG14, RG21 to RG23, RG108; jalons/l3b, commits 09 and 10): the draft the form holds, the
+// patch of what changed, the dependents a change empties (EC-L3B-07-1), the checks the browser makes
+// with the very schema the API validates with (RG14), the order of the four dates (RG70, RG74), the
+// warnings a text shows (RG21 to RG23, never a refusal), which message an answer calls for, which
+// state allows editing, what the submission names as missing (RG4, CA3). Pure functions,
 // unit-tested (tests/campaign-view.test.ts); the components and the hook only display and call.
 // The bounds of the texts, the dates and the required fields are packages/domain's (the form reads
 // the same as the API); the missing fields come in each answer of the API, nothing of them is
 // computed here. No amount is entered, shown or computed on this screen but a band chosen from the
-// grid (CLAUDE.md §2, D48, D78): the band is a code, its label is a translation.
+// grid (CLAUDE.md §2, D48, D78): the band is a code, its label is a translation. The total budget of
+// RG55 is not typed here (EC-L3B-10-1): turning an amount typed into the minor unit is the one
+// multiplication T16.6 exempts, and the function that holds it does not exist yet.
 import {
   updateCampaignBodySchema,
   type CampaignDeliverable,
@@ -15,13 +18,20 @@ import {
   type CampaignStatus,
 } from "@influx/contracts/campaign";
 import {
+  CAMPAIGN_DATE_FIELDS,
+  CAMPAIGN_GIFT_ONLY,
   CAMPAIGN_NO_USAGE_RIGHTS,
   CAMPAIGN_REQUIRED_FIELD_STEP,
   CAMPAIGN_STEPS,
+  CAMPAIGN_TERRITORY_SELECTED,
   CAMPAIGN_TERRITORY_WORLDWIDE,
   CAMPAIGN_TEXT_KINDS,
   CAMPAIGN_TEXT_WARNING_CODE,
+  campaignDateConflicts,
   campaignTextKinds,
+  isPublicationWindowTooLong,
+  type CampaignDateConflict,
+  type CampaignDateField,
   type CampaignRequiredField,
   type CampaignStep,
 } from "./campaign-domain";
@@ -30,11 +40,11 @@ import type { StatusTone } from "@/components/member/ui/status-badge-classes";
 
 // --- The steps ----------------------------------------------------------------------------------
 
-/** The five steps of the form (17 §4.3); the screens of 4 and 5 come with L3B-10. */
+/** The five steps of the form (17 §4.3). */
 export const TOTAL_STEPS = CAMPAIGN_STEPS.length;
 
 /** The steps that have a screen: an entry without a screen is left out (02 §21.5 point 9). */
-export const AVAILABLE_STEPS: readonly CampaignStep[] = [1, 2, 3];
+export const AVAILABLE_STEPS: readonly CampaignStep[] = [1, 2, 3, 4, 5];
 
 /** The step a `?step=` of the address names; the first one when it names none that exists. */
 export function stepOfParameter(
@@ -86,6 +96,18 @@ export type CampaignDraft = {
   audienceBands: string[];
   audienceAgeBands: string[];
   audienceGender: string | null;
+  // step 4: the budget (block 5), the currency being asked in step 1 too once a product is sent
+  remunerationKind: string | null;
+  budgetBand: string | null;
+  creatorsWanted: number | null;
+  // step 5: the calendar (block 6), the dates as the civil dates of the form ("" for none), then the
+  // application (block 7)
+  applicationsCloseOn: string;
+  contentDueOn: string;
+  startsOn: string;
+  endsOn: string;
+  requestedItems: string[];
+  maxApplications: number | null;
 };
 
 export type DraftKey = keyof CampaignDraft;
@@ -119,6 +141,15 @@ export const STEP_OF_KEY: Readonly<Record<DraftKey, CampaignStep>> = {
   audienceBands: 3,
   audienceAgeBands: 3,
   audienceGender: 3,
+  remunerationKind: 4,
+  budgetBand: 4,
+  creatorsWanted: 4,
+  applicationsCloseOn: 5,
+  contentDueOn: 5,
+  startsOn: 5,
+  endsOn: 5,
+  requestedItems: 5,
+  maxApplications: 5,
 };
 
 /** The fields in the order of the form. */
@@ -154,6 +185,15 @@ export function draftOf(campaign: CampaignResponse): CampaignDraft {
     audienceBands: [...campaign.audienceBands],
     audienceAgeBands: [...campaign.audienceAgeBands],
     audienceGender: campaign.audienceGender,
+    remunerationKind: campaign.remunerationKind,
+    budgetBand: campaign.budgetBand,
+    creatorsWanted: campaign.creatorsWanted,
+    applicationsCloseOn: campaign.applicationsCloseOn ?? "",
+    contentDueOn: campaign.contentDueOn ?? "",
+    startsOn: campaign.startsOn ?? "",
+    endsOn: campaign.endsOn ?? "",
+    requestedItems: [...campaign.requestedItems],
+    maxApplications: campaign.maxApplications,
   };
 }
 
@@ -190,7 +230,8 @@ export function sameValue(first: unknown, second: unknown): boolean {
 /**
  * The fields an answer makes inapplicable, which the API refuses to leave filled and never empties
  * itself (`not_applicable`): the form sends them emptied in the same save as the answer that
- * changes them. `productValueBand` follows the currency: a band belongs to the grid of one currency.
+ * changes them. The two bands follow the currency: a band belongs to the grid of one currency. The
+ * budget band follows the nature too: "gift only" asks none (RG63, CA76).
  */
 export const DEPENDENT_KEYS: Readonly<
   Partial<Record<DraftKey, readonly DraftKey[]>>
@@ -200,7 +241,8 @@ export const DEPENDENT_KEYS: Readonly<
     "creatorKeepsProduct",
     "shippingCostsBorneBy",
   ],
-  currency: ["productValueBand"],
+  currency: ["productValueBand", "budgetBand"],
+  remunerationKind: ["budgetBand"],
   usageRights: [
     "usageRightsDuration",
     "usageRightsTerritoryScope",
@@ -229,6 +271,12 @@ export function applyChange<Key extends DraftKey>(
       break;
     case "currency":
       next.productValueBand = null;
+      next.budgetBand = null;
+      break;
+    case "remunerationKind":
+      if (value === CAMPAIGN_GIFT_ONLY) {
+        next.budgetBand = null;
+      }
       break;
     case "usageRights":
       if (value === CAMPAIGN_NO_USAGE_RIGHTS) {
@@ -250,14 +298,22 @@ export function applyChange<Key extends DraftKey>(
 
 /**
  * The fields whose refusal an answer may settle: a type "content delivered to the brand" is refused
- * while the usage rights are none, and the rights refused while the type is UGC (RG43); an answer on
- * one clears the error of the other, so that it is sent again with the next save.
+ * while the usage rights are none, and the rights refused while the type is UGC (RG43); a gift refused
+ * while no product is sent (RG29); a date refused for the order or the length of the calendar (RG70,
+ * RG74). An answer on one clears the error of the other, so that it is sent again with the next save.
  */
 export const RELATED_ERROR_KEYS: Readonly<
   Partial<Record<DraftKey, readonly DraftKey[]>>
 > = {
   campaignType: ["usageRights"],
   usageRights: ["campaignType"],
+  // a gift needs a product sent (RG29): the answer of step 1 settles the nature of step 4
+  productIsSent: ["remunerationKind"],
+  // the four dates hold together (RG70, RG74): a change of one may settle the refusal of another
+  applicationsCloseOn: ["contentDueOn", "startsOn", "endsOn"],
+  contentDueOn: ["applicationsCloseOn", "startsOn", "endsOn"],
+  startsOn: ["applicationsCloseOn", "contentDueOn", "endsOn"],
+  endsOn: ["applicationsCloseOn", "contentDueOn", "startsOn"],
 };
 
 // --- The patch of the autosave (RG108) ------------------------------------------------------------
@@ -271,7 +327,10 @@ export type FieldError =
   | "formatNetworkMismatch"
   | "ugcRequiresRights"
   | "giftRequiresProduct"
-  | "notApplicable";
+  | "notApplicable"
+  | "dateOrder"
+  | "windowTooLong"
+  | "required";
 
 export type FieldErrors = Partial<Record<DraftKey, FieldError>>;
 
@@ -288,6 +347,12 @@ function fragmentOf(
     case "productDescription":
     case "restrictions":
       // Kept as typed (margins and line breaks); the API trims, and a blank text empties the field.
+      return { [key]: draft[key] === "" ? null : draft[key] };
+    case "applicationsCloseOn":
+    case "contentDueOn":
+    case "startsOn":
+    case "endsOn":
+      // A date cleared empties the field.
       return { [key]: draft[key] === "" ? null : draft[key] };
     case "deliverables":
       return { deliverables: completeDeliverables(draft.deliverables) };
@@ -320,12 +385,25 @@ export function planPatch(
   const patch: Record<string, unknown> = {};
   const keys: DraftKey[] = [];
   const refused: FieldErrors = {};
+  const calendar = dateIssuesOf(draft);
   for (const key of DRAFT_KEYS) {
     if (
       sameValue(comparableOf(key, draft), comparableOf(key, saved)) ||
       skip[key] !== undefined
     ) {
       continue;
+    }
+    // A date that breaks the order or the length of the calendar is kept on the screen, never sent
+    // (the API refuses it all the same): the screen names the two dates that conflict.
+    if (isDateKey(key)) {
+      if (calendar.inConflict.has(key)) {
+        refused[key] = "dateOrder";
+        continue;
+      }
+      if (calendar.windowTooLong && (key === "startsOn" || key === "endsOn")) {
+        refused[key] = "windowTooLong";
+        continue;
+      }
     }
     const fragment = fragmentOf(key, draft);
     if (!schema.safeParse(fragment).success) {
@@ -382,6 +460,8 @@ export function fieldErrorOf(result: RelayResult<unknown>): FieldError {
   if (has("too_long")) return "tooLong";
   if (has("unknown")) return "unknown";
   if (has("not_applicable")) return "notApplicable";
+  if (has("date_order")) return "dateOrder";
+  if (has("window_too_long")) return "windowTooLong";
   return "invalid";
 }
 
@@ -399,6 +479,47 @@ export function afterSave(
     Object.assign(next, { [key]: sent[key] });
   }
   return next;
+}
+
+// --- The calendar (RG70, RG74) ---------------------------------------------------------------------
+
+/** The four dates of the form are the fields of the domain's own list. */
+export function isDateKey(key: DraftKey): key is CampaignDateField {
+  return (CAMPAIGN_DATE_FIELDS as readonly string[]).includes(key);
+}
+
+/** The dates the form holds, a date not entered being none (the domain reads `null`). */
+function datesOf(
+  draft: CampaignDraft,
+): Record<CampaignDateField, string | null> {
+  return {
+    applicationsCloseOn: draft.applicationsCloseOn || null,
+    contentDueOn: draft.contentDueOn || null,
+    startsOn: draft.startsOn || null,
+    endsOn: draft.endsOn || null,
+  };
+}
+
+/** The pairs of dates out of order, in the order of the calendar (RG70): the screen names both. */
+export function dateConflictsOf(draft: CampaignDraft): CampaignDateConflict[] {
+  return campaignDateConflicts(datesOf(draft));
+}
+
+/** What is wrong with the calendar the form holds: the dates in conflict, the period too long. */
+function dateIssuesOf(draft: CampaignDraft): {
+  inConflict: ReadonlySet<DraftKey>;
+  windowTooLong: boolean;
+} {
+  const dates = datesOf(draft);
+  const inConflict = new Set<DraftKey>();
+  for (const conflict of campaignDateConflicts(dates)) {
+    inConflict.add(conflict.earlier);
+    inConflict.add(conflict.later);
+  }
+  return {
+    inConflict,
+    windowTooLong: isPublicationWindowTooLong(dates.startsOn, dates.endsOn),
+  };
 }
 
 // --- Where each field stands ---------------------------------------------------------------------
@@ -424,15 +545,20 @@ export const REQUIRED_KEYS: ReadonlySet<DraftKey> = new Set<DraftKey>([
   "audienceCountries",
   "audienceLanguages",
   "audienceTopics",
+  "currency",
+  "remunerationKind",
+  "creatorsWanted",
+  "applicationsCloseOn",
+  "startsOn",
+  "endsOn",
 ]);
 
-/** Required once their condition holds (RG24, RG34): a product sent, rights granted. */
+/** Required once their condition holds (RG24, RG34, RG63): a product sent, rights granted, a budget asked. */
 export function isConditionallyRequired(
   key: DraftKey,
   draft: CampaignDraft,
 ): boolean {
   switch (key) {
-    case "currency":
     case "productValueBand":
     case "creatorKeepsProduct":
     case "shippingCostsBorneBy":
@@ -443,9 +569,16 @@ export function isConditionallyRequired(
         draft.usageRights !== null &&
         draft.usageRights !== CAMPAIGN_NO_USAGE_RIGHTS
       );
+    case "budgetBand":
+      return draft.remunerationKind !== null && !isGiftOnly(draft);
     default:
       return false;
   }
+}
+
+/** "Gift only": a product kept and no money, so no band of budget is asked (RG63, CA76). */
+export function isGiftOnly(draft: CampaignDraft): boolean {
+  return draft.remunerationKind === CAMPAIGN_GIFT_ONLY;
 }
 
 /** Whether a field is asked as required now. */
@@ -459,6 +592,83 @@ export function missingOfStep(
   step: CampaignStep,
 ): CampaignRequiredField[] {
   return missing.filter((code) => CAMPAIGN_REQUIRED_FIELD_STEP[code] === step);
+}
+
+/**
+ * The field of the form a missing code points to: the territory is the scope until it is chosen, then
+ * its countries. Every other code is the name of its field.
+ */
+export function missingKeyOf(
+  code: CampaignRequiredField,
+  draft: CampaignDraft,
+): DraftKey {
+  if (code === "usageRightsTerritory") {
+    return draft.usageRightsTerritoryScope === CAMPAIGN_TERRITORY_SELECTED
+      ? "usageRightsTerritories"
+      : "usageRightsTerritoryScope";
+  }
+  return code;
+}
+
+/** The fields still missing as errors of the form, once a submission asked for them (RG4, CA3). */
+export function missingErrors(
+  missing: readonly CampaignRequiredField[],
+  draft: CampaignDraft,
+): FieldErrors {
+  const errors: FieldErrors = {};
+  for (const code of missing) {
+    errors[missingKeyOf(code, draft)] = "required";
+  }
+  return errors;
+}
+
+/** What is missing, step by step, in the order of the form: the list the submission names (CA3). */
+export function missingGroups(
+  missing: readonly CampaignRequiredField[],
+  draft: CampaignDraft,
+): { step: CampaignStep; keys: DraftKey[] }[] {
+  return AVAILABLE_STEPS.map((step) => ({
+    step,
+    keys: missingOfStep(missing, step).map((code) => missingKeyOf(code, draft)),
+  })).filter((group) => group.keys.length > 0);
+}
+
+/** The first missing field with its step: the one the focus goes to. */
+export function firstMissing(
+  missing: readonly CampaignRequiredField[],
+  draft: CampaignDraft,
+): { step: CampaignStep; key: DraftKey } | null {
+  const first = missingGroups(missing, draft)[0];
+  const key = first?.keys[0];
+  return first === undefined || key === undefined
+    ? null
+    : { step: first.step, key };
+}
+
+/**
+ * The fields a refusal holds on the screen and whose entry the API does not hold: what a submission
+ * must not leave behind (the campaign submitted would not be the one on the screen).
+ */
+export function unsavedInError(
+  draft: CampaignDraft,
+  saved: CampaignDraft,
+  errors: FieldErrors,
+): DraftKey[] {
+  return (Object.keys(errors) as DraftKey[]).filter(
+    (key) => !sameValue(comparableOf(key, draft), comparableOf(key, saved)),
+  );
+}
+
+/** Whether a field is drawn in a step: the currency is also asked in step 1 once a product is sent. */
+export function isKeyOfStep(
+  key: DraftKey,
+  step: CampaignStep,
+  draft: CampaignDraft,
+): boolean {
+  if (key === "currency") {
+    return step === 4 || (step === 1 && draft.productIsSent === true);
+  }
+  return STEP_OF_KEY[key] === step;
 }
 
 // --- What a text says about itself (RG21 to RG23) -------------------------------------------------

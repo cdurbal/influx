@@ -27,7 +27,36 @@
     "link": "See my campaigns"
   },
   "publish": {
+    "title": "Submit my campaign",
+    "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to submit your campaign: {fields}.",
+    "ready": "All the required information is filled in: you can submit your campaign.",
+    "listTitle": "To complete before submitting",
+    "button": "Submit my campaign",
+    "busy": "Sending…",
+    "explain": "An INFLUX account manager reviews the campaign before it is published. Once submitted, it cannot be edited during the review.",
+    "sensitiveNotice": "This product category calls for an enhanced review: two people of the INFLUX team approve the publication, which may lengthen the review.",
+    "declarationRequired": "Tick this declaration to submit the campaign.",
+    "submittedTitle": "Your campaign is submitted.",
+    "submittedText": "It cannot be edited during the review.",
+    "backToList": "Back to my campaigns",
+    "unavailable": "The campaign could not be submitted right now. Try again in a moment.",
+    "unsaved": "Your last entry is not saved yet. Wait for the save to finish, then submit again.",
+    "invalid": "First correct the fields flagged in the steps, then submit again.",
+    "locked": "This campaign can no longer be edited: it cannot be submitted again.",
     "profileRequired": "Publish your brand profile before submitting a campaign."
+  },
+  "budget": {
+    "bandBrand": "Budget band per creator: the total amount you pay, INFLUX commission included. Only your INFLUX account manager sees it.",
+    "negotiate": "To be negotiated with your account manager.",
+    "internalPilot": "Your budget is never published: only your INFLUX account manager sees it.",
+    "giftOnly": "Gifted product only: no budget band is asked. The value of the product is entered in step 1.",
+    "chooseCurrency": "Choose the currency first.",
+    "creatorSees": "A creator sees the nature of the compensation, followed by the line below. No amount and no band is shown to them.",
+    "noNature": "Choose the nature of the compensation: it will show here.",
+    "creatorNature": "Compensation: {kind}"
+  },
+  "application": {
+    "validationNotice": "Applying does not open a conversation: the application is reviewed by an INFLUX account manager."
   },
   "status": {
     "label": {
@@ -90,7 +119,11 @@
       "rights": "Usage rights and exclusivity",
       "review": "Content review",
       "audience": "Audience aimed at",
-      "audienceMore": "Optional details"
+      "audienceMore": "Optional details",
+      "remuneration": "Compensation",
+      "creatorSees": "What a creator sees",
+      "calendar": "Calendar",
+      "application": "Application"
     },
     "internalNotice": "This box is never published: only you and your INFLUX account manager see it.",
     "errorsTitle": "To correct in this step"
@@ -224,6 +257,40 @@
     "audienceGender": {
       "label": "Gender split of the audience",
       "help": "Optional. It describes the audience, never the creator; without a choice, it is no preference."
+    },
+    "remunerationKind": {
+      "label": "Nature of the compensation"
+    },
+    "budgetBand": {
+      "label": "Budget band per creator"
+    },
+    "creatorsWanted": {
+      "label": "Number of creators wanted",
+      "help": "From {min} to {max}. Beyond that, a sales-assisted engagement fits better."
+    },
+    "applicationsCloseOn": {
+      "label": "Application deadline",
+      "help": "After this date the campaign no longer accepts applications, but stays readable."
+    },
+    "contentDueOn": {
+      "label": "Content delivery date",
+      "help": "Recommended: what the creator must meet. It follows the application deadline."
+    },
+    "startsOn": {
+      "label": "Start of the publication period",
+      "help": "It follows the content delivery."
+    },
+    "endsOn": {
+      "label": "End of the publication period",
+      "help": "The publication period lasts 12 months at most."
+    },
+    "requestedItems": {
+      "label": "Items you would like to find in an application",
+      "help": "Optional. They guide the creator, and add or remove no field of their application."
+    },
+    "maxApplications": {
+      "label": "Ceiling of applications",
+      "help": "Optional, from {min} to {max}. Once reached, the campaign no longer accepts applications; the number received is never shown to creators."
     }
   },
   "fieldErrors": {
@@ -234,12 +301,16 @@
     "formatNetworkMismatch": "This format does not belong to this network: pick a format of the network.",
     "ugcRequiresRights": "Content delivered to the brand requires usage rights: choose them in step 2, or change the campaign type.",
     "giftRequiresProduct": "This campaign offers a product: answer “yes” to a product being sent, or change the nature of the payment.",
-    "notApplicable": "This answer makes no sense with another one: check the neighbouring choices."
+    "notApplicable": "This answer makes no sense with another one: check the neighbouring choices.",
+    "dateOrder": "This date does not follow the order of the calendar: check the four dates.",
+    "windowTooLong": "The publication period cannot exceed 12 months.",
+    "required": "To fill in or correct before submitting the campaign."
   },
   "errors": {
     "contactInText": "Your text contains what looks like direct contact details or an invitation to get in touch outside INFLUX.",
     "linkInText": "Your text contains what looks like a link. Links are not accepted in a campaign: your brand's domain is already on your profile.",
-    "amountInText": "Your text contains an amount. Amounts belong in the budget section."
+    "amountInText": "Your text contains an amount. Amounts belong in the budget section.",
+    "datesOrder": "{first} must come before {second}."
   },
   "campaign_type": {
     "product_placement": "Product placement in a content",
@@ -253,6 +324,18 @@
   "shipping": {
     "brand": "Paid by the brand",
     "creator": "Paid by the creator"
+  },
+  "remuneration": {
+    "cash": "Cash payment",
+    "cash_and_gift": "Cash payment and gifted product",
+    "gift_only": "Gifted product only",
+    "affiliate": "Affiliate: a share of the sales generated"
+  },
+  "requested_item": {
+    "motivation_message": "A motivation message",
+    "past_content_examples": "Examples of content already made",
+    "concept_proposal": "A concept proposal",
+    "availability": "Their availability over the period"
   },
   "usage_right": {
     "none": "None: the content stays on the creator's account",

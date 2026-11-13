@@ -1,13 +1,18 @@
 "use client";
 
-// The state and the flow of the campaign form (docs/mvp/17 §4.3; 09 RG108; jalons/l3b, commit 09),
+// The state and the flow of the campaign form (docs/mvp/17 §4.3; 09 RG4, RG108; jalons/l3b, commits 09
+// and 10),
 // outside the components (CLAUDE.md §5): the campaign as the API last said it, the draft the form
 // holds, the autosave (a pause after the last key, one save at a time, what changed only), the new
 // attempt 5 s after a failure with the entry kept in memory (a brand interrupted never starts over,
-// even in the middle of the deliverables). No rule is decided here: the patch comes from
-// campaign-view.ts, the missing fields from the API. Nothing is kept in the browser's storage (D37):
+// even in the middle of the deliverables), the submission (what is on the screen saved first, the
+// missing fields named from the API's own count, the declaration of RG85 sent only when ticked). No
+// rule is decided here: the patch comes from campaign-view.ts, the missing fields from the API. Nothing is kept in the browser's storage (D37):
 // the draft lives in memory and in the database.
-import type { CampaignResponse } from "@influx/contracts/campaign";
+import type {
+  CampaignResponse,
+  DeclarationLocale,
+} from "@influx/contracts/campaign";
 import {
   useCallback,
   useEffect,
@@ -16,17 +21,25 @@ import {
   type Dispatch,
   type SetStateAction,
 } from "react";
-import { readCampaign, saveCampaignFields } from "./campaign-api";
+import {
+  readCampaign,
+  saveCampaignFields,
+  submitCampaign,
+} from "./campaign-api";
+import type { CampaignStep } from "./campaign-domain";
 import {
   afterSave,
   applyChange,
   DEPENDENT_KEYS,
   draftOf,
   fieldErrorOf,
+  firstMissing,
   isEditable,
+  missingErrors,
   planPatch,
   RELATED_ERROR_KEYS,
   singleFieldPatch,
+  unsavedInError,
   type CampaignDraft,
   type DraftKey,
   type FieldErrors,
@@ -45,6 +58,29 @@ export type SaveState =
   | { kind: "saved"; at: Date }
   | { kind: "retrying" };
 
+/**
+ * Where the submission stands (RG4): `profileRequired` the brand profile is not published (CA2),
+ * `declaration` the box of RG85 is not ticked, `unsaved` a save is waiting for its new attempt,
+ * `invalid` a field refused is still on the screen.
+ */
+export type SubmitState =
+  | "idle"
+  | "submitting"
+  | "done"
+  | "unavailable"
+  | "unsaved"
+  | "invalid"
+  | "locked"
+  | "declaration"
+  | "profileRequired";
+
+/** What a click on "Soumettre" led to; `missing` carries the first missing field, to focus it (CA3). */
+export type SubmitOutcome =
+  | { kind: "submitted" }
+  | { kind: "missing"; step: CampaignStep; key: DraftKey }
+  | { kind: "declaration" }
+  | { kind: "stopped" };
+
 export type CampaignState = {
   phase: LoadPhase;
   campaign: CampaignResponse | null;
@@ -52,6 +88,11 @@ export type CampaignState = {
   /** The fields the API or the browser refused, each with its reason. */
   fieldErrors: FieldErrors;
   save: SaveState;
+  submitState: SubmitState;
+  /** A submission named what is missing: the list stays, and the fields stay named, until filled. */
+  missingShown: boolean;
+  /** The submission: `declaredIn` is the language of the box of RG85 when it was ticked, else null. */
+  submit: (declaredIn: DeclarationLocale | null) => Promise<SubmitOutcome>;
   change: <Key extends DraftKey>(key: Key, value: CampaignDraft[Key]) => void;
   /** "Réessayer maintenant" after a failed save: the entry kept in memory goes at once. */
   retryNow: () => void;
@@ -70,6 +111,10 @@ export function useCampaign(
   const [draft, setDraft] = useState<CampaignDraft | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [save, setSave] = useState<SaveState>({ kind: "idle" });
+  const [submitState, setSubmitState] = useState<SubmitState>("idle");
+  // Once a submission named what is missing, the fields stay named until they are filled (CA3).
+  const [showMissing, setShowMissing] = useState(false);
+  const submitting = useRef(false);
 
   // What the asynchronous steps read: the latest values, never a stale closure.
   const campaignRef = useRef<CampaignResponse | null>(null);
@@ -243,6 +288,110 @@ export function useCampaign(
     saveRef.current = runSave;
   }, [runSave]);
 
+  /** The first missing field after the campaign the API holds, with its step; the fields get named. */
+  const missingOutcome = useCallback((): SubmitOutcome | null => {
+    const current = campaignRef.current;
+    const draftNow = draftRef.current;
+    if (current === null || draftNow === null) {
+      return null;
+    }
+    const first = firstMissing(current.missingRequired, draftNow);
+    if (first === null) {
+      return null;
+    }
+    setShowMissing(true);
+    return { kind: "missing", step: first.step, key: first.key };
+  }, []);
+
+  /**
+   * The submission (RG4, RG5): what is on the screen is saved first, a field refused is never left
+   * behind, the missing fields are those of the API's own count, the box of RG85 is asked before the
+   * call (and refused by the base all the same). The campaign answered is the new state of the screen.
+   */
+  const submit = useCallback(
+    async (declaredIn: DeclarationLocale | null): Promise<SubmitOutcome> => {
+      const current = campaignRef.current;
+      if (current === null || submitting.current) {
+        return { kind: "stopped" };
+      }
+      if (!isEditable(current.status)) {
+        setSubmitState("locked");
+        return { kind: "stopped" };
+      }
+      submitting.current = true;
+      setSubmitState("submitting");
+      try {
+        await runSave();
+        const draftNow = draftRef.current;
+        const savedNow = savedRef.current;
+        if (draftNow === null || savedNow === null) {
+          return { kind: "stopped" };
+        }
+        if (planPatch(draftNow, savedNow, errorsRef.current).body !== null) {
+          // A save is waiting for its new attempt: the campaign the API holds is not the form's.
+          setSubmitState("unsaved");
+          return { kind: "stopped" };
+        }
+        if (unsavedInError(draftNow, savedNow, errorsRef.current).length > 0) {
+          setSubmitState("invalid");
+          return { kind: "stopped" };
+        }
+        const missing = missingOutcome();
+        if (missing !== null) {
+          setSubmitState("idle");
+          return missing;
+        }
+        if (
+          campaignRef.current?.sectorIsSensitive === true &&
+          declaredIn === null
+        ) {
+          setSubmitState("declaration");
+          return { kind: "declaration" };
+        }
+        const result = await submitCampaign(id, declaredIn);
+        if (result.kind === "ok") {
+          adopt(result.data);
+          setShowMissing(false);
+          setSubmitState("done");
+          return { kind: "submitted" };
+        }
+        if (result.kind === "unauthenticated") {
+          signedOutRef.current();
+          return { kind: "stopped" };
+        }
+        if (result.code === "validation_failed") {
+          // The base found something missing that the last answer did not: read it again, name it.
+          await refreshCampaign();
+          const missingNow = missingOutcome();
+          if (missingNow !== null) {
+            setSubmitState("idle");
+            return missingNow;
+          }
+          setSubmitState("declaration");
+          return { kind: "declaration" };
+        }
+        if (result.code === "conflict") {
+          setSubmitState(
+            result.issues?.includes("profile_not_published")
+              ? "profileRequired"
+              : "locked",
+          );
+          await refreshCampaign();
+          return { kind: "stopped" };
+        }
+        if (result.code === "not_found") {
+          setPhase("gone");
+          return { kind: "stopped" };
+        }
+        setSubmitState("unavailable");
+        return { kind: "stopped" };
+      } finally {
+        submitting.current = false;
+      }
+    },
+    [adopt, id, missingOutcome, refreshCampaign, runSave],
+  );
+
   const load = useCallback(async (): Promise<void> => {
     setPhase("loading");
     const result = await readCampaign(id);
@@ -309,6 +458,12 @@ export function useCampaign(
         }
         return changed ? rest : previous;
       });
+      // An entry after a refusal to submit is a new try.
+      setSubmitState((state) =>
+        state === "idle" || state === "done" || state === "submitting"
+          ? state
+          : "idle",
+      );
       clearTimer();
       saveTimer.current = setTimeout(
         () => void saveRef.current(),
@@ -318,12 +473,20 @@ export function useCampaign(
     [clearTimer, writeErrors],
   );
 
+  const fieldErrors: FieldErrors =
+    showMissing && campaign !== null && draft !== null
+      ? { ...missingErrors(campaign.missingRequired, draft), ...errors }
+      : errors;
+
   return {
     phase,
     campaign,
     draft,
-    fieldErrors: errors,
+    fieldErrors,
     save,
+    submitState,
+    missingShown: showMissing,
+    submit,
     change,
     retryNow: () => void runSave(),
     reload: () => void load(),

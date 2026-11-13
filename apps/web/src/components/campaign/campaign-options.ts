@@ -7,6 +7,7 @@
 // currency of the campaign (`price_band.<code>`, jalons/l3b/tranches.md §4): a text, never an amount
 // read from the base.
 import {
+  REMUNERATION_KINDS,
   USAGE_RIGHTS_DURATIONS,
   USAGE_RIGHTS_TERRITORY_SCOPES,
   CONTENT_REVIEW_DELAYS,
@@ -51,6 +52,8 @@ export type CampaignOptions = {
   audienceAgeBands: ChoiceOption[];
   audienceGenders: ChoiceOption[];
   currencies: ChoiceOption[];
+  remunerations: ChoiceOption[];
+  requestedItems: ChoiceOption[];
 };
 
 /** The currency, named by the browser's own table in the language of the page: "EUR · euro". */
@@ -107,6 +110,8 @@ export function campaignOptionsOf(
       code: currency.code,
       label: currencyLabelOf(locale, currency.code),
     })),
+    remunerations: own("remuneration", REMUNERATION_KINDS),
+    requestedItems: own("requested_item", references.requestedItems),
   };
 }
 

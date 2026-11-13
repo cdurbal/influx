@@ -27,7 +27,36 @@
     "link": "Voir mes campagnes"
   },
   "publish": {
+    "title": "Soumettre ma campagne",
+    "missing": "Il manque {count, plural, one {# information} other {# informations}} pour soumettre votre campagne : {fields}.",
+    "ready": "Toutes les informations obligatoires sont renseignées : vous pouvez soumettre votre campagne.",
+    "listTitle": "À compléter avant de soumettre",
+    "button": "Soumettre ma campagne",
+    "busy": "Envoi en cours…",
+    "explain": "Un commercial INFLUX relit la campagne avant sa publication. Une fois soumise, elle n'est plus modifiable pendant l'examen.",
+    "sensitiveNotice": "La catégorie de ce produit demande une revue renforcée : deux personnes de l'équipe INFLUX valident la publication, ce qui peut allonger l'examen.",
+    "declarationRequired": "Cochez cette déclaration pour soumettre la campagne.",
+    "submittedTitle": "Votre campagne est soumise.",
+    "submittedText": "Elle n'est plus modifiable pendant l'examen.",
+    "backToList": "Retour à mes campagnes",
+    "unavailable": "La campagne n'a pas pu être soumise pour le moment. Réessayez dans un instant.",
+    "unsaved": "Votre dernière saisie n'est pas encore enregistrée. Attendez la fin de l'enregistrement, puis soumettez à nouveau.",
+    "invalid": "Corrigez d'abord les champs signalés dans les étapes, puis soumettez à nouveau.",
+    "locked": "Cette campagne n'est plus modifiable : elle ne peut pas être soumise à nouveau.",
     "profileRequired": "Publiez votre profil de marque avant de soumettre une campagne."
+  },
+  "budget": {
+    "bandBrand": "Tranche de budget par créateur : ce que vous payez au total, commission INFLUX incluse. Seul votre commercial INFLUX la voit.",
+    "negotiate": "À négocier avec votre commercial.",
+    "internalPilot": "Votre budget n'est jamais publié : seul votre commercial INFLUX le voit.",
+    "giftOnly": "Dotation seule : aucune tranche de budget n'est demandée. La valeur du produit se renseigne à l'étape 1.",
+    "chooseCurrency": "Choisissez d'abord la devise.",
+    "creatorSees": "Un créateur voit la nature de la rémunération, suivie de la mention ci-dessous. Aucun montant ni aucune tranche ne lui est montré.",
+    "noNature": "Choisissez la nature de la rémunération : elle s'affichera ici.",
+    "creatorNature": "Rémunération : {kind}"
+  },
+  "application": {
+    "validationNotice": "Candidater n'ouvre pas de conversation : la candidature est examinée par un commercial INFLUX."
   },
   "status": {
     "label": {
@@ -90,7 +119,11 @@
       "rights": "Droits d'usage et exclusivité",
       "review": "Validation des contenus",
       "audience": "Audience visée",
-      "audienceMore": "Précisions facultatives"
+      "audienceMore": "Précisions facultatives",
+      "remuneration": "Rémunération",
+      "creatorSees": "Ce que voit un créateur",
+      "calendar": "Calendrier",
+      "application": "Candidature"
     },
     "internalNotice": "Cet encart n'est jamais publié : seuls vous et votre commercial INFLUX le voient.",
     "errorsTitle": "À corriger dans cette étape"
@@ -224,6 +257,40 @@
     "audienceGender": {
       "label": "Répartition de genre de l'audience",
       "help": "Facultatif. Elle décrit l'audience, jamais le créateur ; sans choix, elle est indifférente."
+    },
+    "remunerationKind": {
+      "label": "Nature de la rémunération"
+    },
+    "budgetBand": {
+      "label": "Tranche de budget par créateur"
+    },
+    "creatorsWanted": {
+      "label": "Nombre de créateurs recherchés",
+      "help": "De {min} à {max}. Au-delà, un accompagnement commercial est plus adapté."
+    },
+    "applicationsCloseOn": {
+      "label": "Date limite de candidature",
+      "help": "Après cette date, la campagne n'accepte plus de candidature, mais reste lisible."
+    },
+    "contentDueOn": {
+      "label": "Date de livraison des contenus",
+      "help": "Recommandé : ce que le créateur doit tenir. Elle suit la date limite de candidature."
+    },
+    "startsOn": {
+      "label": "Début de la période de publication",
+      "help": "Elle suit la livraison des contenus."
+    },
+    "endsOn": {
+      "label": "Fin de la période de publication",
+      "help": "La période de publication dure 12 mois au plus."
+    },
+    "requestedItems": {
+      "label": "Éléments que vous aimeriez trouver dans une candidature",
+      "help": "Facultatif. Ils orientent le créateur, sans ajouter ni retirer de champ à sa candidature."
+    },
+    "maxApplications": {
+      "label": "Plafond de candidatures",
+      "help": "Facultatif, de {min} à {max}. Une fois atteint, la campagne n'accepte plus de candidature ; le nombre reçu n'est jamais montré aux créateurs."
     }
   },
   "fieldErrors": {
@@ -234,12 +301,16 @@
     "formatNetworkMismatch": "Ce format ne correspond pas à ce réseau : choisissez un format du réseau.",
     "ugcRequiresRights": "Un contenu livré à la marque exige des droits d'usage : choisissez-les à l'étape 2, ou changez de type de campagne.",
     "giftRequiresProduct": "Cette campagne offre un produit : répondez « oui » à l'envoi d'un produit, ou changez la nature de la rémunération.",
-    "notApplicable": "Cette réponse n'a pas de sens avec une autre réponse : vérifiez les choix voisins."
+    "notApplicable": "Cette réponse n'a pas de sens avec une autre réponse : vérifiez les choix voisins.",
+    "dateOrder": "Cette date ne suit pas l'ordre du calendrier : vérifiez les quatre dates.",
+    "windowTooLong": "La période de publication ne peut pas dépasser 12 mois.",
+    "required": "À renseigner ou à corriger avant de soumettre la campagne."
   },
   "errors": {
     "contactInText": "Votre texte contient ce qui ressemble à une coordonnée directe ou à une invitation à vous contacter hors d'INFLUX.",
     "linkInText": "Votre texte contient ce qui ressemble à un lien. Les liens ne sont pas acceptés dans une campagne : le domaine de votre marque figure déjà sur votre profil.",
-    "amountInText": "Un montant figure dans votre texte. Les montants se déclarent dans le bloc budget."
+    "amountInText": "Un montant figure dans votre texte. Les montants se déclarent dans le bloc budget.",
+    "datesOrder": "{first} doit précéder {second}."
   },
   "campaign_type": {
     "product_placement": "Placement de produit dans un contenu",
@@ -253,6 +324,18 @@
   "shipping": {
     "brand": "À la charge de la marque",
     "creator": "À la charge du créateur"
+  },
+  "remuneration": {
+    "cash": "Rémunération en numéraire",
+    "cash_and_gift": "Rémunération en numéraire et dotation",
+    "gift_only": "Dotation seule",
+    "affiliate": "Affiliation"
+  },
+  "requested_item": {
+    "motivation_message": "Un message de motivation",
+    "past_content_examples": "Des exemples de contenus déjà réalisés",
+    "concept_proposal": "Une proposition de concept",
+    "availability": "Sa disponibilité sur la période"
   },
   "usage_right": {
     "none": "Aucun : le contenu reste sur le compte du créateur",

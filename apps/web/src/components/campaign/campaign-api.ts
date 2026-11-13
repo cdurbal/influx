@@ -1,13 +1,16 @@
 // Calls of "mes campagnes" and of the campaign form (docs/mvp/17 §4.3; 09 RG4, RG108; jalons/l3b,
-// commit 09). Each one goes through the same-origin relay (@influx/web-platform/relay-client) and
+// commits 09 and 10). Each one goes through the same-origin relay (@influx/web-platform/relay-client) and
 // reads the answer with the schema of packages/contracts. No rule lives here: apps/api decides, the
 // screen displays. The account is always the session's: no call names an account, and the only
 // identifier of a path is the campaign's own, opaque.
 import {
   campaignListResponseSchema,
   campaignResponseSchema,
+  submitCampaignResponseSchema,
   type CampaignListResponse,
   type CampaignResponse,
+  type DeclarationLocale,
+  type SubmitCampaignResponse,
 } from "@influx/contracts/campaign";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
@@ -38,5 +41,21 @@ export function saveCampaignFields(
     `${CAMPAIGNS_PATH}/${id}`,
     campaignResponseSchema,
     body,
+  );
+}
+
+/**
+ * The submission (RG4, RG5, RG85): draft or rejected to "being reviewed". The language of the
+ * declaration of RG85 is sent ONLY when its box was ticked, never otherwise (never pre-ticked).
+ */
+export function submitCampaign(
+  id: string,
+  declarationLocale: DeclarationLocale | null,
+): Promise<RelayResult<SubmitCampaignResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGNS_PATH}/${id}/submit`,
+    submitCampaignResponseSchema,
+    declarationLocale === null ? {} : { declarationLocale },
   );
 }

@@ -1,3 +1,4 @@
+import { cn } from "@/components/ui/class-names";
 import { memberControlClasses } from "./field-classes";
 import { describedByOf, useFieldIds } from "./field-ids";
 import { FieldFrame, type FieldTexts } from "./FieldFrame";
@@ -9,8 +10,12 @@ type TextFieldProps = FieldTexts & {
   onChange: (value: string) => void;
   /** In characters, as the API counts them; what exceeds is refused, a paste included. */
   maxLength: number;
-  /** The keyboard of the value: a name, an address, a number (phone), a web address. */
-  type?: "text" | "email" | "tel" | "url";
+  /**
+   * The keyboard of the value: a name, an address, a number (phone), a web address; "date" the
+   * browser's own picker of a civil date, written YYYY-MM-DD whatever the language (the calendar of
+   * a campaign, 09 RG69).
+   */
+  type?: "text" | "email" | "tel" | "url" | "date";
   /** The virtual keyboard of a typed number ("numeric": a count, "decimal": with decimals). */
   inputMode?: "numeric" | "decimal";
   placeholder?: string;
@@ -61,7 +66,11 @@ export function TextField({
         aria-invalid={hasError ? true : undefined}
         aria-describedby={describedBy}
         onChange={(event) => onChange(event.target.value)}
-        className={memberControlClasses(hasError)}
+        className={cn(
+          memberControlClasses(hasError),
+          // the native picker of a date follows the dark theme (its icon would be dark on dark)
+          type === "date" && "scheme-dark",
+        )}
       />
     </FieldFrame>
   );

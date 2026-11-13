@@ -1,12 +1,16 @@
-// "Mes campagnes" and the campaign form, steps 1 to 3 (docs/mvp/17 §4.3, M3; 09 RG16 to RG54, RG108 to
-// RG110, CA16, CA72, CA74; jalons/l3b, commit 09, L3B-E1): the list with its state written and its
+// "Mes campagnes" and the campaign form (docs/mvp/17 §4.3, M3; 09 RG16 to RG85, RG108 to RG110, CA3, CA4,
+// CA16, CA56, CA72, CA74, CA76; jalons/l3b, commits 09 and 10, L3B-E1 and L3B-E2): the list with its state written and its
 // invitation to write behind a published profile, the first draft, the three steps saved by
 // themselves, the draft taken up again after a reload deliverables included (CA72), the warnings of a
 // text that block nothing, no field of file anywhere (CA16), a failed save that keeps the entry
 // (RG108), in French at 375 px and in English at 1 440 px with axe. A member seeded in the local
 // stack (no code, no mail); the texts are the locale files', never copies. States are prepared by the
-// API's own routes, the screens being what is under test. Budget: 9 s for the four journeys
-// (jalons/l3b annexe).
+// API's own routes, the screens being what is under test. Budget: 9 s for the four journeys of
+// steps 1 to 3, 9 s for the four of the budget, the calendar and the submission (jalons/l3b annexe).
+// L3B-E2: the budget of a gift only asks no band and the creator's box shows the nature and "à
+// négocier" without a figure (CA76, D78), the dates in conflict are named (RG70), what is missing is
+// listed by step with a way to the field (CA3), a sensitive category is refused without its box then
+// accepted (CA56), a campaign submitted is "being reviewed" (CA4), a failed save keeps the entry.
 import { connectAsMigrationRole } from "@influx/test-kit/db";
 import type { Page } from "@playwright/test";
 import enBrandProfile from "@/locales/en/brand-profile.json" with { type: "json" };
@@ -47,6 +51,9 @@ async function storedCampaignOf(accountId: string): Promise<{
   status: string;
   deliverables: number;
   band: string | null;
+  nature: string | null;
+  budgetBand: string | null;
+  declared: boolean;
 } | null> {
   const sql = connectAsMigrationRole({ max: 1 });
   try {
@@ -56,11 +63,17 @@ async function storedCampaignOf(accountId: string): Promise<{
         status: string;
         deliverables: number;
         band: string | null;
+        nature: string | null;
+        budgetBand: string | null;
+        declared: boolean;
       }[]
     >`
       select c.title, c.status::text as status,
              (select count(*)::int from campaigns.campaign_deliverables d where d.campaign_id = c.id) as deliverables,
-             c.product_value_band_code as band
+             c.product_value_band_code as band,
+             c.remuneration_kind::text as nature,
+             c.per_creator_budget_band_code as "budgetBand",
+             (c.authorizations_declared_at is not null) as declared
         from campaigns.campaigns c
        where c.advertiser_account_id = ${accountId}
        order by c.created_at desc limit 1`;
@@ -111,6 +124,48 @@ async function draftThroughApi(
 function allSet(locale: Locale): string {
   return /=0 {([^}]+)}/.exec(COPY[locale].form.stepMissing)?.[1] ?? "";
 }
+
+/** A campaign written up to step 3 (the brief and the topics lacking at will), through the API itself. */
+function wholeOffer(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    title: "Test de notre nouvelle gamme de soins",
+    campaignType: "product_review",
+    publicSummary: SUMMARY,
+    brief: BRIEF,
+    productDescription: PRODUCT,
+    productSector: "beauty_personal_care",
+    productIsSent: true,
+    currency: "EUR",
+    productValueBand: "100_250",
+    creatorKeepsProduct: true,
+    shippingCostsBorneBy: "brand",
+    deliverables: [
+      { networkCode: "instagram", formatCode: "instagram_reel", quantity: 2 },
+    ],
+    usageRights: "organic_repost",
+    usageRightsDuration: "3m",
+    usageRightsTerritoryScope: "worldwide",
+    exclusivity: "le_1m",
+    contentReviewDelay: "5bd",
+    audienceCountries: ["FR"],
+    audienceLanguages: ["fr"],
+    audienceTopics: ["beauty"],
+    ...overrides,
+  };
+}
+
+/** The budget and the calendar of step 4 and 5, written through the API. */
+const WHOLE_BUDGET_AND_CALENDAR = {
+  remunerationKind: "cash",
+  budgetBand: "1000_2500",
+  creatorsWanted: 3,
+  applicationsCloseOn: "2027-02-10",
+  contentDueOn: "2027-02-20",
+  startsOn: "2027-03-01",
+  endsOn: "2027-04-01",
+};
 
 async function noFileField(page: Page): Promise<void> {
   // CA16, RG45: nothing attached to a campaign, no button of file anywhere on the page.
@@ -465,4 +520,245 @@ test("a save that fails keeps the entry on screen and says so, then goes through
   await expect(savedLine(page, "fr")).toBeVisible();
   await expect(page.getByText(copy.save.failedTitle)).toHaveCount(0);
   expect((await storedCampaignOf(member.accountId))?.title).toBe(typed);
+});
+
+test("the budget, the calendar and the submission in French at 1 440 px: a gift only asks no band, the creator's box shows no figure, dates in conflict are named, a whole campaign is submitted (CA76, RG70, CA4, D78)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await publishProfile(member.accountId);
+  const id = await draftThroughApi(page, wholeOffer());
+  await open(page, `/fr/campagnes/${id}?step=4`);
+  await expect(
+    page.getByRole("heading", { level: 2, name: copy.form.steps["4"].title }),
+  ).toBeVisible();
+
+  // The band is told before it is chosen (CA37), in the box that says it is never published.
+  const internal = page.locator("[data-internal-box]");
+  await expect(internal.getByText(copy.budget.internalPilot)).toBeVisible();
+  await expect(internal.getByText(copy.budget.bandBrand)).toBeVisible();
+  const nature = (label: string) =>
+    page
+      .getByRole("radiogroup", {
+        name: new RegExp(copy.fields.remunerationKind.label),
+      })
+      .getByLabel(label, { exact: true });
+
+  // A gift only asks no band (CA76); the creator's box shows the nature and "to negotiate", no figure.
+  await nature(copy.remuneration.gift_only).check();
+  await expect(page.locator("#campaign-budgetBand")).toHaveCount(0);
+  await expect(internal.getByText(copy.budget.giftOnly)).toBeVisible();
+  const creatorBox = page.locator("[data-creator-box]");
+  await expect(
+    creatorBox.getByText(
+      copy.budget.creatorNature.replace("{kind}", copy.remuneration.gift_only),
+    ),
+  ).toBeVisible();
+  await expect(creatorBox.getByText(copy.budget.negotiate)).toBeVisible();
+  await expect
+    .poll(async () => (await storedCampaignOf(member.accountId))?.nature)
+    .toBe("gift_only");
+  expect((await storedCampaignOf(member.accountId))?.budgetBand).toBeNull();
+
+  // Back to cash: the band is asked, chosen from the grid of the currency, and the box still shows none.
+  await nature(copy.remuneration.cash).check();
+  await page.locator("#campaign-budgetBand").selectOption("1000_2500");
+  await page.locator("#campaign-creatorsWanted").fill("3");
+  await expect(creatorBox).not.toContainText("1\u202f000");
+  await expect(creatorBox).not.toContainText("EUR");
+  await expect
+    .poll(async () => (await storedCampaignOf(member.accountId))?.budgetBand)
+    .toBe("1000_2500");
+  await noFileField(page);
+  await expectNoAxeViolation(page, "campaign step 4, fr, 1440", {
+    wcag22: true,
+  });
+
+  // Step 5: a start before the deadline names the two dates in conflict, and is kept on screen.
+  await page.getByRole("button", { name: copy.form.next }).click();
+  await expect(page.locator("#campaign-applicationsCloseOn")).toBeVisible();
+  await page.locator("#campaign-applicationsCloseOn").fill("2027-02-10");
+  await page.locator("#campaign-contentDueOn").fill("2027-02-20");
+  await page.locator("#campaign-startsOn").fill("2027-02-01");
+  const conflict = copy.errors.datesOrder
+    .replace("{first}", copy.fields.applicationsCloseOn.label)
+    .replace(
+      "{second}",
+      copy.fields.startsOn.label.replace(/^./u, (letter) =>
+        letter.toLowerCase(),
+      ),
+    );
+  await expect(page.getByText(conflict).first()).toBeVisible();
+  await expect(page.locator("#campaign-startsOn")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  await expect(page.locator("#campaign-startsOn")).toHaveValue("2027-02-01");
+  // no switch "verified profiles only" (RG79), no field of file
+  await expect(page.getByLabel(/profils vérifiés/iu)).toHaveCount(0);
+
+  // The dates put in order: the refusal is lifted and they are saved together.
+  await page.locator("#campaign-startsOn").fill("2027-03-01");
+  await page.locator("#campaign-endsOn").fill("2027-04-01");
+  await expect(page.getByText(conflict)).toHaveCount(0);
+  await expect(page.locator("#campaign-startsOn")).not.toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+
+  // Submit: nothing is missing, the campaign is "being reviewed" and no longer editable (CA4, RG5).
+  const panel = page.locator("[data-submit-panel]");
+  await expect(panel.getByText(copy.publish.ready)).toBeVisible();
+  await panel.getByRole("button", { name: copy.publish.button }).click();
+  await expect(page.getByText(copy.publish.submittedTitle)).toBeVisible();
+  await expect(
+    page.getByText(copy.status.label.pending_review, { exact: true }),
+  ).toBeVisible();
+  await expect(panel).toHaveCount(0);
+  expect((await storedCampaignOf(member.accountId))?.status).toBe(
+    "pending_review",
+  );
+});
+
+test("a submission names what is missing, step by step, with a way to each field, in English at 375 px (CA3, RG4)", async ({
+  page,
+}) => {
+  const copy = COPY.en;
+  await page.setViewportSize({ width: 375, height: 800 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "en",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await publishProfile(member.accountId);
+  const id = await draftThroughApi(
+    page,
+    wholeOffer({ brief: null, audienceTopics: [] }),
+  );
+  await open(page, `/en/campaigns/${id}?step=5`);
+  const panel = page.locator("[data-submit-panel]");
+
+  // The button is always there and never disabled; the sentence says how much is missing.
+  const button = panel.getByRole("button", { name: copy.publish.button });
+  await expect(button).toBeVisible();
+  await expect(button).not.toHaveAttribute("aria-disabled", "true");
+  await expect(
+    panel.getByText(
+      /pieces of information are missing to submit your campaign/u,
+    ),
+  ).toBeVisible();
+
+  // A click names them by step and takes the focus to the first one, in the step that holds it.
+  await button.click();
+  await expect(page).toHaveURL(/\?step=1$/);
+  await expect(page.locator("#campaign-brief")).toBeFocused();
+  await expect(panel.getByText(copy.publish.listTitle)).toBeVisible();
+  for (const key of ["brief", "audienceTopics", "remunerationKind"] as const) {
+    await expect(
+      panel.getByRole("button", { name: copy.fields[key].label }),
+    ).toBeVisible();
+  }
+  await expect(page.locator("#campaign-brief")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  await expectNoAxeViolation(page, "campaign submit list, en, 375", {
+    wcag22: true,
+  });
+
+  // A name in the list is a way to its field, in another step.
+  await panel
+    .getByRole("button", { name: copy.fields.audienceTopics.label })
+    .click();
+  await expect(page).toHaveURL(/\?step=3$/);
+  await expect(page.locator("#campaign-audienceTopics")).toBeFocused();
+  expect((await storedCampaignOf(member.accountId))?.status).toBe("draft");
+});
+
+test("a sensitive category is refused without its declaration, then accepted once the box is ticked, never pre-ticked (CA56, RG85)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await publishProfile(member.accountId);
+  const id = await draftThroughApi(
+    page,
+    wholeOffer({
+      productSector: "alcohol",
+      productIsSent: false,
+      productValueBand: null,
+      creatorKeepsProduct: null,
+      shippingCostsBorneBy: null,
+      ...WHOLE_BUDGET_AND_CALENDAR,
+    }),
+  );
+  await open(page, `/fr/campagnes/${id}?step=5`);
+  const panel = page.locator("[data-submit-panel]");
+  await expect(panel.getByText(copy.publish.sensitiveNotice)).toBeVisible();
+  const box = panel.getByRole("checkbox");
+  await expect(box).not.toBeChecked();
+
+  await panel.getByRole("button", { name: copy.publish.button }).click();
+  await expect(panel.getByText(copy.publish.declarationRequired)).toBeVisible();
+  await expect(box).toBeFocused();
+  expect((await storedCampaignOf(member.accountId))?.status).toBe("draft");
+
+  await box.check();
+  await panel.getByRole("button", { name: copy.publish.button }).click();
+  await expect(page.getByText(copy.publish.submittedTitle)).toBeVisible();
+  const stored = await storedCampaignOf(member.accountId);
+  expect(stored?.status).toBe("pending_review");
+  expect(stored?.declared).toBe(true);
+});
+
+test("a save that fails on the budget keeps the entry on screen and says so, then goes through on the new attempt (RG108)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await publishProfile(member.accountId);
+  const id = await draftThroughApi(page, wholeOffer());
+  await open(page, `/fr/campagnes/${id}?step=4`);
+
+  const route = `**/api/v1/me/campaigns/${id}`;
+  await page.route(route, (call) =>
+    call.request().method() === "PATCH"
+      ? call.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: { code: "service_unavailable", message: "unavailable" },
+          }),
+        })
+      : call.continue(),
+  );
+  await page.locator("#campaign-creatorsWanted").fill("4");
+  await expect(page.getByText(copy.save.failedTitle)).toBeVisible();
+  await expect(page.locator("#campaign-creatorsWanted")).toHaveValue("4");
+  await page.unroute(route);
+  await page.getByRole("button", { name: copy.save.retryNow }).click();
+  await expect(page.getByText(copy.save.failedTitle)).toHaveCount(0);
+  await expect(savedLine(page, "fr")).toBeVisible();
+  await page.reload();
+  await expect(page.locator("#campaign-creatorsWanted")).toHaveValue("4");
 });
