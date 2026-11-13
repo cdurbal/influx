@@ -27,12 +27,14 @@ définition des règles de gestion (→ `product-owner`).
    frontières (API, base, intégrations externes).
 2. **Aucune logique métier dans les composants React.** Les composants affichent et déclenchent ;
    les règles vivent dans la couche métier côté serveur.
-3. **Le calcul de la commission de 35 % (part annonceur 20 %, part créateur 15 %, net créateur)
-   n'est écrit qu'une fois**, dans le domaine `billing`, avec des taux lus en base. Tu ne le
-   recopies jamais dans un composant, un export ou un e-mail : tu consommes les valeurs calculées
-   par le serveur.
-4. **Aucun secret côté client.** Seules les clés publiques Supabase sont utilisables dans le
-   front. Une clé `service_role`, Brevo ou Apollo dans un bundle front est un incident.
+3. **Au MVP, aucun taux ni calcul de commission dans le code** (`CLAUDE.md` §2, régime
+   transitoire) : le commercial saisit montant et commission, l'application enregistre et
+   additionne, sans pourcentage ni net estimé affiché. En V2, le calcul n'existera qu'à un seul
+   endroit (domaine `billing`, taux lus en base et figés au contrat), jamais recopié dans un
+   composant, un export ou un e-mail.
+4. **Aucun secret ni aucune clé Supabase côté client** : le front ne parle qu'à `apps/api`
+   (`CLAUDE.md` §5, règle 1). Une clé `service_role`, Brevo ou Apollo dans un bundle front est
+   un incident.
 5. **Les appels aux API externes sont asynchrones et rejouables.** Tu n'écris jamais un appel
    Brevo ou Apollo bloquant sur le chemin d'une inscription : tu émets un événement.
 6. **Toute donnée affichant un montant** indique explicitement s'il s'agit du montant du contrat,
@@ -54,7 +56,8 @@ définition des règles de gestion (→ `product-owner`).
 - Nommage : `camelCase` (variables/fonctions), `PascalCase` (composants/types),
   `SCREAMING_SNAKE_CASE` (constantes), `kebab-case` (fichiers non-composants).
 - Commits : *Conventional Commits* (`feat:`, `fix:`, `chore:`, `docs:`, `test:`, `refactor:`).
-- Branches : `feat/<sujet>` ou `fix/<sujet>`, jamais de commit direct sur `main`.
+- Branches : développement directement sur `main` (dérogation du fondateur, `CLAUDE.md` §5) ;
+  si elle est levée, `feat/<sujet>` ou `fix/<sujet>`.
 - Accessibilité : sémantique HTML correcte, navigation clavier, libellés de formulaires.
   Le vert de marque n'est jamais le seul porteur d'une information d'état.
 - Styles : uniquement via les tokens du design system (skill `design-system-influx`). Aucune

@@ -20,11 +20,11 @@ Arguments reçus : `$ARGUMENTS`
 
 ## 1. Lire (et rien d'autre)
 
-1. `docs/mvp/00-cadrage-mvp-v2.md` §7, la seule partie du lot : lignes par `Grep "^## 00-" -A 56` dans
+1. `docs/mvp/00-cadrage-mvp-v2.md` §7, la seule partie du lot : lignes par `Grep "^## 00-" -A 70` dans
    `docs/mvp/INDEX.md`, puis `Read` borné.
 2. `docs/mvp/21-plan-de-developpement.md` §7 (ligne du lot) et §8 (reliquat à échéance du lot).
 3. `docs/mvp/decisions.md` : `Grep` des seules décisions citées (jamais le fichier entier).
-4. Chaque spécification du lot : sa table dans l'index (`Grep "^## <nn>-" -A 56`) ; puis, bornées,
+4. Chaque spécification du lot : sa table dans l'index (`Grep "^## <nn>-" -A 70`) ; puis, bornées,
    ses sections « Questions ouvertes » et « Critères d'acceptation », et dans `04` les migrations et
    tables du lot.
 5. `docs/mvp/18-plan-de-test-mvp.md` : les familles de tests que `21` §7 associe au lot (`Grep`).

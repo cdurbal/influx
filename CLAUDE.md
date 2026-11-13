@@ -14,13 +14,13 @@ d'abord, puis dans le code.
 
 > **Ne jamais lire une spécification en entier** (3 Mo au total, `04` seul ≈ 140k tokens), ni
 > `docs/mvp/INDEX.md` en entier (≈ 11k tokens) : `Grep` sur `^## 04-` (par exemple) dans l'index
-> avec `-A 56` donne les sections, lignes de départ et RG citées ; puis `Read` de la seule tranche
+> avec `-A 70` (la table de `02` compte 66 lignes) donne les sections, lignes de départ et RG citées ; puis `Read` de la seule tranche
 > (`offset`/`limit`), ou `Grep` de la règle (`RG113`). `docs/mvp/archives/` ne se lit que si la
 > tâche cite un de ses identifiants. Index régénéré par le hook pré-commit (§7 règle 5).
 
 | Sujet | Document |
 |---|---|
-| Registre des décisions D1 à D79 : résumé (sujet, statut) · texte intégral (`Grep "^## D66 "`, jamais en entier) | `docs/mvp/decisions.md` · `docs/mvp/decisions-detail.md` |
+| Registre des décisions D1 à D83 : résumé (sujet, statut) · texte intégral (`Grep "^## D66 "`, jamais en entier) | `docs/mvp/decisions.md` · `docs/mvp/decisions-detail.md` |
 | `staging` iso-production, exploité par les agents (D70) | `docs/mvp/runbooks/staging.md` |
 | Périmètre et lots du MVP | `docs/mvp/00-cadrage-mvp-v2.md` |
 | Régime courté, commission au MVP | `docs/mvp/01-intermediation-courtee.md` |
