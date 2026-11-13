@@ -1389,15 +1389,23 @@ describe("privacy.execute_request(): access (runbook §4)", () => {
   });
 });
 
-describe("L3A-T5: the allowlist of audit codes in the export (F3, 0302, jalons/l3a/f3.md)", () => {
-  /** The five codes of f3.md, excluded_security; every other code is exported. */
-  const EXCLUDED = [
-    "agent.reauthentication_failed",
-    "agent.unexpected_mfa_factor",
-    "backoffice.action_refused",
-    "security.backoffice_login_failures",
-    "verification.escalated",
-  ];
+describe("L3A-T5 (L3B-T1): the allowlist of audit codes in the export (F3, 0302, jalons/l3a/f3.md)", () => {
+  /**
+   * Every code of the base NOT exported, by name and class (f3.md; 04 §4.3, notes under the code
+   * tables of Lots 3 to 5): a migration that adds an exclusion adds it here, in the same commit.
+   */
+  const EXCLUDED_BY_CLASS: Readonly<Record<string, readonly string[]>> = {
+    excluded_security: [
+      "agent.reauthentication_failed",
+      "agent.unexpected_mfa_factor",
+      "backoffice.action_refused",
+      "security.backoffice_login_failures",
+      "verification.escalated",
+    ],
+  };
+  const EXCLUDED = Object.values(EXCLUDED_BY_CLASS).flat();
+  /** The exported codes at 0302 (f3.md); a later migration adds codes, never removes one. */
+  const EXPORTED_AT_0302 = 130;
 
   it("classifies every code explicitly, without default: a code inserted without its class is refused", async () => {
     const outcome = await scenario(async (tx) => {
@@ -1433,12 +1441,13 @@ describe("L3A-T5: the allowlist of audit codes in the export (F3, 0302, jalons/l
       };
     });
     expect(outcome.column).toEqual({ not_null: true, has_default: false });
-    expect(outcome.classes.map((row) => row.export_class)).toEqual([
-      "excluded_security",
-      "exported",
-    ]);
-    expect(outcome.classes[0]?.codes).toEqual(EXCLUDED);
-    expect(outcome.classes[1]?.codes.length).toBe(130);
+    const byClass = Object.fromEntries(
+      outcome.classes.map((row) => [row.export_class, row.codes]),
+    );
+    const { exported, ...excluded } = byClass;
+    // the exact list of excluded codes, by name and class: no code excluded without its name here
+    expect(excluded).toEqual(EXCLUDED_BY_CLASS);
+    expect(exported?.length).toBeGreaterThanOrEqual(EXPORTED_AT_0302);
     expect(outcome).toMatchObject({
       missing: "23502",
       missingOnConflict: "23502",
@@ -1475,6 +1484,50 @@ describe("L3A-T5: the allowlist of audit codes in the export (F3, 0302, jalons/l
     for (const excluded of EXCLUDED) {
       expect(outcome.content.includes(excluded), excluded).toBe(false);
     }
+  });
+
+  it("filters excluded_third_party too: a code reclassified in a rolled-back transaction leaves the activity_log, then is served again", async () => {
+    const PROBE = "account.role_granted";
+    const servedCodes = (
+      reclassify: boolean,
+    ): Promise<{ codes: string[]; written: number | undefined }> =>
+      scenario(async (tx) => {
+        const member = await newMember(tx);
+        await tx`select audit.append(${PROBE}, 'account', ${member.id}::uuid)`;
+        if (reclassify) {
+          await tx`update audit.event_types set export_class = 'excluded_third_party'
+                    where code = ${PROBE}`;
+        }
+        const request = await deposit(tx, member, "access");
+        await approve(tx, request, "access");
+        rowsOf(await execute(tx, request, NOTICE));
+        const [stored] = await tx<{ content: string }[]>`
+          select content from privacy.data_exports where request_id = ${request}`;
+        const [written] = await tx<{ count: number }[]>`
+          select count(*)::int as count from audit.audit_events
+           where subject_type = 'account' and subject_id = ${member.id} and event_type = ${PROBE}`;
+        const file = JSON.parse(String(stored?.content)) as ExportFile;
+        const codes = (
+          (file.data as Record<string, Row[]>).activity_log ?? []
+        ).map((line) => String(line.code));
+        return { codes, written: written?.count };
+      });
+
+    const reclassified = await servedCodes(true);
+    // the line is in the register, the export leaves it out once its code is excluded_third_party
+    expect(reclassified.written).toBe(1);
+    expect(reclassified.codes).not.toContain(PROBE);
+    expect(reclassified.codes).toContain("privacy.execution_approved");
+
+    // the update was rolled back with its transaction: the class is exported, the line served again
+    const [after] = await scenario(
+      (tx) => tx<{ export_class: string }[]>`
+        select export_class from audit.event_types where code = ${PROBE}`,
+    );
+    expect(after?.export_class).toBe("exported");
+    const restored = await servedCodes(false);
+    expect(restored.written).toBe(1);
+    expect(restored.codes).toContain(PROBE);
   });
 
   it("lets influx_privacy_definer read the code and the class of the catalogue only (I-4)", async () => {

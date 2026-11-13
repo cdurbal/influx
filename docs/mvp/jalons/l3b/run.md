@@ -1,7 +1,7 @@
 # Exécution du jalon L3B
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | opus | high | expert-cybersecurite | à faire | |
+| 01 | 01.md | commit | opus | high | expert-cybersecurite | fait | 04 : export_class aux codes des Lots 3-5 (tiers : block.*, report.* ; sécurité : detection.reviewed, alert.*) ; L3A-T5 nominatif, >= 130, témoin tiers |
 | A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
 | B | B.md | arbitrage | opus | xhigh | expert-paiement-facturation | à faire | |
 | F1 | F1.md | fondateur | — | — | fondateur | à faire | |

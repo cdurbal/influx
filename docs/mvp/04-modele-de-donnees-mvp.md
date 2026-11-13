@@ -589,98 +589,124 @@ les événements par domaine et par gravité par simple jointure.
 données » ne sert que les codes `exported`. Exporté par défaut (art. 15) ; exclu seulement un code
 qui révèle une mesure de sécurité interne (détection, signal de fraude, garde déclenchée) ou la
 donnée d'un tiers. Toute migration qui ajoute un code nomme `export_class` ; une exclusion s'inscrit
-au tableau de F3 avec son motif.
+au tableau de F3 avec son motif (codes chargés à `0302`), ou en note sous le tableau de son lot
+ci-dessous (codes des Lots 3 à 5, colonne `export_class`, L3B-01) ; la liste nominative des exclus
+en base est épinglée par L3A-T5 (`t8-privacy-execution.test.ts`).
 
 **Codes ajoutés au Lot 3** (`09`, Impacts ; `10` RG28). Ce sont des **données**, chargées par la
 migration `0303` : les ajouter n'exige aucun changement de schéma.
 
-| Code | `domain` | `subject_type` | `severity` | Fait relaté |
-|---|---|---|---|---|
-| `campaign.submitted` | `campaigns` | `campaign` | `info` | La marque soumet sa campagne à validation |
-| **`campaign.published`** | `campaigns` | `campaign` | `sensitive` | Décision humaine de publication (`09` RG5), avec le ou **les deux** validateurs |
-| **`campaign.updated`** | `campaigns` | `campaign` | `info` | Modification d'une campagne publiée, avec le régime appliqué (re-validation ou effet immédiat, `09` RG7) |
-| `campaign.rejected` | `campaigns` | `campaign` | `sensitive` | Refus avec motif typé |
-| `campaign.paused` · `campaign.closed` | `campaigns` | `campaign` | `info` | Mise en pause, clôture (y compris automatique) |
-| `block.created` · `block.lifted` | `matching` | `party_block` | `sensitive` | Blocage entre deux parties, posé ou retiré (`10` RG28) |
-| `search.settings_changed` | `search` | `search_setting` | `sensitive` | Modification d'un réglage de recherche ou d'une facette (`10` RG2, RG11) |
+| Code | `domain` | `subject_type` | `severity` | `export_class` | Fait relaté |
+|---|---|---|---|---|---|
+| `campaign.submitted` | `campaigns` | `campaign` | `info` | `exported` | La marque soumet sa campagne à validation |
+| **`campaign.published`** | `campaigns` | `campaign` | `sensitive` | `exported` | Décision humaine de publication (`09` RG5), avec le ou **les deux** validateurs |
+| **`campaign.updated`** | `campaigns` | `campaign` | `info` | `exported` | Modification d'une campagne publiée, avec le régime appliqué (re-validation ou effet immédiat, `09` RG7) |
+| `campaign.rejected` | `campaigns` | `campaign` | `sensitive` | `exported` | Refus avec motif typé |
+| `campaign.paused` · `campaign.closed` | `campaigns` | `campaign` | `info` | `exported` | Mise en pause, clôture (y compris automatique) |
+| `block.created` · `block.lifted` | `matching` | `party_block` | `sensitive` | **`excluded_third_party`** | Blocage entre deux parties, posé ou retiré (`10` RG28) |
+| `search.settings_changed` | `search` | `search_setting` | `sensitive` | `exported` | Modification d'un réglage de recherche ou d'une facette (`10` RG2, RG11) |
 
 Les deux premiers étaient explicitement manquants (`09`, Impacts) ; les autres sont leurs frères de
 la même migration — un cycle de vie dont seuls deux événements sur six seraient journalisés ne
 prouve rien.
 
+> **Exclusions (F3).** `block.created` · `block.lifted` : `excluded_third_party` — la déclaration
+> d'une partie contre une autre, silencieuse pour la partie bloquée (`10` RG28, RG29, Q11) ; servie,
+> elle dirait à l'une l'acte de l'autre (art. 15(4)) : c'est le « blocage » que F3 (« Portée »)
+> range parmi les codes auxquels le filtre ferme la porte. Le fait annoncé aux deux parties dans le
+> fil reste exporté (`conversation.write_closed_by_block`, ci-dessous).
+
 **Codes ajoutés au Lot 4, cycle de la file et de la mise en relation** (`13`, Impacts, écart 9 —
 **18 codes**). Mêmes remarques : ce sont des **données**, chargées par la migration `0401`, et
 l'ajout d'un code n'exige aucun changement de schéma.
 
-| Code | `domain` | `subject_type` | `severity` | Fait relaté |
-|---|---|---|---|---|
-| `introduction.created` | `matching` | `introduction` | `info` | Entrée en file, quel que soit le déclencheur (`13` RG100, état 1) |
-| `introduction.claimed` | `matching` | `introduction` | `info` | Prise en charge par un commercial : le verrou est posé (`13` RG102) |
-| `introduction.claim_released` | `matching` | `introduction` | `info` | Le titulaire rend la main sans décider |
-| `introduction.claim_expired` | `matching` | `introduction` | `info` | Verrou expiré (`claim_expiry_minutes`, alerte A3) |
-| **`introduction.reviewed`** | `matching` | `introduction` | **`sensitive`** | **Ouverture de l'écran de décision : un rôle interne a vu deux identités non révélées** (`13` RG109, point 10). C'est le pendant de `conversation.read` pour l'amont |
-| `introduction.approved` | `matching` | `introduction` | `sensitive` | Validation par le commercial titulaire (état 3) |
-| `introduction.rejected` | `matching` | `introduction` | `sensitive` | **Refus A**, par INFLUX, avec le motif typé de la liste A (`13` RG83) |
-| `introduction.party_accepted` | `matching` | `introduction` | `sensitive` | Acceptation d'une partie, avec son côté et sa version de CGU |
-| `introduction.party_declined` | `matching` | `introduction` | `sensitive` | **Refus B**, par une partie, avec le côté et le motif de la **liste B** (`13` RG90). **Le motif n'est jamais restitué à l'autre partie, y compris depuis ce registre** |
-| **`introduction.identity_revealed`** | `matching` | `introduction` | **`critical`** | La révélation simultanée (état 4). Le code existait déjà en exemple au §4.3 ; il est ici **inscrit dans le référentiel** |
-| `introduction.withdrawn` | `matching` | `introduction` | `info` | Retrait par l'initiateur, ou par le commercial pour une proposition |
-| `introduction.expired` | `matching` | `introduction` | `info` | Clôture sans suite, **avec son sous-motif** (`13` RG95) |
-| `introduction.reassigned` | `matching` | `introduction` | `sensitive` | Changement de commercial responsable, motif typé (`backoffice-ops` règle 18) |
-| `introduction.reminder_sent` | `matching` | `introduction` | `info` | Relance J+3 ou J+6, avec la partie relancée (`13` RG92) |
-| `introduction.email_delivered` | `matching` | `introduction` | `info` | Accusé du prestataire d'envoi, **avec le `messageId`** (`13` RG79) |
-| `introduction.email_failed` | `matching` | `introduction` | `sensitive` | Échec définitif après rejeux : **une mise en relation sans preuve externe** (alerte A8) |
-| `introduction.batch_created` | `matching` | `introduction_batch` | `info` | Envoi groupé d'une proposition INFLUX, avec le nombre de créateurs (`13` RG54) |
-| `introduction.cap_reached` | `matching` | `account` | `info` | Plafond atteint : sélection de 20, 60 propositions par jour, plafonds de candidature (`13` RG53) |
+| Code | `domain` | `subject_type` | `severity` | `export_class` | Fait relaté |
+|---|---|---|---|---|---|
+| `introduction.created` | `matching` | `introduction` | `info` | `exported` | Entrée en file, quel que soit le déclencheur (`13` RG100, état 1) |
+| `introduction.claimed` | `matching` | `introduction` | `info` | `exported` | Prise en charge par un commercial : le verrou est posé (`13` RG102) |
+| `introduction.claim_released` | `matching` | `introduction` | `info` | `exported` | Le titulaire rend la main sans décider |
+| `introduction.claim_expired` | `matching` | `introduction` | `info` | `exported` | Verrou expiré (`claim_expiry_minutes`, alerte A3) |
+| **`introduction.reviewed`** | `matching` | `introduction` | **`sensitive`** | `exported` | **Ouverture de l'écran de décision : un rôle interne a vu deux identités non révélées** (`13` RG109, point 10). C'est le pendant de `conversation.read` pour l'amont |
+| `introduction.approved` | `matching` | `introduction` | `sensitive` | `exported` | Validation par le commercial titulaire (état 3) |
+| `introduction.rejected` | `matching` | `introduction` | `sensitive` | `exported` | **Refus A**, par INFLUX, avec le motif typé de la liste A (`13` RG83) |
+| `introduction.party_accepted` | `matching` | `introduction` | `sensitive` | `exported` | Acceptation d'une partie, avec son côté et sa version de CGU |
+| `introduction.party_declined` | `matching` | `introduction` | `sensitive` | `exported` | **Refus B**, par une partie, avec le côté et le motif de la **liste B** (`13` RG90). **Le motif n'est jamais restitué à l'autre partie, y compris depuis ce registre** |
+| **`introduction.identity_revealed`** | `matching` | `introduction` | **`critical`** | `exported` | La révélation simultanée (état 4). Le code existait déjà en exemple au §4.3 ; il est ici **inscrit dans le référentiel** |
+| `introduction.withdrawn` | `matching` | `introduction` | `info` | `exported` | Retrait par l'initiateur, ou par le commercial pour une proposition |
+| `introduction.expired` | `matching` | `introduction` | `info` | `exported` | Clôture sans suite, **avec son sous-motif** (`13` RG95) |
+| `introduction.reassigned` | `matching` | `introduction` | `sensitive` | `exported` | Changement de commercial responsable, motif typé (`backoffice-ops` règle 18) |
+| `introduction.reminder_sent` | `matching` | `introduction` | `info` | `exported` | Relance J+3 ou J+6, avec la partie relancée (`13` RG92) |
+| `introduction.email_delivered` | `matching` | `introduction` | `info` | `exported` | Accusé du prestataire d'envoi, **avec le `messageId`** (`13` RG79) |
+| `introduction.email_failed` | `matching` | `introduction` | `sensitive` | `exported` | Échec définitif après rejeux : **une mise en relation sans preuve externe** (alerte A8) |
+| `introduction.batch_created` | `matching` | `introduction_batch` | `info` | `exported` | Envoi groupé d'une proposition INFLUX, avec le nombre de créateurs (`13` RG54) |
+| `introduction.cap_reached` | `matching` | `account` | `info` | `exported` | Plafond atteint : sélection de 20, 60 propositions par jour, plafonds de candidature (`13` RG53) |
 
 > **`introduction.batch_created` porte `subject_type = 'introduction_batch'` et
 > `subject_id = proposal_batch_id`.** C'est le seul sujet du registre qui ne corresponde pas à une
 > table : le lot n'a **pas** de table à lui (§5.6), et le registre n'a jamais eu de clé étrangère
 > vers ses sujets — c'est précisément ce qui l'autorise.
 
+> **Exclusions (F3) : aucune.** `introduction.reviewed` est une lecture privilégiée, due (CJUE
+> C-579/21) ; `introduction.party_declined` est exporté, code et date seulement : le motif de la
+> liste B est dans la charge utile, jamais servie (`0245` l. 730).
+
 **Codes ajoutés au Lot 4, messagerie** (`12`, Impacts, manque 6 — **17 codes**, chargés par les
 migrations `0403` et `0405`).
 
-| Code | `domain` | `subject_type` | `severity` | Fait relaté |
-|---|---|---|---|---|
-| `conversation.opened` | `messaging` | `conversation` | `info` | Ouverture du fil et de ses trois participants (`12` RG1, RG2) |
-| `conversation.paused` · `conversation.resumed` | `messaging` | `conversation` | `info` | Pause et reprise, **avec le motif typé et l'auteur** (`12` RG17, RG19) |
-| `conversation.closed` | `messaging` | `conversation` | `sensitive` | Clôture, avec son motif typé (`12` RG20) |
-| `conversation.reopened` | `messaging` | `conversation` | `sensitive` | **Réouverture**, avec son motif (`12` RG22). C'est le registre, et non une colonne écrasée, qui porte la suite des clôtures et des réouvertures |
-| `conversation.archived` | `messaging` | `conversation` | `info` | Archivage, automatique à 90 jours ou manuel (`12` RG23) |
-| `conversation.agent_joined` · `conversation.agent_left` | `messaging` | `conversation` | `sensitive` | Entrée et sortie d'un agent, nommé et horodaté. **Jamais un ajout silencieux** (`12` RG8, RG9) |
-| `conversation.write_closed_by_block` | `messaging` | `conversation` | `sensitive` | Fermeture de l'écriture des deux parties à la suite d'un blocage (`12` RG87). Le blocage lui-même reste journalisé par `block.created` / `block.lifted`, créés au Lot 3 |
-| `conversation.read` | `messaging` | `conversation` | `sensitive` | Lecture par un rôle interne, **avec son motif typé** (`12` RG55, A10). Doublon assumé avec `messaging.conversation_access_log` : le journal détaillé sert l'exploitation, le registre sert la preuve |
-| `report.created` · `report.decided` | `messaging` | `report` | `sensitive` | Signalement émis, puis issue typée (`12` RG82, RG84) |
-| `detection.reviewed` | `messaging` | `contact_detection` | `sensitive` | Classement d'une détection par un commercial (`12` RG50) |
-| `document.uploaded` | `messaging` | `document` | `info` | Dépôt d'un document *(conditionnel au canal de documents)* |
-| `document.reviewed` | `messaging` | `document` | `sensitive` | Contrôle par un agent, accepté ou refusé avec motif (`12` RG73) |
-| `document.available` | `messaging` | `document` | `info` | **Mise à disposition de l'autre partie** — distincte du contrôle (`12` RG74) |
-| `document.downloaded` | `messaging` | `document` | `info` | Téléchargement, avec son auteur (`12` RG75) |
+| Code | `domain` | `subject_type` | `severity` | `export_class` | Fait relaté |
+|---|---|---|---|---|---|
+| `conversation.opened` | `messaging` | `conversation` | `info` | `exported` | Ouverture du fil et de ses trois participants (`12` RG1, RG2) |
+| `conversation.paused` · `conversation.resumed` | `messaging` | `conversation` | `info` | `exported` | Pause et reprise, **avec le motif typé et l'auteur** (`12` RG17, RG19) |
+| `conversation.closed` | `messaging` | `conversation` | `sensitive` | `exported` | Clôture, avec son motif typé (`12` RG20) |
+| `conversation.reopened` | `messaging` | `conversation` | `sensitive` | `exported` | **Réouverture**, avec son motif (`12` RG22). C'est le registre, et non une colonne écrasée, qui porte la suite des clôtures et des réouvertures |
+| `conversation.archived` | `messaging` | `conversation` | `info` | `exported` | Archivage, automatique à 90 jours ou manuel (`12` RG23) |
+| `conversation.agent_joined` · `conversation.agent_left` | `messaging` | `conversation` | `sensitive` | `exported` | Entrée et sortie d'un agent, nommé et horodaté. **Jamais un ajout silencieux** (`12` RG8, RG9) |
+| `conversation.write_closed_by_block` | `messaging` | `conversation` | `sensitive` | `exported` | Fermeture de l'écriture des deux parties à la suite d'un blocage (`12` RG87). Le blocage lui-même reste journalisé par `block.created` / `block.lifted`, créés au Lot 3 |
+| `conversation.read` | `messaging` | `conversation` | `sensitive` | `exported` | Lecture par un rôle interne, **avec son motif typé** (`12` RG55, A10). Doublon assumé avec `messaging.conversation_access_log` : le journal détaillé sert l'exploitation, le registre sert la preuve |
+| `report.created` · `report.decided` | `messaging` | `report` | `sensitive` | **`excluded_third_party`** | Signalement émis, puis issue typée (`12` RG82, RG84) |
+| `detection.reviewed` | `messaging` | `contact_detection` | `sensitive` | **`excluded_security`** | Classement d'une détection par un commercial (`12` RG50) |
+| `document.uploaded` | `messaging` | `document` | `info` | `exported` | Dépôt d'un document *(conditionnel au canal de documents)* |
+| `document.reviewed` | `messaging` | `document` | `sensitive` | `exported` | Contrôle par un agent, accepté ou refusé avec motif (`12` RG73) |
+| `document.available` | `messaging` | `document` | `info` | `exported` | **Mise à disposition de l'autre partie** — distincte du contrôle (`12` RG74) |
+| `document.downloaded` | `messaging` | `document` | `info` | `exported` | Téléchargement, avec son auteur (`12` RG75) |
+
+> **Exclusions (F3).** `report.created` · `report.decided` : `excluded_third_party` — un
+> signalement porte sur un tiers qui n'en est pas informé (`12` RG83), et son issue est une mesure
+> prise à l'égard de l'autre personne, tue au signalant (RG84) : le « signalement » de F3
+> (« Portée »). `detection.reviewed` : `excluded_security` — classement d'une détection de
+> coordonnées (`suspicion de contournement`, signal de fraude), dont le destinataire n'est jamais
+> informé (RG50). `conversation.write_closed_by_block` reste exporté : message système vu des deux
+> parties (RG87).
 
 **Codes ajoutés au Lot 5, backoffice et vie du compte** (`15`, écart 12 — **23 codes**). Certains
 sont chargés plus tôt, avec le lot qui crée le fait : la colonne « Lot » le dit.
 
-| Code | `domain` | `subject_type` | `severity` | Lot | Fait relaté |
-|---|---|---|---|---|---|
-| `account.suspended` · `account.suspension_lifted` | `backoffice` | `account` | `critical` | 5 | Suspension et levée, **avec leur motif typé** (`15` RG52, RG55) |
-| `account.note_added` | `backoffice` | `account` | `info` | 5 | Note interne ajoutée — **immuable**, donc jamais de `note_edited` |
-| `account.field_corrected` | `backoffice` | `account` | `sensitive` | 5 | Correction d'une donnée de compte par un interne (`15`, `09` RG94) |
-| `ownership.reassigned` | `backoffice` | `account` | `sensitive` | 1 | Changement de commercial responsable, motif typé |
-| `ownership.bulk_transferred` | `backoffice` | `account` | `critical` | 5 | Transfert **en masse** d'un portefeuille — rare, donc d'autant plus à tracer |
-| `queue.claim_forced_release` | `backoffice` | `queue_entry` | `sensitive` | 2 (L2C, `0210`) | Verrou orphelin levé par un administrateur : **le titulaire dépossédé en est informé** (`15` C4, `03` C(20)) |
-| `queue.entry_opened` | `backoffice` | `queue_entry` | `sensitive` | 2 (L2C, `0210`) | Ouverture d'une entrée de file avec son issue (`claimed`, `held`, `read_only`, `closed`) : la vue de décision montre l'interlocuteur (`15` RG35, L2BS-7) |
-| `queue.claim_released` · `queue.claim_extended` · `queue.claim_expired` | `backoffice` | `queue_entry` | `info` | 2 (L2C, `0210`) | Relâche, prolongation, abandon d'un verrou, avec son titulaire et ses instants, sans texte libre (`15` C3, `l2c/file.md` A9) |
-| `queue.logo_read` | `backoffice` | `queue_entry` | `sensitive` | 2 (L2C, `0213`) | Lecture d'un logo de marque (`active`, `in_review`) par un interne, titulaire du verrou ou non : une ligne par lecture, charge `queue_code`, `logo_id`, `state`, jamais la clé de l'objet (décision du fondateur, 2026-11-05) |
-| `profile.published` · `profile.rejected` | `profiles` | `advertiser_profile` | `sensitive` | 2 (L2C, `0210`) | Décision de la file 1 (`06` RG69) : entrée, nature, champs ou motif, retard |
-| `profile.completed` · `profile.decision` | `leads` · `profiles` | `account` · `queue_entry` | `info` | 2 (L2C, `0210`) | Codes de la file de synchronisation seulement (`06` RG78, RG69), jamais une ligne du registre |
-| `alert.acknowledged` · `alert.closed` | `backoffice` | `alert_instance` | `info` | 4 | Prise en charge et classement d'une alerte d'événement (`15` RG69) |
-| `dual_control.requested` · `dual_control.confirmed` · `dual_control.expired` | `backoffice` | `dual_control_request` | `critical` | 1 | Le contrôle à quatre yeux, de bout en bout (`03` PD4, `15` RG31) |
-| `export.produced` | `backoffice` | `export` | `critical` | 5 | Export produit, **avec ses filtres exacts et l'empreinte du fichier** (`15` RG94) |
-| `privacy.request_received` · `privacy.identity_verified` · `privacy.request_executed` · `privacy.request_closed` | `backoffice` | `data_subject_request` | `critical` | 5 | Les quatre moments d'une demande relative aux données personnelles (`15` §G). **`identity_verified` est un code à part** : exécuter un effacement sans avoir vérifié qui demande est le pire des scénarios |
-| `agent.invited` · `agent.role_changed` · `agent.deactivated` · `agent.mfa_reset` | `identity` | `account` | `critical` | 0 | Cycle de vie d'un compte interne. **`mfa_reset` est `critical`** : c'est une primitive de prise de contrôle |
-| **`agent.break_glass_login`** | `identity` | `account` | **`critical`** | **0** | **Connexion du compte de secours** (`15` RG103, AL33). Alerte immédiate au fondateur, justification écrite sous 24 h |
-| `settings.changed` | `backoffice` | `setting` | `sensitive` | 1 | Modification d'un paramètre d'exploitation, d'un plafond ou d'un SLA, **nominativement** |
+| Code | `domain` | `subject_type` | `severity` | `export_class` | Lot | Fait relaté |
+|---|---|---|---|---|---|---|
+| `account.suspended` · `account.suspension_lifted` | `backoffice` | `account` | `critical` | `exported` | 5 | Suspension et levée, **avec leur motif typé** (`15` RG52, RG55) |
+| `account.note_added` | `backoffice` | `account` | `info` | `exported` | 5 | Note interne ajoutée — **immuable**, donc jamais de `note_edited` |
+| `account.field_corrected` | `backoffice` | `account` | `sensitive` | `exported` | 5 | Correction d'une donnée de compte par un interne (`15`, `09` RG94) |
+| `ownership.reassigned` | `backoffice` | `account` | `sensitive` | `exported` | 1 | Changement de commercial responsable, motif typé |
+| `ownership.bulk_transferred` | `backoffice` | `account` | `critical` | `exported` | 5 | Transfert **en masse** d'un portefeuille — rare, donc d'autant plus à tracer |
+| `queue.claim_forced_release` | `backoffice` | `queue_entry` | `sensitive` | `exported` | 2 (L2C, `0210`) | Verrou orphelin levé par un administrateur : **le titulaire dépossédé en est informé** (`15` C4, `03` C(20)) |
+| `queue.entry_opened` | `backoffice` | `queue_entry` | `sensitive` | `exported` | 2 (L2C, `0210`) | Ouverture d'une entrée de file avec son issue (`claimed`, `held`, `read_only`, `closed`) : la vue de décision montre l'interlocuteur (`15` RG35, L2BS-7) |
+| `queue.claim_released` · `queue.claim_extended` · `queue.claim_expired` | `backoffice` | `queue_entry` | `info` | `exported` | 2 (L2C, `0210`) | Relâche, prolongation, abandon d'un verrou, avec son titulaire et ses instants, sans texte libre (`15` C3, `l2c/file.md` A9) |
+| `queue.logo_read` | `backoffice` | `queue_entry` | `sensitive` | `exported` | 2 (L2C, `0213`) | Lecture d'un logo de marque (`active`, `in_review`) par un interne, titulaire du verrou ou non : une ligne par lecture, charge `queue_code`, `logo_id`, `state`, jamais la clé de l'objet (décision du fondateur, 2026-11-05) |
+| `profile.published` · `profile.rejected` | `profiles` | `advertiser_profile` | `sensitive` | `exported` | 2 (L2C, `0210`) | Décision de la file 1 (`06` RG69) : entrée, nature, champs ou motif, retard |
+| `profile.completed` · `profile.decision` | `leads` · `profiles` | `account` · `queue_entry` | `info` | `exported` | 2 (L2C, `0210`) | Codes de la file de synchronisation seulement (`06` RG78, RG69), jamais une ligne du registre |
+| `alert.acknowledged` · `alert.closed` | `backoffice` | `alert_instance` | `info` | **`excluded_security`** | 4 | Prise en charge et classement d'une alerte d'événement (`15` RG69) |
+| `dual_control.requested` · `dual_control.confirmed` · `dual_control.expired` | `backoffice` | `dual_control_request` | `critical` | `exported` | 1 | Le contrôle à quatre yeux, de bout en bout (`03` PD4, `15` RG31) |
+| `export.produced` | `backoffice` | `export` | `critical` | `exported` | 5 | Export produit, **avec ses filtres exacts et l'empreinte du fichier** (`15` RG94) |
+| `privacy.request_received` · `privacy.identity_verified` · `privacy.request_executed` · `privacy.request_closed` | `backoffice` | `data_subject_request` | `critical` | `exported` | 5 | Les quatre moments d'une demande relative aux données personnelles (`15` §G). **`identity_verified` est un code à part** : exécuter un effacement sans avoir vérifié qui demande est le pire des scénarios |
+| `agent.invited` · `agent.role_changed` · `agent.deactivated` · `agent.mfa_reset` | `identity` | `account` | `critical` | `exported` | 0 | Cycle de vie d'un compte interne. **`mfa_reset` est `critical`** : c'est une primitive de prise de contrôle |
+| **`agent.break_glass_login`** | `identity` | `account` | **`critical`** | `exported` | **0** | **Connexion du compte de secours** (`15` RG103, AL33). Alerte immédiate au fondateur, justification écrite sous 24 h |
+| `settings.changed` | `backoffice` | `setting` | `sensitive` | `exported` | 1 | Modification d'un paramètre d'exploitation, d'un plafond ou d'un SLA, **nominativement** |
+
+> **Exclusions (F3).** `alert.acknowledged` · `alert.closed` : `excluded_security` — le classement
+> d'une alerte d'événement, dont des détections (AL34 code de secours, AL35 connexion interne
+> inhabituelle, AL39 refus pour droit insuffisant) : sa survenue dirait quelle détection a sonné.
+> Les codes déjà en base (Lots 0 à 2) gardent la classe de `0302` (`exported`) ; la suspension
+> (`account.suspended`), décision annoncée au membre avec son motif, est exportée.
 
 > **`agent.*` et `dual_control.*` arrivent aux Lots 0 et 1, pas au Lot 5**, alors que le reste du
 > backoffice arrive au Lot 5 : les comptes internes et le compte de secours existent **dès le premier
