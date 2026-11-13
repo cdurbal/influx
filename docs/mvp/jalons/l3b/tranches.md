@@ -1,5 +1,5 @@
 # L3B — grille `reference.price_bands` (L3B-B)
-> `expert-paiement-facturation`, 2026-11-13. **À valider par le fondateur (F1)** ; réponse : *(F1)*. Prime sur `0304` pour toute valeur. *-n* : `EC-L3B-B-n`.
+> `expert-paiement-facturation`, 2026-11-13. **À valider par le fondateur (F1)** ; réponse du fondateur, 2026-11-13, mot pour mot : « Grille validée ». Prime sur `0304` pour toute valeur. *-n* : `EC-L3B-B-n`.
 
 ## Résumé pour le fondateur
 1. **Recommandation : valider telle quelle** : 5 devises, 10 tranches chacune, aucun net (D48).
