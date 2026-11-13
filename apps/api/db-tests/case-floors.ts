@@ -14,7 +14,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/profiles-brand-submission.test.ts": 65,
   "db-tests/profiles-brand.test.ts": 158,
   "db-tests/profiles-creator-bands.test.ts": 56,
-  "db-tests/profiles-creator-identity.test.ts": 83,
+  "db-tests/profiles-creator-identity.test.ts": 86,
   "db-tests/profiles-creator-networks.test.ts": 25,
   "db-tests/profiles-creator-preview-route.test.ts": 10,
   "db-tests/profiles-creator-privacy.test.ts": 12,

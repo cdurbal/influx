@@ -1,6 +1,8 @@
 // L2D commit 04 — the identifying objects of the creator profile, 0217 (jalons/l2d/04.md,
 // l2d/modele.md §0217; 07 RG16, RG41 to RG47, RG56 to RG61, RG75, RG119; fiche invariants 1, 2, 7,
-// 8): T1-R influx_advertiser reaches no creator object, examined BY NAME (04 §11.3, non reversible),
+// 8): T1-R influx_advertiser reaches no creator object, examined BY NAME (04 §11.3, non reversible)
+// and, since L3A-06 (L2DS-3), by dependency in every schema; L3A-T3 no dynamic SQL in a function
+// owned by influx_identity_definer (L2DS-5),
 // L2D-D4 a handle once per (creator, network), L2D-D5 one primary line, L2D-D6 neither city nor
 // identity outside layer N, plus the identity row of every storefront, the guard of the URL, the
 // exact audience, the history and the shapes the base holds. Rights per table and role are probed
@@ -192,11 +194,51 @@ async function signUp(tx: Tx, role: "creator" | "advertiser"): Promise<string> {
 /**
  * T1-R findings: every right of influx_advertiser on a profiles object named creator_% (tables,
  * views, sequences), every creator function of profiles it may execute, every policy of a creator
- * object naming it or PUBLIC. The exceptions of the Lot 3 are taken out here, nowhere else.
+ * object naming it or PUBLIC (the guard BY NAME). Then, in EVERY schema (L2DS-3): every view or
+ * materialized view it may touch that depends, through pg_depend on pg_rewrite and recursively, on
+ * a profiles.creator_% relation; every function it may execute whose body names profiles.creator_
+ * (prosrc) or that depends on such a relation (pg_depend, SQL-standard bodies). A relation or a
+ * function keeps one name whichever branch finds it, so one exception covers it. The exceptions of
+ * the Lot 3 are taken out here, nowhere else.
  */
 async function advertiserFindings(sql: Sql): Promise<string[]> {
   const rows = await sql<{ finding: string }[]>`
+    with recursive creator_reach (oid) as (
+      select c.oid
+        from pg_catalog.pg_class c
+        join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'profiles' and c.relname like 'creator\\_%'
+         and c.relkind in ('r', 'p', 'v', 'm', 'f')
+      union
+      select r.ev_class
+        from creator_reach cr
+        join pg_catalog.pg_depend d
+          on d.refclassid = 'pg_catalog.pg_class'::regclass and d.refobjid = cr.oid
+        join pg_catalog.pg_rewrite r
+          on d.classid = 'pg_catalog.pg_rewrite'::regclass and r.oid = d.objid
+       where r.ev_class <> cr.oid
+    )
     select c.oid::regclass::text as finding
+      from pg_catalog.pg_class c
+      join creator_reach cr on cr.oid = c.oid
+     where c.relkind in ('v', 'm')
+       and (has_table_privilege('influx_advertiser', c.oid,
+                                'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
+            or has_any_column_privilege('influx_advertiser', c.oid,
+                                        'SELECT, INSERT, UPDATE, REFERENCES'))
+    union
+    select p.oid::regprocedure::text
+      from pg_catalog.pg_proc p
+     where has_function_privilege('influx_advertiser', p.oid, 'EXECUTE')
+       and (p.prosrc ~* '\\mprofiles"?\\s*\\.\\s*"?creator_'
+            or exists (select 1
+                         from pg_catalog.pg_depend d
+                         join creator_reach cr on cr.oid = d.refobjid
+                        where d.classid = 'pg_catalog.pg_proc'::regclass
+                          and d.objid = p.oid
+                          and d.refclassid = 'pg_catalog.pg_class'::regclass))
+    union
+    select c.oid::regclass::text
       from pg_catalog.pg_class c
       join pg_catalog.pg_namespace n on n.oid = c.relnamespace
      where n.nspname = 'profiles' and c.relname like 'creator\\_%'
@@ -207,13 +249,13 @@ async function advertiserFindings(sql: Sql): Promise<string[]> {
                                               'SELECT, INSERT, UPDATE, REFERENCES')))
             or (c.relkind = 'S'
                 and has_sequence_privilege('influx_advertiser', c.oid, 'USAGE, SELECT, UPDATE')))
-    union all
+    union
     select p.oid::regprocedure::text
       from pg_catalog.pg_proc p
       join pg_catalog.pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'profiles' and p.proname like '%creator%'
        and has_function_privilege('influx_advertiser', p.oid, 'EXECUTE')
-    union all
+    union
     select 'policy ' || schemaname || '.' || tablename || '.' || policyname
       from pg_catalog.pg_policies
      where schemaname = 'profiles' and tablename like 'creator\\_%'
@@ -297,6 +339,68 @@ describe("T1-R: influx_advertiser reaches no creator object, examined by name (0
     );
   });
 
+  // L3A-T4 (L2DS-3): the guard by dependency, in any schema, whatever the name of the object
+  it("sees red on a view of another schema reading creator_identities, directly or through a view (L3A-T4, rolled back)", async () => {
+    const [before, after] = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        const found = await advertiserFindings(tx);
+        await tx`create schema l3a_t4`;
+        await tx`create view l3a_t4.storefront_direct as
+                   select account_id from profiles.creator_identities`;
+        await tx`create view l3a_t4.storefront_inner as
+                   select account_id from profiles.creator_identities`;
+        await tx`create view l3a_t4.storefront_outer as
+                   select account_id from l3a_t4.storefront_inner`;
+        await tx`grant usage on schema l3a_t4 to influx_advertiser`;
+        await tx`grant select on l3a_t4.storefront_direct, l3a_t4.storefront_outer
+                   to influx_advertiser`;
+        return [found, await advertiserFindings(tx)];
+      },
+    );
+    expect(before).toEqual([]);
+    expect(after).toEqual([
+      "l3a_t4.storefront_direct",
+      "l3a_t4.storefront_outer",
+    ]);
+  });
+
+  it("sees red on a SECURITY DEFINER function of another schema reading creator_identities (L3A-T4, rolled back)", async () => {
+    const [before, after] = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        const found = await advertiserFindings(tx);
+        await tx`create schema l3a_t4`;
+        await tx.unsafe(`
+          create function l3a_t4.lookup(p_account uuid) returns text
+            language plpgsql stable security definer set search_path = ''
+          as $fn$
+          begin
+            return (select i.city from profiles.creator_identities i
+                     where i.account_id = p_account);
+          end
+          $fn$`);
+        await tx.unsafe(`
+          create function l3a_t4.lookup_atomic(p_account uuid) returns bigint
+            language sql stable security definer set search_path = ''
+          begin atomic
+            select count(*) from profiles.creator_identities i where i.account_id = p_account;
+          end`);
+        await tx`revoke all on function l3a_t4.lookup(uuid), l3a_t4.lookup_atomic(uuid)
+                   from public`;
+        await tx`grant usage on schema l3a_t4 to influx_advertiser`;
+        await tx`grant execute on function l3a_t4.lookup(uuid), l3a_t4.lookup_atomic(uuid)
+                   to influx_advertiser`;
+        return [found, await advertiserFindings(tx)];
+      },
+    );
+    expect(before).toEqual([]);
+    expect(after).toEqual([
+      "l3a_t4.lookup(uuid)",
+      "l3a_t4.lookup_atomic(uuid)",
+    ]);
+  });
+
   it("keeps the advertiser off the identity, the lines, the audience and the history even in aal2 (42501)", async () => {
     const outcomes = await inRolledBackTransaction(localSuperuser(), (tx) =>
       actAsMember(
@@ -325,6 +429,55 @@ describe("T1-R: influx_advertiser reaches no creator object, examined by name (0
       ),
     );
     expect(outcomes).toEqual(Array(4).fill(refusedBy(INSUFFICIENT_PRIVILEGE)));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L3A-T3 (L2DS-5): no dynamic SQL in a function owned by influx_identity_definer
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * The functions owned by influx_identity_definer whose body names `execute`, the rule of the end
+ * assertion of 0301 (its list of excluded signatures, empty, EC-L3A-05-3, is replayed here).
+ */
+async function identityDefinerDynamicSql(sql: Sql): Promise<string[]> {
+  const rows = await sql<{ name: string }[]>`
+    select p.oid::regprocedure::text as name
+      from pg_catalog.pg_proc p
+     where p.proowner = 'influx_identity_definer'::regrole
+       and p.prosrc ~* '\\mexecute\\M'
+       and p.oid::regprocedure::text <> all (array[]::text[])
+     order by 1`;
+  return rows.map((row) => row.name);
+}
+
+describe("L3A-T3: no function owned by influx_identity_definer carries a dynamic execute (L2DS-5)", () => {
+  it("finds none among the functions it owns, and sees red on a witness given to it (rolled back)", async () => {
+    const [owned] = await migration<{ count: number }[]>`
+      select count(*)::int as count from pg_catalog.pg_proc
+       where proowner = 'influx_identity_definer'::regrole`;
+    expect(owned?.count ?? 0).toBeGreaterThan(0);
+    expect(await identityDefinerDynamicSql(migration)).toEqual([]);
+
+    const witness = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        await tx`create schema l3a_t3`;
+        await tx.unsafe(`
+        create function l3a_t3.dynamic_read(p_table text) returns bigint
+          language plpgsql security definer set search_path = ''
+        as $fn$
+        declare v_count bigint;
+        begin
+          EXECUTE format('select count(*) from %s', p_table) into v_count;
+          return v_count;
+        end
+        $fn$`);
+        await tx`alter function l3a_t3.dynamic_read(text) owner to influx_identity_definer`;
+        return identityDefinerDynamicSql(tx);
+      },
+    );
+    expect(witness).toEqual(["l3a_t3.dynamic_read(text)"]);
   });
 });
 
