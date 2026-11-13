@@ -140,3 +140,24 @@ export function locateDirectContact(
         CONTACT_SIGNALS.indexOf(a.signal) - CONTACT_SIGNALS.indexOf(b.signal),
     );
 }
+
+/**
+ * Where a detector of another shape (a campaign amount, 09 RG23) found something: it reads the
+ * normalised text and returns ranges in it, which come back as ranges of the text as it was typed,
+ * the same way locateDirectContact does. Positions only, never the text.
+ */
+export function locateInNormalised(
+  text: string | null | undefined,
+  find: (normalised: string) => readonly Range[],
+): readonly { readonly start: number; readonly end: number }[] {
+  if (text === null || text === undefined || text.trim() === "") {
+    return [];
+  }
+  const typed = text.normalize("NFKC");
+  const origins = originsOf(text, typed);
+  return find(typed).map(([from, to]) => {
+    const first = origins[from] ?? [text.length, text.length];
+    const last = origins[to - 1] ?? first;
+    return { start: first[0], end: last[1] };
+  });
+}

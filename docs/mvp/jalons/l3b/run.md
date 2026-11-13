@@ -7,7 +7,7 @@
 | F1 | F1.md | fondateur | — | — | fondateur | fait | Fondateur, 2026-11-13 : « Grille validée » (telle quelle ; ligne 03 la recopie) |
 | 02 | 02.md | commit | opus | high | expert-database | fait | 0303 : 12 tables campaigns.*, RLS forcée, marque seule (jamais état, cycle, déclaration, fourchette) ; gel 55000 ; créateur rien ; 9 codes avec export_class |
 | 03 | 03.md | commit | opus | high | expert-database | fait | 0304 : grille de tranches.md mot pour mot (5 × 10), min incluse, max exclue, seule la dernière ouverte, nets nuls ; contiguïté + témoin ; T2 autorisé |
-| 04 | 04.md | commit | sonnet | high | dev-react-node | à faire | |
+| 04 | 04.md | commit | sonnet | high | dev-react-node | fait | 27 codes camelCase de modele §5 par étape ; dates RG70 six paires, RG74 ; détection contact/lien/montant en positions seules ; 69 cas T5 |
 | 05 | 05.md | commit | opus | high | expert-database | à faire | |
 | 06 | 06.md | commit | opus | high | expert-database | à faire | |
 | 07 | 07.md | commit | sonnet | high | dev-react-node | à faire | |
