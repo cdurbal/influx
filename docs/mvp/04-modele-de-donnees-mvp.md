@@ -579,10 +579,17 @@ C'est la table la plus contrainte du modèle. Elle porte **M2 et M4** de
 | `subject_type` | `text` | `not null` — le type d'objet attendu, contrôlé à l'écriture |
 | `severity` | `text` | `not null check (severity in ('info','sensitive','critical'))` |
 | `is_active` | `boolean` | `not null default true` |
+| `export_class` | `text` | `not null`, **sans défaut**, `check (export_class in ('exported','excluded_security','excluded_third_party'))` — F3, `0302` |
 
 Pourquoi une table plutôt qu'un `enum` : ajouter un type d'événement au Lot 5 ne doit pas exiger un
 `ALTER TYPE` (non utilisable dans la même transaction que son usage), et l'on veut pouvoir compter
 les événements par domaine et par gravité par simple jointure.
+
+**Classification d'export (F3, `jalons/l3a/f3.md`).** Le journal d'activité de l'export « mes
+données » ne sert que les codes `exported`. Exporté par défaut (art. 15) ; exclu seulement un code
+qui révèle une mesure de sécurité interne (détection, signal de fraude, garde déclenchée) ou la
+donnée d'un tiers. Toute migration qui ajoute un code nomme `export_class` ; une exclusion s'inscrit
+au tableau de F3 avec son motif.
 
 **Codes ajoutés au Lot 3** (`09`, Impacts ; `10` RG28). Ce sont des **données**, chargées par la
 migration `0301` : les ajouter n'exige aucun changement de schéma.
