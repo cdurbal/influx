@@ -1710,6 +1710,90 @@ describe("06 RG25, RG70, file.md A7: duplicate brand candidates", () => {
     expect(outcome.self).toEqual([]);
     expect(outcome.member.code).toBe(INSUFFICIENT_PRIVILEGE);
   });
+
+  it("L3A-T2 (0301, L2CS-6) looks both branches up by their partial index on published profiles, the same rows in the same order", async () => {
+    const outcome = await scenario(async (tx) => {
+      const indexes = await tx<{ indexname: string; indexdef: string }[]>`
+        select indexname, indexdef from pg_catalog.pg_indexes
+         where schemaname = 'profiles' and tablename = 'advertiser_profiles'
+           and indexname like 'advertiser\_profiles\_published\_%'
+         order by indexname`;
+      await tx`
+        update profiles.advertiser_profiles
+           set status = 'published', legal_name = 'Maison Été', website_domain = 'maison.example'
+         where account_id = ${brandB}`;
+      await tx`set local enable_seqscan = off`;
+      // the two branches of advertiser_duplicate_candidates() (0210), their parameters written
+      const branches = [
+        `select p.account_id from profiles.advertiser_profiles p
+          where p.status = 'published'
+            and p.account_id is distinct from '${brandA}'::uuid
+            and profiles.normalized_brand_name(p.legal_name)
+                = profiles.normalized_brand_name('maison ete')`,
+        `select p.account_id from profiles.advertiser_profiles p
+          where p.status = 'published'
+            and p.account_id is distinct from '${brandA}'::uuid
+            and pg_catalog.lower(p.website_domain) = pg_catalog.lower('MAISON.example')`,
+      ];
+      const planOf = async (branch: string) =>
+        rowsOf(await attempt(tx, `explain (costs off) ${branch}`))
+          .map((line) => String(line["QUERY PLAN"]))
+          .join("\n");
+      // the migration role reads without a policy: each branch is an index lookup
+      const plans: string[] = [];
+      for (const branch of branches) plans.push(await planOf(branch));
+      // an agent reads through advertiser_profiles_internal_select: neither lower() nor normalized_brand_name() is
+      // LEAKPROOF, so the comparison waits for the policy; the partial index still bounds the read
+      // to the published profiles
+      const agentPlans = await asInternal(tx, AGENT_A, async () => {
+        const found: string[] = [];
+        for (const branch of branches) found.push(await planOf(branch));
+        return found;
+      });
+      const found = rowsOf(
+        await asInternal(tx, AGENT_A, () =>
+          attempt(
+            tx,
+            "select account_id::text, matched_on from profiles.advertiser_duplicate_candidates($1, $2, $3)",
+            [brandA, "maison ete", "MAISON.example"],
+          ),
+        ),
+      );
+      return { indexes, plans, agentPlans, found };
+    });
+    expect(outcome.indexes.map((index) => index.indexname)).toEqual([
+      "advertiser_profiles_published_brand_name_idx",
+      "advertiser_profiles_published_domain_idx",
+    ]);
+    for (const index of outcome.indexes) {
+      expect(index.indexdef).toMatch(/WHERE \(status = 'published'::/);
+    }
+    expect(outcome.indexes[0]?.indexdef).toContain(
+      "profiles.normalized_brand_name(legal_name)",
+    );
+    expect(outcome.indexes[1]?.indexdef).toContain("lower(website_domain)");
+    expect(outcome.plans[0]).toMatch(
+      /Index Cond: \(profiles\.normalized_brand_name\(legal_name\) = /,
+    );
+    expect(outcome.plans[0]).toContain(
+      "advertiser_profiles_published_brand_name_idx",
+    );
+    expect(outcome.plans[1]).toMatch(
+      /Index Cond: \(lower\(website_domain\) = /,
+    );
+    expect(outcome.plans[1]).toContain(
+      "advertiser_profiles_published_domain_idx",
+    );
+    for (const plan of outcome.agentPlans) {
+      expect(plan).toMatch(
+        /advertiser_profiles_published_(brand_name|domain)_idx/,
+      );
+    }
+    expect(outcome.found).toEqual([
+      { account_id: brandB, matched_on: "brand_name" },
+      { account_id: brandB, matched_on: "domain" },
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

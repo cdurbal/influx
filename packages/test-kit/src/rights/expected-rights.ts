@@ -5966,6 +5966,13 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_worker|function|leads.read_brevo_creator_profile_decision(bigint,text)|EXECUTE",
   "influx_worker|function|leads.read_brevo_portfolio_decision(bigint,text)|EXECUTE",
   "influx_worker|function|leads.read_creator_profile_attributes(bigint,text)|EXECUTE",
+  // 0301 (L3A commit 05, L2CS-6, EC-L3A-05-1): the partial index on
+  // profiles.normalized_brand_name(legal_name) is evaluated with the rights of the writer: the four
+  // roles writing advertiser_profiles execute that IMMUTABLE invoker function (it reads no table)
+  "influx_advertiser|function|profiles.normalized_brand_name(text)|EXECUTE",
+  "influx_identity_definer|function|profiles.normalized_brand_name(text)|EXECUTE",
+  "influx_moderation_definer|function|profiles.normalized_brand_name(text)|EXECUTE",
+  "influx_privacy_definer|function|profiles.normalized_brand_name(text)|EXECUTE",
 ];
 
 /**

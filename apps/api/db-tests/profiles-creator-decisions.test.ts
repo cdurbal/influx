@@ -1466,3 +1466,118 @@ describe("L2G-D11: a visual is approved, or refused with a reason of RG79; a rep
     ]);
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// L3A-T1 (0301, L2GS-8): a publication needs an active account; the other acts stay possible
+// ---------------------------------------------------------------------------------------------
+
+/** Account of creator a put out of `active`, as the backoffice or the erasure would. */
+async function leaveActive(tx: Tx, status: "suspended" | "deleted") {
+  await (status === "suspended"
+    ? tx`update identity.accounts set status = 'suspended', suspended_at = now()
+          where id = ${creatorA}`
+    : tx`update identity.accounts set status = 'deleted', deleted_at = now()
+          where id = ${creatorA}`);
+}
+
+/** A ready profile submitted and opened by agent a, then its account out of `active`. */
+async function openedThenLeft(
+  tx: Tx,
+  status: "suspended" | "deleted",
+): Promise<{ entry: string; token: string | null }> {
+  await readyProfile(tx);
+  const entry = await submit(tx);
+  const opened = await open(tx, AGENT_A, OPEN_ENTRY, entry);
+  await leaveActive(tx, status);
+  return { entry, token: opened.review_token };
+}
+
+describe("L3A-T1, L2GS-8: no publication of an account that is not active; the refusal, the release and the extension stay possible (fiche L3A invariant 4)", () => {
+  it("L3A-T1.1 refuses to publish a suspended account (55000 account_not_active, DETAIL profile_state), nothing written", async () => {
+    const outcome = await scenario(async (tx) => {
+      const { entry, token } = await openedThenLeft(tx, "suspended");
+      const attempt = await asInternal(tx, AGENT_A, () =>
+        run(tx, PUBLISH, [entry, token, undefined]),
+      );
+      return {
+        attempt,
+        status: (await profileOf(tx))?.status,
+        state: (await entryOf(tx, entry))?.state,
+        mails: await outboxOf(tx),
+        lines: await registerOf(tx, "creator_profile.published", creatorA),
+      };
+    });
+    expect(outcome.attempt).toEqual(
+      refused(NOT_IN_PREREQUISITE_STATE, "account_not_active", "profile_state"),
+    );
+    expect(outcome.status).toBe("pending_review");
+    expect(outcome.state).toBe("open");
+    expect(outcome.mails).toEqual([]);
+    expect(outcome.lines).toEqual([]);
+  });
+
+  it("L3A-T1.2 refuses to publish a deleted account, an admin as an agent (55000 account_not_active)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const { entry, token } = await openedThenLeft(tx, "deleted");
+      const agent = await asInternal(tx, AGENT_A, () =>
+        run(tx, PUBLISH, [entry, token, undefined]),
+      );
+      await asInternal(tx, AGENT_A, () => rows(tx, RELEASE_ENTRY, [entry]));
+      const reopened = await open(tx, ADMIN_A, OPEN_ENTRY, entry);
+      const admin = await asInternal(tx, ADMIN_A, () =>
+        run(tx, PUBLISH, [entry, reopened.review_token, undefined]),
+      );
+      return { agent, admin, status: (await profileOf(tx))?.status };
+    });
+    for (const attempt of [outcome.agent, outcome.admin]) {
+      expect(attempt).toEqual(
+        refused(
+          NOT_IN_PREREQUISITE_STATE,
+          "account_not_active",
+          "profile_state",
+        ),
+      );
+    }
+    expect(outcome.status).toBe("pending_review");
+  });
+
+  it("L3A-T1.3 releases, extends and refuses an entry of a suspended account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const { entry } = await openedThenLeft(tx, "suspended");
+      const extended = await asInternal(tx, AGENT_A, () =>
+        run(tx, EXTEND_ENTRY, [entry]),
+      );
+      const released = await asInternal(tx, AGENT_A, () =>
+        run(tx, RELEASE_ENTRY, [entry]),
+      );
+      const reopened = await open(tx, AGENT_B, OPEN_ENTRY, entry);
+      const decided = await asInternal(tx, AGENT_B, () =>
+        run(tx, REJECT_ENTRY, [
+          entry,
+          reopened.review_token,
+          "bio_insufficient",
+          undefined,
+          undefined,
+        ]),
+      );
+      return {
+        extended,
+        released,
+        reopened: reopened.outcome,
+        decided,
+        row: await entryOf(tx, entry),
+        status: (await profileOf(tx))?.status,
+      };
+    });
+    expect(outcome.extended).toMatchObject({ outcome: "rows" });
+    expect(outcome.released).toMatchObject({ outcome: "rows" });
+    expect(outcome.reopened).toBe("claimed");
+    expect(outcome.decided).toMatchObject({ outcome: "rows" });
+    expect(outcome.row).toMatchObject({
+      state: "rejected",
+      decided_by: agentB,
+      reason: "bio_insufficient",
+    });
+    expect(outcome.status).toBe("rejected");
+  });
+});
