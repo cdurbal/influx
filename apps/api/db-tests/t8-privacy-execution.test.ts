@@ -14,11 +14,13 @@
 // - D72 (0150): the erasure authorised by the member (identity.submit_member_erasure(), CHECKs of
 //   T3), its turn of the worker (T4: the open access withdrawn, privacy.erasure_completed queued,
 //   its address read by privacy.read_erasure_notification_subject()), the closure on its messageId.
+// - L3B-T7 (0306): the campaigns in the export and the erasure (l3b/modele.md §7).
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, which writes the fixtures
 // and acts as apps/api and the worker do (support.ts: actAsInternal, actAsMember, actAs).
 import {
   accountIdOf,
+  CAMPAIGN_IDS,
   inRolledBackTransaction,
   type DataSet,
 } from "@influx/test-kit/db";
@@ -2116,6 +2118,8 @@ describe("the full brand profile of 0202 in the export and the erasure (04 §9.2
       field_revisions: [],
       // 0226 (L2E): no internal block, request nor badge for this brand
       verification: { internal_details: null, requests: [], badges: [] },
+      // 0306 (L3B, EC-L3B-06-1): no campaign for this brand
+      campaigns: [],
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),
     });
@@ -4200,6 +4204,397 @@ describe("an address reused by another account (EC-J8-55, review F1)", () => {
     expect([...(outcome.addresses ?? [])].sort()).toEqual(
       [outcome.a.email, outcome.kept].sort(),
     );
+  });
+});
+
+/** The declaration of RG85 hashed in the fixtures (any text: the export serves the hash only). */
+const CAMPAIGN_DECLARATION = "t8-campaign declaration of RG85";
+const CAMPAIGN_DECLARATION_HEX = createHash("sha256")
+  .update(CAMPAIGN_DECLARATION, "utf8")
+  .digest("hex");
+
+/**
+ * Gives an advertiser two campaigns, as the superuser (0303 to 0305): a partial draft, then a
+ * campaign submitted with its declaration of RG85 and a row in each of its nine lists.
+ */
+async function giveCampaigns(
+  tx: Tx,
+  account: string,
+  label: string,
+): Promise<{ draft: string; submitted: string }> {
+  const [draft] = await tx<{ id: string }[]>`
+    insert into campaigns.campaigns
+      (advertiser_account_id, title, brief, internal_reference, currency,
+       per_creator_budget_band_code, total_budget_minor, created_at)
+    values (${account}, ${`${label} draft`}, ${`${label} draft brief`}, 'DRAFT-01', 'GBP',
+            '100_250', 50000, '2026-01-01T09:00:00Z')
+    returning id::text`;
+  const [submitted] = await tx<{ id: string }[]>`
+    insert into campaigns.campaigns
+      (advertiser_account_id, status, title, campaign_type_code, public_summary, brief,
+       internal_reference, product_description, sector_code, restrictions, product_is_sent,
+       product_value_band_code, creator_keeps_product, shipping_costs_borne_by, usage_rights_code,
+       usage_rights_duration_band, usage_rights_territory_scope, exclusivity_band,
+       content_review_delay, audience_gender_code, currency, remuneration_kind,
+       per_creator_budget_band_code, creators_wanted, total_budget_minor, applications_close_on,
+       content_due_on, starts_on, ends_on, max_applications, authorizations_declared_at,
+       authorizations_declared_by_account_id, authorizations_declaration_locale,
+       authorizations_declaration_hash, submitted_at, created_at)
+    values (${account}, 'pending_review', ${`${label} submitted title`}, 'product_placement',
+            ${`${label} summary ${"s".repeat(120)}`}, ${`${label} brief ${"b".repeat(300)}`},
+            'SUB-01', ${`${label} product description`}, 'sports_leisure',
+            ${`${label} restrictions`}, true, 'under_100', true, 'brand', 'organic_repost', '3m',
+            'selected_countries', 'none', '5bd', 'mixed', 'EUR', 'cash_and_gift', '500_1000', 3,
+            3000000, '2027-01-10', '2027-01-25', '2027-02-01', '2027-03-01', 50,
+            '2026-01-03T10:00:00Z', ${account}, 'fr', decode(${CAMPAIGN_DECLARATION_HEX}, 'hex'),
+            '2026-01-03T10:00:00Z', '2026-01-02T09:00:00Z')
+    returning id::text`;
+  if (draft === undefined || submitted === undefined) {
+    throw new Error("no campaign");
+  }
+  await tx`
+    insert into campaigns.campaign_key_messages (campaign_id, position, body)
+    values (${draft.id}, 1, ${`${label} draft message`}),
+           (${submitted.id}, 1, ${`${label} message one`}),
+           (${submitted.id}, 2, ${`${label} message two`})`;
+  await tx`
+    insert into campaigns.campaign_topics (campaign_id, slot, topic_code)
+    values (${draft.id}, 1, 'travel'), (${submitted.id}, 1, 'beauty'),
+           (${submitted.id}, 2, 'wellness')`;
+  await tx`
+    insert into campaigns.campaign_deliverables
+      (campaign_id, slot, network_code, format_code, quantity)
+    values (${submitted.id}, 1, 'instagram', 'instagram_reel', 2),
+           (${submitted.id}, 2, 'tiktok', 'tiktok_video', 1)`;
+  await tx`
+    insert into campaigns.campaign_usage_territories (campaign_id, slot, country_code)
+    values (${submitted.id}, 1, 'FR'), (${submitted.id}, 2, 'BE')`;
+  await tx`
+    insert into campaigns.campaign_audience_countries (campaign_id, slot, country_code)
+    values (${submitted.id}, 1, 'FR'), (${submitted.id}, 2, 'BE')`;
+  await tx`
+    insert into campaigns.campaign_audience_languages (campaign_id, language_code)
+    values (${submitted.id}, 'fr'), (${submitted.id}, 'en')`;
+  await tx`
+    insert into campaigns.campaign_audience_bands (campaign_id, audience_band_code)
+    values (${submitted.id}, 'micro'), (${submitted.id}, 'mid')`;
+  await tx`
+    insert into campaigns.campaign_audience_age_bands (campaign_id, age_band_code)
+    values (${submitted.id}, '18_24'), (${submitted.id}, '25_34')`;
+  await tx`
+    insert into campaigns.campaign_requested_items (campaign_id, slot, item_code)
+    values (${submitted.id}, 1, 'motivation_message'), (${submitted.id}, 2, 'availability')`;
+  return { draft: draft.id, submitted: submitted.id };
+}
+
+/** What the base holds of a campaign: the columns of modele §7, its key messages and its codes. */
+async function campaignOf(tx: Tx, campaign: string): Promise<Row> {
+  const [row] = await tx<Row[]>`
+    select status::text as status, title, public_summary, brief, internal_reference,
+           product_description, restrictions, total_budget_minor::int as total_budget_minor,
+           erased_at is not null as erased, campaign_type_code, sector_code, currency,
+           per_creator_budget_band_code, applications_close_on::text as applications_close_on,
+           ends_on::text as ends_on, submitted_at is not null as submitted,
+           authorizations_declaration_locale::text as declaration_locale,
+           encode(authorizations_declaration_hash, 'hex') as declaration_hash,
+           (select array_agg(k.body order by k.position)
+              from campaigns.campaign_key_messages k where k.campaign_id = c.id) as key_messages,
+           (select array_agg(t.topic_code order by t.slot)
+              from campaigns.campaign_topics t where t.campaign_id = c.id) as topics,
+           (select count(*)::int from campaigns.campaign_deliverables d
+             where d.campaign_id = c.id) as deliverables
+      from campaigns.campaigns c where c.id = ${campaign}`;
+  return row ?? {};
+}
+
+describe("L3B-T7 the campaigns of 0303 to 0305 in the export and the erasure (0306, modele §7)", () => {
+  it("exports a submitted campaign as entered: reference, budget and band, its lists in order, its declaration (instant, locale, hex hash); never an id nor the author", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaigns(tx, member.id, "t8-camp");
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored, ids };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as {
+      data: { advertiser_profile: { campaigns: Row[] } };
+    };
+    const campaigns = file.data.advertiser_profile.campaigns;
+    expect(campaigns).toHaveLength(2);
+    expect(campaigns[1]).toEqual({
+      status: "pending_review",
+      title: "t8-camp submitted title",
+      campaign_type: "product_placement",
+      public_summary: `t8-camp summary ${"s".repeat(120)}`,
+      brief: `t8-camp brief ${"b".repeat(300)}`,
+      internal_reference: "SUB-01",
+      product_description: "t8-camp product description",
+      sector: "sports_leisure",
+      restrictions: "t8-camp restrictions",
+      product_is_sent: true,
+      product_value_band: "under_100",
+      creator_keeps_product: true,
+      shipping_costs_borne_by: "brand",
+      key_messages: ["t8-camp message one", "t8-camp message two"],
+      deliverables: [
+        { network: "instagram", format: "instagram_reel", quantity: 2 },
+        { network: "tiktok", format: "tiktok_video", quantity: 1 },
+      ],
+      usage_rights: "organic_repost",
+      usage_rights_duration: "3m",
+      usage_rights_territory_scope: "selected_countries",
+      usage_territories: ["FR", "BE"],
+      exclusivity: "none",
+      content_review_delay: "5bd",
+      audience_gender: "mixed",
+      audience_countries: ["FR", "BE"],
+      audience_languages: ["en", "fr"],
+      audience_bands: ["micro", "mid"],
+      audience_age_bands: ["18_24", "25_34"],
+      topics: ["beauty", "wellness"],
+      currency: "EUR",
+      remuneration_kind: "cash_and_gift",
+      budget_band: "500_1000",
+      creators_wanted: 3,
+      total_budget_minor: 3000000,
+      applications_close_on: "2027-01-10",
+      content_due_on: "2027-01-25",
+      starts_on: "2027-02-01",
+      ends_on: "2027-03-01",
+      max_applications: 50,
+      requested_items: ["motivation_message", "availability"],
+      authorizations_declaration: {
+        declared_at: "2026-01-03T10:00:00.000Z",
+        locale: "fr",
+        sha256: CAMPAIGN_DECLARATION_HEX,
+      },
+      submitted_at: "2026-01-03T10:00:00.000Z",
+      created_at: "2026-01-02T09:00:00.000Z",
+      updated_at: expect.stringMatching(/Z$/),
+    });
+    // EC-L3B-06-2: never the id of a campaign (the exact keys above leave out its author)
+    expect(content.includes(outcome.ids.draft)).toBe(false);
+    expect(content.includes(outcome.ids.submitted)).toBe(false);
+  });
+
+  it("exports a draft with its empty columns and lists, before the submitted campaign; nothing of another brand", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveCampaigns(tx, member.id, "t8-camp");
+      await giveCampaigns(tx, stranger.id, "t8-stranger");
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as {
+      data: { advertiser_profile: { campaigns: Row[] } };
+    };
+    const [draft, submitted] = file.data.advertiser_profile.campaigns;
+    expect(draft).toMatchObject({
+      status: "draft",
+      title: "t8-camp draft",
+      brief: "t8-camp draft brief",
+      internal_reference: "DRAFT-01",
+      public_summary: null,
+      campaign_type: null,
+      currency: "GBP",
+      budget_band: "100_250",
+      total_budget_minor: 50000,
+      key_messages: ["t8-camp draft message"],
+      topics: ["travel"],
+      deliverables: [],
+      usage_territories: [],
+      audience_countries: [],
+      audience_languages: [],
+      audience_bands: [],
+      audience_age_bands: [],
+      requested_items: [],
+      authorizations_declaration: null,
+      submitted_at: null,
+      created_at: "2026-01-01T09:00:00.000Z",
+    });
+    expect(submitted).toMatchObject({ status: "pending_review" });
+    // 15 RG81: the requester's campaigns only, never another brand's nor the data set's
+    expect(content.includes("t8-stranger")).toBe(false);
+    expect(content.includes("T2 campaign")).toBe(false);
+  });
+
+  it("closes the draft and the submitted campaign, empties their texts, reference and total budget, deletes their key messages; codes, dates, band, lists and declaration kept", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaigns(tx, member.id, "t8-erased");
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        draft: await campaignOf(tx, ids.draft),
+        submitted: await campaignOf(tx, ids.submitted),
+      };
+    });
+    const emptied = {
+      status: "closed",
+      title: null,
+      public_summary: null,
+      brief: null,
+      internal_reference: null,
+      product_description: null,
+      restrictions: null,
+      total_budget_minor: null,
+      erased: true,
+      key_messages: null,
+    };
+    expect(outcome.draft).toEqual({
+      ...emptied,
+      campaign_type_code: null,
+      sector_code: null,
+      currency: "GBP",
+      per_creator_budget_band_code: "100_250",
+      applications_close_on: null,
+      ends_on: null,
+      submitted: false,
+      declaration_locale: null,
+      declaration_hash: null,
+      topics: ["travel"],
+      deliverables: 0,
+    });
+    expect(outcome.submitted).toEqual({
+      ...emptied,
+      campaign_type_code: "product_placement",
+      sector_code: "sports_leisure",
+      currency: "EUR",
+      per_creator_budget_band_code: "500_1000",
+      applications_close_on: "2027-01-10",
+      ends_on: "2027-03-01",
+      submitted: true,
+      declaration_locale: "fr",
+      declaration_hash: CAMPAIGN_DECLARATION_HEX,
+      topics: ["beauty", "wellness"],
+      deliverables: 2,
+    });
+  });
+
+  it("leaves the campaigns of another brand and of the data set untouched, and writes no campaign line in the register (03 P8)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      const mine = await giveCampaigns(tx, member.id, "t8-erased");
+      const kept = await giveCampaigns(tx, stranger.id, "t8-kept");
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      const [lines] = await tx<{ count: number }[]>`
+        select count(*)::int as count from audit.audit_events
+         where event_type like 'campaign.%'
+           and subject_id in (${mine.draft}::uuid, ${mine.submitted}::uuid)`;
+      return {
+        kept: await campaignOf(tx, kept.submitted),
+        dataSet: await campaignOf(tx, CAMPAIGN_IDS.a),
+        lines: lines?.count,
+      };
+    });
+    expect(outcome.kept).toMatchObject({
+      status: "pending_review",
+      title: "t8-kept submitted title",
+      internal_reference: "SUB-01",
+      total_budget_minor: 3000000,
+      erased: false,
+      key_messages: ["t8-kept message one", "t8-kept message two"],
+    });
+    expect(outcome.dataSet).toMatchObject({
+      status: "draft",
+      title: "T2 campaign a",
+      erased: false,
+      key_messages: ["T2 key message a"],
+    });
+    expect(outcome.lines).toBe(0);
+  });
+
+  // modele §7: the owner of E-5 empties the row, and does nothing else, even on an erased account
+  it.each([
+    [
+      "a campaign closed with its texts left",
+      "update campaigns.campaigns set status = 'closed', erased_at = now() " +
+        "where advertiser_account_id = $1",
+    ],
+    [
+      "a new title",
+      "update campaigns.campaigns set status = 'closed', erased_at = now(), title = 'x', " +
+        "public_summary = null, brief = null, internal_reference = null, " +
+        "product_description = null, restrictions = null, total_budget_minor = null " +
+        "where advertiser_account_id = $1",
+    ],
+    [
+      "a key message added",
+      "insert into campaigns.campaign_key_messages (campaign_id, position, body) " +
+        "select id, 5, 'x' from campaigns.campaigns where advertiser_account_id = $1",
+    ],
+    [
+      "a list of codes deleted",
+      "delete from campaigns.campaign_topics where campaign_id in " +
+        "(select id from campaigns.campaigns where advertiser_account_id = $1)",
+    ],
+    [
+      "a code rewritten",
+      "update campaigns.campaigns set sector_code = null where advertiser_account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s on an erased account (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await giveCampaigns(tx, member.id, "t8-guard");
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${member.id}`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch nothing of the campaigns of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaigns(tx, member.id, "t8-active");
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = {
+        messages: await attempt(
+          tx,
+          "delete from campaigns.campaign_key_messages where campaign_id in " +
+            "(select id from campaigns.campaigns where advertiser_account_id = $1) returning 1",
+          [member.id],
+        ),
+        campaign: await attempt(
+          tx,
+          "update campaigns.campaigns set status = 'closed', erased_at = now(), title = null, " +
+            "public_summary = null, brief = null, internal_reference = null, " +
+            "product_description = null, restrictions = null, total_budget_minor = null " +
+            "where advertiser_account_id = $1 returning 1",
+          [member.id],
+        ),
+      };
+      await tx.unsafe("reset role");
+      return { results, after: await campaignOf(tx, ids.submitted) };
+    });
+    expect(rowsOf(outcome.results.messages)).toEqual([]);
+    expect(rowsOf(outcome.results.campaign)).toEqual([]);
+    expect(outcome.after).toMatchObject({
+      status: "pending_review",
+      title: "t8-active submitted title",
+      erased: false,
+      key_messages: ["t8-active message one", "t8-active message two"],
+    });
   });
 });
 

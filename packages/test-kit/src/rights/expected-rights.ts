@@ -2218,7 +2218,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * against its sections 1 and 3; and on 2026-11-13 with those of 0303 (L3B commit 02, the campaigns
  * core), each line checked against its section 6 and l3b/modele.md §4; then with those of 0305 (L3B
  * commit 05, the submission and the creator view), each line checked against its sections 2, 3, 5
- * and 6 and l3b/modele.md §5, §6.
+ * and 6 and l3b/modele.md §5, §6; then with those of 0306 (L3B commit 06, the export and the
+ * erasure of the campaigns), each line checked against its section 1 and l3b/modele.md §7.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -6301,6 +6302,77 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_campaign_definer|schema|influx|USAGE",
   "influx_campaign_definer|schema|profiles|USAGE",
   "influx_campaign_definer|schema|reference|USAGE",
+  // 0306 (L3B commit 06, jalons/l3b/modele.md §7): influx_privacy_definer reads what the export
+  // restitutes of a campaign (never the author of the declaration, the suspended range nor
+  // erased_at) and of its nine lists; on an erased account only, closes the campaign, writes
+  // erased_at, empties its five free texts, its reference and its total budget, deletes its key
+  // messages.
+  "influx_privacy_definer|column|campaigns.campaign_audience_age_bands.age_band_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_audience_age_bands.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_audience_bands.audience_band_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_audience_bands.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_audience_countries.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_audience_countries.country_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_audience_countries.slot|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_audience_languages.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_audience_languages.language_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_deliverables.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_deliverables.format_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_deliverables.network_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_deliverables.quantity|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_deliverables.slot|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_key_messages.body|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_key_messages.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_key_messages.position|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_requested_items.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_requested_items.item_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_requested_items.slot|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_topics.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_topics.slot|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_topics.topic_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_usage_territories.campaign_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_usage_territories.country_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaign_usage_territories.slot|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.advertiser_account_id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.applications_close_on|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.audience_gender_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.authorizations_declaration_hash|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.authorizations_declaration_locale|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.authorizations_declared_at|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.brief|SELECT,UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.campaign_type_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.content_due_on|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.content_review_delay|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.created_at|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.creator_keeps_product|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.creators_wanted|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.currency|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.ends_on|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.erased_at|UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.exclusivity_band|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.id|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.internal_reference|SELECT,UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.max_applications|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.per_creator_budget_band_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.product_description|SELECT,UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.product_is_sent|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.product_value_band_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.public_summary|SELECT,UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.remuneration_kind|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.restrictions|SELECT,UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.sector_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.shipping_costs_borne_by|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.starts_on|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.status|SELECT,UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.submitted_at|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.title|SELECT,UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.total_budget_minor|SELECT,UPDATE",
+  "influx_privacy_definer|column|campaigns.campaigns.updated_at|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.usage_rights_code|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.usage_rights_duration_band|SELECT",
+  "influx_privacy_definer|column|campaigns.campaigns.usage_rights_territory_scope|SELECT",
+  "influx_privacy_definer|schema|campaigns|USAGE",
+  "influx_privacy_definer|table|campaigns.campaign_key_messages|DELETE",
 ];
 
 /**
