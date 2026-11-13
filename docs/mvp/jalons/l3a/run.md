@@ -2,7 +2,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | commit | sonnet | medium | expert-cybersecurite | fait | attestation L2G posée ; CI verte sur da4109f (run 43394059337) lève L2GT-9 |
-| 02 | 02.md | commit | sonnet | high | expert-ux | à faire | |
+| 02 | 02.md | commit | sonnet | high | expert-ux | fait | SKILL.md 9,6 Ko + 3 references ; liens de section alignés sur D74, effets sur D75, vert unique #1dd68a |
 | 03 | 03.md | commit | sonnet | high | product-owner | à faire | |
 | 04 | 04.md | commit | sonnet | high | integrateur | à faire | |
 | 05 | 05.md | commit | opus | high | expert-database | à faire | |
