@@ -33,5 +33,14 @@ export async function sweepStaleFixtures(
       update backoffice.dual_control_requests
          set state = 'expired'
        where state = 'pending' and expires_at <= pg_catalog.now()`;
+    // Creator review entries still open from an earlier day: the queue reads the oldest deadline
+    // first, so a leftover whose deadline fell behind the 3 hours the cases give their own late
+    // entry takes the front of the queue (t14-creator-queue-route, "the next entry to open") from
+    // the day after. Withdrawn, the state the cases themselves use; none is deleted, and nothing
+    // runs yet, the sweep being before any file.
+    await tx`
+      update profiles.creator_review_entries
+         set state = 'withdrawn', closed_at = pg_catalog.now()
+       where state = 'open' and sla_due_at < pg_catalog.now() - interval '1 hour'`;
   });
 }

@@ -1162,6 +1162,8 @@ Même gabarit, **contenu et vocabulaire propres** (`15` RG42). Les différences 
 | **Aucun blanchiment de chiffre** | Les tranches de la vue marque n'apparaissent pas ici : la fiche interne montre les valeurs exactes, avec leur source (`10` RG71) |
 | **Badges** *(L2F)* | Bloc « Badges » (`AccountBadgesBlock`) : niveau, réseau, état écrit, date (« expire le », « échéance dépassée », « retiré le », « sans échéance » pour Compte vérifié), motif d'un retrait exécuté, demande 2V vivante, contestation ; jamais un chiffre ni un identifiant de réseau. `[· Demander le retrait]` : motif du niveau, message au membre exigé pour `terms_breach`, récapitulatif ; l'envoi n'ouvre que la 2V. `[· Lancer la vérification]` (D83) : motif fermé, commentaire interne, niveaux « Compte vérifié » et « Marque vérifiée » seuls ; le membre est prévenu par e-mail |
 
+*Amendé à la clôture de L2G : blocs ②, ③ et ④ en service. ② lit les chiffres exacts du badge d'audience tenant, sinon déclarés, avec date et source (jamais pseudo, lien ni tranche) ; ③ dit « aucun tarif » (D78) ; ④ donne le compte de visuels, ceux en attente et le lien `/files/visuels?account=`. Toute lecture de la fiche est couverte par la ligne `history.account_read`.*
+
 **États communs aux deux fiches**
 
 | État | Comportement |

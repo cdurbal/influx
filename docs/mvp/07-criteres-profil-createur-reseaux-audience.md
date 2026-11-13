@@ -178,6 +178,8 @@ tableau central de RG16 sont renseignés, **portfolio compris** (au moins 3 él�
 bouton reste visible en permanence, avec la liste nominative de ce qui manque — jamais désactivé
 sans explication.
 
+*Amendé à la clôture de L2G : la liste nominative est calculée par la base (`submit_own_creator_profile()`, codes des manquants) ; « déposés » = visuels `pending` ou `approved`, un refusé ne compte pas ; la complétude compte les dépôts, jamais les approbations (RG88), et 100 % est atteignable.*
+
 **RG5** — **Aucun profil créateur ne devient visible d'une marque sans décision humaine.** La
 publication est prononcée par un rôle `agent` ou `admin`, jamais par un automatisme, jamais par
 expiration d'un délai. Un profil dont le portfolio n'a **aucun** visuel approuvé peut être publié,
@@ -207,6 +209,8 @@ en relation ouvertes, et le message affiché au créateur énonce sans détour l
 
 Un profil ne devient jamais invisible parce que son auteur a corrigé une faute de frappe ou mis ses
 chiffres à jour.
+
+*Amendé à la clôture de L2G (`0243`) : en base, un profil `published` gèle titre, bio, légende approuvée et, hors « Compte vérifié », handle et URL ; une modification entre en file 2 en révision (`kind = revision`), la version validée restant servie (CA48) ; handle et URL d'un compte « vérifié » relèvent de la file 6 seule ; le reste est immédiat (CA49) ; un profil `suspended` est gelé.*
 
 **RG10** — Un profil `refusé` porte **un motif typé** choisi dans la liste fermée de RG96, reste
 intégralement modifiable et peut être resoumis sans délai. **Aucun refus muet, aucun dossier laissé
@@ -929,6 +933,8 @@ protection du modèle économique autant qu'une protection du créateur.
 **RG104** — Le créateur dispose, dans son espace, d'une **prévisualisation « ce que voit une
 marque »**, en deux onglets : avant et après la mise en relation. Elle affiche **exactement** ce que
 l'API sert, jamais une reconstitution approximative.
+
+*Amendé à la clôture de L2G : la réponse est celle de `public-projection.ts`, constructeur unique de la couche A (visuels `approved` seuls), que la recherche du Lot 3 appelle telle quelle ; l'onglet « après » y ajoute la couche I propre au créateur ; un onglet « après » qui n'ajoute rien se dit par un avis plutôt que par une carte identique.*
 
 **RG105** — Un créateur n'est **jamais notifié** lorsqu'une marque consulte son profil anonymisé, ne
 voit **jamais** qui l'a consulté, et ne voit **jamais** une demande de mise en relation qui n'a pas

@@ -307,6 +307,8 @@ les motifs et les messages ; ce document-ci ne fait autorité que sur les colonn
 
 *Amendé à la clôture de L2F (`0232`, `0233`) : files 5 et 6 en service. File 5 : décision sous 5 jours ouvrés (2 400 min, provisoire), prise en charge 1 jour ouvré (480 min), escalade 960 min ; le décideur d'origine ouvre en lecture seule tant qu'une autre personne existe, sinon 24 h de réflexion (`08` RG77). File 6 : décision sous 1 jour ouvré (480 min), prise en charge 240 min, escalade 960 min ; l'entrée ne porte l'ancien et le nouvel identifiant qu'au seul détenteur du verrou. Les deux : prise atomique de 30 min, jeton de version, levée forcée par un administrateur. La 2V du retrait de badge (`verification.revoke_badge`) passe par la file 15.*
 
+*Amendé à la clôture de L2G (`0242` à `0245`) : files 2 et 3 en service. Verrou de 30 min, décision sous 1 jour ouvré, escalade à 3 jours ouvrés, compte propre ou détenu refusé (`queue.conflict_of_interest`) ; file 2 : une entrée par soumission ou révision ; file 3 : **une entrée = un visuel**, filtre « Profil », lecture d'un visuel journalisée (`queue.portfolio_read`), **aucune action de masse au MVP serré** (colonne « Action de masse » : « Non » en service ; la modération par lot revient au Lot 6bis, `00` §9).*
+
 **Escalade de la file 1** (L2C, `0206`) : `escalate_after_minutes = 960`, compté **après** l'échéance de
 décision ; 480 + 960 = **3 jours ouvrés d'ancienneté** (`06` RG7). Échéance et escalade sont calculées une
 seule fois, à l'entrée, par `backoffice.business_deadline()` (`04` §5.6), sans jours fériés.

@@ -90,15 +90,15 @@ Fichiers neufs dans `e2e/case-floors.ts` et `db-tests/case-floors.ts` dans le co
 
 ## Critère de fin
 
-- [ ] Un créateur `published` sur `staging`, trois visuels modérés. *Preuve : ligne F.*
-- [ ] TM5.5, T9.5, T9.10 verts trois fois ; T1 rejoué intégralement (T1.5). *Preuve : ligne 12, CI réelle.*
-- [ ] `profile.completed` émis à la première publication, `lead.updated` ensuite, RG108 tenu. *Preuve : L2G-D9, D13, ligne 10.*
-- [ ] L2DS-4 et L2DS-6 soldés ; L2D-E2E tranché (F0) et tenu. *Preuve : lignes F0, 03, `run.md` § Mesures.*
-- [ ] Revue de dix visuels modérés par le fondateur. *Preuve : `recette.md`.*
-- [ ] `18` §10 Lot 2 coché, case par case, avec preuve. *Preuve : ligne C.*
-- [ ] T9.6, TM11, T14, T2, T16 verts ; suite base verte. *Preuve : CI réelle.*
-- [ ] `pnpm check` et `pnpm test:e2e` verts ; CI verte. *Preuve : `gh run list --json conclusion`.*
-- [ ] Revue soldée, attestation `security-reviewed:`. *Preuve : ligne R.*
+- [ ] Un créateur `published` sur `staging`, trois visuels modérés. *Preuve : ligne F.* **Réserve (L2GT-3) :** non tracée ; recette validée par le fondateur le 2026-11-12 (« je valide la recette », ligne F), `staging` non préparé par un agent ; à refaire sur `staging` avant `production`.
+- [x] TM5.5, T9.5, T9.10 verts trois fois ; T1 rejoué intégralement (T1.5). *Preuve : ligne 12 (suite base ×3, 3 031 cas) ; revue `revue-constats-testeur.md` (×3, 105 fichiers) ; `pnpm check` du 2026-11-13 (base : 105 fichiers, 3 036 cas).* **Adapté : T1.3 et T1.6 « après » au Lot 4. CI : réserve L2GT-9 ci-dessous.**
+- [x] `profile.completed` émis à la première publication, `lead.updated` ensuite, RG108 tenu. *Preuve : L2G-D9, D13, ligne 10 ; verts dans `pnpm check` du 2026-11-13.*
+- [x] L2DS-4 et L2DS-6 soldés ; L2D-E2E tranché (F0) et tenu. *Preuve : lignes F0, 03, `run.md` § Mesures de clôture.* **Réserve budget (L2GT-1, fix-5a ignoré par le fondateur le 2026-11-13) :** job base à 494 s en CI, 501 s en local, plafond F0 de 8 min dépassé ; éclats CI non mesurables (CI bloquée) ; somme des médianes e2e 30,5 s pour 19 s annoncés, mesurée sur machine chargée (15,8 s au repos à la revue), à remesurer au premier run CI ; reliquat `21` §8 « avant le Lot 3 ».
+- [ ] Revue de dix visuels modérés par le fondateur. *Preuve : `recette.md`.* **Réserve (L2GT-3) :** dix visuels non tracés ; phrase datée du fondateur « je valide la recette » (2026-11-12, ligne F) ; à tracer avant `production`.
+- [x] `18` §10 Lot 2 coché, case par case, avec preuve. *Preuve : ligne C.* Cases non cochées, avec échéance : R-4 et R-5 (D79, revue RGPD au Lot 6) ; revue de dix visuels (réserve L2GT-3).
+- [x] T9.6, TM11, T14, T2, T16 verts ; suite base verte. *Preuve : `pnpm check` du 2026-11-13, local.* **CI réelle : réserve L2GT-9.**
+- [ ] `pnpm check` et `pnpm test:e2e` verts ; CI verte. *Preuve : `run.md` § Mesures de clôture : `pnpm check` vert, `pnpm test:e2e` ×3 vert (260 cas), en local.* **Réserve CI (L2GT-9) :** CI GitHub bloquée par la facturation depuis `de69db7` (dernier run vert : 43237619867 sur `5243ef6`), acceptée par le fondateur le 2026-11-12 (« on valide sans le CI ») ; CI à relancer dès la facturation rétablie, verte avant l'attestation et avant tout `git merge --no-ff main` vers `production`.
+- [ ] Revue soldée, attestation `security-reviewed:`. *Preuve : ligne R.* Revue faite le 2026-11-12 (ligne R, 0 bloquant) ; fix-6 livré ; **attestation différée** (`cloture.md` point 6) : `security-reviewed: <date> covers <sha>…` après la CI verte (SHA : `revue-constats-securite.md` § Marqueur I-4), non créée ici ; `check-security-review.ts` : ok.
 
 ## Écarts, décisions ouvertes, risques
 
@@ -156,5 +156,7 @@ Fin de jalon (2026-11-12, `696f625..6f1aeed`, lancée en local : CI bloquée par
 | L2GS-6 | plus tard | S l. 18 | `t9-evidence-unreachable.test.ts:524-540` | T9.6-O suit les déclencheurs `prosecdef` | plus tard |
 | L2GS-7 | plus tard | S l. 19 | `0242:752-775`, `0243:818-833` | droits agent colonne par colonne (comme L2FS-6) | plus tard |
 | L2GS-8 | plus tard | S l. 20 | `public-projection.ts:8-14, 105-113` | recherche : `published`, `is_searchable`, compte `active` en SQL | avant le Lot 3 |
+
+**Clôture (2026-11-13) :** fix-5a ignoré par le fondateur (L2GT-1 non soldé, réserve) ; fix-6 livré ; EC-L2G-C-1 (`stale-fixtures.ts`, test seul) ; mesures et réserves : `l2g/run.md` § Mesures de clôture.
 
 Avant production et plus tard : reliquat de `21` §8 (L2FS-9 passé « avant production », L2GS-3). fix-5 et fix-6 : à valider par le fondateur. SHA de l'attestation : S § Marqueur I-4.
