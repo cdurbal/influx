@@ -227,6 +227,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 - **L2E** (propriété, pièces, constat, file 4, T9.6, migrations `0220` à `0227`) : ouvert le 2026-11-07, **clos le 2026-11-08** ; dépassement e2e accepté (L2D-E2E reste ouvert) ; `archives/jalons/l2e-fiche.md`, `archives/jalons/l2e/run.md`.
 - **L2F** (péremption, retrait 2V, files 5 et 6, D83, migrations `0228` à `0241`) : ouvert le 2026-11-08, **clos le 2026-11-11** ; critère de fin prouvé, revue attestée (`988388e`, `c07e0b0`), L2D-E2E reste ouvert ; `archives/jalons/l2f-fiche.md`, `archives/jalons/l2f/run.md`.
 - **L2G** (portfolio modéré, profil créateur publié, files 2 et 3, clôture du Lot 2, migrations `0242` à `0245`) : ouvert le 2026-11-11, **clos le 2026-11-13** ; critère de fin prouvé en local, réserves L2GT-1 (job base, fix-5a ignoré par le fondateur), L2GT-3 (`staging`, dix visuels) et L2GT-9 (CI bloquée par la facturation, attestation `security-reviewed:` différée) ; `archives/jalons/l2g-fiche.md`, `archives/jalons/l2g/run.md`.
+- **L3A** (reliquat avant le Lot 3 : L2D-E2E, L2CS-6, L2GS-8, L2DS-3, L2DS-5, F3 ; skills allégés ; job base en deux éclats) : ouvert le 2026-11-13 ; `jalons/l3a-fiche.md`, `jalons/l3a/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 
