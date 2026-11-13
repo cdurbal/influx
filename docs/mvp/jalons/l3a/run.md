@@ -10,6 +10,6 @@
 | A | A.md | arbitrage | opus | xhigh | expert-cybersecurite | fait | export_class not null sans défaut ; 5 exclus (sécurité), 130 exportés = 135 en base ; aucune ligne servie ne change ; GRANT au privacy_definer (I-4) |
 | 07 | 07.md | commit | opus | high | expert-database | fait | export_class not null sans défaut, 5/130 asserté ; activity_log filtré sur exported, reste du corps = 0245 ; GRANT (code, export_class) privacy_definer (I-4) |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | `bf5303f..7c5cd82` : 0 bloquant ; jalon L3AT-1 → fix-1, L3AT-2 → fix-2, L3AT-3 → C ; avant prod. L3AS-7 ; 12 plus tard ; annexe § Revue |
-| fix-1 | fix-1.md | fix | sonnet | medium | testeur | à valider | L3AT-1 : runTag sans 8 chiffres consécutifs (RG19 phone) ; L2C-16 et L2C-17 rouges au run 43426274803, DS-flaky 3e occurrence |
-| fix-2 | fix-2.md | fix | sonnet | low | testeur | à valider | L3AT-2 : « L3A-T5: » en tête du describe de `t8-privacy-execution.test.ts:1392` ; planchers inchangés |
+| fix-1 | fix-1.md | fix | sonnet | medium | testeur | fait | runTag à lettre médiane : 12345678 rouge L2C-16/17 avant, 87654321 vert après, sans variable vert ; check:fast vert ; fondateur : valider tout |
+| fix-2 | fix-2.md | fix | sonnet | low | testeur | à faire | L3AT-2 : « L3A-T5: » en tête du describe de `t8-privacy-execution.test.ts:1392` ; planchers inchangés ; validé par le fondateur (valider tout) |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | après fix-1 et fix-2 ; L3AT-3 fusionné (point 2) ; attestation I-4 (point 5) |

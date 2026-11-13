@@ -32,9 +32,14 @@ async function withSql<T>(
   }
 }
 
-/** A tag of this run, made of the characters a partial search accepts (05 RG98). */
+/**
+ * A tag of this run, made of the characters a partial search accepts (05 RG98).
+ * A letter splits the run identifier: RG19 flags a telephone from 8 consecutive digits
+ * (`PHONE_MIN_DIGITS = 8`), and an all-numeric 8-character identifier would trip it.
+ */
 export function runTag(name: string): string {
-  return `e2e${(process.env[E2E_RUN_VARIABLE] ?? "").replace(/[^a-z0-9]/gi, "")}${name}`;
+  const id = (process.env[E2E_RUN_VARIABLE] ?? "").replace(/[^a-z0-9]/gi, "");
+  return `e2e${id.slice(0, 4)}x${id.slice(4)}${name}`;
 }
 
 export type SeededInternal = {
