@@ -1389,7 +1389,7 @@ describe("privacy.execute_request(): access (runbook §4)", () => {
   });
 });
 
-describe("the allowlist of audit codes in the export (F3, 0302, jalons/l3a/f3.md)", () => {
+describe("L3A-T5: the allowlist of audit codes in the export (F3, 0302, jalons/l3a/f3.md)", () => {
   /** The five codes of f3.md, excluded_security; every other code is exported. */
   const EXCLUDED = [
     "agent.reauthentication_failed",
