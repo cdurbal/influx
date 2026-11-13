@@ -221,6 +221,55 @@ export async function readOwnBrandProfile(
 }
 
 /**
+ * The PUBLIC part of the session's own profile, when it is published (06 RG73, RG74 "before"): an
+ * allow-list of columns, the contact block and the internal block never named. The live row of a
+ * published profile holds the validated values (06 RG9). The badge is read through the door of 0222
+ * (state and date only), the advertiser having no right on `verification`.
+ */
+export type PublishedBrandPublicRow = {
+  legal_name: string;
+  country: string;
+  primary_sector_code: string | null;
+  company_size_band: string | null;
+  website_domain: string | null;
+  presentation: string | null;
+  exclusivity_band: string | null;
+  collaboration_rhythm: string | null;
+  offers_non_monetary: boolean | null;
+  contact_role: string | null;
+  has_logo: boolean;
+  badge_granted_at: string | null;
+} & Record<BrandProfileListName, string[]>;
+
+export async function readOwnPublishedBrandPublicRow(
+  tx: Transaction,
+): Promise<PublishedBrandPublicRow | null> {
+  const rows = await tx.execute<PublishedBrandPublicRow>(sql`
+    select p.legal_name,
+           a.country_code::text as country,
+           p.primary_sector_code, p.company_size_band, p.website_domain, p.presentation,
+           p.exclusivity_band, p.collaboration_rhythm, p.offers_non_monetary, p.contact_role,
+           exists (select 1 from profiles.brand_logo_objects lo
+                    where lo.account_id = p.account_id and lo.state = 'active') as has_logo,
+           (select to_char(v.badge_granted_at at time zone 'UTC', ${ISO_UTC})
+              from profiles.read_own_brand_verification() v
+             where v.badge_state is not null) as badge_granted_at,
+           ${listColumn("secondarySectors")} as "secondarySectors",
+           ${listColumn("targetMarkets")} as "targetMarkets",
+           ${listColumn("workingLanguages")} as "workingLanguages",
+           ${listColumn("topics")} as "topics",
+           ${listColumn("networks")} as "networks",
+           ${listColumn("formats")} as "formats",
+           ${listColumn("audienceCountries")} as "audienceCountries",
+           ${listColumn("usageRights")} as "usageRights"
+      from profiles.advertiser_profiles p
+      join identity.accounts a on a.id = p.account_id
+     where p.account_id = (select influx.current_account_id())
+       and p.status = 'published'`);
+  return rows[0] ?? null;
+}
+
+/**
  * Locks the profile row for the rest of the transaction and returns its status: two saves at the
  * same moment (autosave from two tabs) are serialised, the second reads what the first committed.
  */

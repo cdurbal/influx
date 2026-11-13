@@ -598,3 +598,22 @@ export async function submitOwnCampaign(
     changed: row.changed,
   };
 }
+
+/**
+ * campaigns.campaign_creator_view() (0305, modele §6): what a creator sees of the campaign, as the
+ * base builds it (the constructor L3C freezes into its snapshot). Called on the row the policies of
+ * 0303 let the session see: a campaign of another brand or nobody's yields no row, and the function
+ * is never reached for it (its 42501 would abort the transaction). The view is returned as the base
+ * wrote it; the caller parses it against the contract.
+ */
+export async function readCreatorViewOfOwnCampaign(
+  tx: Transaction,
+  campaignId: string,
+): Promise<unknown> {
+  const rows = await tx.execute<{ view: unknown }>(
+    sql`select campaigns.campaign_creator_view(c.id) as view
+          from campaigns.campaigns c
+         where c.id = ${campaignId}::uuid`,
+  );
+  return rows[0]?.view ?? null;
+}

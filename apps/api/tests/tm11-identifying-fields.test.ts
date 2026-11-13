@@ -115,6 +115,10 @@ const OWN_CONTACT_BY_MODULE: Readonly<Record<string, readonly string[]>> = {
   // L3B 07: the network of a deliverable line or of a format a brand picks (a closed reference code,
   // 09 RG36); no creator identity is involved, the module is the brand's own campaign
   campaign: ["networkCode"],
+  // L3B 08: what a creator sees of a campaign (09 RG98), reused by L3C and L3D: the network of a
+  // deliverable line (a reference code) and the TRADING name of the brand of the campaign (06 RG74,
+  // public by design); never a creator's identity, nor a contact of the brand (06 RG38)
+  "campaign-creator-view": ["networkCode", "companyName"],
   signup: ["companyName"],
   support: ["contactEmail"],
   "brevo-webhook": ["email"],
@@ -130,6 +134,8 @@ const OWN_CONTACT_BY_ROUTE: Readonly<Record<string, readonly string[]>> = {
   "/v1/me/campaigns": ["networkCode"],
   "/v1/me/campaigns/:id": ["networkCode"],
   "/v1/me/campaigns/:id/submit": ["networkCode"],
+  // L3B 08: the brand's preview of what a creator sees, its own trading name in it (06 RG74)
+  "/v1/me/campaigns/:id/creator-view": ["networkCode", "companyName"],
   // The creator's own verification (L2E 12): the network of HIS line, which a request and a badge
   // name. A brand never reaches these routes (T14, db-tests/verification-route.test.ts); the public
   // badge an advertiser will read names a network by design (08 RG89) and is held free of handle, URL,

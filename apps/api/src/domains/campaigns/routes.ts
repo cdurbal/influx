@@ -8,6 +8,7 @@
 // - GET   /v1/me/campaigns/:id         the campaign, what is missing, the codes of the form
 // - PATCH /v1/me/campaigns/:id         autosave of what changed (partial, lists replaced whole)
 // - POST  /v1/me/campaigns/:id/submit  draft or rejected to pending_review (09 RG4, RG5, RG85)
+// - GET   /v1/me/campaigns/:id/creator-view  what a creator sees of it (RG102, CA68; commit 08)
 // Any role but advertiser (a creator included), a campaign of another brand and an identifier that is
 // nobody's get the answer of a route that does not exist: the same code and the same body as an
 // unknown address (T14.1 to T14.4). The terms gate applies to an advertiser only, for that reason
@@ -28,6 +29,10 @@ import {
   type SubmitCampaignResponse,
   type UpdateCampaignBody,
 } from "@influx/contracts/campaign";
+import {
+  campaignCreatorViewResponseSchema,
+  type CampaignCreatorViewResponse,
+} from "@influx/contracts/campaign-creator-view";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import type { ApiDatabase, Transaction } from "../../db/index.ts";
 import { ApiError } from "../../platform/errors.ts";
@@ -43,6 +48,7 @@ import {
   saveCampaign,
   submitCampaign,
 } from "./campaign.ts";
+import { readCampaignCreatorView } from "./creator-view.ts";
 
 export type CampaignRoutesDependencies = {
   database: ApiDatabase;
@@ -162,6 +168,26 @@ export function registerCampaignRoutes(
       return asAdvertiser(request, reply, (tx) =>
         submitCampaign(tx, campaignId, body?.declarationLocale ?? null),
       );
+    },
+  );
+
+  app.get(
+    `${CAMPAIGN_ROUTE}/creator-view`,
+    {
+      schema: {
+        params: campaignParamsSchema,
+        response: { 200: campaignCreatorViewResponseSchema },
+      },
+    },
+    async (request, reply): Promise<CampaignCreatorViewResponse> => {
+      const campaignId = campaignOf(request);
+      return asAdvertiser(request, reply, async (tx) => {
+        const view = await readCampaignCreatorView(tx, campaignId);
+        if (view === null) {
+          throw new ApiError("not_found");
+        }
+        return view;
+      });
     },
   );
 }

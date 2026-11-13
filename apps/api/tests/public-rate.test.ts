@@ -57,6 +57,7 @@ const SESSION_ROUTES: readonly string[] = [
   "GET /v1/me/campaigns/:id",
   "PATCH /v1/me/campaigns/:id",
   "POST /v1/me/campaigns/:id/submit",
+  "GET /v1/me/campaigns/:id/creator-view",
   "GET /v1/me/creator-profile",
   "PATCH /v1/me/creator-profile",
   "GET /v1/me/creator-profile/networks",

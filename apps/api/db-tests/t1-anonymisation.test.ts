@@ -36,6 +36,12 @@
 //         T1.5: no URL is emitted,
 //         the keys written to Storage are the base's and hold no marker, the bytes no file name; C-2
 //         over audit, ops and leads, and the file name in no table of any INFLUX schema.
+//   L3B   (commit 08) brand M writes a campaign through /v1/me/campaigns: its title, brief, internal
+//         reference, total budget and identifier join every sweep and C-1. No member but brand M
+//         reaches it at L3B (a creator reads no campaign before L3D, another brand never): the
+//         creator's sweep of T1.6 meets none of them; brand M reads them on its own routes, and its
+//         preview of what a creator sees (GET …/creator-view) carries the title, never the internal
+//         reference nor the total budget (positive control, CA41, CA68).
 // Deferred: the agent's identified view (the queue routes of L2G 11 serve layer I to an agent, by
 // design); T1.3 and the "after" of T1.6 (a revealed introduction) at Lot 4. The rights side of the
 // same rule (influx_advertiser reaches no `creator_%` object, non reversible) is T1-R, in
@@ -92,6 +98,7 @@ const NETWORKS = "/v1/me/creator-profile/networks";
 const VERIFICATION = "/v1/me/verification";
 const BRAND_VERIFICATION = "/v1/me/brand-verification";
 const PORTFOLIO = "/v1/me/creator-profile/portfolio";
+const CAMPAIGNS = "/v1/me/campaigns";
 const HEALTH = "GET /health";
 const agentA = accountIdOf("agent", "a");
 const PORTFOLIO_BUCKET = "portfolio";
@@ -146,7 +153,13 @@ let l2g: {
   pendingItem: string;
 };
 
-/** Every marker of both parties, the verification's, L2F's and L2G's included. */
+/**
+ * L3B (commit 08): the campaign brand M writes, its markers (title, brief, internal reference, total
+ * budget, identifier), served to brand M alone at L3B.
+ */
+let l3b: { campaignId: string; markers: Marker[] };
+
+/** Every marker of both parties, the verification's, L2F's, L2G's and L3B's included. */
 function allMarkers(): Marker[] {
   return [
     ...creator.markers,
@@ -155,6 +168,7 @@ function allMarkers(): Marker[] {
     ...verificationMarkers.brand,
     ...l2f.markers,
     ...l2g.markers,
+    ...l3b.markers,
   ];
 }
 /** The brand that sweeps (T1.1), and the creator that sweeps (T1.6). */
@@ -497,10 +511,38 @@ beforeAll(async () => {
   verificationMarkers = await verificationFixtures(server, tag);
   l2f = await l2fFixtures(server);
   l2g = await l2gFixtures(server);
+  l3b = await l3bFixtures(server);
 
   sweepingBrand = await newMember("advertiser");
   sweepingCreator = await newMember("creator");
 });
+
+/** L3B (commit 08): brand M's campaign, written through its own route, a draft (RG108). */
+async function l3bFixtures(
+  server: Server,
+): Promise<{ campaignId: string; markers: Marker[] }> {
+  const title = `Campagne T1 ${letterName(hex(5))}`;
+  const brief = `Brief T1 ${letterName(hex(6))} ${"b".repeat(300)}`;
+  const reference = `T1-REF-${hex(4)}`;
+  const totalBudget = randomInt(900_000_000, 999_999_999);
+  const created = (await through(server, brand, "POST", CAMPAIGNS, {
+    title,
+    brief,
+    internalReference: reference,
+    currency: "EUR",
+    totalBudgetMinor: totalBudget,
+  })) as { id: string };
+  return {
+    campaignId: created.id,
+    markers: [
+      { name: "L3B campaign title", value: title },
+      { name: "L3B campaign brief", value: brief.slice(0, 24) },
+      { name: "L3B internal reference", value: reference },
+      { name: "L3B total budget", value: String(totalBudget) },
+      { name: "L3B campaign identifier", value: created.id },
+    ],
+  };
+}
 
 type OwnRequest = {
   request: { id: string; code: { code: string } | null };
@@ -1510,6 +1552,54 @@ describe("L2G (commit 12): the portfolio, the submission and the revision join t
   });
 });
 
+describe("L3B (commit 08): the campaign of a brand joins the sweeps", () => {
+  it("T1.2: the routes of L3B are in the inventory the sweeps walk", async () => {
+    const swept = (await sweptRoutes(app())).map(routeName);
+    expect(
+      swept
+        .filter((route) => route.split(" ")[1]?.startsWith(CAMPAIGNS))
+        .sort(),
+    ).toEqual(
+      [
+        `GET ${CAMPAIGNS}`,
+        `POST ${CAMPAIGNS}`,
+        `GET ${CAMPAIGNS}/:id`,
+        `PATCH ${CAMPAIGNS}/:id`,
+        `POST ${CAMPAIGNS}/:id/submit`,
+        `GET ${CAMPAIGNS}/:id/creator-view`,
+      ].sort(),
+    );
+  });
+
+  it("serves brand M its campaign, and its preview of what a creator sees the title alone, never the internal reference nor the total budget (CA41, CA68)", async () => {
+    const server = app();
+    const own = await call(
+      server,
+      "GET",
+      `${CAMPAIGNS}/${l3b.campaignId}`,
+      await newSession(brand.accountId),
+    );
+    expect(own.statusCode).toBe(200);
+    expect(markersIn(own.body, l3b.markers)).toEqual(
+      l3b.markers.map((marker) => marker.name),
+    );
+    const preview = await call(
+      server,
+      "GET",
+      `${CAMPAIGNS}/${l3b.campaignId}/creator-view`,
+      await newSession(brand.accountId),
+    );
+    expect(preview.statusCode).toBe(200);
+    expect(markersIn(preview.body, l3b.markers)).toEqual([
+      "L3B campaign title",
+      "L3B campaign brief",
+    ]);
+    // nor a contact of brand M, whose profile is not published: no brand at all (06 RG73)
+    expect(markersIn(preview.body, brand.markers)).toEqual([]);
+    expect((preview.json() as { brand: unknown }).brand).toBeNull();
+  });
+});
+
 describe("T1.1, T1.4 every route, called as a brand on the web surface: no marker of a creator, errors included", () => {
   it("finds no marker in any body or header, over 2xx, 400 and 404 answers", async () => {
     const server = app();
@@ -1523,6 +1613,8 @@ describe("T1.1, T1.4 every route, called as a brand on the web surface: no marke
       ...l2f.ids,
       // L2G: creator G's three visuals, his two entries of queue 2 and his account
       ...l2g.ids,
+      // L3B: brand M's campaign, another brand's for the sweeping one (T14)
+      l3b.campaignId,
     ];
     const result = await sweep(server, sweepingBrand, ids, allMarkers());
     expect(result.findings).toEqual([]);
@@ -1604,6 +1696,8 @@ describe("T1.6 before the reveal: no contact of the other party, no data of anot
       "x",
       ...l2f.ids,
       ...l2g.ids,
+      // L3B: brand M's campaign, which no creator reads at L3B
+      l3b.campaignId,
     ];
     const result = await sweep(server, sweepingCreator, ids, allMarkers());
     expect(result.findings).toEqual([]);
@@ -1624,6 +1718,12 @@ describe("T1.6 before the reveal: no contact of the other party, no data of anot
       `PATCH ${PORTFOLIO}/:id`,
       `DELETE ${PORTFOLIO}/:id`,
       `GET ${PORTFOLIO}/:id/image`,
+      // L3B: nor any campaign, a brand's route answering a creator as unknown (T14.3)
+      `GET ${CAMPAIGNS}`,
+      `GET ${CAMPAIGNS}/:id`,
+      `PATCH ${CAMPAIGNS}/:id`,
+      `POST ${CAMPAIGNS}/:id/submit`,
+      `GET ${CAMPAIGNS}/:id/creator-view`,
     ]) {
       expect(result.statuses.get(route), route).not.toContain(200);
     }

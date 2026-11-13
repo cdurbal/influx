@@ -138,6 +138,7 @@ export const API_ROUTE_MODELS: readonly string[] = [
   "/v1/me/brand-verification/request/submit",
   "/v1/me/campaigns",
   "/v1/me/campaigns/:id",
+  "/v1/me/campaigns/:id/creator-view",
   "/v1/me/campaigns/:id/submit",
   "/v1/me/consent",
   "/v1/me/creator-profile",
