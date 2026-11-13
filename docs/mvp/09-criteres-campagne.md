@@ -2,6 +2,8 @@
 
 > **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §2 et `decisions.md` (D48).
 
+> **⚠️ Régime du pilote — D78 (arbitrage du fondateur du 2026-11-01, étendu au Lot 3 le 2026-11-13, option A).** **Aucun montant ne s'affiche ni ne se saisit côté créateur.** La marque déclare son budget **par créateur, en tranche** (`reference.price_bands`) : donnée **interne**, vue de la marque qui l'a déclarée et des agents INFLUX, jamais d'un créateur. Le créateur voit la **nature de la rémunération** (RG62, le type de contrepartie) et la mention « À négocier avec votre commercial ». La fourchette publiée, le net estimé et la valeur chiffrée de la dotation sont **suspendus** côté créateur : liste des RG au bandeau de §F, note de §C. Colonnes et tables restent en base (`04` §5.4) : seuls la saisie et l'affichage sont suspendus (rangement de la tranche : **Q16**).
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > contenu d'une campagne (Lot 3), soumise à la validation de `chef-de-projet`, avec **avis
 > obligatoire (veto) de `expert-conformite-rgpd`** sur §E (ciblage d'audience et critères portant sur
@@ -19,7 +21,7 @@
 > Lot 3), `docs/mvp/03-matrice-des-droits-et-rls.md` §3.3 (qui crée, qui valide, bloc interne) et
 > C(7), C(8), C(17), `docs/mvp/04-modele-de-donnees-mvp.md` §5.4 (`campaigns.*`),
 > `docs/mvp/06-criteres-profil-marque.md` (profil marque : la campagne n'a pas d'identité propre),
-> `docs/mvp/07-criteres-profil-createur-reseaux-audience.md` (bornes de tranches, assiette du tarif),
+> `docs/mvp/07-criteres-profil-createur-reseaux-audience.md` (bornes de tranches, assiette du tarif, tarif suspendu au pilote par D78),
 > `docs/mvp/08-verification-et-badge.md` RG15 et RG18 (campagne réservée aux profils vérifiés).
 >
 > **Ce que ce document tranche :** les huit blocs et les champs exacts d'une campagne, leur caractère
@@ -95,6 +97,7 @@ Quatre raisons d'être, dans cet ordre :
   en relation.
 - **US3** — En tant qu'**annonceur**, je veux annoncer une fourchette de rémunération par créateur
   sans révéler mon budget total, afin de ne pas donner ma position de négociation.
+  *Au pilote (D78) : la marque déclare une tranche de budget par créateur, interne ; rien n'est annoncé aux créateurs.*
 - **US4** — En tant qu'**annonceur**, je veux savoir, champ par champ, ce qui est publié et ce qui
   reste interne à INFLUX, afin de ne pas découvrir après coup qu'une information est visible.
 - **US5** — En tant qu'**annonceur**, je veux savoir ce qu'il me manque pour soumettre ma campagne,
@@ -111,8 +114,10 @@ Quatre raisons d'être, dans cet ordre :
 - **US9** — En tant que **créateur**, je veux comprendre en un coup d'œil ce qu'une campagne demande,
   pour quel réseau, dans quel délai et pour combien, afin de décider en moins d'une minute si elle me
   concerne.
+  *Au pilote (D78), « pour combien » se lit « contre quel type de contrepartie » : le montant se négocie avec le commercial.*
 - **US10** — En tant que **créateur**, je veux savoir **ce que je toucherais réellement**, afin de ne
   jamais découvrir la commission INFLUX après coup.
+  *Suspendue (D78, après D48) : ce que perçoit le créateur lui est annoncé par son commercial.*
 - **US11** — En tant que **créateur**, je veux connaître les droits d'usage et l'exclusivité demandés
   **avant** de m'intéresser à une campagne, afin de ne pas négocier trois jours pour rien.
 - **US12** — En tant que **créateur**, je veux savoir si un produit m'est envoyé et ce que j'en fais,
@@ -187,6 +192,9 @@ ouvrés**, l'entrée remonte en alerte sur le tableau de bord du backoffice. Ces
 | **Re-validation** | Tous les textes, le type de campagne, le produit, la dotation, les livrables, les droits d'usage, l'exclusivité, le ciblage d'audience, la fourchette de rémunération, la nature de la rémunération, la période de publication, la date de livraison, l'option « profils vérifiés » | Repasse en `à valider`. **La dernière version validée reste affichée** pendant l'examen |
 | **Effet immédiat** | Report de la date limite de candidature, **hausse** du plafond de candidatures, nombre de créateurs recherchés, budget total interne, notes internes | Prise en compte immédiate, sans examen |
 
+*Au pilote (D78), « la fourchette de rémunération » se lit « la tranche de budget par créateur » : interne, elle reste
+soumise à re-validation (choix le plus prudent).*
+
 Une campagne ne devient jamais invisible parce que sa marque a corrigé une faute de frappe. Toute
 modification soumise à re-validation sur une campagne ayant déjà reçu des candidatures est
 **notifiée aux candidats**, qui peuvent retirer leur candidature (Lot 4, **Q12**).
@@ -215,7 +223,9 @@ participants et au commercial.
 facture, un encaissement ni un calcul de commission** (**A1**). Une campagne est une **offre
 publiée** : elle n'engage ni la marque, ni le créateur, ni INFLUX. Les seuls montants présents sont la
 **fourchette de rémunération par créateur**, la **valeur d'une dotation** et le **budget total
-interne** — tous nommés, tous avec leur devise, tous accompagnés de la mention de RG67.
+interne** — tous nommés, tous avec leur devise, tous accompagnés de la mention de RG67. *Au pilote (D78) : la tranche de budget par créateur remplace la
+fourchette, aucun de ces montants n'est servi à un créateur, et la mention « À négocier avec votre commercial »
+remplace celle de RG67.*
 
 **RG13** — Toute valeur destinée à filtrer, comparer ou rapprocher est une **liste fermée** ou une
 **tranche**, jamais un texte libre (règle d'or, `matching-spec` A2). Les seuls textes libres d'une
@@ -327,12 +337,17 @@ par défaut reviendrait à le faire déclarer par le produit à la place de la m
 
 **RG30** — La **valeur du produit envoyé** est exprimée en **tranche**, avec sa devise, dans le même
 référentiel et avec les mêmes bornes que les tarifs des créateurs et les budgets des marques
-(`06` RG29, `07` RG66). Une valeur exacte n'apporte rien et alimente la négociation.
+(`06` RG29, `07` RG66 ; tarifs des créateurs non saisis au pilote, D78). Une valeur exacte n'apporte rien et alimente la négociation.
 
-**RG31** — **La valeur d'une dotation ne s'ajoute jamais d'elle-même à la fourchette de rémunération
+**RG31** — *Suspendue pour l'affichage au créateur (D78) : voir la note ci-dessous.* **La valeur d'une dotation ne s'ajoute jamais d'elle-même à la fourchette de rémunération
 publiée.** Les deux montants sont affichés **séparément et nommés** : « rémunération par créateur » et
 « valeur du produit envoyé ». Leur articulation est déclarée par la **nature de la rémunération**
 (RG62), jamais déduite par le produit.
+
+> **Régime du pilote (D78).** La valeur du produit envoyé reste **saisie en tranche** par la marque (RG24, RG30) et
+> **visible du commercial**, mais elle **n'est pas affichée au créateur** : aucun montant côté créateur au Lot 3. Le
+> créateur voit « produit envoyé », « conservé » ou « à rendre » et les frais d'envoi. Le principe de RG31 (jamais
+> d'addition, deux montants nommés) vaut pour la fiche commerciale.
 
 **RG32** — Dès qu'une campagne prévoit une rémunération **ou** l'envoi d'un produit, elle affiche au
 créateur une **mention fixe** rappelant que la publication devra indiquer son **caractère commercial**
@@ -465,7 +480,30 @@ plafond de 3 est identique.
 > **C'est le bloc le plus dangereux du document.** Un chiffre mal nommé ici produit exactement le
 > malentendu de 35 % que `CLAUDE.md` §3 désigne comme le point UX le plus sensible du produit.
 
-**RG55** — Le bloc « budget » comporte **exactement** ces champs :
+> **⚠️ Régime du pilote, Lot 3 (D78, extension tranchée par le fondateur le 2026-11-13, option A) : aucune fourchette
+> annoncée aux créateurs.** Les coûts se négocient avec le commercial. Au pilote, le bloc se lit ainsi :
+>
+> - **Tranche de budget par créateur** : choisie par la marque dans `reference.price_bands`, dans la devise de la
+>   campagne ; **obligatoire**, sauf nature « dotation seule » (RG63) ; même assiette que RG56 (coût total pour
+>   l'annonceur, commission INFLUX incluse) ; libellé côté marque `campaign.budget.bandBrand` (RG109). **Interne** :
+>   visible de la marque qui l'a déclarée et des agents INFLUX, **jamais servie au rôle créateur**, pas même vide (même
+>   contrôle que RG65, absente de l'instantané publié). Elle remplace les lignes « minimum » et « maximum » de RG55,
+>   dont la saisie est suspendue.
+> - **Devise, nature de la rémunération, nombre de créateurs recherchés, budget total interne** : inchangés (RG55,
+>   RG58, RG62, RG65, RG66).
+> - **Ce que voit le créateur** : la nature de la rémunération (RG62), c'est-à-dire le type de contrepartie (le
+>   « rémunérée, dotation, contrepartie seule » de D78 se lit sur ses quatre valeurs, inchangées), suivie de la mention
+>   « À négocier avec votre commercial » (`campaign.budget.negotiate`). **Aucun montant**, aucune tranche, aucun net.
+>
+> **Suspendues (D78), jamais supprimées :** les lignes « minimum » et « maximum » de RG55, RG57 côté créateur, RG59,
+> RG60 (déjà suspendue par D48), RG63 pour la valeur publiée, RG64 pour la fourchette estimée (remplacée par la tranche
+> interne), RG67 et RG68. RG56 vaut pour la tranche déclarée ; sa comparaison avec le tarif indicatif d'un créateur
+> est suspendue (`07` §G). Restent en vigueur : RG58 (devise unique, sans conversion), RG61, RG62, RG65, RG66.
+> Réversible : colonnes et tables gardées (`04` §5.4) ; rangement de la tranche à instruire par `expert-database`
+> (écart 13, **Q16**).
+
+**RG55** — *Lignes « minimum » et « maximum » suspendues (D78) : remplacées au pilote par la tranche de budget par
+créateur, interne (bandeau ci-dessus).* Le bloc « budget » comporte **exactement** ces champs :
 
 | Champ | Caractère | Couche | Format | Pourquoi ce champ existe |
 |---|---|---|---|---|
@@ -476,13 +514,14 @@ plafond de 3 est identique.
 | Nombre de créateurs recherchés | **Obligatoire** | **Publiée** | Entier, 1 à 50 | Le créateur juge sa chance ; le commercial dimensionne son travail |
 | **Budget total de la campagne** | Recommandé | **INTERNE — jamais publié** | Montant > 0, même devise | Le commercial doit savoir jusqu'où la marque peut aller |
 
-**RG56** — **La fourchette de rémunération par créateur est le coût total pour l'annonceur,
+**RG56** — *Au pilote (D78) : vaut pour la tranche de budget déclarée ; la comparaison avec le tarif indicatif d'un
+créateur est suspendue.* **La fourchette de rémunération par créateur est le coût total pour l'annonceur,
 commission INFLUX incluse** (`CLAUDE.md` §2). C'est **la même assiette et les mêmes bornes** que le
 **tarif indicatif d'un créateur** (`07` RG65) et que le **budget indicatif par collaboration** d'une
 marque (`06` RG27). Sans cette identité, les trois valeurs seraient incomparables et tout
 rapprochement, humain comme futur, serait faux.
 
-**RG57** — Le libellé du champ énonce la consigne **avant** la saisie, côté marque : **« Indiquez ce
+**RG57** — *Côté créateur, suspendue (D78) ; le libellé côté marque vaut pour la tranche.* Le libellé du champ énonce la consigne **avant** la saisie, côté marque : **« Indiquez ce
 que vous payez au total, commission INFLUX incluse. »** Côté créateur, le même montant est intitulé
 **« ce que la marque paie au total »**. Les deux libellés sont figés et traduits (RG109).
 
@@ -490,14 +529,15 @@ que vous payez au total, commission INFLUX incluse. »** Côté créateur, le m�
 ouverte). Si la devise d'un créateur diffère, les deux valeurs sont affichées côte à côte, chacune
 avec sa devise, sans rapprochement automatique et sans taux.
 
-**RG59** — Le système **dérive et stocke les tranches `reference.price_bands` couvertes** par la
+**RG59** — *Suspendue (D78) : la tranche est déclarée par la marque, non dérivée ; ni filtre de montant dans la
+recherche de campagnes, ni net affiché.* Le système **dérive et stocke les tranches `reference.price_bands` couvertes** par la
 fourchette saisie. Cette dérivation sert deux usages : le **filtrage** dans la recherche de campagnes
 (second volet du Lot 3) et l'**affichage du net créateur estimé** (RG60). **Aucune multiplication d'un
 montant par un taux n'est effectuée dans le code applicatif** : les bornes nettes sont des colonnes
 du référentiel des tranches (`07` RG72), ce qui préserve l'interdiction structurelle de `03` C(32) et
 le contrôle d'intégration continue T16.
 
-**RG60** — Partout où la fourchette est affichée **à un créateur**, les **trois notions sont nommées
+**RG60** — *Suspendue (D48, puis D78).* Partout où la fourchette est affichée **à un créateur**, les **trois notions sont nommées
 côte à côte**, toujours avec leur devise :
 
 | Notion | Libellé affiché au créateur | Exemple sur une fourchette 1 000 – 2 000 EUR |
@@ -522,18 +562,21 @@ publiques et les CGU, pas par une campagne. Symétrie exacte avec `06` RG32 et `
 | Dotation seule | Un produit conservé, sans argent | RG63 s'applique |
 | Affiliation | Une part des ventes générées | RG64 s'applique |
 
-**RG63** — Si la nature est **« dotation seule »**, la fourchette de rémunération en numéraire est
+**RG63** — *Au pilote (D78), la valeur du produit n'est pas publiée : le créateur voit « dotation seule » et la
+mention « À négocier avec votre commercial ».* Si la nature est **« dotation seule »**, la fourchette de rémunération en numéraire est
 **absente**, et c'est la **valeur du produit envoyé** (RG24) qui est publiée à sa place, sous son
 propre nom. **Aucune commission n'est affichée ni suggérée sur une dotation** : la question de savoir
 si une collaboration sans argent entre dans l'assiette des 35 % relève du fondateur et n'est pas
 tranchée (**Q13**). Tant qu'elle ne l'est pas, le produit n'affirme rien.
 
-**RG64** — Si la nature est **« affiliation »**, une **fourchette estimée reste obligatoire** : sans
+**RG64** — *Au pilote (D78) : une tranche de budget estimée, interne, remplace la fourchette estimée.* Si la nature
+est **« affiliation »**, une **fourchette estimée reste obligatoire** : sans
 ordre de grandeur, l'offre est inévaluable et la campagne ne sert à rien. Le mécanisme (taux, durée,
 support de suivi) est décrit dans le brief. INFLUX **ne suit aucune vente** et **ne mesure aucune
 commission d'affiliation** au MVP (**A1**, **Q14**).
 
-**RG65** — Le **budget total de la campagne** est une **donnée interne** : il n'apparaît **jamais**
+**RG65** — *Au pilote (D78), le même contrôle couvre la tranche de budget par créateur.* Le **budget total de la
+campagne** est une **donnée interne** : il n'apparaît **jamais**
 dans une réponse servie au rôle créateur, **pas même vide, pas même nulle**, y compris dans une charge
 utile que l'écran n'affiche pas. Le contrôle porte sur la réponse, pas sur l'écran (`04` §5.4,
 `03` §3.3). **Un budget total publié invite à l'ancrage et révèle la position de négociation de la
@@ -542,12 +585,13 @@ marque** : c'est la raison d'être de ce champ interne.
 **RG66** — Le **nombre de créateurs recherchés** est publié. Il est plafonné à 50 : au-delà, il s'agit
 d'une opération de masse qui relève d'un accompagnement commercial, pas d'un formulaire.
 
-**RG67** — Toute fourchette affichée est accompagnée, partout où elle apparaît, d'une **mention
+**RG67** — *Suspendue (D78) : aucune fourchette n'est affichée ; la mention « À négocier avec votre commercial » la
+remplace.* Toute fourchette affichée est accompagnée, partout où elle apparaît, d'une **mention
 fixe** : **« Fourchette indicative pour cette campagne. Elle ne vaut pas engagement : le montant se
 négocie dans la conversation. »** Aucun écran n'affirme « hors taxes » ni « taxes comprises » tant que
 **D7** est ouverte (`07` RG71).
 
-**RG68** — Contrôles de vraisemblance : le minimum est **strictement positif**, le maximum est
+**RG68** — *Suspendue (D78) : aucune fourchette exacte n'est saisie.* Contrôles de vraisemblance : le minimum est **strictement positif**, le maximum est
 **supérieur ou égal** au minimum, et un rapport maximum / minimum supérieur à **10** ou un montant
 au-delà d'un plafond paramétré **alerte le modérateur** sans jamais refuser automatiquement. Une
 fourchette de 100 à 50 000 n'est pas une fourchette : c'est l'absence de budget.
@@ -602,7 +646,8 @@ autre modification de calendrier repasse en validation.
 
 **RG77** — Les **éléments demandés** sont une **liste fermée**, sans texte libre : message de
 motivation · exemples de contenus déjà réalisés · proposition de concept · tarif proposé pour ce
-brief · disponibilité sur la période. Un texte libre ici deviendrait un second brief non modéré, et
+brief (*suspendu, D78 : aucun tarif proposé au Lot 3, `11` RG54 ; le code reste au référentiel, inactif*) ·
+disponibilité sur la période. Un texte libre ici deviendrait un second brief non modéré, et
 donc une seconde voie de contournement.
 
 > **Réconciliation avec `11` (tranchée par `chef-de-projet`, 2026-09-19).** Le formulaire de
@@ -652,7 +697,7 @@ dans aucun cas** :
 
 > **Le budget total et la référence interne sont visibles de la marque qui les a saisis et d'INFLUX.
 > Ils ne sont visibles d'aucun créateur.** « Interne » ne veut pas dire « interne à INFLUX » : il veut
-> dire « jamais publié ».
+> dire « jamais publié ». Au pilote, la **tranche de budget par créateur** suit le même régime (D78, bandeau de §F).
 
 **RG84** — Le **caractère sensible** d'une campagne se lit sur `reference.sectors.is_sensitive`
 (`04` §5.4) et **n'est jamais recopié sur la campagne**. La liste fermée des secteurs sensibles au
@@ -705,6 +750,9 @@ chaque motif porte le message envoyé à la marque, dans sa langue :
 | Doublon d'une campagne déjà publiée | « Une campagne identique est déjà publiée. » | Clôturer ou modifier |
 | Autre | Message rédigé par l'agent, en complément d'une explication | Contacter INFLUX |
 
+*Au pilote (D78) : « Montant dans un texte publié » se lit « Un montant figure dans votre texte. Les montants se
+déclarent dans le bloc budget, qui n'est jamais publié. » ; « Budget incohérent » vise la tranche de budget déclarée.*
+
 **RG91** — Le motif **« Autre » est exceptionnel et surveillé** : s'il dépasse **10 % des refus** sur
 un mois, la liste est incomplète et doit être étendue.
 
@@ -741,10 +789,11 @@ ne vendra.
 |---|---|
 | Titre, type de campagne, résumé public, brief détaillé | **Oui** |
 | Produit concerné, catégorie, messages clés, interdits et points de vigilance | **Oui** |
-| Produit envoyé, valeur en tranche, conservé ou à rendre, frais d'envoi | **Oui** |
+| Produit envoyé, valeur en tranche, conservé ou à rendre, frais d'envoi | **Oui**, sauf la valeur en tranche : **non au pilote** (D78) |
 | Livrables (réseau, format, quantité), droits d'usage, durée, territoire, exclusivité, délai de validation | **Oui** |
 | Pays visés, langues, thématiques, tranches d'audience, tranches d'âge, genre de l'audience | **Oui** |
-| Rémunération par créateur (fourchette), devise, nature, **net créateur estimé** | **Oui** (RG60) |
+| Rémunération par créateur (fourchette), devise, nature, **net créateur estimé** | Au pilote, **la nature seulement**, avec « À négocier avec votre commercial » ; fourchette, devise et net **suspendus** (D78, D48) |
+| **Tranche de budget par créateur** (D78) | **Jamais** |
 | Nombre de créateurs recherchés | **Oui** |
 | Dates : limite de candidature, livraison, période de publication | **Oui** |
 | Éléments demandés, campagne réservée aux profils vérifiés | **Oui** |
@@ -770,7 +819,8 @@ notification, au Lot 4.
 
 **RG102** — La marque dispose, dans son espace, d'une **prévisualisation « ce que voit un créateur »**,
 qui affiche **exactement** ce que l'interface de service renvoie, jamais une reconstitution
-approximative. C'est là qu'une marque constate par elle-même que son budget total n'est pas publié.
+approximative. C'est là qu'une marque constate par elle-même que son budget total n'est pas publié (au pilote, sa tranche de
+budget par créateur non plus, D78).
 
 ### K — Leads, messages, états d'écran et accessibilité
 
@@ -782,7 +832,8 @@ consommation**.
 
 **RG104** — Attributs enrichis chez **Brevo** (si consentement marketing) : nombre de campagnes
 publiées, date de la dernière publication, catégorie de produit de la dernière campagne, **tranche**
-de rémunération par créateur, devise, pays visés, réseaux visés. **Tous sont des tranches, des codes
+de rémunération par créateur (*suspendue, D78 : interne, elle ne part pas, comme le budget total,
+RG106*), devise, pays visés, réseaux visés. **Tous sont des tranches, des codes
 de liste fermée, des dates ou des compteurs.**
 
 **RG105** — Chez **Apollo.io**, une campagne publiée est le **signal de qualification le plus fort**
@@ -812,6 +863,9 @@ livrables. La soumission, elle, reste une action explicite.
 | `campaign.budget.net` | Vous percevez environ {min} – {max} {currency}. Commission INFLUX 35 % : 20 % à la charge de la marque, 15 % à votre charge. | You receive approximately {min} – {max} {currency}. INFLUX commission 35%: 20% paid by the brand, 15% paid by you. |
 | `campaign.budget.notice` | Fourchette indicative pour cette campagne. Elle ne vaut pas engagement : le montant se négocie dans la conversation. | Indicative range for this campaign. It is not a commitment: the amount is negotiated in the conversation. |
 | `campaign.budget.totalInternal` | Votre budget total n'est jamais publié. Seule la fourchette par créateur est visible. | Your total budget is never published. Only the per-creator range is visible. |
+| `campaign.budget.bandBrand` | Tranche de budget par créateur : ce que vous payez au total, commission INFLUX incluse. Seul votre commercial INFLUX la voit. | Budget band per creator: the total amount you pay, INFLUX commission included. Only your INFLUX account manager sees it. |
+| `campaign.budget.negotiate` | À négocier avec votre commercial. | To be negotiated with your account manager. |
+| `campaign.budget.internalPilot` | Votre budget n'est jamais publié : seul votre commercial INFLUX le voit. | Your budget is never published: only your INFLUX account manager sees it. |
 | `campaign.usageRights.warning` | Cette campagne demande un achat média illimité et mondial. Vos contenus pourront être diffusés sans limite de durée ni de pays. | This campaign requires unlimited worldwide paid media rights. Your content may be used with no time or country limit. |
 | `campaign.disclosure.notice` | Cette collaboration est rémunérée ou comporte un produit offert : votre publication devra en indiquer le caractère commercial, selon les règles de votre pays. | This collaboration is paid or includes a gifted product: your post must disclose its commercial nature, according to the rules of your country. |
 | `campaign.application.validationNotice` | Candidater n'ouvre pas de conversation : votre candidature est examinée par un commercial INFLUX. | Applying does not open a conversation: your application is reviewed by an INFLUX account manager. |
@@ -825,6 +879,9 @@ livrables. La soumission, elle, reste une action explicite.
 | `campaign.errors.amountInText` | Un montant figure dans votre texte. Les montants se déclarent dans le bloc budget. | Your text contains an amount. Amounts belong in the budget section. |
 | `campaign.errors.personCriterion` | Le ciblage porte sur l'audience, jamais sur la personne du créateur. | Targeting applies to the audience, never to the creator as a person. |
 | `campaign.errors.datesOrder` | {first} doit précéder {second}. | {first} must come before {second}. |
+
+*Au pilote (D78) : `campaign.budget.labelCreator`, `campaign.budget.net` (déjà D48), `campaign.budget.notice` et
+`campaign.budget.totalInternal` sont suspendues ; `bandBrand`, `negotiate` et `internalPilot` les remplacent.*
 
 **RG110** — Accessibilité : chaque champ porte une étiquette visible et l'indication de ce qui est
 publié ou interne ; un champ en erreur pointe vers son message ; le focus va au premier champ
@@ -849,17 +906,17 @@ passent par les tokens (`design-system-influx`).
 | Aucun budget total interne | Publication possible ; la fiche backoffice affiche « budget total non communiqué », visible du commercial |
 | La catégorie de produit a été retirée du référentiel | La campagne reste publiée avec sa valeur, une alerte de cohérence remonte au backoffice, la marque est invitée à choisir une catégorie active |
 | Un créateur consulte une campagne repassée en validation | Il voit la **dernière version validée** (RG7), jamais une page vide |
-| La devise choisie ne dispose d'aucune tranche `price_bands` | La saisie de la fourchette est acceptée, **le net estimé n'est pas affiché**, et l'anomalie remonte au backoffice (RG59) |
+| La devise choisie ne dispose d'aucune tranche `price_bands` | La saisie de la fourchette est acceptée, **le net estimé n'est pas affiché**, et l'anomalie remonte au backoffice (RG59). *Au pilote (D78) : aucune tranche ne peut être déclarée ; la soumission est refusée avec le message nommant le champ, et l'anomalie remonte au backoffice (hypothèse prudente, **Q16**)* |
 
 **2 — Valeur nulle, négative ou aberrante**
 
 | Situation | Comportement attendu |
 |---|---|
-| Rémunération minimum à 0 ou négative | Refus : le minimum est strictement positif. La gratuité se déclare par « dotation seule » (RG62, RG68) |
-| Minimum 2 000, maximum 800 | Refus des deux côtés : le maximum est supérieur ou égal au minimum (RG68) |
-| Fourchette 100 – 50 000 | **Acceptée**, mais signalée au modérateur (rapport supérieur à 10, RG68) |
-| Fourchette saisie sans devise | Refus : la devise est obligatoire dès qu'un montant existe (RG55) |
-| Budget total inférieur au minimum multiplié par le nombre de créateurs | **Accepté** : c'est une information interne, pas une contrainte. Le commercial le voit et rappelle la marque |
+| Rémunération minimum à 0 ou négative | Refus : le minimum est strictement positif. La gratuité se déclare par « dotation seule » (RG62, RG68). *Suspendu (D78) : la marque choisit une tranche* |
+| Minimum 2 000, maximum 800 | Refus des deux côtés : le maximum est supérieur ou égal au minimum (RG68). *Suspendu (D78)* |
+| Fourchette 100 – 50 000 | **Acceptée**, mais signalée au modérateur (rapport supérieur à 10, RG68). *Suspendu (D78)* |
+| Fourchette saisie sans devise | Refus : la devise est obligatoire dès qu'un montant existe (RG55). *Au pilote : vaut pour la tranche, toujours rattachée à une devise (D78)* |
+| Budget total inférieur au minimum multiplié par le nombre de créateurs | **Accepté** : c'est une information interne, pas une contrainte. Le commercial le voit et rappelle la marque. *Au pilote : comparé au minimum de la tranche déclarée (D78)* |
 | Quantité de livrable à 0 ou à 200 | Refus : entier de 1 à 20 par ligne, 10 lignes au plus (RG36, RG37) |
 | Date limite de candidature postérieure au début de publication | Refus, message nommant les deux dates (RG70) |
 | Période de publication de 3 ans | Refus au-delà de 12 mois (RG74) |
@@ -902,7 +959,7 @@ passent par les tokens (`design-system-influx`).
 | Un annonceur tente de passer lui-même sa campagne en « publiée » | Refus côté serveur : seul un rôle interne publie (RG5) |
 | Un agent tente de publier seul une campagne en secteur sensible | Refus : la double validation est exigée (RG85) |
 | Un créateur tente d'exporter la liste des campagnes publiées | Refus : l'export est interdit, et les garde-fous anti-aspiration de `03` C(17) s'appliquent aux campagnes comme à l'annuaire |
-| Un créateur tente d'accéder au budget total par une route de détail | Refus au niveau de la base : la colonne n'est pas accordée au rôle créateur (`04` §5.4) |
+| Un créateur tente d'accéder au budget total par une route de détail | Refus au niveau de la base : la colonne n'est pas accordée au rôle créateur (`04` §5.4). *Au pilote, la tranche de budget par créateur non plus (D78)* |
 
 **6 — Service externe indisponible**
 
@@ -939,12 +996,12 @@ passent par les tokens (`design-system-influx`).
 
 | # | Contrôle | Réponse pour ce document |
 |---|---|---|
-| 1 | **Montants** — montant du contrat, commission INFLUX, net créateur | **Traités explicitement et nommément.** La **fourchette de rémunération par créateur est le coût total pour l'annonceur, commission incluse** (RG56), avec la même assiette et les mêmes bornes que `06` RG27 et `07` RG65. Les trois notions sont nommées côte à côte au créateur (RG60) ; le **net estimé n'est jamais montré à l'annonceur** (RG61) ; **aucune multiplication par un taux dans le code** (RG59). Le **budget total est interne** (RG65), la **dotation est un montant distinct** (RG31), et aucun montant n'est accepté dans les textes libres (RG23). Aucun contrat, aucune facture, aucun encaissement (**A1**, RG12) |
+| 1 | **Montants** — montant du contrat, commission INFLUX, net créateur | **Traités explicitement et nommément.** La **fourchette de rémunération par créateur est le coût total pour l'annonceur, commission incluse** (RG56), avec la même assiette et les mêmes bornes que `06` RG27 et `07` RG65. Les trois notions sont nommées côte à côte au créateur (RG60) ; le **net estimé n'est jamais montré à l'annonceur** (RG61) ; **aucune multiplication par un taux dans le code** (RG59). Le **budget total est interne** (RG65), la **dotation est un montant distinct** (RG31), et aucun montant n'est accepté dans les textes libres (RG23). Aucun contrat, aucune facture, aucun encaissement (**A1**, RG12). **Au pilote (D78) : tranche de budget interne, aucun montant servi au créateur (bandeau de §F).** |
 | 2 | **Traçabilité / contournement** | **Risque de premier rang, traité en RG21 à RG23 et RG81.** Un brief est un texte long lu par tous les créateurs inscrits : aucune coordonnée, aucune URL, aucun code à scanner, aucune pièce jointe (RG45), aucun moyen de contacter la marque depuis la campagne, aucune coordonnée d'interlocuteur (`06` RG40). **Risque résiduel assumé et signalé :** une formulation habile (« notre équipe partenariats répond vite, cherchez-nous ») reste indétectable automatiquement ; la parade est la modération humaine avant publication et le motif de refus dédié. Second risque signalé : **l'interdiction des liens gêne les marques légitimes** et sera contestée (**Q3**) |
 | 3 | **Leads** — ce qui part vers Brevo et Apollo, avec quel consentement | Détaillé en RG103 à RG107 : `campaign.published` à la première publication, attributs **exclusivement en tranches, codes, dates et compteurs**, **un seul attribut nouveau chez Apollo** (« a publié une campagne » + date), **liste explicite de ce qui ne part jamais** (RG106), consentement du Lot 1 relu à la consommation |
 | 4 | **Backoffice** — contrepartie interne | Détaillée en RG83 à RG97 : file dédiée distincte des files de profils, verrou anti-double-traitement, motifs typés, **double validation en secteur sensible**, création et correction pour le compte d'une marque, journalisation nominative, tableau de bord, relance des campagnes sans candidature |
 | 5 | **Matching hybride** | **Aucun algorithme (D11).** Ce document **collecte** les données du côté demande : catégorie, thématiques, réseaux, formats, tranches d'audience, pays, langues, tranche de budget, droits d'usage, exclusivité — **toutes en listes fermées ou en tranches, avec les bornes identiques à celles du profil créateur** (RG42, RG49, RG50, RG51, RG54, RG59). Le **ciblage ne filtre rien au MVP** (RG53) : il informe le créateur et outille le commercial. La voie humaine est spécifiée : validation, revue renforcée, correction, création pour le compte d'une marque, attribution — toutes journalisées. Une seule exclusion est automatique et **silencieuse** : les secteurs refusés par un créateur (RG86) |
-| 6 | **Deux populations** | La campagne est **écrite par une marque** et **lue par un créateur** : deux jeux d'écrans, deux jeux de libellés (« ce que vous payez au total » contre « ce que la marque paie au total », RG57), deux périmètres de champs (RG98). Aucun écran partagé |
+| 6 | **Deux populations** | La campagne est **écrite par une marque** et **lue par un créateur** : deux jeux d'écrans, deux jeux de libellés (« ce que vous payez au total » contre « ce que la marque paie au total », RG57 ; libellé côté créateur suspendu au pilote, D78), deux périmètres de champs (RG98). Aucun écran partagé |
 | 7 | **Données personnelles** — avis de `expert-conformite-rgpd` | **Obligatoire, avec veto.** Points soumis : **interdiction des critères portant sur la personne du créateur** et régime du refus (**Q5**), **obligation de divulgation** du caractère commercial d'une dotation selon les pays (**Q7**, **D21**), **secteurs sensibles** et règles de publicité par pays (**Q6**, **D21**), interdiction du ciblage d'une audience mineure (RG51, **D15**), conservation de la déclaration d'autorisations (RG85) |
 
 ---
@@ -1020,14 +1077,15 @@ commercial », et la campagne n'est pas publiée.
 **CA19** — *Étant donné* « produit envoyé = oui », *quand* la marque soumet sans valeur de dotation,
 *alors* la soumission est refusée et le message nomme le champ manquant.
 
-**CA20** — *Étant donné* une dotation de valeur renseignée, *quand* un créateur consulte la campagne,
+**CA20** — *Suspendu (D78) : le créateur voit « conservé » ou « à rendre », jamais la valeur.* *Étant donné* une
+dotation de valeur renseignée, *quand* un créateur consulte la campagne,
 *alors* il voit une **tranche** avec sa devise, **jamais une valeur exacte**, et l'information
 « conservé » ou « à rendre ».
 
 **CA21** — *Étant donné* une campagne rémunérée ou comportant une dotation, *quand* un créateur la
 consulte, *alors* la mention `campaign.disclosure.notice` est affichée.
 
-**CA22** — *Étant donné* une valeur de dotation, *quand* on examine l'affichage, *alors* elle **n'est
+**CA22** — *Suspendu côté créateur (D78) ; vaut pour la fiche commerciale.* *Étant donné* une valeur de dotation, *quand* on examine l'affichage, *alors* elle **n'est
 jamais additionnée** à la fourchette de rémunération : les deux montants sont nommés séparément.
 
 ### Livrables, droits d'usage et exclusivité
@@ -1084,10 +1142,11 @@ sans emplacement grisé et sans décompte**.
 
 ### Budget
 
-**CA37** — *Étant donné* le champ de rémunération côté marque, *quand* elle le sélectionne, *alors*
+**CA37** — *Au pilote (D78) : le champ « tranche de budget par créateur ».* *Étant donné* le champ de rémunération
+côté marque, *quand* elle le sélectionne, *alors*
 l'aide affiche « Indiquez ce que vous payez au total, commission INFLUX incluse » **avant** la saisie.
 
-**CA38** — *Étant donné* une fourchette de 1 000 à 2 000 EUR, *quand* un créateur consulte la
+**CA38** — *Suspendu (D48, D78).* *Étant donné* une fourchette de 1 000 à 2 000 EUR, *quand* un créateur consulte la
 campagne, *alors* il lit **les trois notions nommées côte à côte** : ce que la marque paie
 (1 000 – 2 000 EUR), la commission INFLUX 35 % avec ses deux parts, et le net estimé (environ
 650 – 1 300 EUR).
@@ -1102,21 +1161,33 @@ taux, *alors* **il n'en existe aucune** : les bornes nettes proviennent du réf�
 consulte la campagne et que l'on inspecte **la charge utile** de la réponse, *alors* le budget total
 **n'y figure pas**, pas même vide ni nul.
 
-**CA42** — *Étant donné* une fourchette saisie sans devise, *quand* la marque enregistre, *alors* la
+**CA42** — *Au pilote (D78) : une tranche sans devise n'est pas proposable.* *Étant donné* une fourchette saisie
+sans devise, *quand* la marque enregistre, *alors* la
 saisie est refusée.
 
-**CA43** — *Étant donné* un minimum de 2 000 et un maximum de 800, *quand* la marque enregistre,
+**CA43** — *Suspendu (D78).* *Étant donné* un minimum de 2 000 et un maximum de 800, *quand* la marque enregistre,
 *alors* la saisie est refusée côté navigateur **et** côté serveur.
 
-**CA44** — *Étant donné* une nature « dotation seule », *quand* un créateur consulte la campagne,
+**CA44** — *Au pilote (D78) : il voit la nature « dotation seule » et la mention « À négocier avec votre
+commercial », aucune valeur.* *Étant donné* une nature « dotation seule », *quand* un créateur consulte la campagne,
 *alors* il voit la **valeur de la dotation** sous son propre nom, **aucune fourchette en numéraire**
 et **aucune mention de commission**.
 
-**CA45** — *Étant donné* une nature « affiliation » sans fourchette estimée, *quand* la marque soumet,
+**CA45** — *Au pilote (D78) : sans tranche de budget déclarée.* *Étant donné* une nature « affiliation » sans
+fourchette estimée, *quand* la marque soumet,
 *alors* la soumission est refusée.
 
-**CA46** — *Étant donné* toute fourchette affichée, *quand* on la lit, *alors* elle porte la mention
+**CA46** — *Suspendu (D78) : aucune fourchette n'est affichée.* *Étant donné* toute fourchette affichée, *quand* on la lit, *alors* elle porte la mention
 `campaign.budget.notice` et **n'affirme ni « hors taxes » ni « taxes comprises »**.
+
+**CA75** *(D78)* — *Étant donné* une campagne dont la marque a déclaré la tranche « 1 000 – 2 000 EUR », *quand* un
+créateur la consulte et que l'on inspecte **la charge utile** de la réponse, *alors* ni la tranche, ni la devise du
+budget, ni aucun montant n'y figurent, pas même vides ; l'écran affiche la nature de la rémunération et la mention
+« À négocier avec votre commercial ».
+
+**CA76** *(D78)* — *Étant donné* une campagne de nature « rémunération en numéraire » sans tranche de budget,
+*quand* la marque soumet, *alors* la soumission est refusée et le message nomme le champ manquant ; *quand* la
+nature est « dotation seule », *alors* aucune tranche n'est demandée.
 
 ### Calendrier
 
@@ -1197,14 +1268,16 @@ pour candidater.
 notification n'est envoyée à la marque** et la marque ne voit jamais qui l'a consultée.
 
 **CA68** — *Étant donné* la prévisualisation « ce que voit un créateur », *quand* la marque l'ouvre,
-*alors* elle affiche exactement ce que l'interface de service renvoie, budget total absent compris.
+*alors* elle affiche exactement ce que l'interface de service renvoie, budget total et, au pilote, tranche de
+budget par créateur absents compris (D78).
 
 **CA69** — *Étant donné* une première publication de campagne, *quand* elle est enregistrée, *alors*
 `campaign.published` est émis et les attributs de RG104 sont mis à jour chez Brevo **si** le
 consentement est enregistré.
 
 **CA70** — *Étant donné* une campagne publiée, *quand* on inspecte ce qui part vers Brevo et Apollo,
-*alors* **aucun texte libre, aucun budget total, aucune note interne** n'y figure, et Apollo ne reçoit
+*alors* **aucun texte libre, aucun budget total, aucune note interne** ni, au pilote,
+aucune tranche de budget (D78) n'y figure, et Apollo ne reçoit
 que « a publié une campagne » et sa date.
 
 **CA71** — *Étant donné* une marque **sans** consentement marketing, *quand* sa campagne est publiée,
@@ -1233,14 +1306,14 @@ brouillon est intégralement retrouvé, **lignes de livrables comprises**.
 | Membre marque | Campagne — bloc produit et dotation | Dotation conditionnelle, mention de divulgation expliquée avant la saisie |
 | Membre marque | Campagne — bloc livrables | **Matrice (réseau × format) + quantité** ; droits d'usage, durée, territoire, exclusivité au même endroit |
 | Membre marque | Campagne — bloc audience visée | **Doit rendre impossible la lecture « critère sur le créateur »** (RG47, RG48) |
-| Membre marque | Campagne — bloc budget | **Le point le plus sensible** : « ce que vous payez au total » ; budget total visuellement marqué « jamais publié » |
+| Membre marque | Campagne — bloc budget | **Le point le plus sensible** : « ce que vous payez au total » ; budget total visuellement marqué « jamais publié » ; au pilote, choix d'une tranche marquée « vue de votre seul commercial » (D78) |
 | Membre marque | Campagne — bloc calendrier | Quatre dates, ordre contrôlé et expliqué |
 | Membre marque | Campagne — bloc candidature | Option « profils vérifiés » masquée tant qu'elle est désactivée |
 | Membre marque | Déclaration d'autorisations en secteur sensible | Case non pré-cochée, libellé juridique relu |
 | Membre marque | **« Ce que voit un créateur »** — prévisualisation | RG102 |
 | Membre marque | Bandeau d'état + motif de refus | Six états, six messages |
-| Membre créateur | Carte de campagne dans une liste | Titre, type, réseaux, fourchette, date limite, badge de la marque |
-| Membre créateur | Fiche de campagne complète | **Trois notions de montant côte à côte** (RG60) ; droits d'usage et exclusivité visibles sans dépliage |
+| Membre créateur | Carte de campagne dans une liste | Titre, type, réseaux, fourchette (au pilote : nature et « À négocier avec votre commercial », D78), date limite, badge de la marque |
+| Membre créateur | Fiche de campagne complète | **Trois notions de montant côte à côte** (RG60, suspendu : D48, D78) ; droits d'usage et exclusivité visibles sans dépliage |
 | Backoffice | File « campagnes à valider » + fiche de validation | Verrou, ancienneté, alertes de détection, marquage revue renforcée |
 | Backoffice | Fiche campagne interne : budget total, notes, historique des décisions, commercial responsable | Vue de travail du commercial |
 | Backoffice | Tableau de bord des campagnes | RG96 |
@@ -1275,7 +1348,8 @@ Tables prévues et utilisées : `campaigns.campaigns`, `campaigns.campaign_deliv
    RG66).
 7. **La tranche de budget dérivée n'existe pas.** RG59 exige de stocker les codes
    `reference.price_bands` couverts par la fourchette : c'est ce qui permet le filtrage en recherche
-   **et** l'affichage du net estimé sans aucun calcul de taux dans le code.
+   **et** l'affichage du net estimé sans aucun calcul de taux dans le code. *Au pilote (D78), la tranche est
+   déclarée par la marque, non dérivée (écart 13).*
 8. **`reference.price_bands` doit porter les bornes nettes** (`net_min_minor`, `net_max_minor`) —
    même écart que `07`, point 5. Sans elles, RG60 est impossible sans violer `03` C(32).
 9. **Les éléments demandés au créateur (RG77) n'ont pas de table** : liste fermée multi-choix, donc
@@ -1289,6 +1363,16 @@ Tables prévues et utilisées : `campaigns.campaigns`, `campaigns.campaign_deliv
     `refusée`) — à vérifier contre l'énumération existante de `status`. Et **la conservation de la
     dernière version validée** pendant une re-validation (RG7) est le même écart que celui déjà relevé
     dans `06` et `07` : sans elle, une correction de faute rend la campagne invisible.
+
+**Écart ajouté au pilote (D78, 2026-11-13) :**
+
+13. **Rangement de la tranche de budget déclarée.** `04` §5.4 n'a pas de colonne pour une tranche choisie par la
+    marque, et la contrainte `campaigns_cash_range_required` exige la fourchette exacte
+    (`per_creator_amount_min_minor`, `per_creator_amount_max_minor`) dès qu'une campagne quitte le brouillon, sauf
+    « dotation seule ». Au pilote, cette fourchette n'est plus saisie. À instruire par `expert-database` sous
+    `architecte` **avant la migration des campagnes** (aucune table de campagne n'existe encore) : par exemple, porter
+    la tranche dans `campaigns.campaign_price_bands` et reformuler la contrainte sur sa présence. Colonnes gardées
+    (D78) ; l'instantané publié ne contient ni la tranche ni la fourchette (RG65). Voir **Q16**.
 
 À prévoir également : les paramètres (délai cible de validation standard et renforcé, seuil d'alerte,
 expiration d'une prise en charge, plafond de campagnes simultanées, délai de clôture automatique,
@@ -1316,8 +1400,8 @@ table**, modifiables sans redéploiement, chaque modification étant journalisé
 | Campagnes publiées sans aucune candidature après 7 jours | Cible de relance commerciale (RG96) |
 | Campagnes modifiées après publication, et part repassée en validation | Mesure du coût de la re-validation |
 | Part des campagnes en secteur sensible | Suivi ; dimensionne la charge de revue renforcée |
-| Répartition des tranches de rémunération publiées | Alimente la comparaison avec les tarifs déclarés par les créateurs |
-| Écart entre la fourchette publiée et le montant réellement négocié | Saisi par le commercial dans le pipeline (**A8**, Lot 5) ; c'est l'indicateur de sincérité des budgets |
+| Répartition des tranches de rémunération publiées (au pilote : tranches de budget déclarées, D78) | Alimente la comparaison avec les tarifs déclarés par les créateurs : **renvoyée en V2** (D78, aucun tarif saisi au pilote) |
+| Écart entre la fourchette publiée (au pilote : la tranche déclarée, D78) et le montant réellement négocié | Saisi par le commercial dans le pipeline (**A8**, Lot 5) ; c'est l'indicateur de sincérité des budgets |
 | Champs renseignés dans moins de 10 % des campagnes | Candidats au retrait : friction sans contrepartie |
 | Campagnes publiées sans commercial responsable | Doit tendre vers zéro (RG97) |
 
@@ -1351,8 +1435,8 @@ table**, modifiables sans redéploiement, chaque modification étant journalisé
 
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
-| **Q1** | **Affichage du net créateur estimé sur une campagne** : la fourchette est saisie en valeurs exactes, mais les bornes nettes viennent du référentiel des tranches. Est-il acceptable d'afficher un net « environ », dérivé de tranches, à côté d'une fourchette exacte ? L'alternative conservatrice est de n'afficher que la mention « commission INFLUX incluse » | **Oui, net estimé affiché en « environ », issu du référentiel** (RG59, RG60) | `expert-paiement-facturation` + `architecte` | **Avant le Lot 3** |
-| **Q2** | **Fourchette exacte ou tranche fermée** pour la rémunération par créateur ? La tranche serait plus cohérente avec la règle d'or ; la fourchette exacte est ce qu'une marque sait faire | **Saisie exacte + tranches dérivées** pour le filtrage et le net estimé (RG59) | `chef-de-projet` + `expert-matching` | Lot 3 |
+| **Q1** | **Affichage du net créateur estimé sur une campagne** : la fourchette est saisie en valeurs exactes, mais les bornes nettes viennent du référentiel des tranches. Est-il acceptable d'afficher un net « environ », dérivé de tranches, à côté d'une fourchette exacte ? L'alternative conservatrice est de n'afficher que la mention « commission INFLUX incluse » | **Oui, net estimé affiché en « environ », issu du référentiel** (RG59, RG60). *Sans objet au pilote : RG59 et RG60 suspendues (D48, D78)* | `expert-paiement-facturation` + `architecte` | **Avant le Lot 3** |
+| **Q2** | **Fourchette exacte ou tranche fermée** pour la rémunération par créateur ? La tranche serait plus cohérente avec la règle d'or ; la fourchette exacte est ce qu'une marque sait faire | **Saisie exacte + tranches dérivées** pour le filtrage et le net estimé (RG59). *Tranchée au pilote par D78 : tranche déclarée par la marque, interne* | `chef-de-projet` + `expert-matching` | Lot 3 |
 | **Q3** | **Faut-il interdire tout lien dans un brief ?** L'interdiction protège le modèle mais gêne des marques légitimes qui veulent montrer une page produit | **Aucun lien au MVP** (RG22). Réexamen possible : autoriser uniquement un chemin du domaine déjà vérifié de la marque | `chef-de-projet` + `expert-ux`, avis de `product-owner` sur le risque | Lot 3 |
 | **Q4** | **Faut-il autoriser une pièce jointe de brief** (moodboard, charte) ? C'est une demande naturelle des marques, et un coût de modération visuel par visuel | **Non au MVP** (RG45) | `chef-de-projet` + `expert-ux` | Après le pilote |
 | **Q5** | **Critère portant sur la personne du créateur dans un texte** : refus ferme ou simple avertissement ? Le refus protège ; l'avertissement évite un bras de fer sur des formulations ambiguës | **Refus**, hypothèse conservatrice (RG48) | `expert-conformite-rgpd` (**veto**) + juriste | **Avant le Lot 3** |
@@ -1364,5 +1448,6 @@ table**, modifiables sans redéploiement, chaque modification étant journalisé
 | **Q11** | **Plafond de campagnes publiées simultanément par marque** : 10 est-il suffisant pour un annonceur multi-produits ? | **10, en paramètre** (RG15) | `chef-de-projet` | Lot 3 |
 | **Q12** | **Modification substantielle d'une campagne ayant déjà reçu des candidatures** : faut-il notifier les candidats et leur permettre de retirer leur candidature ? | **Oui**, notification et retrait possible (RG7) — à spécifier au Lot 4 | `product-owner` + `chef-de-projet` | Lot 4 |
 | **Q13** | **Une collaboration en dotation seule entre-t-elle dans l'assiette de la commission ?** Le produit n'affirme rien tant que la réponse n'est pas écrite | **Aucune commission affichée ni suggérée sur une dotation** (RG63) | **Fondateur** + `expert-paiement-facturation` | Avant le Lot 4 |
-| **Q14** | **Affiliation** : sans suivi des ventes dans l'application (**A1**), que publie-t-on d'exploitable ? Une fourchette estimée est-elle honnête ? | **Fourchette estimée obligatoire**, mécanisme décrit dans le brief, aucun suivi par INFLUX (RG64) | `expert-paiement-facturation` + **Fondateur** | Lot 3 |
+| **Q14** | **Affiliation** : sans suivi des ventes dans l'application (**A1**), que publie-t-on d'exploitable ? Une fourchette estimée est-elle honnête ? | **Fourchette estimée obligatoire**, mécanisme décrit dans le brief, aucun suivi par INFLUX (RG64). *Au pilote : tranche estimée, interne (D78)* | `expert-paiement-facturation` + **Fondateur** | Lot 3 |
 | **Q15** | **Faut-il afficher au créateur le nombre de candidatures déjà déposées ?** L'afficher crée une course ; le cacher prive le créateur d'une information utile | **Non affiché** (RG82) | `product-owner` + `expert-ux` | Lot 4 |
+| **Q16** | **(D78) Rangement de la tranche de budget déclarée** : `04` §5.4 exige une fourchette exacte à la publication (`campaigns_cash_range_required`) et n'a pas de colonne de tranche choisie (écart 13) ; que faire d'une devise sans tranche ? | Tranche portée par `campaigns.campaign_price_bands`, contrainte reformulée sur sa présence, fourchette exacte laissée vide ; devise sans tranche : soumission refusée, anomalie au backoffice | `expert-database` sous `architecte` | **Avant la migration des campagnes** (découpage du Lot 3) |

@@ -2,12 +2,15 @@
 
 > **⚠️ Régime du pilote — D48 (arbitrage du fondateur du 2026-09-24).** Pendant le pilote, **aucun taux ni aucun net créateur estimé n'est affiché**, ni aux marques ni aux créateurs. Toutes les mentions du « net créateur estimé » et du pourcentage de commission dans ce document sont **suspendues** jusqu'à nouvel arbitrage ; la commission est présentée comme « incluse, précisée par votre commercial ». Voir `CLAUDE.md` §2 et `decisions.md` (D48).
 
+> **⚠️ Régime du pilote — D78 (arbitrage du fondateur du 2026-11-01, étendu au Lot 3 le 2026-11-13, option A).** **Aucun montant côté créateur au Lot 3 ; la négociation passe par le commercial.** (1) **Candidature** : le créateur ne propose **aucun tarif** ; US6, le champ « tarif proposé » de RG47, RG54 à RG58, RG60, la ligne « tarif » de RG92 et **Q4** sont **suspendus** ; la candidature garde la **motivation**, la **proposition de concept**, les **formats proposés**, l'acceptation de la contrepartie, la disponibilité et l'acceptation à l'écran. (2) **Fil** : aucune fourchette n'est servie au créateur (`09` §F) ; la carte affiche la **nature de la rémunération** (type de contrepartie) et la mention « À négocier avec votre commercial » ; RG10, RG19, RG28, le filtre **C5** et **Q10** sont suspendus, et la rémunération par créateur de RG9, RG15 et RG37 n'est plus servie. Colonnes gardées en base (`04` §5.6, `proposed_amount_minor` nullable) : seuls la saisie et l'affichage sont suspendus.
+
 > **Date :** 2026-09-19 · **Auteur :** agent `product-owner` · **Statut :** spécification complète du
 > parcours créateur « trouver une campagne et candidater » (Lot 3, prolongée au Lot 4 pour la file),
 > soumise à la validation de `chef-de-projet`, avec **avis obligatoire (veto) de
 > `expert-conformite-rgpd`** sur §E (texte libre de candidature et détection), §J (notifications) et
 > §K (ce qui part vers Brevo), et **avis obligatoire de `expert-paiement-facturation`** sur §E
-> (tarif proposé, net créateur estimé) et §C (filtre de rémunération sans conversion de devise).
+> (tarif proposé, net créateur estimé) et §C (filtre de rémunération sans conversion de devise), tous
+> suspendus au pilote (D78, D48).
 >
 > **Skills appliquées :** `feature-spec` (format de sortie), `matching-spec` (règle d'or des tranches,
 > taxonomie partagée, garde-fous anti-aspiration, exclusion silencieuse), `intermediation-tracking`
@@ -40,7 +43,8 @@
 > commission dans le code applicatif** n'existe dans ce périmètre (**A1**, `03` C(32)). Les montants
 > présents sont la **rémunération par créateur annoncée par la campagne**, le **tarif proposé par le
 > créateur** et le **net créateur estimé**, tous trois nommés, tous trois avec leur devise, tous trois
-> accompagnés de la mention « ne vaut pas engagement ».
+> accompagnés de la mention « ne vaut pas engagement ». **Au pilote (D78)**, aucun de ces trois montants n'est
+> saisi ni servi côté créateur.
 >
 > **Prolongement des Lots 1 et 2 :** ce document ne redemande **jamais** une information déjà
 > collectée à l'inscription ou déjà présente dans le profil créateur. Toute redemande est un défaut.
@@ -94,10 +98,10 @@ Quatre raisons d'être, dans cet ordre :
 ### Créateur
 
 - **US1** — En tant que **créateur**, je veux parcourir les campagnes ouvertes avec, sur chaque carte,
-  la marque, ce qu'elle attend, ce qu'elle paie par créateur et jusqu'à quand, afin de décider en dix
+  la marque, ce qu'elle attend, ce qu'elle paie par créateur (*au pilote : le type de contrepartie, D78*) et jusqu'à quand, afin de décider en dix
   secondes si j'ouvre ou si je passe.
 - **US2** — En tant que **créateur**, je veux filtrer sur ma thématique, mes réseaux, les pays visés
-  et une rémunération minimale, afin de ne pas lire trente briefs qui ne me concernent pas.
+  et une rémunération minimale (*suspendue au pilote, D78*), afin de ne pas lire trente briefs qui ne me concernent pas.
 - **US3** — En tant que **créateur**, je veux trier par campagne la plus récente ou par date limite la
   plus proche, afin de ne pas rater une échéance.
 - **US4** — En tant que **créateur**, je veux voir immédiatement si une campagne m'est ouverte ou si
@@ -105,7 +109,8 @@ Quatre raisons d'être, dans cet ordre :
   pour rien.
 - **US5** — En tant que **créateur**, je veux candidater sans retaper mon audience, mes réseaux ni mon
   portfolio, afin de ne remplir que ce qui est propre à cette campagne.
-- **US6** — En tant que **créateur**, je veux proposer mon tarif pour cette campagne **et voir ce
+- **US6** — *Suspendue (D78) : la négociation passe par le commercial.* En tant que **créateur**, je veux proposer
+  mon tarif pour cette campagne **et voir ce
   qu'il me resterait**, afin de ne jamais découvrir la commission après coup.
 - **US7** — En tant que **créateur**, je veux savoir où en est ma candidature et sous quel délai elle
   sera examinée, afin de ne pas relancer dans le vide.
@@ -122,7 +127,7 @@ Quatre raisons d'être, dans cet ordre :
 - **US11** — En tant que **marque**, je veux ne recevoir que des candidatures lues et validées par un
   commercial INFLUX, afin de ne pas trier moi-même l'arrosage.
 - **US12** — En tant que **marque**, je veux, sur une candidature validée, le motif du créateur, les
-  formats qu'il propose et son prix, afin de décider d'entrer ou non en relation.
+  formats qu'il propose et son prix (*suspendu au pilote, D78*), afin de décider d'entrer ou non en relation.
 
 ### Commercial et administrateur
 
@@ -151,7 +156,7 @@ Quatre raisons d'être, dans cet ordre :
 **RG1** — Une **candidature est une mise en relation** au sens du document `01` : elle crée une entrée
 `matching.introductions` avec `origin = creator_application`, sa référence `MER-AAAA-NNNNNN`, son
 statut, son délai de traitement et son commercial responsable. Ce n'est **pas** un objet parallèle.
-Son contenu propre (motivation, tarif proposé, formats proposés) vit dans l'extension
+Son contenu propre (motivation, tarif proposé — *suspendu au pilote, D78* —, formats proposés) vit dans l'extension
 `matching.application_details` et `matching.application_formats`.
 
 **RG2** — **Une candidature n'ouvre jamais de conversation** (**A9**). Elle entre dans la file de
@@ -187,11 +192,12 @@ toujours avec leur devise :
 
 | Notion | Libellé affiché au créateur | Qui la fixe | Visible de la marque |
 |---|---|---|---|
-| **Rémunération par créateur** | « Ce que la marque prévoit de payer, au total, par créateur » | La campagne (fourchette) | Oui, c'est elle qui la publie |
-| **Tarif proposé** | « Ce que vous demandez, au total, pour cette campagne » | Le créateur, dans sa candidature | **Après validation et acceptation** (voir **Q4**) |
-| **Net créateur estimé** | « Ce que vous percevriez, estimation » | Dérivé du référentiel (RG57) | **Jamais** |
+| **Rémunération par créateur** — *non servie au créateur au pilote (D78)* | « Ce que la marque prévoit de payer, au total, par créateur » | La campagne (fourchette) | Oui, c'est elle qui la publie |
+| **Tarif proposé** — *suspendu (D78)* | « Ce que vous demandez, au total, pour cette campagne » | Le créateur, dans sa candidature | **Après validation et acceptation** (voir **Q4**) |
+| **Net créateur estimé** — *suspendu (D48)* | « Ce que vous percevriez, estimation » | Dérivé du référentiel (RG57) | **Jamais** |
 
-**RG10** — Les deux premiers montants ont **la même assiette** : le **coût total pour l'annonceur**,
+**RG10** — *Suspendue (D78) : aucun tarif proposé, aucune fourchette servie au créateur ; l'assiette vaut pour la
+tranche de budget déclarée par la marque (`09` §F).* Les deux premiers montants ont **la même assiette** : le **coût total pour l'annonceur**,
 commission **incluse** (`CLAUDE.md` §2), identique à celle du tarif indicatif du profil (`07` RG65) et
 du budget indicatif de la marque (`06` RG29). Sans cette identité, une fourchette de campagne et un
 tarif de créateur ne seraient pas comparables.
@@ -232,7 +238,7 @@ déjà envoyées sur cette campagne restent traitées selon §G.
 | Badge « Marque vérifiée » **et sa date** | Badge + date | Le créateur doit savoir ce qui a été contrôlé, et quand (`06` RG53) |
 | Thématiques visées | `reference.topics` | Pertinence immédiate |
 | Livrables attendus | `(réseau, format, quantité)` | Une campagne TikTok adressée à un profil sans TikTok est une demande morte |
-| **Rémunération par créateur** | Fourchette `min – max` + devise, **ou** « contrepartie non monétaire » | Première cause d'échec en négociation |
+| **Rémunération par créateur** — *suspendue (D78) : remplacée par la mention « À négocier avec votre commercial »* | Fourchette `min – max` + devise, **ou** « contrepartie non monétaire » | Première cause d'échec en négociation |
 | **Nature de la rémunération** | Liste fermée : monétaire · contrepartie non monétaire · monétaire et contrepartie | Un créateur ne lit pas un brief « produit offert » comme un brief payé (voir **Q13**) |
 | Pays d'audience visés | `reference.countries` | La facette la plus discriminante |
 | Période de la campagne | Dates de début et de fin | Disponibilité |
@@ -252,12 +258,14 @@ directes* d'une marque (e-mail, téléphone, prénom, page de contact) jusqu'à 
 identité**, qui reste publique (`06` RG73 et RG74). Une demande d'anonymat de marque pendant la phase
 de sélection est **hors périmètre** et relève du fondateur (voir **Q2**).
 
-**RG18** — Une campagne dont la rémunération par créateur n'est ni chiffrée ni déclarée « contrepartie
+**RG18** — *Au pilote (D78) : la condition porte sur la tranche de budget déclarée par la marque ou sur la nature
+« contrepartie » (`09` §F), jamais servies chiffrées au créateur.* Une campagne dont la rémunération par créateur n'est ni chiffrée ni déclarée « contrepartie
 non monétaire » **n'apparaît pas dans le fil**. Un brief sans prix fait perdre du temps aux deux
 parties et produit des candidatures inexploitables. Cette exigence contraint le document `09` : la
 rémunération par créateur et sa nature sont **obligatoires pour publier**.
 
-**RG19** — Toute fourchette de rémunération est affichée **avec sa devise** et avec la mention fixe :
+**RG19** — *Suspendue (D78) : remplacée par la mention « À négocier avec votre commercial »
+(`campaignFeed.pay.negotiate`).* Toute fourchette de rémunération est affichée **avec sa devise** et avec la mention fixe :
 **« Rémunération prévue par créateur, coût total pour la marque — elle ne vaut pas engagement, le
 montant se discute dans la conversation. »**
 
@@ -302,11 +310,11 @@ s'évapore du jour au lendemain fait croire à un bug.
 | C2 | Réseau | Multi-choix `reference.networks` | Un brief hors de mes réseaux est une perte de temps |
 | C3 | Format | Multi-choix `reference.formats` | Un format que je ne produis pas est une exclusion |
 | C4 | Pays d'audience visé | Multi-choix `reference.countries` | Le même référentiel que le pays principal d'audience du profil |
-| C5 | **Rémunération minimale** | Borne basse `reference.price_bands` + **devise obligatoire** | Première cause d'échec en négociation |
+| C5 | **Rémunération minimale** — *suspendu (D78)* | Borne basse `reference.price_bands` + **devise obligatoire** | Première cause d'échec en négociation |
 | C6 | Nature de la rémunération | Liste fermée (RG15) | Trier le payé et le non payé |
 | C7 | **Campagnes auxquelles je peux candidater** | Booléen | Retire les campagnes closes, réservées aux vérifiés si je ne le suis pas, et celles où j'ai déjà candidaté |
 
-**RG28** — Le filtre de **rémunération minimale exige une devise** : une tranche sans devise n'a pas
+**RG28** — *Suspendue avec C5 (D78).* Le filtre de **rémunération minimale exige une devise** : une tranche sans devise n'a pas
 de sens. Les campagnes libellées dans une autre devise **ne sont ni converties, ni comparées, ni
 exclues silencieusement** : elles sont regroupées à part sous l'intitulé « campagnes dans une autre
 devise », avec un message expliquant qu'INFLUX ne convertit pas (**D27**, voir **Q10**).
@@ -355,7 +363,7 @@ défilement infini : un défilement infini rend le plafond de pages de RG21 inco
 |---|---|---|---|
 | Nom, logo, secteur, taille, marchés, badge de la marque | Visible | Visible | Visible |
 | Brief, livrables, droits d'usage, exclusivité | Visible | Visible | Visible |
-| **Rémunération par créateur** (fourchette) | Visible | Visible | Visible |
+| **Rémunération par créateur** (fourchette) | **Jamais** au pilote (D78) | **Jamais** au pilote (D78) | **Jamais** au pilote (D78) |
 | **Budget total de la campagne** | **Jamais** | **Jamais** | **Jamais** |
 | Notes internes de la campagne, commercial responsable | **Jamais** | **Jamais** | **Jamais** |
 | **Prénom de l'interlocuteur** | **Masqué** | **Masqué** | Visible (**D40**, `06` RG38) |
@@ -419,18 +427,18 @@ geste à faire. Un bouton désactivé sans explication est un défaut.
 | **Motivation** | **Oui** | Texte libre, 120 à 2 000 caractères | **A9** : c'est le motif écrit qui distingue une candidature d'un clic. C'est aussi ce que lit le commercial |
 | **Proposition de concept** | Non | Texte libre, ≤ 1 000 caractères | Ce qui fait la différence entre deux créateurs équivalents sur le papier |
 | **Formats proposés** | **Oui** (≥ 1) | Multi-choix, **restreint à l'intersection** des livrables de la campagne et des couples (réseau, format) du profil | Évite une candidature hors sujet et une saisie libre |
-| **Tarif proposé** | **Oui**, sauf campagne « contrepartie seule » | Montant exact > 0 + devise (RG54) | C'est l'offre du créateur pour cette campagne |
+| **Tarif proposé** — *suspendu (D78)* | **Oui**, sauf campagne « contrepartie seule » | Montant exact > 0 + devise (RG54) | C'est l'offre du créateur pour cette campagne |
 | **Acceptation de la contrepartie** | Oui si la campagne est « contrepartie seule » ou « monétaire et contrepartie » | Case non pré-cochée | Une contrepartie acceptée par défaut n'est pas acceptée |
 | **Disponibilité sur la période** | **Oui** | Case non pré-cochée : « je suis disponible sur la période annoncée » | Première cause d'abandon après la mise en relation |
 | **Acceptation à l'écran** | **Oui** | Case non pré-cochée + version de CGU | `01` §3 étape 4 : l'acceptation est datée et rattachée à une version |
 
 **RG48** — **Rien de ce que le profil contient n'est redemandé** : ni réseaux, ni chiffres d'audience,
-ni tarif indicatif, ni portfolio, ni langues, ni pays. Le formulaire affiche un **rappel en lecture
+ni tarif indicatif (aucun n'existe au pilote, D78), ni portfolio, ni langues, ni pays. Le formulaire affiche un **rappel en lecture
 seule** de ce que le commercial et, plus tard, la marque verront, avec un lien vers le profil. Toute
 redemande est un défaut bloquant.
 
 **RG49** — La candidature **ne recopie pas le profil**. Elle ne conserve que ce qui lui est propre
-(motivation, concept, formats proposés, tarif proposé) plus les données historisées exigées par `04`
+(motivation, concept, formats proposés, tarif proposé — *suspendu au pilote, D78*) plus les données historisées exigées par `04`
 §5.6 : pays des deux parties et version de CGU acceptée à la date des faits. Le profil reste **la
 source unique** : un créateur qui met ses chiffres à jour met à jour ce que le commercial voit.
 
@@ -455,30 +463,30 @@ file** : il n'existe que pour son auteur, ne compte dans aucun plafond, et dispa
 ferme (voir **Q12** pour sa durée de conservation).
 
 **RG53** — L'**envoi est une action explicite**, confirmée par un écran récapitulatif qui affiche,
-avant validation : la campagne, les formats proposés, le tarif proposé, le net créateur estimé, ce que
-le commercial verra, et le rappel que **la marque ne recevra la candidature qu'après validation par
+avant validation : la campagne, les formats proposés, le tarif proposé, le net créateur estimé (*tous deux
+suspendus au pilote, D78, D48*), ce que le commercial verra, et le rappel que **la marque ne recevra la candidature qu'après validation par
 INFLUX**.
 
-**RG54** — Le **tarif proposé** est saisi en **valeur exacte, strictement positive**, dans la **devise
+**RG54** — *Suspendue (D78).* Le **tarif proposé** est saisi en **valeur exacte, strictement positive**, dans la **devise
 de la campagne** lorsque la campagne en déclare une ; à défaut, dans la devise du profil créateur.
 **Aucune conversion** (**D27**). Un tarif sans devise n'existe pas.
 
-**RG55** — Le libellé du champ énonce la consigne **avant** la saisie : **« Indiquez ce que la marque
+**RG55** — *Suspendue (D78).* Le libellé du champ énonce la consigne **avant** la saisie : **« Indiquez ce que la marque
 paie au total pour cette campagne. Ce que vous percevez s'affiche juste en dessous. »** C'est
 exactement la consigne du profil (`07` RG65) : deux formulations différentes produiraient deux
 assiettes différentes.
 
-**RG56** — Lorsque le tarif proposé sort de la fourchette annoncée par la campagne, la saisie est
+**RG56** — *Suspendue (D78).* Lorsque le tarif proposé sort de la fourchette annoncée par la campagne, la saisie est
 **acceptée** et un message factuel s'affiche : **« Votre proposition est au-dessus de la rémunération
 annoncée (min – max devise). Elle sera transmise telle quelle au commercial INFLUX. »** Un créateur
 n'a pas à être empêché de demander son prix ; la marque n'a pas à être surprise.
 
-**RG57** — Le **net créateur estimé** est affiché juste sous le tarif proposé, **dans la même devise**,
+**RG57** — *Suspendue (D48, D78).* Le **net créateur estimé** est affiché juste sous le tarif proposé, **dans la même devise**,
 sous forme de **tranche lue dans `reference.price_bands`** : la tranche qui contient le montant saisi
 porte ses bornes nettes, calculées une fois lors de la création de la version du référentiel
 (`07` RG72). **Aucune multiplication par un taux n'est faite dans le code applicatif** (voir **Q5**).
 
-**RG58** — Le net créateur estimé est accompagné, partout où il apparaît, de la **mention fixe** :
+**RG58** — *Suspendue (D48, D78).* Le net créateur estimé est accompagné, partout où il apparaît, de la **mention fixe** :
 **« Estimation indicative, aux taux par défaut de la plateforme : commission INFLUX 35 %, dont 20 % à
 la charge de la marque et 15 % à votre charge. Elle ne vaut pas engagement : les taux applicables sont
 figés au moment de la signature du contrat. »** Le traitement fiscal n'est pas tranché (**D7**) :
@@ -487,7 +495,7 @@ aucun écran n'écrit « hors taxes » ni « taxes comprises ».
 **RG59** — **Le net créateur estimé n'est jamais affiché à une marque**, en aucune circonstance
 (symétrie exacte avec `06` RG32 et `07` RG70).
 
-**RG60** — Le **tarif proposé exact** est visible **des rôles internes en permanence**, et de la
+**RG60** — *Suspendue (D78) : aucun tarif proposé ; voir **Q4**.* Le **tarif proposé exact** est visible **des rôles internes en permanence**, et de la
 marque **seulement après validation de la candidature et acceptation par la marque** (RG75). Il s'agit
 d'une **offre délibérée du créateur pour cette campagne**, distincte du tarif indicatif de son profil,
 lequel reste couvert par `07` RG103 (tranche seulement, jamais la valeur exacte). Cette distinction
@@ -572,7 +580,7 @@ l'écran de la candidature validée. La révélation d'identité et l'ouverture 
 
 **RG75** — **Tant que la marque n'a pas accepté, rien n'est révélé** : la marque lit la candidature
 d'un créateur **anonymisé** (alias, couche A, plus la motivation, les formats proposés et le tarif
-proposé). C'est cette acceptation qui déclenche la révélation simultanée dans les deux sens
+proposé, *suspendu au pilote, D78*). C'est cette acceptation qui déclenche la révélation simultanée dans les deux sens
 (`07` RG19). Cette exigence est soumise à **Q1** : elle applique la contrainte de base
 `introductions_reveal_requires_both_acceptances` (`04` §5.6), plus stricte que la formulation de
 **C(21)**.
@@ -651,7 +659,7 @@ cinq files du MVP), avec un **filtre par origine**. Une file par déclencheur ob
 |---|---|---|
 | Qui déclenche | La marque, depuis un profil anonymisé | Le créateur, depuis une campagne publiée |
 | Campagne | Facultative | **Obligatoire** (`04` §5.6) |
-| Contenu saisi | Motif court de la marque | **Motivation, concept, formats proposés, tarif proposé** |
+| Contenu saisi | Motif court de la marque | **Motivation, concept, formats proposés**, tarif proposé (*suspendu au pilote, D78*) |
 | Ce que sait la partie visée avant validation | Le créateur ne sait rien (**C(18)**) | La marque ne sait rien (**C(18)**) |
 | Acceptation du déclencheur | La marque accepte à l'écran au moment de sa demande | Le créateur accepte à l'écran au moment de sa candidature |
 | Acceptation de l'autre partie | Le créateur accepte après validation | **La marque accepte après validation** (RG75, **Q1**) |
@@ -663,7 +671,8 @@ cinq files du MVP), avec un **filtre par origine**. Une file par déclencheur ob
 
 **RG90** — L'entrée de file affiche, **sans qu'il faille ouvrir autre chose** : l'origine, la
 campagne, l'alias et le profil identifié du créateur, la motivation intégrale, les formats proposés,
-le tarif proposé et sa devise, la fourchette de la campagne, les alertes de détection, le temps
+le tarif proposé et sa devise, la fourchette de la campagne (*au pilote : la tranche de budget déclarée par la marque,
+sans tarif proposé, D78*), les alertes de détection, le temps
 restant avant échéance du délai, et le commercial qui a pris l'entrée en charge
 (`backoffice-ops`, étape 1).
 
@@ -682,7 +691,7 @@ demandes de contact, et chaque motif porte **le message envoyé au créateur** e
 | **Coordonnée directe dans la candidature** | « Votre candidature contient une adresse, un numéro ou un lien. Les échanges avec la marque se font dans INFLUX, une fois la mise en relation ouverte. » *(corrigé le 2026-09-24, D46)* | Oui |
 | Motivation trop courte ou générique | « Votre motivation ne permet pas à la marque de comprendre ce que vous proposez. » | Oui |
 | Formats proposés incohérents avec votre profil | « Les formats proposés ne correspondent pas à ceux de votre profil. » | Oui |
-| Tarif très éloigné de la rémunération annoncée | « Votre tarif s'écarte fortement de la rémunération annoncée par cette campagne. » | Oui |
+| Tarif très éloigné de la rémunération annoncée — *suspendu (D78)* | « Votre tarif s'écarte fortement de la rémunération annoncée par cette campagne. » | Oui |
 | Profil incomplet ou chiffres périmés | « Vos chiffres datent de plus de 90 jours : mettez-les à jour avant de candidater. » | Oui |
 | Audience incompatible avec le ciblage de la campagne | « Votre audience ne correspond pas au ciblage de cette campagne. » | Non |
 | Mise en relation déjà en cours avec cette marque sur cette campagne | « Une mise en relation est déjà en cours sur cette campagne. » | Non |
@@ -769,7 +778,7 @@ Lot 1 : émission dans la même transaction que le fait décrit, charge utile r�
 identifiants, **consentement relu à la consommation**.
 
 **RG110** — **Ne partent jamais** vers Brevo ni Apollo : le texte de la candidature, le nom de la
-marque, le titre de la campagne, le tarif proposé, le net estimé, le motif de refus, l'identité de
+marque, le titre de la campagne, le tarif proposé et le net estimé (non saisis au pilote, D78), le motif de refus, l'identité de
 l'autre partie. Au plus, sous consentement marketing, un **indicateur d'activité non identifiant** :
 « a candidaté au moins une fois » et la date de la dernière candidature (voir **Q7**).
 
@@ -787,6 +796,7 @@ refusé par le serveur pour cause de plafond ou de campagne fermée.
 | `campaignFeed.empty.filtered` | Aucune campagne ne correspond à vos {count, plural, one {# filtre} other {# filtres}}. Retirez un filtre pour voir plus de campagnes. | No campaign matches your {count, plural, one {# filter} other {# filters}}. Remove a filter to see more campaigns. |
 | `campaignFeed.prefilled` | Nous avons pré-rempli vos thématiques et vos réseaux. Vous pouvez les retirer. | We pre-filled your topics and networks. You can remove them. |
 | `campaignFeed.otherCurrency` | Ces campagnes sont libellées dans une autre devise. INFLUX ne convertit pas les montants. | These campaigns use another currency. INFLUX does not convert amounts. |
+| `campaignFeed.pay.negotiate` | À négocier avec votre commercial. | To be negotiated with your account manager. |
 | `campaignFeed.pay.notice` | Rémunération prévue par créateur, coût total pour la marque — elle ne vaut pas engagement, le montant se discute dans la conversation. | Expected pay per creator, total cost to the brand — not a commitment; the amount is discussed in the conversation. |
 | `campaignFeed.closed` | Cette campagne n'est plus ouverte. | This campaign is no longer open. |
 | `campaignFeed.verifiedOnly` | Réservée aux profils dont l'audience est vérifiée. | Reserved for creators with verified audience. |
@@ -805,6 +815,10 @@ refusé par le serveur pour cause de plafond ou de campagne fermée.
 | `application.status.closed` | Cette candidature est clôturée : {reason} | This application is closed: {reason} |
 | `application.errors.contactInText` | Votre texte contient ce qui ressemble à une coordonnée. Retirez-la : les échanges avec la marque se font dans INFLUX. | Your text contains what looks like contact details. Please remove them: conversations with the brand take place in INFLUX. |
 
+*Au pilote (D78) : `campaignFeed.otherCurrency`, `campaignFeed.pay.notice`, `application.rate.hint`,
+`application.rate.net` (déjà D48) et `application.rate.aboveRange` sont suspendues ; `campaignFeed.pay.negotiate` les
+remplace sur la carte et la fiche.*
+
 **RG114** — Accessibilité : chaque champ porte une étiquette visible ; un champ en erreur pointe vers
 son message ; le focus va au premier champ invalide ; les contrastes respectent WCAG AA ; **le vert de
 marque n'est jamais le seul porteur d'un état** (les huit états de RG71 portent chacun un libellé
@@ -816,7 +830,7 @@ majoritairement sur mobile (`CLAUDE.md` §4). Une candidature doit pouvoir s'éc
 pouce, brouillon compris.
 
 **RG116** — Aucun écran de ce périmètre n'affiche de **montant de contrat**, de **facture**, de **taux
-modifiable** ni d'encaissement (**A1**). Les seuls montants sont ceux de RG9.
+modifiable** ni d'encaissement (**A1**). Les seuls montants sont ceux de RG9. *Au pilote (D78), aucun n'est affiché au créateur.*
 
 ---
 
@@ -830,19 +844,19 @@ modifiable** ni d'encaissement (**A1**). Les seuls montants sont ceux de RG9.
 |---|---|
 | Le profil du créateur est en `brouillon` | Le fil est consultable ; la candidature est refusée côté serveur avec le message nommant la publication du profil (RG23, RG46) |
 | Le créateur n'a aucun couple (réseau, format) commun avec la campagne | La candidature est bloquée avec un message nommant les réseaux et formats attendus (RG46-3) |
-| La campagne n'annonce aucune rémunération | Elle **n'apparaît pas dans le fil** (RG18) ; l'écart est signalé au document `09` |
+| La campagne n'annonce aucune rémunération | Elle **n'apparaît pas dans le fil** (RG18) ; l'écart est signalé au document `09`. *Au pilote : ni tranche de budget déclarée ni nature « contrepartie » (D78)* |
 | La campagne n'a pas de date limite de candidature | Elle apparaît ; dans le tri par échéance elle passe **après** celles qui en ont une (RG33) |
 | La marque n'a pas de logo | La carte affiche une pastille neutre avec l'initiale, jamais un emplacement vide (`06` cas limites) |
 | Les chiffres du créateur datent de plus de 90 jours | La candidature reste possible ; le commercial voit la mention « chiffres à rafraîchir » et dispose du motif de refus correspondant (RG92) |
-| Le créateur n'a pas de devise déclarée et la campagne non plus | La devise est demandée à la saisie du tarif ; sans devise, l'envoi est refusé (RG54) |
+| Le créateur n'a pas de devise déclarée et la campagne non plus | La devise est demandée à la saisie du tarif ; sans devise, l'envoi est refusé (RG54). *Suspendu (D78)* |
 
 **2 — Valeur nulle, négative ou aberrante**
 
 | Situation | Comportement attendu |
 |---|---|
-| Tarif proposé à 0 ou négatif | Refus avec message dédié. La gratuité se déclare par la case « contrepartie » (RG47) |
-| Tarif proposé de 10 fois la fourchette annoncée | **Accepté**, message factuel de RG56, transmis tel quel au commercial, motif de refus disponible |
-| Tarif saisi qui est en réalité le net souhaité | **Non détectable par le système.** La consigne est portée par le libellé (RG55) et le net estimé affiché juste en dessous rend l'erreur visible immédiatement |
+| Tarif proposé à 0 ou négatif | Refus avec message dédié. La gratuité se déclare par la case « contrepartie » (RG47). *Suspendu (D78)* |
+| Tarif proposé de 10 fois la fourchette annoncée | **Accepté**, message factuel de RG56, transmis tel quel au commercial, motif de refus disponible. *Suspendu (D78)* |
+| Tarif saisi qui est en réalité le net souhaité | **Non détectable par le système.** La consigne est portée par le libellé (RG55) et le net estimé affiché juste en dessous rend l'erreur visible immédiatement. *Suspendu (D78)* |
 | Motivation de 30 caractères, ou de 5 000 | Refus avec message dédié, côté navigateur **et** côté serveur (RG8, RG47) |
 | Motivation composée d'espaces | Refus : valeur non vide hors espaces |
 | Plafond de campagne saisi à 0 par la marque | La campagne n'accepte aucune candidature : elle s'affiche « candidatures closes » dès sa publication. Écart à instruire au document `09` (borne minimale) |
@@ -869,7 +883,7 @@ modifiable** ni d'encaissement (**A1**). Les seuls montants sont ceux de RG9.
 | Le créateur retire sa candidature pendant qu'un commercial la valide | Le retrait prime s'il est enregistré avant la décision ; sinon la décision prime et le créateur voit l'état 4. Les deux événements sont journalisés |
 | La marque accepte au moment où le créateur retire | La transition atomique de **C(21)** tranche : si la révélation est posée, elle est définitive (`07` RG19) ; le retrait devient une clôture de conversation (Lot 4) |
 | Le plafond de campagne est atteint pendant la rédaction d'un brouillon | À l'envoi, refus avec le message « candidatures closes » ; **le brouillon est conservé** et consultable |
-| Le créateur modifie ses tarifs de profil pendant l'examen | Sans effet sur la candidature : le tarif proposé est propre à la candidature (RG49) |
+| Le créateur modifie ses tarifs de profil pendant l'examen | Sans effet sur la candidature : le tarif proposé est propre à la candidature (RG49). *Sans objet au pilote : aucun tarif de profil ni de candidature (D78)* |
 | Une prise en charge est abandonnée sans décision | Elle expire au bout de 30 minutes et l'entrée retourne dans la file (RG91) |
 
 **5 — Droit insuffisant**
@@ -921,11 +935,11 @@ modifiable** ni d'encaissement (**A1**). Les seuls montants sont ceux de RG9.
 
 | # | Contrôle | Réponse pour ce document |
 |---|---|---|
-| 1 | **Montants** — montant du contrat, commission INFLUX, net créateur | **Trois montants nommés et distincts** (RG9) : rémunération par créateur annoncée par la campagne, tarif proposé par le créateur, net créateur estimé. Les deux premiers ont la **même assiette : le coût total pour l'annonceur, commission incluse** (RG10). Le net estimé (65 % par défaut, commission 35 % dont 20 % marque et 15 % créateur) est **lu dans le référentiel, jamais calculé dans le code** (RG12, RG57) et **jamais affiché à une marque** (RG59). Devise obligatoire partout, aucune conversion (**D27**), mention « ne vaut pas engagement » (RG19, RG58). Budget total de campagne **jamais servi au créateur** (RG11). Aucun contrat, aucune facture (**A1**) |
+| 1 | **Montants** — montant du contrat, commission INFLUX, net créateur | **Trois montants nommés et distincts** (RG9) : rémunération par créateur annoncée par la campagne, tarif proposé par le créateur, net créateur estimé. Les deux premiers ont la **même assiette : le coût total pour l'annonceur, commission incluse** (RG10). Le net estimé (65 % par défaut, commission 35 % dont 20 % marque et 15 % créateur) est **lu dans le référentiel, jamais calculé dans le code** (RG12, RG57) et **jamais affiché à une marque** (RG59). Devise obligatoire partout, aucune conversion (**D27**), mention « ne vaut pas engagement » (RG19, RG58). Budget total de campagne **jamais servi au créateur** (RG11). Aucun contrat, aucune facture (**A1**). **Au pilote (D78) : ni fourchette, ni tarif proposé, ni net côté créateur.** |
 | 2 | **Traçabilité / contournement** | **C'est le point le plus sensible du document.** La candidature est **le premier texte libre qu'un créateur adresse à une marque** : elle ne l'atteint **jamais** sans lecture humaine (**A9**, RG2, RG3). Pas de pièce jointe, pas de lien, pas de coordonnée (RG50) ; détection qui **signale sans masquer** et sans copier le texte (RG51, **C(26)**) ; coordonnées de la marque masquées jusqu'à la révélation (**D40**, RG37) ; fil paginé, débité, non exportable (RG21) ; aucune notification n'invite à sortir de la plateforme (RG105). **Risque résiduel assumé et signalé :** un créateur peut écrire un numéro en toutes lettres ou déguisé, et un commercial pressé peut le laisser passer. La parade est le motif de refus dédié, l'alerte de détection dans la file, et la mesure du nombre de candidatures refusées pour ce motif (§Indicateurs) |
 | 3 | **Leads** — ce qui part vers Brevo et Apollo, avec quel consentement | `lead.updated` sur le pipeline du Lot 1, **consentement relu à la consommation** (RG109). **Rien du contenu ne part** : ni texte, ni marque, ni campagne, ni montant, ni motif de refus (RG110). Au plus un indicateur d'activité non identifiant, soumis à **Q7** |
 | 4 | **Backoffice** — contrepartie interne | Détaillée en §I : file unique aux deux origines avec filtre, entrée décidable sans ouvrir d'autre écran (RG90), verrou et expiration (RG91), **motifs typés propres à la candidature** avec attribut « corrigible » (RG92), attribution au décideur (RG95), interdiction de réécrire un texte (RG97), tableau de bord et délais mesurés (RG98), plafonds modifiables sans déploiement (RG69) |
-| 5 | **Matching hybride** | **Aucun algorithme (D11).** La voie algorithmique se limite à un **filtrage déclaratif** sur des listes fermées et un **tri chronologique ou par échéance** (RG5, RG33, RG34). La voie humaine est entièrement spécifiée : lecture, validation, refus motivé, attribution, relance, clôture — **toutes journalisées nominativement** (RG99). Les données du futur moteur sont collectées dès maintenant : filtres utilisés et nombre de résultats (RG32), consultations de fiches (RG22), motifs de refus typés, écart entre tarif proposé et fourchette annoncée |
+| 5 | **Matching hybride** | **Aucun algorithme (D11).** La voie algorithmique se limite à un **filtrage déclaratif** sur des listes fermées et un **tri chronologique ou par échéance** (RG5, RG33, RG34). La voie humaine est entièrement spécifiée : lecture, validation, refus motivé, attribution, relance, clôture — **toutes journalisées nominativement** (RG99). Les données du futur moteur sont collectées dès maintenant : filtres utilisés et nombre de résultats (RG32), consultations de fiches (RG22), motifs de refus typés, écart entre tarif proposé et fourchette annoncée (*renvoyé en V2, D78*) |
 | 6 | **Deux populations** | Ce document ne traite **que** le créateur qui cherche et qui postule. La marque n'y apparaît qu'en destinataire d'une candidature validée (RG3, RG102). Fil, filtres, formulaire, motifs de refus et notifications sont **distincts** de ceux du document `10` (recherche côté marque) |
 | 7 | **Données personnelles** — avis de `expert-conformite-rgpd` | **Obligatoire, avec veto.** Points soumis : texte libre de candidature et détection sans copie (**Q7** et RG51), conservation des candidatures refusées et des brouillons (**Q12**), journal des consultations de campagnes et sa durée (RG22), contenu de l'e-mail de confirmation de mise en relation, acceptation de la marque avant révélation (**Q1**) |
 
@@ -953,10 +967,10 @@ inspecte sa **charge utile**, *alors* le budget total, les notes internes et le 
 **CA5** — *Étant donné* une campagne, *quand* un créateur la consulte, *alors* aucune coordonnée de
 l'interlocuteur de la marque n'est servie, et la **fonction** de l'interlocuteur l'est.
 
-**CA6** — *Étant donné* une fourchette de rémunération, *quand* elle s'affiche, *alors* elle porte sa
+**CA6** — *Suspendu (D78).* *Étant donné* une fourchette de rémunération, *quand* elle s'affiche, *alors* elle porte sa
 devise et la mention « coût total pour la marque — ne vaut pas engagement ».
 
-**CA7** — *Étant donné* une campagne libellée en dollars et un créateur travaillant en euros, *quand*
+**CA7** — *Suspendu (D78) : aucun montant n'est affiché au créateur.* *Étant donné* une campagne libellée en dollars et un créateur travaillant en euros, *quand*
 la carte s'affiche, *alors* le montant reste en dollars, **sans conversion et sans taux**.
 
 **CA8** — *Étant donné* un créateur ayant déclaré un secteur refusé, *quand* une campagne de ce
@@ -973,10 +987,10 @@ elle apparaît en grisé sans bouton ; *quand* 8 jours se sont écoulés, *alors
 **CA11** — *Étant donné* des filtres pré-remplis depuis le profil, *quand* le créateur ouvre le fil,
 *alors* les filtres actifs sont visibles, nommés, et retirables en un clic.
 
-**CA12** — *Étant donné* un filtre de rémunération minimale, *quand* le créateur ne choisit pas de
+**CA12** — *Suspendu avec C5 (D78).* *Étant donné* un filtre de rémunération minimale, *quand* le créateur ne choisit pas de
 devise, *alors* le filtre n'est pas applicable et le message le dit.
 
-**CA13** — *Étant donné* un filtre de rémunération minimale en euros, *quand* des campagnes en dollars
+**CA13** — *Suspendu avec C5 (D78).* *Étant donné* un filtre de rémunération minimale en euros, *quand* des campagnes en dollars
 existent, *alors* elles sont regroupées à part avec le message de RG28, **jamais converties, jamais
 supprimées silencieusement**.
 
@@ -998,7 +1012,7 @@ autorisé, *quand* la requête arrive, *alors* elle est refusée côté serveur 
 ### Candidature — contenu et envoi
 
 **CA19** — *Étant donné* le formulaire de candidature, *quand* on examine ses champs, *alors* aucun ne
-redemande les réseaux, l'audience, les langues, le portfolio ni le tarif indicatif du profil.
+redemande les réseaux, l'audience, les langues, le portfolio ni le tarif indicatif du profil (aucun au pilote, D78).
 
 **CA20** — *Étant donné* une campagne demandant « vidéo TikTok » et un créateur qui ne déclare
 qu'Instagram, *quand* il ouvre la candidature, *alors* elle est bloquée avec un message nommant le
@@ -1017,17 +1031,20 @@ type de motif et sa position sont stockés — jamais le texte détecté**.
 **CA24** — *Étant donné* le formulaire, *quand* on cherche un champ de pièce jointe ou de lien,
 *alors* **il n'en existe aucun**.
 
-**CA25** — *Étant donné* un tarif proposé de 0, *quand* le créateur envoie, *alors* la soumission est
+**CA25** — *Suspendu (D78) ; à la place :* *étant donné* le formulaire de candidature, *quand* on examine ses champs
+et la charge utile envoyée et reçue, *alors* **aucun champ de montant n'existe**, et la fiche de campagne servie au
+créateur ne contient ni fourchette, ni tranche de budget, ni devise de budget. *Énoncé d'origine :* *Étant donné* un
+tarif proposé de 0, *quand* le créateur envoie, *alors* la soumission est
 refusée avec le message dédié.
 
-**CA26** — *Étant donné* un tarif proposé de 1 500 €, *quand* il est saisi, *alors* le net créateur
+**CA26** — *Suspendu (D48, D78).* *Étant donné* un tarif proposé de 1 500 €, *quand* il est saisi, *alors* le net créateur
 estimé s'affiche sous forme de **tranche lue dans le référentiel**, avec la devise et la mention de
 RG58, **et aucune multiplication par un taux n'est effectuée dans le code**.
 
-**CA27** — *Étant donné* une campagne annonçant 500 – 1 000 €, *quand* le créateur propose 4 000 €,
+**CA27** — *Suspendu (D78).* *Étant donné* une campagne annonçant 500 – 1 000 €, *quand* le créateur propose 4 000 €,
 *alors* la saisie est acceptée, le message factuel de RG56 s'affiche, et la candidature part en file.
 
-**CA28** — *Étant donné* l'écran récapitulatif, *quand* le créateur le lit avant l'envoi, *alors* il
+**CA28** — *Au pilote (D78, D48) : sans tarif ni net estimé.* *Étant donné* l'écran récapitulatif, *quand* le créateur le lit avant l'envoi, *alors* il
 voit la campagne, ses formats, son tarif, son net estimé et le rappel que la marque ne recevra rien
 avant validation par INFLUX.
 
@@ -1112,7 +1129,8 @@ communiqué.
 **aucun chemin ne le lui permet**.
 
 **CA51** — *Étant donné* une entrée de file, *quand* le commercial l'ouvre, *alors* il voit la
-campagne, la motivation intégrale, les formats, le tarif et sa devise, le profil identifié du créateur
+campagne, la motivation intégrale, les formats, le tarif et sa devise (*au pilote : la tranche de budget déclarée par la
+marque, aucun tarif, D78*), le profil identifié du créateur
 et les alertes de détection **sans ouvrir un autre écran**.
 
 ### Restriction « audience vérifiée »
@@ -1175,7 +1193,7 @@ saisie est conservée** et l'envoi peut être retenté.
 |---|---|---|
 | Membre créateur | Fil des campagnes — liste, cartes, filtres, tri, pagination | Mobile d'abord ; filtres pré-remplis visibles et retirables (RG31) |
 | Membre créateur | Fiche complète d'une campagne | Bloc marque **sans coordonnées** (**D40**) ; mention « réservée aux profils vérifiés » |
-| Membre créateur | Formulaire de candidature | Rappel en lecture seule du profil (RG48) ; tarif + net estimé côte à côte (RG57) |
+| Membre créateur | Formulaire de candidature | Rappel en lecture seule du profil (RG48) ; tarif + net estimé côte à côte (RG57, *suspendus au pilote, D78*) |
 | Membre créateur | Écran récapitulatif avant envoi | Dit ce que la marque verra, et quand (RG53) |
 | Membre créateur | « Mes candidatures » — les huit états, motifs, compteur de plafond | Les libellés de RG71 sont imposés |
 | Membre créateur | Message de blocage par condition non remplie | Un message par condition de RG46 |
@@ -1238,7 +1256,7 @@ vérifiés » vivent **en table**, modifiables sans redéploiement, chaque modif
 | Taux d'acceptation par la marque après validation | Mesuré ; qualité du filtrage commercial |
 | Plafonds atteints (P1, P2, P3) par semaine | Mesuré ; dit s'il faut ouvrir ou resserrer |
 | Tentatives de candidature bloquées par « audience vérifiée » | Mesuré ; dit si la restriction motive ou stérilise (**D38**) |
-| Écart entre tarif proposé et fourchette annoncée | Collecté ; **donnée d'apprentissage pour D11** |
+| Écart entre tarif proposé et fourchette annoncée | Collecté ; **donnée d'apprentissage pour D11**. *Renvoyé en V2 (D78) : aucun tarif proposé au pilote* |
 | Brouillons jamais envoyés | Mesuré ; un taux élevé signale un formulaire trop lourd |
 
 ---
@@ -1269,13 +1287,13 @@ vérifiés » vivent **en table**, modifiables sans redéploiement, chaque modif
 | **Q1** | **La marque doit-elle accepter à l'écran avant la révélation, pour une candidature ?** La contrainte de base `introductions_reveal_requires_both_acceptances` l'exige sans condition ; **C(21)** de `03` ne l'exige que « quand l'origine l'exige » | **Oui, acceptation de la marque obligatoire** (RG74, RG75) : c'est le comportement le plus protecteur pour le créateur et le seul compatible avec la contrainte de base. Formulation de `03` à aligner | `chef-de-projet` + `expert-database` + `expert-conformite-rgpd` | **Avant le Lot 4** |
 | **Q2** | **Une marque peut-elle demander l'anonymat de son identité pendant la phase de sélection ?** Ce n'est **pas** la symétrie de **D40**, qui ne masque que les coordonnées | **Non au MVP** : identité de marque toujours affichée (RG17). Un brief anonyme réduit fortement le taux de candidature | **Fondateur** + `chef-de-projet` (rattaché à **D40**) | Lot 3 |
 | **Q3** | **Valeurs de départ des plafonds** : 10 candidatures actives, 5 par jour, 30 par campagne, 2 par campagne au total | Valeurs ci-contre, **en table** (`04` Q4) | `chef-de-projet` + Fondateur | Lot 3 |
-| **Q4** | **Le tarif proposé exact est-il transmis à la marque ?** `07` RG103 interdit de révéler le tarif exact **du profil**, même après révélation | **Oui pour le tarif de candidature** (RG60) : c'est une offre délibérée pour cette campagne, et une candidature sans prix est inexploitable. Le tarif **du profil** reste en tranche | Fondateur + `expert-paiement-facturation` + `product-owner` | **Avant le Lot 4** |
-| **Q5** | **Net créateur estimé sur un montant exact** : la tranche du référentiel qui contient le montant saisi suffit-elle, ou faut-il une estimation au montant près (donc une multiplication) ? | **Tranche du référentiel** (RG57) : préserve l'interdiction structurelle `03` C(32) et le contrôle T16 | `expert-paiement-facturation` + `architecte` | Lot 3 |
+| **Q4** | *Suspendue (D78) : aucun tarif proposé au pilote ; à rouvrir avec la levée de D78.* **Le tarif proposé exact est-il transmis à la marque ?** `07` RG103 interdit de révéler le tarif exact **du profil**, même après révélation | **Oui pour le tarif de candidature** (RG60) : c'est une offre délibérée pour cette campagne, et une candidature sans prix est inexploitable. Le tarif **du profil** reste en tranche | Fondateur + `expert-paiement-facturation` + `product-owner` | **Avant le Lot 4** |
+| **Q5** | *Sans objet au pilote (D48, D78).* **Net créateur estimé sur un montant exact** : la tranche du référentiel qui contient le montant saisi suffit-elle, ou faut-il une estimation au montant près (donc une multiplication) ? | **Tranche du référentiel** (RG57) : préserve l'interdiction structurelle `03` C(32) et le contrôle T16 | `expert-paiement-facturation` + `architecte` | Lot 3 |
 | **Q6** | **Faut-il afficher au créateur le nombre de candidatures déjà reçues par une campagne ?** | **Non** (RG25) : effet de meute et information commerciale de la marque | `chef-de-projet` + `expert-ux` | Lot 3 |
 | **Q7** | **Que part-il vers Brevo à la suite d'une candidature ?** | Au plus un **indicateur d'activité non identifiant** (« a candidaté au moins une fois », date), jamais de contenu (RG110) | `expert-conformite-rgpd` (**veto**) + `expert-marketing` | Lot 3 |
 | **Q8** | **Délai laissé à la marque pour accepter une candidature validée**, avant clôture sans suite | **7 jours calendaires**, relance du commercial à J+3, **paramètre en table** (RG78) | Fondateur + `chef-de-projet` (rattaché à **D39**) | Lot 4 |
 | **Q9** | **Que faire d'une candidature qui vise un couple (marque, créateur, campagne) déjà couvert par une demande de contact en file ?** L'index unique partiel l'interdit en base | **Rattachement du contenu à l'entrée existante** comme élément d'instruction, état normal côté créateur pour préserver **C(18)**. Emplacement de stockage à créer | `expert-database` + `product-owner` | **Avant le Lot 4** |
-| **Q10** | **Filtre de rémunération minimale en multi-devises**, sans conversion (**D27**) | Regroupement à part, aucune conversion, message explicite (RG28) | `expert-paiement-facturation` + `chef-de-projet` | Lot 3 |
+| **Q10** | *Suspendue avec C5 (D78).* **Filtre de rémunération minimale en multi-devises**, sans conversion (**D27**) | Regroupement à part, aucune conversion, message explicite (RG28) | `expert-paiement-facturation` + `chef-de-projet` | Lot 3 |
 | **Q11** | **Alertes ou résumés de nouvelles campagnes** envoyés aux créateurs | **Hors périmètre du MVP** (RG108) | `expert-marketing` + `chef-de-projet` | Après le MVP |
 | **Q12** | **Durée de conservation** des brouillons de candidature, des candidatures refusées et du journal de consultation des campagnes | Conservation le temps de l'usage produit, purge à échéance écrite ; le registre d'audit n'est jamais purgé (`01` M4) | `expert-conformite-rgpd` (**veto**) | Lot 3 |
 | **Q13** | **La « nature de la rémunération » est-elle un champ de campagne ?** Elle n'existe pas au modèle de données | **Oui, obligatoire pour publier** (RG15, RG18) — **à réconcilier avec le document `09`** | `chef-de-projet` (arbitrage entre `09` et `11`) | Lot 3 |

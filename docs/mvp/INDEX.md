@@ -296,80 +296,80 @@
 | 1248 | 23 | Hors périmètre | RG9–RG80 |
 | 1271 | 16 | Questions ouvertes | RG10–RG100 |
 
-## 09-criteres-campagne.md (~31k tokens)
+## 09-criteres-campagne.md (~34k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
-| 46 | 24 | Besoin |  |
-| 70 | 17 | Acteurs |  |
-| 87 | 56 | User stories |  |
-| 143 | 694 | Règles de gestion | RG1–RG110 |
-| 145 | 88 | ↳ A — Portée, états, publication | RG1–RG90 |
-| 233 | 61 | ↳ B — Bloc 1 : identification | RG16–RG90 |
-| 294 | 53 | ↳ C — Bloc 2 : produit, dotation et divulgation | RG15–RG86 |
-| 347 | 66 | ↳ D — Bloc 3 : livrables, droits d'usage et exclusivité | RG18–RG78 |
-| 413 | 50 | ↳ E — Bloc 4 : audience visée | RG23–RG60 |
-| 463 | 92 | ↳ F — Bloc 5 : budget | RG24–RG109 |
-| 555 | 38 | ↳ G — Bloc 6 : calendrier | RG5–RG75 |
-| 593 | 45 | ↳ H — Bloc 7 : candidature | RG9–RG82 |
-| 638 | 98 | ↳ I — Bloc 8 : interne, secteurs sensibles et backoffice | RG6–RG97 |
-| 736 | 39 | ↳ J — Ce qu'un créateur voit d'une campagne | RG7–RG102 |
-| 775 | 62 | ↳ K — Leads, messages, états d'écran et accessibilité | RG103–RG110 |
-| 837 | 115 | Cas limites | RG4–RG108 |
-| 952 | 273 | Critères d'acceptation | RG104–RG109 |
-| 1225 | 101 | Impacts | RG6–RG105 |
-| 1326 | 24 | Hors périmètre | RG22–RG82 |
-| 1350 | 20 | Questions ouvertes | RG6–RG84 |
+| 48 | 24 | Besoin |  |
+| 72 | 17 | Acteurs |  |
+| 89 | 59 | User stories |  |
+| 148 | 746 | Règles de gestion | RG1–RG110 |
+| 150 | 93 | ↳ A — Portée, états, publication | RG1–RG90 |
+| 243 | 61 | ↳ B — Bloc 1 : identification | RG16–RG90 |
+| 304 | 58 | ↳ C — Bloc 2 : produit, dotation et divulgation | RG15–RG86 |
+| 362 | 66 | ↳ D — Bloc 3 : livrables, droits d'usage et exclusivité | RG18–RG78 |
+| 428 | 50 | ↳ E — Bloc 4 : audience visée | RG23–RG60 |
+| 478 | 121 | ↳ F — Bloc 5 : budget | RG24–RG109 |
+| 599 | 38 | ↳ G — Bloc 6 : calendrier | RG5–RG75 |
+| 637 | 46 | ↳ H — Bloc 7 : candidature | RG9–RG82 |
+| 683 | 101 | ↳ I — Bloc 8 : interne, secteurs sensibles et backoffice | RG6–RG97 |
+| 784 | 41 | ↳ J — Ce qu'un créateur voit d'une campagne | RG7–RG102 |
+| 825 | 69 | ↳ K — Leads, messages, états d'écran et accessibilité | RG103–RG110 |
+| 894 | 115 | Cas limites | RG4–RG108 |
+| 1009 | 289 | Critères d'acceptation | RG104–RG109 |
+| 1298 | 112 | Impacts | RG6–RG105 |
+| 1410 | 24 | Hors périmètre | RG22–RG82 |
+| 1434 | 21 | Questions ouvertes | RG6–RG84 |
 
-## 10-recherche-createurs-anonymisee.md (~30k tokens)
-
-| Ligne | Lignes | Section | RG citées |
-|---|---|---|---|
-| 47 | 23 | Besoin |  |
-| 70 | 17 | Acteurs | RG105 |
-| 87 | 54 | User stories |  |
-| 141 | 694 | Règles de gestion | RG1–RG117 |
-| 143 | 49 | ↳ A — Périmètre, ouverture de la recherche et principes | RG1–RG105 |
-| 192 | 142 | ↳ B — Les facettes | RG6–RG117 |
-| 334 | 52 | ↳ C — Exclusions automatiques | RG3–RG84 |
-| 386 | 93 | ↳ D — Tri par défaut, explication et cas froid | RG14–RG73 |
-| 479 | 93 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
-| 572 | 36 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG57–RG78 |
-| 608 | 61 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
-| 669 | 46 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
-| 715 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
-| 751 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
-| 802 | 33 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
-| 835 | 115 | Cas limites | RG1–RG92 |
-| 950 | 254 | Critères d'acceptation | RG12–RG117 |
-| 1204 | 62 | Impacts | RG2–RG89 |
-| 1266 | 19 | Hors périmètre | RG6–RG105 |
-| 1285 | 18 | Questions ouvertes | RG1–RG86 |
-
-## 11-recherche-campagnes-et-candidature.md (~29k tokens)
+## 10-recherche-createurs-anonymisee.md (~31k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
-| 50 | 24 | Besoin |  |
-| 74 | 18 | Acteurs |  |
-| 92 | 55 | User stories |  |
-| 147 | 676 | Règles de gestion | RG1–RG116 |
-| 149 | 58 | ↳ A — Portée, vocabulaire et principes | RG1–RG72 |
-| 207 | 87 | ↳ B — Le fil des campagnes ouvertes | RG7–RG80 |
-| 294 | 55 | ↳ C — Filtres, tri et pagination | RG15–RG36 |
-| 349 | 47 | ↳ D — Ce qu'un créateur ne voit jamais | RG18–RG104 |
-| 396 | 100 | ↳ E — Le contenu d'une candidature | RG3–RG103 |
-| 496 | 49 | ↳ F — Plafonds de candidature | RG26–RG92 |
-| 545 | 71 | ↳ G — Les états d'une candidature | RG11–RG82 |
-| 616 | 25 | ↳ H — La restriction « réservée aux profils dont l'audience est vérifiée » | RG11–RG87 |
-| 641 | 79 | ↳ I — La file de validation, et ce qui distingue une candidature d'une demande de contact | RG75–RG99 |
-| 720 | 45 | ↳ J — Notifications | RG40–RG108 |
-| 765 | 58 | ↳ K — Leads, messages, états d'écran et accessibilité | RG9–RG116 |
-| 823 | 111 | Cas limites | RG2–RG110 |
-| 934 | 236 | Critères d'acceptation | RG15–RG113 |
-| 1170 | 76 | Impacts | RG15–RG98 |
-| 1246 | 19 | Hors périmètre | RG17 |
-| 1265 | 19 | Questions ouvertes | RG15–RG110 |
+| 56 | 23 | Besoin |  |
+| 79 | 17 | Acteurs | RG105 |
+| 96 | 54 | User stories |  |
+| 150 | 704 | Règles de gestion | RG1–RG117 |
+| 152 | 49 | ↳ A — Périmètre, ouverture de la recherche et principes | RG1–RG105 |
+| 201 | 146 | ↳ B — Les facettes | RG6–RG117 |
+| 347 | 52 | ↳ C — Exclusions automatiques | RG3–RG84 |
+| 399 | 96 | ↳ D — Tri par défaut, explication et cas froid | RG14–RG73 |
+| 495 | 93 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
+| 588 | 36 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG57–RG78 |
+| 624 | 61 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
+| 685 | 46 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
+| 731 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
+| 767 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
+| 818 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
+| 854 | 115 | Cas limites | RG1–RG92 |
+| 969 | 259 | Critères d'acceptation | RG12–RG117 |
+| 1228 | 62 | Impacts | RG2–RG89 |
+| 1290 | 19 | Hors périmètre | RG6–RG105 |
+| 1309 | 18 | Questions ouvertes | RG1–RG86 |
+
+## 11-recherche-campagnes-et-candidature.md (~30k tokens)
+
+| Ligne | Lignes | Section | RG citées |
+|---|---|---|---|
+| 54 | 24 | Besoin |  |
+| 78 | 18 | Acteurs |  |
+| 96 | 56 | User stories |  |
+| 152 | 685 | Règles de gestion | RG1–RG116 |
+| 154 | 59 | ↳ A — Portée, vocabulaire et principes | RG1–RG72 |
+| 213 | 89 | ↳ B — Le fil des campagnes ouvertes | RG7–RG80 |
+| 302 | 55 | ↳ C — Filtres, tri et pagination | RG15–RG36 |
+| 357 | 47 | ↳ D — Ce qu'un créateur ne voit jamais | RG18–RG104 |
+| 404 | 100 | ↳ E — Le contenu d'une candidature | RG3–RG103 |
+| 504 | 49 | ↳ F — Plafonds de candidature | RG26–RG92 |
+| 553 | 71 | ↳ G — Les états d'une candidature | RG11–RG82 |
+| 624 | 25 | ↳ H — La restriction « réservée aux profils dont l'audience est vérifiée » | RG11–RG87 |
+| 649 | 80 | ↳ I — La file de validation, et ce qui distingue une candidature d'une demande de contact | RG75–RG99 |
+| 729 | 45 | ↳ J — Notifications | RG40–RG108 |
+| 774 | 63 | ↳ K — Leads, messages, états d'écran et accessibilité | RG9–RG116 |
+| 837 | 111 | Cas limites | RG2–RG110 |
+| 948 | 240 | Critères d'acceptation | RG15–RG113 |
+| 1188 | 76 | Impacts | RG15–RG98 |
+| 1264 | 19 | Hors périmètre | RG17 |
+| 1283 | 19 | Questions ouvertes | RG15–RG110 |
 
 ## 12-messagerie-a-trois.md (~32k tokens)
 

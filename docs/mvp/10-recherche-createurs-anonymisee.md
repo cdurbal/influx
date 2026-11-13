@@ -1,5 +1,13 @@
 # Lot 3 — Recherche de créateurs anonymisée, tri explicable et vue commerciale identifiée
 
+> **⚠️ Régime du pilote — D78 (arbitrage du fondateur du 2026-11-01, étendu au Lot 3 le 2026-11-13, option A).**
+> Aucun tarif n'est saisi par un créateur (`07` §G) ni affiché, filtré ou trié dans la recherche. **F12, RG18 et RG19
+> sont suspendues** ; le **tri « tarif indicatif croissant »** (RG43) et le critère **« fourchette tarifaire compatible
+> avec le budget »** (RG35 palier 2, RG41, RG73) sont **retirés du tri explicable** ; les explications ne citent **aucun
+> montant**. Toute autre mention d'un tarif ou d'une tranche tarifaire dans ce document est suspendue (D78) ; colonnes
+> et tables gardées en base (`04` §5.2) : seuls la saisie et l'affichage sont suspendus. La dernière phrase de RG19
+> (aucun net créateur dans un écran de recherche) reste en vigueur.
+
 > **Date :** 2026-09-19 · **Auteur :** agent `expert-matching` · **Statut :** spécification complète de
 > la recherche de créateurs (Lot 3), soumise à la validation de `product-owner`, avec **avis
 > obligatoire (veto) de `expert-conformite-rgpd`** sur §F (k-anonymat), §G (garde-fous et journal),
@@ -40,7 +48,8 @@
 > périmètre (arbitrage **A1**). Les seuls montants manipulés sont des **tranches de tarif indicatif**
 > exprimées en **coût total pour l'annonceur, commission de 35 % incluse** (document `07` RG65), et
 > des **tranches de budget indicatif** côté marque (document `06` RG31). **Aucun net créateur n'est
-> jamais affiché à une marque** (document `07` RG70).
+> jamais affiché à une marque** (document `07` RG70). **Au pilote (D78)**, aucune tranche de tarif n'est manipulée ni
+> comparée à un budget.
 
 ---
 
@@ -89,8 +98,8 @@ Quatre raisons d'être, dans cet ordre :
 ### Marque
 
 - **US1** — En tant que **marque**, je veux filtrer les créateurs sur ce qui décide vraiment d'une
-  collaboration (thématique, réseau, taille d'audience, pays de l'audience, langue, format, budget,
-  badge), afin d'obtenir une liste courte et crédible sans appeler personne.
+  collaboration (thématique, réseau, taille d'audience, pays de l'audience, langue, format, budget
+  (*suspendu au pilote, D78*), badge), afin d'obtenir une liste courte et crédible sans appeler personne.
 - **US2** — En tant que **marque**, je veux comprendre **pourquoi** chaque profil m'est proposé, afin
   de juger la liste au lieu de la subir.
 - **US3** — En tant que **marque**, je veux savoir **quand les chiffres ont été mis à jour** et **ce
@@ -211,8 +220,11 @@ ou fermer une facette **est un changement de version** au sens de la mesure (RG8
 | **F6** | Pays principal de l'audience **et sa part** | Liste fermée `reference.countries` + tranche (≥ 80 % · 50-80 % · < 50 %) | Pays principal d'audience et sa part, couche A | **La facette la plus utile** : une audience hors marché annule toute pertinence thématique |
 | **F8** | Langues de publication | Liste fermée `reference.languages`, multi-choix | Langues de publication, couche A | Sépare les marchés FR / EN / PT ; condition d'exécution du brief |
 | **F11** | Formats proposés | Liste fermée `reference.formats`, multi-choix | Formats proposés, couche A | Format non proposé = demande morte ; futur critère de format |
-| **F12** | Fourchette tarifaire **par format et par réseau** | Tranche `reference.price_bands` + **devise obligatoire** | Tarif indicatif par (réseau, format), couche A | Compatibilité économique : première cause d'échec en négociation |
+| **F12** | Fourchette tarifaire **par format et par réseau** — *suspendue (D78)* | Tranche `reference.price_bands` + **devise obligatoire** | Tarif indicatif par (réseau, format), couche A | Compatibilité économique : première cause d'échec en négociation |
 | **F17** | Badge | Multi-choix : « Compte vérifié » · « Audience vérifiée » | Badges par réseau, couche A | Confiance et qualité ; rend le badge désirable, donc alimente la vérification |
+
+*Au pilote (D78), le socle compte **7 facettes** ouvertes : F12 est suspendue, aucun tarif n'étant saisi (`07` §G).
+Sa réouverture suppose la levée de D78.*
 
 **RG13 — SECONDE VAGUE, ouverte quand le volume le permet (facette par facette, RG11).**
 
@@ -278,11 +290,11 @@ géographique ouverte côté créateur est **F20 (pays + mobilité)**.
   créateurs **macro sur TikTok**, jamais un créateur nano sur TikTok qui serait macro sur Instagram.
   Sans cette règle, le filtre le plus utilisé du produit ment.
 - **F11 et F12 s'appliquent à une même ligne (réseau, format).** Même raisonnement : un tarif de story
-  ne répond pas à une demande de vidéo.
+  ne répond pas à une demande de vidéo. *Suspendu avec F12 (D78).*
 - **F6** porte sur le pays principal **et** sa part simultanément : « France » + « ≥ 80 % » n'est pas
   « France » ou « ≥ 80 % ».
 
-**RG18** — La facette **F12 (tarif)** est **toujours accompagnée d'une devise**, pré-remplie avec
+**RG18** — *Suspendue (D78).* La facette **F12 (tarif)** est **toujours accompagnée d'une devise**, pré-remplie avec
 celle du profil marque (document `06` RG30). **Aucune conversion de devise n'est effectuée** (D27
 ouverte, document `07` RG67). Quand F12 est active, le filtre ne s'applique **qu'aux lignes de tarif
 libellées dans la devise choisie** ; l'écran l'énonce en toutes lettres et propose une case
@@ -291,7 +303,8 @@ créateurs apparaissent alors **sans être filtrés sur le montant**, avec la me
 autre devise » sur leur carte. Un rapprochement silencieux entre deux devises serait un mensonge
 chiffré.
 
-**RG19** — La facette **F12** porte sur le **coût total pour l'annonceur, commission de 35 %
+**RG19** — *Suspendue avec F12 (D78) ; sa dernière phrase (aucun net créateur) reste en vigueur.* La facette
+**F12** porte sur le **coût total pour l'annonceur, commission de 35 %
 incluse** (document `07` RG65). Le libellé du filtre l'énonce : **« budget par collaboration, coût
 total »**. Aucun écran de recherche n'affiche, ne calcule ni ne laisse deviner un **net créateur**
 (document `07` RG70).
@@ -313,7 +326,7 @@ qu'il ne faut pas rouvrir dans six mois.
 |---|---|
 | Recherche en texte libre, recherche par pseudo | Transforme l'annuaire en oracle : on teste un nom et on sait s'il est là (RG6) |
 | Ville, région, rayon kilométrique | Ré-identification quasi immédiate combinée à la thématique (RG15) |
-| Nombre d'abonnés exact, engagement exact, tarif exact | Violent la règle d'or des tranches (RG6) |
+| Nombre d'abonnés exact, engagement exact, tarif exact (au pilote, tout tarif : D78) | Violent la règle d'or des tranches (RG6) |
 | Marques déjà travaillées | Identifie le créateur en une recherche web ; utile au commercial seulement |
 | Âge, genre, origine, situation personnelle **du créateur** | Caractéristiques personnelles : interdites (RG24) |
 | Note, étoiles, avis, nombre de contrats signés | Pas d'avis au MVP ; vaut zéro pour tout le monde au lancement, stigmatise ensuite, et un classement par note est un score nu déguisé |
@@ -392,7 +405,7 @@ commercial doit pouvoir dire en une phrase pourquoi un profil est premier. Les p
 | # | Palier | Ce qui est comparé | Justification |
 |---|---|---|---|
 | **1** | **Critères satisfaits au-delà des filtres obligatoires** | Nombre de facettes secondaires satisfaites ; **thématique principale avant thématique secondaire** | Ce que la marque a demandé prime sur ce que la plateforme préfère |
-| **2** | **Adéquation à la campagne**, quand la recherche part d'une campagne | Formats, pays d'audience visés, fourchette tarifaire vs budget de la campagne | Le contexte connu vaut mieux qu'un critère générique |
+| **2** | **Adéquation à la campagne**, quand la recherche part d'une campagne | Formats, pays d'audience visés ; *fourchette tarifaire vs budget : retirée au pilote (D78)* | Le contexte connu vaut mieux qu'un critère générique |
 | **3** | **Badge** | Audience vérifiée > Compte vérifié > aucun badge | La vérification est ce qui rend un profil contactable sans risque |
 | **4** | **Fraîcheur des chiffres** | Chiffres de moins de 90 jours avant chiffres périmés | Un chiffre d'il y a un an fait perdre une négociation |
 | **5** | **Complétude du profil** | Par paliers de 25 % (0-24, 25-49, 50-74, 75-100) | Un profil complet obtient plus de réponses. **Jamais affiché comme une note** |
@@ -418,8 +431,11 @@ chiffre de complétude n'apparaît dans aucune réponse servie à une marque.
 
 **RG41 — L'explication affichée sur chaque carte.** Forme attendue :
 
-> **« Proposé car : thématique beauté correspondante · plus de 70 % d'audience en France · fourchette
-> tarifaire compatible avec votre budget indicatif · audience vérifiée le 12 mars 2026. »**
+> **« Proposé car : thématique beauté correspondante · plus de 70 % d'audience en France · propose le
+> format vidéo TikTok · audience vérifiée le 12 mars 2026. »**
+
+*Exemple révisé au pilote (D78) : le fragment « fourchette tarifaire compatible avec votre budget indicatif » est
+retiré ; aucune explication ne cite un montant.*
 
 Règles de rédaction, toutes vérifiables :
 
@@ -442,18 +458,18 @@ affichée si l'un de ces cas est vrai :
 | Chiffres de plus de 90 jours | « Chiffres mis à jour il y a plus de 90 jours. » |
 | Profil publié depuis moins de 30 jours | « Profil récent. » — **neutre**, jamais « aucun historique » |
 | Badge « Audience vérifiée » périmé | « Vérification d'audience à renouveler. » |
-| Tarif déclaré dans une autre devise que celle du filtre | « Tarif déclaré dans une autre devise. » |
+| Tarif déclaré dans une autre devise que celle du filtre — *suspendu (D78)* | « Tarif déclaré dans une autre devise. » |
 | Disponibilité déclarée « complet » | « Se déclare complet actuellement. » |
 
 L'honnêteté du tri est ce qui rend la suggestion crédible auprès d'un acheteur professionnel. Une
 liste sans réserve est lue comme une liste vendue.
 
-**RG43 — Tris alternatifs.** Quatre, et quatre seulement :
+**RG43 — Tris alternatifs.** Quatre, et quatre seulement (*trois au pilote : le tri par tarif est retiré, D78*) :
 
 | Tri | Ce qu'il fait | Pourquoi il existe |
 |---|---|---|
 | **Audience (par tranche)** | Tranche décroissante puis paliers 3 à 8 | Besoin courant, exprimé sans jamais révéler un nombre |
-| **Tarif indicatif croissant (par tranche)** | Tranche croissante, **dans la devise choisie** | Le budget est la première contrainte d'une PME |
+| **Tarif indicatif croissant (par tranche)** — *retiré (D78)* | Tranche croissante, **dans la devise choisie** | Le budget est la première contrainte d'une PME |
 | **Vérifiés d'abord** | Palier 3 remonté en tête, puis 1, 2, 4 à 8 | Une marque prudente veut d'abord ce qui a été constaté |
 | **Nouveaux profils** | Profils publiés depuis moins de 30 jours d'abord, puis paliers 1 à 8 | **Traitement explicite du cas froid** : sans ce tri, un nouvel inscrit n'est jamais vu |
 
@@ -493,7 +509,7 @@ démarre pas.
 | **Tranche d'engagement, seulement si vérifiée** | Avec la date du constat |
 | Langues de publication | Libellés |
 | Formats proposés | Libellés |
-| **Fourchette tarifaire par (réseau, format), avec sa devise** | Tranche + devise, libellée « coût total » |
+| **Fourchette tarifaire par (réseau, format), avec sa devise** — *suspendue (D78)* | Tranche + devise, libellée « coût total » |
 | Droits d'usage inclus / en option, exclusivité acceptée, contrepartie non monétaire | Libellés |
 | Délai de livraison habituel | Tranche |
 | **Disponibilité déclarée + sa date de déclaration** | Tranche + date |
@@ -513,7 +529,7 @@ pseudo · `@` ou identifiant de compte · **URL de profil ou de publication** ·
 raison sociale · e-mail · téléphone · adresse, ville, code postal · **nombre d'abonnés exact** ·
 **taux d'engagement exact** · **portée exacte** · **nombre exact de publications** · **nombre
 exact de commentaires moyens** · **historique des métriques** · **pourcentages d'audience exacts** · **tarif
-exact** · **net créateur estimé** · captures d'écran brutes de statistiques · **photo de profil ou
+exact** (au pilote, tout tarif : aucun n'est saisi, D78) · **net créateur estimé** · captures d'écran brutes de statistiques · **photo de profil ou
 avatar** · bio non modérée · visuel de portfolio non approuvé · pièces justificatives de vérification
 · date de naissance · **secteurs refusés** · complétude · notes internes · état exact du profil ·
 liste des marques déjà travaillées · **identifiant technique séquentiel ou devinable**.
@@ -592,7 +608,7 @@ directe de la règle d'or des tranches à la mesure elle-même.
 élargissements** choisis par un **ordre de priorité fixe** des facettes appliquées (de la plus
 restrictive à la moins restrictive selon un rang écrit à l'avance), **jamais en testant des requêtes
 alternatives** : un élargissement calculé sur des décomptes réels serait lui-même un oracle. Les
-formulations sont grossières et **n'annoncent aucun décompte** : « retirer le filtre de tarif »,
+formulations sont grossières et **n'annoncent aucun décompte** : « retirer le filtre de tarif » (*sans objet au pilote, F12 suspendue, D78*),
 « élargir la tranche d'audience », « ajouter un pays voisin ».
 
 **RG61 — Bouton « Demander une sélection à l'équipe INFLUX ».** Il crée une **demande au backoffice**
@@ -674,7 +690,7 @@ elles seules :
 
 | Point | Vue marque (`advertiser_anonymous`) | Vue commerciale (`agent_identified`) |
 |---|---|---|
-| **Identités** | Anonymisées (RG48) | **Visibles** : pseudo, `@`, URL, nom, ville, chiffres exacts, tarifs exacts, historique |
+| **Identités** | Anonymisées (RG48) | **Visibles** : pseudo, `@`, URL, nom, ville, chiffres exacts, tarifs exacts (*aucun au pilote, D78*), historique |
 | **k-anonymat** | Appliqué (seuil 5) | **Non applicable** (RG62) |
 | **Profils non publiés** | Exclus (E1) | **Visibles, étiquetés « brouillon », « en attente », « refusé », « suspendu »** — le commercial relance l'auteur |
 | **Blocage entre parties** | Profil absent (E5) | **Affiché avec un avertissement bloquant** : le commercial doit savoir **pourquoi** il ne peut pas proposer ce créateur |
@@ -685,7 +701,7 @@ n'a de contrepartie côté marque, dans aucune circonstance.
 
 **RG73 — Filtrage par campagne : le pont recherche ↔ campagne.** L'entrée **« Créateurs compatibles
 avec la campagne X »** **pré-remplit les facettes** depuis le brief de la campagne (document `09`) :
-thématiques, réseaux, formats, pays d'audience visés, langues, fourchette tarifaire depuis le budget,
+thématiques, réseaux, formats, pays d'audience visés, langues, fourchette tarifaire depuis le budget (*suspendue, D78*),
 droits d'usage et exclusivité attendus. Le commercial **corrige librement** le pré-remplissage.
 
 > **Ce pré-remplissage, et surtout ce que le commercial ajoute ou retire ensuite, est la meilleure
@@ -809,13 +825,13 @@ dur**. L'explication de RG41 est composée **de fragments traduits**, jamais d'u
 | `search.reason.prefix` | Proposé car : {reasons} | Suggested because: {reasons} |
 | `search.reason.topicMatch` | thématique {topic} correspondante | matching {topic} topic |
 | `search.reason.audienceCountry` | plus de {band} d'audience {country} | over {band} of audience in {country} |
-| `search.reason.priceFit` | fourchette tarifaire compatible avec votre budget indicatif | price range compatible with your indicative budget |
+| `search.reason.priceFit` *(suspendue, D78)* | fourchette tarifaire compatible avec votre budget indicatif | price range compatible with your indicative budget |
 | `search.reason.formatMatch` | propose le format {format} | offers the {format} format |
 | `search.reason.verified` | audience vérifiée le {date} | audience verified on {date} |
 | `search.reason.available` | se déclare disponible sous {band} | declares availability within {band} |
 | `search.warning.staleFigures` | Point de vigilance : chiffres mis à jour il y a plus de 90 jours. | Heads-up: figures last updated more than 90 days ago. |
 | `search.warning.newProfile` | Point de vigilance : profil récent. | Heads-up: recently published profile. |
-| `search.warning.otherCurrency` | Point de vigilance : tarif déclaré dans une autre devise. | Heads-up: rate declared in another currency. |
+| `search.warning.otherCurrency` *(suspendue, D78)* | Point de vigilance : tarif déclaré dans une autre devise. | Heads-up: rate declared in another currency. |
 | `search.kAnonymity.blocked` | Votre recherche est trop précise pour être affichée. Élargissez un critère, ou demandez une sélection à l'équipe INFLUX. | Your search is too specific to be displayed. Broaden one criterion, or ask the INFLUX team for a selection. |
 | `search.results.countBand` | Environ {band} profils correspondent. | About {band} profiles match. |
 | `search.action.shortlist` | Ajouter à ma sélection | Add to my selection |
@@ -826,9 +842,12 @@ dur**. L'explication de RG41 est composée **de fragments traduits**, jamais d'u
 | `search.state.alreadyIntroduced` | Vous êtes déjà en relation avec ce profil. | You are already in touch with this profile. |
 | `search.action.askTeam` | Demander une sélection à l'équipe INFLUX | Ask the INFLUX team for a selection |
 | `search.closed.notice` | La recherche ouvrira lorsque notre catalogue sera assez fourni. En attendant, décrivez votre besoin : notre équipe vous propose une sélection. | Search will open once our catalogue is large enough. In the meantime, describe your need: our team will send you a selection. |
-| `search.price.label` | Budget par collaboration, coût total | Budget per collaboration, total cost |
+| `search.price.label` *(suspendue, D78)* | Budget par collaboration, coût total | Budget per collaboration, total cost |
 | `search.rateLimit.reached` | Vous avez atteint la limite de recherches pour aujourd'hui. Revenez demain, ou demandez une sélection à l'équipe INFLUX. | You have reached today's search limit. Come back tomorrow, or ask the INFLUX team for a selection. |
-| `search.currency.mixed` | Les créateurs qui tarifent dans une autre devise ne sont pas comparés automatiquement. | Creators pricing in another currency are not automatically compared. |
+| `search.currency.mixed` *(suspendue, D78)* | Les créateurs qui tarifent dans une autre devise ne sont pas comparés automatiquement. | Creators pricing in another currency are not automatically compared. |
+
+*Au pilote (D78), `search.reason.priceFit`, `search.warning.otherCurrency`, `search.price.label` et
+`search.currency.mixed` sont suspendues : aucun tarif n'est affiché ni filtré.*
 
 ---
 
@@ -845,8 +864,8 @@ dur**. L'explication de RG41 est composée **de fragments traduits**, jamais d'u
 | Un créateur n'a aucun visuel approuvé | Carte affichée **sans image**, jamais exclu, jamais d'emplacement vide (RG34) |
 | Aucun filtre n'est appliqué | Recherche valide : tous les profils publiés, triés par le tri par défaut, k-anonymat sans objet au-delà de 5 |
 | Une thématique a été retirée du référentiel mais reste portée par des profils | Les profils restent affichés avec leur valeur ; la facette ne propose plus la valeur retirée ; alerte de cohérence au backoffice |
-| Recherche lancée depuis une campagne sans budget renseigné | Le palier 2 ignore le critère tarifaire, les autres s'appliquent. **Aucune pénalité** |
-| Une marque sans devise au profil active F12 | La devise est demandée explicitement avant application du filtre (RG18) |
+| Recherche lancée depuis une campagne sans budget renseigné | Le palier 2 ignore le critère tarifaire, les autres s'appliquent. **Aucune pénalité**. *Au pilote, le critère tarifaire est retiré pour toutes les recherches (D78)* |
+| Une marque sans devise au profil active F12 | La devise est demandée explicitement avant application du filtre (RG18). *Suspendu avec F12 (D78)* |
 | Un créateur n'a déclaré qu'un seul réseau | Il apparaît normalement ; F3/F4 s'appliquent à sa seule ligne (RG17) |
 
 **2 — Valeur nulle, négative ou aberrante**
@@ -859,7 +878,7 @@ dur**. L'explication de RG41 est composée **de fragments traduits**, jamais d'u
 | Recherche renvoyant 4 000 résultats | **60 résultats servis au maximum** (RG63), décompte en tranche « 50 et plus », pas de pagination profonde |
 | Demande de la page 7 alors que 5 pages sont autorisées | **Refus propre**, message explicite, journalisé (RG64) |
 | Taille de page manipulée dans la requête (200 au lieu de 12) | **Ignorée côté serveur**, valeur plafonnée, tentative journalisée |
-| Tranche de tarif choisie sans devise | Filtre refusé avec message dédié (RG18) |
+| Tranche de tarif choisie sans devise | Filtre refusé avec message dédié (RG18). *Suspendu avec F12 (D78)* |
 | Tranche d'audience « méga » + thématique rare | Souvent sous le seuil : comportement de RG58, jamais un résultat partiel |
 | Créateur à 0 abonné | Tranche la plus basse, affiché normalement (document `07`, cas limites) |
 | Quota de profils froids demandé (2) alors qu'aucun profil froid ne satisfait les filtres | **Aucun résultat n'est fabriqué** : la liste est simplement plus courte en profils froids (RG45) |
@@ -937,7 +956,7 @@ dur**. L'explication de RG41 est composée **de fragments traduits**, jamais d'u
 
 | # | Contrôle | Réponse pour ce document |
 |---|---|---|
-| 1 | **Montants** — montant du contrat, commission INFLUX, net créateur | **Aucun montant de contrat, aucune facture, aucun calcul de commission (A1).** Les seuls montants sont des **tranches** : le **tarif indicatif du créateur, exprimé en coût total pour l'annonceur, commission de 35 % incluse** (RG19, document `07` RG65) et la **tranche de budget indicatif de la marque** (document `06` RG31). Le libellé du filtre le dit : « budget par collaboration, coût total ». **Aucun net créateur n'apparaît dans un écran de recherche** (RG19, document `07` RG70). **Aucune conversion de devise** (RG18, D27) |
+| 1 | **Montants** — montant du contrat, commission INFLUX, net créateur | **Aucun montant de contrat, aucune facture, aucun calcul de commission (A1).** Les seuls montants sont des **tranches** : le **tarif indicatif du créateur, exprimé en coût total pour l'annonceur, commission de 35 % incluse** (RG19, document `07` RG65) et la **tranche de budget indicatif de la marque** (document `06` RG31). Le libellé du filtre le dit : « budget par collaboration, coût total ». **Aucun net créateur n'apparaît dans un écran de recherche** (RG19, document `07` RG70). **Aucune conversion de devise** (RG18, D27). *Au pilote (D78) : aucune tranche de tarif n'est servie, filtrée ni triée (F12 suspendue).* |
 | 2 | **Traçabilité / contournement** | **C'est le sujet central du document.** Aucune URL, aucun `@`, aucun pseudo, aucune valeur exacte dans la réponse servie à une marque (RG48) ; anonymisation **portée par la base** (RG79) ; **pas de recherche en texte libre** (RG6) ; **pas d'identifiant devinable** (RG65) ; **export interdit à tous** (RG63) ; pagination et débit plafonnés ; **décompte en tranche** (RG59) ; message identique à 0 et 4 résultats (RG58) ; visuels modérés un par un (RG69). **Risque résiduel assumé et signalé :** une marque déterminée peut recouper thématique + pays + tranche d'audience + visuels et tenter une recherche d'image inversée. Les parades sont la modération du portfolio, le k-anonymat, la détection d'affinage et la journalisation ; la parade ultime reste **Q2** (visages dans le portfolio, question ouverte du document `07`) |
 | 3 | **Leads** — ce qui part vers Brevo et Apollo | **Rien.** La recherche **n'émet aucun événement de lead** et **n'envoie aucun attribut** vers Brevo ou Apollo. Une recherche décrit ce qu'une marque cherche : une information commerciale, collectée pour deux finalités déclarées (garde-fou et amélioration produit, RG67), **pas pour du ciblage marketing**. Toute exploitation marketing du journal de recherche serait un détournement de finalité et exige une base légale distincte — question ouverte **Q7** |
 | 4 | **Backoffice** — contrepartie interne | **Détaillée en §H et RG83 :** vue commerciale identifiée, sélection multiple, filtrage par campagne, relance des brouillons, traitement des demandes « sélection par l'équipe », traitement des alertes d'aspiration, ouverture / fermeture de la recherche (D38), réglage des facettes et des plafonds, tableau de bord des indicateurs de RG86. Toutes les actions sont **journalisées nominativement** (RG78) |
@@ -978,20 +997,25 @@ réponses d'API, *alors* elles contiennent **le même ensemble de champs** (RG50
 libre, *alors* **il n'en existe aucun**.
 
 **CA8** — *Étant donné* les facettes affichées au premier jour d'ouverture, *quand* on les compte,
-*alors* ce sont **exactement les 8 du socle** (RG12), et les autres sont absentes de l'écran.
+*alors* ce sont **exactement les 8 du socle** (RG12) — **7 au pilote**, F12 suspendue (D78) —, et les autres sont
+absentes de l'écran.
 
 **CA9** — *Étant donné* un créateur macro sur Instagram et nano sur TikTok, *quand* une marque filtre
 « TikTok » **et** « macro », *alors* **ce créateur n'apparaît pas** (RG17).
 
-**CA10** — *Étant donné* un créateur proposant une story à 500 € et une vidéo à 3 000 €, *quand* une
+**CA10** — *Suspendu (D78).* *Étant donné* un créateur proposant une story à 500 € et une vidéo à 3 000 €, *quand* une
 marque filtre « vidéo » et la tranche « 500-1 000 € », *alors* **ce créateur n'apparaît pas**.
 
-**CA11** — *Étant donné* une marque dont le profil est en euros, *quand* elle active le filtre tarif,
+**CA11** — *Suspendu (D78).* *Étant donné* une marque dont le profil est en euros, *quand* elle active le filtre tarif,
 *alors* la devise est pré-remplie en euros et **aucune conversion n'est effectuée**.
 
-**CA12** — *Étant donné* un créateur tarifant en dollars, *quand* une marque filtre en euros sans
+**CA12** — *Suspendu (D78).* *Étant donné* un créateur tarifant en dollars, *quand* une marque filtre en euros sans
 cocher l'option d'inclusion, *alors* ce créateur **n'apparaît pas** ; *quand* elle coche l'option,
 *alors* il apparaît avec la mention « tarif déclaré dans une autre devise ».
+
+*Au pilote, à la place de CA10 à CA12 (D78) :* *étant donné* une réponse de recherche servie à une marque, *quand* on
+inspecte sa charge utile, *alors* **aucune tranche tarifaire, aucune devise de tarif et aucun tri par tarif** n'y
+figurent, et aucune explication ne cite un montant.
 
 **CA13** — *Étant donné* un créateur dont l'engagement est déclaré mais non vérifié, *quand* la
 facette engagement est active, *alors* il **n'apparaît pas** ; *quand* elle est inactive, *alors* il
