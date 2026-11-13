@@ -714,8 +714,10 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
     // influx_creator_verification_definer (0222): the creator's verification requests, from its doors
     // influx_verification_definer (0224): the claims and decisions of queue 4, from its functions only
     // influx_creator_profile_definer (0242): the creator's deposits and withdrawals, from its doors
+    // influx_campaign_definer (0305): campaign.submitted, from the submission door only
     expect(appenders.sort()).toEqual([
       "influx_audit_writer",
+      "influx_campaign_definer",
       "influx_creator_profile_definer",
       "influx_creator_verification_definer",
       "influx_identity_definer",

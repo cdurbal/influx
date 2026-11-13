@@ -67,7 +67,9 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/verification-route.test.ts",
   ],
   "2": [
+    "db-tests/campaign-parity.test.ts",
     "db-tests/campaigns-core.test.ts",
+    "db-tests/campaigns-submission.test.ts",
     "db-tests/ops-schema.test.ts",
     "db-tests/profiles-brand-decision.test.ts",
     "db-tests/profiles-brand-logo-route.test.ts",

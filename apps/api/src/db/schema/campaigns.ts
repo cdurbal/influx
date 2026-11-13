@@ -1,4 +1,5 @@
-// Schema `campaigns`, migration 0303 (L3B commit 02, jalons/l3b/modele.md §2 to §4). The SQL is the
+// Schema `campaigns`, migrations 0303 (L3B commit 02, jalons/l3b/modele.md §2 to §4) and 0305 (the
+// texts of the declaration of RG85, modele §5). The SQL is the
 // source of truth: this file is aligned by hand, never generated, and held to the catalogue by
 // db-tests/campaigns-core.test.ts (TM11). Declaring a column here grants nothing: every read and
 // write stays subject to the GRANTs and policies of the role taken (03 P2); influx_creator holds
@@ -57,6 +58,17 @@ export const rejectionReasons = campaignsSchema.table("rejection_reasons", {
   position: smallint("position").notNull(),
   isActive: boolean("is_active").notNull().default(true),
 });
+
+/** 0305: the exact text of the declaration of RG85 per locale, and the SHA-256 of its UTF-8 bytes. */
+export const authorizationDeclarationTexts = campaignsSchema.table(
+  "authorization_declaration_texts",
+  {
+    locale: text("locale").primaryKey(),
+    body: text("body").notNull(),
+    bodySha256: bytea("body_sha256").notNull(),
+    createdAt: timestamptz("created_at").notNull().defaultNow(),
+  },
+);
 
 export const campaigns = campaignsSchema.table("campaigns", {
   id: uuid("id").primaryKey().defaultRandom(),

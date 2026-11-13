@@ -126,33 +126,33 @@
 | 343 | 202 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
 | 545 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
 | 621 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
-| 651 | 449 | 4. Les principes de Row Level Security | RG5–RG165 |
+| 651 | 450 | 4. Les principes de Row Level Security | RG5–RG165 |
 | 656 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
 | 671 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
 | 724 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
 | 746 | 16 | ↳ P4 — Toute condition d'accès est **positive** et échoue en refus |  |
 | 762 | 34 | ↳ P5 — L'anonymisation est une séparation d'objets, doublée d'une absence de droit |  |
 | 796 | 22 | ↳ P6 — Aucune table métier dans le schéma `public` |  |
-| 818 | 193 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG165 |
-| 1011 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
-| 1063 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
-| 1074 | 26 | ↳ P10 — Les politiques du Storage |  |
-| 1100 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1240 | 422 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
-| 1242 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
-| 1325 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
-| 1360 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1380 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1456 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1530 | 25 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1555 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1582 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1619 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1662 | 32 | 7. L'isolement du backoffice |  |
-| 1694 | 39 | 8. Les tests de sécurité exigés |  |
-| 1733 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1795 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1836 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 818 | 194 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG5–RG165 |
+| 1012 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
+| 1064 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
+| 1075 | 26 | ↳ P10 — Les politiques du Storage |  |
+| 1101 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
+| 1241 | 422 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
+| 1243 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
+| 1326 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
+| 1361 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
+| 1381 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1457 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1531 | 25 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1556 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1583 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1620 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1663 | 32 | 7. L'isolement du backoffice |  |
+| 1695 | 39 | 8. Les tests de sécurité exigés |  |
+| 1734 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1796 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1837 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
 ## 04-modele-de-donnees-mvp.md (~151k tokens)
 

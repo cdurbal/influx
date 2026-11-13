@@ -8,7 +8,7 @@
 | 02 | 02.md | commit | opus | high | expert-database | fait | 0303 : 12 tables campaigns.*, RLS forcée, marque seule (jamais état, cycle, déclaration, fourchette) ; gel 55000 ; créateur rien ; 9 codes avec export_class |
 | 03 | 03.md | commit | opus | high | expert-database | fait | 0304 : grille de tranches.md mot pour mot (5 × 10), min incluse, max exclue, seule la dernière ouverte, nets nuls ; contiguïté + témoin ; T2 autorisé |
 | 04 | 04.md | commit | sonnet | high | dev-react-node | fait | 27 codes camelCase de modele §5 par étape ; dates RG70 six paires, RG74 ; détection contact/lien/montant en positions seules ; 69 cas T5 |
-| 05 | 05.md | commit | opus | high | expert-database | à faire | |
+| 05 | 05.md | commit | opus | high | expert-database | fait | 0305 : porte influx_campaign_definer (pending_review seul), 27 manquants en parité, RG85 empreinte/langue/auteur, vue créateur 32 clés sans devise ni tranche |
 | 06 | 06.md | commit | opus | high | expert-database | à faire | |
 | 07 | 07.md | commit | sonnet | high | dev-react-node | à faire | |
 | 08 | 08.md | commit | opus | high | dev-react-node | à faire | |

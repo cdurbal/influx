@@ -845,7 +845,7 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
     });
   });
 
-  it("L3B-T3 grants USAGE on the schema campaigns to the brand alone", async () => {
+  it("L3B-T3 grants USAGE on the schema campaigns to the brand alone, and to the owner of its submission door (0305)", async () => {
     const rows = await scenario(
       (tx) =>
         tx<{ rolname: string }[]>`
@@ -853,7 +853,10 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
          where rolname like 'influx\\_%' and has_schema_privilege(oid, 'campaigns', 'USAGE')
          order by rolname`,
     );
-    expect(rows.map((row) => row.rolname)).toEqual(["influx_advertiser"]);
+    expect(rows.map((row) => row.rolname)).toEqual([
+      "influx_advertiser",
+      "influx_campaign_definer",
+    ]);
   });
 
   it("L3B-T3 the brand reads the five requested items, proposed_rate inactive (D78)", async () => {
@@ -1013,6 +1016,7 @@ describe("L3B-T3 TM11: the Drizzle declaration of campaigns.ts has the columns o
         catalogue.map((row) => [row.name, [...row.columns].sort()]),
       ),
     );
-    expect(Object.keys(declared)).toHaveLength(12);
+    // twelve tables of 0303, plus authorization_declaration_texts (0305)
+    expect(Object.keys(declared)).toHaveLength(13);
   });
 });
