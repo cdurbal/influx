@@ -9,6 +9,7 @@ import {
   MEMBER_FIELD_REQUIRED_CLASSES,
 } from "./field-classes";
 import { LayerBadge } from "./LayerBadge";
+import { Notice } from "./Notice";
 import type { ProfileLayer } from "./layer-badge-classes";
 
 /** What every field of the profile form says about itself (06 RG85). */
@@ -22,6 +23,11 @@ export type FieldTexts = {
   help?: string;
   /** The message of the field in error; the control carries `aria-invalid`. */
   error?: string | null;
+  /**
+   * What the text of the field makes the member check, never a refusal (09 RG21 to RG23): one
+   * message per signal, under the control, in a warning notice; the control stays valid.
+   */
+  warnings?: readonly string[];
 };
 
 /** The ids the frame writes and the control points to by `aria-describedby`. */
@@ -31,6 +37,7 @@ export type FieldIds = {
   layer: string;
   help: string;
   error: string;
+  warning: string;
 };
 
 type FieldFrameProps = FieldTexts & {
@@ -60,6 +67,7 @@ export function FieldFrame({
   layer,
   help,
   error,
+  warnings,
   children,
   className,
 }: FieldFrameProps) {
@@ -84,6 +92,15 @@ export function FieldFrame({
         </p>
       )}
       {children}
+      {warnings === undefined || warnings.length === 0 ? null : (
+        <Notice tone="warning" announce={false} id={ids.warning}>
+          <div className="flex flex-col gap-1">
+            {warnings.map((warning) => (
+              <p key={warning}>{warning}</p>
+            ))}
+          </div>
+        </Notice>
+      )}
       {error === undefined || error === null ? null : (
         <ErrorNotice id={ids.error} announce={false}>
           {error}

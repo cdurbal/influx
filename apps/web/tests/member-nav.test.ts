@@ -27,6 +27,8 @@ import {
   MEMBER_PAGE_SLUGS,
   memberPageHref,
   memberPageOfPath,
+  memberPagePath,
+  memberPageSegmentOfPath,
   spaceOf,
   spaceRedirectOf,
   TERMS_EXEMPT_PAGES,
@@ -86,9 +88,10 @@ describe("TD2.1: five entries at most per role, in a fixed order (17 §2.1)", ()
     }
   });
 
-  it("shows the entries whose screen exists only: Accueil and Compte before Lot 2", () => {
+  it("shows the entries whose screen exists only: Accueil, Campagnes (L3B) and Compte for a brand, Accueil and Compte for a creator", () => {
     expect(navItemsOf("advertiser")).toEqual([
       { entry: "home", page: "advertiserHome" },
+      { entry: "campaigns", page: "advertiserCampaigns" },
       { entry: "account", page: "accountHub" },
     ]);
     expect(navItemsOf("creator")).toEqual([
@@ -155,6 +158,8 @@ describe("TD2.4: the active entry of each page", () => {
     signupCreator: null,
     advertiserHome: "home",
     creatorHome: "home",
+    advertiserCampaigns: "campaigns",
+    advertiserCampaign: "campaigns",
     accountHub: "account",
     accountDetails: "account",
     accountProfile: "account",
@@ -393,6 +398,7 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
       memberPageOfPath("/account/profile/verification/ownership", "fr"),
     ).toBeNull();
     expect(PARENT_PAGES).toEqual({
+      advertiserCampaign: "advertiserCampaigns",
       accountProfilePreview: "accountProfile",
       accountVerificationOwnership: "accountProfile",
       accountVerificationAudience: "accountProfile",
@@ -515,5 +521,77 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     ]) {
       expect(isNetworkCode(code), code).toBe(false);
     }
+  });
+});
+
+describe("L3B-09: the campaigns of a brand, a list and a form with an identifier in the address (17 §2.6, §4.3)", () => {
+  const ID = "7d6f1c43-6a0c-4cc4-9f0b-1c1f5f6d2a10";
+
+  it("addresses the list and the form in both languages, the form below the list in the column", () => {
+    expect(MEMBER_PAGE_SLUGS.advertiserCampaigns).toEqual({
+      fr: "campagnes",
+      en: "campaigns",
+    });
+    expect(MEMBER_PAGE_SLUGS.advertiserCampaign).toEqual({
+      fr: "campagnes/[id]",
+      en: "campaigns/[id]",
+    });
+    expect(memberPageOfPath("/campagnes", "fr")).toBe("advertiserCampaigns");
+    expect(memberPageOfPath("/campaigns", "en")).toBe("advertiserCampaigns");
+    expect(memberPageOfPath(`/campagnes/${ID}`, "fr")).toBe(
+      "advertiserCampaign",
+    );
+    expect(memberPageOfPath(`/campaigns/${ID}`, "en")).toBe(
+      "advertiserCampaign",
+    );
+    expect(activePlaceOf("advertiserCampaigns")).toEqual({
+      entry: "campaigns",
+      sub: null,
+    });
+    expect(activePlaceOf("advertiserCampaign")).toEqual({
+      entry: "campaigns",
+      sub: null,
+    });
+    expect(subEntriesOf("campaigns", "advertiser")).toEqual([]);
+  });
+
+  it("tells a campaign path from the other language's, and from a deeper one", () => {
+    for (const [pathname, locale] of [
+      [`/campaigns/${ID}`, "fr"],
+      [`/campagnes/${ID}`, "en"],
+      [`/campagnes/${ID}/apercu`, "fr"],
+      ["/campagnes/a/b/c", "fr"],
+    ] as const) {
+      expect(memberPageOfPath(pathname, locale), pathname).toBeNull();
+    }
+  });
+
+  it("fills the dynamic segment of an address, and reads it back from a path", () => {
+    expect(memberPageHref("advertiserCampaign", "fr", ID)).toBe(
+      `/campagnes/${ID}`,
+    );
+    expect(memberPageHref("advertiserCampaign", "en", ID)).toBe(
+      `/campaigns/${ID}`,
+    );
+    expect(memberPagePath("advertiserCampaign", "en", ID)).toBe(
+      `/en/campaigns/${ID}`,
+    );
+    expect(memberPageSegmentOfPath(`/campagnes/${ID}`, "fr")).toBe(ID);
+    expect(memberPageSegmentOfPath("/campagnes", "fr")).toBeNull();
+    expect(memberPageSegmentOfPath("/compte", "fr")).toBeNull();
+    expect(memberPageSegmentOfPath("/inconnue/x", "fr")).toBeNull();
+  });
+
+  it("keeps the campaigns in the brand's space: a creator is sent to their own home", () => {
+    expect(spaceOf("advertiserCampaigns")).toBe("advertiser");
+    expect(spaceOf("advertiserCampaign")).toBe("advertiser");
+    expect(spaceRedirectOf("advertiserCampaigns", "creator")).toBe(
+      "creatorHome",
+    );
+    expect(spaceRedirectOf("advertiserCampaign", "creator")).toBe(
+      "creatorHome",
+    );
+    expect(spaceRedirectOf("advertiserCampaigns", "advertiser")).toBeNull();
+    expect(isTermsExempt("advertiserCampaigns")).toBe(false);
   });
 });

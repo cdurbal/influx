@@ -5,6 +5,7 @@
       "label": "Main navigation",
       "entries": {
         "home": "Home",
+        "campaigns": "Campaigns",
         "account": "Account"
       }
     },

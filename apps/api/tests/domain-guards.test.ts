@@ -204,7 +204,7 @@ describe("the completeness is computed in packages/domain only (stockage.md §9)
 });
 
 describe("@influx/domain at L2B", () => {
-  it("is imported by the profile domain of apps/api, the campaigns a brand writes (L3B 07), the alerts of queue 1 (L2C 11) the gap of the typing of queue 4 (L2E 14), the reasons of a withdrawal (L2F 13), the end of a grace period (L2F 13) and the text of a contest (L2F 14), the count of the portfolio (L2G 07), the alerts of queues 2 and 3 (L2G 11), and nobody else (no front yet)", () => {
+  it("is imported by the profile domain of apps/api, the campaigns a brand writes (L3B 07), the alerts of queue 1 (L2C 11) the gap of the typing of queue 4 (L2E 14), the reasons of a withdrawal (L2F 13), the end of a grace period (L2F 13) and the text of a contest (L2F 14), the count of the portfolio (L2G 07), the alerts of queues 2 and 3 (L2G 11), the ONE door of the campaign form (L3B 09: apps/web/src/components/campaign/campaign-domain.ts), and nobody else", () => {
     const importers = sourcesOf(
       SOURCE_ROOTS.filter((root) => root !== "packages/domain/src"),
     )
@@ -226,6 +226,7 @@ describe("@influx/domain at L2B", () => {
       "apps/api/src/domains/profiles/creator/profile.ts",
       "apps/api/src/domains/verification/badge-grace.ts",
       "apps/api/src/domains/verification/disputes.ts",
+      "apps/web/src/components/campaign/campaign-domain.ts",
     ]);
   });
 

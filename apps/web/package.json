@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@influx/contracts": "workspace:*",
+    "@influx/domain": "workspace:*",
     "@influx/ui": "workspace:*",
     "@influx/web-platform": "workspace:*",
     "lucide-react": "1.46.0",

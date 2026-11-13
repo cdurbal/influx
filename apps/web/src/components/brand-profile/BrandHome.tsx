@@ -144,7 +144,8 @@ function ProfileCard({ summary }: { summary: BrandProfileSummary }) {
 /**
  * Block 2 (17 §2.4): "Publier une campagne" and "Rechercher des créateurs", present and explained,
  * not hidden. Until the profile is published they say so (`search.blockedUntilPublished` for the
- * search); once it is, they say they are coming, the screens being those of the next lot.
+ * search); once it is, the campaign card opens "Mes campagnes" (L3B, commit 09) and the search says it
+ * is coming, its screen being that of the next jalon.
  */
 function LockedScreens({ published }: { published: boolean }) {
   const t = useTranslations("brandProfile");
@@ -166,18 +167,40 @@ function LockedScreens({ published }: { published: boolean }) {
     <ul className="flex flex-col gap-4">
       {items.map((item) => (
         <li key={item.key}>
-          <Card>
-            <h2 className={cn(CARD_TITLE, "flex items-center gap-2")}>
-              <LockIcon
-                aria-hidden="true"
-                className="size-(--size-icon-md) shrink-0 text-text-secondary"
-              />
-              {item.title}
-            </h2>
-            <p className="text-md text-text-secondary">{item.text}</p>
-          </Card>
+          {item.key === "campaign" && published ? (
+            <CampaignCard />
+          ) : (
+            <Card>
+              <h2 className={cn(CARD_TITLE, "flex items-center gap-2")}>
+                <LockIcon
+                  aria-hidden="true"
+                  className="size-(--size-icon-md) shrink-0 text-text-secondary"
+                />
+                {item.title}
+              </h2>
+              <p className="text-md text-text-secondary">{item.text}</p>
+            </Card>
+          )}
         </li>
       ))}
     </ul>
+  );
+}
+
+/** The campaign card of a published brand: no longer locked, it opens "Mes campagnes" (17 §2.4, M3). */
+function CampaignCard() {
+  const t = useTranslations("campaign");
+  const locale = useLocale();
+  return (
+    <Card>
+      <h2 className={CARD_TITLE}>{t("home.title")}</h2>
+      <p className="text-md text-text-secondary">{t("home.text")}</p>
+      <Link
+        href={memberPageHref("advertiserCampaigns", locale)}
+        className={memberButtonClasses("primary", "md")}
+      >
+        {t("home.link")}
+      </Link>
+    </Card>
   );
 }

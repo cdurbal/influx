@@ -461,6 +461,8 @@ describe("J4S-7: no name or handle in a connected-space path", () => {
     expect(
       findNonLiteralSlugs({
         a: { fr: "inscription/marque", en: "sign-in2" },
+        // the one opaque identifier of the closed list (L3B-09: a campaign)
+        b: { fr: "campagnes/[id]", en: "campaigns/[id]" },
       }),
     ).toEqual([]);
     expect(

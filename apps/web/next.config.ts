@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
   // Workspace packages are TypeScript sources, without build (21 §4 J1-E; arbitration PL-07).
   transpilePackages: [
     "@influx/contracts",
+    "@influx/domain",
     "@influx/ui",
     "@influx/web-platform",
   ],

@@ -536,7 +536,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     const memberPaths = Object.values(MEMBER_PAGE_SLUGS).flatMap((slugs) =>
       Object.values(slugs),
     );
-    expect(memberPaths).toHaveLength(34); // 17 pages, two languages (SN-1: the page-menu of mon compte; L2B-11: the brand profile; L2E-18, 19 and 20: the ownership, the audience and the brand journeys; L2F-17: the contest of a decision; L2G-14: what a brand sees)
+    expect(memberPaths).toHaveLength(38); // 19 pages, two languages (L3B-09: the campaigns of a brand, the list and the form; SN-1: the page-menu of mon compte; L2B-11: the brand profile; L2E-18, 19 and 20: the ownership, the audience and the brand journeys; L2F-17: the contest of a decision; L2G-14: what a brand sees)
     expect(
       findMemberGroupMismatches(
         WEB_ROOT,
@@ -841,6 +841,7 @@ describe("Additional guards", () => {
       "account.json",
       "auth.json",
       "brand-profile.json",
+      "campaign.json",
       "creator-profile.json",
       "errors.json",
       "landing.json",

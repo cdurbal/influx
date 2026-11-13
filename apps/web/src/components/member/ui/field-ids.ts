@@ -15,6 +15,7 @@ export function useFieldIds(id?: string): FieldIds {
     layer: `${control}-layer`,
     help: `${control}-help`,
     error: `${control}-error`,
+    warning: `${control}-warning`,
   };
 }
 

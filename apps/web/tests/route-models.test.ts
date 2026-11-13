@@ -29,7 +29,10 @@ function addressesOfTheTables(): string[] {
   return routing.locales
     .flatMap((locale) => [
       `/${locale}`,
-      ...slugs.map((bySlug) => `/${locale}/${bySlug[locale]}`),
+      // a campaign is the one identifier of an address: the collector writes it `:id` (L3B-09)
+      ...slugs.map(
+        (bySlug) => `/${locale}/${bySlug[locale].replace("[id]", ":id")}`,
+      ),
     ])
     .sort();
 }
@@ -52,7 +55,10 @@ describe("route models of the pages of apps/web (L2AS-2)", () => {
     );
     for (const model of WEB_PAGE_MODELS) {
       const [, , ...segments] = model.split("/");
-      expect(pages.has(segments.join("/")), model).toBe(true);
+      expect(
+        pages.has(segments.map((s) => (s === ":id" ? "[id]" : s)).join("/")),
+        model,
+      ).toBe(true);
     }
   });
 });

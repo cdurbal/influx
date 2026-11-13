@@ -26,7 +26,7 @@ export const SPACE_ENTRIES: Readonly<
 > = {
   advertiser: [
     { entry: "home", page: "advertiserHome" },
-    { entry: "campaigns", page: null }, // Lot 3, "Mes campagnes"
+    { entry: "campaigns", page: "advertiserCampaigns" }, // Lot 3 (L3B), "Mes campagnes"
     { entry: "creators", page: null }, // Lot 3, the anonymised search
     { entry: "relations", page: null }, // Lot 4, "Mises en relation"
     { entry: "account", page: "accountHub" },

@@ -142,6 +142,9 @@ importers:
       '@influx/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@influx/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@influx/ui':
         specifier: workspace:*
         version: link:../../packages/ui

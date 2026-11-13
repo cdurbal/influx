@@ -1,0 +1,468 @@
+// "Mes campagnes" and the campaign form, steps 1 to 3 (docs/mvp/17 §4.3, M3; 09 RG16 to RG54, RG108 to
+// RG110, CA16, CA72, CA74; jalons/l3b, commit 09, L3B-E1): the list with its state written and its
+// invitation to write behind a published profile, the first draft, the three steps saved by
+// themselves, the draft taken up again after a reload deliverables included (CA72), the warnings of a
+// text that block nothing, no field of file anywhere (CA16), a failed save that keeps the entry
+// (RG108), in French at 375 px and in English at 1 440 px with axe. A member seeded in the local
+// stack (no code, no mail); the texts are the locale files', never copies. States are prepared by the
+// API's own routes, the screens being what is under test. Budget: 9 s for the four journeys
+// (jalons/l3b annexe).
+import { connectAsMigrationRole } from "@influx/test-kit/db";
+import type { Page } from "@playwright/test";
+import enBrandProfile from "@/locales/en/brand-profile.json" with { type: "json" };
+import enCampaign from "@/locales/en/campaign.json" with { type: "json" };
+import enMember from "@/locales/en/member.json" with { type: "json" };
+import frBrandProfile from "@/locales/fr/brand-profile.json" with { type: "json" };
+import frCampaign from "@/locales/fr/campaign.json" with { type: "json" };
+import frMember from "@/locales/fr/member.json" with { type: "json" };
+import { seedMember } from "./support/account";
+import { expectNoAxeViolation } from "./support/axe";
+import { expect, open, reload, test, title } from "./support/journey";
+import { WEB_ORIGIN } from "./support/servers";
+
+type Locale = "fr" | "en";
+
+const COPY = { fr: frCampaign, en: enCampaign } as const;
+const BRAND = { fr: frBrandProfile, en: enBrandProfile } as const;
+const MEMBER = { fr: frMember.shell, en: enMember.shell } as const;
+const LIST_PATH = { fr: "/fr/campagnes", en: "/en/campaigns" } as const;
+
+const SUMMARY =
+  "Nous cherchons des créateurs de contenu beauté pour tester notre nouvelle gamme de soins du visage sur Instagram, avec des contenus sincères, courts et soignés.";
+const BRIEF =
+  "Notre gamme de soins du visage sort en janvier. Nous voulons des vidéos courtes où le créateur essaie les produits pendant une semaine, raconte ce qu'il observe, montre sa routine du matin et du soir, et donne un avis honnête. Le ton est chaleureux, sans promesse excessive. Les produits restent libres de mise en scène, le créateur choisit son décor et son angle, tant que les gestes d'application sont visibles et que le nom de la gamme est cité une fois.";
+const PRODUCT =
+  "Une gamme de trois soins du visage naturels, testés dermatologiquement.";
+
+/** The status line that tells the draft is saved (RG108); two twins exist, one shown at each width. */
+function savedLine(page: Page, locale: Locale) {
+  return page.locator("p[role=status]:visible", {
+    hasText: COPY[locale].save.saved.split("{")[0]?.trim(),
+  });
+}
+
+/** What the autosave has stored of the campaign: the base, not the status line, tells it is there. */
+async function storedCampaignOf(accountId: string): Promise<{
+  title: string | null;
+  status: string;
+  deliverables: number;
+  band: string | null;
+} | null> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    const [row] = await sql<
+      {
+        title: string | null;
+        status: string;
+        deliverables: number;
+        band: string | null;
+      }[]
+    >`
+      select c.title, c.status::text as status,
+             (select count(*)::int from campaigns.campaign_deliverables d where d.campaign_id = c.id) as deliverables,
+             c.product_value_band_code as band
+        from campaigns.campaigns c
+       where c.advertiser_account_id = ${accountId}
+       order by c.created_at desc limit 1`;
+    return row ?? null;
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
+/** The state a review would leave the profile in: the agents' decision is L2C's, the base is written here. */
+async function publishProfile(accountId: string): Promise<void> {
+  const sql = connectAsMigrationRole({ max: 1 });
+  try {
+    await sql`
+      update profiles.advertiser_profiles
+         set status = 'published', submitted_at = now(), first_published_at = now()
+       where account_id = ${accountId}`;
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
+/** What a page's own script sends, which a request of the test runner does not (03 §6.4 A4). */
+const SAME_ORIGIN = { origin: WEB_ORIGIN, "sec-fetch-site": "same-origin" };
+
+/** A draft written through the API itself, as the form does: the page asks it as the member's own session. */
+async function draftThroughApi(
+  page: Page,
+  fields: Record<string, unknown>,
+): Promise<string> {
+  const created = await page.request.post("/api/v1/me/campaigns", {
+    data: {},
+    headers: SAME_ORIGIN,
+  });
+  expect(created.status()).toBe(200);
+  const id = ((await created.json()) as { id: string }).id;
+  if (Object.keys(fields).length > 0) {
+    const saved = await page.request.patch(`/api/v1/me/campaigns/${id}`, {
+      data: fields,
+      headers: SAME_ORIGIN,
+    });
+    expect(saved.status()).toBe(200);
+  }
+  return id;
+}
+
+/** The words of "nothing left to complete" in a step (the `=0` case of `form.stepMissing`). */
+function allSet(locale: Locale): string {
+  return /=0 {([^}]+)}/.exec(COPY[locale].form.stepMissing)?.[1] ?? "";
+}
+
+async function noFileField(page: Page): Promise<void> {
+  // CA16, RG45: nothing attached to a campaign, no button of file anywhere on the page.
+  await expect(page.locator("input[type=file]")).toHaveCount(0);
+}
+
+test("my campaigns: the invitation to write waits for a published profile, then the first draft opens on its first step (CA2, CA74, 17 §2.4, D74)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+
+  // Draft profile: the sentence that says so, the way to the profile, no button to create.
+  await open(page, LIST_PATH.fr);
+  await expect(title(page)).toHaveText(copy.list.title);
+  const main = page.locator("main");
+  await expect(main.getByText(copy.publish.profileRequired)).toBeVisible();
+  await expect(
+    main.getByRole("link", { name: copy.list.profileLink }),
+  ).toBeVisible();
+  await expect(
+    main.getByRole("button", { name: copy.list.create }),
+  ).toHaveCount(0);
+  await expect(main.getByText(copy.list.empty.title)).toBeVisible();
+  // D74: "Campagnes" is an entry of the column, active here; no tab, no pill, a single navigation.
+  const nav = page.getByRole("navigation", { name: MEMBER.fr.nav.label });
+  await expect(
+    nav.getByRole("link", {
+      name: MEMBER.fr.nav.entries.campaigns,
+      exact: true,
+    }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(page.locator("nav")).toHaveCount(1);
+  await expectNoAxeViolation(page, "my campaigns, fr, 1440", { wcag22: true });
+
+  // Published profile: the home card is no longer locked, the list offers to create.
+  await publishProfile(member.accountId);
+  await open(page, "/fr/marque");
+  await expect(
+    page.getByRole("heading", { name: copy.home.title }),
+  ).toBeVisible();
+  await expect(page.getByText(BRAND.fr.home.locked.campaign.text)).toHaveCount(
+    0,
+  );
+  await page.getByRole("link", { name: copy.home.link }).click();
+  await expect(title(page)).toHaveText(copy.list.title);
+  await expect(page.getByText(copy.publish.profileRequired)).toHaveCount(0);
+  await page.getByRole("button", { name: copy.list.create }).click();
+
+  // The first draft: its own address, the state written, the first step, nothing saved yet but the draft.
+  await expect(page).toHaveURL(/\/fr\/campagnes\/[0-9a-f-]{36}$/);
+  await expect(title(page)).toHaveText(copy.form.newTitle);
+  await expect(
+    page.getByRole("heading", { level: 2, name: copy.form.steps["1"].title }),
+  ).toBeVisible();
+  await expect(
+    page.getByText(
+      copy.form.step.replace("{step}", "1").replace("{total}", "5"),
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByText(copy.status.label.draft, { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(copy.status.draft)).toBeVisible();
+  await noFileField(page);
+  expect((await storedCampaignOf(member.accountId))?.status).toBe("draft");
+});
+
+test("the offer, the work expected and the audience, in French at 375 px: saved by themselves, taken up again after a reload with the deliverables, warnings that block nothing (RG108, CA72, RG21 to RG23)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 375, height: 800 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await publishProfile(member.accountId);
+  const id = await draftThroughApi(page, {
+    title: "Test de notre nouvelle gamme de soins",
+    campaignType: "product_review",
+    publicSummary: SUMMARY,
+    productDescription: PRODUCT,
+    productSector: "beauty_personal_care",
+  });
+  await open(page, `/fr/campagnes/${id}`);
+  await expect(page.locator("#campaign-title")).toHaveValue(
+    "Test de notre nouvelle gamme de soins",
+  );
+
+  // Step 1: the brief, with a warning that blocks nothing (the bounds told, the text kept as typed).
+  await page
+    .locator("#campaign-brief")
+    .fill(
+      `${BRIEF} Écrivez-nous à partenariats@marque.com ou sur https://marque.example/offre pour 500 €.`,
+    );
+  for (const kind of ["contactInText", "linkInText", "amountInText"] as const) {
+    await expect(page.getByText(copy.errors[kind])).toBeVisible();
+  }
+  await expect(page.locator("#campaign-brief")).not.toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  await page.locator("#campaign-brief").fill(BRIEF);
+  await expect(page.getByText(copy.errors.contactInText)).toHaveCount(0);
+
+  // Block 2: the product, a product sent with its currency and its band (a band, never an amount).
+  await page
+    .locator("#campaign-keyMessages")
+    .fill("Une routine simple en deux gestes");
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.productIsSent.label),
+    })
+    .getByLabel(frBrandProfile.field.yes)
+    .check();
+  await page.locator("#campaign-currency").selectOption("EUR");
+  await page.locator("#campaign-productValueBand").selectOption("100_250");
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.creatorKeepsProduct.label),
+    })
+    .getByLabel(frBrandProfile.field.yes)
+    .check();
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.shippingCostsBorneBy.label),
+    })
+    .getByLabel(copy.shipping.brand)
+    .check();
+  await page.locator("#campaign-internalReference").fill("Janvier-2027");
+  await noFileField(page);
+  await expectNoAxeViolation(page, "campaign step 1, fr, 375", {
+    wcag22: true,
+  });
+
+  // Step 2: the deliverables, two lines, then the rights; a line half entered stays on screen, never sent.
+  await page.getByRole("button", { name: copy.form.next }).click();
+  await expect(page).toHaveURL(/\?step=2$/);
+  await expect(
+    page.getByRole("heading", { level: 2, name: copy.form.steps["2"].title }),
+  ).toBeFocused();
+  await page.locator("#campaign-deliverables").selectOption("instagram");
+  await page
+    .locator("#campaign-deliverables-format")
+    .selectOption("instagram_reel");
+  await page.locator("#campaign-deliverables-quantity").selectOption("2");
+  await page.getByRole("button", { name: copy.field.addLine }).click();
+  await page.locator("#campaign-deliverables-2").selectOption("tiktok");
+  await page
+    .locator("#campaign-deliverables-2-format")
+    .selectOption("tiktok_video");
+  await page.getByRole("button", { name: copy.field.addLine }).click();
+  await page.locator("#campaign-deliverables-3").selectOption("youtube");
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.usageRights.label),
+    })
+    .getByLabel(copy.usage_right.organic_repost)
+    .check();
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.usageRightsDuration.label),
+    })
+    .getByLabel(copy.usage_duration["3m"])
+    .check();
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.usageRightsTerritoryScope.label),
+    })
+    .getByLabel(copy.usage_territory.worldwide)
+    .check();
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.exclusivity.label),
+    })
+    .getByLabel(frBrandProfile.exclusivity.le_1m)
+    .check();
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.contentReviewDelay.label),
+    })
+    .getByLabel(copy.review_delay["5bd"])
+    .check();
+  await expect(savedLine(page, "fr")).toBeVisible();
+  await noFileField(page);
+
+  // CA72: the reload comes back to the step, with the two complete lines of deliverables.
+  await reload(page);
+  await expect(
+    page.getByRole("heading", { level: 2, name: copy.form.steps["2"].title }),
+  ).toBeVisible();
+  await expect(page.locator("#campaign-deliverables")).toHaveValue("instagram");
+  await expect(page.locator("#campaign-deliverables-format")).toHaveValue(
+    "instagram_reel",
+  );
+  await expect(page.locator("#campaign-deliverables-quantity")).toHaveValue(
+    "2",
+  );
+  await expect(page.locator("#campaign-deliverables-2")).toHaveValue("tiktok");
+  await expect(page.locator("#campaign-deliverables-3")).toHaveCount(0);
+  const stored = await storedCampaignOf(member.accountId);
+  expect(stored?.deliverables).toBe(2);
+  expect(stored?.band).toBe("100_250");
+
+  // Step 3: for whom.
+  await page.getByRole("button", { name: copy.form.next }).click();
+  await page
+    .locator("#campaign-audienceCountries")
+    .selectOption({ label: "France" });
+  await page
+    .locator("#campaign-audienceLanguages")
+    .selectOption({ label: "français" });
+  const topics = page.getByRole("group", {
+    name: new RegExp(copy.fields.audienceTopics.label),
+  });
+  await topics
+    .getByLabel(frBrandProfile.reference.topic.beauty, { exact: true })
+    .check();
+  await topics
+    .getByLabel(frBrandProfile.reference.topic.wellness, { exact: true })
+    .check();
+  await expect(savedLine(page, "fr")).toBeVisible();
+  await noFileField(page);
+
+  // The steps tell what is left in each, from the API's own count: steps 1 to 3 are complete.
+  await page.locator("summary").click();
+  await expect(
+    page.getByText(allSet("fr")).filter({ visible: true }),
+  ).toHaveCount(3);
+});
+
+test("the form in English at 1 440 px: a campaign taken up where it was left, a type that needs rights refused with its words, axe (RG43)", async ({
+  page,
+}) => {
+  const copy = COPY.en;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "en",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await publishProfile(member.accountId);
+  const id = await draftThroughApi(page, {
+    title: "A trial of our new skincare range",
+    audienceCountries: ["FR"],
+    audienceTopics: ["beauty"],
+    usageRights: "none",
+  });
+
+  // The campaign as it was left: step 3 from the address, the saved fields in place.
+  await open(page, `/en/campaigns/${id}?step=3`);
+  await expect(title(page)).toHaveText("A trial of our new skincare range");
+  await expect(
+    page.getByRole("heading", { level: 2, name: copy.form.steps["3"].title }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: new RegExp("France") }).first(),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("group", {
+        name: new RegExp(copy.fields.audienceTopics.label),
+      })
+      .getByLabel(enBrandProfile.reference.topic.beauty, { exact: true }),
+  ).toBeChecked();
+  await noFileField(page);
+  await expectNoAxeViolation(page, "campaign step 3, en, 1440", {
+    wcag22: true,
+  });
+
+  // The steps are free: back to step 1, then a type that needs usage rights over rights that are none (RG43).
+  await page
+    .getByRole("button", { name: new RegExp(copy.form.steps["1"].title) })
+    .click();
+  await page
+    .locator("#campaign-campaignType")
+    .selectOption({ label: copy.campaign_type.ugc_delivered });
+  await expect(
+    page.getByText(copy.fieldErrors.ugcRequiresRights).first(),
+  ).toBeVisible();
+  await expect(page.locator("#campaign-campaignType")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
+  // settled by the rights, in the other step: sent again with the next save
+  await page
+    .getByRole("button", { name: new RegExp(copy.form.steps["2"].title) })
+    .click();
+  await page
+    .getByRole("radiogroup", {
+      name: new RegExp(copy.fields.usageRights.label),
+    })
+    .getByLabel(copy.usage_right.organic_repost)
+    .check();
+  await expect(savedLine(page, "en")).toBeVisible();
+  await page
+    .getByRole("button", { name: new RegExp(copy.form.steps["1"].title) })
+    .click();
+  await expect(page.locator("#campaign-campaignType")).toHaveValue(
+    "ugc_delivered",
+  );
+  await expect(page.getByText(copy.fieldErrors.ugcRequiresRights)).toHaveCount(
+    0,
+  );
+});
+
+test("a save that fails keeps the entry on screen and says so, then goes through on the new attempt (RG108)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await publishProfile(member.accountId);
+  const id = await draftThroughApi(page, {});
+  await open(page, `/fr/campagnes/${id}`);
+
+  const route = `**/api/v1/me/campaigns/${id}`;
+  await page.route(route, (call) =>
+    call.request().method() === "PATCH"
+      ? call.fulfill({
+          status: 503,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: { code: "service_unavailable", message: "unavailable" },
+          }),
+        })
+      : call.continue(),
+  );
+  const typed = "Un titre qui ne doit pas se perdre";
+  await page.locator("#campaign-title").fill(typed);
+  await expect(page.getByText(copy.save.failedTitle)).toBeVisible();
+  await expect(page.getByText(copy.save.failedText)).toBeVisible();
+  await expect(page.locator("#campaign-title")).toHaveValue(typed);
+  expect((await storedCampaignOf(member.accountId))?.title).toBeNull();
+  await page.unroute(route);
+  await page.getByRole("button", { name: copy.save.retryNow }).click();
+  await expect(savedLine(page, "fr")).toBeVisible();
+  await expect(page.getByText(copy.save.failedTitle)).toHaveCount(0);
+  expect((await storedCampaignOf(member.accountId))?.title).toBe(typed);
+});

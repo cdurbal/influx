@@ -43,6 +43,7 @@ export function TextField({
     extraDescribedBy,
     texts.layer && ids.layer,
     texts.help && ids.help,
+    (texts.warnings?.length ?? 0) > 0 && ids.warning,
     hasError && ids.error,
   );
   return (

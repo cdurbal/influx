@@ -406,14 +406,24 @@ export function findDynamicSegmentViolations(
 
 /**
  * J4S-7: the slugs of a page table that are not a literal of letters, digits, `-` and `/`. A slug
- * built from a name, a handle or any runtime value would put it in a path.
+ * built from a name, a handle or any runtime value would put it in a path. The one exception is a
+ * segment of the closed list of opaque identifiers (OPAQUE_DYNAMIC_SEGMENTS: the `[id]` of a
+ * campaign, L3B-09), written as such: the page's identifier, never a name.
  */
+/** A slug with its opaque dynamic segments (the closed list) taken out: what is left must be a literal. */
+function withoutOpaqueSegments(slug: string): string {
+  return OPAQUE_DYNAMIC_SEGMENTS.reduce(
+    (rest, segment) => rest.split(segment).join(""),
+    slug,
+  );
+}
+
 export function findNonLiteralSlugs(
   slugs: Readonly<Record<string, Readonly<Record<string, string>>>>,
 ): string[] {
   return Object.entries(slugs).flatMap(([page, byLocale]) =>
     Object.entries(byLocale)
-      .filter(([, slug]) => !LITERAL_SLUG.test(slug))
+      .filter(([, slug]) => !LITERAL_SLUG.test(withoutOpaqueSegments(slug)))
       .map(
         ([locale, slug]) =>
           `${page}.${locale}: ${JSON.stringify(slug)} (${OPAQUE_PATH_RULE})`,

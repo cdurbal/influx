@@ -1,0 +1,309 @@
+{
+  "meta": {
+    "list": "Mes campagnes",
+    "form": "Ma campagne"
+  },
+  "list": {
+    "title": "Mes campagnes",
+    "loading": "Chargement de vos campagnes…",
+    "unavailable": "Nous ne parvenons pas à afficher vos campagnes pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "create": "Créer une campagne",
+    "creating": "Création…",
+    "createFailed": "La campagne n'a pas pu être créée. Réessayez dans un instant.",
+    "empty": {
+      "title": "Votre première campagne",
+      "text": "Une campagne INFLUX décrit ce que vous proposez à des créateurs : l'offre, le travail attendu, l'audience visée, le budget et le calendrier. Elle s'enregistre au fur et à mesure, et un commercial INFLUX la relit avant sa publication."
+    },
+    "untitled": "Campagne sans titre",
+    "updatedOn": "Modifiée le {date}",
+    "resume": "Reprendre",
+    "view": "Consulter",
+    "profileLink": "Aller à mon profil de marque"
+  },
+  "home": {
+    "title": "Mes campagnes",
+    "text": "Créez une campagne, enregistrée au fur et à mesure, puis soumettez-la à un commercial INFLUX.",
+    "link": "Voir mes campagnes"
+  },
+  "publish": {
+    "profileRequired": "Publiez votre profil de marque avant de soumettre une campagne."
+  },
+  "status": {
+    "label": {
+      "draft": "Brouillon",
+      "pending_review": "En cours de validation",
+      "published": "Publiée",
+      "paused": "En pause",
+      "closed": "Clôturée",
+      "rejected": "À corriger"
+    },
+    "draft": "Brouillon enregistré automatiquement. Personne d'autre que vous ne le voit tant que vous ne l'avez pas soumis.",
+    "pending": "Votre campagne est en cours de validation par l'équipe INFLUX.",
+    "published": "Votre campagne est publiée : les créateurs peuvent la lire.",
+    "paused": "Campagne en pause — les candidatures sont suspendues.",
+    "closed": "Cette campagne est clôturée.",
+    "rejected": "Votre campagne n'a pas été publiée. Corrigez-la, puis soumettez-la à nouveau."
+  },
+  "form": {
+    "loading": "Chargement de votre campagne…",
+    "unavailable": "Nous ne parvenons pas à afficher cette campagne pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "back": "Mes campagnes",
+    "backPrefix": "Retour à",
+    "newTitle": "Nouvelle campagne",
+    "locked": "Cette campagne n'est plus modifiable : elle est en cours d'examen ou déjà publiée.",
+    "intro": "Une campagne est l'offre que vous proposez à des créateurs. Commencez par l'essentiel : le reste se complète plus tard, tout est enregistré au fur et à mesure.",
+    "step": "Étape {step} sur {total}",
+    "stepsLabel": "Étapes de la campagne",
+    "stepName": "{number}. {title}",
+    "stepMissing": "{count, plural, =0 {tout est renseigné} one {# information à compléter} other {# informations à compléter}}",
+    "previous": "Étape précédente",
+    "next": "Étape suivante",
+    "steps": {
+      "1": {
+        "title": "L'offre",
+        "question": "Qu'est-ce que vous proposez, et sur quoi ?"
+      },
+      "2": {
+        "title": "Le travail attendu",
+        "question": "Qu'est-ce que le créateur doit produire, et qu'en ferez-vous ?"
+      },
+      "3": {
+        "title": "Pour qui",
+        "question": "Quelle audience visez-vous ?"
+      },
+      "4": {
+        "title": "Le budget",
+        "question": "Combien payez-vous au total ?"
+      },
+      "5": {
+        "title": "Calendrier et candidature",
+        "question": "Quand, et que doit envoyer un créateur ?"
+      }
+    },
+    "blocks": {
+      "identification": "Identification",
+      "product": "Produit et dotation",
+      "internal": "Interne — jamais publié",
+      "deliverables": "Livrables",
+      "rights": "Droits d'usage et exclusivité",
+      "review": "Validation des contenus",
+      "audience": "Audience visée",
+      "audienceMore": "Précisions facultatives"
+    },
+    "internalNotice": "Cet encart n'est jamais publié : seuls vous et votre commercial INFLUX le voient.",
+    "errorsTitle": "À corriger dans cette étape"
+  },
+  "save": {
+    "saving": "Enregistrement…",
+    "saved": "Enregistré automatiquement à {time}",
+    "idle": "Enregistrement automatique",
+    "retry": "Modifications non enregistrées — nouvelle tentative dans 5 s.",
+    "failedTitle": "Votre saisie n'est pas encore enregistrée",
+    "failedText": "Elle reste dans cette page : vous pouvez continuer. Une nouvelle tentative a lieu dans quelques secondes.",
+    "retryNow": "Réessayer maintenant"
+  },
+  "layer": {
+    "public": "Publié : visible des créateurs.",
+    "internal": "Interne : jamais publié."
+  },
+  "field": {
+    "optional": "facultatif",
+    "characters": "{count, number} / {max, number} caractères",
+    "quantity": "Quantité",
+    "network": "Réseau",
+    "format": "Format",
+    "line": "Ligne {number}",
+    "addLine": "Ajouter un livrable",
+    "removeLine": "Retirer le livrable {number}",
+    "lineLimit": "{max} lignes au plus",
+    "keyMessageLabel": "Message clé {number}",
+    "addKeyMessage": "Ajouter un message clé",
+    "removeKeyMessage": "Retirer le message clé {number}",
+    "keyMessageLimit": "{max} messages au plus",
+    "clearChoice": "Effacer mon choix"
+  },
+  "fields": {
+    "title": {
+      "label": "Titre de la campagne",
+      "help": "Décrivez l'offre, pas la marque : votre nom figure déjà sur votre profil. Ni montant, ni coordonnée, ni lien."
+    },
+    "campaignType": {
+      "label": "Type de campagne"
+    },
+    "publicSummary": {
+      "label": "Résumé public",
+      "help": "Ce que vous cherchez, pour qui et sur quel réseau. C'est le seul texte lu avant d'ouvrir la campagne."
+    },
+    "brief": {
+      "label": "Brief détaillé",
+      "help": "Le contexte, les attentes créatives, le ton, ce qui doit apparaître et ce qui est laissé libre."
+    },
+    "internalReference": {
+      "label": "Référence interne",
+      "help": "Pour vous y retrouver entre plusieurs campagnes. Elle n'est jamais publiée."
+    },
+    "productDescription": {
+      "label": "Produit ou service concerné",
+      "help": "Un créateur juge une campagne sur le produit, pas sur un secteur."
+    },
+    "productSector": {
+      "label": "Catégorie du produit"
+    },
+    "keyMessages": {
+      "label": "Messages clés",
+      "help": "Ce que vous voulez entendre dire, en une à cinq puces de 10 à 200 caractères. Recommandé."
+    },
+    "restrictions": {
+      "label": "Interdits et points de vigilance",
+      "help": "Ce que vous refusez de voir : termes interdits, concurrents à ne pas citer, allégations à ne pas faire. Jamais un critère sur la personne du créateur."
+    },
+    "productIsSent": {
+      "label": "Un produit est-il envoyé au créateur ?"
+    },
+    "currency": {
+      "label": "Devise de la campagne",
+      "help": "Une seule devise pour toute la campagne : elle sert à la valeur du produit et au budget."
+    },
+    "productValueBand": {
+      "label": "Valeur du produit envoyé",
+      "help": "En tranche, jamais une valeur exacte. Seul votre commercial INFLUX la voit."
+    },
+    "creatorKeepsProduct": {
+      "label": "Le créateur conserve-t-il le produit ?",
+      "help": "Un produit à rendre n'est pas une rémunération."
+    },
+    "shippingCostsBorneBy": {
+      "label": "Frais d'envoi et de retour"
+    },
+    "deliverables": {
+      "label": "Livrables",
+      "help": "Un livrable est un réseau, un format et une quantité : « 2 stories + 1 reel » n'est pas « 3 contenus ». Les formats UGC (vidéo, photo) sont livrés à la marque, qui les diffuse elle-même."
+    },
+    "usageRights": {
+      "label": "Droits d'usage demandés"
+    },
+    "usageRightsDuration": {
+      "label": "Durée des droits d'usage"
+    },
+    "usageRightsTerritoryScope": {
+      "label": "Territoire des droits d'usage"
+    },
+    "usageRightsTerritories": {
+      "label": "Pays des droits d'usage",
+      "add": "Ajouter un pays…"
+    },
+    "exclusivity": {
+      "label": "Exclusivité sectorielle demandée"
+    },
+    "contentReviewDelay": {
+      "label": "Délai de validation des contenus",
+      "help": "Vous vous engagez à répondre sous ce délai. INFLUX ne reçoit et ne valide aucun livrable."
+    },
+    "audienceCountries": {
+      "label": "Pays visés",
+      "help": "Les pays où vit l'audience que vous visez. Cela décrit l'audience, jamais le créateur.",
+      "add": "Ajouter un pays…"
+    },
+    "audienceLanguages": {
+      "label": "Langues de publication attendues",
+      "add": "Ajouter une langue…"
+    },
+    "audienceTopics": {
+      "label": "Thématiques visées"
+    },
+    "audienceBands": {
+      "label": "Taille d'audience souhaitée",
+      "help": "En tranches, jamais un nombre exact."
+    },
+    "audienceAgeBands": {
+      "label": "Tranches d'âge de l'audience",
+      "help": "Aucune tranche en dessous de 18 ans : INFLUX n'ouvre pas ce sujet."
+    },
+    "audienceGender": {
+      "label": "Répartition de genre de l'audience",
+      "help": "Facultatif. Elle décrit l'audience, jamais le créateur ; sans choix, elle est indifférente."
+    }
+  },
+  "fieldErrors": {
+    "invalid": "Cette valeur n'est pas valide.",
+    "unknown": "Ce choix n'est plus disponible : choisissez-en un autre.",
+    "tooLong": "Ce texte est trop long.",
+    "duplicate": "Un même réseau et un même format ne peuvent figurer qu'une fois : changez la quantité.",
+    "formatNetworkMismatch": "Ce format ne correspond pas à ce réseau : choisissez un format du réseau.",
+    "ugcRequiresRights": "Un contenu livré à la marque exige des droits d'usage : choisissez-les à l'étape 2, ou changez de type de campagne.",
+    "giftRequiresProduct": "Cette campagne offre un produit : répondez « oui » à l'envoi d'un produit, ou changez la nature de la rémunération.",
+    "notApplicable": "Cette réponse n'a pas de sens avec une autre réponse : vérifiez les choix voisins."
+  },
+  "errors": {
+    "contactInText": "Votre texte contient ce qui ressemble à une coordonnée directe ou à une invitation à vous contacter hors d'INFLUX.",
+    "linkInText": "Votre texte contient ce qui ressemble à un lien. Les liens ne sont pas acceptés dans une campagne : le domaine de votre marque figure déjà sur votre profil.",
+    "amountInText": "Un montant figure dans votre texte. Les montants se déclarent dans le bloc budget."
+  },
+  "campaign_type": {
+    "product_placement": "Placement de produit dans un contenu",
+    "ugc_delivered": "Contenu livré à la marque (UGC)",
+    "product_review": "Test de produit et avis",
+    "ambassador": "Ambassadeur sur la durée",
+    "contest": "Concours ou jeu concours",
+    "event_presence": "Présence à un événement ou déplacement",
+    "affiliate_program": "Programme d'affiliation"
+  },
+  "shipping": {
+    "brand": "À la charge de la marque",
+    "creator": "À la charge du créateur"
+  },
+  "usage_right": {
+    "none": "Aucun : le contenu reste sur le compte du créateur",
+    "organic_repost": "Repost organique : vous republiez le contenu sur vos comptes, sans budget publicitaire",
+    "paid_whitelisting": "Whitelisting publicitaire : vous diffusez de la publicité payante depuis le compte du créateur",
+    "media_buy": "Achat média : vous diffusez le contenu comme votre propre publicité"
+  },
+  "usage_duration": {
+    "1m": "1 mois",
+    "3m": "3 mois",
+    "6m": "6 mois",
+    "12m": "12 mois",
+    "unlimited": "Illimitée"
+  },
+  "usage_territory": {
+    "worldwide": "Monde entier",
+    "selected_countries": "Pays choisis"
+  },
+  "review_delay": {
+    "48h": "48 heures",
+    "5bd": "5 jours ouvrés",
+    "10bd": "10 jours ouvrés"
+  },
+  "audience_band": {
+    "nano": "Nano (moins de 10 000 abonnés)",
+    "micro": "Micro (de 10 000 à 49 999)",
+    "mid": "Intermédiaire (de 50 000 à 499 999)",
+    "macro": "Macro (de 500 000 à 999 999)",
+    "mega": "Méga (1 million et plus)"
+  },
+  "age_band": {
+    "18_24": "18-24 ans",
+    "25_34": "25-34 ans",
+    "35_44": "35-44 ans",
+    "45_plus": "45 ans et plus"
+  },
+  "audience_gender": {
+    "female_majority": "Majorité féminine (60 % et plus)",
+    "mixed": "Mixte",
+    "male_majority": "Majorité masculine (60 % et plus)"
+  },
+  "price_band": {
+    "under_100": "Moins de 100\u00a0{currency}",
+    "100_250": "100 à 250\u00a0{currency}",
+    "250_500": "250 à 500\u00a0{currency}",
+    "500_1000": "500 à 1\u202f000\u00a0{currency}",
+    "1000_2500": "1\u202f000 à 2\u202f500\u00a0{currency}",
+    "2500_5000": "2\u202f500 à 5\u202f000\u00a0{currency}",
+    "5000_10000": "5\u202f000 à 10\u202f000\u00a0{currency}",
+    "10000_25000": "10\u202f000 à 25\u202f000\u00a0{currency}",
+    "25000_50000": "25\u202f000 à 50\u202f000\u00a0{currency}",
+    "50000_plus": "50\u202f000\u00a0{currency} et plus"
+  }
+}

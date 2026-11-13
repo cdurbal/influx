@@ -40,6 +40,7 @@ export function TextAreaField({
     texts.layer && ids.layer,
     texts.help && ids.help,
     counterId,
+    (texts.warnings?.length ?? 0) > 0 && ids.warning,
     hasError && ids.error,
   );
   return (

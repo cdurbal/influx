@@ -12,6 +12,8 @@ export type MemberPage =
   | "signupCreator"
   | "advertiserHome"
   | "creatorHome"
+  | "advertiserCampaigns"
+  | "advertiserCampaign"
   | "accountHub"
   | "accountDetails"
   | "accountProfile"
@@ -33,6 +35,10 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   signupCreator: { fr: "inscription/createur", en: "signup/creator" },
   advertiserHome: { fr: "marque", en: "brand" },
   creatorHome: { fr: "createur", en: "creator" },
+  // "Mes campagnes" (17 §4.3, M3; L3B, commit 09): the list of a brand's campaigns, the entry of its column; its
+  // campaign form is a child of it, the identifier of the campaign being the one dynamic segment of a member address.
+  advertiserCampaigns: { fr: "campagnes", en: "campaigns" },
+  advertiserCampaign: { fr: "campagnes/[id]", en: "campaigns/[id]" },
   // "Mon compte" (17 §6.0 to §6.4), common to both spaces: /fr/compte/* · /en/account/* (EC-15);
   // its page-menu (D74) holds the bare address, each page of the rubric a sub-path.
   accountHub: { fr: "compte", en: "account" },
@@ -102,6 +108,7 @@ export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
  * a creator verifies a network line (L2E, commit 18). They are not entries of their own.
  */
 export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
+  advertiserCampaign: "advertiserCampaigns",
   accountProfilePreview: PROFILE_ACCOUNT_PAGE,
   accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
   accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
@@ -204,6 +211,8 @@ export function isTermsExempt(page: MemberPage): boolean {
 const PAGE_SPACES: Readonly<Partial<Record<MemberPage, SignupDoor>>> = {
   advertiserHome: "advertiser",
   creatorHome: "creator",
+  advertiserCampaigns: "advertiser",
+  advertiserCampaign: "advertiser",
 };
 
 export function spaceOf(page: MemberPage): SignupDoor | null {
@@ -222,6 +231,24 @@ export function spaceRedirectOf(
   return space === null || space === role ? null : homePageOf(role);
 }
 
+/** The one dynamic segment of a member address: the opaque identifier of a campaign (17 §2.6). */
+const DYNAMIC_SEGMENT = "[id]";
+
+/** Whether a path (without its slashes) is the address a slug describes; `[id]` stands for any one segment. */
+function slugMatches(slug: string, path: string): boolean {
+  if (!slug.includes(DYNAMIC_SEGMENT)) {
+    return slug === path;
+  }
+  const expected = slug.split("/");
+  const found = path.split("/");
+  return (
+    expected.length === found.length &&
+    expected.every((part, index) =>
+      part === DYNAMIC_SEGMENT ? found[index] !== "" : part === found[index],
+    )
+  );
+}
+
 /**
  * The page a path of the CURRENT language leads to, without the locale prefix (the `usePathname`
  * of src/i18n/navigation.ts: "/compte/donnees"), or null for any other path.
@@ -232,20 +259,62 @@ export function memberPageOfPath(
 ): MemberPage | null {
   const slug = pathname.replace(/^\/+|\/+$/g, "");
   const pages = Object.keys(MEMBER_PAGE_SLUGS) as MemberPage[];
-  return pages.find((page) => MEMBER_PAGE_SLUGS[page][locale] === slug) ?? null;
+  return (
+    pages.find((page) => slugMatches(MEMBER_PAGE_SLUGS[page][locale], slug)) ??
+    null
+  );
 }
 
-/** The path of a page in a language, with its locale prefix (redirects, plain links). */
-export function memberPagePath(page: MemberPage, locale: AppLocale): string {
-  return `/${locale}/${MEMBER_PAGE_SLUGS[page][locale]}`;
+/** The slug of a page in a language, its dynamic segment filled by `segment` when it has one. */
+function slugOf(page: MemberPage, locale: AppLocale, segment?: string): string {
+  const slug = MEMBER_PAGE_SLUGS[page][locale];
+  return segment === undefined ? slug : slug.replace(DYNAMIC_SEGMENT, segment);
+}
+
+/**
+ * The identifier a path carries in its dynamic segment (the campaign of /campagnes/<id>), null for
+ * a page without one: what the other language's link of the shell needs to point to the same campaign.
+ */
+export function memberPageSegmentOfPath(
+  pathname: string,
+  locale: AppLocale,
+): string | null {
+  const page = memberPageOfPath(pathname, locale);
+  if (page === null) {
+    return null;
+  }
+  const index = MEMBER_PAGE_SLUGS[page][locale]
+    .split("/")
+    .indexOf(DYNAMIC_SEGMENT);
+  if (index < 0) {
+    return null;
+  }
+  return pathname.replace(/^\/+|\/+$/g, "").split("/")[index] ?? null;
+}
+
+/**
+ * The path of a page in a language, with its locale prefix (redirects, plain links); `segment`
+ * fills the dynamic segment of a page that has one.
+ */
+export function memberPagePath(
+  page: MemberPage,
+  locale: AppLocale,
+  segment?: string,
+): string {
+  return `/${locale}/${slugOf(page, locale, segment)}`;
 }
 
 /**
  * The path of a page in the CURRENT language, without the prefix: for the localized `Link` and
- * `useRouter` of src/i18n/navigation.ts, which add it.
+ * `useRouter` of src/i18n/navigation.ts, which add it. `segment` fills the dynamic segment of a
+ * page that has one.
  */
-export function memberPageHref(page: MemberPage, locale: AppLocale): string {
-  return `/${MEMBER_PAGE_SLUGS[page][locale]}`;
+export function memberPageHref(
+  page: MemberPage,
+  locale: AppLocale,
+  segment?: string,
+): string {
+  return `/${slugOf(page, locale, segment)}`;
 }
 
 /** The home of a role's space (17 §2.5): the space follows the real role, never the door. */
