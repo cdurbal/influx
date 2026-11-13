@@ -2,7 +2,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | commit | opus | high | expert-cybersecurite | fait | 04 : export_class aux codes des Lots 3-5 (tiers : block.*, report.* ; sécurité : detection.reviewed, alert.*) ; L3A-T5 nominatif, >= 130, témoin tiers |
-| A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
+| A | A.md | arbitrage | opus | xhigh | architecte | fait | Q16 : tranche en colonne, FK (devise, code), sans campaign_price_bands ; gel hors draft/rejected ; porte influx_campaign_definer ; projection SQL |
 | B | B.md | arbitrage | opus | xhigh | expert-paiement-facturation | à faire | |
 | F1 | F1.md | fondateur | — | — | fondateur | à faire | |
 | 02 | 02.md | commit | opus | high | expert-database | à faire | |
