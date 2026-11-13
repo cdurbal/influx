@@ -4,6 +4,7 @@
 // the run. Raise a floor when a file gains cases. LOWERING a floor is done in a commit whose
 // message says which cases disappear and why (18 §3 rule 2).
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
+  "db-tests/campaigns-core.test.ts": 68,
   "db-tests/creator-profile-parity.test.ts": 24,
   "db-tests/ops-schema.test.ts": 12,
   "db-tests/profiles-brand-logo-route.test.ts": 18,

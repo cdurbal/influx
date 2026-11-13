@@ -1402,6 +1402,8 @@ describe("L3A-T5 (L3B-T1): the allowlist of audit codes in the export (F3, 0302,
       "security.backoffice_login_failures",
       "verification.escalated",
     ],
+    // 0303 (04 §4.3, note under the Lot 3 table): the declaration of one party against another
+    excluded_third_party: ["block.created", "block.lifted"],
   };
   const EXCLUDED = Object.values(EXCLUDED_BY_CLASS).flat();
   /** The exported codes at 0302 (f3.md); a later migration adds codes, never removes one. */

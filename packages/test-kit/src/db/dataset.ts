@@ -181,6 +181,16 @@ export const CREATOR_REVIEW_IDS = {
   },
 } as const;
 
+/**
+ * 0303 (L3B commit 02): one DRAFT campaign per advertiser, with one row in each of its nine lists,
+ * so that T2 observes `propre` against account B. Inert: a draft is in no queue and seen by nobody
+ * but its brand.
+ */
+export const CAMPAIGN_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff29",
+  b: "00000000-0000-4000-8000-00000000ff2a",
+} as const;
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -437,6 +447,66 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
         values (${FIELD_REVISION_IDS[side]}, ${account}, 'advertiser.presentation',
                 '"T2 presentation"'::jsonb, 'withdrawn', ${REVIEW_ENTRY_IDS[side]}, now())
         on conflict do nothing`;
+    }
+    // 0303 (L3B): a draft campaign per advertiser and one row in each of its lists, so that
+    // `propre` is observable against account B; the T2 insert templates add other codes to A.
+    const campaignRows = {
+      a: {
+        network: "instagram",
+        format: "instagram_reel",
+        country: "FR",
+        language: "fr",
+        band: "micro",
+        age: "25_34",
+        topic: "beauty",
+        item: "motivation_message",
+      },
+      b: {
+        network: "tiktok",
+        format: "tiktok_video",
+        country: "GB",
+        language: "en",
+        band: "mid",
+        age: "18_24",
+        topic: "fashion",
+        item: "availability",
+      },
+    } as const;
+    for (const side of ["a", "b"] as const) {
+      const campaign = CAMPAIGN_IDS[side];
+      const rows = campaignRows[side];
+      await tx`
+        insert into campaigns.campaigns (id, advertiser_account_id, title)
+        values (${campaign}, ${accountIdOf("advertiser", side)}, ${`T2 campaign ${side}`})
+        on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_key_messages (campaign_id, position, body)
+        values (${campaign}, 1, ${`T2 key message ${side}`}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_deliverables
+          (campaign_id, slot, network_code, format_code, quantity)
+        values (${campaign}, 1, ${rows.network}, ${rows.format}, 1) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_usage_territories (campaign_id, slot, country_code)
+        values (${campaign}, 1, ${rows.country}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_audience_countries (campaign_id, slot, country_code)
+        values (${campaign}, 1, ${rows.country}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_audience_languages (campaign_id, language_code)
+        values (${campaign}, ${rows.language}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_audience_bands (campaign_id, audience_band_code)
+        values (${campaign}, ${rows.band}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_audience_age_bands (campaign_id, age_band_code)
+        values (${campaign}, ${rows.age}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_topics (campaign_id, slot, topic_code)
+        values (${campaign}, 1, ${rows.topic}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_requested_items (campaign_id, slot, item_code)
+        values (${campaign}, 1, ${rows.item}) on conflict do nothing`;
     }
     // 0216 (L2D): the storefront of each creator and one row in each of its lists, so that
     // `propre` is observable against account B; the T2 insert templates add other codes to A.

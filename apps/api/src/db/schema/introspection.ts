@@ -3,6 +3,7 @@
 // src/db (02 §5 rule 6): the tests ask this module and never import the library themselves.
 import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
 import { isTable } from "drizzle-orm";
+import * as campaigns from "./campaigns.ts";
 import * as profilesCreatorIdentity from "./profiles-creator-identity.ts";
 import * as verification from "./verification.ts";
 
@@ -29,4 +30,9 @@ export function creatorIdentityColumns(): Record<string, string[]> {
  */
 export function verificationColumns(): Record<string, string[]> {
   return columnsOf(verification);
+}
+
+/** Database column names of every table declared in campaigns.ts (0303, L3B), by table: 18 TM11. */
+export function campaignsColumns(): Record<string, string[]> {
+  return columnsOf(campaigns);
 }

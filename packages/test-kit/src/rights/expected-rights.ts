@@ -19,7 +19,11 @@
 //
 // ANY CHANGE TO THIS FILE IS A CHANGE OF RIGHTS: the commit carries `security-reviewed: <date>`
 // (03 I-4, 18 C-8), checked by the CI like a migration.
-import { CREATOR_SOCIAL_ACCOUNT_IDS } from "../db/dataset.ts";
+import {
+  accountIdOf,
+  CAMPAIGN_IDS,
+  CREATOR_SOCIAL_ACCOUNT_IDS,
+} from "../db/dataset.ts";
 
 /**
  * Postgres roles taken at execution time (18 T2.1): J2, plus influx_ops at J4 (0016), plus
@@ -278,6 +282,60 @@ export const CREATOR_AUDIENCE_TABLES: readonly {
   },
 ];
 
+/**
+ * 0303 (L3B): the campaign of a list row, by the account its probe is written for (`$1`): the
+ * draft of advertiser A or B of the data set. A list row holds no account column; its campaign
+ * says whose it is.
+ */
+const CAMPAIGN_OF_ACCOUNT =
+  "(values " +
+  `('${accountIdOf("advertiser", "a")}'::uuid, '${CAMPAIGN_IDS.a}'::uuid), ` +
+  `('${accountIdOf("advertiser", "b")}'::uuid, '${CAMPAIGN_IDS.b}'::uuid)` +
+  ") as campaign_of (account_id, campaign_id)";
+
+/**
+ * 0303 (L3B): the owner of a list row, read through its campaign under the RLS of the role taken
+ * (NULL when the campaign is not visible, so that a visible row of another brand is reported).
+ */
+const CAMPAIGN_OWNER =
+  "(select c.advertiser_account_id from campaigns.campaigns c where c.id = campaign_id)";
+
+/**
+ * The nine list tables of a campaign (0303, L3B), each with the insert of its probe: a code of the
+ * draft of account A that the data set does not hold, within the cap of the list (`slot`). For
+ * account B the policy refuses it (42501).
+ */
+const CAMPAIGN_LIST_PROBES: readonly (readonly [
+  name: string,
+  columns: string,
+  values: string,
+])[] = [
+  ["campaign_key_messages", "position, body", "3, 'T2 probe message'"],
+  [
+    "campaign_deliverables",
+    "slot, network_code, format_code, quantity",
+    "10, 'youtube', 'youtube_short', 2",
+  ],
+  ["campaign_usage_territories", "slot, country_code", "5, 'DE'"],
+  ["campaign_audience_countries", "slot, country_code", "5, 'DE'"],
+  ["campaign_audience_languages", "language_code", "'de'"],
+  ["campaign_audience_bands", "audience_band_code", "'nano'"],
+  ["campaign_audience_age_bands", "age_band_code", "'45_plus'"],
+  ["campaign_topics", "slot, topic_code", "3, 'travel'"],
+  ["campaign_requested_items", "slot, item_code", "4, 'concept_proposal'"],
+];
+
+export const CAMPAIGN_LISTS: readonly {
+  table: string;
+  insertTemplate: string;
+}[] = CAMPAIGN_LIST_PROBES.map(([name, columns, values]) => ({
+  table: `campaigns.${name}`,
+  insertTemplate:
+    `insert into campaigns.${name} (campaign_id, ${columns}) ` +
+    `select campaign_of.campaign_id, ${values} from ${CAMPAIGN_OF_ACCOUNT} ` +
+    "where campaign_of.account_id = $1",
+}));
+
 export const TABLE_RIGHTS: readonly TableRights[] = [
   {
     table: "reference.countries",
@@ -320,6 +378,13 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     source:
       "0217 (L2D, l2d/modele.md point 5): the hosts of the ten networks, rights of 0201",
     probeColumn: "network_code",
+    expected: forRoles(BUSINESS, { select: LOT2_REFERENCE_READ }),
+  },
+  {
+    table: "reference.campaign_types",
+    source:
+      "0303 (L3B, 09 RG18, l3b/modele.md §3): the seven campaign types, rights of 0201",
+    probeColumn: "code",
     expected: forRoles(BUSINESS, { select: LOT2_REFERENCE_READ }),
   },
   {
@@ -1982,6 +2047,85 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "hour",
     expected: {},
   },
+  // 0303 (L3B commit 02, l3b/modele.md §4): the campaign and its lists belong to the brand alone;
+  // influx_creator NOTHING (D78, TM5.6), influx_agent and influx_admin nothing before L3C.
+  {
+    table: "campaigns.campaigns",
+    source:
+      "0303 (09 blocks 1 to 8, modele §2 and §4): written by its brand in draft or rejected; never " +
+      "the state, the cycle, the declaration of RG85, the suspended range nor the owner",
+    probeColumn: "advertiser_account_id",
+    ownerColumn: "advertiser_account_id",
+    updateSet: "title = title",
+    insertTemplate:
+      "insert into campaigns.campaigns (advertiser_account_id, title) values ($1, 'T2 probe')",
+    expected: {
+      influx_advertiser: {
+        select: {
+          form: "propre",
+          source:
+            "modele §4: the brand reads its own campaigns, the suspended range excepted",
+        },
+        insert: {
+          form: "propre",
+          source:
+            "modele §4, CA2: any active advertiser creates a draft of its own",
+        },
+        update: {
+          form: "propre",
+          source:
+            "modele §4: the entry columns of its own campaigns (frozen outside draft, rejected)",
+        },
+      },
+    },
+  },
+  ...CAMPAIGN_LISTS.map(({ table, insertTemplate }): TableRights => ({
+    table,
+    source: "0303 (modele §3, §4): a list of a campaign, keyed by its campaign",
+    probeColumn: "campaign_id",
+    ownerColumn: CAMPAIGN_OWNER,
+    insertTemplate,
+    expected: {
+      influx_advertiser: {
+        select: {
+          form: "propre",
+          source:
+            "modele §4: the rows of its own campaigns (RLS through the campaign)",
+        },
+        insert: {
+          form: "propre",
+          source: "modele §4: a row added to the list of its own campaign",
+        },
+        delete: {
+          form: "propre",
+          source:
+            "modele §4: a list is replaced in one transaction, never updated",
+        },
+      },
+    },
+  })),
+  {
+    table: "campaigns.requested_items",
+    source:
+      "0303 (09 RG77, modele §3): the five items a brand may put forward, written by the migrations",
+    probeColumn: "code",
+    expected: {
+      influx_advertiser: {
+        select: {
+          form: "autorisé",
+          source: "modele §4: the brand reads the items its form offers",
+        },
+      },
+    },
+  },
+  {
+    table: "campaigns.rejection_reasons",
+    source:
+      "0303 (09 RG90, modele §3): the closed list of queue 7, written by the migrations; its read " +
+      "policy is written, its grant comes with L3C (EC-L3B-02-1)",
+    probeColumn: "code",
+    expected: {},
+  },
 ];
 
 /**
@@ -2055,7 +2199,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * (L2G commit 03, the creator submission), each line checked against its sections 8, 9 and 12; then
  * with those of 0244 (L2G commit 04, the decisions of queues 2 and 3), against its sections 2 and 4;
  * then with those of 0245 (L2G commit 05, the export, the erasure and the reads of the worker),
- * against its sections 1 and 3.
+ * against its sections 1 and 3; and on 2026-11-13 with those of 0303 (L3B commit 02, the campaigns
+ * core), each line checked against its section 6 and l3b/modele.md §4.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -5975,6 +6120,91 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_identity_definer|function|profiles.normalized_brand_name(text)|EXECUTE",
   "influx_moderation_definer|function|profiles.normalized_brand_name(text)|EXECUTE",
   "influx_privacy_definer|function|profiles.normalized_brand_name(text)|EXECUTE",
+  // 0303 (L3B commit 02, jalons/l3b/modele.md §4): the brand reads its campaigns (never the suspended
+  // range, D78), creates them and writes the entry columns (never the state, the cycle, the declaration
+  // of RG85 nor the owner); reads, adds and removes the rows of its nine lists; reads the requested
+  // items. influx_creator, influx_agent, influx_admin: NOTHING on campaigns.* (TM5.6; L3C for the two
+  // last, EC-L3B-02-1). reference.campaign_types: SELECT to the four business roles, as 0201.
+  "influx_admin|table|reference.campaign_types|SELECT",
+  "influx_advertiser|column|campaigns.campaign_audience_age_bands.age_band_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_audience_age_bands.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_audience_bands.audience_band_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_audience_bands.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_audience_countries.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_audience_countries.country_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_audience_countries.slot|INSERT",
+  "influx_advertiser|column|campaigns.campaign_audience_languages.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_audience_languages.language_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_deliverables.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_deliverables.format_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_deliverables.network_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_deliverables.quantity|INSERT",
+  "influx_advertiser|column|campaigns.campaign_deliverables.slot|INSERT",
+  "influx_advertiser|column|campaigns.campaign_key_messages.body|INSERT",
+  "influx_advertiser|column|campaigns.campaign_key_messages.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_key_messages.position|INSERT",
+  "influx_advertiser|column|campaigns.campaign_requested_items.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_requested_items.item_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_requested_items.slot|INSERT",
+  "influx_advertiser|column|campaigns.campaign_topics.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_topics.slot|INSERT",
+  "influx_advertiser|column|campaigns.campaign_topics.topic_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_usage_territories.campaign_id|INSERT",
+  "influx_advertiser|column|campaigns.campaign_usage_territories.country_code|INSERT",
+  "influx_advertiser|column|campaigns.campaign_usage_territories.slot|INSERT",
+  "influx_advertiser|column|campaigns.campaigns.advertiser_account_id|INSERT,SELECT",
+  "influx_advertiser|column|campaigns.campaigns.applications_close_on|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.audience_gender_code|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.authorizations_declaration_hash|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.authorizations_declaration_locale|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.authorizations_declared_at|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.authorizations_declared_by_account_id|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.brief|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.campaign_type_code|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.content_due_on|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.content_review_delay|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.created_at|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.creator_keeps_product|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.creators_wanted|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.currency|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.ends_on|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.erased_at|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.exclusivity_band|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.id|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.internal_reference|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.max_applications|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.per_creator_budget_band_code|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.product_description|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.product_is_sent|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.product_value_band_code|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.public_summary|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.remuneration_kind|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.restrictions|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.sector_code|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.shipping_costs_borne_by|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.starts_on|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.status|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.submitted_at|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.title|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.total_budget_minor|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.updated_at|SELECT",
+  "influx_advertiser|column|campaigns.campaigns.usage_rights_code|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.usage_rights_duration_band|INSERT,SELECT,UPDATE",
+  "influx_advertiser|column|campaigns.campaigns.usage_rights_territory_scope|INSERT,SELECT,UPDATE",
+  "influx_advertiser|schema|campaigns|USAGE",
+  "influx_advertiser|table|campaigns.campaign_audience_age_bands|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.campaign_audience_bands|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.campaign_audience_countries|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.campaign_audience_languages|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.campaign_deliverables|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.campaign_key_messages|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.campaign_requested_items|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.campaign_topics|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.campaign_usage_territories|DELETE,SELECT",
+  "influx_advertiser|table|campaigns.requested_items|SELECT",
+  "influx_advertiser|table|reference.campaign_types|SELECT",
+  "influx_agent|table|reference.campaign_types|SELECT",
+  "influx_creator|table|reference.campaign_types|SELECT",
 ];
 
 /**
