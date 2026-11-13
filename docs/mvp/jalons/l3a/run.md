@@ -1,7 +1,7 @@
 # Exécution du jalon L3A
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | sonnet | medium | expert-cybersecurite | à faire | |
+| 01 | 01.md | commit | sonnet | medium | expert-cybersecurite | fait | attestation L2G posée ; CI verte sur da4109f (run 43394059337) lève L2GT-9 |
 | 02 | 02.md | commit | sonnet | high | expert-ux | à faire | |
 | 03 | 03.md | commit | sonnet | high | product-owner | à faire | |
 | 04 | 04.md | commit | sonnet | high | integrateur | à faire | |
