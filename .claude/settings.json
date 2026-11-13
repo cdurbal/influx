@@ -32,7 +32,10 @@
       "Bash(pnpm exec supabase link --project-ref pminhrwqepjzkyszgtwm*)",
       "Bash(pnpm exec supabase config push*)",
       "Edit(./apps/**)", "Edit(./packages/**)", "Edit(./supabase/migrations/**)","Edit(./docs/mvp/**)",
-      "Edit(./**/.env.example)","Edit(./**/.env.local)"
+      "Edit(./**/.env.example)","Edit(./**/.env.local)",
+      "Bash(pnpm --filter * exec playwright test*)",
+      "Bash(gh run list*)", "Bash(gh run view*)", "Bash(gh run watch*)", "Bash(gh run rerun*)",
+      "Bash(git push origin main)"
     ],
     "deny": [
       "Read(./**/.env)", "Read(./**/.env.trial*)",
