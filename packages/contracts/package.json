@@ -14,6 +14,7 @@
     "./auth": "./src/auth.ts",
     "./account": "./src/account.ts",
     "./brand-profile": "./src/brand-profile.ts",
+    "./campaign": "./src/campaign.ts",
     "./creator-profile": "./src/creator-profile.ts",
     "./creator-portfolio": "./src/creator-portfolio.ts",
     "./creator-projection": "./src/creator-projection.ts",

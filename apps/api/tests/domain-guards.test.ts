@@ -30,6 +30,19 @@ import {
   BRAND_PROFILE_WEIGHTS,
 } from "@influx/domain/brand-profile";
 import {
+  CAMPAIGN_LIST_LIMITS,
+  CAMPAIGN_REQUIRED_FIELD_CODES,
+} from "@influx/contracts/campaign";
+import {
+  CAMPAIGN_AUDIENCE_COUNTRIES_MAX,
+  CAMPAIGN_DELIVERABLES_MAX,
+  CAMPAIGN_KEY_MESSAGES_MAX,
+  CAMPAIGN_REQUESTED_ITEMS_MAX,
+  CAMPAIGN_REQUIRED_FIELDS,
+  CAMPAIGN_TOPICS_MAX,
+  CAMPAIGN_USAGE_TERRITORIES_MAX,
+} from "@influx/domain/campaign";
+import {
   BIO_MAX_LENGTH,
   CREATOR_PROFILE_REQUIRED_FIELDS,
   CREATOR_PROFILE_WEIGHTS,
@@ -191,7 +204,7 @@ describe("the completeness is computed in packages/domain only (stockage.md §9)
 });
 
 describe("@influx/domain at L2B", () => {
-  it("is imported by the profile domain of apps/api, the alerts of queue 1 (L2C 11) the gap of the typing of queue 4 (L2E 14), the reasons of a withdrawal (L2F 13), the end of a grace period (L2F 13) and the text of a contest (L2F 14), the count of the portfolio (L2G 07), the alerts of queues 2 and 3 (L2G 11), and nobody else (no front yet)", () => {
+  it("is imported by the profile domain of apps/api, the campaigns a brand writes (L3B 07), the alerts of queue 1 (L2C 11) the gap of the typing of queue 4 (L2E 14), the reasons of a withdrawal (L2F 13), the end of a grace period (L2F 13) and the text of a contest (L2F 14), the count of the portfolio (L2G 07), the alerts of queues 2 and 3 (L2G 11), and nobody else (no front yet)", () => {
     const importers = sourcesOf(
       SOURCE_ROOTS.filter((root) => root !== "packages/domain/src"),
     )
@@ -206,6 +219,7 @@ describe("@influx/domain at L2B", () => {
       "apps/api/src/domains/backoffice/queues/entry-alerts.ts",
       "apps/api/src/domains/backoffice/verification-badges-routes.ts",
       "apps/api/src/domains/backoffice/verification-queues-decision-routes.ts",
+      "apps/api/src/domains/campaigns/campaign.ts",
       "apps/api/src/domains/profiles/brand-profile.ts",
       "apps/api/src/domains/profiles/creator/networks.ts",
       "apps/api/src/domains/profiles/creator/portfolio.ts",
@@ -245,6 +259,27 @@ describe("the contract repeats the code lists of the domain, equal (it has no de
     expect([...BRAND_PROFILE_REQUIRED_FIELD_CODES]).toEqual([
       ...BRAND_PROFILE_REQUIRED_FIELDS,
     ]);
+  });
+
+  it("lists the required fields of a campaign in the same order, and its list ceilings (L3B 07)", () => {
+    expect([...CAMPAIGN_REQUIRED_FIELD_CODES]).toEqual([
+      ...CAMPAIGN_REQUIRED_FIELDS,
+    ]);
+    expect({
+      keyMessages: CAMPAIGN_LIST_LIMITS.keyMessages,
+      deliverables: CAMPAIGN_LIST_LIMITS.deliverables,
+      usageRightsTerritories: CAMPAIGN_LIST_LIMITS.usageRightsTerritories,
+      audienceCountries: CAMPAIGN_LIST_LIMITS.audienceCountries,
+      audienceTopics: CAMPAIGN_LIST_LIMITS.audienceTopics,
+      requestedItems: CAMPAIGN_LIST_LIMITS.requestedItems,
+    }).toEqual({
+      keyMessages: CAMPAIGN_KEY_MESSAGES_MAX,
+      deliverables: CAMPAIGN_DELIVERABLES_MAX,
+      usageRightsTerritories: CAMPAIGN_USAGE_TERRITORIES_MAX,
+      audienceCountries: CAMPAIGN_AUDIENCE_COUNTRIES_MAX,
+      audienceTopics: CAMPAIGN_TOPICS_MAX,
+      requestedItems: CAMPAIGN_REQUESTED_ITEMS_MAX,
+    });
   });
 
   it("lists the criteria and the blocks of the score in the same order", () => {

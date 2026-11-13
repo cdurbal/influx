@@ -6,6 +6,7 @@
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/campaign-parity.test.ts": 83,
   "db-tests/campaigns-core.test.ts": 68,
+  "db-tests/campaigns-route.test.ts": 19,
   "db-tests/campaigns-submission.test.ts": 33,
   "db-tests/creator-profile-parity.test.ts": 24,
   "db-tests/ops-schema.test.ts": 12,
@@ -40,6 +41,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t14-backoffice-queue-route.test.ts": 55,
   "db-tests/t14-creator-queue-route.test.ts": 28,
   "db-tests/t14-backoffice-route-inventory.test.ts": 6,
+  "db-tests/t14-campaigns-route.test.ts": 10,
   "db-tests/t14-verification-badges-route.test.ts": 10,
   "db-tests/t14-verification-opening-route.test.ts": 12,
   "db-tests/t14-verification-queue-route.test.ts": 37,

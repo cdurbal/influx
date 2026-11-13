@@ -32,6 +32,7 @@ import { registerBrandVerificationRoutes } from "./domains/verification/brand-ro
 import { registerVerificationBadgesRoutes } from "./domains/backoffice/verification-badges-routes.ts";
 import { registerVerificationOpeningRoutes } from "./domains/backoffice/verification-opening-routes.ts";
 import { registerVerificationRegistryRoutes } from "./domains/backoffice/verification-registry-routes.ts";
+import { registerCampaignRoutes } from "./domains/campaigns/routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
@@ -578,6 +579,13 @@ export function buildServer(
     now: options.identity?.now ?? (() => new Date()),
     store: objectStore,
     slots: imageSlots,
+  });
+
+  // The campaigns a brand writes and submits (docs/mvp/09; jalon L3B commit 07): list, draft, read,
+  // autosave, submission.
+  registerCampaignRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
   });
 
   // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08); its

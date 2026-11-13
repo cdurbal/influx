@@ -112,6 +112,9 @@ const OWN_CONTACT_BY_MODULE: Readonly<Record<string, readonly string[]>> = {
   auth: ["email"],
   account: ["email", "companyName"],
   "brand-profile": ["companyName", "firstName", "email", "phone"],
+  // L3B 07: the network of a deliverable line or of a format a brand picks (a closed reference code,
+  // 09 RG36); no creator identity is involved, the module is the brand's own campaign
+  campaign: ["networkCode"],
   signup: ["companyName"],
   support: ["contactEmail"],
   "brevo-webhook": ["email"],
@@ -123,6 +126,10 @@ const OWN_CONTACT_BY_ROUTE: Readonly<Record<string, readonly string[]>> = {
   "/v1/me": ["email", "companyName"],
   "/v1/me/brand-profile": ["companyName", "firstName", "email", "phone"],
   "/v1/me/brand-profile/submit": ["companyName", "firstName", "email", "phone"],
+  // L3B 07: the campaign of the brand and the codes of its form (a deliverable's network)
+  "/v1/me/campaigns": ["networkCode"],
+  "/v1/me/campaigns/:id": ["networkCode"],
+  "/v1/me/campaigns/:id/submit": ["networkCode"],
   // The creator's own verification (L2E 12): the network of HIS line, which a request and a badge
   // name. A brand never reaches these routes (T14, db-tests/verification-route.test.ts); the public
   // badge an advertiser will read names a network by design (08 RG89) and is held free of handle, URL,

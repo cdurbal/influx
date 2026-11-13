@@ -10,7 +10,7 @@
 | 04 | 04.md | commit | sonnet | high | dev-react-node | fait | 27 codes camelCase de modele §5 par étape ; dates RG70 six paires, RG74 ; détection contact/lien/montant en positions seules ; 69 cas T5 |
 | 05 | 05.md | commit | opus | high | expert-database | fait | 0305 : porte influx_campaign_definer (pending_review seul), 27 manquants en parité, RG85 empreinte/langue/auteur, vue créateur 32 clés sans devise ni tranche |
 | 06 | 06.md | commit | opus | high | expert-database | fait | 0306 : campagnes sous advertiser_profile ; effacement : closed, erased_at, textes/réf./budget vidés, puces supprimées, ligne vidée seule ; aucun registre |
-| 07 | 07.md | commit | sonnet | high | dev-react-node | à faire | |
+| 07 | 07.md | commit | sonnet | high | dev-react-node | fait | 5 routes /v1/me/campaigns ; refus base en codes de champ camelCase ; autre marque ou créateur = 404 identique ; gel 409 ; locale RG85 seulement si cochée |
 | 08 | 08.md | commit | opus | high | dev-react-node | à faire | |
 | 09 | 09.md | commit | sonnet | high | dev-react-node | à faire | |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | à faire | |
