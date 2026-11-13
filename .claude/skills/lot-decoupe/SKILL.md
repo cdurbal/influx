@@ -59,6 +59,11 @@ Règles de découpage :
 - identifiants `L<N><lettre>` (L2A, L2B…) ; fiche future `jalons/l<n><lettre>-fiche.md` ;
 - chaque reliquat de `21` §8 à échéance du lot reçoit un jalon (souvent un commit « dette » en tête
   du premier) ;
+- chaque skill du domaine du lot de plus de 10 Ko (`wc -c .claude/skills/*/SKILL.md`) reçoit un
+  commit « dette skill » en tête du premier jalon (`sonnet` · `high`) : `SKILL.md` de 10 Ko au plus
+  (règles, check-list, pointeurs), le reste dans `references/` lu à la demande, renvois aux
+  spécifications plutôt que recopies, contradictions avec `decisions.md` corrigées (amendement D77
+  du 2026-11-13) ;
 - une décision non tranchée ne s'invente pas : elle va dans « Préalables » avec son arbitre
   (`CLAUDE.md`, règle d'or).
 

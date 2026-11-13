@@ -26,20 +26,30 @@ et leur taille. Aucun sous-agent. But : que chaque prompt cite des lignes, pas d
 
 ## 2. Écrire
 
-`docs/mvp/jalons/<id>-fiche.md` — le contrat, **25 Ko au plus** (lu en entier à chaque commit) :
+`docs/mvp/jalons/<id>-fiche.md` — le contrat, **10 Ko au plus** (lu en entier à chaque ligne :
+chaque Ko coûte environ 300 tokens par ligne du jalon) :
 
 ```markdown
 # Jalon <ID> — <titre>
-> Source · date · Statut : à valider | ouvert | clos
+> Source · date · Statut : à valider | ouvert | clos · Annexe : `<id>/annexe.md`
 ## Objectif et périmètre            (10 lignes au plus ; ce qui ne change pas)
-## Invariants                       (liste numérotée, chacun vérifiable)
+## Invariants                       (liste numérotée, chacun vérifiable en une phrase)
 ## Lectures                         (fichier, section, lignes ; par commit si elles diffèrent)
-## Commits                          | # | Titre imposé (Conventional Commits) | Contenu | Tests |
-## Tests                            (identifiants, niveau, ce qu'ils prouvent ; planchers)
+## Commits                          | # | Titre imposé (Conventional Commits) | Contenu en une phrase |
+```
+
+`docs/mvp/jalons/<id>/annexe.md` — lue par la revue, la clôture et les seules lignes dont le
+prompt la cite (amendement D77 du 2026-11-13) :
+
+```markdown
+# Jalon <ID> — annexe
+## Tests                            (identifiants, niveau, ce qu'ils prouvent ; planchers ; budget e2e)
 ## Critère de fin                   (cases, chacune avec la preuve attendue)
 ## Écarts, décisions ouvertes, risques
-## Revue                            (rempli par /jalon-run : <ID>T-n, <ID>S-n)
+## Revue                            (rempli par /jalon-run : <ID>T-n, <ID>S-n, une ligne chacun)
 ```
+
+Le détail d'un commit (tests à écrire, cas limites) va dans son prompt, pas dans la fiche.
 
 `docs/mvp/jalons/<id>/NN.md` — un prompt par ligne, **2 Ko au plus**, sur ce gabarit :
 
@@ -54,10 +64,13 @@ Grille `<agent>`. Skill : `<skill>` (seulement si utile).
 ```
 
 Plus `revue.md` (une section « Pour `testeur` », une section « Pour `expert-cybersecurite` » :
-plage, invariants à vérifier, format des constats) et `cloture.md` (cases du critère cochées avec
-leur preuve, `pnpm check` puis `pnpm test:e2e`, ligne de clôture dans `21` §8, attestation
-`security-reviewed: <date> covers <sha>…` si la revue est soldée, fiche et dossier déplacés dans
-`archives/jalons/`).
+plage, invariants à vérifier, format des constats ; **rapport de 10 Ko au plus**, détail complet
+— fichier, ligne, scénario, correctif — pour les seuls constats « bloquant » et « jalon », **une
+ligne** pour « avant production » et « plus tard » ; même règle pour `ux.md`) et `cloture.md`
+(cases du critère cochées avec leur preuve, `pnpm check` puis `pnpm test:e2e`, ligne de clôture
+dans `21` §8, attestation `security-reviewed: <date> covers <sha>…` si la revue est soldée, fiche
+et dossier déplacés dans `archives/jalons/` ; **dernier jalon du lot** : `jalons/lot<N>-plan.md`
+archivé aussi, références mises à jour).
 
 `docs/mvp/jalons/<id>/run.md` — la table d'exécution, seul état du jalon :
 
@@ -69,6 +82,10 @@ leur preuve, `pnpm check` puis `pnpm test:e2e`, ligne de clôture dans `21` §8,
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | — | à faire | |
 ```
+
+**Note : 160 caractères au plus** (l'invariant clé ou la décision, mot pour mot si elle vient du
+fondateur) ; le détail va dans le message de commit ou dans l'annexe. `run.md` est relu à chaque
+ligne et par l'orchestrateur.
 
 Types : `commit`, `arbitrage` (un agent tranche et l'écrit), `fondateur` (décision ou recette
 humaine : arrêt), `ux` (constats `expert-ux`, sans commit), `revue`, `fix` (ajouté par la revue),

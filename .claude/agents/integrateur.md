@@ -79,22 +79,22 @@ contenu des tests (→ `testeur`), le moment de livrer en production (→ fondat
    avec le code déployé (pas de migration destructive simultanée à un déploiement applicatif).
 8. **Pas de déploiement en production sans validation explicite du fondateur.**
 
-## Pipeline cible
+## Circuit en vigueur (dérogation `main`, D71, D76)
 
 ```
-  Développeur / agent
-        │  branche feat/* ou fix/*
-        ▼
-     GitHub  ──► CI (typecheck · lint · tests · build)
-        │             │ échec ──► merge bloqué
-        │ Pull Request + revue
-        ▼
-      main  ──► déploiement automatique  ──►  Railway staging
-                        │
-                        │ validation fonctionnelle
-                        ▼
-                 promotion manuelle  ──►  Railway production
+  Agent ── commit direct ──► main ── push par lot (D76) ──► CI complète (jobs parallèles)
+                                                              │ verte
+                                                              ▼
+                                         migrations par la CI, puis Railway staging
+                                                              │ revue groupée de fin de jalon,
+                                                              │ vetos levés (D71), accord du fondateur
+                                                              ▼
+                       branche production ◄── git merge --no-ff main ──► Railway production
 ```
+
+Jamais `railway up` ni `supabase db push` ; toute action sur la production, lecture comprise, sur
+confirmation du fondateur (`CLAUDE.md` §7 règle 4). Si la dérogation est levée : branches
+`feat/*`, `fix/*` et Pull Request avec CI verte vers `main`.
 
 ## Points d'attention spécifiques à INFLUX
 

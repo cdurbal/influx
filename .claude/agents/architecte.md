@@ -32,9 +32,10 @@ architecture), §9 et `docs/mvp/decisions.md` (décisions).
 - **Stack imposée** non négociable : React + TypeScript (front), Node.js + TypeScript (back),
   Supabase (Postgres/Auth/Storage/RLS), GitHub (code), Railway (déploiement).
 - **TypeScript strict** partout, `any` proscrit sauf justification écrite.
-- **Le calcul de la commission de 35 % vit à un seul endroit** du code, dans le domaine
-  `billing`, avec le taux lu en base et historisé au contrat. Toute duplication est un défaut
-  bloquant que tu refuses en revue.
+- **Commission** : au MVP, **aucun taux ni calcul dans le code** (`CLAUDE.md` §2, régime
+  transitoire ; tu refuses en revue tout pourcentage ou net estimé). En V2, le calcul vivra à un
+  seul endroit, dans le domaine `billing`, avec le taux lu en base et figé au contrat ; toute
+  duplication est un défaut bloquant.
 - **La synchronisation Brevo/Apollo est asynchrone et rejouable.** Elle ne doit jamais se trouver
   sur le chemin critique d'une inscription : un échec d'API externe ne fait pas échouer un signup.
 - **La base est la source de vérité**, jamais les outils externes.
