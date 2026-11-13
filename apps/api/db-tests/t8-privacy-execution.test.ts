@@ -1389,6 +1389,130 @@ describe("privacy.execute_request(): access (runbook §4)", () => {
   });
 });
 
+describe("the allowlist of audit codes in the export (F3, 0302, jalons/l3a/f3.md)", () => {
+  /** The five codes of f3.md, excluded_security; every other code is exported. */
+  const EXCLUDED = [
+    "agent.reauthentication_failed",
+    "agent.unexpected_mfa_factor",
+    "backoffice.action_refused",
+    "security.backoffice_login_failures",
+    "verification.escalated",
+  ];
+
+  it("classifies every code explicitly, without default: a code inserted without its class is refused", async () => {
+    const outcome = await scenario(async (tx) => {
+      const [column] = await tx<{ not_null: boolean; has_default: boolean }[]>`
+        select attnotnull as not_null, atthasdef as has_default
+          from pg_catalog.pg_attribute
+         where attrelid = 'audit.event_types'::regclass and attname = 'export_class'`;
+      const classes = await tx<{ export_class: string; codes: string[] }[]>`
+        select export_class, array_agg(code order by code) as codes
+          from audit.event_types group by export_class order by export_class`;
+      const insert =
+        "insert into audit.event_types (code, domain, subject_type, severity) " +
+        "values ('t8.f3_probe', 'audit', 'account', 'info')";
+      return {
+        column,
+        classes,
+        missing: codeOf(await attempt(tx, insert)),
+        // NOT NULL is checked before the arbitration of the conflict (f3.md « Stockage »)
+        missingOnConflict: codeOf(
+          await attempt(
+            tx,
+            "insert into audit.event_types (code, domain, subject_type, severity) " +
+              "values ('chain.genesis', 'audit', 'chain', 'critical') on conflict (code) do nothing",
+          ),
+        ),
+        unknownClass: codeOf(
+          await attempt(
+            tx,
+            "insert into audit.event_types (code, domain, subject_type, severity, export_class) " +
+              "values ('t8.f3_probe', 'audit', 'account', 'info', 'hidden')",
+          ),
+        ),
+      };
+    });
+    expect(outcome.column).toEqual({ not_null: true, has_default: false });
+    expect(outcome.classes.map((row) => row.export_class)).toEqual([
+      "excluded_security",
+      "exported",
+    ]);
+    expect(outcome.classes[0]?.codes).toEqual(EXCLUDED);
+    expect(outcome.classes[1]?.codes.length).toBe(130);
+    expect(outcome).toMatchObject({
+      missing: "23502",
+      missingOnConflict: "23502",
+      unknownClass: CHECK_VIOLATION,
+    });
+  });
+
+  it("serves no line of an excluded code whose member is the subject; an exported line still is", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      // written by the superuser, as the internal functions would on an internal account
+      await tx`select audit.append('security.backoffice_login_failures', 'account', ${member.id}::uuid)`;
+      await tx`select audit.append('backoffice.action_refused', 'account', ${member.id}::uuid)`;
+      await tx`select audit.append('account.role_granted', 'account', ${member.id}::uuid)`;
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      const [written] = await tx<{ count: number }[]>`
+        select count(*)::int as count from audit.audit_events
+         where subject_type = 'account' and subject_id = ${member.id}
+           and event_type in ('security.backoffice_login_failures', 'backoffice.action_refused')`;
+      return { content: String(stored?.content), written: written?.count };
+    });
+    // the two excluded lines exist in the register, the export leaves them out
+    expect(outcome.written).toBe(2);
+    const file = JSON.parse(outcome.content) as ExportFile;
+    const codes = ((file.data as Record<string, Row[]>).activity_log ?? []).map(
+      (line) => line.code,
+    );
+    expect(codes).toContain("account.role_granted");
+    expect(codes).toContain("privacy.execution_approved");
+    for (const excluded of EXCLUDED) {
+      expect(outcome.content.includes(excluded), excluded).toBe(false);
+    }
+  });
+
+  it("lets influx_privacy_definer read the code and the class of the catalogue only (I-4)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const columns = await tx<{ column: string; privilege: string }[]>`
+        select c.attname::text as column, p.privilege
+          from pg_catalog.pg_attribute c
+         cross join (values ('SELECT'), ('INSERT'), ('UPDATE'), ('REFERENCES')) as p (privilege)
+         where c.attrelid = 'audit.event_types'::regclass and c.attnum > 0 and not c.attisdropped
+           and has_column_privilege('influx_privacy_definer', c.attrelid, c.attname, p.privilege)
+         order by 1, 2`;
+      const [table] = await tx<{ writes: boolean }[]>`
+        select has_table_privilege('influx_privacy_definer', 'audit.event_types',
+                                   'INSERT, UPDATE, DELETE, TRUNCATE') as writes`;
+      const policies = await tx<
+        { policy: string; command: string; qual: string }[]
+      >`
+        select policyname::text as policy, cmd::text as command, qual
+          from pg_catalog.pg_policies
+         where schemaname = 'audit' and tablename = 'event_types'
+           and 'influx_privacy_definer' = any (roles)`;
+      return { columns, writes: table?.writes, policies };
+    });
+    expect(outcome.columns).toEqual([
+      { column: "code", privilege: "SELECT" },
+      { column: "export_class", privilege: "SELECT" },
+    ]);
+    expect(outcome.writes).toBe(false);
+    expect(outcome.policies).toEqual([
+      {
+        policy: "event_types_privacy_definer_select",
+        command: "SELECT",
+        qual: "true",
+      },
+    ]);
+  });
+});
+
 describe("privacy.execute_request(): erasure (04 §9.2, 21 §J8 point 6)", () => {
   it("anonymises the account and every plain address of the Lot 1 tables, in one transaction; a third party is untouched", async () => {
     const outcome = await scenario(async (tx) => {

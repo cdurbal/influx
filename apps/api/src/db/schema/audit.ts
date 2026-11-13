@@ -36,6 +36,8 @@ export const eventTypes = audit.table("event_types", {
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamptz("created_at").notNull().defaultNow(),
   updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+  // 0302 (F3): no default, a new code names its class
+  exportClass: text("export_class").notNull(),
 });
 
 export const auditEvents = audit.table(

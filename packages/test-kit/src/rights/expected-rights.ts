@@ -3145,6 +3145,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|column|audit.audit_events.seq|SELECT",
   "influx_privacy_definer|column|audit.audit_events.subject_id|SELECT",
   "influx_privacy_definer|column|audit.audit_events.subject_type|SELECT",
+  "influx_privacy_definer|column|audit.event_types.code|SELECT",
+  "influx_privacy_definer|column|audit.event_types.export_class|SELECT",
   "influx_privacy_definer|column|backoffice.code_delivery_reports.contact_email|SELECT,UPDATE",
   "influx_privacy_definer|column|backoffice.code_delivery_reports.id|SELECT",
   "influx_privacy_definer|column|backoffice.code_delivery_reports.login_email|SELECT,UPDATE",
