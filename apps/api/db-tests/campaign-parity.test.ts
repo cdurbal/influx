@@ -17,7 +17,11 @@ import {
 } from "@influx/domain/campaign";
 import { CAMPAIGN_IDS, inRolledBackTransaction } from "@influx/test-kit/db";
 import { beforeAll, describe, expect, it } from "vitest";
+import { campaignCalendar, civilDateIn } from "./campaign-dates-kit.ts";
 import { localSuperuser, testDataSet } from "./support.ts";
+
+/** The four dates of a valid campaign, from today (L3BT-9). */
+const CALENDAR = campaignCalendar();
 
 /** The base's code of a domain code: camelCase to snake_case (campaignType → campaign_type). */
 const snake = (code: string) =>
@@ -62,9 +66,9 @@ const COMPLETE: CampaignInput = {
   remunerationKind: "cash_and_gift",
   budgetBand: "500_1000",
   creatorsWanted: 3,
-  applicationsCloseOn: "2027-01-10",
-  startsOn: "2027-02-01",
-  endsOn: "2027-03-01",
+  applicationsCloseOn: CALENDAR.applicationsCloseOn,
+  startsOn: CALENDAR.startsOn,
+  endsOn: CALENDAR.endsOn,
 };
 
 /** Every field null, the lists empty: the input of a fresh draft. */
@@ -414,12 +418,12 @@ const DATE_CASES: readonly [string, CampaignDates, Verdict][] = [
   ...PAIRS.flatMap(([earlier, later]): [string, CampaignDates, Verdict][] => [
     [
       `${earlier} one day after ${later}`,
-      { [earlier]: "2027-03-10", [later]: "2027-03-09" },
+      { [earlier]: civilDateIn(41), [later]: civilDateIn(40) },
       "campaigns_dates_ordered",
     ],
     [
       `${earlier} the same day as ${later}`,
-      { [earlier]: "2027-03-10", [later]: "2027-03-10" },
+      { [earlier]: civilDateIn(41), [later]: civilDateIn(41) },
       "accepted",
     ],
   ]),

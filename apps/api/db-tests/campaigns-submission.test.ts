@@ -23,6 +23,10 @@ import {
   localSuperuser,
   testDataSet,
 } from "./support.ts";
+import { campaignCalendar } from "./campaign-dates-kit.ts";
+
+/** The four dates of a valid campaign, from today (L3BT-9). */
+const CALENDAR = campaignCalendar();
 
 type Tx = postgres.TransactionSql;
 
@@ -98,10 +102,10 @@ async function completeCampaignA(
     per_creator_budget_band_code: "500_1000",
     creators_wanted: 3,
     total_budget_minor: 3000000,
-    applications_close_on: "2027-01-10",
-    content_due_on: "2027-01-25",
-    starts_on: "2027-02-01",
-    ends_on: "2027-03-01",
+    applications_close_on: CALENDAR.applicationsCloseOn,
+    content_due_on: CALENDAR.contentDueOn,
+    starts_on: CALENDAR.startsOn,
+    ends_on: CALENDAR.endsOn,
     ...overrides,
   };
   await tx`update campaigns.campaigns set ${tx(columns)} where id = ${campaignA}`;
@@ -875,8 +879,8 @@ describe("L3B-T6 the creator view is an allow-list without currency, band, budge
         networks: ["instagram"],
         usageRightsTerritories: ["FR"],
         remunerationKind: "cash",
-        startsOn: "2027-02-01",
-        contentDueOn: "2027-01-25",
+        startsOn: CALENDAR.startsOn,
+        contentDueOn: CALENDAR.contentDueOn,
       }),
     );
     const served = JSON.stringify(view);

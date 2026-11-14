@@ -21,6 +21,9 @@ import { buildServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
 import { migrationRole, retireBrandFixtures, testDataSet } from "./support.ts";
 
+// The calendar of a valid campaign, from today (L3C-01).
+export { campaignCalendar, civilDateIn } from "./campaign-dates-kit.ts";
+
 export const URL_CAMPAIGNS = "/v1/me/campaigns";
 
 export type Member = {

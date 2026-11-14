@@ -22,6 +22,7 @@ import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  campaignCalendar,
   openCampaignRouteFixtures,
   URL_CAMPAIGNS,
   type CampaignRouteFixtures,
@@ -29,6 +30,9 @@ import {
   type Server,
 } from "./campaign-routes-kit.ts";
 import { actAsMember, localSuperuser } from "./support.ts";
+
+/** The four dates of a valid campaign, from today (L3BT-9). */
+const CALENDAR = campaignCalendar();
 
 let fx: CampaignRouteFixtures;
 let server: Server;
@@ -148,7 +152,7 @@ function completeBody(overrides: Record<string, unknown> = {}) {
     usageRightsTerritories: ["FR", "BE"],
     exclusivity: "none",
     contentReviewDelay: "5bd",
-    contentDueOn: "2027-01-25",
+    contentDueOn: CALENDAR.contentDueOn,
     audienceCountries: ["FR"],
     audienceLanguages: ["fr"],
     audienceTopics: ["sport_fitness"],
@@ -157,9 +161,9 @@ function completeBody(overrides: Record<string, unknown> = {}) {
     budgetBand: BUDGET_BAND,
     creatorsWanted: 3,
     totalBudgetMinor: TOTAL_BUDGET,
-    applicationsCloseOn: "2027-01-10",
-    startsOn: "2027-02-01",
-    endsOn: "2027-03-01",
+    applicationsCloseOn: CALENDAR.applicationsCloseOn,
+    startsOn: CALENDAR.startsOn,
+    endsOn: CALENDAR.endsOn,
     maxApplications: 173,
     requestedItems: ["motivation_message", "availability"],
     ...overrides,
@@ -352,8 +356,8 @@ describe("L3B-T9 the brand's preview is what a creator sees, on the raw payload 
       networks: ["instagram"],
       usageRightsTerritories: ["FR", "BE"],
       creatorsWanted: 3,
-      applicationsCloseOn: "2027-01-10",
-      contentDueOn: "2027-01-25",
+      applicationsCloseOn: CALENDAR.applicationsCloseOn,
+      contentDueOn: CALENDAR.contentDueOn,
       requestedItems: ["motivation_message", "availability"],
     });
     expect(body.remunerationNotice).toBe(CAMPAIGN_REMUNERATION_NOTICE);

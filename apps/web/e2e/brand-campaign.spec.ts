@@ -23,6 +23,7 @@ import frCampaign from "@/locales/fr/campaign.json" with { type: "json" };
 import frMember from "@/locales/fr/member.json" with { type: "json" };
 import { seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
+import { campaignCalendar, civilDateIn } from "./support/campaign-calendar";
 import { expect, open, reload, test, title } from "./support/journey";
 import { WEB_ORIGIN } from "./support/servers";
 
@@ -158,15 +159,17 @@ function wholeOffer(
   };
 }
 
+/** The four dates of a valid campaign, from today (L3BT-9). */
+const CALENDAR = campaignCalendar();
+/** A start before the deadline and the delivery: the conflict of RG70. */
+const START_BEFORE_DEADLINE = civilDateIn(1);
+
 /** The budget and the calendar of step 4 and 5, written through the API. */
 const WHOLE_BUDGET_AND_CALENDAR = {
   remunerationKind: "cash",
   budgetBand: "1000_2500",
   creatorsWanted: 3,
-  applicationsCloseOn: "2027-02-10",
-  contentDueOn: "2027-02-20",
-  startsOn: "2027-03-01",
-  endsOn: "2027-04-01",
+  ...CALENDAR,
 };
 
 async function noFileField(page: Page): Promise<void> {
@@ -586,9 +589,11 @@ test("L3B-E2: the budget, the calendar and the submission in French at 1 440 px:
   // Step 5: a start before the deadline names the two dates in conflict, and is kept on screen.
   await page.getByRole("button", { name: copy.form.next }).click();
   await expect(page.locator("#campaign-applicationsCloseOn")).toBeVisible();
-  await page.locator("#campaign-applicationsCloseOn").fill("2027-02-10");
-  await page.locator("#campaign-contentDueOn").fill("2027-02-20");
-  await page.locator("#campaign-startsOn").fill("2027-02-01");
+  await page
+    .locator("#campaign-applicationsCloseOn")
+    .fill(CALENDAR.applicationsCloseOn);
+  await page.locator("#campaign-contentDueOn").fill(CALENDAR.contentDueOn);
+  await page.locator("#campaign-startsOn").fill(START_BEFORE_DEADLINE);
   const conflict = copy.errors.datesOrder
     .replace("{first}", copy.fields.applicationsCloseOn.label)
     .replace(
@@ -602,7 +607,9 @@ test("L3B-E2: the budget, the calendar and the submission in French at 1 440 px:
     "aria-invalid",
     "true",
   );
-  await expect(page.locator("#campaign-startsOn")).toHaveValue("2027-02-01");
+  await expect(page.locator("#campaign-startsOn")).toHaveValue(
+    START_BEFORE_DEADLINE,
+  );
   // no switch "verified profiles only" (RG79), no field of file
   await expect(page.getByLabel(/profils vérifiés/iu)).toHaveCount(0);
 
@@ -623,8 +630,8 @@ test("L3B-E2: the budget, the calendar and the submission in French at 1 440 px:
   }
 
   // The dates put in order: the refusal is lifted and they are saved together.
-  await page.locator("#campaign-startsOn").fill("2027-03-01");
-  await page.locator("#campaign-endsOn").fill("2027-04-01");
+  await page.locator("#campaign-startsOn").fill(CALENDAR.startsOn);
+  await page.locator("#campaign-endsOn").fill(CALENDAR.endsOn);
   await expect(page.getByText(conflict)).toHaveCount(0);
   await expect(page.locator("#campaign-startsOn")).not.toHaveAttribute(
     "aria-invalid",

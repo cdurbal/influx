@@ -1,7 +1,7 @@
 # Exécution du jalon L3C
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | sonnet | high | testeur | à faire | |
+| 01 | 01.md | commit | sonnet | high | testeur | fait | dates des tests dérivées du jour UTC (+10/25/32/60 j), aucun attendu changé ; e2e 24,9/24,5/24,8 s, médiane 24,8 <= 25 |
 | A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
 | 02 | 02.md | commit | opus | high | expert-database | à faire | I-4. |
 | 03 | 03.md | commit | opus | high | expert-database | à faire | I-4. |

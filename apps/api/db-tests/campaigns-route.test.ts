@@ -18,6 +18,8 @@ import {
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  campaignCalendar,
+  civilDateIn,
   openCampaignRouteFixtures,
   URL_CAMPAIGNS,
   type CampaignRouteFixtures,
@@ -39,6 +41,11 @@ const DECLARATION_EN =
 const TITLE = "L3B07 summer outdoor kit";
 const BRIEF = `L3B07 brief ${"b".repeat(300)}`;
 const REFERENCE = "L3B07-REF-2027";
+
+/** The four dates of a valid campaign, from today (L3BT-9). */
+const CALENDAR = campaignCalendar();
+/** A deadline alone on a draft, later than every date of the calendar. */
+const LATE_DEADLINE = civilDateIn(120);
 
 /** Everything a complete campaign holds, as the form would send it (EUR, a band of 0304). */
 function completeBody(overrides: Record<string, unknown> = {}) {
@@ -64,7 +71,7 @@ function completeBody(overrides: Record<string, unknown> = {}) {
     usageRightsTerritories: ["FR", "BE"],
     exclusivity: "none",
     contentReviewDelay: "5bd",
-    contentDueOn: "2027-01-25",
+    contentDueOn: CALENDAR.contentDueOn,
     audienceCountries: ["FR"],
     audienceLanguages: ["fr"],
     audienceTopics: ["sport_fitness"],
@@ -73,9 +80,9 @@ function completeBody(overrides: Record<string, unknown> = {}) {
     budgetBand: "500_1000",
     creatorsWanted: 3,
     totalBudgetMinor: 3_000_000,
-    applicationsCloseOn: "2027-01-10",
-    startsOn: "2027-02-01",
-    endsOn: "2027-03-01",
+    applicationsCloseOn: CALENDAR.applicationsCloseOn,
+    startsOn: CALENDAR.startsOn,
+    endsOn: CALENDAR.endsOn,
     maxApplications: 50,
     requestedItems: ["motivation_message", "availability"],
     ...overrides,
@@ -220,7 +227,7 @@ describe("L3B-T8 the list and the creation (09 RG108, CA2, CA72)", () => {
     // no body at all is a draft too, the form's first save being empty
     const second = await create(server, member);
     await patch(server, member, first.id, {
-      applicationsCloseOn: "2027-05-01",
+      applicationsCloseOn: LATE_DEADLINE,
     });
     const response = await fx.call(
       server,
@@ -250,7 +257,7 @@ describe("L3B-T8 the list and the creation (09 RG108, CA2, CA72)", () => {
     expect(campaigns[0]).toMatchObject({
       title: TITLE,
       status: "draft",
-      applicationsCloseOn: "2027-05-01",
+      applicationsCloseOn: LATE_DEADLINE,
     });
   });
 
@@ -415,7 +422,7 @@ describe("L3B-T8 the autosave (09 RG14, RG16, RG24, RG36; modele §2)", () => {
       ],
       [
         "an application deadline after the end",
-        { applicationsCloseOn: "2027-06-01", endsOn: "2027-03-01" },
+        { applicationsCloseOn: civilDateIn(120), endsOn: civilDateIn(60) },
         "endsOn",
         "date_order",
       ],

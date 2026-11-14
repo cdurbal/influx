@@ -9,6 +9,7 @@ import type { CampaignResponse } from "@influx/contracts/campaign";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  campaignCalendar,
   openCampaignRouteFixtures,
   URL_CAMPAIGNS,
   type CampaignRouteFixtures,
@@ -52,9 +53,7 @@ const COMPLETE = {
   budgetBand: "500_1000",
   creatorsWanted: 3,
   totalBudgetMinor: 3_000_000,
-  applicationsCloseOn: "2027-01-10",
-  startsOn: "2027-02-01",
-  endsOn: "2027-03-01",
+  ...campaignCalendar(),
 };
 
 beforeAll(async () => {

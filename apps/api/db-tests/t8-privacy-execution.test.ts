@@ -36,6 +36,10 @@ import {
   migrationRole,
   testDataSet,
 } from "./support.ts";
+import { campaignCalendar } from "./campaign-dates-kit.ts";
+
+/** The four dates of a valid campaign, from today (L3BT-9). */
+const CALENDAR = campaignCalendar();
 
 const INSUFFICIENT_PRIVILEGE = "42501";
 const INVALID_PARAMETER = "22023";
@@ -4245,7 +4249,8 @@ async function giveCampaigns(
             'SUB-01', ${`${label} product description`}, 'sports_leisure',
             ${`${label} restrictions`}, true, 'under_100', true, 'brand', 'organic_repost', '3m',
             'selected_countries', 'none', '5bd', 'mixed', 'EUR', 'cash_and_gift', '500_1000', 3,
-            3000000, '2027-01-10', '2027-01-25', '2027-02-01', '2027-03-01', 50,
+            3000000, ${CALENDAR.applicationsCloseOn}, ${CALENDAR.contentDueOn}, ${CALENDAR.startsOn},
+            ${CALENDAR.endsOn}, 50,
             '2026-01-03T10:00:00Z', ${account}, 'fr', decode(${CAMPAIGN_DECLARATION_HEX}, 'hex'),
             '2026-01-03T10:00:00Z', '2026-01-02T09:00:00Z')
     returning id::text`;
@@ -4361,10 +4366,10 @@ describe("L3B-T7 the campaigns of 0303 to 0305 in the export and the erasure (03
       budget_band: "500_1000",
       creators_wanted: 3,
       total_budget_minor: 3000000,
-      applications_close_on: "2027-01-10",
-      content_due_on: "2027-01-25",
-      starts_on: "2027-02-01",
-      ends_on: "2027-03-01",
+      applications_close_on: CALENDAR.applicationsCloseOn,
+      content_due_on: CALENDAR.contentDueOn,
+      starts_on: CALENDAR.startsOn,
+      ends_on: CALENDAR.endsOn,
       max_applications: 50,
       requested_items: ["motivation_message", "availability"],
       authorizations_declaration: {
@@ -4472,8 +4477,8 @@ describe("L3B-T7 the campaigns of 0303 to 0305 in the export and the erasure (03
       sector_code: "sports_leisure",
       currency: "EUR",
       per_creator_budget_band_code: "500_1000",
-      applications_close_on: "2027-01-10",
-      ends_on: "2027-03-01",
+      applications_close_on: CALENDAR.applicationsCloseOn,
+      ends_on: CALENDAR.endsOn,
       submitted: true,
       declaration_locale: "fr",
       declaration_hash: CAMPAIGN_DECLARATION_HEX,

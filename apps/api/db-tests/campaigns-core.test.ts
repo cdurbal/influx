@@ -18,6 +18,7 @@ import {
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
 import { campaignsColumns } from "../src/db/schema/introspection.ts";
+import { campaignCalendar, civilDateIn } from "./campaign-dates-kit.ts";
 import {
   actAsInternal,
   actAsMember,
@@ -93,6 +94,9 @@ function refusedBy(code: string, constraint?: string): unknown {
 
 const ACCEPTED_ONE = { outcome: "rows", count: 1 };
 
+/** The four dates of a valid campaign, from today (L3BT-9). */
+const CALENDAR = campaignCalendar();
+
 /** The columns of a campaign ready to submit (cash, EUR, the probe band), as SQL literals. */
 const SUBMITTABLE: Readonly<Record<string, string>> = {
   advertiser_account_id: `'${brandA}'`,
@@ -111,9 +115,9 @@ const SUBMITTABLE: Readonly<Record<string, string>> = {
   remuneration_kind: "'cash'",
   per_creator_budget_band_code: `'${PROBE_BAND}'`,
   creators_wanted: "3",
-  applications_close_on: "date '2027-01-10'",
-  starts_on: "date '2027-02-01'",
-  ends_on: "date '2027-03-01'",
+  applications_close_on: `date '${CALENDAR.applicationsCloseOn}'`,
+  starts_on: `date '${CALENDAR.startsOn}'`,
+  ends_on: `date '${CALENDAR.endsOn}'`,
 };
 
 /** An INSERT of a campaign of brand A: the submittable row, with `overrides` (null drops a column). */
@@ -328,22 +332,23 @@ describe("L3B-T2 the calendar (RG70, RG74; EC-L3B-02-3)", () => {
     expect(
       await attempt(
         draftUpdate(
-          "applications_close_on = date '2027-03-02', ends_on = date '2027-03-01'",
+          `applications_close_on = date '${civilDateIn(41)}', ends_on = date '${civilDateIn(40)}'`,
         ),
       ),
     ).toEqual(refusedBy(CHECK_VIOLATION, "campaigns_dates_ordered"));
     expect(
       await attempt(
         draftUpdate(
-          "content_due_on = date '2027-02-02', starts_on = date '2027-02-01'",
+          `content_due_on = date '${civilDateIn(33)}', starts_on = date '${civilDateIn(32)}'`,
         ),
       ),
     ).toEqual(refusedBy(CHECK_VIOLATION, "campaigns_dates_ordered"));
     expect(
       await attempt(
         draftUpdate(
-          "applications_close_on = date '2027-01-10', content_due_on = date '2027-01-20', " +
-            "starts_on = date '2027-02-01', ends_on = date '2027-03-01'",
+          `applications_close_on = date '${CALENDAR.applicationsCloseOn}', ` +
+            `content_due_on = date '${CALENDAR.contentDueOn}', ` +
+            `starts_on = date '${CALENDAR.startsOn}', ends_on = date '${CALENDAR.endsOn}'`,
         ),
       ),
     ).toEqual(ACCEPTED_ONE);
