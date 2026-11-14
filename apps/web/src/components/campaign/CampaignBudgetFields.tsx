@@ -11,11 +11,15 @@
 // (D48, D78). No percentage and no commission figure is written anywhere on this step. The total
 // budget of RG55 is not typed here (EC-L3B-10-1: the conversion of a typed amount into the minor unit
 // is the exemption of T16.6, which no function holds yet). Fields display the draft and report a
-// change: the rules are campaign-view.ts's and apps/api's.
-import { useTranslations } from "next-intl";
+// change: the rules are campaign-view.ts's and apps/api's. The box ends on the way to the preview of what a
+// creator sees (L3B, commit 11), the page that shows it for real.
+import { useLocale, useTranslations } from "next-intl";
+import { TEXT_LINK_CLASSES } from "@/components/auth/auth-classes";
 import { Notice } from "@/components/member/ui/Notice";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
+import { Link } from "@/i18n/navigation";
+import { memberPageHref } from "@/lib/member-paths";
 import {
   CAMPAIGN_CREATORS_WANTED_MAX,
   CAMPAIGN_CREATORS_WANTED_MIN,
@@ -30,6 +34,7 @@ import { controlIdOf, isGiftOnly } from "./campaign-view";
 import { CountField } from "./CountField";
 
 export function CampaignBudgetFields({
+  campaign,
   references,
   draft,
   errors,
@@ -37,6 +42,7 @@ export function CampaignBudgetFields({
   change,
 }: CampaignFieldsProps) {
   const t = useTranslations("campaign");
+  const locale = useLocale();
   const tBrand = useTranslations("brandProfile");
   const texts = useCampaignFieldTexts(errors, draft);
   const bands = bandOptionsOf(t, references, draft.currency);
@@ -149,6 +155,16 @@ export function CampaignBudgetFields({
             : t("budget.creatorNature", { kind: nature.label })}
         </p>
         <p className="text-text-primary">{t("budget.negotiate")}</p>
+        <Link
+          href={memberPageHref(
+            "advertiserCampaignPreview",
+            locale,
+            campaign.id,
+          )}
+          className={TEXT_LINK_CLASSES}
+        >
+          {t("preview.link")}
+        </Link>
       </section>
     </>
   );

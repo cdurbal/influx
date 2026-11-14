@@ -73,3 +73,10 @@ export const LIST_ACTIONS_CLASSES = "flex flex-wrap items-center gap-3";
 /** The previous and next step: the two ends of the bottom of a step. */
 export const STEP_NAV_CLASSES =
   "flex flex-wrap items-center justify-between gap-3";
+
+/** "What a creator sees": the logo of the brand as the profile draws it, and the rows of a name and its value. */
+export const PREVIEW_LOGO_CLASSES =
+  "size-11 shrink-0 rounded-md border-(length:--border-width-thin) border-border-default bg-surface-raised object-contain";
+export const PREVIEW_ROW_LIST_CLASSES = "flex flex-col gap-2 text-md";
+export const PREVIEW_LABEL_CLASSES = "text-sm text-text-secondary";
+export const PREVIEW_VALUE_CLASSES = "text-md text-text-primary";

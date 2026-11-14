@@ -26,6 +26,7 @@ const PAGE_TITLES = {
   creatorHome: "auth.meta.homeTitle",
   advertiserCampaigns: "campaign.meta.list",
   advertiserCampaign: "campaign.meta.form",
+  advertiserCampaignPreview: "campaign.meta.preview",
   accountHub: "account.meta.hub",
   accountDetails: "account.meta.details",
   accountProfile: "account.meta.profile",

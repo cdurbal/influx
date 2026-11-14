@@ -1,7 +1,8 @@
 {
   "meta": {
     "list": "My campaigns",
-    "form": "My campaign"
+    "form": "My campaign",
+    "preview": "What a creator sees"
   },
   "list": {
     "title": "My campaigns",
@@ -127,6 +128,62 @@
     },
     "internalNotice": "This box is never published: only you and your INFLUX account manager see it.",
     "errorsTitle": "To correct in this step"
+  },
+  "preview": {
+    "title": "What a creator sees",
+    "banner": "Preview: this is your campaign as a creator would see it, exactly as INFLUX presents it to them. Nothing is sent or published from this page.",
+    "back": "Back to the campaign",
+    "loading": "Loading the preview…",
+    "unavailable": "We can't show this preview right now. Please try again in a few minutes.",
+    "retry": "Try again",
+    "empty": "Nothing to show yet: complete the steps of the campaign and the preview will follow.",
+    "brandTitle": "The brand",
+    "brandUnpublished": "Your brand profile is not published yet: a creator would see neither your name nor your presentation.",
+    "logoAlt": "Brand logo",
+    "deliverable": "{quantity} × {network} · {format}",
+    "link": "See what a creator sees",
+    "sections": {
+      "offer": "The offer",
+      "product": "The product",
+      "work": "The work expected",
+      "audience": "The audience aimed at",
+      "remuneration": "The remuneration",
+      "calendar": "The calendar"
+    },
+    "rows": {
+      "campaignType": "Campaign type",
+      "publicSummary": "Summary",
+      "brief": "Brief",
+      "keyMessages": "Key messages",
+      "restrictions": "Restrictions and points of care",
+      "productDescription": "Product or service",
+      "productSector": "Product category",
+      "productIsSent": "Product sent",
+      "creatorKeepsProduct": "Product kept by the creator",
+      "shippingCostsBorneBy": "Shipping and return costs",
+      "deliverables": "Deliverables",
+      "networks": "Networks",
+      "usageRights": "Usage rights",
+      "usageRightsDuration": "Duration of the usage rights",
+      "usageRightsTerritoryScope": "Territory of the usage rights",
+      "usageRightsTerritories": "Countries of the usage rights",
+      "exclusivity": "Sector exclusivity",
+      "contentReviewDelay": "Content review delay",
+      "requestedItems": "To include in the application",
+      "audienceCountries": "Audience countries",
+      "audienceLanguages": "Publication languages",
+      "audienceTopics": "Topics",
+      "audienceBands": "Audience size",
+      "audienceAgeBands": "Age bands",
+      "audienceGender": "Gender split",
+      "remunerationKind": "Nature of the remuneration",
+      "creatorsWanted": "Creators wanted",
+      "remunerationNotice": "Financial terms",
+      "applicationsCloseOn": "Applications until",
+      "contentDueOn": "Content delivery",
+      "startsOn": "Publication from",
+      "endsOn": "Publication until"
+    }
   },
   "save": {
     "saving": "Saving…",

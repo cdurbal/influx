@@ -189,6 +189,20 @@ function CampaignRow({
               date: formatDate(campaign.updatedAt, locale),
             })}
           </p>
+          <Link
+            href={memberPageHref(
+              "advertiserCampaignPreview",
+              locale,
+              campaign.id,
+            )}
+            className={TEXT_LINK_CLASSES}
+          >
+            {t("preview.link")}
+            <span className="sr-only">
+              {" "}
+              {campaign.title ?? t("list.untitled")}
+            </span>
+          </Link>
         </div>
         <Link
           href={memberPageHref("advertiserCampaign", locale, campaign.id)}

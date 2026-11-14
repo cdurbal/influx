@@ -11,6 +11,8 @@
 // négocier" without a figure (CA76, D78), the dates in conflict are named (RG70), what is missing is
 // listed by step with a way to the field (CA3), a sensitive category is refused without its box then
 // accepted (CA56), a campaign submitted is "being reviewed" (CA4), a failed save keeps the entry.
+// L3B-E3 (commit 11): what a creator sees is the answer of the creator view alone, the nature and "à négocier", no
+// band, no total budget, no internal reference (text and DOM), no way to contact the brand, FR and EN, 7 s.
 import { connectAsMigrationRole } from "@influx/test-kit/db";
 import type { Page } from "@playwright/test";
 import enBrandProfile from "@/locales/en/brand-profile.json" with { type: "json" };
@@ -761,4 +763,161 @@ test("a save that fails on the budget keeps the entry on screen and says so, the
   await expect(savedLine(page, "fr")).toBeVisible();
   await page.reload();
   await expect(page.locator("#campaign-creatorsWanted")).toHaveValue("4");
+});
+
+/** What the brand must never find in "what a creator sees": the internal reference and the budget, as a code or as a text. */
+const INTERNAL_REFERENCE = "REF-INTERNE-4471";
+
+/** A campaign whose internal fields are all filled, so that the preview has something to hide (CA68, D78). */
+function withInternalFields(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return wholeOffer({
+    internalReference: INTERNAL_REFERENCE,
+    ...WHOLE_BUDGET_AND_CALENDAR,
+    ...overrides,
+  });
+}
+
+test("what a creator sees, in French at 1 440 px: reached from step 4, the nature and the notice, no band, no reference, no way to contact the brand, only the creator-view answer is read (RG102, CA15, CA68, D78)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await publishProfile(member.accountId);
+  const id = await draftThroughApi(page, withInternalFields());
+  await open(page, `/fr/campagnes/${id}?step=4`);
+  await expect(page.locator("#campaign-budgetBand")).toHaveValue("1000_2500");
+
+  // The preview is read through the creator view alone: the campaign itself is not asked again.
+  const reads: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (
+      request.method() === "GET" &&
+      url.pathname.includes("/v1/me/campaigns")
+    ) {
+      reads.push(url.pathname);
+    }
+  });
+  await page
+    .locator("[data-creator-box]")
+    .getByRole("link", { name: copy.preview.link })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/fr/campagnes/${id}/apercu$`));
+  await expect(title(page)).toHaveText(copy.preview.title);
+  await expect(page.locator("[data-preview-banner]")).toHaveText(
+    copy.preview.banner,
+  );
+  const creatorView = page.locator("[data-creator-preview]");
+  await expect(
+    creatorView.getByRole("heading", {
+      level: 2,
+      name: "Test de notre nouvelle gamme de soins",
+    }),
+  ).toBeVisible();
+
+  // The nature and the notice, no figure; the brand as published, no profile notice.
+  const remuneration = creatorView.locator(
+    "[data-preview-section=remuneration]",
+  );
+  await expect(remuneration.getByText(copy.remuneration.cash)).toBeVisible();
+  await expect(remuneration.getByText(copy.budget.negotiate)).toBeVisible();
+  await expect(creatorView.locator("[data-preview-brand]")).toBeVisible();
+  await expect(
+    creatorView.getByText(copy.preview.brandUnpublished),
+  ).toHaveCount(0);
+
+  // Visible text and DOM: neither the band, nor a currency, nor the internal reference (L3B-E3).
+  const band = copy.price_band["1000_2500"].replace("{currency}", "EUR");
+  const text = (await creatorView.innerText()).replaceAll(/[  ]/gu, " ");
+  const dom = await creatorView.innerHTML();
+  for (const hidden of [
+    INTERNAL_REFERENCE,
+    band,
+    "EUR",
+    "1000_2500",
+    "2 500",
+  ]) {
+    expect(text, hidden).not.toContain(hidden);
+    expect(dom, hidden).not.toContain(hidden);
+  }
+  expect(await page.locator("main").innerText()).not.toContain(
+    INTERNAL_REFERENCE,
+  );
+
+  // CA15: nothing to click, nothing to write to, in what a creator sees.
+  await expect(creatorView.locator("a, button, input, [href]")).toHaveCount(0);
+  expect(text).not.toMatch(/@|https?:|mailto:|tel:/u);
+  await noFileField(page);
+  expect(reads.filter((read) => !read.endsWith("/creator-view"))).toEqual([]);
+  expect(reads.filter((read) => read.endsWith("/creator-view"))).toHaveLength(
+    1,
+  );
+  await expectNoAxeViolation(page, "campaign preview, fr, 1440", {
+    wcag22: true,
+  });
+
+  // The way back leads to the form, outside the preview.
+  await page.getByRole("link", { name: copy.preview.back }).click();
+  await expect(page).toHaveURL(new RegExp(`/fr/campagnes/${id}$`));
+});
+
+test("what a creator sees, in English at 375 px: reached from the list, a gift only says so without a figure, an unpublished profile says it is not shown (RG102, CA68, D78, 06 RG73)", async ({
+  page,
+}) => {
+  const copy = COPY.en;
+  await page.setViewportSize({ width: 375, height: 800 });
+  await seedMember(page, {
+    role: "advertiser",
+    language: "en",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  const id = await draftThroughApi(
+    page,
+    withInternalFields({
+      remunerationKind: "gift_only",
+      budgetBand: null,
+      title: "Trial of our new skincare range",
+    }),
+  );
+  await open(page, LIST_PATH.en);
+  await page
+    .getByRole("link", {
+      name: `${copy.preview.link} Trial of our new skincare range`,
+    })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/en/campaigns/${id}/preview$`));
+  await expect(title(page)).toHaveText(copy.preview.title);
+  const creatorView = page.locator("[data-creator-preview]");
+  const remuneration = creatorView.locator(
+    "[data-preview-section=remuneration]",
+  );
+  await expect(
+    remuneration.getByText(copy.remuneration.gift_only, { exact: true }),
+  ).toBeVisible();
+  await expect(remuneration.getByText(copy.budget.negotiate)).toBeVisible();
+
+  // The profile is a draft: a creator would not see the brand, and the page says so.
+  await expect(
+    creatorView.getByText(copy.preview.brandUnpublished),
+  ).toBeVisible();
+  await expect(creatorView.locator("[data-preview-brand]")).toBeVisible();
+  const text = await creatorView.innerText();
+  const dom = await creatorView.innerHTML();
+  for (const hidden of [INTERNAL_REFERENCE, "EUR", "1000_2500", "gift_only"]) {
+    expect(text, hidden).not.toContain(hidden);
+    expect(dom, hidden).not.toContain(hidden);
+  }
+  await expect(creatorView.locator("a, button, input, [href]")).toHaveCount(0);
+  await expectNoAxeViolation(page, "campaign preview, en, 375", {
+    wcag22: true,
+  });
 });

@@ -1,7 +1,8 @@
 {
   "meta": {
     "list": "Mes campagnes",
-    "form": "Ma campagne"
+    "form": "Ma campagne",
+    "preview": "Ce que voit un créateur"
   },
   "list": {
     "title": "Mes campagnes",
@@ -127,6 +128,62 @@
     },
     "internalNotice": "Cet encart n'est jamais publié : seuls vous et votre commercial INFLUX le voient.",
     "errorsTitle": "À corriger dans cette étape"
+  },
+  "preview": {
+    "title": "Ce que voit un créateur",
+    "banner": "Aperçu : voici votre campagne telle qu'un créateur la verrait, exactement comme INFLUX la lui présente. Rien n'est envoyé ni publié depuis cette page.",
+    "back": "Retour à la campagne",
+    "loading": "Chargement de l'aperçu…",
+    "unavailable": "Nous ne parvenons pas à afficher cet aperçu pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "empty": "Rien à montrer pour l'instant : complétez les étapes de la campagne, l'aperçu se mettra à jour.",
+    "brandTitle": "La marque",
+    "brandUnpublished": "Votre profil de marque n'est pas encore publié : un créateur ne verrait ni votre nom ni votre présentation.",
+    "logoAlt": "Logo de la marque",
+    "deliverable": "{quantity} × {network} · {format}",
+    "link": "Voir ce que voit un créateur",
+    "sections": {
+      "offer": "L'offre",
+      "product": "Le produit",
+      "work": "Le travail attendu",
+      "audience": "L'audience visée",
+      "remuneration": "La rémunération",
+      "calendar": "Le calendrier"
+    },
+    "rows": {
+      "campaignType": "Type de campagne",
+      "publicSummary": "Résumé",
+      "brief": "Brief",
+      "keyMessages": "Messages clés",
+      "restrictions": "Interdits et points de vigilance",
+      "productDescription": "Produit ou service",
+      "productSector": "Catégorie du produit",
+      "productIsSent": "Produit envoyé",
+      "creatorKeepsProduct": "Produit conservé par le créateur",
+      "shippingCostsBorneBy": "Frais d'envoi et de retour",
+      "deliverables": "Livrables",
+      "networks": "Réseaux",
+      "usageRights": "Droits d'usage",
+      "usageRightsDuration": "Durée des droits d'usage",
+      "usageRightsTerritoryScope": "Territoire des droits d'usage",
+      "usageRightsTerritories": "Pays des droits d'usage",
+      "exclusivity": "Exclusivité sectorielle",
+      "contentReviewDelay": "Délai de validation des contenus",
+      "requestedItems": "À joindre à la candidature",
+      "audienceCountries": "Pays de l'audience",
+      "audienceLanguages": "Langues de publication",
+      "audienceTopics": "Thématiques",
+      "audienceBands": "Taille d'audience",
+      "audienceAgeBands": "Tranches d'âge",
+      "audienceGender": "Répartition de genre",
+      "remunerationKind": "Nature de la rémunération",
+      "creatorsWanted": "Créateurs recherchés",
+      "remunerationNotice": "Conditions financières",
+      "applicationsCloseOn": "Candidatures jusqu'au",
+      "contentDueOn": "Livraison des contenus",
+      "startsOn": "Publication à partir du",
+      "endsOn": "Publication jusqu'au"
+    }
   },
   "save": {
     "saving": "Enregistrement…",

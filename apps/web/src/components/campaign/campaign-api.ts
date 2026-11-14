@@ -12,6 +12,10 @@ import {
   type DeclarationLocale,
   type SubmitCampaignResponse,
 } from "@influx/contracts/campaign";
+import {
+  campaignCreatorViewResponseSchema,
+  type CampaignCreatorViewResponse,
+} from "@influx/contracts/campaign-creator-view";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
 
 const CAMPAIGNS_PATH = "/v1/me/campaigns";
@@ -57,5 +61,19 @@ export function submitCampaign(
     `${CAMPAIGNS_PATH}/${id}/submit`,
     submitCampaignResponseSchema,
     declarationLocale === null ? {} : { declarationLocale },
+  );
+}
+
+/**
+ * "What a creator sees" (RG102, CA68): the brand's preview of its own campaign, read once, exactly as the
+ * API serves it to a creator. Nothing is rebuilt from the draft: the screen draws this answer alone.
+ */
+export function readCampaignCreatorView(
+  id: string,
+): Promise<RelayResult<CampaignCreatorViewResponse>> {
+  return callRelay(
+    "GET",
+    `${CAMPAIGNS_PATH}/${id}/creator-view`,
+    campaignCreatorViewResponseSchema,
   );
 }

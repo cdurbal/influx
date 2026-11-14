@@ -14,6 +14,7 @@ export type MemberPage =
   | "creatorHome"
   | "advertiserCampaigns"
   | "advertiserCampaign"
+  | "advertiserCampaignPreview"
   | "accountHub"
   | "accountDetails"
   | "accountProfile"
@@ -39,6 +40,12 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   // campaign form is a child of it, the identifier of the campaign being the one dynamic segment of a member address.
   advertiserCampaigns: { fr: "campagnes", en: "campaigns" },
   advertiserCampaign: { fr: "campagnes/[id]", en: "campaigns/[id]" },
+  // "Ce que voit un créateur" (17 §2.6, §4.3; 09 RG102, CA68; L3B, commit 11): the brand reads its campaign as the
+  // platform serves it to a creator, a child of the form, nothing to enter; the same identifier, no query.
+  advertiserCampaignPreview: {
+    fr: "campagnes/[id]/apercu",
+    en: "campaigns/[id]/preview",
+  },
   // "Mon compte" (17 §6.0 to §6.4), common to both spaces: /fr/compte/* · /en/account/* (EC-15);
   // its page-menu (D74) holds the bare address, each page of the rubric a sub-path.
   accountHub: { fr: "compte", en: "account" },
@@ -109,6 +116,7 @@ export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
  */
 export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
   advertiserCampaign: "advertiserCampaigns",
+  advertiserCampaignPreview: "advertiserCampaigns",
   accountProfilePreview: PROFILE_ACCOUNT_PAGE,
   accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
   accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
@@ -213,6 +221,7 @@ const PAGE_SPACES: Readonly<Partial<Record<MemberPage, SignupDoor>>> = {
   creatorHome: "creator",
   advertiserCampaigns: "advertiser",
   advertiserCampaign: "advertiser",
+  advertiserCampaignPreview: "advertiser",
 };
 
 export function spaceOf(page: MemberPage): SignupDoor | null {

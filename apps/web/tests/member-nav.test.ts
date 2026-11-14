@@ -160,6 +160,7 @@ describe("TD2.4: the active entry of each page", () => {
     creatorHome: "home",
     advertiserCampaigns: "campaigns",
     advertiserCampaign: "campaigns",
+    advertiserCampaignPreview: "campaigns",
     accountHub: "account",
     accountDetails: "account",
     accountProfile: "account",
@@ -399,6 +400,7 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     ).toBeNull();
     expect(PARENT_PAGES).toEqual({
       advertiserCampaign: "advertiserCampaigns",
+      advertiserCampaignPreview: "advertiserCampaigns",
       accountProfilePreview: "accountProfile",
       accountVerificationOwnership: "accountProfile",
       accountVerificationAudience: "accountProfile",
@@ -559,7 +561,8 @@ describe("L3B-09: the campaigns of a brand, a list and a form with an identifier
     for (const [pathname, locale] of [
       [`/campaigns/${ID}`, "fr"],
       [`/campagnes/${ID}`, "en"],
-      [`/campagnes/${ID}/apercu`, "fr"],
+      [`/campagnes/${ID}/preview`, "fr"],
+      [`/campaigns/${ID}/apercu`, "en"],
       ["/campagnes/a/b/c", "fr"],
     ] as const) {
       expect(memberPageOfPath(pathname, locale), pathname).toBeNull();
@@ -593,5 +596,52 @@ describe("L3B-09: the campaigns of a brand, a list and a form with an identifier
     );
     expect(spaceRedirectOf("advertiserCampaigns", "advertiser")).toBeNull();
     expect(isTermsExempt("advertiserCampaigns")).toBe(false);
+  });
+});
+
+describe("L3B-11: what a creator sees, the preview of a campaign, a third segment below the form (17 §2.6, §4.3)", () => {
+  const ID = "7d6f1c43-6a0c-4cc4-9f0b-1c1f5f6d2a10";
+
+  it("addresses the preview in both languages, below the list in the column, the identifier carried", () => {
+    expect(MEMBER_PAGE_SLUGS.advertiserCampaignPreview).toEqual({
+      fr: "campagnes/[id]/apercu",
+      en: "campaigns/[id]/preview",
+    });
+    expect(memberPageOfPath(`/campagnes/${ID}/apercu`, "fr")).toBe(
+      "advertiserCampaignPreview",
+    );
+    expect(memberPageOfPath(`/campaigns/${ID}/preview`, "en")).toBe(
+      "advertiserCampaignPreview",
+    );
+    expect(memberPageHref("advertiserCampaignPreview", "fr", ID)).toBe(
+      `/campagnes/${ID}/apercu`,
+    );
+    expect(memberPagePath("advertiserCampaignPreview", "en", ID)).toBe(
+      `/en/campaigns/${ID}/preview`,
+    );
+    expect(memberPageSegmentOfPath(`/campagnes/${ID}/apercu`, "fr")).toBe(ID);
+    expect(activePlaceOf("advertiserCampaignPreview")).toEqual({
+      entry: "campaigns",
+      sub: null,
+    });
+  });
+
+  it("keeps the form and the preview apart, and the other language's slug is no page", () => {
+    expect(memberPageOfPath(`/campagnes/${ID}`, "fr")).toBe(
+      "advertiserCampaign",
+    );
+    expect(memberPageOfPath(`/campagnes/${ID}/apercu`, "en")).toBeNull();
+    expect(memberPageOfPath(`/campaigns/${ID}/apercu`, "en")).toBeNull();
+  });
+
+  it("belongs to the brand's space: a creator is sent to their own home", () => {
+    expect(spaceOf("advertiserCampaignPreview")).toBe("advertiser");
+    expect(spaceRedirectOf("advertiserCampaignPreview", "creator")).toBe(
+      "creatorHome",
+    );
+    expect(
+      spaceRedirectOf("advertiserCampaignPreview", "advertiser"),
+    ).toBeNull();
+    expect(isTermsExempt("advertiserCampaignPreview")).toBe(false);
   });
 });

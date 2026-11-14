@@ -14,7 +14,7 @@
 | 08 | 08.md | commit | opus | high | dev-react-node | fait | creator-view : 32 clés de 0305 telles quelles (zod strict), profil marque publié vivant (fonction, badge, logo drapeau) ; ni devise, tranche, budget, réf. |
 | 09 | 09.md | commit | sonnet | high | dev-react-node | fait | campagnes marque : liste, étapes 1-3, autosave des seuls champs modifiés, dépendants vidés, domain par campaign-domain.ts ; e2e 14,0 s (médiane de 3) > 9 s |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | étapes 4-5 : tranche interne, nature, dates nommées, soumission (manquants par étape, case RG85) ; pas de budget total saisi (EC-10-1) ; e2e 10,4 s > 9 s |
-| 11 | 11.md | commit | sonnet | high | dev-react-node | à faire | |
+| 11 | 11.md | commit | sonnet | high | dev-react-node | fait | aperçu : réponse de 08 seule ; ni tranche, budget, réf. (texte+DOM) ; aucun lien ; logo via route profil ; e2e 2,3 s, total 09-11 24,1 s <= 25 |
 | U | ux.md | ux | sonnet | high | expert-ux | à faire | |
 | F2 | recette.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
