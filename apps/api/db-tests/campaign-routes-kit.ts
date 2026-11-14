@@ -212,6 +212,16 @@ export async function openCampaignRouteFixtures(): Promise<CampaignRouteFixtures
                where campaign_id in (select id from campaigns.campaigns
                                       where advertiser_account_id = any(${accounts}::uuid[]))`;
           }
+          // 0308 (L3C): a published campaign points at its snapshot, which points back at it and at
+          // its entry: the pointer is cleared (the campaign back to draft), then the snapshots go
+          await tx`
+            update campaigns.campaigns set status = 'draft', current_snapshot_id = null
+             where advertiser_account_id = any(${accounts}::uuid[])
+               and current_snapshot_id is not null`;
+          await tx`
+            delete from campaigns.campaign_published_snapshots
+             where campaign_id in (select id from campaigns.campaigns
+                                    where advertiser_account_id = any(${accounts}::uuid[]))`;
           // 0307 (L3C): a submitted campaign carries its entries of queue 7
           await tx`
             delete from campaigns.campaign_review_entries

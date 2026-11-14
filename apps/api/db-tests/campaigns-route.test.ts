@@ -26,6 +26,7 @@ import {
   type Member,
   type Server,
 } from "./campaign-routes-kit.ts";
+import { publishAsInflux } from "./campaign-publication-kit.ts";
 
 let fx: CampaignRouteFixtures;
 let sensitiveSector = "";
@@ -753,9 +754,14 @@ describe("L3B-T8 the submission (09 RG4, RG5, RG84, RG85, CA2, CA3)", () => {
     expect(await stateOf(campaign.id)).toBe("draft");
     // published, paused and closed are left by INFLUX only
     await fx.setProfileStatus(member, "published");
-    for (const state of ["published", "paused", "closed"]) {
-      await fx.migration`
-        update campaigns.campaigns set status = ${state} where id = ${campaign.id}`;
+    for (const state of ["published", "paused", "closed"] as const) {
+      // 0308: a published or paused campaign carries its snapshot
+      if (state === "closed") {
+        await fx.migration`
+          update campaigns.campaigns set status = ${state} where id = ${campaign.id}`;
+      } else {
+        await publishAsInflux(fx.migration, campaign.id, state);
+      }
       const response = await submit(server, member, campaign.id);
       expect(fx.errorBody(response), state).toMatchObject({
         status: 409,

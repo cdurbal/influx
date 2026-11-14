@@ -1,15 +1,18 @@
 // Schema `campaigns`, migrations 0303 (L3B commit 02, jalons/l3b/modele.md §2 to §4), 0305 (the
-// texts of the declaration of RG85, modele §5) and 0307 (queue 7, l3c/modele.md §1). The SQL is the
+// texts of the declaration of RG85, modele §5), 0307 (queue 7, l3c/modele.md §1) and 0308 (the
+// publication and its snapshot, l3c/modele.md §2). The SQL is the
 // source of truth: this file is aligned by hand, never generated, and held to the catalogue by
 // db-tests/campaigns-core.test.ts (TM11). Declaring a column here grants nothing: every read and
 // write stays subject to the GRANTs and policies of the role taken (03 P2); influx_creator holds
 // nothing on this schema (D78). The exact range per creator is declared because it exists, empty
 // and without any right (D78): no code reads nor writes it.
+import { sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
   char,
   date,
+  jsonb,
   pgSchema,
   primaryKey,
   smallint,
@@ -120,6 +123,13 @@ export const campaigns = campaignsSchema.table("campaigns", {
   erasedAt: timestamptz("erased_at"),
   createdAt: timestamptz("created_at").notNull().defaultNow(),
   updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+  // 0308: the responsible salesperson (internal FK), the snapshot served, the first publication
+  ownerAgentId: uuid("owner_agent_id"),
+  ownerAgentIsInternal: boolean("owner_agent_is_internal")
+    .notNull()
+    .generatedAlwaysAs(sql`true`),
+  currentSnapshotId: uuid("current_snapshot_id"),
+  firstPublishedAt: timestamptz("first_published_at"),
 });
 
 export const campaignKeyMessages = campaignsSchema.table(
@@ -265,5 +275,25 @@ export const campaignReviewEntries = campaignsSchema.table(
     closedAt: timestamptz("closed_at"),
     slaBreached: boolean("sla_breached").notNull(),
     updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+  },
+);
+
+/**
+ * 0308 (L3C commit 03, l3c/modele.md §2): what a creator reads of a published campaign, the output of
+ * campaign_creator_view() at the decision (TM5.6), versioned per campaign, immutable outside the
+ * erasure. Written by publish_campaign_review_entry() only; never read by influx_creator directly.
+ */
+export const campaignPublishedSnapshots = campaignsSchema.table(
+  "campaign_published_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id").notNull(),
+    version: smallint("version").notNull(),
+    payload: jsonb("payload").notNull(),
+    contentHash: bytea("content_hash").notNull(),
+    publishedAt: timestamptz("published_at").notNull(),
+    publishedByAccountId: uuid("published_by_account_id").notNull(),
+    firstReviewedByAccountId: uuid("first_reviewed_by_account_id"),
+    reviewEntryId: uuid("review_entry_id").notNull(),
   },
 );

@@ -2049,7 +2049,8 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     expected: {},
   },
   // 0303 (L3B commit 02, l3b/modele.md §4): the campaign and its lists belong to the brand alone;
-  // influx_creator NOTHING (D78, TM5.6), influx_agent and influx_admin nothing before L3C.
+  // influx_creator NOTHING (D78, TM5.6), influx_agent and influx_admin nothing before L3C; from 0308
+  // (L3C commit 03, l3c/modele §9) agent and admin read them in aal2, never their own account.
   {
     table: "campaigns.campaigns",
     source:
@@ -2060,25 +2061,35 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     updateSet: "title = title",
     insertTemplate:
       "insert into campaigns.campaigns (advertiser_account_id, title) values ($1, 'T2 probe')",
-    expected: {
-      influx_advertiser: {
-        select: {
-          form: "propre",
-          source:
-            "modele §4: the brand reads its own campaigns, the suspended range excepted",
-        },
-        insert: {
-          form: "propre",
-          source:
-            "modele §4, CA2: any active advertiser creates a draft of its own",
-        },
-        update: {
-          form: "propre",
-          source:
-            "modele §4: the entry columns of its own campaigns (frozen outside draft, rejected)",
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source:
+              "modele §4: the brand reads its own campaigns, the suspended range excepted",
+          },
+          insert: {
+            form: "propre",
+            source:
+              "modele §4, CA2: any active advertiser creates a draft of its own",
+          },
+          update: {
+            form: "propre",
+            source:
+              "modele §4: the entry columns of its own campaigns (frozen outside draft, rejected)",
+          },
         },
       },
-    },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "0308, l3c/modele §9: agent and admin read every campaign in aal2 but the suspended " +
+            "range of D78, never their own account",
+        },
+      }),
+    ),
   },
   ...CAMPAIGN_LISTS.map(({ table, insertTemplate }): TableRights => ({
     table,
@@ -2086,24 +2097,33 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "campaign_id",
     ownerColumn: CAMPAIGN_OWNER,
     insertTemplate,
-    expected: {
-      influx_advertiser: {
-        select: {
-          form: "propre",
-          source:
-            "modele §4: the rows of its own campaigns (RLS through the campaign)",
-        },
-        insert: {
-          form: "propre",
-          source: "modele §4: a row added to the list of its own campaign",
-        },
-        delete: {
-          form: "propre",
-          source:
-            "modele §4: a list is replaced in one transaction, never updated",
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source:
+              "modele §4: the rows of its own campaigns (RLS through the campaign)",
+          },
+          insert: {
+            form: "propre",
+            source: "modele §4: a row added to the list of its own campaign",
+          },
+          delete: {
+            form: "propre",
+            source:
+              "modele §4: a list is replaced in one transaction, never updated",
+          },
         },
       },
-    },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "0308, l3c/modele §9 (EC-L3C-03-4): the lists of the campaigns agent and admin see",
+        },
+      }),
+    ),
   })),
   {
     table: "campaigns.requested_items",
@@ -2123,9 +2143,14 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     table: "campaigns.rejection_reasons",
     source:
       "0303 (09 RG90, modele §3): the closed list of queue 7, written by the migrations; its read " +
-      "policy is written, its grant comes with L3C (EC-L3B-02-1)",
+      "policy is written, its grant comes with L3C (EC-L3B-02-1, 0308)",
     probeColumn: "code",
-    expected: {},
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source: "0308: agent and admin read the reasons of queue 7 in aal2",
+      },
+    }),
   },
   {
     table: "campaigns.authorization_declaration_texts",
@@ -2169,6 +2194,20 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
         },
       }),
     ),
+  },
+  {
+    table: "campaigns.campaign_published_snapshots",
+    source:
+      "0308 (04 §5.4; l3c/modele §2): the snapshot of a published campaign, written by " +
+      "publish_campaign_review_entry() only, immutable outside the erasure; influx_creator NOTHING",
+    probeColumn: "campaign_id",
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "l3c/modele §9: agent and admin read the snapshots in aal2, never of their own account",
+      },
+    }),
   },
 ];
 
@@ -2249,7 +2288,8 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * and 6 and l3b/modele.md §5, §6; then with those of 0306 (L3B commit 06, the export and the
  * erasure of the campaigns), each line checked against its section 1 and l3b/modele.md §7; and on
  * 2026-11-14 with those of 0307 (L3C commit 02, queue 7), each line checked against its sections 3,
- * 5 to 8 and l3c/modele.md §1, §9.
+ * 5 to 8 and l3c/modele.md §1, §9; then with those of 0308 (L3C commit 03, the decisions), each line
+ * checked against its sections 5 and 6 and l3c/modele.md §2 to §4, §9.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -6524,15 +6564,11 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_campaign_review_definer|column|campaigns.campaign_review_entries.claim_expires_at|SELECT,UPDATE",
   "influx_campaign_review_definer|column|campaigns.campaign_review_entries.claimed_at|SELECT,UPDATE",
   "influx_campaign_review_definer|column|campaigns.campaign_review_entries.claimed_by_account_id|SELECT,UPDATE",
-  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_review_opinion|SELECT",
-  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_reviewed_at|SELECT",
-  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_reviewed_by_account_id|SELECT",
   "influx_campaign_review_definer|column|campaigns.campaign_review_entries.forced_release_at|UPDATE",
   "influx_campaign_review_definer|column|campaigns.campaign_review_entries.forced_release_by_account_id|UPDATE",
   "influx_campaign_review_definer|column|campaigns.campaign_review_entries.forced_release_holder_account_id|UPDATE",
   "influx_campaign_review_definer|column|campaigns.campaign_review_entries.forced_release_reason_code|UPDATE",
   "influx_campaign_review_definer|column|campaigns.campaign_review_entries.id|SELECT",
-  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.state|SELECT",
   "influx_campaign_review_definer|column|campaigns.campaign_topics.campaign_id|SELECT",
   "influx_campaign_review_definer|column|campaigns.campaign_topics.slot|SELECT",
   "influx_campaign_review_definer|column|campaigns.campaign_topics.topic_code|SELECT",
@@ -6598,6 +6634,173 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_campaign_review_definer|schema|identity|USAGE",
   "influx_campaign_review_definer|schema|influx|USAGE",
   "influx_campaign_review_definer|schema|reference|USAGE",
+  // 0308 (L3C commit 03, jalons/l3c/modele.md §2 to §4, §9): the decisions of queue 7. Agent and
+  // admin read the campaign (every column but the suspended range of D78), its nine lists, its
+  // snapshots and the refusal reasons, and execute the first examination, the publication and the
+  // refusal. influx_campaign_review_definer writes the state, the owner, the snapshot pointer and the
+  // first publication of a campaign, the decision and first review columns of an entry, inserts a
+  // snapshot (never updates nor deletes one), reads the reasons and the brand profile status,
+  // executes the creator view and the cap of RG15, and queues campaign.decision and
+  // campaign.published.
+  "influx_admin|column|campaigns.campaigns.advertiser_account_id|SELECT",
+  "influx_admin|column|campaigns.campaigns.applications_close_on|SELECT",
+  "influx_admin|column|campaigns.campaigns.audience_gender_code|SELECT",
+  "influx_admin|column|campaigns.campaigns.authorizations_declaration_hash|SELECT",
+  "influx_admin|column|campaigns.campaigns.authorizations_declaration_locale|SELECT",
+  "influx_admin|column|campaigns.campaigns.authorizations_declared_at|SELECT",
+  "influx_admin|column|campaigns.campaigns.authorizations_declared_by_account_id|SELECT",
+  "influx_admin|column|campaigns.campaigns.brief|SELECT",
+  "influx_admin|column|campaigns.campaigns.campaign_type_code|SELECT",
+  "influx_admin|column|campaigns.campaigns.content_due_on|SELECT",
+  "influx_admin|column|campaigns.campaigns.content_review_delay|SELECT",
+  "influx_admin|column|campaigns.campaigns.created_at|SELECT",
+  "influx_admin|column|campaigns.campaigns.creator_keeps_product|SELECT",
+  "influx_admin|column|campaigns.campaigns.creators_wanted|SELECT",
+  "influx_admin|column|campaigns.campaigns.currency|SELECT",
+  "influx_admin|column|campaigns.campaigns.current_snapshot_id|SELECT",
+  "influx_admin|column|campaigns.campaigns.ends_on|SELECT",
+  "influx_admin|column|campaigns.campaigns.erased_at|SELECT",
+  "influx_admin|column|campaigns.campaigns.exclusivity_band|SELECT",
+  "influx_admin|column|campaigns.campaigns.first_published_at|SELECT",
+  "influx_admin|column|campaigns.campaigns.id|SELECT",
+  "influx_admin|column|campaigns.campaigns.internal_reference|SELECT",
+  "influx_admin|column|campaigns.campaigns.max_applications|SELECT",
+  "influx_admin|column|campaigns.campaigns.owner_agent_id|SELECT",
+  "influx_admin|column|campaigns.campaigns.owner_agent_is_internal|SELECT",
+  "influx_admin|column|campaigns.campaigns.per_creator_budget_band_code|SELECT",
+  "influx_admin|column|campaigns.campaigns.product_description|SELECT",
+  "influx_admin|column|campaigns.campaigns.product_is_sent|SELECT",
+  "influx_admin|column|campaigns.campaigns.product_value_band_code|SELECT",
+  "influx_admin|column|campaigns.campaigns.public_summary|SELECT",
+  "influx_admin|column|campaigns.campaigns.remuneration_kind|SELECT",
+  "influx_admin|column|campaigns.campaigns.restrictions|SELECT",
+  "influx_admin|column|campaigns.campaigns.sector_code|SELECT",
+  "influx_admin|column|campaigns.campaigns.shipping_costs_borne_by|SELECT",
+  "influx_admin|column|campaigns.campaigns.starts_on|SELECT",
+  "influx_admin|column|campaigns.campaigns.status|SELECT",
+  "influx_admin|column|campaigns.campaigns.submitted_at|SELECT",
+  "influx_admin|column|campaigns.campaigns.title|SELECT",
+  "influx_admin|column|campaigns.campaigns.total_budget_minor|SELECT",
+  "influx_admin|column|campaigns.campaigns.updated_at|SELECT",
+  "influx_admin|column|campaigns.campaigns.usage_rights_code|SELECT",
+  "influx_admin|column|campaigns.campaigns.usage_rights_duration_band|SELECT",
+  "influx_admin|column|campaigns.campaigns.usage_rights_territory_scope|SELECT",
+  "influx_admin|function|campaigns.first_review_campaign_entry(uuid,text,text)|EXECUTE",
+  "influx_admin|function|campaigns.publish_campaign_review_entry(uuid,text,uuid,text)|EXECUTE",
+  "influx_admin|function|campaigns.reject_campaign_review_entry(uuid,text,text,text,text)|EXECUTE",
+  "influx_admin|table|campaigns.campaign_audience_age_bands|SELECT",
+  "influx_admin|table|campaigns.campaign_audience_bands|SELECT",
+  "influx_admin|table|campaigns.campaign_audience_countries|SELECT",
+  "influx_admin|table|campaigns.campaign_audience_languages|SELECT",
+  "influx_admin|table|campaigns.campaign_deliverables|SELECT",
+  "influx_admin|table|campaigns.campaign_key_messages|SELECT",
+  "influx_admin|table|campaigns.campaign_published_snapshots|SELECT",
+  "influx_admin|table|campaigns.campaign_requested_items|SELECT",
+  "influx_admin|table|campaigns.campaign_topics|SELECT",
+  "influx_admin|table|campaigns.campaign_usage_territories|SELECT",
+  "influx_admin|table|campaigns.rejection_reasons|SELECT",
+  "influx_agent|column|campaigns.campaigns.advertiser_account_id|SELECT",
+  "influx_agent|column|campaigns.campaigns.applications_close_on|SELECT",
+  "influx_agent|column|campaigns.campaigns.audience_gender_code|SELECT",
+  "influx_agent|column|campaigns.campaigns.authorizations_declaration_hash|SELECT",
+  "influx_agent|column|campaigns.campaigns.authorizations_declaration_locale|SELECT",
+  "influx_agent|column|campaigns.campaigns.authorizations_declared_at|SELECT",
+  "influx_agent|column|campaigns.campaigns.authorizations_declared_by_account_id|SELECT",
+  "influx_agent|column|campaigns.campaigns.brief|SELECT",
+  "influx_agent|column|campaigns.campaigns.campaign_type_code|SELECT",
+  "influx_agent|column|campaigns.campaigns.content_due_on|SELECT",
+  "influx_agent|column|campaigns.campaigns.content_review_delay|SELECT",
+  "influx_agent|column|campaigns.campaigns.created_at|SELECT",
+  "influx_agent|column|campaigns.campaigns.creator_keeps_product|SELECT",
+  "influx_agent|column|campaigns.campaigns.creators_wanted|SELECT",
+  "influx_agent|column|campaigns.campaigns.currency|SELECT",
+  "influx_agent|column|campaigns.campaigns.current_snapshot_id|SELECT",
+  "influx_agent|column|campaigns.campaigns.ends_on|SELECT",
+  "influx_agent|column|campaigns.campaigns.erased_at|SELECT",
+  "influx_agent|column|campaigns.campaigns.exclusivity_band|SELECT",
+  "influx_agent|column|campaigns.campaigns.first_published_at|SELECT",
+  "influx_agent|column|campaigns.campaigns.id|SELECT",
+  "influx_agent|column|campaigns.campaigns.internal_reference|SELECT",
+  "influx_agent|column|campaigns.campaigns.max_applications|SELECT",
+  "influx_agent|column|campaigns.campaigns.owner_agent_id|SELECT",
+  "influx_agent|column|campaigns.campaigns.owner_agent_is_internal|SELECT",
+  "influx_agent|column|campaigns.campaigns.per_creator_budget_band_code|SELECT",
+  "influx_agent|column|campaigns.campaigns.product_description|SELECT",
+  "influx_agent|column|campaigns.campaigns.product_is_sent|SELECT",
+  "influx_agent|column|campaigns.campaigns.product_value_band_code|SELECT",
+  "influx_agent|column|campaigns.campaigns.public_summary|SELECT",
+  "influx_agent|column|campaigns.campaigns.remuneration_kind|SELECT",
+  "influx_agent|column|campaigns.campaigns.restrictions|SELECT",
+  "influx_agent|column|campaigns.campaigns.sector_code|SELECT",
+  "influx_agent|column|campaigns.campaigns.shipping_costs_borne_by|SELECT",
+  "influx_agent|column|campaigns.campaigns.starts_on|SELECT",
+  "influx_agent|column|campaigns.campaigns.status|SELECT",
+  "influx_agent|column|campaigns.campaigns.submitted_at|SELECT",
+  "influx_agent|column|campaigns.campaigns.title|SELECT",
+  "influx_agent|column|campaigns.campaigns.total_budget_minor|SELECT",
+  "influx_agent|column|campaigns.campaigns.updated_at|SELECT",
+  "influx_agent|column|campaigns.campaigns.usage_rights_code|SELECT",
+  "influx_agent|column|campaigns.campaigns.usage_rights_duration_band|SELECT",
+  "influx_agent|column|campaigns.campaigns.usage_rights_territory_scope|SELECT",
+  "influx_agent|function|campaigns.first_review_campaign_entry(uuid,text,text)|EXECUTE",
+  "influx_agent|function|campaigns.publish_campaign_review_entry(uuid,text,uuid,text)|EXECUTE",
+  "influx_agent|function|campaigns.reject_campaign_review_entry(uuid,text,text,text,text)|EXECUTE",
+  "influx_agent|table|campaigns.campaign_audience_age_bands|SELECT",
+  "influx_agent|table|campaigns.campaign_audience_bands|SELECT",
+  "influx_agent|table|campaigns.campaign_audience_countries|SELECT",
+  "influx_agent|table|campaigns.campaign_audience_languages|SELECT",
+  "influx_agent|table|campaigns.campaign_deliverables|SELECT",
+  "influx_agent|table|campaigns.campaign_key_messages|SELECT",
+  "influx_agent|table|campaigns.campaign_published_snapshots|SELECT",
+  "influx_agent|table|campaigns.campaign_requested_items|SELECT",
+  "influx_agent|table|campaigns.campaign_topics|SELECT",
+  "influx_agent|table|campaigns.campaign_usage_territories|SELECT",
+  "influx_agent|table|campaigns.rejection_reasons|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.campaign_id|INSERT,SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.content_hash|INSERT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.first_reviewed_by_account_id|INSERT,SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.payload|INSERT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.published_at|INSERT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.published_by_account_id|INSERT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.review_entry_id|INSERT",
+  "influx_campaign_review_definer|column|campaigns.campaign_published_snapshots.version|INSERT,SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.closed_at|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.decided_at|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.decided_by_account_id|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_review_opinion|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_reviewed_at|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_reviewed_by_account_id|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.internal_comment|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.member_message|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.rejection_reason_code|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.sla_breached|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.state|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaigns.current_snapshot_id|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaigns.first_published_at|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaigns.owner_agent_id|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaigns.status|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaigns.submitted_at|SELECT",
+  "influx_campaign_review_definer|column|campaigns.rejection_reasons.code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.rejection_reasons.is_active|SELECT",
+  "influx_campaign_review_definer|column|campaigns.rejection_reasons.requires_member_message|SELECT",
+  "influx_campaign_review_definer|column|leads.outbox_events.destination|INSERT",
+  "influx_campaign_review_definer|column|leads.outbox_events.event_id|INSERT",
+  "influx_campaign_review_definer|column|leads.outbox_events.event_type|INSERT",
+  "influx_campaign_review_definer|column|leads.outbox_events.idempotency_key|INSERT",
+  "influx_campaign_review_definer|column|leads.outbox_events.payload|INSERT",
+  "influx_campaign_review_definer|column|leads.outbox_events.priority|INSERT",
+  "influx_campaign_review_definer|column|leads.outbox_events.subject_key|INSERT",
+  "influx_campaign_review_definer|column|profiles.advertiser_profiles.account_id|SELECT",
+  "influx_campaign_review_definer|column|profiles.advertiser_profiles.status|SELECT",
+  "influx_campaign_review_definer|function|campaigns.assert_live_campaign_cap(uuid)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.campaign_creator_view(uuid)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.check_campaign_review_text(text,integer,integer,boolean,text)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.first_review_campaign_entry(uuid,text,text)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.publish_campaign_review_entry(uuid,text,uuid,text)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.reject_campaign_review_entry(uuid,text,text,text,text)|EXECUTE",
+  "influx_campaign_review_definer|schema|leads|USAGE",
+  "influx_campaign_review_definer|schema|profiles|USAGE",
 ];
 
 /**
@@ -7142,5 +7345,12 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "campaigns.extend_campaign_review_claim(uuid)":
     "influx_campaign_review_definer",
   "campaigns.force_release_campaign_review_claim(uuid,text)":
+    "influx_campaign_review_definer",
+  // 0308 (L3C commit 03): the first examination, the publication and the refusal of queue 7
+  "campaigns.first_review_campaign_entry(uuid,text,text)":
+    "influx_campaign_review_definer",
+  "campaigns.publish_campaign_review_entry(uuid,text,uuid,text)":
+    "influx_campaign_review_definer",
+  "campaigns.reject_campaign_review_entry(uuid,text,text,text,text)":
     "influx_campaign_review_definer",
 };

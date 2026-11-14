@@ -1409,7 +1409,13 @@ describe("L3A-T5 (L3B-T1): the allowlist of audit codes in the export (F3, 0302,
       "verification.escalated",
     ],
     // 0303 (04 §4.3, note under the Lot 3 table): the declaration of one party against another
-    excluded_third_party: ["block.created", "block.lifted"],
+    // 0308 (l3c/modele §8, fiche invariant 5): the first examination of an enhanced review, the act
+    // of an agent on the brand's campaign, never served to the brand
+    excluded_third_party: [
+      "block.created",
+      "block.lifted",
+      "campaign.first_reviewed",
+    ],
   };
   const EXCLUDED = Object.values(EXCLUDED_BY_CLASS).flat();
   /** The exported codes at 0302 (f3.md); a later migration adds codes, never removes one. */

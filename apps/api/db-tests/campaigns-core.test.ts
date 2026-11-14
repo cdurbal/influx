@@ -829,7 +829,7 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
     });
   });
 
-  it("L3B-T3 refuses an agent the campaigns and the reasons of queue 7 before L3C (EC-L3B-02-1)", async () => {
+  it("L3B-T3 refused an agent the campaigns and the reasons of queue 7 before L3C (EC-L3B-02-1); from 0308 the agent reads them in aal2", async () => {
     const outcome = await scenario((tx) =>
       actAsInternal(
         tx,
@@ -844,9 +844,10 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
         }),
       ),
     );
-    expect(outcome).toEqual({
-      campaign: refusedBy(INSUFFICIENT_PRIVILEGE),
-      reasons: refusedBy(INSUFFICIENT_PRIVILEGE),
+    // 0308 (L3C commit 03, modele §9): the grant written by EC-L3B-02-1 comes with the decisions
+    expect(outcome).toMatchObject({
+      campaign: { outcome: "rows" },
+      reasons: { outcome: "rows", count: 14 },
     });
   });
 
@@ -890,7 +891,7 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
 });
 
 describe("L3B-T3 the codes of Lot 3 and the closed lists (04 §4.3, modele §3)", () => {
-  it("L3B-T3 loads the nine codes of 04 §4.3, each with its export_class (F3)", async () => {
+  it("L3B-T3 loads the nine codes of 04 §4.3 and the two of 0308, each with its export_class (F3)", async () => {
     const rows = await scenario(
       (tx) =>
         tx<
@@ -926,6 +927,21 @@ describe("L3B-T3 the codes of Lot 3 and the closed lists (04 §4.3, modele §3)"
         subject_type: "campaign",
         severity: "info",
         export_class: "exported",
+      },
+      // 0308 (L3C commit 03, modele §8): the decision e-mail (queue only) and the first examination
+      {
+        code: "campaign.decision",
+        domain: "campaigns",
+        subject_type: "queue_entry",
+        severity: "info",
+        export_class: "exported",
+      },
+      {
+        code: "campaign.first_reviewed",
+        domain: "campaigns",
+        subject_type: "campaign",
+        severity: "sensitive",
+        export_class: "excluded_third_party",
       },
       {
         code: "campaign.paused",
@@ -1026,7 +1042,8 @@ describe("L3B-T3 TM11: the Drizzle declaration of campaigns.ts has the columns o
         catalogue.map((row) => [row.name, [...row.columns].sort()]),
       ),
     );
-    // twelve tables of 0303, plus authorization_declaration_texts (0305), campaign_review_entries (0307)
-    expect(Object.keys(declared)).toHaveLength(14);
+    // twelve tables of 0303, plus authorization_declaration_texts (0305), campaign_review_entries
+    // (0307), campaign_published_snapshots (0308)
+    expect(Object.keys(declared)).toHaveLength(15);
   });
 });

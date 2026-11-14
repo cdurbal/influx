@@ -24,6 +24,7 @@ import {
   testDataSet,
 } from "./support.ts";
 import { campaignCalendar } from "./campaign-dates-kit.ts";
+import { publishAsInflux } from "./campaign-publication-kit.ts";
 
 /** The four dates of a valid campaign, from today (L3BT-9). */
 const CALENDAR = campaignCalendar();
@@ -295,9 +296,14 @@ describe("L3B-T6 the brand submits its complete campaign (09 RG4, RG5; modele §
     async (status) => {
       const outcome = await scenario(async (tx) => {
         await readyA(tx);
-        await tx`
-          update campaigns.campaigns set status = ${status}::campaigns.campaign_status
-           where id = ${campaignA}`;
+        // 0308: a published or paused campaign carries its snapshot
+        if (status === "published" || status === "paused") {
+          await publishAsInflux(tx, campaignA, status);
+        } else {
+          await tx`
+            update campaigns.campaigns set status = ${status}::campaigns.campaign_status
+             where id = ${campaignA}`;
+        }
         return {
           submission: await brandSubmits(tx),
           status: (await stateOfA(tx)).status,
@@ -723,7 +729,7 @@ describe("L3B-T6 the owner of the door and its functions (03 P7; fiche invariant
     });
   });
 
-  it("L3B-T6 the door is SECURITY DEFINER of its owner, the view SECURITY INVOKER, both EXECUTE to influx_advertiser only", async () => {
+  it("L3B-T6 the door is SECURITY DEFINER of its owner, the view SECURITY INVOKER, both EXECUTE to influx_advertiser only (the view also to the owner of the decisions from 0308)", async () => {
     const rows = await scenario(
       (tx) =>
         tx<
@@ -752,7 +758,8 @@ describe("L3B-T6 the owner of the door and its functions (03 P7; fiche invariant
         definer: false,
         owner: "postgres",
         config: ['search_path=""'],
-        grantees: ["influx_advertiser"],
+        // 0308 (L3C): the snapshot is the output of the view, computed by the owner of the decisions
+        grantees: ["influx_advertiser", "influx_campaign_review_definer"],
       },
       {
         name: "submit_own_campaign",

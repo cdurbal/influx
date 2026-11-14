@@ -200,6 +200,13 @@ export const CAMPAIGN_REVIEW_IDS = {
   b: "00000000-0000-4000-8000-00000000ff2c",
 } as const;
 
+/**
+ * 0308 (L3C commit 03): one snapshot of campaign B, naming its withdrawn entry, so that T2 observes the
+ * read of agent and admin. Inert: never the current snapshot of the draft campaign B (campaign A
+ * keeps none, the tests of the publication count its versions).
+ */
+export const CAMPAIGN_SNAPSHOT_ID_B = "00000000-0000-4000-8000-00000000ff2d";
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -514,6 +521,17 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
         values (${CAMPAIGN_REVIEW_IDS[side]}, ${campaign}, ${accountIdOf("advertiser", side)},
                 'withdrawn', now() + interval '1 second')
         on conflict do nothing`;
+      // 0308 (L3C): an inert snapshot of campaign B (CAMPAIGN_SNAPSHOT_ID_B)
+      if (side === "b") {
+        await tx`
+          insert into campaigns.campaign_published_snapshots
+            (id, campaign_id, version, payload, content_hash, published_at,
+             published_by_account_id, review_entry_id)
+          values (${CAMPAIGN_SNAPSHOT_ID_B}, ${campaign}, 1, '{}'::jsonb,
+                  sha256(convert_to('{}', 'UTF8')), now(), ${accountIdOf("agent", "b")},
+                  ${CAMPAIGN_REVIEW_IDS[side]})
+          on conflict do nothing`;
+      }
       await tx`
         insert into campaigns.campaign_audience_age_bands (campaign_id, age_band_code)
         values (${campaign}, ${rows.age}) on conflict do nothing`;

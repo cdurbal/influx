@@ -23,6 +23,7 @@ import {
   testDataSet,
 } from "./support.ts";
 import { campaignCalendar, civilDateIn } from "./campaign-dates-kit.ts";
+import { publishAsInflux } from "./campaign-publication-kit.ts";
 
 type Tx = postgres.TransactionSql;
 
@@ -268,7 +269,8 @@ async function otherCampaign(tx: Tx, live: Live): Promise<string> {
        usage_rights_duration_band, usage_rights_territory_scope, exclusivity_band,
        content_review_delay, currency, remuneration_kind, per_creator_budget_band_code,
        creators_wanted, applications_close_on, starts_on, ends_on, submitted_at)
-    values (${live.account ?? brandA}, ${live.status}::campaigns.campaign_status,
+    values (${live.account ?? brandA},
+            ${live.status === "published" || live.status === "paused" ? "draft" : live.status}::campaigns.campaign_status,
             ${live.title ?? "Another campaign"}, 'product_placement', ${"s".repeat(120)},
             ${"b".repeat(300)}, 'A light tent for two', 'sports_leisure', false, 'organic_repost',
             '3m', 'worldwide', 'none', '5bd', 'EUR', 'cash', '500_1000', 3,
@@ -277,6 +279,10 @@ async function otherCampaign(tx: Tx, live: Live): Promise<string> {
             now() - make_interval(days => ${live.submittedDaysAgo ?? 1}))
     returning id::text`;
   if (row === undefined) throw new Error("no campaign");
+  // 0308: a published or paused campaign carries its snapshot (campaigns_published_needs_review)
+  if (live.status === "published" || live.status === "paused") {
+    await publishAsInflux(tx, row.id, live.status);
+  }
   return row.id;
 }
 
