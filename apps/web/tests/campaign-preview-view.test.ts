@@ -14,6 +14,8 @@ import frCampaign from "@/locales/fr/campaign.json";
 import {
   BRAND_OPTION_GROUPS,
   previewBrandOf,
+  previewOriginOf,
+  previewOriginQuery,
   previewSectionsOf,
   type PreviewLabels,
   type PreviewRow,
@@ -382,5 +384,27 @@ describe("L3B-11: the words of the preview in both languages (04 R8, CA23)", () 
       "rhythm",
       "workingLanguage",
     ]);
+  });
+});
+
+describe("L3B-fix-1: the way back of the preview returns where it was opened (L3BU-1)", () => {
+  it("returns to the step the preview was opened from, and the link says it", () => {
+    expect(previewOriginQuery(4)).toBe("?from=4");
+    expect(previewOriginOf("4")).toEqual({ to: "campaign", step: 4 });
+    expect(previewOriginOf(["2", "5"])).toEqual({ to: "campaign", step: 2 });
+  });
+
+  it("returns to the list when the preview was opened from the list", () => {
+    expect(previewOriginQuery("list")).toBe("?from=list");
+    expect(previewOriginOf("list")).toEqual({ to: "list" });
+  });
+
+  it("returns to the campaign itself when the origin is absent or unknown", () => {
+    for (const value of [undefined, "", "0", "6", "step", "LIST", []]) {
+      expect(previewOriginOf(value), String(value)).toEqual({
+        to: "campaign",
+        step: null,
+      });
+    }
   });
 });

@@ -30,6 +30,7 @@ import {
   type CampaignFieldsProps,
 } from "./campaign-field-texts";
 import { bandOptionsOf } from "./campaign-options";
+import { previewOriginQuery } from "./campaign-preview-view";
 import { controlIdOf, isGiftOnly } from "./campaign-view";
 import { CountField } from "./CountField";
 
@@ -156,11 +157,11 @@ export function CampaignBudgetFields({
         </p>
         <p className="text-text-primary">{t("budget.negotiate")}</p>
         <Link
-          href={memberPageHref(
+          href={`${memberPageHref(
             "advertiserCampaignPreview",
             locale,
             campaign.id,
-          )}
+          )}${previewOriginQuery(4)}`}
           className={TEXT_LINK_CLASSES}
         >
           {t("preview.link")}

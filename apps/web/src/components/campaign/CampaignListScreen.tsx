@@ -29,6 +29,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
 import { memberPageHref } from "@/lib/member-paths";
 import { createCampaignDraft, readCampaignList } from "./campaign-api";
+import { previewOriginQuery } from "./campaign-preview-view";
 import {
   CAMPAIGN_LIST_CLASSES,
   CAMPAIGN_ROW_CLASSES,
@@ -190,11 +191,11 @@ function CampaignRow({
             })}
           </p>
           <Link
-            href={memberPageHref(
+            href={`${memberPageHref(
               "advertiserCampaignPreview",
               locale,
               campaign.id,
-            )}
+            )}${previewOriginQuery("list")}`}
             className={TEXT_LINK_CLASSES}
           >
             {t("preview.link")}

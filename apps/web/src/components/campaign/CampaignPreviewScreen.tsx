@@ -39,20 +39,33 @@ import { previewLabelsOf } from "./campaign-preview-labels";
 import {
   previewBrandOf,
   previewSectionsOf,
+  type PreviewOrigin,
   type PreviewRow,
 } from "./campaign-preview-view";
 import { useCampaignPreview } from "./use-campaign-preview";
 
 /** The page of a brand; any other role finds a page that does not exist (18 T14.3, T14.4). */
-export function CampaignPreviewScreen({ id }: { id: string }) {
+export function CampaignPreviewScreen({
+  id,
+  origin,
+}: {
+  id: string;
+  origin: PreviewOrigin;
+}) {
   const { me } = useMember();
   if (me.role !== "advertiser") {
     notFound();
   }
-  return <CampaignPreviewView id={id} />;
+  return <CampaignPreviewView id={id} origin={origin} />;
 }
 
-function CampaignPreviewView({ id }: { id: string }) {
+function CampaignPreviewView({
+  id,
+  origin,
+}: {
+  id: string;
+  origin: PreviewOrigin;
+}) {
   const t = useTranslations("campaign");
   const tBrand = useTranslations("brandProfile");
   const tAccount = useTranslations("account");
@@ -77,16 +90,29 @@ function CampaignPreviewView({ id }: { id: string }) {
     notFound();
   }
 
-  const back = (
-    <Link
-      href={memberPageHref("advertiserCampaign", locale, id)}
-      className={BACK_LINK_CLASSES}
-    >
-      <span className="sr-only">{t("form.backPrefix")} </span>
-      <ChevronLeftIcon aria-hidden="true" className={BACK_ICON_CLASSES} />
-      {t("preview.back")}
-    </Link>
-  );
+  // The way back leads where the preview was opened from (L3BU-1): the list, a step, or the campaign. The
+  // name of the link is its label alone, but for « Mes campagnes », which has no verb of its own (L3BU-15).
+  const back =
+    origin.to === "list" ? (
+      <Link
+        href={memberPageHref("advertiserCampaigns", locale)}
+        className={BACK_LINK_CLASSES}
+      >
+        <span className="sr-only">{t("form.backPrefix")} </span>
+        <ChevronLeftIcon aria-hidden="true" className={BACK_ICON_CLASSES} />
+        {t("form.back")}
+      </Link>
+    ) : (
+      <Link
+        href={`${memberPageHref("advertiserCampaign", locale, id)}${
+          origin.step === null ? "" : `?step=${origin.step}`
+        }`}
+        className={BACK_LINK_CLASSES}
+      >
+        <ChevronLeftIcon aria-hidden="true" className={BACK_ICON_CLASSES} />
+        {t("preview.back")}
+      </Link>
+    );
 
   let body: ReactNode;
   if (preview === null) {

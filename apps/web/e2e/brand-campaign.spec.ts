@@ -810,7 +810,9 @@ test("what a creator sees, in French at 1 440 px: reached from step 4, the natur
     .locator("[data-creator-box]")
     .getByRole("link", { name: copy.preview.link })
     .click();
-  await expect(page).toHaveURL(new RegExp(`/fr/campagnes/${id}/apercu$`));
+  await expect(page).toHaveURL(
+    new RegExp(`/fr/campagnes/${id}/apercu\\?from=4$`),
+  );
   await expect(title(page)).toHaveText(copy.preview.title);
   await expect(page.locator("[data-preview-banner]")).toHaveText(
     copy.preview.banner,
@@ -864,9 +866,12 @@ test("what a creator sees, in French at 1 440 px: reached from step 4, the natur
     wcag22: true,
   });
 
-  // The way back leads to the form, outside the preview.
+  // The way back leads to the step the preview was opened from (L3BU-1), outside the preview.
   await page.getByRole("link", { name: copy.preview.back }).click();
-  await expect(page).toHaveURL(new RegExp(`/fr/campagnes/${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/fr/campagnes/${id}\\?step=4$`));
+  await expect(
+    page.getByRole("heading", { level: 2, name: copy.form.steps["4"].title }),
+  ).toBeVisible();
 });
 
 test("what a creator sees, in English at 375 px: reached from the list, a gift only says so without a figure, an unpublished profile says it is not shown (RG102, CA68, D78, 06 RG73)", async ({
@@ -894,7 +899,9 @@ test("what a creator sees, in English at 375 px: reached from the list, a gift o
       name: `${copy.preview.link} Trial of our new skincare range`,
     })
     .click();
-  await expect(page).toHaveURL(new RegExp(`/en/campaigns/${id}/preview$`));
+  await expect(page).toHaveURL(
+    new RegExp(`/en/campaigns/${id}/preview\\?from=list$`),
+  );
   await expect(title(page)).toHaveText(copy.preview.title);
   const creatorView = page.locator("[data-creator-preview]");
   const remuneration = creatorView.locator(
@@ -920,4 +927,10 @@ test("what a creator sees, in English at 375 px: reached from the list, a gift o
   await expectNoAxeViolation(page, "campaign preview, en, 375", {
     wcag22: true,
   });
+
+  // Opened from the list, the way back returns to the list, and its name is not doubled (L3BU-1, L3BU-15).
+  await page
+    .getByRole("link", { name: `${copy.form.backPrefix} ${copy.form.back}` })
+    .click();
+  await expect(page).toHaveURL(/\/en\/campaigns$/);
 });

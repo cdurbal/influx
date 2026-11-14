@@ -11,6 +11,35 @@ import type {
   CampaignCreatorView,
   CampaignCreatorViewResponse,
 } from "@influx/contracts/campaign-creator-view";
+import type { CampaignStep } from "./campaign-domain";
+import { AVAILABLE_STEPS } from "./campaign-view";
+
+/** The query parameter of the preview that says where it was opened from (L3BU-1). */
+export const PREVIEW_ORIGIN_PARAMETER = "from";
+
+/** The value naming the list of campaigns; a step is named by its number. */
+const PREVIEW_ORIGIN_LIST = "list";
+
+/** Where the way back of the preview leads: the list, or the campaign (at a step when it is known). */
+export type PreviewOrigin =
+  { to: "list" } | { to: "campaign"; step: CampaignStep | null };
+
+/** The `?from=` a link to the preview carries: the step it leaves, or the list. */
+export function previewOriginQuery(from: CampaignStep | "list"): string {
+  return `?${PREVIEW_ORIGIN_PARAMETER}=${from === "list" ? PREVIEW_ORIGIN_LIST : from}`;
+}
+
+/** The origin a `?from=` of the address names; the campaign itself when it names nothing known. */
+export function previewOriginOf(
+  value: string | string[] | undefined,
+): PreviewOrigin {
+  const text = Array.isArray(value) ? value[0] : value;
+  if (text === PREVIEW_ORIGIN_LIST) {
+    return { to: "list" };
+  }
+  const step = AVAILABLE_STEPS.find((candidate) => String(candidate) === text);
+  return { to: "campaign", step: step ?? null };
+}
 
 /** Where the label of a row is read: the campaign's own list, or the brand profile's. */
 export type PreviewScope = "campaign" | "brand";
