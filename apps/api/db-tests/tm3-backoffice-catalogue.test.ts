@@ -64,6 +64,16 @@ describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG2
              has_lock as lock, is_active, retired_at
         from backoffice.queues order by code`;
     expect(rows).toEqual([
+      // 0307 (L3C): queue 7, 09 RG87-RG97, a lock, no bulk action
+      {
+        code: "campaigns",
+        label_key: "queue.campaigns",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
       {
         code: "data_subject_requests",
         label_key: "queue.data_subject_requests",
@@ -213,6 +223,17 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
              business_hours, escalate_after_minutes as escalate, is_provisional, is_active
         from backoffice.sla_policies order by queue_code`;
     expect(rows).toEqual([
+      // 0307 (L3C): queue 7, 1 business day (2 in enhanced review: campaign_enhanced_review_minutes),
+      // claim within 4 business hours, escalation at 3 business days of age (15 RG29, RG37)
+      {
+        queue_code: "campaigns",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
       // internal objective of 10 business days; the legal month is data_subject_requests.due_at
       {
         queue_code: "data_subject_requests",
@@ -645,7 +666,7 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
     ]);
   });
 
-  it("is executed by its writers only: influx_identity_definer (queue 1, 0207), influx_creator_verification_definer (queue 4, 0222), influx_verification_definer (queue 4 opened by an agent, 0234) and influx_creator_profile_definer (queue 3, 0242)", async () => {
+  it("is executed by its writers only: influx_identity_definer (queue 1, 0207), influx_creator_verification_definer (queue 4, 0222), influx_verification_definer (queue 4 opened by an agent, 0234), influx_creator_profile_definer (queue 3, 0242) and influx_campaign_definer (queue 7, 0307)", async () => {
     const rows = await migration<{ rolname: string }[]>`
       select rolname from pg_catalog.pg_roles
        where rolname like 'influx\\_%'
@@ -655,8 +676,10 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
     // 0222: the creator doors submit to queue 4, whose deadlines the invoker trigger
     // verification.prepare_request() computes with the writer's rights; 0234 (D83 A): the agent's
     // opening makes the request pending at once, through the same trigger; 0242: a stored visual
-    // enters queue 3 through the invoker trigger profiles.prepare_portfolio_item_entry()
+    // enters queue 3 through the invoker trigger profiles.prepare_portfolio_item_entry(); 0307: a
+    // submitted campaign enters queue 7 through campaigns.prepare_campaign_review_entry()
     expect(rows).toEqual([
+      { rolname: "influx_campaign_definer" },
       { rolname: "influx_creator_profile_definer" },
       { rolname: "influx_creator_verification_definer" },
       { rolname: "influx_identity_definer" },

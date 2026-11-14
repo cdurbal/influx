@@ -531,6 +531,12 @@ describe("L3B-T6 the declaration of RG85 for a sensitive sector (RG84, RG85, CA5
     const state = await scenario(async (tx) => {
       await readyA(tx, { sector_code: "alcohol" });
       await brandSubmits(tx, campaignA, "fr");
+      // 0307: the refusal also closes the entry of queue 7, as the decision of 0308 does
+      await tx`
+        update campaigns.campaign_review_entries
+           set state = 'rejected', decided_by_account_id = ${accountIdOf("agent", "b")},
+               decided_at = now(), rejection_reason_code = 'brief_insufficient', closed_at = now()
+         where campaign_id = ${campaignA} and state = 'open'`;
       await tx`
         update campaigns.campaigns set status = 'rejected', sector_code = 'sports_leisure'
          where id = ${campaignA}`;

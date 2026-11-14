@@ -212,6 +212,10 @@ export async function openCampaignRouteFixtures(): Promise<CampaignRouteFixtures
                where campaign_id in (select id from campaigns.campaigns
                                       where advertiser_account_id = any(${accounts}::uuid[]))`;
           }
+          // 0307 (L3C): a submitted campaign carries its entries of queue 7
+          await tx`
+            delete from campaigns.campaign_review_entries
+             where advertiser_account_id = any(${accounts}::uuid[])`;
           await tx`
             delete from campaigns.campaigns
              where advertiser_account_id = any(${accounts}::uuid[])`;

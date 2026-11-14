@@ -277,6 +277,10 @@ describe("queue 4 and the parameters of 08 RG100 (modele §4, D79)", () => {
         // 0230 (L2F commit 05): the reminder before the expiry (08 RG70 « J-15 »)
         badge_reminder_days: 15,
         brand_badge_validity_months: 12,
+        // 0307 (L3C commit 02): queue 7 in enhanced review, RG15 and RG9 (l3c/modele §9)
+        campaign_auto_close_days: 30,
+        campaign_enhanced_review_minutes: 960,
+        campaign_live_cap: 10,
         claim_expiry_minutes: 30,
         // 0232 (L2F commit 07): a decider of a single team decides a contest after it (08 RG77)
         dispute_reflection_hours: 24,

@@ -2142,6 +2142,34 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     },
   },
+  {
+    table: "campaigns.campaign_review_entries",
+    source:
+      "0307 (09 RG87 to RG97; l3c/modele §1, §9): the entries of queue 7, opened by the submission " +
+      "door, claimed by the functions of influx_campaign_review_definer",
+    probeColumn: "advertiser_account_id",
+    ownerColumn: "advertiser_account_id",
+    expected: merge(
+      {
+        influx_advertiser: {
+          select: {
+            form: "propre",
+            source:
+              "modele §9: the brand reads its own entries (state, dates, reason, message), never " +
+              "the lock, the agents, the deadlines, the first review nor the comment",
+          },
+        },
+      },
+      forRoles(INTERNAL, {
+        select: {
+          form: "autorisé",
+          source:
+            "15 RG26, RG36 C(3), modele §9: agent and admin read queue 7 in aal2, never their own " +
+            "account, the opinion nor the internal comment",
+        },
+      }),
+    ),
+  },
 ];
 
 /**
@@ -2219,7 +2247,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * core), each line checked against its section 6 and l3b/modele.md §4; then with those of 0305 (L3B
  * commit 05, the submission and the creator view), each line checked against its sections 2, 3, 5
  * and 6 and l3b/modele.md §5, §6; then with those of 0306 (L3B commit 06, the export and the
- * erasure of the campaigns), each line checked against its section 1 and l3b/modele.md §7.
+ * erasure of the campaigns), each line checked against its section 1 and l3b/modele.md §7; and on
+ * 2026-11-14 with those of 0307 (L3C commit 02, queue 7), each line checked against its sections 3,
+ * 5 to 8 and l3c/modele.md §1, §9.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -6373,6 +6403,201 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|column|campaigns.campaigns.usage_rights_territory_scope|SELECT",
   "influx_privacy_definer|schema|campaigns|USAGE",
   "influx_privacy_definer|table|campaigns.campaign_key_messages|DELETE",
+  // 0307 (L3C commit 02, jalons/l3c/modele.md §1, §7, §9): queue 7. The brand reads its own entries
+  // (state, dates, reason, message); agent and admin read every column but the opinion and the
+  // internal comment, and execute the four functions of the queue. influx_campaign_definer opens the
+  // entry (and reads what its invoker trigger reads: the policy of queue 7, the two settings it names,
+  // business_deadline()), executes normalized_title() and assert_live_campaign_cap().
+  // influx_campaign_review_definer (NOLOGIN NOINHERIT, no member) owns the queue: the caller, the
+  // holder of the brand, the claim columns, the reasons of a forced release, claim_expiry_minutes,
+  // what the version token hashes (never the suspended range), audit.append().
+  "influx_admin|column|campaigns.campaign_review_entries.advertiser_account_id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.campaign_id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.claim_expires_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.claimed_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.claimed_by_account_id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.closed_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.created_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.decided_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.decided_by_account_id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.duplicate_of_campaign_id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.escalate_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.first_reviewed_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.first_reviewed_by_account_id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.forced_release_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.forced_release_by_account_id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.forced_release_holder_account_id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.forced_release_reason_code|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.id|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.member_message|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.rejection_reason_code|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.sla_breached|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.sla_due_at|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.state|SELECT",
+  "influx_admin|column|campaigns.campaign_review_entries.updated_at|SELECT",
+  "influx_admin|function|campaigns.extend_campaign_review_claim(uuid)|EXECUTE",
+  "influx_admin|function|campaigns.force_release_campaign_review_claim(uuid,text)|EXECUTE",
+  "influx_admin|function|campaigns.open_campaign_review_entry(uuid)|EXECUTE",
+  "influx_admin|function|campaigns.release_campaign_review_entry(uuid)|EXECUTE",
+  "influx_admin|schema|campaigns|USAGE",
+  "influx_advertiser|column|campaigns.campaign_review_entries.advertiser_account_id|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.campaign_id|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.closed_at|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.created_at|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.decided_at|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.id|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.member_message|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.rejection_reason_code|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.state|SELECT",
+  "influx_advertiser|column|campaigns.campaign_review_entries.updated_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.advertiser_account_id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.campaign_id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.claim_expires_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.claimed_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.claimed_by_account_id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.closed_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.created_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.decided_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.decided_by_account_id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.duplicate_of_campaign_id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.escalate_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.first_reviewed_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.first_reviewed_by_account_id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.forced_release_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.forced_release_by_account_id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.forced_release_holder_account_id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.forced_release_reason_code|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.id|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.member_message|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.rejection_reason_code|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.sla_breached|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.sla_due_at|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.state|SELECT",
+  "influx_agent|column|campaigns.campaign_review_entries.updated_at|SELECT",
+  "influx_agent|function|campaigns.extend_campaign_review_claim(uuid)|EXECUTE",
+  "influx_agent|function|campaigns.force_release_campaign_review_claim(uuid,text)|EXECUTE",
+  "influx_agent|function|campaigns.open_campaign_review_entry(uuid)|EXECUTE",
+  "influx_agent|function|campaigns.release_campaign_review_entry(uuid)|EXECUTE",
+  "influx_agent|schema|campaigns|USAGE",
+  "influx_campaign_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_campaign_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_campaign_definer|column|backoffice.sla_policies.business_hours|SELECT",
+  "influx_campaign_definer|column|backoffice.sla_policies.escalate_after_minutes|SELECT",
+  "influx_campaign_definer|column|backoffice.sla_policies.is_active|SELECT",
+  "influx_campaign_definer|column|backoffice.sla_policies.queue_code|SELECT",
+  "influx_campaign_definer|column|backoffice.sla_policies.target_decision_minutes|SELECT",
+  "influx_campaign_definer|column|campaigns.campaign_review_entries.advertiser_account_id|INSERT,SELECT",
+  "influx_campaign_definer|column|campaigns.campaign_review_entries.campaign_id|INSERT,SELECT",
+  "influx_campaign_definer|column|campaigns.campaign_review_entries.duplicate_of_campaign_id|INSERT",
+  "influx_campaign_definer|column|campaigns.campaign_review_entries.id|SELECT",
+  "influx_campaign_definer|column|campaigns.campaign_review_entries.state|SELECT",
+  "influx_campaign_definer|function|backoffice.business_deadline(text,timestamp with time zone,integer)|EXECUTE",
+  "influx_campaign_definer|function|campaigns.assert_live_campaign_cap(uuid)|EXECUTE",
+  "influx_campaign_definer|function|campaigns.normalized_title(text)|EXECUTE",
+  "influx_campaign_definer|schema|backoffice|USAGE",
+  "influx_campaign_review_definer|column|backoffice.claim_release_reasons.code|SELECT",
+  "influx_campaign_review_definer|column|backoffice.claim_release_reasons.is_active|SELECT",
+  "influx_campaign_review_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_campaign_review_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_age_bands.age_band_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_age_bands.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_bands.audience_band_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_bands.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_countries.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_countries.country_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_countries.slot|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_languages.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_audience_languages.language_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_deliverables.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_deliverables.format_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_deliverables.network_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_deliverables.quantity|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_deliverables.slot|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_key_messages.body|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_key_messages.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_key_messages.position|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_requested_items.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_requested_items.item_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_requested_items.slot|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.advertiser_account_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.claim_expires_at|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.claimed_at|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.claimed_by_account_id|SELECT,UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_review_opinion|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_reviewed_at|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.first_reviewed_by_account_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.forced_release_at|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.forced_release_by_account_id|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.forced_release_holder_account_id|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.forced_release_reason_code|UPDATE",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_review_entries.state|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_topics.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_topics.slot|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_topics.topic_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_usage_territories.campaign_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_usage_territories.country_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaign_usage_territories.slot|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.advertiser_account_id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.applications_close_on|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.audience_gender_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.authorizations_declaration_hash|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.authorizations_declaration_locale|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.brief|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.campaign_type_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.content_due_on|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.content_review_delay|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.creator_keeps_product|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.creators_wanted|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.currency|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.ends_on|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.exclusivity_band|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.id|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.internal_reference|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.max_applications|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.per_creator_budget_band_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.product_description|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.product_is_sent|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.product_value_band_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.public_summary|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.remuneration_kind|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.restrictions|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.sector_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.shipping_costs_borne_by|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.starts_on|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.title|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.total_budget_minor|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.usage_rights_code|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.usage_rights_duration_band|SELECT",
+  "influx_campaign_review_definer|column|campaigns.campaigns.usage_rights_territory_scope|SELECT",
+  "influx_campaign_review_definer|column|identity.account_roles.account_id|SELECT",
+  "influx_campaign_review_definer|column|identity.account_roles.role|SELECT",
+  "influx_campaign_review_definer|column|identity.accounts.id|SELECT",
+  "influx_campaign_review_definer|column|identity.accounts.owner_agent_id|SELECT",
+  "influx_campaign_review_definer|column|identity.accounts.status|SELECT",
+  "influx_campaign_review_definer|column|identity.agent_profiles.account_id|SELECT",
+  "influx_campaign_review_definer|column|identity.agent_profiles.is_active|SELECT",
+  "influx_campaign_review_definer|column|reference.sectors.code|SELECT",
+  "influx_campaign_review_definer|column|reference.sectors.is_sensitive|SELECT",
+  "influx_campaign_review_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.campaign_review_token(uuid)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.extend_campaign_review_claim(uuid)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.force_release_campaign_review_claim(uuid,text)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.lock_held_campaign_review_entry(uuid,uuid)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.open_campaign_review_entry(uuid)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.release_campaign_review_entry(uuid)|EXECUTE",
+  "influx_campaign_review_definer|function|campaigns.require_campaign_agent(boolean)|EXECUTE",
+  "influx_campaign_review_definer|function|influx.current_aal()|EXECUTE",
+  "influx_campaign_review_definer|function|influx.current_account_id()|EXECUTE",
+  "influx_campaign_review_definer|function|influx.current_account_role()|EXECUTE",
+  "influx_campaign_review_definer|function|influx.has_aal2()|EXECUTE",
+  "influx_campaign_review_definer|schema|audit|USAGE",
+  "influx_campaign_review_definer|schema|backoffice|USAGE",
+  "influx_campaign_review_definer|schema|campaigns|USAGE",
+  "influx_campaign_review_definer|schema|identity|USAGE",
+  "influx_campaign_review_definer|schema|influx|USAGE",
+  "influx_campaign_review_definer|schema|reference|USAGE",
 ];
 
 /**
@@ -6381,7 +6606,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
  * J8 with influx_privacy, influx_privacy_login and influx_privacy_definer, 0136, twenty from L2C with
  * influx_moderation_definer, 0210, twenty-one from L2E with influx_creator_verification_definer,
  * 0222, twenty-two with influx_verification_definer, 0224, twenty-three from L2G with
- * influx_creator_profile_definer, 0242, twenty-four from L3B with influx_campaign_definer, 0305),
+ * influx_creator_profile_definer, 0242, twenty-four from L3B with influx_campaign_definer, 0305,
+ * twenty-five from L3C with influx_campaign_review_definer, 0307),
  * memberships.
  */
 export const EXPECTED_ROLES: Readonly<
@@ -6425,6 +6651,8 @@ export const EXPECTED_ROLES: Readonly<
   influx_creator_profile_definer: { login: false, memberOf: [] },
   // 0305 (L3B, l3b/modele §5): the owner of the submission door of a campaign
   influx_campaign_definer: { login: false, memberOf: [] },
+  // 0307 (L3C, l3c/modele §4): the owner of queue 7 and, from 0308, of the decisions
+  influx_campaign_review_definer: { login: false, memberOf: [] },
 };
 
 /** Owners of SECURITY DEFINER functions: no login, NO member (only C-9 tolerance). */
@@ -6440,6 +6668,7 @@ export const FUNCTION_OWNER_ROLES = [
   "influx_verification_definer",
   "influx_creator_profile_definer",
   "influx_campaign_definer",
+  "influx_campaign_review_definer",
 ] as const;
 
 /** Execution roles (T4.4: own nothing). */
@@ -6905,4 +7134,13 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "leads.read_creator_profile_attributes(bigint,text)": "influx_leads_definer",
   // 0305 (L3B commit 05, modele §5): the submission of a campaign, its own owner (D81 (5))
   "campaigns.submit_own_campaign(uuid,text)": "influx_campaign_definer",
+  // 0307 (L3C commit 02): the four functions of queue 7
+  "campaigns.open_campaign_review_entry(uuid)":
+    "influx_campaign_review_definer",
+  "campaigns.release_campaign_review_entry(uuid)":
+    "influx_campaign_review_definer",
+  "campaigns.extend_campaign_review_claim(uuid)":
+    "influx_campaign_review_definer",
+  "campaigns.force_release_campaign_review_claim(uuid,text)":
+    "influx_campaign_review_definer",
 };

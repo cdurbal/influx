@@ -191,6 +191,15 @@ export const CAMPAIGN_IDS = {
   b: "00000000-0000-4000-8000-00000000ff2a",
 } as const;
 
+/**
+ * 0307 (L3C commit 02): one WITHDRAWN entry of queue 7 per draft campaign, so that T2 observes
+ * `propre` for the brand and the read of agent and admin. Inert: closed, in no queue.
+ */
+export const CAMPAIGN_REVIEW_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff2b",
+  b: "00000000-0000-4000-8000-00000000ff2c",
+} as const;
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -498,6 +507,13 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       await tx`
         insert into campaigns.campaign_audience_bands (campaign_id, audience_band_code)
         values (${campaign}, ${rows.band}) on conflict do nothing`;
+      // 0307 (L3C): a withdrawn entry of queue 7 (CAMPAIGN_REVIEW_IDS), inert
+      await tx`
+        insert into campaigns.campaign_review_entries
+          (id, campaign_id, advertiser_account_id, state, closed_at)
+        values (${CAMPAIGN_REVIEW_IDS[side]}, ${campaign}, ${accountIdOf("advertiser", side)},
+                'withdrawn', now() + interval '1 second')
+        on conflict do nothing`;
       await tx`
         insert into campaigns.campaign_audience_age_bands (campaign_id, age_band_code)
         values (${campaign}, ${rows.age}) on conflict do nothing`;
