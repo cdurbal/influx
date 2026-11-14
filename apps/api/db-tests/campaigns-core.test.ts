@@ -866,6 +866,8 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
       "influx_agent",
       "influx_campaign_definer",
       "influx_campaign_review_definer",
+      // 0309 (L3C commit 04): the automatic closure (id, brand, end and state of a campaign)
+      "influx_maintenance_definer",
       "influx_privacy_definer",
     ]);
   });
@@ -928,6 +930,21 @@ describe("L3B-T3 the codes of Lot 3 and the closed lists (04 §4.3, modele §3)"
         severity: "info",
         export_class: "exported",
       },
+      // 0309 (L3C commit 04, modele §8): the interventions of an agent, the resumption, the record
+      {
+        code: "campaign.corrected",
+        domain: "campaigns",
+        subject_type: "campaign",
+        severity: "sensitive",
+        export_class: "exported",
+      },
+      {
+        code: "campaign.created_for_brand",
+        domain: "campaigns",
+        subject_type: "campaign",
+        severity: "sensitive",
+        export_class: "exported",
+      },
       // 0308 (L3C commit 03, modele §8): the decision e-mail (queue only) and the first examination
       {
         code: "campaign.decision",
@@ -958,10 +975,24 @@ describe("L3B-T3 the codes of Lot 3 and the closed lists (04 §4.3, modele §3)"
         export_class: "exported",
       },
       {
+        code: "campaign.record_read",
+        domain: "campaigns",
+        subject_type: "campaign",
+        severity: "sensitive",
+        export_class: "exported",
+      },
+      {
         code: "campaign.rejected",
         domain: "campaigns",
         subject_type: "campaign",
         severity: "sensitive",
+        export_class: "exported",
+      },
+      {
+        code: "campaign.resumed",
+        domain: "campaigns",
+        subject_type: "campaign",
+        severity: "info",
         export_class: "exported",
       },
       {
@@ -1043,7 +1074,7 @@ describe("L3B-T3 TM11: the Drizzle declaration of campaigns.ts has the columns o
       ),
     );
     // twelve tables of 0303, plus authorization_declaration_texts (0305), campaign_review_entries
-    // (0307), campaign_published_snapshots (0308)
-    expect(Object.keys(declared)).toHaveLength(15);
+    // (0307), campaign_published_snapshots (0308), agent_interventions (0309)
+    expect(Object.keys(declared)).toHaveLength(16);
   });
 });

@@ -1327,6 +1327,7 @@ export const messages = {
           storage_purge: "Purge des fichiers déposés",
           verification_expiry: "Expiration des codes de vérification",
           badge_lifecycle: "Péremption des badges",
+          campaign_closure: "Clôture automatique des campagnes",
         },
         outcomes: {
           succeeded: "réussie",

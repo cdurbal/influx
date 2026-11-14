@@ -9,7 +9,8 @@ import { STORAGE_BUCKETS, type StorageBucket } from "../../platform/storage.ts";
 /**
  * The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8; ops_retention:
  * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09; verification_expiry: 0223, L2E commit 07;
- * badge_lifecycle: 0230, L2F commit 05).
+ * badge_lifecycle: 0230, L2F commit 05; campaign_closure: 0309, L3C commit 04, its runner with L3C
+ * commit 06: until then the tick skips it).
  */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
@@ -20,6 +21,7 @@ export const PERIODIC_TASKS = [
   "storage_purge",
   "verification_expiry",
   "badge_lifecycle",
+  "campaign_closure",
 ] as const;
 export type PeriodicTask = (typeof PERIODIC_TASKS)[number];
 

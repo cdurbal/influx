@@ -703,9 +703,11 @@ describe("L3B-T6 who may submit (T14, RG5; fiche invariants 3, 4)", () => {
       await tx.unsafe("reset role");
       return { published, rejected, pending };
     });
+    // 0309 (L3C commit 04): the policy admits the brand's passages (paused, published, closed), so
+    // the freeze is the line that refuses a draft leaving for anything but pending_review (55000)
     expect(outcome).toEqual({
-      published: INSUFFICIENT_PRIVILEGE,
-      rejected: INSUFFICIENT_PRIVILEGE,
+      published: NOT_IN_PREREQUISITE_STATE,
+      rejected: NOT_IN_PREREQUISITE_STATE,
       pending: "rows 1",
     });
   });

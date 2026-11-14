@@ -207,6 +207,14 @@ export const CAMPAIGN_REVIEW_IDS = {
  */
 export const CAMPAIGN_SNAPSHOT_ID_B = "00000000-0000-4000-8000-00000000ff2d";
 
+/**
+ * 0309 (L3C commit 04): one intervention on campaign B (its creation by agent B), so that T2 observes
+ * the read of agent and admin. Inert: the lifecycle tests count the interventions of campaign A or of
+ * the campaigns they create.
+ */
+export const CAMPAIGN_INTERVENTION_ID_B =
+  "00000000-0000-4000-8000-00000000ff2e";
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -530,6 +538,14 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
           values (${CAMPAIGN_SNAPSHOT_ID_B}, ${campaign}, 1, '{}'::jsonb,
                   sha256(convert_to('{}', 'UTF8')), now(), ${accountIdOf("agent", "b")},
                   ${CAMPAIGN_REVIEW_IDS[side]})
+          on conflict do nothing`;
+        // 0309 (L3C): an inert intervention of campaign B (CAMPAIGN_INTERVENTION_ID_B)
+        await tx`
+          insert into campaigns.agent_interventions
+            (id, campaign_id, advertiser_account_id, kind, new_value, reason_code,
+             agent_account_id)
+          values (${CAMPAIGN_INTERVENTION_ID_B}, ${campaign}, ${accountIdOf("advertiser", side)},
+                  'created', '{}'::jsonb, 'brand_request', ${accountIdOf("agent", "b")})
           on conflict do nothing`;
       }
       await tx`

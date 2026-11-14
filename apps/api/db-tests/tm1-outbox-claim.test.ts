@@ -1717,6 +1717,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "ops.claim_periodic_run(ops.periodic_task,text)",
       // 0205 (L2B commit 09): E-4, the hourly purge of Storage
       "ops.claim_storage_purges(uuid,smallint,integer)",
+      // 0309 (L3C commit 04): E-4, the automatic closure of the ended campaigns (09 RG9)
+      "ops.close_ended_campaigns(uuid,smallint)",
       "ops.complete_storage_purges(uuid,smallint,uuid[])",
       // 0223 (L2E commit 07): E-4, the expiry of the draft verification requests
       "ops.expire_verification_requests(uuid,smallint)",

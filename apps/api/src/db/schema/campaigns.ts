@@ -1,6 +1,7 @@
 // Schema `campaigns`, migrations 0303 (L3B commit 02, jalons/l3b/modele.md §2 to §4), 0305 (the
-// texts of the declaration of RG85, modele §5), 0307 (queue 7, l3c/modele.md §1) and 0308 (the
-// publication and its snapshot, l3c/modele.md §2). The SQL is the
+// texts of the declaration of RG85, modele §5), 0307 (queue 7, l3c/modele.md §1), 0308 (the
+// publication and its snapshot, l3c/modele.md §2) and 0309 (the cycle and the interventions of an
+// agent, l3c/modele.md §5, §6). The SQL is the
 // source of truth: this file is aligned by hand, never generated, and held to the catalogue by
 // db-tests/campaigns-core.test.ts (TM11). Declaring a column here grants nothing: every read and
 // write stays subject to the GRANTs and policies of the role taken (03 P2); influx_creator holds
@@ -130,6 +131,10 @@ export const campaigns = campaignsSchema.table("campaigns", {
     .generatedAlwaysAs(sql`true`),
   currentSnapshotId: uuid("current_snapshot_id"),
   firstPublishedAt: timestamptz("first_published_at"),
+  // 0309: the cycle, stamped by campaigns.stamp_campaign_cycle() (nobody writes these columns)
+  pausedAt: timestamptz("paused_at"),
+  pauseOrigin: text("pause_origin"),
+  closedAt: timestamptz("closed_at"),
 });
 
 export const campaignKeyMessages = campaignsSchema.table(
@@ -297,3 +302,27 @@ export const campaignPublishedSnapshots = campaignsSchema.table(
     reviewEntryId: uuid("review_entry_id").notNull(),
   },
 );
+
+/**
+ * 0309 (L3C commit 04, l3c/modele.md §6): one line per act of an agent on a campaign (created,
+ * corrected, paused, resumed, closed), old and new value of a corrected field, typed reason, internal
+ * comment (never read by agent or admin), author. Immutable outside the erasure; written by the
+ * functions of influx_campaign_review_definer only.
+ */
+export const agentInterventions = campaignsSchema.table("agent_interventions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id").notNull(),
+  advertiserAccountId: uuid("advertiser_account_id").notNull(),
+  kind: text("kind").notNull(),
+  fieldCode: text("field_code"),
+  oldValue: jsonb("old_value"),
+  newValue: jsonb("new_value"),
+  reasonCode: text("reason_code").notNull(),
+  internalComment: text("internal_comment"),
+  agentAccountId: uuid("agent_account_id").notNull(),
+  agentIsInternal: boolean("agent_is_internal")
+    .notNull()
+    .generatedAlwaysAs(sql`true`),
+  reviewEntryId: uuid("review_entry_id"),
+  createdAt: timestamptz("created_at").notNull().defaultNow(),
+});

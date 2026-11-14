@@ -5,7 +5,7 @@
 | A | A.md | arbitrage | opus | xhigh | architecte | fait | rôle neuf influx_campaign_review_definer ; avis en texte ; interventions en table ; reprise d'une paused ≠ publication (RG3, RG8) |
 | 02 | 02.md | commit | opus | high | expert-database | fait | 0307 : rôle influx_campaign_review_definer, file 7 (1 j ; 2 j renforcée), RG15 sous verrou consultatif, RG95 alerte, garde en liste fermée (L3BS-2) |
 | 03 | 03.md | commit | opus | high | expert-database | fait | 0308 : instantané = vue créateur (CHECK sans clé interne), deux personnes en sensible, verrou vivant et jeton exigés ; e-mail et lead dans la transaction |
-| 04 | 04.md | commit | opus | high | expert-database | à faire | I-4. |
+| 04 | 04.md | commit | opus | high | expert-database | fait | 0309 : cycle posé par déclencheur (origine = rôle écrivain), reprise ≠ publication, clôture irréversible ; interventions immuables, ancienne et nouvelle valeur |
 | 05 | 05.md | commit | opus | high | expert-database | à faire | I-4. |
 | 06 | 06.md | commit | sonnet | high | expert-integrations-api | à faire | |
 | 07 | 07.md | commit | sonnet | high | dev-react-node | à faire | |
