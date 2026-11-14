@@ -25,17 +25,16 @@ de 7 min : arbitrage `integrateur` d'un quatrième éclat, prévu au plan avant 
 T16 (CA40) : statique, vert à chaque `pnpm check:fast`, sans exemption ajoutée.
 
 ## Critère de fin
-- [ ] Sur `staging`, une marque publiée crée une campagne, la reprend après fermeture du navigateur
-      (CA72, livrables compris) et la soumet : `pending_review` — preuve : ligne F2, lecture seule
-      agent (`status`, `campaign.submitted` et son rang dans `audit`).
-- [ ] Tranche absente de toute charge créateur — preuve : L3B-T9 (balayage, vue créateur), L3B-T3.
-- [ ] `0303` à `0306` appliquées sur `staging` — preuve : CI, étape « Migrate staging » verte (run).
-- [ ] T2, T14, T16, TM11 verts ; parité domaine et base — preuve : run CI, lignes 02 à 08.
-- [ ] L2AT-5, L3AS-6, L3AT-6 soldés ; L3AS-3 soldé si la porte appartient à `influx_identity_definer`
-      — preuve : SHA des lignes 01, 03, 05.
-- [ ] e2e M3 FR/EN ajoutés ≤ 25 s, éclats CI < 7 min 30 — preuve : `run.md` § Mesures de clôture.
-- [ ] `pnpm check` puis `pnpm test:e2e` verts — preuve : ligne C.
-- [ ] Revue soldée et attestée (`security-reviewed:`) — preuve : SHA du commit d'attestation.
+- [x] Sur `staging`, une marque publiée crée une campagne, la reprend après fermeture du navigateur
+      (CA72, livrables compris) et la soumet : `pending_review` — preuve : ligne F2 de `run.md` (rang 2373).
+- [x] Tranche absente de toute charge créateur — preuve : L3B-T9 (`campaigns-creator-view-route.test.ts`, `t1-anonymisation.test.ts`), L3B-T3 ; suite base verte (ligne C).
+- [x] `0303` à `0306` appliquées sur `staging` — preuve : run CI 43577403102, « Migrate staging » vert.
+- [x] T2, T14, T16, TM11 verts ; parité domaine et base — preuve : run CI 43577403102 (lignes 02 à 08), parité des dates et longueurs : fix-4 (`7a2bb22`), suite base locale verte (ligne C).
+- [x] L2AT-5, L3AS-6, L3AT-6 soldés ; L3AS-3 soldé (porte de `influx_campaign_definer`, soldé en sus)
+      — preuve : `838168c` (01), `230f79d` (03), `0994878` (05) ; `21` §8.
+- [x] e2e M3 FR/EN ajoutés ≤ 25 s (24,5 s à froid, marge mince), éclats CI < 7 min 30 (4 min 01 au plus) — preuve : `run.md` § Mesures de clôture.
+- [x] `pnpm check` puis `pnpm test:e2e` verts — preuve : ligne C et `run.md` § Mesures de clôture.
+- [x] Revue soldée et attestée (`security-reviewed:`) — preuve : commit `chore(security): attest the end-of-L3B review` (cinq SHA de § Attestation), contrôle I-4 vert.
 
 ## Écarts, décisions ouvertes, risques
 - **EC-L3B-1** : `0303` à `0306` pris par L3B ; `04` §11 (l. 6199-6204 : `0304` publication, `0305`

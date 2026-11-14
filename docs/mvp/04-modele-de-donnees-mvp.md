@@ -1720,6 +1720,17 @@ est la plus largement corrigée de cette version.
 | Candidature | `verified_only boolean`, `max_applications smallint`, **`active_applications_count`** + table `campaigns.campaign_requested_items` |
 | Interne | `owner_agent_id`, `internal_note`, `reviewed_by_agent_id`, `review_decided_at`, `rejection_reason_code`, **`second_reviewed_by_agent_id`**, **`second_review_decided_at`**, **`authorizations_declared_at`**, **`authorizations_declared_by_account_id`**, **`authorizations_declaration_locale`**, **`authorizations_declaration_hash`** |
 
+> **Amendement L3B (EC-L3B-3, `archives/jalons/l3b/modele.md`, qui prime sur ce paragraphe pour tout nom).**
+> Sous D78 la tranche de budget est **une colonne** `per_creator_budget_band_code`, clé étrangère
+> `(currency, code)` vers `reference.price_bands` ; `campaign_price_bands` n'est pas créée tant que D78
+> tient, et la fourchette exacte (`per_creator_amount_min_minor`, `…_max_minor`) reste vide
+> (`campaigns_exact_range_suspended_d78`). Colonnes ajoutées : `audience_gender_code`,
+> `content_review_delay` (`48h`, `5bd`, `10bd`), `submitted_at`, `erased_at`. `product_value_currency`
+> est supprimée (devise unique de la campagne, RG58) ; `campaign_audience_targets` est remplacée par
+> `campaign_audience_{countries,languages,bands,age_bands}` ; `campaign_deliverables.notes` n'existe
+> pas (RG13). Motifs de refus : les 14 codes de `09` RG90, non les 8 listés plus bas. Les écritures de la
+> marque sont gelées hors `draft` et `rejected` (55000 `campaign_not_editable`).
+
 > **Note de modélisation.** Une colonne générée ne peut pas lire une autre table ; le caractère
 > sensible du secteur se lit donc par jointure sur `reference.sectors.is_sensitive`. C'est une
 > jointure sur une table de dix lignes : aucune raison de la dénormaliser. **`09` RG84 va plus
@@ -6222,12 +6233,15 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | **Lot 3** | | | |
 | 0301 | `profiles_lot2_carry_over` (L3A, EC-L3A-1) | `profiles.publish_creator_review_entry()` refuse en 55000 un compte non `active` ; deux index partiels sur `advertiser_duplicate_candidates()` ; `normalized_brand_name` accordée aux quatre écrivains | Non |
 | 0302 | `audit_export_allowlist` (L3A, F3) | `audit.event_types.export_class` (`not null`, sans défaut) ; `activity_log` de l'export « mes données » filtré sur `exported` | Oui |
-| 0303 | `campaigns_core` | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** | Oui |
-| 0304 | `campaigns_publication` | `campaign_published_snapshots`, `campaign_price_bands`, fonction de publication (dérivation des tranches, contrôle des dates, revue renforcée à deux validateurs) | Oui |
-| 0305 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
-| 0306 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
-| 0307 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
-| 0308 | `backoffice_operational_settings` | Clés des plafonds et délais d'exploitation et leurs valeurs de départ (`11` P1 à P4, `09` RG15, RG88, `08` RG100), **ajoutées à la table de `0206`**, qui n'est plus créée ici (EC-L2C-2) | Oui |
+| 0303 | `campaigns_core` (L3B) | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération, tranche de budget par créateur en colonne**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** ; RLS forcée, gel hors `draft` et `rejected` | Oui |
+| 0304 | `reference_price_bands_grid` (L3B) | Grille de `reference.price_bands` : cinq devises × dix tranches contiguës (`archives/jalons/l3b/tranches.md`), nets nuls | Oui |
+| 0305 | `campaigns_submission` (L3B) | `influx_campaign_definer`, `campaigns.submit_own_campaign()`, règle de parité des obligatoires, déclaration RG85, vue créateur `campaign_creator_view()`, `campaign.submitted` | Oui |
+| 0306 | `privacy_campaigns` (L3B) | Campagnes dans l'export « mes données » et l'effacement (`privacy.*` recréées depuis `0302`) | Non |
+| 0307 | `campaigns_publication` | `campaign_published_snapshots`, fonction de publication (contrôle des dates, revue renforcée à deux validateurs) ; **`campaign_price_bands` n'est pas créée tant que D78 tient** (`archives/jalons/l3b/modele.md` §1) | Oui |
+| 0308 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
+| 0309 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
+| 0310 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
+| 0311 | `backoffice_operational_settings` | Clés des plafonds et délais d'exploitation et leurs valeurs de départ (`11` P1 à P4, `09` RG15, RG88, `08` RG100), **ajoutées à la table de `0206`**, qui n'est plus créée ici (EC-L2C-2) | Oui |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

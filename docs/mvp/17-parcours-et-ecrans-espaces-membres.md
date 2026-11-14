@@ -316,7 +316,7 @@ l'espace interne** (`05` RG140). Messages avant et après vérification : `05` R
 
 | Espace | Chemin | Note |
 |---|---|---|
-| Marque | `/[locale]/marque`, `/campagnes`, `/campagnes/[id]`, `/createurs`, `/selections`, `/relations`, `/relations/[reference]`, `/compte/*` (dont `/compte/profil` · `/account/profile`, M2 du profil marque, EC-L2B-7) | `[id]` de campagne **opaque**, jamais séquentiel |
+| Marque | `/[locale]/marque`, `/campagnes`, `/campagnes/[id]`, `/campagnes/[id]/apercu` · `/campaigns/[id]/preview` (aperçu « ce que voit un créateur », EC-L3B-4), `/createurs`, `/selections`, `/relations`, `/relations/[reference]`, `/compte/*` (dont `/compte/profil` · `/account/profile`, M2 du profil marque, EC-L2B-7) | `[id]` de campagne **opaque**, jamais séquentiel |
 | Créateur | `/[locale]/createur`, `/campagnes`, `/campagnes/[id]`, `/candidatures`, `/relations`, `/relations/[reference]`, `/compte/*` | Une carte créateur est référencée par son **alias** (`10` RG65) |
 | Commun | `/[locale]/connexion` (3 écrans), `/[locale]/compte` (page-menu, D74), `/compte/informations`, `/compte/preferences`, `/compte/sessions`, `/compte/donnees`, `/aide` | « Mes informations » a quitté `/compte` le 2026-10-29 (D74) |
 
@@ -796,9 +796,17 @@ retenu : 5 étapes**, regroupées par question posée à la marque, avec navigat
 | 1. L'offre | Bloc 1 identification + Bloc 2 produit | « Qu'est-ce que vous proposez, sur quoi ? » | Titre, type, résumé, brief, produit, catégorie, produit envoyé |
 | 2. Le travail attendu | Bloc 3 livrables, droits, exclusivité | « Qu'est-ce que le créateur doit produire, et qu'en ferez-vous ? » | Livrables, droits (+ durée et territoire si ≠ aucun), exclusivité, délai de validation |
 | 3. Pour qui | Bloc 4 audience visée | « Quelle audience visez-vous ? » | Pays, langues, thématiques |
-| 4. Le budget | Bloc 5 budget | « Combien payez-vous **au total** ? » | Min, max, devise, nature, nombre de créateurs |
+| 4. Le budget | Bloc 5 budget | « Que payez-vous **par créateur** ? » *(D78, EC-L3B-2 : tranche interne, jamais de minimum ni de maximum)* | Devise, tranche (sauf dotation seule), nature, nombre de créateurs |
 | 5. Calendrier et candidature | Blocs 6 et 7 | « Quand, et que doit envoyer un créateur ? » | 4 dates |
 | — | Bloc 8 interne | Réparti : référence interne en étape 1, budget total en étape 4, notes en étape 5 — **toujours dans un encart « Interne — jamais publié »** | — |
+
+> **Amendement L3B (EC-L3B-2, D78).** La maquette de l'étape 4 ci-dessous est antérieure à
+> l'extension de D78 au Lot 3 : elle ne fait plus foi. L'étape 4 suit le bandeau de `09` §F : la marque
+> choisit une **tranche par créateur** (`reference.price_bands`, dans la devise de la campagne,
+> « commission INFLUX incluse »), obligatoire sauf « dotation seule » ; aucune fourchette, aucun
+> montant ni net, aucun récapitulatif chiffré « ce que voit un créateur » (le créateur voit la nature
+> de la rémunération et « À négocier avec votre commercial »). Aucun budget total n'est saisi
+> (EC-L3B-10-1).
 
 ```
 Desktop — étape 4, la plus sensible du parcours

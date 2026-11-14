@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/l3b-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -166,27 +163,27 @@
 | 404 | 65 | ↳ 4.1 `influx` — fonctions de contexte |  |
 | 469 | 99 | ↳ 4.2 `reference` — les listes fermées partagées | RG18–RG115 |
 | 568 | 236 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
-| 804 | 4494 | 5. Le schéma, domaine par domaine | RG2–RG163 |
+| 804 | 4505 | 5. Le schéma, domaine par domaine | RG2–RG163 |
 | 806 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
 | 1254 | 281 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG86 |
 | 1535 | 167 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
-| 1702 | 394 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG85 |
-| 2096 | 126 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG88 |
-| 2222 | 914 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
-| 3136 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
-| 4135 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
-| 4500 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
-| 4881 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
-| 5275 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
-| 5298 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
-| 5505 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
-| 5787 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 5825 | 125 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
-| 5950 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6115 | 172 | 11. Plan de migrations | RG9–RG163 |
-| 6287 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6464 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6500 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 1702 | 405 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG90 |
+| 2107 | 126 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG88 |
+| 2233 | 914 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
+| 3147 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
+| 4146 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
+| 4511 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
+| 4892 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
+| 5286 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
+| 5309 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
+| 5516 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
+| 5798 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
+| 5836 | 125 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
+| 5961 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6126 | 175 | 11. Plan de migrations | RG9–RG163 |
+| 6301 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6478 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6514 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 
@@ -546,31 +543,31 @@
 | 67 | 54 | 1. Cadrage : populations, tâches, enseignements du benchmark | RG2–RG117 |
 | 121 | 208 | 2. Architecture de l'information des deux espaces | RG1–RG140 |
 | 329 | 292 | 3. Le parcours d'inscription et de connexion | RG2–RG140 |
-| 621 | 607 | 4. Espace marque | RG1–RG116 |
+| 621 | 615 | 4. Espace marque | RG1–RG116 |
 | 628 | 44 | ↳ 4.1 M1 — Accueil marque | RG57–RG101 |
 | 672 | 116 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
-| 788 | 80 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
-| 868 | 105 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG64 |
-| 973 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
-| 1030 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
-| 1086 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
-| 1181 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
-| 1215 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
-| 1228 | 544 | 5. Espace créateur | RG1–RG117 |
-| 1239 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
-| 1289 | 107 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
-| 1396 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
-| 1472 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
-| 1542 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
-| 1597 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
-| 1693 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
-| 1749 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
-| 1772 | 172 | 6. Écrans transverses | RG14–RG143 |
-| 1944 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
-| 2215 | 105 | 8. Tokens |  |
-| 2320 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
-| 2356 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
-| 2402 | 51 | 11. Récapitulatif des écrans spécifiés |  |
+| 788 | 88 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
+| 876 | 105 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG64 |
+| 981 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
+| 1038 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
+| 1094 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
+| 1189 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
+| 1223 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
+| 1236 | 544 | 5. Espace créateur | RG1–RG117 |
+| 1247 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
+| 1297 | 107 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
+| 1404 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
+| 1480 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
+| 1550 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
+| 1605 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
+| 1701 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
+| 1757 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
+| 1780 | 172 | 6. Écrans transverses | RG14–RG143 |
+| 1952 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
+| 2223 | 105 | 8. Tokens |  |
+| 2328 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
+| 2364 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
+| 2410 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
 ## 17b-parcours-et-ecrans-backoffice.md (~62k tokens)
 
@@ -669,7 +666,7 @@
 | 860 | 56 | ↳ 11.8 Gabarits et composants |  |
 | 916 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~13k tokens)
+## 21-plan-de-developpement.md (~14k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -681,4 +678,4 @@
 | 93 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 117 | 9 | 6. Configuration des services externes |  |
 | 126 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 143 | 99 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 143 | 103 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |

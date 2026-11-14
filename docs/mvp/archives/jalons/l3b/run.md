@@ -22,4 +22,12 @@
 | F2 | recette.md | fondateur | — | — | fondateur | fait | Fondateur, 2026-11-14 : « J ai fait la recette. Je valide » ; staging lecture seule : 1 pending_review, campaign.submitted rang 2373, rien dans ops |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | Revue : 0 bloquant ; jalon : L3BT-1, L3BT-2 (fix-4) ; avant prod : L3BT-3, L3BT-4, L3BS-1 ; plus tard : 8 |
 | fix-4 | fix-4.md | fix | sonnet | high | dev-react-node | fait | L3BT-1, 2 : parité dates et longueurs base/domaine, 33 cas, plancher 83 à 116 ; ids L3B dans les titres ; e2e à froid 24,7/24,5/23,9 s, médiane 24,5 <= 25 |
-| C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
+| C | cloture.md | cloture | sonnet | medium | testeur | fait | pnpm check et e2e verts (base 3318, e2e 270) ; 21 §8, 04, 09, 17 amendés ; attestation I-4 ; archivage ; marge e2e mince (24,5 s pour 25 s) |
+
+## Mesures de clôture
+Ligne C, 2026-11-14, poste local (le premier lancement de `pnpm check` a été faussé par un second lancement concurrent sur la même base : 57 échecs hors périmètre ; la suite base seule, relancée, est verte).
+- `pnpm check` : formats, types, lint, tests unitaires (web 731, api 1860), build et artefacts verts ; suite base locale : 111 fichiers, 3318 cas, 706 s ; planchers tenus.
+- `pnpm test:e2e` : 270 cas verts en 7,0 min ; planchers tenus. `brand-campaign.spec.ts` : 10 cas, 29,3 s en suite complète à deux processus (24,5 s à froid, médiane de trois, fix-4).
+- CI, dernier run complet (43577403102, `6feb126`) : éclats e2e 4 min 01, 3 min 53, 3 min 48 (< 7 min 30) ; éclats base 4 min 21 et 4 min 59 ; contrôles 2 min 49 ; « Migrate staging » vert (28 s). Le run 43608389841 (`d084fce`, documentation) est vert, contrôles légers.
+- **L3BT-5 : la marge e2e est mince** : budget de 25 s contre 24,5 s à froid (médiane), 29,3 s en suite complète ; tout cas e2e ajouté au Lot 3 dépasse le budget : arbitrage d'un éclat de plus ou allègement avant L3C.
+- Commits `bb032d6` et `7a2bb22` non poussés à la clôture : CI à constater après le push de l'orchestrateur.
