@@ -21,8 +21,10 @@ import {
   DRAFT_KEYS,
   draftOf,
   fieldErrorOf,
+  firstInvalid,
   firstMissing,
   formatsOfNetwork,
+  invalidFields,
   isConditionallyRequired,
   isEditable,
   isGiftOnly,
@@ -716,6 +718,46 @@ describe("L3B-E2 the submission names what is missing, step by step (RG4, CA3)",
       unsavedInError(saved, saved, { campaignType: "ugcRequiresRights" }),
     ).toEqual([]);
     expect(unsavedInError(draft, saved, {})).toEqual([]);
+  });
+
+  it("sends a submission to the first refused field in the order of the screen, whatever the order of the errors", () => {
+    const saved = { ...EMPTY };
+    const draft = {
+      ...EMPTY,
+      title: "x".repeat(3),
+      campaignType: "ugc_delivered",
+      startsOn: "2027-02-01",
+      budgetBand: "1000_2500",
+    };
+    const errors = {
+      startsOn: "dateOrder",
+      budgetBand: "invalid",
+      campaignType: "ugcRequiresRights",
+    } as const;
+    expect(firstInvalid(draft, saved, errors)).toEqual({
+      step: 1,
+      key: "campaignType",
+    });
+    expect(invalidFields(draft, saved, errors)).toEqual([
+      { step: 1, key: "campaignType" },
+      { step: 4, key: "budgetBand" },
+      { step: 5, key: "startsOn" },
+    ]);
+    // the currency is drawn in step 4 until a product is sent
+    expect(
+      firstInvalid({ ...draft, currency: "EUR" }, saved, {
+        currency: "invalid",
+        startsOn: "dateOrder",
+      }),
+    ).toEqual({ step: 4, key: "currency" });
+  });
+
+  it("finds no field to go to when nothing refused is left on the screen", () => {
+    const saved = { ...EMPTY };
+    expect(firstInvalid(EMPTY, saved, {})).toBeNull();
+    expect(
+      firstInvalid(saved, saved, { campaignType: "ugcRequiresRights" }),
+    ).toBeNull();
   });
 
   it("draws the currency in step 4 always, in step 1 once a product is sent, and every other field in its own step", () => {

@@ -33,13 +33,14 @@ import {
   DEPENDENT_KEYS,
   draftOf,
   fieldErrorOf,
+  firstInvalid,
   firstMissing,
+  invalidFields,
   isEditable,
   missingErrors,
   planPatch,
   RELATED_ERROR_KEYS,
   singleFieldPatch,
-  unsavedInError,
   type CampaignDraft,
   type DraftKey,
   type FieldErrors,
@@ -74,10 +75,14 @@ export type SubmitState =
   | "declaration"
   | "profileRequired";
 
-/** What a click on "Soumettre" led to; `missing` carries the first missing field, to focus it (CA3). */
+/**
+ * What a click on "Soumettre" led to; `missing` carries the first missing field, to focus it (CA3),
+ * `invalid` the first field refused and still on the screen (RG110, L3BU-4).
+ */
 export type SubmitOutcome =
   | { kind: "submitted" }
   | { kind: "missing"; step: CampaignStep; key: DraftKey }
+  | { kind: "invalid"; step: CampaignStep; key: DraftKey }
   | { kind: "declaration" }
   | { kind: "stopped" };
 
@@ -91,6 +96,8 @@ export type CampaignState = {
   submitState: SubmitState;
   /** A submission named what is missing: the list stays, and the fields stay named, until filled. */
   missingShown: boolean;
+  /** The fields refused that a submission found on the screen, in the order of the screen (RG110). */
+  invalidShown: { step: CampaignStep; key: DraftKey }[];
   /** The submission: `declaredIn` is the language of the box of RG85 when it was ticked, else null. */
   submit: (declaredIn: DeclarationLocale | null) => Promise<SubmitOutcome>;
   change: <Key extends DraftKey>(key: Key, value: CampaignDraft[Key]) => void;
@@ -114,6 +121,9 @@ export function useCampaign(
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   // Once a submission named what is missing, the fields stay named until they are filled (CA3).
   const [showMissing, setShowMissing] = useState(false);
+  const [invalidShown, setInvalidShown] = useState<
+    { step: CampaignStep; key: DraftKey }[]
+  >([]);
   const submitting = useRef(false);
 
   // What the asynchronous steps read: the latest values, never a stale closure.
@@ -332,9 +342,11 @@ export function useCampaign(
           setSubmitState("unsaved");
           return { kind: "stopped" };
         }
-        if (unsavedInError(draftNow, savedNow, errorsRef.current).length > 0) {
+        const refused = firstInvalid(draftNow, savedNow, errorsRef.current);
+        if (refused !== null) {
+          setInvalidShown(invalidFields(draftNow, savedNow, errorsRef.current));
           setSubmitState("invalid");
-          return { kind: "stopped" };
+          return { kind: "invalid", ...refused };
         }
         const missing = missingOutcome();
         if (missing !== null) {
@@ -486,6 +498,7 @@ export function useCampaign(
     save,
     submitState,
     missingShown: showMissing,
+    invalidShown,
     submit,
     change,
     retryNow: () => void runSave(),

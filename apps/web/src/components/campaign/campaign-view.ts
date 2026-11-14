@@ -659,6 +659,40 @@ export function unsavedInError(
   );
 }
 
+/**
+ * The refused fields a submission must not leave behind, in the order of the screen (the steps, then
+ * the fields of each): each with the step that draws it, the currency being drawn in step 1 only once a
+ * product is sent, else in step 4 (RG110: the focus goes to the first one, L3BU-4).
+ */
+export function invalidFields(
+  draft: CampaignDraft,
+  saved: CampaignDraft,
+  errors: FieldErrors,
+): { step: CampaignStep; key: DraftKey }[] {
+  return unsavedInError(draft, saved, errors)
+    .map((key) => ({
+      key,
+      step:
+        key === "currency" && draft.productIsSent !== true
+          ? (4 as CampaignStep)
+          : STEP_OF_KEY[key],
+    }))
+    .sort(
+      (a, b) =>
+        a.step - b.step ||
+        DRAFT_KEYS.indexOf(a.key) - DRAFT_KEYS.indexOf(b.key),
+    );
+}
+
+/** The first refused field of the screen with its step: the one the focus goes to, or null. */
+export function firstInvalid(
+  draft: CampaignDraft,
+  saved: CampaignDraft,
+  errors: FieldErrors,
+): { step: CampaignStep; key: DraftKey } | null {
+  return invalidFields(draft, saved, errors)[0] ?? null;
+}
+
 /** Whether a field is drawn in a step: the currency is also asked in step 1 once a product is sent. */
 export function isKeyOfStep(
   key: DraftKey,

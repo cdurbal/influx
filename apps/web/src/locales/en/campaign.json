@@ -42,7 +42,7 @@
     "backToList": "Back to my campaigns",
     "unavailable": "The campaign could not be submitted right now. Try again in a moment.",
     "unsaved": "Your last entry is not saved yet. Wait for the save to finish, then submit again.",
-    "invalid": "First correct the fields flagged in the steps, then submit again.",
+    "invalid": "First correct {count, plural, one {the field that was refused} other {the fields that were refused}}, then submit again:",
     "locked": "This campaign can no longer be edited: it cannot be submitted again.",
     "profileRequired": "Publish your brand profile before submitting a campaign."
   },

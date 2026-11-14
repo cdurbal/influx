@@ -34,32 +34,26 @@ import type { CampaignState, SubmitOutcome } from "./use-campaign";
 /** The id of the box of RG85: the focus goes to it when a submission asks for it. */
 export const DECLARATION_CONTROL_ID = "campaign-declaration";
 
-export function CampaignSubmitPanel({
-  state,
-  campaign,
-  draft,
-  onGoTo,
-}: {
-  state: CampaignState;
-  campaign: CampaignResponse;
-  draft: CampaignDraft;
+/** The submission, written once: the panel in the flow and the bar of a phone both call it. */
+export type Submission = {
+  declared: boolean;
+  setDeclared: (declared: boolean) => void;
+  /** The exact text of the box of RG85 in the language of the page, else the first the base holds. */
+  declaration:
+    | CampaignResponse["references"]["authorizationDeclarations"][number]
+    | undefined;
+  busy: boolean;
+  submit: () => Promise<void>;
+};
+
+export function useSubmission(
+  state: CampaignState,
+  campaign: CampaignResponse,
   /** Takes the brand to a field of a step and focuses it. */
-  onGoTo: (step: CampaignStep, key: DraftKey) => void;
-}) {
-  const t = useTranslations("campaign");
+  onGoTo: (step: CampaignStep, key: DraftKey) => void,
+): Submission {
   const locale = useLocale();
   const [declared, setDeclared] = useState(false);
-  const groups = missingGroups(campaign.missingRequired, draft);
-  const count = groups.reduce((total, group) => total + group.keys.length, 0);
-  const names = new Intl.ListFormat(locale, {
-    style: "long",
-    type: "conjunction",
-  }).format(
-    groups.flatMap((group) =>
-      group.keys.map((key) => t(`fields.${key}.label`).toLowerCase()),
-    ),
-  );
-  // The exact text of the box in the language of the page, else the first one the base holds.
   const declaration =
     campaign.references.authorizationDeclarations.find(
       (entry) => entry.locale === locale,
@@ -70,12 +64,41 @@ export function CampaignSubmitPanel({
     const outcome: SubmitOutcome = await state.submit(
       declared && declaration !== undefined ? declaration.locale : null,
     );
-    if (outcome.kind === "missing") {
+    if (outcome.kind === "missing" || outcome.kind === "invalid") {
       onGoTo(outcome.step, outcome.key);
     } else if (outcome.kind === "declaration") {
       document.getElementById(DECLARATION_CONTROL_ID)?.focus();
     }
   }
+  return { declared, setDeclared, declaration, busy, submit };
+}
+
+export function CampaignSubmitPanel({
+  state,
+  campaign,
+  draft,
+  submission,
+  onGoTo,
+}: {
+  state: CampaignState;
+  campaign: CampaignResponse;
+  draft: CampaignDraft;
+  submission: Submission;
+  onGoTo: (step: CampaignStep, key: DraftKey) => void;
+}) {
+  const t = useTranslations("campaign");
+  const locale = useLocale();
+  const { declared, setDeclared, declaration, busy, submit } = submission;
+  const groups = missingGroups(campaign.missingRequired, draft);
+  const count = groups.reduce((total, group) => total + group.keys.length, 0);
+  const names = new Intl.ListFormat(locale, {
+    style: "long",
+    type: "conjunction",
+  }).format(
+    groups.flatMap((group) =>
+      group.keys.map((key) => t(`fields.${key}.label`).toLowerCase()),
+    ),
+  );
 
   return (
     <section
@@ -151,7 +174,7 @@ export function CampaignSubmitPanel({
           ) : null}
         </div>
       ) : null}
-      <SubmitFeedback state={state} />
+      <SubmitFeedback state={state} onGoTo={onGoTo} />
       <div className="flex flex-col gap-2">
         <MemberButton
           aria-disabled={busy || undefined}
@@ -170,7 +193,13 @@ export function CampaignSubmitPanel({
 }
 
 /** What a submission that did not go through says, in words (RG4); a success is told by the screen. */
-function SubmitFeedback({ state }: { state: CampaignState }) {
+function SubmitFeedback({
+  state,
+  onGoTo,
+}: {
+  state: CampaignState;
+  onGoTo: (step: CampaignStep, key: DraftKey) => void;
+}) {
   const t = useTranslations("campaign");
   const locale = useLocale();
   switch (state.submitState) {
@@ -179,7 +208,24 @@ function SubmitFeedback({ state }: { state: CampaignState }) {
     case "unsaved":
       return <ErrorNotice>{t("publish.unsaved")}</ErrorNotice>;
     case "invalid":
-      return <ErrorNotice>{t("publish.invalid")}</ErrorNotice>;
+      return (
+        <ErrorNotice>
+          <p>{t("publish.invalid", { count: state.invalidShown.length })}</p>
+          <ul className="flex list-disc flex-col gap-1 pl-5">
+            {state.invalidShown.map(({ step, key }) => (
+              <li key={key}>
+                <button
+                  type="button"
+                  className="min-h-(--size-touch-target) text-left underline"
+                  onClick={() => onGoTo(step, key)}
+                >
+                  {t(`fields.${key}.label`)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </ErrorNotice>
+      );
     case "locked":
       return <ErrorNotice>{t("publish.locked")}</ErrorNotice>;
     case "profileRequired":

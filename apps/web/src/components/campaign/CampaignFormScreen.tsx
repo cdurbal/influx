@@ -27,6 +27,7 @@ import {
   BACK_LINK_CLASSES,
 } from "@/components/account/account-classes";
 import { useOnline } from "@/components/auth/use-online";
+import { ACTION_BAR_CLASSES } from "@/components/brand-profile/brand-profile-classes";
 import { formatSavedTime } from "@/components/brand-profile/brand-profile-view";
 import { useMember } from "@/components/member/member-context";
 import { MemberButton } from "@/components/member/ui/MemberButton";
@@ -46,7 +47,11 @@ import { memberPageHref } from "@/lib/member-paths";
 import { CampaignAudienceFields } from "./CampaignAudienceFields";
 import { CampaignBudgetFields } from "./CampaignBudgetFields";
 import { CampaignCalendarFields } from "./CampaignCalendarFields";
-import { CampaignSubmitPanel } from "./CampaignSubmitPanel";
+import {
+  CampaignSubmitPanel,
+  useSubmission,
+  type Submission,
+} from "./CampaignSubmitPanel";
 import {
   CAMPAIGN_ASIDE_CLASSES,
   CAMPAIGN_CARD_CLASSES,
@@ -243,6 +248,7 @@ function LoadedCampaign({
     options,
     change: state.change,
   };
+  const submission = useSubmission(state, campaign, goToField);
   const index = AVAILABLE_STEPS.indexOf(step);
   const previous = AVAILABLE_STEPS[index - 1];
   const next = AVAILABLE_STEPS[index + 1];
@@ -319,6 +325,7 @@ function LoadedCampaign({
               state={state}
               campaign={campaign}
               draft={draft}
+              submission={submission}
               onGoTo={goToField}
             />
           ) : null}
@@ -330,17 +337,35 @@ function LoadedCampaign({
         </div>
         <aside className={CAMPAIGN_ASIDE_CLASSES}>
           <div className={CAMPAIGN_CARD_CLASSES}>
-            <Steps
-              campaign={campaign}
-              step={step}
-              onStep={goTo}
-              save={state.save}
-              locale={locale}
-            />
+            <Steps campaign={campaign} step={step} onStep={goTo} />
           </div>
         </aside>
       </div>
+      {editable ? (
+        <div data-action-bar="" className={ACTION_BAR_CLASSES}>
+          <SaveStatus save={state.save} locale={locale} />
+          <SubmitBarButton submission={submission} />
+        </div>
+      ) : null}
     </>
+  );
+}
+
+/** The button of the bar of a phone: the submission of the panel, the one written once. */
+function SubmitBarButton({ submission }: { submission: Submission }) {
+  const t = useTranslations("campaign");
+  const { busy, submit } = submission;
+  return (
+    <MemberButton
+      aria-disabled={busy || undefined}
+      onClick={() => {
+        if (!busy) {
+          void submit();
+        }
+      }}
+    >
+      {busy ? t("publish.busy") : t("publish.button")}
+    </MemberButton>
   );
 }
 
@@ -441,14 +466,10 @@ function Steps({
   campaign,
   step,
   onStep,
-  save,
-  locale,
 }: {
   campaign: CampaignResponse;
   step: CampaignStep;
   onStep: (step: CampaignStep) => void;
-  save: SaveState;
-  locale: string;
 }) {
   const t = useTranslations("campaign");
   const list = (
@@ -494,7 +515,6 @@ function Steps({
         </summary>
         {list}
       </details>
-      <SaveStatus save={save} locale={locale} className="lg:hidden" />
     </>
   );
 }

@@ -606,6 +606,22 @@ test("the budget, the calendar and the submission in French at 1 440 px: a gift 
   // no switch "verified profiles only" (RG79), no field of file
   await expect(page.getByLabel(/profils vérifiés/iu)).toHaveCount(0);
 
+  // A submission from another step sends the brand to the field refused, named in the panel (RG110, L3BU-4);
+  // the bar of a phone is not drawn from lg.
+  await expect(page.locator("[data-action-bar]")).toBeHidden();
+  await page.getByRole("button", { name: /^2\. / }).click();
+  await expect(page).toHaveURL(/\?step=2$/);
+  const refusedPanel = page.locator("[data-submit-panel]");
+  await refusedPanel.getByRole("button", { name: copy.publish.button }).click();
+  await expect(page).toHaveURL(/\?step=5$/);
+  // both dates of the conflict are refused: the first of the screen takes the focus, both are named
+  await expect(page.locator("#campaign-applicationsCloseOn")).toBeFocused();
+  for (const key of ["applicationsCloseOn", "startsOn"] as const) {
+    await expect(
+      refusedPanel.getByRole("button", { name: copy.fields[key].label }),
+    ).toBeVisible();
+  }
+
   // The dates put in order: the refusal is lifted and they are saved together.
   await page.locator("#campaign-startsOn").fill("2027-03-01");
   await page.locator("#campaign-endsOn").fill("2027-04-01");
@@ -662,6 +678,12 @@ test("a submission names what is missing, step by step, with a way to each field
   await button.click();
   await expect(page).toHaveURL(/\?step=1$/);
   await expect(page.locator("#campaign-brief")).toBeFocused();
+  // The bar of a phone keeps the submission in reach at the new step, without scrolling.
+  await expect(
+    page
+      .locator("[data-action-bar]")
+      .getByRole("button", { name: copy.publish.button }),
+  ).toBeInViewport();
   await expect(panel.getByText(copy.publish.listTitle)).toBeVisible();
   for (const key of ["brief", "audienceTopics", "remunerationKind"] as const) {
     await expect(

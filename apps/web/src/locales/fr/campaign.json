@@ -42,7 +42,7 @@
     "backToList": "Retour à mes campagnes",
     "unavailable": "La campagne n'a pas pu être soumise pour le moment. Réessayez dans un instant.",
     "unsaved": "Votre dernière saisie n'est pas encore enregistrée. Attendez la fin de l'enregistrement, puis soumettez à nouveau.",
-    "invalid": "Corrigez d'abord les champs signalés dans les étapes, puis soumettez à nouveau.",
+    "invalid": "Corrigez d'abord {count, plural, one {le champ refusé} other {les champs refusés}}, puis soumettez à nouveau :",
     "locked": "Cette campagne n'est plus modifiable : elle ne peut pas être soumise à nouveau.",
     "profileRequired": "Publiez votre profil de marque avant de soumettre une campagne."
   },
