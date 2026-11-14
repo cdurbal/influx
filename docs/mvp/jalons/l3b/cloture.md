@@ -12,7 +12,7 @@ Grille `testeur`. Aucun code applicatif. **Préalable :** toutes les lignes `fix
    (`archives/jalons/l3b/modele.md`) », `03` P7 si la porte ou les droits l'exigent.
 5. **Attestation I-4**, commit vide (`--allow-empty`), jamais en réécrivant `main` : titre
    `chore(security): attest the end-of-L3B review`, corps `security-reviewed: <date>` puis
-   `security-reviewed: <date> covers <SHA complets>` fournis par `revue-constats-securite.md`.
+   `security-reviewed: <date> covers <SHA complets>` fournis par l'annexe § Revue, « Attestation ».
 6. `git mv docs/mvp/jalons/l3b-fiche.md docs/mvp/jalons/l3b docs/mvp/archives/jalons/` ; renvois mis
    à jour (`21` §8, `jalons/lot3-plan.md`). Pas le dernier jalon du lot : `lot3-plan.md` reste.
 **Prouver :** `node packages/test-kit/scripts/check-security-review.ts <commit d'ouverture>^ HEAD` ok ;

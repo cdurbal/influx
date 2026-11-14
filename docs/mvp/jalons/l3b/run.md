@@ -20,5 +20,6 @@
 | fix-2 | fix-2.md | fix | sonnet | medium | dev-react-node | fait | L3BU-2 : étape 4 « par créateur, commission INFLUX incluse » FR et EN (validation du fondateur) ; aucun chiffre ni taux ; planchers inchangés
 | fix-3 | fix-3.md | fix | sonnet | high | dev-react-node | fait | L3BU-3, 4 : barre sous lg, soumission écrite une fois ; invalid = premier refus de l'écran, un lien chacun ; plancher 57 à 59 ; e2e 24,8 s <= 25 |
 | F2 | recette.md | fondateur | — | — | fondateur | fait | Fondateur, 2026-11-14 : « J ai fait la recette. Je valide » ; staging lecture seule : 1 pending_review, campaign.submitted rang 2373, rien dans ops |
-| R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
+| R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | Revue : 0 bloquant ; jalon : L3BT-1, L3BT-2 (fix-4) ; avant prod : L3BT-3, L3BT-4, L3BS-1 ; plus tard : 8 |
+| fix-4 | fix-4.md | fix | sonnet | high | dev-react-node | à valider | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
