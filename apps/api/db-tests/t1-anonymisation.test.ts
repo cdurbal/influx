@@ -1552,7 +1552,7 @@ describe("L2G (commit 12): the portfolio, the submission and the revision join t
   });
 });
 
-describe("L3B (commit 08): the campaign of a brand joins the sweeps", () => {
+describe("L3B-T9: L3B (commit 08): the campaign of a brand joins the sweeps", () => {
   it("T1.2: the routes of L3B are in the inventory the sweeps walk", async () => {
     const swept = (await sweptRoutes(app())).map(routeName);
     expect(

@@ -344,7 +344,7 @@ describe("Exact values of jalons/l2a/referentiels.md (L2A-08)", () => {
     expect(rows).toHaveLength(89);
   });
 
-  it("loads the ten price band codes in each of the five currencies of 0304 (jalons/l3b/tranches.md)", async () => {
+  it("L3B-T4: loads the ten price band codes in each of the five currencies of 0304 (jalons/l3b/tranches.md)", async () => {
     const rows = await migration<{ currency: string; codes: string[] }[]>`
       select currency, array_agg(code order by min_amount_minor) as codes
         from reference.price_bands group by currency order by currency`;
@@ -453,7 +453,7 @@ async function priceBandFindings(
   return rows.map((row) => row.finding);
 }
 
-describe("L2AT-5: reference.price_bands is contiguous per currency, one open band (tranches.md §2)", () => {
+describe("L3B-T4: L2AT-5: reference.price_bands is contiguous per currency, one open band (tranches.md §2)", () => {
   it("finds no gap, no overlap and a single open band, the last, in each currency", async () => {
     expect(await priceBandFindings(migration)).toEqual([]);
   });

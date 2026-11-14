@@ -108,7 +108,7 @@ async function stateOfOwners() {
   return row;
 }
 
-describe("T14.1 and T14.2 a brand reaches the campaigns of its own account only", () => {
+describe("L3B-T8: T14.1 and T14.2 a brand reaches the campaigns of its own account only", () => {
   it("T14.1 reads nothing of another brand's campaign by changing the identifier, and the owner still reads it", async () => {
     const other = await fx.call(
       server,
@@ -234,7 +234,7 @@ describe("T14.1 and T14.2 a brand reaches the campaigns of its own account only"
   });
 });
 
-describe("T14.3 and T14.4 one answer for what does not exist and what is not for the caller", () => {
+describe("L3B-T8: T14.3 and T14.4 one answer for what does not exist and what is not for the caller", () => {
   it("answers an identifier nobody holds, to the brand, as it answers an address that does not exist for it (404, not_found, the same body)", async () => {
     const unknownAddress = fx.errorBody(
       await fx.call(server, "GET", UNKNOWN_ADDRESS, owner.session),

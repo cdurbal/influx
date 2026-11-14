@@ -115,7 +115,7 @@ const CAMPAIGN: CampaignResponse = {
 
 const EMPTY = draftOf(CAMPAIGN);
 
-describe("L3B-E1 draft: what the form holds for a campaign", () => {
+describe("draft: what the form holds for a campaign", () => {
   it("holds an empty text for a field not entered, a list for a list, null for a choice not made", () => {
     expect(EMPTY.title).toBe("");
     expect(EMPTY.campaignType).toBeNull();
@@ -183,7 +183,7 @@ describe("L3B-E1 draft: what the form holds for a campaign", () => {
   });
 });
 
-describe("L3B-E1 planPatch: the autosave sends what changed (RG108)", () => {
+describe("planPatch: the autosave sends what changed (RG108)", () => {
   it("sends nothing when nothing changed", () => {
     expect(planPatch(EMPTY, EMPTY)).toEqual({
       body: null,
@@ -270,7 +270,7 @@ describe("L3B-E1 planPatch: the autosave sends what changed (RG108)", () => {
   });
 });
 
-describe("L3B-E1 applyChange: an answer empties what it makes inapplicable (EC-L3B-07-1)", () => {
+describe("applyChange: an answer empties what it makes inapplicable (EC-L3B-07-1)", () => {
   const sent: CampaignDraft = {
     ...EMPTY,
     productIsSent: true,
@@ -411,7 +411,7 @@ describe("L3B-E1 applyChange: an answer empties what it makes inapplicable (EC-L
   });
 });
 
-describe("L3B-E1 afterSave and sameValue", () => {
+describe("afterSave and sameValue", () => {
   it("makes the fields sent the new reference, texts as typed", () => {
     const sent = { ...EMPTY, title: "  Un titre  ", audienceCountries: ["FR"] };
     const saved = afterSave(EMPTY, sent, ["title", "audienceCountries"]);
@@ -426,7 +426,7 @@ describe("L3B-E1 afterSave and sameValue", () => {
   });
 });
 
-describe("L3B-E1 fieldErrorOf: the reason of a field the API refused, by the words of its answer", () => {
+describe("fieldErrorOf: the reason of a field the API refused, by the words of its answer", () => {
   const refused = (issues: string[]) =>
     ({ kind: "failed", code: "validation_failed", issues }) as const;
 
@@ -473,7 +473,7 @@ describe("L3B-E1 fieldErrorOf: the reason of a field the API refused, by the wor
   });
 });
 
-describe("L3B-E1 warnings of a text: signalled, never refused or changed (RG21 to RG23)", () => {
+describe("warnings of a text: signalled, never refused or changed (RG21 to RG23)", () => {
   it("signals a contact, a link and an amount, in the order of the warnings, each once", () => {
     expect(
       warningKeysOf([
@@ -504,7 +504,7 @@ describe("L3B-E1 warnings of a text: signalled, never refused or changed (RG21 t
   });
 });
 
-describe("L3B-E1 required fields and steps", () => {
+describe("required fields and steps", () => {
   it("asks the conditional fields only once their condition holds", () => {
     expect(isConditionallyRequired("productValueBand", EMPTY)).toBe(false);
     expect(
@@ -567,7 +567,7 @@ describe("L3B-E1 required fields and steps", () => {
   });
 });
 
-describe("L3B-E2 the calendar: the order of the four dates and the length of the period (RG70, RG74)", () => {
+describe("the calendar: the order of the four dates and the length of the period (RG70, RG74)", () => {
   const sound: CampaignDraft = {
     ...EMPTY,
     applicationsCloseOn: "2027-02-10",
@@ -652,7 +652,7 @@ describe("L3B-E2 the calendar: the order of the four dates and the length of the
   });
 });
 
-describe("L3B-E2 the submission names what is missing, step by step (RG4, CA3)", () => {
+describe("the submission names what is missing, step by step (RG4, CA3)", () => {
   const MISSING = [
     "title",
     "usageRightsTerritory",
@@ -792,7 +792,7 @@ describe("L3B-E2 the submission names what is missing, step by step (RG4, CA3)",
   });
 });
 
-describe("L3B-E2 the texts of the budget: the brand's band, the creator's mention, no figure (D48, D78)", () => {
+describe("the texts of the budget: the brand's band, the creator's mention, no figure (D48, D78)", () => {
   it("has the three sentences of the pilot regime in both languages, as 09 RG109 words them", () => {
     expect(frCampaign.budget.bandBrand).toContain("commission INFLUX incluse");
     expect(frCampaign.budget.negotiate).toBe(
@@ -845,7 +845,7 @@ describe("L3B-E2 the texts of the budget: the brand's band, the creator's mentio
   });
 });
 
-describe("L3B-E1 states: written, never by a color alone (CA74)", () => {
+describe("states: written, never by a color alone (CA74)", () => {
   it("lets the brand write a draft and a refused campaign only", () => {
     expect(CAMPAIGN_STATUSES.filter(isEditable)).toEqual(["draft", "rejected"]);
   });
@@ -864,7 +864,7 @@ describe("L3B-E1 states: written, never by a color alone (CA74)", () => {
   });
 });
 
-describe("L3B-E1 translations: the grid of bands, the lists, both languages (tranches.md §4)", () => {
+describe("translations: the grid of bands, the lists, both languages (tranches.md §4)", () => {
   const BAND_CODES = [
     "under_100",
     "100_250",

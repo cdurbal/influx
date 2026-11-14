@@ -174,7 +174,7 @@ async function noFileField(page: Page): Promise<void> {
   await expect(page.locator("input[type=file]")).toHaveCount(0);
 }
 
-test("my campaigns: the invitation to write waits for a published profile, then the first draft opens on its first step (CA2, CA74, 17 §2.4, D74)", async ({
+test("L3B-E1: my campaigns: the invitation to write waits for a published profile, then the first draft opens on its first step (CA2, CA74, 17 §2.4, D74)", async ({
   page,
 }) => {
   const copy = COPY.fr;
@@ -242,7 +242,7 @@ test("my campaigns: the invitation to write waits for a published profile, then 
   expect((await storedCampaignOf(member.accountId))?.status).toBe("draft");
 });
 
-test("the offer, the work expected and the audience, in French at 375 px: saved by themselves, taken up again after a reload with the deliverables, warnings that block nothing (RG108, CA72, RG21 to RG23)", async ({
+test("L3B-E1: the offer, the work expected and the audience, in French at 375 px: saved by themselves, taken up again after a reload with the deliverables, warnings that block nothing (RG108, CA72, RG21 to RG23)", async ({
   page,
 }) => {
   const copy = COPY.fr;
@@ -408,7 +408,7 @@ test("the offer, the work expected and the audience, in French at 375 px: saved 
   ).toHaveCount(3);
 });
 
-test("the form in English at 1 440 px: a campaign taken up where it was left, a type that needs rights refused with its words, axe (RG43)", async ({
+test("L3B-E1: the form in English at 1 440 px: a campaign taken up where it was left, a type that needs rights refused with its words, axe (RG43)", async ({
   page,
 }) => {
   const copy = COPY.en;
@@ -484,7 +484,7 @@ test("the form in English at 1 440 px: a campaign taken up where it was left, a 
   );
 });
 
-test("a save that fails keeps the entry on screen and says so, then goes through on the new attempt (RG108)", async ({
+test("L3B-E1: a save that fails keeps the entry on screen and says so, then goes through on the new attempt (RG108)", async ({
   page,
 }) => {
   const copy = COPY.fr;
@@ -524,7 +524,7 @@ test("a save that fails keeps the entry on screen and says so, then goes through
   expect((await storedCampaignOf(member.accountId))?.title).toBe(typed);
 });
 
-test("the budget, the calendar and the submission in French at 1 440 px: a gift only asks no band, the creator's box shows no figure, dates in conflict are named, a whole campaign is submitted (CA76, RG70, CA4, D78)", async ({
+test("L3B-E2: the budget, the calendar and the submission in French at 1 440 px: a gift only asks no band, the creator's box shows no figure, dates in conflict are named, a whole campaign is submitted (CA76, RG70, CA4, D78)", async ({
   page,
 }) => {
   const copy = COPY.fr;
@@ -645,7 +645,7 @@ test("the budget, the calendar and the submission in French at 1 440 px: a gift 
   );
 });
 
-test("a submission names what is missing, step by step, with a way to each field, in English at 375 px (CA3, RG4)", async ({
+test("L3B-E2: a submission names what is missing, step by step, with a way to each field, in English at 375 px (CA3, RG4)", async ({
   page,
 }) => {
   const copy = COPY.en;
@@ -707,7 +707,7 @@ test("a submission names what is missing, step by step, with a way to each field
   expect((await storedCampaignOf(member.accountId))?.status).toBe("draft");
 });
 
-test("a sensitive category is refused without its declaration, then accepted once the box is ticked, never pre-ticked (CA56, RG85)", async ({
+test("L3B-E2: a sensitive category is refused without its declaration, then accepted once the box is ticked, never pre-ticked (CA56, RG85)", async ({
   page,
 }) => {
   const copy = COPY.fr;
@@ -749,7 +749,7 @@ test("a sensitive category is refused without its declaration, then accepted onc
   expect(stored?.declared).toBe(true);
 });
 
-test("a save that fails on the budget keeps the entry on screen and says so, then goes through on the new attempt (RG108)", async ({
+test("L3B-E2: a save that fails on the budget keeps the entry on screen and says so, then goes through on the new attempt (RG108)", async ({
   page,
 }) => {
   const copy = COPY.fr;
@@ -801,7 +801,7 @@ function withInternalFields(
   });
 }
 
-test("what a creator sees, in French at 1 440 px: reached from step 4, the nature and the notice, no band, no reference, no way to contact the brand, only the creator-view answer is read (RG102, CA15, CA68, D78)", async ({
+test("L3B-E3: what a creator sees, in French at 1 440 px: reached from step 4, the nature and the notice, no band, no reference, no way to contact the brand, only the creator-view answer is read (RG102, CA15, CA68, D78)", async ({
   page,
 }) => {
   const copy = COPY.fr;
@@ -896,7 +896,7 @@ test("what a creator sees, in French at 1 440 px: reached from step 4, the natur
   ).toBeVisible();
 });
 
-test("what a creator sees, in English at 375 px: reached from the list, a gift only says so without a figure, an unpublished profile says it is not shown (RG102, CA68, D78, 06 RG73)", async ({
+test("L3B-E3: what a creator sees, in English at 375 px: reached from the list, a gift only says so without a figure, an unpublished profile says it is not shown (RG102, CA68, D78, 06 RG73)", async ({
   page,
 }) => {
   const copy = COPY.en;

@@ -21,5 +21,5 @@
 | fix-3 | fix-3.md | fix | sonnet | high | dev-react-node | fait | L3BU-3, 4 : barre sous lg, soumission écrite une fois ; invalid = premier refus de l'écran, un lien chacun ; plancher 57 à 59 ; e2e 24,8 s <= 25 |
 | F2 | recette.md | fondateur | — | — | fondateur | fait | Fondateur, 2026-11-14 : « J ai fait la recette. Je valide » ; staging lecture seule : 1 pending_review, campaign.submitted rang 2373, rien dans ops |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | Revue : 0 bloquant ; jalon : L3BT-1, L3BT-2 (fix-4) ; avant prod : L3BT-3, L3BT-4, L3BS-1 ; plus tard : 8 |
-| fix-4 | fix-4.md | fix | sonnet | high | dev-react-node | à valider | |
+| fix-4 | fix-4.md | fix | sonnet | high | dev-react-node | fait | L3BT-1, 2 : parité dates et longueurs base/domaine, 33 cas, plancher 83 à 116 ; ids L3B dans les titres ; e2e à froid 24,7/24,5/23,9 s, médiane 24,5 <= 25 |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |

@@ -7,11 +7,17 @@
 // scope and its countries, the dates as civil dates written YYYY-MM-DD.
 import {
   CAMPAIGN_REQUIRED_FIELDS,
+  campaignDateIssues,
+  isCampaignBriefLengthAllowed,
+  isCampaignSummaryLengthAllowed,
+  isCampaignTitleLengthAllowed,
   missingCampaignFields,
+  type CampaignDates,
   type CampaignInput,
 } from "@influx/domain/campaign";
-import { describe, expect, it } from "vitest";
-import { localSuperuser } from "./support.ts";
+import { CAMPAIGN_IDS, inRolledBackTransaction } from "@influx/test-kit/db";
+import { beforeAll, describe, expect, it } from "vitest";
+import { localSuperuser, testDataSet } from "./support.ts";
 
 /** The base's code of a domain code: camelCase to snake_case (campaignType → campaign_type). */
 const snake = (code: string) =>
@@ -249,7 +255,7 @@ const PARITY_CASES: readonly [string, CampaignInput][] = [
   ["a date of spaces", { ...COMPLETE, endsOn: "  " }],
 ];
 
-describe("09 RG4, CA3: the required fields of the base equal those of packages/domain (0305, modele §5)", () => {
+describe("L3B-T6: 09 RG4, CA3: the required fields of the base equal those of packages/domain (0305, modele §5)", () => {
   it("names, for an empty input, the codes of CAMPAIGN_REQUIRED_FIELDS that hang on no condition, in their order", async () => {
     const conditional = new Set([
       "productValueBand",
@@ -333,4 +339,234 @@ describe("09 RG4, CA3: the required fields of the base equal those of packages/d
       },
     ]);
   });
+});
+
+// L3B-T6, fiche invariant 5 (L3BT-1): the calendar (RG70, RG74) and the upper bounds of the long texts
+// (RG16) are judged by packages/domain and by the table checks of 0303 with the same verdict. Each
+// case names its expected verdict, then both sides must give it: accepted, or refused by the named
+// check. One rule at stake per case; the other dates stay null (a partial calendar) and no text has
+// margins (the margins are another matter).
+type Verdict =
+  | "accepted"
+  | "campaigns_dates_ordered"
+  | "campaigns_publication_window_max_12m"
+  | "campaigns_title_length"
+  | "campaigns_public_summary_length"
+  | "campaigns_brief_length";
+
+/** The verdict of an UPDATE of draft A (rolled back): accepted, or the name of the check that refuses. */
+async function baseVerdict(assignment: string): Promise<Verdict> {
+  return inRolledBackTransaction(localSuperuser(), async (tx) => {
+    try {
+      await tx.savepoint((savepoint) =>
+        savepoint.unsafe(
+          `update campaigns.campaigns set ${assignment} where id = '${CAMPAIGN_IDS.a}'`,
+        ),
+      );
+      return "accepted";
+    } catch (error) {
+      const found = error as { code?: string; constraint_name?: string };
+      if (found.code !== "23514" || found.constraint_name === undefined) {
+        throw error;
+      }
+      return found.constraint_name as Verdict;
+    }
+  });
+}
+
+const DATE_COLUMNS = {
+  applicationsCloseOn: "applications_close_on",
+  contentDueOn: "content_due_on",
+  startsOn: "starts_on",
+  endsOn: "ends_on",
+} as const;
+
+/** The four date columns of an UPDATE, a date left out being written null. */
+function datesAssignment(dates: CampaignDates): string {
+  return Object.entries(DATE_COLUMNS)
+    .map(([field, column]) => {
+      const value = dates[field as keyof CampaignDates];
+      return `${column} = ${value === undefined || value === null ? "null" : `date '${value}'`}`;
+    })
+    .join(", ");
+}
+
+/** The verdict of packages/domain on a calendar. */
+function domainDateVerdict(dates: CampaignDates): Verdict {
+  const issues = campaignDateIssues(dates);
+  if (issues.conflicts.length > 0) return "campaigns_dates_ordered";
+  return issues.windowTooLong
+    ? "campaigns_publication_window_max_12m"
+    : "accepted";
+}
+
+const PAIRS = [
+  ["applicationsCloseOn", "contentDueOn"],
+  ["applicationsCloseOn", "startsOn"],
+  ["applicationsCloseOn", "endsOn"],
+  ["contentDueOn", "startsOn"],
+  ["contentDueOn", "endsOn"],
+  ["startsOn", "endsOn"],
+] as const;
+
+const DATE_CASES: readonly [string, CampaignDates, Verdict][] = [
+  // RG70: the six pairs, each alone, inverted by one day, then equal
+  ...PAIRS.flatMap(([earlier, later]): [string, CampaignDates, Verdict][] => [
+    [
+      `${earlier} one day after ${later}`,
+      { [earlier]: "2027-03-10", [later]: "2027-03-09" },
+      "campaigns_dates_ordered",
+    ],
+    [
+      `${earlier} the same day as ${later}`,
+      { [earlier]: "2027-03-10", [later]: "2027-03-10" },
+      "accepted",
+    ],
+  ]),
+  // RG74: the end against the start plus 12 months, as the base counts it
+  [
+    "a period ending one day before 12 months",
+    { startsOn: "2027-02-01", endsOn: "2028-01-31" },
+    "accepted",
+  ],
+  [
+    "a period of exactly 12 months",
+    { startsOn: "2027-02-01", endsOn: "2028-02-01" },
+    "accepted",
+  ],
+  [
+    "a period one day beyond 12 months",
+    { startsOn: "2027-02-01", endsOn: "2028-02-02" },
+    "campaigns_publication_window_max_12m",
+  ],
+  [
+    "a 29 February start ending on 28 February",
+    { startsOn: "2028-02-29", endsOn: "2029-02-28" },
+    "accepted",
+  ],
+  [
+    "a 29 February start ending on 1 March",
+    { startsOn: "2028-02-29", endsOn: "2029-03-01" },
+    "campaigns_publication_window_max_12m",
+  ],
+  [
+    "a 31 December start ending on 31 December",
+    { startsOn: "2027-12-31", endsOn: "2028-12-31" },
+    "accepted",
+  ],
+  [
+    "a 31 December start ending on 1 January",
+    { startsOn: "2027-12-31", endsOn: "2029-01-01" },
+    "campaigns_publication_window_max_12m",
+  ],
+  [
+    "a 31 January start ending on 31 January",
+    { startsOn: "2027-01-31", endsOn: "2028-01-31" },
+    "accepted",
+  ],
+  [
+    "a 31 January start ending on 1 February",
+    { startsOn: "2027-01-31", endsOn: "2028-02-01" },
+    "campaigns_publication_window_max_12m",
+  ],
+  [
+    "a 30 April start ending on 30 April",
+    { startsOn: "2027-04-30", endsOn: "2028-04-30" },
+    "accepted",
+  ],
+  [
+    "a 30 April start ending on 1 May",
+    { startsOn: "2027-04-30", endsOn: "2028-05-01" },
+    "campaigns_publication_window_max_12m",
+  ],
+  [
+    "a 28 February start ending on 28 February",
+    { startsOn: "2027-02-28", endsOn: "2028-02-28" },
+    "accepted",
+  ],
+  [
+    "a 28 February start ending on 29 February of a leap year",
+    { startsOn: "2027-02-28", endsOn: "2028-02-29" },
+    "campaigns_publication_window_max_12m",
+  ],
+  [
+    "a 28 February start of a leap year ending on 28 February",
+    { startsOn: "2028-02-28", endsOn: "2029-02-28" },
+    "accepted",
+  ],
+  [
+    "a 28 February start of a leap year ending on 1 March",
+    { startsOn: "2028-02-28", endsOn: "2029-03-01" },
+    "campaigns_publication_window_max_12m",
+  ],
+];
+
+// The code points of the astral plane count for one on both sides (char_length, Array.from).
+const textOf = (length: number) => "😀".repeat(length);
+
+type LengthRule = {
+  readonly name: string;
+  readonly column: string;
+  readonly allowed: (value: string) => boolean;
+  readonly max: number;
+  readonly check: Verdict;
+};
+
+const LENGTH_RULES: readonly LengthRule[] = [
+  {
+    name: "title",
+    column: "title",
+    allowed: isCampaignTitleLengthAllowed,
+    max: 140,
+    check: "campaigns_title_length",
+  },
+  {
+    name: "summary",
+    column: "public_summary",
+    allowed: isCampaignSummaryLengthAllowed,
+    max: 400,
+    check: "campaigns_public_summary_length",
+  },
+  {
+    name: "brief",
+    column: "brief",
+    allowed: isCampaignBriefLengthAllowed,
+    max: 4000,
+    check: "campaigns_brief_length",
+  },
+];
+
+const LENGTH_CASES = LENGTH_RULES.flatMap(
+  (rule): [string, LengthRule, number, Verdict][] => [
+    [`a ${rule.name} of ${rule.max} code points`, rule, rule.max, "accepted"],
+    [
+      `a ${rule.name} of ${rule.max + 1} code points`,
+      rule,
+      rule.max + 1,
+      rule.check,
+    ],
+  ],
+);
+
+describe("L3B-T6 the calendar and the upper bounds of the texts: the table checks of 0303 answer as packages/domain (RG70, RG74, RG16)", () => {
+  beforeAll(async () => {
+    await testDataSet();
+  });
+
+  it.each(DATE_CASES)(
+    "L3B-T6 judges %s alike",
+    async (_label, dates, expected) => {
+      expect(domainDateVerdict(dates)).toBe(expected);
+      expect(await baseVerdict(datesAssignment(dates))).toBe(expected);
+    },
+  );
+
+  it.each(LENGTH_CASES)(
+    "L3B-T6 judges %s alike",
+    async (_label, rule, length, expected) => {
+      const text = textOf(length);
+      expect(rule.allowed(text) ? "accepted" : rule.check).toBe(expected);
+      expect(await baseVerdict(`${rule.column} = '${text}'`)).toBe(expected);
+    },
+  );
 });

@@ -127,7 +127,7 @@ const GRID_BANDS = [
 ];
 
 describe("T16.4 extended to reference.price_bands (04 §4.2)", () => {
-  it("holds exactly the grid of 0304 (tranches.md §5), and no net", async () => {
+  it("L3B-T4: holds exactly the grid of 0304 (tranches.md §5), and no net", async () => {
     const rows = await migration<{ line: string }[]>`
       select currency || ' ' || code || ' ' || min_amount_minor || '-'
              || coalesce(max_amount_minor::text, 'null') as line
