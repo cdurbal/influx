@@ -15,7 +15,10 @@
 | 09 | 09.md | commit | sonnet | high | dev-react-node | fait | campagnes marque : liste, étapes 1-3, autosave des seuls champs modifiés, dépendants vidés, domain par campaign-domain.ts ; e2e 14,0 s (médiane de 3) > 9 s |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | étapes 4-5 : tranche interne, nature, dates nommées, soumission (manquants par étape, case RG85) ; pas de budget total saisi (EC-10-1) ; e2e 10,4 s > 9 s |
 | 11 | 11.md | commit | sonnet | high | dev-react-node | fait | aperçu : réponse de 08 seule ; ni tranche, budget, réf. (texte+DOM) ; aucun lien ; logo via route profil ; e2e 2,3 s, total 09-11 24,1 s <= 25 |
-| U | ux.md | ux | sonnet | high | expert-ux | à faire | |
+| U | ux.md | ux | sonnet | high | expert-ux | fait | 20 constats : 0 bloquant, 4 jalon (fix-1 à fix-3 ; L3BU-15 pris par fix-1), 12 avant production, 4 plus tard |
+| fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | à valider | |
+| fix-2 | fix-2.md | fix | sonnet | medium | dev-react-node | à valider | |
+| fix-3 | fix-3.md | fix | sonnet | high | dev-react-node | à valider | |
 | F2 | recette.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
