@@ -19,6 +19,6 @@
 | fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | fait | L3BU-1, 15 : lien ?from=4 ou ?from=list, retour à l’étape ou à la liste, nom sans doublon ; floor 11 à 14 ; e2e 24,4 s <= 25 |
 | fix-2 | fix-2.md | fix | sonnet | medium | dev-react-node | fait | L3BU-2 : étape 4 « par créateur, commission INFLUX incluse » FR et EN (validation du fondateur) ; aucun chiffre ni taux ; planchers inchangés
 | fix-3 | fix-3.md | fix | sonnet | high | dev-react-node | fait | L3BU-3, 4 : barre sous lg, soumission écrite une fois ; invalid = premier refus de l'écran, un lien chacun ; plancher 57 à 59 ; e2e 24,8 s <= 25 |
-| F2 | recette.md | fondateur | — | — | fondateur | à faire | |
+| F2 | recette.md | fondateur | — | — | fondateur | fait | Fondateur, 2026-11-14 : « J ai fait la recette. Je valide » ; staging lecture seule : 1 pending_review, campaign.submitted rang 2373, rien dans ops |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
