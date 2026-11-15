@@ -140,6 +140,10 @@ const OWN_CONTACT_BY_ROUTE: Readonly<Record<string, readonly string[]>> = {
   "/v1/me/campaigns": ["networkCode"],
   "/v1/me/campaigns/:id": ["networkCode"],
   "/v1/me/campaigns/:id/submit": ["networkCode"],
+  // L3C 10: the passages of a brand answer with its campaign, as the submission does
+  "/v1/me/campaigns/:id/pause": ["networkCode"],
+  "/v1/me/campaigns/:id/resume": ["networkCode"],
+  "/v1/me/campaigns/:id/close": ["networkCode"],
   // L3B 08: the brand's preview of what a creator sees, its own trading name in it (06 RG74)
   "/v1/me/campaigns/:id/creator-view": ["networkCode", "companyName"],
   // The creator's own verification (L2E 12): the network of HIS line, which a request and a badge

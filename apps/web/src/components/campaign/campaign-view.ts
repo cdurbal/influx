@@ -743,7 +743,8 @@ export const STATUS_TEXT_KEYS = {
   published: "published",
   paused: "paused",
   closed: "closed",
-  rejected: "rejected",
+  // RG109: `status.rejected` carries its {reason}; without one (a refusal the answer did not carry) this says it
+  rejected: "rejectedNoReason",
 } as const satisfies Record<CampaignStatus, string>;
 
 /** A date of the base as the language writes it ("13 nov. 2026"). */
@@ -774,4 +775,40 @@ export function formatsOfNetwork(
 /** A new line of deliverables: nothing chosen, one piece. */
 export function newDeliverable(): DeliverableDraft {
   return { networkCode: "", formatCode: "", quantity: 1 };
+}
+
+// --- The passages of a published campaign (RG8, RG9) and the refusal read back (RG10, CA59) -----------
+
+/** The three passages a brand asks of its own campaign (0309), the name of the route and of the messages. */
+export type LifecycleAction = "pause" | "resume" | "close";
+
+/**
+ * What the brand may ask of a campaign in its state, in the order the buttons stand: a published campaign is
+ * paused or closed, a paused one resumed or closed (RG8, RG9). Anything else is read, never driven here: the base
+ * is the judge, this only hides what could not succeed. A closed campaign is final (RG9).
+ */
+export function lifecycleActionsOf(
+  status: CampaignStatus,
+): readonly LifecycleAction[] {
+  switch (status) {
+    case "published":
+      return ["pause", "close"];
+    case "paused":
+      return ["resume", "close"];
+    default:
+      return [];
+  }
+}
+
+/** The key of `campaign.lifecycle.failed.*` a refused passage calls for: its rule, never the state of the base. */
+export function passageFailureKeyOf(failure: {
+  code?: string;
+  issues?: readonly string[];
+}): "unavailable" | "notAllowed" | "pausedByInflux" {
+  if (failure.code !== "conflict") {
+    return "unavailable";
+  }
+  return failure.issues?.includes("paused_by_influx") === true
+    ? "pausedByInflux"
+    : "notAllowed";
 }

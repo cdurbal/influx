@@ -8,6 +8,7 @@
 // - The submission is campaigns.submit_own_campaign() (0305), the only member transition: 42501
 //   forbidden (nobody's campaign), 55000 (state, profile), 23514 (missing fields, declaration).
 // No amount is computed here and no column the brand holds no right on is named (D78).
+import type { CampaignRefusal } from "@influx/contracts/campaign";
 import { sql, type SQL } from "drizzle-orm";
 import type { Transaction } from "../../db/index.ts";
 
@@ -73,6 +74,13 @@ export type StoredDeliverable = {
   quantity: number;
 };
 
+/**
+ * The last refusal of INFLUX, as queue 7 holds it: the typed reason, the message of the agent for the two
+ * reasons that carry one, the day of the decision. Read by the brand on its own entries (0307 §5.1: no lock,
+ * no agent, no opinion, no comment); the step that follows is the contract's table, added by the caller.
+ */
+export type StoredRefusal = Omit<CampaignRefusal, "followUp">;
+
 /** The campaign as stored: what `campaigns.campaigns` and its child tables hold, nothing computed. */
 export type StoredCampaign = {
   id: string;
@@ -112,6 +120,8 @@ export type StoredCampaign = {
   authorizationsDeclaredAt: string | null;
   /** The sector of the product is sensitive (09 RG84), read by join, never copied (modele §2). */
   sectorIsSensitive: boolean;
+  /** Why INFLUX refused it, while the campaign is `rejected`; null in every other state (RG10, CA59). */
+  refusal: StoredRefusal | null;
 } & Record<CampaignListName, string[]>;
 
 type StoredRow = {
@@ -150,6 +160,7 @@ type StoredRow = {
   max_applications: number | null;
   authorizations_declared_at: string | null;
   sector_is_sensitive: boolean;
+  refusal: StoredRefusal | null;
   deliverables: StoredDeliverable[];
 } & Record<CampaignListName, string[]>;
 
@@ -162,6 +173,21 @@ function listColumn(name: CampaignListName): SQL {
   return sql`coalesce((select jsonb_agg(${column}::text order by ${order})
                          from ${table} l
                         where l.campaign_id = c.id), '[]'::jsonb)`;
+}
+
+/**
+ * The last refusal of the campaign, while it is `rejected` (a campaign submitted again, or published since,
+ * tells none): the latest rejected entry of queue 7, by the columns the brand holds (0307 §5.1), as JSON.
+ */
+function refusalColumn(): SQL {
+  return sql`(select jsonb_build_object(
+                       'reasonCode', e.rejection_reason_code,
+                       'memberMessage', e.member_message,
+                       'decidedAt', to_char(e.decided_at at time zone 'UTC', ${ISO_UTC}))
+                from campaigns.campaign_review_entries e
+               where e.campaign_id = c.id and c.status = 'rejected' and e.state = 'rejected'
+               order by e.decided_at desc, e.id
+               limit 1)`;
 }
 
 function toStored(row: StoredRow): StoredCampaign {
@@ -204,6 +230,7 @@ function toStored(row: StoredRow): StoredCampaign {
     maxApplications: row.max_applications,
     authorizationsDeclaredAt: row.authorizations_declared_at,
     sectorIsSensitive: row.sector_is_sensitive === true,
+    refusal: row.refusal,
     keyMessages: row.keyMessages,
     usageRightsTerritories: row.usageRightsTerritories,
     audienceCountries: row.audienceCountries,
@@ -248,6 +275,7 @@ export async function readOwnCampaign(
              as authorizations_declared_at,
            coalesce((select s.is_sensitive from reference.sectors s
                       where s.code = c.sector_code), false) as sector_is_sensitive,
+           ${refusalColumn()} as refusal,
            coalesce((select jsonb_agg(jsonb_build_object(
                               'networkCode', d.network_code, 'formatCode', d.format_code,
                               'quantity', d.quantity) order by d.slot)
@@ -279,6 +307,7 @@ export type CampaignSummaryRow = {
   applicationsCloseOn: string | null;
   startsOn: string | null;
   endsOn: string | null;
+  refusal: StoredRefusal | null;
 };
 
 /** The session's own campaigns, the most recently changed first (the identifier is opaque). */
@@ -295,6 +324,7 @@ export async function listOwnCampaigns(
     applications_close_on: string | null;
     starts_on: string | null;
     ends_on: string | null;
+    refusal: StoredRefusal | null;
   }>(sql`
     select c.id::text as id, c.title, c.status::text as status,
            to_char(c.created_at at time zone 'UTC', ${ISO_UTC}) as created_at,
@@ -302,7 +332,8 @@ export async function listOwnCampaigns(
            to_char(c.submitted_at at time zone 'UTC', ${ISO_UTC}) as submitted_at,
            to_char(c.applications_close_on, ${CIVIL_DATE}) as applications_close_on,
            to_char(c.starts_on, ${CIVIL_DATE}) as starts_on,
-           to_char(c.ends_on, ${CIVIL_DATE}) as ends_on
+           to_char(c.ends_on, ${CIVIL_DATE}) as ends_on,
+           ${refusalColumn()} as refusal
       from campaigns.campaigns c
      where c.advertiser_account_id = (select influx.current_account_id())
      order by c.updated_at desc, c.id`);
@@ -316,6 +347,7 @@ export async function listOwnCampaigns(
     applicationsCloseOn: row.applications_close_on,
     startsOn: row.starts_on,
     endsOn: row.ends_on,
+    refusal: row.refusal,
   }));
 }
 
@@ -616,4 +648,38 @@ export async function readCreatorViewOfOwnCampaign(
          where c.id = ${campaignId}::uuid`,
   );
   return rows[0]?.view ?? null;
+}
+
+export type PassageOutcome = { status: string; changed: boolean };
+
+/** The three passages of a brand on its own campaign (0309): the door of the base each one calls. */
+export const CAMPAIGN_PASSAGE_DOORS = {
+  pause: "pause_own_campaign",
+  resume: "resume_own_campaign",
+  close: "close_own_campaign",
+} as const;
+export type CampaignPassage = keyof typeof CAMPAIGN_PASSAGE_DOORS;
+
+/**
+ * campaigns.pause_own_campaign(), resume_own_campaign() or close_own_campaign() (0309, SECURITY DEFINER,
+ * EXECUTE influx_advertiser): the register line is the door's own, no e-mail. The refusals are its SQLSTATE
+ * codes and messages (42501 not the brand's, 55000 the state, DETAIL `paused_by_influx` for a resumption);
+ * the caller reads them. The door is named by the closed table above, never by a value of the request.
+ */
+export async function passOwnCampaign(
+  tx: Transaction,
+  passage: CampaignPassage,
+  campaignId: string,
+): Promise<PassageOutcome> {
+  const door = sql.identifier(CAMPAIGN_PASSAGE_DOORS[passage]);
+  const rows = await tx.execute<{ status: string; changed: boolean }>(
+    sql`select status, changed from campaigns.${door}(${campaignId}::uuid)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    throw new Error(
+      `campaigns.${CAMPAIGN_PASSAGE_DOORS[passage]}() returned no row`,
+    );
+  }
+  return { status: row.status, changed: row.changed };
 }

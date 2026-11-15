@@ -10,11 +10,15 @@
 // written here by the migration role, as a decision would. Every log stream is searched BY VALUE
 // (C-1, D60): no title, brief nor reference of a campaign.
 import { createHash } from "node:crypto";
-import type { CampaignResponse } from "@influx/contracts/campaign";
+import {
+  CAMPAIGN_REJECTION_FOLLOW_UP_OF,
+  type CampaignResponse,
+} from "@influx/contracts/campaign";
 import {
   CAMPAIGN_REQUIRED_FIELDS,
   missingCampaignFields,
 } from "@influx/domain/campaign";
+import { accountIdOf } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -248,6 +252,7 @@ describe("L3B-T8 the list and the creation (09 RG108, CA2, CA72)", () => {
         "createdAt",
         "endsOn",
         "id",
+        "refusal",
         "startsOn",
         "status",
         "submittedAt",
@@ -885,6 +890,266 @@ describe("L3B-T8 the submission (09 RG4, RG5, RG84, RG85, CA2, CA3)", () => {
       totalBudgetMinor: 3_000_000,
       missingRequired: [],
     });
+  });
+});
+
+/** The agent who decided, as the fixtures name one (never the brand, never its owner). */
+const FIXTURE_AGENT = accountIdOf("agent", "b");
+
+/** A refusal of INFLUX as queue 7 would leave it: the entry decided and the campaign given back (RG10, CA59). */
+async function refuse(
+  campaignId: string,
+  reasonCode: string,
+  memberMessage: string | null = null,
+): Promise<void> {
+  await fx.migration.begin(async (tx) => {
+    const closed = await tx`
+      update campaigns.campaign_review_entries
+         set state = 'rejected', decided_by_account_id = ${FIXTURE_AGENT}::uuid, decided_at = now(),
+             closed_at = now(), rejection_reason_code = ${reasonCode}, member_message = ${memberMessage},
+             internal_comment = 'INTERNAL-COMMENT-OF-THE-AGENT'
+       where campaign_id = ${campaignId}::uuid and state = 'open'`;
+    if (closed.count === 0) {
+      await tx`
+        insert into campaigns.campaign_review_entries
+          (campaign_id, advertiser_account_id, state, decided_by_account_id, decided_at, closed_at,
+           rejection_reason_code, member_message, internal_comment)
+        select c.id, c.advertiser_account_id, 'rejected', ${FIXTURE_AGENT}::uuid, now(), now(),
+               ${reasonCode}, ${memberMessage}, 'INTERNAL-COMMENT-OF-THE-AGENT'
+          from campaigns.campaigns c where c.id = ${campaignId}::uuid`;
+    }
+    await tx`
+      update campaigns.campaigns set status = 'rejected' where id = ${campaignId}::uuid`;
+  });
+}
+
+function pass(
+  server: Server,
+  member: Member,
+  id: string,
+  passage: "pause" | "resume" | "close",
+) {
+  return fx.call(
+    server,
+    "POST",
+    `${URL_CAMPAIGNS}/${id}/${passage}`,
+    member.session,
+    {},
+  );
+}
+
+/** The register lines and the e-mails queued for a campaign by the doors of the brand (0309: no e-mail). */
+async function passageTrace(id: string, accountId: string) {
+  const lines = await fx.migration<{ event_type: string; payload: unknown }[]>`
+    select event_type, payload from audit.audit_events
+     where subject_id = ${id}
+       and event_type in ('campaign.paused', 'campaign.resumed', 'campaign.closed')
+     order by seq`;
+  const [queued] = await fx.migration<{ n: number }[]>`
+    select count(*)::int as n from leads.outbox_events
+     where subject_key = ${`account:${accountId}`} and event_type = 'campaign.decision'`;
+  return { lines: [...lines], emails: queued?.n ?? 0 };
+}
+
+describe("L3C-T8 the passages of a brand on its published campaign and the refusal it reads (09 RG8, RG9, RG10, CA59, CA74)", () => {
+  it("pauses then resumes its own campaign: the same snapshot, no validation again, a register line each, no e-mail; a second click writes nothing (RG8)", async () => {
+    const { server, member, campaign } = await readyBrand();
+    await publishAsInflux(fx.migration, campaign.id);
+    const [before] = await fx.migration<{ snapshot: string }[]>`
+      select current_snapshot_id::text as snapshot from campaigns.campaigns where id = ${campaign.id}`;
+
+    const paused = await pass(server, member, campaign.id, "pause");
+    expect(paused.statusCode, paused.body).toBe(200);
+    expect(paused.json()).toMatchObject({
+      id: campaign.id,
+      status: "paused",
+      changed: true,
+      title: TITLE,
+      refusal: null,
+    });
+    const again = await pass(server, member, campaign.id, "pause");
+    expect(again.json()).toMatchObject({ status: "paused", changed: false });
+    expect(await read(server, member, campaign.id)).toMatchObject({
+      status: "paused",
+    });
+
+    const resumed = await pass(server, member, campaign.id, "resume");
+    expect(resumed.statusCode, resumed.body).toBe(200);
+    expect(resumed.json()).toMatchObject({
+      status: "published",
+      changed: true,
+    });
+    expect(
+      (await pass(server, member, campaign.id, "resume")).json(),
+    ).toMatchObject({ status: "published", changed: false });
+
+    const [after] = await fx.migration<{ snapshot: string; entries: number }[]>`
+      select current_snapshot_id::text as snapshot,
+             (select count(*)::int from campaigns.campaign_review_entries e
+               where e.campaign_id = c.id and e.state = 'open') as entries
+        from campaigns.campaigns c where c.id = ${campaign.id}`;
+    expect(after).toEqual({ snapshot: before?.snapshot, entries: 0 });
+    expect(await passageTrace(campaign.id, member.accountId)).toEqual({
+      lines: [
+        { event_type: "campaign.paused", payload: { origin: "brand" } },
+        { event_type: "campaign.resumed", payload: { origin: "brand" } },
+      ],
+      emails: 0,
+    });
+  });
+
+  it("refuses a passage the state does not allow with a conflict that names the rule, and writes nothing (RG8, RG9)", async () => {
+    const { server, member, campaign } = await readyBrand();
+    // a draft is paused, resumed and closed by nobody
+    for (const [passage, issue] of [
+      ["pause", "campaign_not_pausable"],
+      ["resume", "campaign_not_resumable"],
+      ["close", "campaign_not_closable"],
+    ] as const) {
+      const response = await pass(server, member, campaign.id, passage);
+      expect(fx.errorBody(response), passage).toMatchObject({
+        status: 409,
+        code: "conflict",
+      });
+      expect(fx.issuesOf(response), passage).toEqual([
+        { path: "status", issue },
+      ]);
+    }
+    // so is a campaign being reviewed or refused
+    expect((await submit(server, member, campaign.id)).statusCode).toBe(200);
+    expect(
+      fx.errorBody(await pass(server, member, campaign.id, "pause")),
+    ).toMatchObject({ status: 409 });
+    await refuse(campaign.id, "brief_insufficient");
+    expect(
+      fx.errorBody(await pass(server, member, campaign.id, "close")),
+    ).toMatchObject({ status: 409 });
+    expect(await stateOf(campaign.id)).toBe("rejected");
+    expect(await passageTrace(campaign.id, member.accountId)).toEqual({
+      lines: [],
+      emails: 0,
+    });
+  });
+
+  it("leaves a pause of INFLUX to INFLUX: the brand cannot resume it (paused_by_influx), but may close it (RG8)", async () => {
+    const { server, member, campaign } = await readyBrand();
+    await publishAsInflux(fx.migration, campaign.id, "paused");
+    const resumed = await pass(server, member, campaign.id, "resume");
+    expect(fx.errorBody(resumed)).toMatchObject({
+      status: 409,
+      code: "conflict",
+    });
+    expect(fx.issuesOf(resumed)).toEqual([
+      { path: "status", issue: "paused_by_influx" },
+    ]);
+    expect(await stateOf(campaign.id)).toBe("paused");
+    const closed = await pass(server, member, campaign.id, "close");
+    expect(closed.json()).toMatchObject({ status: "closed", changed: true });
+  });
+
+  it("closes a published or a paused campaign for good: nothing erased, no way back, no more writing (RG9, CA9)", async () => {
+    const live = await readyBrand();
+    await publishAsInflux(fx.migration, live.campaign.id);
+    const { server, member } = live;
+    const id = live.campaign.id;
+    const closed = await pass(server, member, id, "close");
+    expect(closed.statusCode, closed.body).toBe(200);
+    expect(closed.json()).toMatchObject({
+      status: "closed",
+      changed: true,
+      title: TITLE,
+      brief: BRIEF,
+    });
+    expect((await pass(server, member, id, "close")).json()).toMatchObject({
+      status: "closed",
+      changed: false,
+    });
+    for (const passage of ["pause", "resume"] as const) {
+      expect(
+        fx.errorBody(await pass(server, member, id, passage)),
+        passage,
+      ).toMatchObject({ status: 409 });
+    }
+    const patched = await patch(server, member, id, {
+      title: "A closed campaign is not rewritten",
+    });
+    expect(fx.errorBody(patched)).toMatchObject({ status: 409 });
+    expect(await read(server, member, id)).toMatchObject({
+      status: "closed",
+      title: TITLE,
+    });
+    const [row] = await fx.migration<{ closed: boolean }[]>`
+      select (closed_at is not null) as closed from campaigns.campaigns where id = ${id}`;
+    expect(row?.closed).toBe(true);
+
+    const other = await readyBrand();
+    await publishAsInflux(fx.migration, other.campaign.id);
+    const otherId = other.campaign.id;
+    await pass(other.server, other.member, otherId, "pause");
+    expect(
+      (await pass(other.server, other.member, otherId, "close")).json(),
+    ).toMatchObject({ status: "closed", changed: true });
+    expect(await passageTrace(otherId, other.member.accountId)).toEqual({
+      lines: [
+        { event_type: "campaign.paused", payload: { origin: "brand" } },
+        { event_type: "campaign.closed", payload: { origin: "brand" } },
+      ],
+      emails: 0,
+    });
+  });
+
+  it("serves the refusal of INFLUX while the campaign is rejected: the reason, the step, the message of the two reasons that carry one, never the agent nor the comment (RG10, RG90, CA59)", async () => {
+    const { server, member, campaign } = await readyBrand();
+    expect((await submit(server, member, campaign.id)).statusCode).toBe(200);
+    expect((await read(server, member, campaign.id)).refusal).toBeNull();
+
+    await refuse(campaign.id, "contact_in_text");
+    const first = await fx.call(
+      server,
+      "GET",
+      `${URL_CAMPAIGNS}/${campaign.id}`,
+      member.session,
+    );
+    expect(first.json()).toMatchObject({
+      status: "rejected",
+      refusal: {
+        reasonCode: "contact_in_text",
+        followUp: "fix",
+        memberMessage: null,
+      },
+    });
+    expect(first.body).not.toContain("INTERNAL-COMMENT-OF-THE-AGENT");
+    expect(first.body).not.toContain(FIXTURE_AGENT);
+    const listed = (
+      (await fx.call(server, "GET", URL_CAMPAIGNS, member.session)).json() as {
+        campaigns: { id: string; refusal: unknown }[];
+      }
+    ).campaigns.find((entry) => entry.id === campaign.id);
+    expect(listed?.refusal).toMatchObject({ reasonCode: "contact_in_text" });
+
+    // submitted again: no refusal is told while it is examined; the latest decision is the one served
+    expect((await submit(server, member, campaign.id)).json()).toMatchObject({
+      status: "pending_review",
+      refusal: null,
+    });
+    const message = "Please remove the phone number from the summary.";
+    await refuse(campaign.id, "other", message);
+    expect(await read(server, member, campaign.id)).toMatchObject({
+      status: "rejected",
+      refusal: {
+        reasonCode: "other",
+        followUp: "contact",
+        memberMessage: message,
+      },
+    });
+  });
+
+  it("serves a step for every reason of the base, the one the base holds (RG90)", async () => {
+    const rows = await fx.migration<{ code: string; next_step: string }[]>`
+      select code, next_step from campaigns.rejection_reasons order by position`;
+    expect(
+      Object.fromEntries(rows.map((row) => [row.code, row.next_step])),
+    ).toEqual(CAMPAIGN_REJECTION_FOLLOW_UP_OF);
   });
 });
 

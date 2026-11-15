@@ -32,6 +32,7 @@ import {
 import { exclusivityBandSchema } from "./brand-profile.ts";
 import {
   campaignDeliverableSchema,
+  campaignRejectionReasonCodeSchema,
   campaignStatusSchema,
   contentReviewDelaySchema,
   remunerationKindSchema,
@@ -58,29 +59,15 @@ const internalCommentSchema = z
   .min(1)
   .max(INTERNAL_COMMENT_MAX_LENGTH);
 
-/** The refusal reasons of a campaign (09 RG90, `campaigns.rejection_reasons`, 0303): the closed list. */
-export const CAMPAIGN_REJECTION_REASON_CODES = [
-  "contact_in_text",
-  "amount_in_text",
-  "link_in_text",
-  "brief_insufficient",
-  "deliverables_inconsistent",
-  "budget_inconsistent",
-  "calendar_invalid",
-  "creator_personal_criterion",
-  "minor_audience",
-  "concealed_advertising",
-  "duplicate",
-  "sensitive_authorizations_missing",
-  "illicit_content",
-  "other",
-] as const;
-export const campaignRejectionReasonCodeSchema = z.enum(
+/**
+ * The refusal reasons of a campaign (09 RG90, `campaigns.rejection_reasons`, 0303): the closed list, written
+ * once in ./campaign.ts, which the brand's own refusal also reads (L3C-10), and re-exported here.
+ */
+export {
   CAMPAIGN_REJECTION_REASON_CODES,
-);
-export type CampaignRejectionReasonCode = z.infer<
-  typeof campaignRejectionReasonCodeSchema
->;
+  campaignRejectionReasonCodeSchema,
+  type CampaignRejectionReasonCode,
+} from "./campaign.ts";
 
 /** The message the brand will receive for `illicit_content` and `other` (09 RG90): 20 to 500 characters. */
 export const CAMPAIGN_MEMBER_MESSAGE_MIN_LENGTH = 20;

@@ -28,6 +28,71 @@ export const CAMPAIGN_STATUSES = [
 export const campaignStatusSchema = z.enum(CAMPAIGN_STATUSES);
 export type CampaignStatus = z.infer<typeof campaignStatusSchema>;
 
+/**
+ * The refusal reasons of a campaign (09 RG90, `campaigns.rejection_reasons`, 0303): the closed list. The
+ * backoffice (campaign-review.ts) re-exports it; the brand reads its own refusal by it (L3C-10).
+ */
+export const CAMPAIGN_REJECTION_REASON_CODES = [
+  "contact_in_text",
+  "amount_in_text",
+  "link_in_text",
+  "brief_insufficient",
+  "deliverables_inconsistent",
+  "budget_inconsistent",
+  "calendar_invalid",
+  "creator_personal_criterion",
+  "minor_audience",
+  "concealed_advertising",
+  "duplicate",
+  "sensitive_authorizations_missing",
+  "illicit_content",
+  "other",
+] as const;
+export const campaignRejectionReasonCodeSchema = z.enum(
+  CAMPAIGN_REJECTION_REASON_CODES,
+);
+export type CampaignRejectionReasonCode = z.infer<
+  typeof campaignRejectionReasonCodeSchema
+>;
+
+/**
+ * The step of each reason, as `campaigns.rejection_reasons.next_step` holds it (0303): the brand reads no
+ * catalogue, so the API serves the step from this table, held equal to the base by
+ * db-tests/campaigns-route.test.ts.
+ */
+export const CAMPAIGN_REJECTION_FOLLOW_UP_OF: Readonly<
+  Record<CampaignRejectionReasonCode, "fix" | "contact">
+> = {
+  contact_in_text: "fix",
+  amount_in_text: "fix",
+  link_in_text: "fix",
+  brief_insufficient: "fix",
+  deliverables_inconsistent: "fix",
+  budget_inconsistent: "fix",
+  calendar_invalid: "fix",
+  creator_personal_criterion: "fix",
+  minor_audience: "fix",
+  concealed_advertising: "fix",
+  duplicate: "fix",
+  sensitive_authorizations_missing: "contact",
+  illicit_content: "contact",
+  other: "contact",
+};
+
+/**
+ * The last refusal of a campaign by INFLUX, told to the brand while the campaign is `rejected` (09 RG10,
+ * RG90, CA59, L3BU-5): the typed reason, the step that follows and, for `illicit_content` and `other` alone,
+ * the message of the agent (20 to 500 characters). Never the agent, the opinion nor the internal comment.
+ * The translations of the reasons are the front's (`campaign.rejection.<code>`).
+ */
+export const campaignRefusalSchema = z.strictObject({
+  reasonCode: campaignRejectionReasonCodeSchema,
+  followUp: z.enum(["fix", "contact"]),
+  memberMessage: z.string().min(20).max(500).nullable(),
+  decidedAt: z.iso.datetime(),
+});
+export type CampaignRefusal = z.infer<typeof campaignRefusalSchema>;
+
 /** The nature of the consideration (09 RG62, 0303 `campaigns.remuneration_kind`). */
 export const REMUNERATION_KINDS = [
   "cash",
@@ -382,6 +447,8 @@ export const campaignResponseSchema = z.strictObject({
   endsOn: z.string().nullable(),
   maxApplications: z.number().int().nullable(),
   requestedItems: z.array(z.string()),
+  /** Why INFLUX refused it, while it is `rejected`; null in every other state (RG10, CA59). */
+  refusal: campaignRefusalSchema.nullable(),
   /** The instant the declaration of RG85 was ticked at the last submission; null when none. */
   authorizationsDeclaredAt: z.iso.datetime().nullable(),
   /** The sector of the product asks the declaration of RG85 (09 RG84): read by join, never stored. */
@@ -403,6 +470,8 @@ export const campaignSummarySchema = z.strictObject({
   applicationsCloseOn: z.string().nullable(),
   startsOn: z.string().nullable(),
   endsOn: z.string().nullable(),
+  /** Why INFLUX refused it, while it is `rejected`; null in every other state (RG10, CA59). */
+  refusal: campaignRefusalSchema.nullable(),
 });
 export type CampaignSummary = z.infer<typeof campaignSummarySchema>;
 
@@ -421,4 +490,17 @@ export const submitCampaignResponseSchema = campaignResponseSchema.extend({
 });
 export type SubmitCampaignResponse = z.infer<
   typeof submitCampaignResponseSchema
+>;
+
+/**
+ * POST /v1/me/campaigns/:id/pause, /resume and /close (09 RG8, RG9; 0309): the campaign in its new state,
+ * `changed` false when it already was there (a second click, a second tab: nothing written). No body.
+ */
+export const campaignPassageBodySchema = z.strictObject({}).optional();
+export type CampaignPassageBody = z.infer<typeof campaignPassageBodySchema>;
+export const campaignPassageResponseSchema = campaignResponseSchema.extend({
+  changed: z.boolean(),
+});
+export type CampaignPassageResponse = z.infer<
+  typeof campaignPassageResponseSchema
 >;

@@ -78,7 +78,6 @@ import {
   isEditable,
   isKeyOfStep,
   missingOfStep,
-  STATUS_TEXT_KEYS,
   STATUS_TONES,
   TOTAL_STEPS,
   type CampaignDraft,
@@ -86,7 +85,9 @@ import {
   type FieldError,
 } from "./campaign-view";
 import type { CampaignStep } from "./campaign-domain";
+import { CampaignLifecyclePanel } from "./CampaignLifecyclePanel";
 import { CampaignOfferFields } from "./CampaignOfferFields";
+import { CampaignStatusText } from "./CampaignStatusText";
 import { CampaignWorkFields } from "./CampaignWorkFields";
 import {
   useCampaign,
@@ -256,6 +257,11 @@ function LoadedCampaign({
   return (
     <>
       <StatusLine campaign={campaign} />
+      <CampaignLifecyclePanel
+        campaign={campaign}
+        onChanged={state.adoptCampaign}
+        onStale={state.refreshCampaign}
+      />
       {state.submitState === "done" ? <Submitted /> : null}
       {state.save.kind === "retrying" ? (
         <Notice tone="warning">
@@ -405,9 +411,7 @@ function StatusLine({ campaign }: { campaign: CampaignResponse }) {
       <StatusBadge tone={STATUS_TONES[campaign.status]}>
         {t(`status.label.${campaign.status}`)}
       </StatusBadge>
-      <p className="text-sm text-text-secondary">
-        {t(`status.${STATUS_TEXT_KEYS[campaign.status]}`)}
-      </p>
+      <CampaignStatusText status={campaign.status} refusal={campaign.refusal} />
     </div>
   );
 }

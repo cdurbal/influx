@@ -14,6 +14,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/backoffice-queue.spec.ts": 8,
   "e2e/backoffice.spec.ts": 55,
   "e2e/brand-campaign.spec.ts": 10,
+  "e2e/brand-campaign-states.spec.ts": 3,
   "e2e/brand-profile.spec.ts": 8,
   "e2e/campaign-record.spec.ts": 2,
   "e2e/campaign-review.spec.ts": 4,

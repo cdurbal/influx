@@ -73,7 +73,53 @@
     "published": "Votre campagne est publiée : les créateurs peuvent la lire.",
     "paused": "Campagne en pause — les candidatures sont suspendues.",
     "closed": "Cette campagne est clôturée.",
-    "rejected": "Votre campagne n'a pas été publiée. Corrigez-la, puis soumettez-la à nouveau."
+    "rejected": "Votre campagne n'a pas été publiée : {reason}",
+    "rejectedNoReason": "Votre campagne n'a pas été publiée. Corrigez-la, puis soumettez-la à nouveau."
+  },
+  "rejection": {
+    "contact_in_text": "Votre campagne contient une adresse, un numéro, un lien ou une invitation à vous contacter en dehors d'INFLUX.",
+    "amount_in_text": "Un montant figure dans votre texte. Les montants se déclarent dans le bloc budget, qui n'est jamais publié.",
+    "link_in_text": "Les liens ne sont pas acceptés dans une campagne. Votre site figure déjà sur votre profil.",
+    "brief_insufficient": "Votre brief ne permet pas à un créateur de comprendre ce que vous attendez.",
+    "deliverables_inconsistent": "Les formats demandés ne correspondent pas aux réseaux visés.",
+    "budget_inconsistent": "La tranche de budget déclarée n'est pas exploitable en l'état.",
+    "calendar_invalid": "Les dates de votre campagne ne sont plus valides.",
+    "creator_personal_criterion": "Votre campagne exprime un critère portant sur la personne du créateur (âge, genre, apparence). Le ciblage porte sur l'audience, jamais sur le créateur.",
+    "minor_audience": "Une campagne ne peut pas viser une audience de moins de 18 ans.",
+    "concealed_advertising": "Une campagne ne peut pas demander de présenter un contenu rémunéré comme un avis spontané.",
+    "duplicate": "Une campagne identique est déjà publiée.",
+    "sensitive_authorizations_missing": "Nous n'avons pas pu vérifier vos autorisations pour ce type de produit.",
+    "illicit_content": "Votre campagne ne peut pas être publiée : elle est contraire à la loi ou aux conditions d'utilisation d'INFLUX. Le message de l'équipe INFLUX :",
+    "other": "Votre campagne n'a pas pu être publiée en l'état. Le message de l'équipe INFLUX :"
+  },
+  "refusal": {
+    "fix": "Corrigez votre campagne depuis votre espace INFLUX, puis soumettez-la de nouveau.",
+    "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
+  },
+  "lifecycle": {
+    "title": "Vie de la campagne",
+    "published": "Votre campagne est visible des créateurs. En pause, elle n'accepte plus de candidature ; les échanges déjà ouverts ne sont pas touchés.",
+    "paused": "Votre campagne est en pause : elle n'accepte plus de candidature. Reprenez-la quand vous voulez, sans nouvelle validation.",
+    "closed": "Cette campagne est terminée : elle ne se rouvre pas.",
+    "pause": "Mettre en pause",
+    "pausing": "Mise en pause…",
+    "resume": "Reprendre",
+    "resuming": "Reprise…",
+    "close": "Clôturer",
+    "closing": "Clôture…",
+    "closeWarning": "Clôturer est définitif : la campagne ne pourra plus être rouverte, vous pourrez seulement en créer une nouvelle. Aucune donnée n'est effacée et les échanges déjà ouverts ne sont pas touchés.",
+    "closeConfirm": "Oui, clôturer définitivement",
+    "cancel": "Annuler",
+    "done": {
+      "pause": "Campagne mise en pause : elle n'accepte plus de candidature.",
+      "resume": "Campagne reprise : elle est de nouveau publiée.",
+      "close": "Campagne clôturée, définitivement."
+    },
+    "failed": {
+      "unavailable": "Cette action n'a pas pu être faite. Réessayez dans un instant.",
+      "notAllowed": "Cette action n'est plus possible : la campagne a changé d'état. Son état à jour est affiché.",
+      "pausedByInflux": "Cette campagne a été mise en pause par l'équipe INFLUX : elle seule peut la reprendre. Contactez-la depuis l'aide de l'écran de connexion."
+    }
   },
   "form": {
     "loading": "Chargement de votre campagne…",

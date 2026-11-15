@@ -104,6 +104,10 @@ export type CampaignState = {
   /** "Réessayer maintenant" after a failed save: the entry kept in memory goes at once. */
   retryNow: () => void;
   reload: () => void;
+  /** The campaign a passage (pause, resume, close) answered: the new state of the screen, the draft kept. */
+  adoptCampaign: (campaign: CampaignResponse) => void;
+  /** Reads the campaign again, as after a refusal that says its state changed. */
+  refreshCampaign: () => Promise<void>;
 };
 
 export function useCampaign(
@@ -503,5 +507,7 @@ export function useCampaign(
     change,
     retryNow: () => void runSave(),
     reload: () => void load(),
+    adoptCampaign: adopt,
+    refreshCampaign,
   };
 }

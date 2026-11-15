@@ -8,6 +8,7 @@
 import type { CampaignResponse } from "@influx/contracts/campaign";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { publishAsInflux } from "./campaign-publication-kit.ts";
 import {
   campaignCalendar,
   openCampaignRouteFixtures,
@@ -340,5 +341,140 @@ describe("L3B-T8: T14.3 and T14.4 one answer for what does not exist and what is
         code: "validation_failed",
       });
     }
+  });
+});
+
+const PASSAGES = ["pause", "resume", "close"] as const;
+
+/** The owner's campaign in the state INFLUX gives a live one, and what only its owner may change of it. */
+async function liveCampaignOfOwner(): Promise<string> {
+  const created = await fx.call(server, "POST", URL_CAMPAIGNS, owner.session, {
+    ...COMPLETE,
+    title: `${MARKER_TITLE} live`,
+  });
+  expect(created.statusCode, created.body).toBe(200);
+  const id = (created.json() as CampaignResponse).id;
+  await publishAsInflux(fx.migration, id);
+  return id;
+}
+
+async function liveStateOf(id: string) {
+  const [row] = await fx.migration<
+    {
+      status: string;
+      paused_at: Date | null;
+      closed_at: Date | null;
+      lines: number;
+    }[]
+  >`
+    select c.status::text as status, c.paused_at, c.closed_at,
+           (select count(*)::int from audit.audit_events a
+             where a.subject_id = c.id
+               and a.event_type in ('campaign.paused', 'campaign.resumed', 'campaign.closed')) as lines
+      from campaigns.campaigns c where c.id = ${id}`;
+  return row;
+}
+
+describe("L3C-T8: T14.1 and T14.2 the passages pause, resume and close are the brand's own", () => {
+  it("T14.2 passes nothing of another brand's live campaign, with the same answer as to an unknown one, and writes no state nor line", async () => {
+    const id = await liveCampaignOfOwner();
+    const before = await liveStateOf(id);
+    for (const passage of PASSAGES) {
+      const unknown = await fx.call(
+        server,
+        "POST",
+        `${URL_CAMPAIGNS}/${randomUUID()}/${passage}`,
+        stranger.session,
+        {},
+      );
+      const foreign = await fx.call(
+        server,
+        "POST",
+        `${URL_CAMPAIGNS}/${id}/${passage}`,
+        stranger.session,
+        {},
+      );
+      expect(fx.errorBody(foreign), passage).toEqual(fx.errorBody(unknown));
+      expect(fx.errorBody(foreign), passage).toEqual({
+        status: 404,
+        code: "not_found",
+        message: "Not found",
+      });
+      expect(foreign.body).not.toContain(MARKER_TITLE);
+    }
+    expect(await liveStateOf(id)).toEqual(before);
+    expect(before).toMatchObject({ status: "published", lines: 0 });
+  });
+
+  it("T14.3 T14.4 answers a creator, without a session or with unaccepted terms, on the three passages as on all the others: 404, 401, 403, before any campaign is looked at", async () => {
+    const id = await liveCampaignOfOwner();
+    const before = await liveStateOf(id);
+    const expected = fx.errorBody(
+      await fx.call(server, "GET", UNKNOWN_ADDRESS, creator.session),
+    );
+    const unaccepted = await fx.newMember("advertiser", { acceptTerms: false });
+    for (const passage of PASSAGES) {
+      for (const target of [id, randomUUID()]) {
+        const url = `${URL_CAMPAIGNS}/${target}/${passage}`;
+        const asCreator = await fx.call(
+          server,
+          "POST",
+          url,
+          creator.session,
+          {},
+        );
+        expect(fx.errorBody(asCreator), url).toEqual(expected);
+        expect(asCreator.body).not.toContain(MARKER_TITLE);
+        expect(
+          fx.errorBody(await fx.call(server, "POST", url, null, {})),
+          url,
+        ).toMatchObject({ status: 401, code: "unauthenticated" });
+        expect(
+          fx.errorBody(
+            await fx.call(server, "POST", url, unaccepted.session, {}),
+          ),
+          url,
+        ).toMatchObject({ status: 403, code: "terms_acceptance_required" });
+      }
+    }
+    expect(await liveStateOf(id)).toEqual(before);
+  });
+
+  it("answers a malformed identifier by the shape of the path (400) and takes no body: a campaign is the one of the path, an account never one of the request", async () => {
+    const id = await liveCampaignOfOwner();
+    for (const passage of PASSAGES) {
+      for (const session of [
+        owner.session,
+        stranger.session,
+        creator.session,
+      ]) {
+        const response = await fx.call(
+          server,
+          "POST",
+          `${URL_CAMPAIGNS}/not-an-identifier/${passage}`,
+          session,
+          {},
+        );
+        expect(fx.errorBody(response), passage).toMatchObject({
+          status: 400,
+          code: "validation_failed",
+        });
+      }
+      const withOwner = await fx.call(
+        server,
+        "POST",
+        `${URL_CAMPAIGNS}/${id}/${passage}`,
+        stranger.session,
+        { advertiserAccountId: owner.accountId },
+      );
+      expect(fx.errorBody(withOwner), passage).toMatchObject({
+        status: 400,
+        code: "validation_failed",
+      });
+    }
+    expect(await liveStateOf(id)).toMatchObject({
+      status: "published",
+      lines: 0,
+    });
   });
 });

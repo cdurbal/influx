@@ -34,12 +34,8 @@ import {
   CAMPAIGN_LIST_CLASSES,
   CAMPAIGN_ROW_CLASSES,
 } from "./campaign-classes";
-import {
-  formatDate,
-  isEditable,
-  STATUS_TEXT_KEYS,
-  STATUS_TONES,
-} from "./campaign-view";
+import { formatDate, isEditable, STATUS_TONES } from "./campaign-view";
+import { CampaignStatusText } from "./CampaignStatusText";
 
 type ListState =
   | { kind: "loading" }
@@ -182,9 +178,10 @@ function CampaignRow({
           <StatusBadge tone={STATUS_TONES[campaign.status]}>
             {t(`status.label.${campaign.status}`)}
           </StatusBadge>
-          <p className="text-sm text-text-secondary">
-            {t(`status.${STATUS_TEXT_KEYS[campaign.status]}`)}
-          </p>
+          <CampaignStatusText
+            status={campaign.status}
+            refusal={campaign.refusal}
+          />
           <p className="text-sm text-text-secondary">
             {t("list.updatedOn", {
               date: formatDate(campaign.updatedAt, locale),

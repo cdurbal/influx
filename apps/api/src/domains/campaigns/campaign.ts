@@ -17,9 +17,11 @@
 // them. The one exception is the currency: changing it empties the two bands of the old grid in the
 // same write (modele §1, else the foreign key refuses).
 import {
+  CAMPAIGN_REJECTION_FOLLOW_UP_OF,
   campaignListResponseSchema,
   campaignResponseSchema,
   type CampaignListResponse,
+  type CampaignPassageResponse,
   type CampaignResponse,
   type CreateCampaignBody,
   type DeclarationLocale,
@@ -49,6 +51,7 @@ import {
   CAMPAIGN_LISTS,
   insertDraftCampaign,
   listOwnCampaigns,
+  passOwnCampaign,
   readActiveCampaignReferences,
   readOwnCampaign,
   replaceCampaignDeliverables,
@@ -58,7 +61,9 @@ import {
   type ActiveCampaignReferences,
   type CampaignColumns,
   type CampaignListName,
+  type CampaignPassage,
   type StoredCampaign,
+  type StoredRefusal,
 } from "./repository.ts";
 
 /** The states a brand may write a campaign in (modele §4: the freeze is the base's too). */
@@ -73,6 +78,16 @@ function normalizedText(value: string | null | undefined) {
   return trimmed === "" ? null : trimmed;
 }
 
+/** The refusal as the brand reads it: the reason, the step that follows (the contract's table), the message. */
+function refusalOf(refusal: StoredRefusal | null) {
+  return refusal === null
+    ? null
+    : {
+        ...refusal,
+        followUp: CAMPAIGN_REJECTION_FOLLOW_UP_OF[refusal.reasonCode],
+      };
+}
+
 /** The answer of the routes: the stored campaign, what is missing, the active codes. */
 function viewOf(
   stored: StoredCampaign,
@@ -84,6 +99,7 @@ function viewOf(
   );
   return campaignResponseSchema.parse({
     ...stored,
+    refusal: refusalOf(stored.refusal),
     missingRequired: missingCampaignFields(stored),
     references: published,
   });
@@ -93,8 +109,12 @@ function viewOf(
 export async function readCampaignList(
   tx: Transaction,
 ): Promise<CampaignListResponse> {
+  const campaigns = await listOwnCampaigns(tx);
   return campaignListResponseSchema.parse({
-    campaigns: await listOwnCampaigns(tx),
+    campaigns: campaigns.map((campaign) => ({
+      ...campaign,
+      refusal: refusalOf(campaign.refusal),
+    })),
   });
 }
 
@@ -596,6 +616,55 @@ export async function submitCampaign(
         }
         throw error;
       }
+      default:
+        throw error;
+    }
+  }
+  const view = await answerOf(
+    tx,
+    campaignId,
+    await readActiveCampaignReferences(tx),
+  );
+  return { ...view, changed: outcome.changed };
+}
+
+/** The code of the refusal of each passage, the message of its door (0309), and the issue the brand reads. */
+const PASSAGE_REFUSALS: Readonly<Record<CampaignPassage, string>> = {
+  pause: "campaign_not_pausable",
+  resume: "campaign_not_resumable",
+  close: "campaign_not_closable",
+};
+
+/**
+ * POST /v1/me/campaigns/:id/pause, /resume and /close (09 RG8, RG9; 0309): published to paused, paused to
+ * published (a pause the brand made itself: a pause of INFLUX stays INFLUX's, `paused_by_influx`), published or
+ * paused to closed, for good. The database decides and journals; asked again the passage writes nothing
+ * (`changed` false). Refusals: a campaign that is nobody's or another brand's is no such route (42501, T14); a
+ * state that does not allow it is a conflict naming the rule, never the state of a campaign that is not the
+ * brand's. The answer is the campaign in its new state.
+ */
+export async function passCampaign(
+  tx: Transaction,
+  campaignId: string,
+  passage: CampaignPassage,
+): Promise<CampaignPassageResponse> {
+  let outcome;
+  try {
+    outcome = await passOwnCampaign(tx, passage, campaignId);
+  } catch (error) {
+    switch (sqlStateOf(error)) {
+      case "42501":
+        throw new ApiError("not_found");
+      case "55000":
+        throw new ApiError("conflict", [
+          {
+            path: "status",
+            issue:
+              passage === "resume" && sqlDetailOf(error) === "paused_by_influx"
+                ? "paused_by_influx"
+                : PASSAGE_REFUSALS[passage],
+          },
+        ]);
       default:
         throw error;
     }

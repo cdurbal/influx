@@ -13,7 +13,7 @@
 | 07 | 07.md | commit | sonnet | high | dev-react-node | fait | /v1/bo/campaigns : avis servi au seul titulaire du verrou ; budget par clé de libellé seule ; compte détenu 403 journalisé, inconnu ou propre 404 |
 | 08 | 08.md | commit | sonnet | high | dev-react-node | fait | écran file 7 + fiche : phase single/first/second, responsable exigé, avis 20-1000 ; budget par libellé seul ; marque suspendue lue au refus 409 ; e2e 7,6 s |
 | 09 | 09.md | commit | sonnet | high | dev-react-node | fait | fiche, correction d’un champ hors montants, pause/reprise/clôture motivées, brouillon pour marque ; e2e 4,8 s ; EC-1 : pas de liste des campagnes par marque |
-| 10 | 10.md | commit | sonnet | high | dev-react-node | à faire | |
+| 10 | 10.md | commit | sonnet | high | dev-react-node | fait | routes pause/reprise/clôture (404 identique, 409 règle nommée) ; motif de refus servi (followUp) ; pause d'INFLUX non reprenable ; e2e 5,0 s |
 | U | ux.md | ux | sonnet | high | expert-ux | à faire | |
 | F | recette.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |

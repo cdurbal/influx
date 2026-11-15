@@ -292,3 +292,8 @@ export async function campaignActsOf(campaignId: string): Promise<{
     };
   });
 }
+
+/** A complete campaign (not sensitive), as the form would have saved it: what every state of L3C-10 starts from. */
+export function completeCampaignBody(title: string): Record<string, unknown> {
+  return wholeCampaign(title, { sensitive: false, brief: BRIEF });
+}

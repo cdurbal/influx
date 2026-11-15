@@ -5,9 +5,11 @@
 // identifier of a path is the campaign's own, opaque.
 import {
   campaignListResponseSchema,
+  campaignPassageResponseSchema,
   campaignResponseSchema,
   submitCampaignResponseSchema,
   type CampaignListResponse,
+  type CampaignPassageResponse,
   type CampaignResponse,
   type DeclarationLocale,
   type SubmitCampaignResponse,
@@ -17,6 +19,7 @@ import {
   type CampaignCreatorViewResponse,
 } from "@influx/contracts/campaign-creator-view";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
+import type { LifecycleAction } from "./campaign-view";
 
 const CAMPAIGNS_PATH = "/v1/me/campaigns";
 
@@ -75,5 +78,22 @@ export function readCampaignCreatorView(
     "GET",
     `${CAMPAIGNS_PATH}/${id}/creator-view`,
     campaignCreatorViewResponseSchema,
+  );
+}
+
+/**
+ * The passages of a brand on its own campaign (09 RG8, RG9; 0309): the campaign in its new state, `changed` false
+ * when it already was there. Pausing and closing are asked of a published campaign, resuming of one the brand paused
+ * itself; closing is final. The API decides, the screen shows the answer.
+ */
+export function passCampaign(
+  id: string,
+  passage: LifecycleAction,
+): Promise<RelayResult<CampaignPassageResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGNS_PATH}/${id}/${passage}`,
+    campaignPassageResponseSchema,
+    {},
   );
 }

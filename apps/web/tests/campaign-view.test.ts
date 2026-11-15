@@ -5,6 +5,7 @@
 // browser.
 import {
   CAMPAIGN_STATUSES,
+  CAMPAIGN_REJECTION_REASON_CODES,
   type CampaignResponse,
 } from "@influx/contracts/campaign";
 import { describe, expect, it } from "vitest";
@@ -30,10 +31,12 @@ import {
   isGiftOnly,
   isKeyOfStep,
   isRequired,
+  lifecycleActionsOf,
   missingErrors,
   missingGroups,
   missingKeyOf,
   missingOfStep,
+  passageFailureKeyOf,
   planPatch,
   RELATED_ERROR_KEYS,
   sameValue,
@@ -93,6 +96,7 @@ const CAMPAIGN: CampaignResponse = {
   requestedItems: [],
   authorizationsDeclaredAt: null,
   sectorIsSensitive: false,
+  refusal: null,
   missingRequired: [],
   references: {
     campaignTypes: [],
@@ -861,6 +865,72 @@ describe("states: written, never by a color alone (CA74)", () => {
         ).toBeGreaterThan(0);
       }
     }
+  });
+});
+
+describe("the passages of a published campaign and the refusal it reads (RG8, RG9, RG10, CA59, L3C-10)", () => {
+  it("offers a published campaign a pause and a closing, a paused one a resumption and a closing, nothing else and nothing after a closing (RG8, RG9)", () => {
+    expect(
+      Object.fromEntries(
+        CAMPAIGN_STATUSES.map((status) => [status, lifecycleActionsOf(status)]),
+      ),
+    ).toEqual({
+      draft: [],
+      pending_review: [],
+      published: ["pause", "close"],
+      paused: ["resume", "close"],
+      closed: [],
+      rejected: [],
+    });
+  });
+
+  it("tells a refused passage by its rule: a pause of INFLUX is told as such, any other conflict as a state that changed, the rest as a service failure", () => {
+    expect(
+      passageFailureKeyOf({ code: "conflict", issues: ["paused_by_influx"] }),
+    ).toBe("pausedByInflux");
+    expect(
+      passageFailureKeyOf({
+        code: "conflict",
+        issues: ["campaign_not_pausable"],
+      }),
+    ).toBe("notAllowed");
+    expect(passageFailureKeyOf({ code: "conflict" })).toBe("notAllowed");
+    for (const failure of [
+      {},
+      { code: "not_found" },
+      { code: "internal_error" },
+    ]) {
+      expect(passageFailureKeyOf(failure)).toBe("unavailable");
+    }
+  });
+
+  it("holds the words of the lifecycle and of every refusal reason, in both languages, and the reason carries {reason} (RG90, RG109)", () => {
+    for (const copy of [frCampaign, enCampaign]) {
+      for (const code of CAMPAIGN_REJECTION_REASON_CODES) {
+        expect(copy.rejection[code].length, code).toBeGreaterThan(0);
+      }
+      expect(copy.status.rejected).toContain("{reason}");
+      expect(copy.status.rejectedNoReason).not.toContain("{reason}");
+      for (const key of ["fix", "contact"] as const) {
+        expect(copy.refusal[key].length, key).toBeGreaterThan(0);
+      }
+      for (const key of ["pause", "resume", "close"] as const) {
+        expect(copy.lifecycle[key].length, key).toBeGreaterThan(0);
+        expect(copy.lifecycle.done[key].length, key).toBeGreaterThan(0);
+      }
+      // closing says it is final BEFORE it is done (17 §4.9)
+      expect(copy.lifecycle.closeWarning.length).toBeGreaterThan(40);
+      for (const key of [
+        "unavailable",
+        "notAllowed",
+        "pausedByInflux",
+      ] as const) {
+        expect(copy.lifecycle.failed[key].length, key).toBeGreaterThan(0);
+      }
+    }
+    expect(Object.keys(frCampaign.rejection)).toEqual(
+      Object.keys(enCampaign.rejection),
+    );
   });
 });
 

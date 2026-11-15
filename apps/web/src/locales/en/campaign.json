@@ -73,7 +73,53 @@
     "published": "Your campaign is published: creators can read it.",
     "paused": "Campaign paused — applications are on hold.",
     "closed": "This campaign is closed.",
-    "rejected": "Your campaign was not published. Correct it, then submit it again."
+    "rejected": "Your campaign was not published: {reason}",
+    "rejectedNoReason": "Your campaign was not published. Correct it, then submit it again."
+  },
+  "rejection": {
+    "contact_in_text": "Your campaign contains an address, a number, a link or an invitation to contact you outside INFLUX.",
+    "amount_in_text": "An amount appears in your text. Amounts are declared in the budget block, which is never published.",
+    "link_in_text": "Links are not accepted in a campaign. Your website is already on your profile.",
+    "brief_insufficient": "Your brief does not let a creator understand what you expect.",
+    "deliverables_inconsistent": "The requested formats do not match the targeted networks.",
+    "budget_inconsistent": "The declared budget band cannot be used as it stands.",
+    "calendar_invalid": "The dates of your campaign are no longer valid.",
+    "creator_personal_criterion": "Your campaign sets a criterion about the creator as a person (age, gender, appearance). Targeting is about the audience, never about the creator.",
+    "minor_audience": "A campaign cannot target an audience under 18.",
+    "concealed_advertising": "A campaign cannot ask for paid content to be presented as a spontaneous opinion.",
+    "duplicate": "An identical campaign is already published.",
+    "sensitive_authorizations_missing": "We could not verify your authorisations for this type of product.",
+    "illicit_content": "Your campaign cannot be published: it is contrary to the law or to the INFLUX terms of use. The message from the INFLUX team:",
+    "other": "Your campaign could not be published as it stands. The message from the INFLUX team:"
+  },
+  "refusal": {
+    "fix": "Correct your campaign from your INFLUX space, then submit it again.",
+    "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+  },
+  "lifecycle": {
+    "title": "Campaign life",
+    "published": "Your campaign is visible to creators. Paused, it no longer accepts applications; conversations already open are not affected.",
+    "paused": "Your campaign is paused: it no longer accepts applications. Resume it whenever you like, with no new review.",
+    "closed": "This campaign is over: it cannot be reopened.",
+    "pause": "Pause campaign",
+    "pausing": "Pausing…",
+    "resume": "Resume campaign",
+    "resuming": "Resuming…",
+    "close": "Close campaign",
+    "closing": "Closing…",
+    "closeWarning": "Closing is final: the campaign can never be reopened, you can only create a new one. Nothing is erased and conversations already open are not affected.",
+    "closeConfirm": "Yes, close it for good",
+    "cancel": "Cancel",
+    "done": {
+      "pause": "Campaign paused: it no longer accepts applications.",
+      "resume": "Campaign resumed: it is published again.",
+      "close": "Campaign closed, for good."
+    },
+    "failed": {
+      "unavailable": "This action could not be done. Try again in a moment.",
+      "notAllowed": "This action is no longer possible: the campaign changed state. Its current state is shown.",
+      "pausedByInflux": "This campaign was paused by the INFLUX team: only it can resume it. Contact it from the help on the sign-in screen."
+    }
   },
   "form": {
     "loading": "Loading your campaign…",

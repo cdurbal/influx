@@ -9,6 +9,9 @@
 // - PATCH /v1/me/campaigns/:id         autosave of what changed (partial, lists replaced whole)
 // - POST  /v1/me/campaigns/:id/submit  draft or rejected to pending_review (09 RG4, RG5, RG85)
 // - GET   /v1/me/campaigns/:id/creator-view  what a creator sees of it (RG102, CA68; commit 08)
+// - POST  /v1/me/campaigns/:id/pause   published to paused (09 RG8, 0309; L3C commit 10)
+// - POST  /v1/me/campaigns/:id/resume  paused to published, a pause of the brand's own only (RG8)
+// - POST  /v1/me/campaigns/:id/close   published or paused to closed, irreversible (RG9)
 // Any role but advertiser (a creator included), a campaign of another brand and an identifier that is
 // nobody's get the answer of a route that does not exist: the same code and the same body as an
 // unknown address (T14.1 to T14.4). The terms gate applies to an advertiser only, for that reason
@@ -16,6 +19,8 @@
 import {
   campaignListResponseSchema,
   campaignParamsSchema,
+  campaignPassageBodySchema,
+  campaignPassageResponseSchema,
   campaignResponseSchema,
   createCampaignBodySchema,
   submitCampaignBodySchema,
@@ -23,6 +28,7 @@ import {
   updateCampaignBodySchema,
   type CampaignListResponse,
   type CampaignParams,
+  type CampaignPassageResponse,
   type CampaignResponse,
   type CreateCampaignBody,
   type SubmitCampaignBody,
@@ -43,12 +49,14 @@ import {
 import type { IdentityApp } from "../identity/routes.ts";
 import {
   createCampaign,
+  passCampaign,
   readCampaign,
   readCampaignList,
   saveCampaign,
   submitCampaign,
 } from "./campaign.ts";
 import { readCampaignCreatorView } from "./creator-view.ts";
+import type { CampaignPassage } from "./repository.ts";
 
 export type CampaignRoutesDependencies = {
   database: ApiDatabase;
@@ -190,4 +198,28 @@ export function registerCampaignRoutes(
       });
     },
   );
+
+  // The three passages of a brand on its own campaign: one route each, the door of the base the same shape.
+  for (const passage of [
+    "pause",
+    "resume",
+    "close",
+  ] as const satisfies readonly CampaignPassage[]) {
+    app.post(
+      `${CAMPAIGN_ROUTE}/${passage}`,
+      {
+        schema: {
+          params: campaignParamsSchema,
+          body: campaignPassageBodySchema,
+          response: { 200: campaignPassageResponseSchema },
+        },
+      },
+      async (request, reply): Promise<CampaignPassageResponse> => {
+        const campaignId = campaignOf(request);
+        return asAdvertiser(request, reply, (tx) =>
+          passCampaign(tx, campaignId, passage),
+        );
+      },
+    );
+  }
 }
