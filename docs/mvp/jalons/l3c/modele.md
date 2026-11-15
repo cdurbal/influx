@@ -73,3 +73,16 @@
 - **Ligne 06 ensuite** : codes, rendu et union TS inchangés ; après le commit du fix, rejouer `tm1-brevo-connector` (cas « creation for the brand » : `succeeded`), y vérifier le journal `campaign.decision`, commiter ses seuls fichiers. 07 à 10 : sans effet.
 - **`run.md`**, entre 05 et 06 : `| X1 | fix-1.md | fix | opus | high | expert-database | à faire | |` ; prompt `fix-1.md` au gabarit de `jalon-prepare` ; commit `fix(db): 0311 journal campaign decision e-mails under their catalogue code`.
 - **Réversibilité** : forte, une migration suivante rétablit l'ancien corps.
+
+## Arbitrage A3 — lecture de la file 7
+> `architecte`, 2026-11-15. Prime sur §3 et §9 (lecture, numéros).
+
+- **Constat** (07) : la troisième clause de `campaign_review_entries_internal_select` (`0307` l. 470) vaut NULL sur une `open` sans premier avis : entrée masquée à tous (liste vide, compteurs à 0, `open` en 404). L3C-T2 lit par les fonctions ; le cas l. 837 pose l'avis avant de lire.
+- **Décision** : `0312` (I-4) recrée la politique, même nom, `for select to influx_agent, influx_admin` :
+  `using ((select influx.has_aal2()) and advertiser_account_id is distinct from (select influx.current_account_id()) and (state <> 'open' or first_reviewed_by_account_id is distinct from (select influx.current_account_id())))`.
+  `state` NOT NULL : clause jamais NULL. `open` sans avis : visible ; avec avis : masquée à son seul auteur, admin compris ; `published`, `rejected`, `withdrawn` : visibles, comme l'ouverture (`closed`). Le titulaire lit (l'avis rend le verrou, l'ouverture refuse son auteur). Sans `aal2` : rien. Compte détenu : filtre de route (EC-L3C-02-7). Postcondition par catalogue ; rollback = retour du défaut. Réversible.
+- **Autres occurrences** (`0307` à `0311`) : aucune. Politiques internes et définisseuses : `is distinct from` sur `advertiser_account_id`, ou `state`, `a.status` (NOT NULL) ; fonctions : refus sur égalité (NULL n'en déclenche pas, sens voulu).
+- **Test** : un cas neuf dans `campaigns-review-queue.test.ts` (L3C-T2, describe du premier examinateur) : soumise, lue par agent et admin `aal2`, pas en `aal1` ; prise, lue par le titulaire ; après l'avis, masquée à son seul auteur ; close, relue par lui. Plancher 29 → 30 (`case-floors.ts`, hunk seul : 07 y écrit). Suite base entière (D76).
+- **Numéros** : recherche à `0313`. À la clôture : fiche l. 11, §9, EC-L3C-1, annexe (critère `0307` à `0312`), `21` l. 133 et 241.
+- **`run.md`**, entre 06 et 07 : `| X2 | fix-2.md | fix | opus | high | expert-database | à faire | |` ; commit `fix(db): 0312 queue 7 read policy shows an open entry before its first review`.
+- **07 ensuite** : attend X2 sans toucher la migration ni contourner la politique ; ses commentaires citent `0312` ; ajoute un cas « entrée fraîche listée, comptée, ouverte » ; rejoue ses deux fichiers ; commite ses seuls hunks.
