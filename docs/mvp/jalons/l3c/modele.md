@@ -61,3 +61,15 @@
 - Export : `reviews`, `snapshots`, `interventions`, sans agent ni commentaire ; journal (L3BS-5) : sujet `campaign`, acteur « INFLUX ». Effacement : entrée `withdrawn`, textes vidés.
 - **0307** file, garde, porte ; **0308** publication ; **0309** cycle, interventions ; **0310** export, `leads.read_*`. Recherche : `0311`.
 - À relire : -4 à -6 ; export, `excluded_third_party` (`expert-conformite-rgpd`, Lot 6).
+
+## Arbitrage A2 — journal de `campaign.decision`
+> `architecte`, 2026-11-15. Prime sur §8 et §9 (journal, numéros).
+
+- **Constat** : `0111` copie `payload.email_code` (`published`…) dans `leads.transactional_sends`, dont le CHECK pointé (`0015`) refuse : e-mail parti, journal en échec, ligne reprise à 600 s, doublon évité par la seule idempotence Brevo.
+- **Décision** (option 3) : une ligne `campaign.decision` se journalise sous **`campaign.decision`**, code du catalogue (`16` RG85), égal à son `event_type` et à l'étiquette Brevo ; la variante reste dans la charge et les tables de décision. Autres lignes inchangées ; ni contrainte assouplie, ni colonne, ni code émis modifié.
+- **Motif** : L2 journalise le code du catalogue, égal au type d'événement, sans l'issue (`profile.decision`, `creator_profile.decision`, `verification.decision`). Option 1 : huit codes hors catalogue fermé, future FK `template_ref` (`0503`) cassée. Option 2 : trois fonctions poussées, la lecture `0310` (`e.state::text = v_code`) et le rendu de 06 à reprendre. Minimisation (D60) : le journal dit qu'un e-mail est parti, pas qu'une campagne est refusée ; conservation et export inchangés.
+- **Fichiers** : `supabase/migrations/0311_leads_campaign_decision_journal.sql`, redéfinition de `leads.complete_outbox_attempt` (signature, propriétaire, droits, commentaire, `search_path` identiques ; `o.event_type` lu ; nullité toujours testée sur la charge ; même code pour `email_code` et `template_ref`). Preuve dans `apps/api/db-tests/tm1-outbox-claim.test.ts` (hors arbre de 06) : ligne `succeeded`, journal `campaign.decision`, `profile.decision` inchangé ; suite base entière (D76). Aucune donnée à reprendre.
+- **Numéros** : recherche à `0312` et suivants. Écart à consigner à la clôture : fiche l. 11 (`0307` à `0311`), §9, EC-L3C-1, `21` §3, ligne `campaign.decision` de `16` (huit variantes).
+- **Ligne 06 ensuite** : codes, rendu et union TS inchangés ; après le commit du fix, rejouer `tm1-brevo-connector` (cas « creation for the brand » : `succeeded`), y vérifier le journal `campaign.decision`, commiter ses seuls fichiers. 07 à 10 : sans effet.
+- **`run.md`**, entre 05 et 06 : `| X1 | fix-1.md | fix | opus | high | expert-database | à faire | |` ; prompt `fix-1.md` au gabarit de `jalon-prepare` ; commit `fix(db): 0311 journal campaign decision e-mails under their catalogue code`.
+- **Réversibilité** : forte, une migration suivante rétablit l'ancien corps.
