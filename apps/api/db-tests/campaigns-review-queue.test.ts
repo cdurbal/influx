@@ -886,6 +886,65 @@ describe("L3C-T2 the conflict of interest, the first reviewer and the outsiders 
     );
   });
 
+  it("L3C-T2 the read policy (0312, modele A3): an open entry is read before its first review, hidden from its first reviewer only, read by him once closed", async () => {
+    const outcome = await scenario(async (tx) => {
+      await readyA(tx, { sector_code: "alcohol" });
+      const entry = await submittedA(tx, "en");
+      const seen = (who: Internal, aal: "aal1" | "aal2" = "aal2") =>
+        asInternal(
+          tx,
+          who,
+          async () =>
+            (
+              await rows<{ id: string }>(
+                tx,
+                "select id::text from campaigns.campaign_review_entries where id = $1::uuid",
+                [entry],
+              )
+            ).length,
+          aal,
+        );
+      const submitted = {
+        agent: await seen(AGENT_A),
+        admin: await seen(ADMIN_A),
+        agentAal1: await seen(AGENT_A, "aal1"),
+        adminAal1: await seen(ADMIN_A, "aal1"),
+      };
+      const { review_token: token } = await open(tx, AGENT_A, entry);
+      const claimedByHolder = await seen(AGENT_A);
+      await asInternal(tx, AGENT_A, () =>
+        rows(
+          tx,
+          "select campaigns.first_review_campaign_entry($1::uuid, $2::text, $3::text)",
+          [entry, token, OPINION],
+        ),
+      );
+      const reviewed = {
+        author: await seen(AGENT_A),
+        otherAgent: await seen(AGENT_B),
+        admin: await seen(ADMIN_A),
+      };
+      await tx`
+        update campaigns.campaign_review_entries
+           set state = 'withdrawn', closed_at = now() where id = ${entry}`;
+      return {
+        submitted,
+        claimedByHolder,
+        reviewed,
+        closedByAuthor: await seen(AGENT_A),
+      };
+    });
+    expect(outcome.submitted).toEqual({
+      agent: 1,
+      admin: 1,
+      agentAal1: 0,
+      adminAal1: 0,
+    });
+    expect(outcome.claimedByHolder).toBe(1);
+    expect(outcome.reviewed).toEqual({ author: 0, otherAgent: 1, admin: 1 });
+    expect(outcome.closedByAuthor).toBe(1);
+  });
+
   it("L3C-T2 an internal in aal1 and a brand cannot open an entry (42501)", async () => {
     const outcome = await scenario(async (tx) => {
       await readyA(tx);
