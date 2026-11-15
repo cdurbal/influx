@@ -866,6 +866,8 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
       "influx_agent",
       "influx_campaign_definer",
       "influx_campaign_review_definer",
+      // 0310 (L3C commit 05): the worker's reads (codes, dates, counters, decision facts)
+      "influx_leads_definer",
       // 0309 (L3C commit 04): the automatic closure (id, brand, end and state of a campaign)
       "influx_maintenance_definer",
       "influx_privacy_definer",

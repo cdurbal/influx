@@ -1694,6 +1694,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "leads.read_brand_profile_attributes(bigint,text)",
       // 0236 (L2F commit 12): the facts of an e-mail of the life of the badge
       "leads.read_brevo_badge_email(bigint,text)",
+      // 0310 (L3C commit 05): the facts of a campaign decision e-mail
+      "leads.read_brevo_campaign_decision(bigint,text)",
       // 0245 (L2G commit 05): the decision of a creator profile e-mail
       "leads.read_brevo_creator_profile_decision(bigint,text)",
       // 0137 (J8 commit 8): Brevo operation 2, the subject of an account.deleted line
@@ -1705,6 +1707,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "leads.read_brevo_subject(bigint,text)",
       // 0227 (L2E commit 16): the facts of a verification e-mail, the badge level of a contact
       "leads.read_brevo_verification_email(bigint,text)",
+      // 0310 (L3C commit 05): the campaign attributes of a Brevo or Apollo contact (RG104, RG105)
+      "leads.read_campaign_attributes(bigint,text)",
       // 0245 (L2G commit 05): the creator attributes of a Brevo contact (RG107)
       "leads.read_creator_profile_attributes(bigint,text)",
       "leads.read_verified_badge(bigint,text)",

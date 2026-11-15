@@ -15,6 +15,8 @@
 //   T3), its turn of the worker (T4: the open access withdrawn, privacy.erasure_completed queued,
 //   its address read by privacy.read_erasure_notification_subject()), the closure on its messageId.
 // - L3B-T7 (0306): the campaigns in the export and the erasure (l3b/modele.md §7).
+// - L3C-T5 (0310): the entries of queue 7, the snapshots and the interventions of an agent in the
+//   export and the erasure; the decisions of INFLUX on the campaigns in the activity log (L3BS-5).
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, which writes the fixtures
 // and acts as apps/api and the worker do (support.ts: actAsInternal, actAsMember, actAs).
@@ -37,6 +39,7 @@ import {
   testDataSet,
 } from "./support.ts";
 import { campaignCalendar } from "./campaign-dates-kit.ts";
+import { publishAsInflux } from "./campaign-publication-kit.ts";
 
 /** The four dates of a valid campaign, from today (L3BT-9). */
 const CALENDAR = campaignCalendar();
@@ -4384,6 +4387,14 @@ describe("L3B-T7 the campaigns of 0303 to 0305 in the export and the erasure (03
         sha256: CAMPAIGN_DECLARATION_HEX,
       },
       submitted_at: "2026-01-03T10:00:00.000Z",
+      // 0310 (EC-L3C-05-1): the cycle and the data of L3C, empty before any decision
+      first_published_at: null,
+      paused_at: null,
+      pause_origin: null,
+      closed_at: null,
+      reviews: [],
+      snapshots: [],
+      interventions: [],
       created_at: "2026-01-02T09:00:00.000Z",
       updated_at: expect.stringMatching(/Z$/),
     });
@@ -4606,6 +4617,491 @@ describe("L3B-T7 the campaigns of 0303 to 0305 in the export and the erasure (03
       erased: false,
       key_messages: ["t8-active message one", "t8-active message two"],
     });
+  });
+});
+
+/** The texts of INFLUX on a campaign, never exported, emptied by the erasure (0310). */
+const L3C_COMMENT = "t8-l3c internal comment of the agent";
+const L3C_OPINION = "t8-l3c reasoned opinion of the first reviewer";
+const L3C_MESSAGE = "t8-l3c message to the brand about its refusal";
+
+type CampaignDecisions = {
+  draft: string;
+  submitted: string;
+  /** The intervention of the agent's pause (submitted) and of its correction (draft). */
+  paused: string;
+  corrected: string;
+};
+
+/**
+ * The life of the two campaigns of giveCampaigns() at L3C (0307 to 0309): the submitted one refused
+ * once (first review by agent A, decision by agent B, reason other, message, comment), then
+ * published (the fixture of campaign-publication-kit, its snapshot being the creator view), then
+ * paused by agent A with authority (pause_campaign: the intervention, campaign.paused); the draft's
+ * title corrected by agent A (correct_campaign_field), then given an open entry already first
+ * reviewed by agent A; a campaign.first_reviewed line (excluded_third_party) on the first.
+ */
+async function giveCampaignDecisions(
+  tx: Tx,
+  account: string,
+  label: string,
+): Promise<CampaignDecisions> {
+  const ids = await giveCampaigns(tx, account, label);
+  const agentB = accountIdOf("agent", "b");
+  await tx`
+    insert into campaigns.campaign_review_entries
+      (campaign_id, advertiser_account_id, state, first_reviewed_by_account_id, first_reviewed_at,
+       first_review_opinion, decided_by_account_id, decided_at, rejection_reason_code,
+       member_message, internal_comment, closed_at)
+    values (${ids.submitted}, ${account}, 'rejected', ${agentA}, now(), ${L3C_OPINION}, ${agentB},
+            now(), 'other', ${L3C_MESSAGE}, ${L3C_COMMENT}, now())`;
+  await publishAsInflux(tx, ids.submitted);
+  await tx`
+    update campaigns.campaign_published_snapshots s
+       set payload = campaigns.campaign_creator_view(s.campaign_id),
+           content_hash = sha256(convert_to(campaigns.campaign_creator_view(s.campaign_id)::text,
+                                            'UTF8'))
+     where s.campaign_id = ${ids.submitted}`;
+  const paused = rowsOf(
+    await asAgent(tx, () =>
+      attempt(
+        tx,
+        "select intervention_id::text from campaigns.pause_campaign($1::uuid, $2::text, $3::text)",
+        [ids.submitted, "non_compliant_content", L3C_COMMENT],
+      ),
+    ),
+  )[0]?.intervention_id;
+  const corrected = rowsOf(
+    await asAgent(tx, () =>
+      attempt(
+        tx,
+        "select intervention_id::text from campaigns.correct_campaign_field(" +
+          "$1::uuid, 'title', $2::text::jsonb, 'entry_error', $3::text)",
+        [ids.draft, JSON.stringify(`${label} corrected title`), L3C_COMMENT],
+      ),
+    ),
+  )[0]?.intervention_id;
+  // an open entry already first reviewed (the draft lacks the fields of a submission: its state
+  // stays, no rule of the base ties an entry to it)
+  await tx`
+    insert into campaigns.campaign_review_entries
+      (campaign_id, advertiser_account_id, first_reviewed_by_account_id, first_reviewed_at,
+       first_review_opinion)
+    values (${ids.draft}, ${account}, ${agentA}, now(), ${L3C_OPINION})`;
+  await tx`select audit.append('campaign.first_reviewed', 'campaign', ${ids.submitted}::uuid,
+                               jsonb_build_object('entry_id', gen_random_uuid()))`;
+  return {
+    ...ids,
+    paused: String(paused),
+    corrected: String(corrected),
+  };
+}
+
+/** What the base holds of the entries, snapshots and interventions of a campaign (0310). */
+async function campaignDecisionsOf(tx: Tx, campaign: string): Promise<Row> {
+  const [row] = await tx<Row[]>`
+    select (select coalesce(jsonb_agg(jsonb_build_object(
+                     'state', e.state, 'member_message', e.member_message,
+                     'internal_comment', e.internal_comment, 'opinion', e.first_review_opinion,
+                     'first_reviewed', e.first_reviewed_by_account_id is not null
+                                       and e.first_reviewed_at is not null,
+                     'decided_by', e.decided_by_account_id, 'reason', e.rejection_reason_code,
+                     'claimed', e.claimed_by_account_id is not null,
+                     'closed', e.closed_at is not null,
+                     'texts_erased', e.texts_erased_at is not null)
+                   order by e.state), '[]'::jsonb)
+              from campaigns.campaign_review_entries e where e.campaign_id = c.id) as entries,
+           (select coalesce(jsonb_agg(jsonb_build_object(
+                     'version', s.version, 'payload', s.payload,
+                     'hash', encode(s.content_hash, 'hex'))
+                   order by s.version), '[]'::jsonb)
+              from campaigns.campaign_published_snapshots s where s.campaign_id = c.id) as snapshots,
+           (select coalesce(jsonb_agg(jsonb_build_object(
+                     'kind', i.kind, 'field', i.field_code, 'old_value', i.old_value,
+                     'new_value', i.new_value, 'reason', i.reason_code,
+                     'comment', i.internal_comment, 'agent', i.agent_account_id)
+                   order by i.kind), '[]'::jsonb)
+              from campaigns.agent_interventions i where i.campaign_id = c.id) as interventions
+      from campaigns.campaigns c where c.id = ${campaign}`;
+  return row ?? {};
+}
+
+describe("L3C-T5 the entries, snapshots and interventions in the export and the erasure (0310, modele §9)", () => {
+  it("exports each review (state, dates, reason, message), each snapshot (version, instant, content, hash), each intervention (kind, field, values, reason) and the cycle of a campaign", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c");
+      const [view] = await tx<{ view: Row; hash: string }[]>`
+        select payload as view, encode(content_hash, 'hex') as hash
+          from campaigns.campaign_published_snapshots where campaign_id = ${ids.submitted}`;
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored, view };
+    });
+    const file = JSON.parse(String(outcome.stored?.content)) as {
+      data: { advertiser_profile: { campaigns: Row[] } };
+    };
+    const [draft, submitted] = file.data.advertiser_profile.campaigns;
+    expect(submitted).toMatchObject({
+      status: "paused",
+      first_published_at: expect.stringMatching(/Z$/),
+      paused_at: expect.stringMatching(/Z$/),
+      pause_origin: "influx",
+      closed_at: null,
+      snapshots: [
+        {
+          version: 1,
+          published_at: expect.stringMatching(/Z$/),
+          content: outcome.view?.view,
+          sha256: outcome.view?.hash,
+        },
+      ],
+      interventions: [
+        {
+          kind: "paused",
+          field: null,
+          old_value: null,
+          new_value: null,
+          reason: "non_compliant_content",
+          created_at: expect.stringMatching(/Z$/),
+        },
+      ],
+    });
+    expect(
+      [...((submitted?.reviews as Row[]) ?? [])].sort((a, b) =>
+        String(a.state).localeCompare(String(b.state)),
+      ),
+    ).toEqual([
+      {
+        state: "published",
+        created_at: expect.stringMatching(/Z$/),
+        decided_at: expect.stringMatching(/Z$/),
+        rejection_reason: null,
+        member_message: null,
+        closed_at: expect.stringMatching(/Z$/),
+      },
+      {
+        state: "rejected",
+        created_at: expect.stringMatching(/Z$/),
+        decided_at: expect.stringMatching(/Z$/),
+        rejection_reason: "other",
+        member_message: L3C_MESSAGE,
+        closed_at: expect.stringMatching(/Z$/),
+      },
+    ]);
+    expect(outcome.view?.view).toMatchObject({
+      title: "t8-l3c submitted title",
+    });
+    expect(draft).toMatchObject({
+      status: "draft",
+      title: "t8-l3c corrected title",
+      reviews: [
+        {
+          state: "open",
+          created_at: expect.stringMatching(/Z$/),
+          decided_at: null,
+          rejection_reason: null,
+          member_message: null,
+          closed_at: null,
+        },
+      ],
+      snapshots: [],
+      interventions: [
+        {
+          kind: "corrected",
+          field: "title",
+          old_value: "t8-l3c draft",
+          new_value: "t8-l3c corrected title",
+          reason: "entry_error",
+          created_at: expect.stringMatching(/Z$/),
+        },
+      ],
+    });
+  });
+
+  it("never exports an agent, the commercial owner, the first review, the opinion nor an internal comment (EC-L3C-05-2)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c");
+      await tx`update campaigns.campaigns set owner_agent_id = ${agentA}
+                where id = ${ids.submitted}`;
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { content: String(stored?.content), ids };
+    });
+    for (const absent of [
+      agentA,
+      accountIdOf("agent", "b"),
+      L3C_COMMENT,
+      L3C_OPINION,
+      outcome.ids.paused,
+      outcome.ids.corrected,
+      "first_reviewed",
+      "owner_agent",
+      "sla_due_at",
+      "duplicate_of",
+    ]) {
+      expect(outcome.content.includes(absent), absent).toBe(false);
+    }
+  });
+
+  it("serves the decisions of INFLUX on the campaigns in the activity log, actor INFLUX, no payload (L3BS-5); campaign.first_reviewed stays out (excluded_third_party)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c");
+      const other = await giveCampaignDecisions(
+        tx,
+        stranger.id,
+        "t8-l3c-stranger",
+      );
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      const [written] = await tx<{ count: number }[]>`
+        select count(*)::int as count from audit.audit_events
+         where subject_type = 'campaign'
+           and subject_id in (${ids.draft}::uuid, ${ids.submitted}::uuid)
+           and event_type in ('campaign.paused', 'campaign.corrected', 'campaign.first_reviewed')`;
+      return {
+        content: String(stored?.content),
+        written: written?.count,
+        other,
+      };
+    });
+    expect(outcome.written).toBe(3);
+    const file = JSON.parse(outcome.content) as {
+      data: { activity_log: Row[] };
+    };
+    const campaignLines = file.data.activity_log.filter((line) =>
+      String(line.code).startsWith("campaign."),
+    );
+    // one paused and one corrected line of the account's campaigns, never the stranger's
+    expect(
+      [...campaignLines].sort((a, b) =>
+        String(a.code).localeCompare(String(b.code)),
+      ),
+    ).toEqual([
+      {
+        code: "campaign.corrected",
+        occurred_at: expect.stringMatching(/Z$/),
+        actor: "INFLUX",
+      },
+      {
+        code: "campaign.paused",
+        occurred_at: expect.stringMatching(/Z$/),
+        actor: "INFLUX",
+      },
+    ]);
+    expect(outcome.content.includes("campaign.first_reviewed")).toBe(false);
+    expect(outcome.content.includes("intervention_id")).toBe(false);
+    expect(outcome.content.includes("t8-l3c-stranger")).toBe(false);
+  });
+
+  it("withdraws the open entry and empties the message, comment and opinion of every entry, their decider and first reviewer kept", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c-erased");
+      await tx`update campaigns.campaign_review_entries
+                  set claimed_by_account_id = ${accountIdOf("agent", "b")}, claimed_at = now(),
+                      claim_expires_at = now() + interval '30 minutes'
+                where campaign_id = ${ids.draft} and state = 'open'`;
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        draft: await campaignDecisionsOf(tx, ids.draft),
+        submitted: await campaignDecisionsOf(tx, ids.submitted),
+      };
+    });
+    const emptied = {
+      member_message: null,
+      internal_comment: null,
+      opinion: null,
+      claimed: false,
+      closed: true,
+      texts_erased: true,
+    };
+    expect(outcome.draft.entries).toEqual([
+      {
+        ...emptied,
+        state: "withdrawn",
+        first_reviewed: true,
+        decided_by: null,
+        reason: null,
+      },
+    ]);
+    expect(outcome.submitted.entries).toEqual([
+      {
+        ...emptied,
+        state: "published",
+        first_reviewed: false,
+        decided_by: accountIdOf("agent", "b"),
+        reason: null,
+      },
+      {
+        ...emptied,
+        state: "rejected",
+        first_reviewed: true,
+        decided_by: accountIdOf("agent", "b"),
+        reason: "other",
+      },
+    ]);
+  });
+
+  it("empties the free texts of every snapshot (codes, version and hash kept) and the values and comment of every intervention (kind, field, reason, author kept); no register line", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c-erased");
+      const before = await campaignDecisionsOf(tx, ids.submitted);
+      const count = async (): Promise<number | undefined> => {
+        const [lines] = await tx<{ count: number }[]>`
+          select count(*)::int as count from audit.audit_events
+           where event_type like 'campaign.%'
+             and subject_id in (${ids.draft}::uuid, ${ids.submitted}::uuid)`;
+        return lines?.count;
+      };
+      const linesBefore = await count();
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        before,
+        submitted: await campaignDecisionsOf(tx, ids.submitted),
+        draft: await campaignDecisionsOf(tx, ids.draft),
+        linesBefore,
+        linesAfter: await count(),
+      };
+    });
+    const [snapshotBefore] = outcome.before.snapshots as Row[];
+    const [snapshot] = outcome.submitted.snapshots as Row[];
+    const payloadBefore = snapshotBefore?.payload as Row;
+    expect(payloadBefore.title).toBe("t8-l3c-erased submitted title");
+    expect(snapshot).toEqual({
+      version: 1,
+      hash: snapshotBefore?.hash,
+      payload: {
+        ...payloadBefore,
+        title: null,
+        publicSummary: null,
+        brief: null,
+        productDescription: null,
+        restrictions: null,
+        keyMessages: [],
+      },
+    });
+    expect((snapshot?.payload as Row).deliverables).toHaveLength(2);
+    expect(outcome.submitted.interventions).toEqual([
+      {
+        kind: "paused",
+        field: null,
+        old_value: null,
+        new_value: null,
+        reason: "non_compliant_content",
+        comment: null,
+        agent: agentA,
+      },
+    ]);
+    expect(outcome.draft.interventions).toEqual([
+      {
+        kind: "corrected",
+        field: "title",
+        old_value: null,
+        new_value: null,
+        reason: "entry_error",
+        comment: null,
+        agent: agentA,
+      },
+    ]);
+    expect(outcome.linesAfter).toBe(outcome.linesBefore);
+  });
+
+  // modele §9: the owner of E-5 empties the rows of L3C, and does nothing else, even on an erased account
+  it.each([
+    [
+      "an open entry left open",
+      "update campaigns.campaign_review_entries set member_message = null, internal_comment = null, " +
+        "first_review_opinion = null, texts_erased_at = now() " +
+        "where advertiser_account_id = $1 and state = 'open'",
+    ],
+    [
+      "a snapshot whose title stays",
+      "update campaigns.campaign_published_snapshots set payload = payload || " +
+        '\'{"publicSummary": null, "brief": null, "productDescription": null, ' +
+        '"restrictions": null, "keyMessages": []}\'::jsonb ' +
+        "where campaign_id in (select id from campaigns.campaigns where advertiser_account_id = $1)",
+    ],
+    [
+      "an intervention whose comment stays",
+      "update campaigns.agent_interventions set old_value = null, new_value = null " +
+        "where advertiser_account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s on an erased account (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await giveCampaignDecisions(tx, member.id, "t8-l3c-guard");
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${member.id}`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch nothing of the entries, snapshots and interventions of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c-active");
+      const before = await campaignDecisionsOf(tx, ids.submitted);
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = [
+        await attempt(
+          tx,
+          "update campaigns.campaign_review_entries set state = 'withdrawn', closed_at = now(), " +
+            "member_message = null, internal_comment = null, first_review_opinion = null, " +
+            "texts_erased_at = now() where advertiser_account_id = $1 returning 1",
+          [member.id],
+        ),
+        await attempt(
+          tx,
+          "update campaigns.campaign_published_snapshots set payload = payload || " +
+            '\'{"title": null, "publicSummary": null, "brief": null, ' +
+            '"productDescription": null, "restrictions": null, "keyMessages": []}\'::jsonb ' +
+            "where campaign_id in (select id from campaigns.campaigns " +
+            "where advertiser_account_id = $1) returning 1",
+          [member.id],
+        ),
+        await attempt(
+          tx,
+          "update campaigns.agent_interventions set old_value = null, new_value = null, " +
+            "internal_comment = null where advertiser_account_id = $1 returning 1",
+          [member.id],
+        ),
+      ];
+      await tx.unsafe("reset role");
+      return {
+        results,
+        before,
+        after: await campaignDecisionsOf(tx, ids.submitted),
+      };
+    });
+    for (const result of outcome.results) {
+      expect(rowsOf(result)).toEqual([]);
+    }
+    expect(outcome.after).toEqual(outcome.before);
   });
 });
 

@@ -280,6 +280,8 @@ export const campaignReviewEntries = campaignsSchema.table(
     closedAt: timestamptz("closed_at"),
     slaBreached: boolean("sla_breached").notNull(),
     updatedAt: timestamptz("updated_at").notNull().defaultNow(),
+    // 0310: the erasure of the account emptied the three texts (privacy.execute_request() only)
+    textsErasedAt: timestamptz("texts_erased_at"),
   },
 );
 
