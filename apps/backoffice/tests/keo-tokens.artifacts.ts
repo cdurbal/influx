@@ -38,7 +38,6 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   "--color-surface-muted",
   "--color-border-selected",
   "--color-feedback-success-icon",
-  "--color-feedback-warning-icon",
   "--color-feedback-info-icon",
   "--color-counter-bg",
   "--color-counter-text",
