@@ -166,7 +166,7 @@ export type PortfolioDecisionEmailInput =
     };
 
 /** A day (`YYYY-MM-DD`) written in the language of the text; a malformed day is a programming error. */
-function dayOf(locale: UiLocale, depositedOn: string): string {
+export function dayOf(locale: UiLocale, depositedOn: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(depositedOn);
   if (match === null) {
     throw new Error("depositedOn is not a day");

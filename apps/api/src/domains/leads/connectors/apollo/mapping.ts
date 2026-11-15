@@ -11,6 +11,7 @@
 // - No sequence: no field of the body can enrol the contact in one (sequence disabled, J6).
 import type {
   BrandProfileAttributes,
+  CampaignAttributes,
   SubjectAccount,
 } from "../../repository.ts";
 import type { ApolloLegalBasis, ApolloScope } from "./qualification.ts";
@@ -28,7 +29,7 @@ export const APOLLO_CONTACT_FIELDS = [
 
 /** The closed vocabulary of the labels (the INFLUX context of the skill's mapping). */
 const LABEL =
-  /^influx(?:_profile_(?:advertiser|creator)|_status_(?:individual|business)|_country_[a-z]{2}|_language_(?:fr|en)|_scope_(?:annonceurs_seuls|annonceurs_et_createurs_pro|tous_les_inscrits)|_basis_(?:consentement_requis|interet_legitime_avec_opposition)|_sector_[a-z][a-z0-9_]{0,39}|_size_(?:1_10|11_50|51_250|251_1000|1001_plus))?$/;
+  /^influx(?:_profile_(?:advertiser|creator)|_status_(?:individual|business)|_country_[a-z]{2}|_language_(?:fr|en)|_scope_(?:annonceurs_seuls|annonceurs_et_createurs_pro|tous_les_inscrits)|_basis_(?:consentement_requis|interet_legitime_avec_opposition)|_sector_[a-z][a-z0-9_]{0,39}|_size_(?:1_10|11_50|51_250|251_1000|1001_plus)|_campaign_published(?:_on_\d{4}_\d{2}_\d{2})?)?$/;
 
 /**
  * The website of a brand: https and a bare domain, nothing else (06 RG17: a domain only, never a
@@ -59,6 +60,7 @@ export function mapContact(
   company: string | null,
   context: ApolloContext,
   profile: BrandProfileAttributes | null = null,
+  campaigns: CampaignAttributes | null = null,
 ): ApolloContactBody {
   const body: ApolloContactBody = {
     email,
@@ -87,6 +89,19 @@ export function mapContact(
     if (profile.companySizeBand !== null) {
       body.label_names.push(`influx_size_${profile.companySizeBand}`);
     }
+  }
+  // 09 RG105, CA70: « a publié une campagne » and its date, as two labels of the closed vocabulary
+  // (the contact carries no custom field, EC-L3C-06-1); nothing else of a campaign leaves for Apollo,
+  // and the base serves the boolean and the date only on an Apollo line
+  if (
+    account.role === "advertiser" &&
+    campaigns?.hasPublished === true &&
+    campaigns.lastPublishedAt !== null
+  ) {
+    body.label_names.push(
+      "influx_campaign_published",
+      `influx_campaign_published_on_${campaigns.lastPublishedAt.slice(0, 10).replaceAll("-", "_")}`,
+    );
   }
   return body;
 }

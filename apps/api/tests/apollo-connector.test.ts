@@ -139,6 +139,7 @@ function connector(setup: Setup = {}): Connector {
           setup.brandProfile === undefined ? null : setup.brandProfile,
         );
       },
+      readCampaignAttributes: () => Promise.resolve(null),
       ...(setup.mapContact === undefined
         ? {}
         : { mapContact: setup.mapContact }),

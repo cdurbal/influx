@@ -229,6 +229,144 @@
         "caption_brand_unauthorised": "The caption names a brand without your statement that you are allowed to."
       }
     },
+    "campaignDecision": {
+      "type": {
+        "product_placement": "Product placement in a content",
+        "ugc_delivered": "Content delivered to the brand (UGC)",
+        "product_review": "Product test and review",
+        "ambassador": "Long-term ambassador",
+        "contest": "Contest or giveaway",
+        "event_presence": "Event attendance or trip",
+        "affiliate_program": "Affiliate programme"
+      },
+      "field": {
+        "title": "Campaign title",
+        "campaign_type": "Campaign type",
+        "public_summary": "Public summary",
+        "brief": "Detailed brief",
+        "internal_reference": "Internal reference",
+        "product_description": "Product or service",
+        "product_sector": "Product category",
+        "restrictions": "Restrictions and points of attention",
+        "key_messages": "Key messages",
+        "product_is_sent": "Product sent",
+        "product_value_band": "Value of the product sent",
+        "creator_keeps_product": "Product kept by the creator",
+        "shipping_costs_borne_by": "Shipping costs",
+        "deliverables": "Deliverables",
+        "usage_rights": "Usage rights",
+        "usage_rights_duration": "Duration of the usage rights",
+        "usage_rights_territory": "Territory of the usage rights",
+        "exclusivity": "Exclusivity",
+        "content_review_delay": "Content review delay",
+        "audience_countries": "Audience countries",
+        "audience_languages": "Audience languages",
+        "audience_bands": "Audience size bands",
+        "audience_age_bands": "Audience age bands",
+        "audience_gender": "Audience gender",
+        "audience_topics": "Topics",
+        "currency": "Currency",
+        "remuneration_kind": "Kind of remuneration",
+        "budget_band": "Budget per creator",
+        "creators_wanted": "Number of creators wanted",
+        "total_budget": "Total budget",
+        "applications_close_on": "Application deadline",
+        "content_due_on": "Content due date",
+        "starts_on": "Start of the period",
+        "ends_on": "End of the period",
+        "max_applications": "Maximum number of applications",
+        "requested_items": "Items requested from applicants"
+      },
+      "interventionReason": {
+        "brand_request": "This decision follows your request.",
+        "entry_error": "It corrects an entry error.",
+        "non_compliant_content": "The content of your campaign does not comply with INFLUX rules.",
+        "other": "It matches none of the usual reasons: contact INFLUX to know why."
+      },
+      "published": {
+        "subject": "Your INFLUX campaign is published",
+        "preheader": "An INFLUX sales representative reviewed and published your campaign.",
+        "title": "Your campaign is published",
+        "body": "An INFLUX sales representative reviewed your “{type}” campaign and published it on {date}.",
+        "next": "You can follow it, pause it or close it from your INFLUX space.",
+        "why": "your campaign was reviewed by an INFLUX sales representative"
+      },
+      "rejected": {
+        "subject": "Your INFLUX campaign was not published",
+        "preheader": "An INFLUX sales representative reviewed your campaign: here is why it is not published.",
+        "title": "Your campaign was not published",
+        "body": "An INFLUX sales representative reviewed your “{type}” campaign on {date} and did not publish it as it stands.",
+        "why": "your campaign was reviewed by an INFLUX sales representative"
+      },
+      "reason": {
+        "contact_in_text": "Your campaign contains an address, a number, a link or an invitation to contact you outside INFLUX.",
+        "amount_in_text": "An amount appears in your text. Amounts are declared in the budget block, which is never published.",
+        "link_in_text": "Links are not accepted in a campaign. Your website is already on your profile.",
+        "brief_insufficient": "Your brief does not let a creator understand what you expect.",
+        "deliverables_inconsistent": "The requested formats do not match the targeted networks.",
+        "budget_inconsistent": "The declared budget band cannot be used as it stands.",
+        "calendar_invalid": "The dates of your campaign are no longer valid.",
+        "creator_personal_criterion": "Your campaign sets a criterion about the creator as a person (age, gender, appearance). Targeting is about the audience, never about the creator.",
+        "minor_audience": "A campaign cannot target an audience under 18.",
+        "concealed_advertising": "A campaign cannot ask for paid content to be presented as a spontaneous opinion.",
+        "duplicate": "An identical campaign is already published.",
+        "sensitive_authorizations_missing": "We could not verify your authorisations for this type of product.",
+        "illicit_content": "Your campaign cannot be published: it is contrary to the law or to the INFLUX terms of use. The message from the INFLUX team:",
+        "other": "Your campaign could not be published as it stands. The message from the INFLUX team:"
+      },
+      "nextStep": {
+        "fix": "Correct your campaign from your INFLUX space, then submit it again.",
+        "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+      },
+      "pausedByInflux": {
+        "subject": "Your INFLUX campaign is paused",
+        "preheader": "An INFLUX sales representative paused your campaign.",
+        "title": "Your campaign is paused",
+        "body": "An INFLUX sales representative paused your “{type}” campaign on {date}. It accepts no new application while it is paused.",
+        "next": "To discuss it, contact INFLUX from the help on the sign-in screen.",
+        "why": "an INFLUX sales representative paused your campaign"
+      },
+      "resumedByInflux": {
+        "subject": "Your INFLUX campaign is resumed",
+        "preheader": "An INFLUX sales representative put your campaign back online.",
+        "title": "Your campaign is resumed",
+        "body": "An INFLUX sales representative resumed your “{type}” campaign on {date}, after it was paused.",
+        "next": "You can follow it from your INFLUX space.",
+        "why": "an INFLUX sales representative resumed your campaign"
+      },
+      "closedByInflux": {
+        "subject": "Your INFLUX campaign is closed",
+        "preheader": "An INFLUX sales representative closed your campaign.",
+        "title": "Your campaign is closed",
+        "body": "An INFLUX sales representative closed your “{type}” campaign on {date}. A closed campaign cannot be reopened; its history is kept.",
+        "next": "To discuss it, contact INFLUX from the help on the sign-in screen.",
+        "why": "an INFLUX sales representative closed your campaign"
+      },
+      "closedAutomatically": {
+        "subject": "Your INFLUX campaign is closed",
+        "preheader": "The period of your campaign is over: it was closed.",
+        "title": "Your campaign is closed",
+        "body": "Your “{type}” campaign was closed automatically on {date}, its planned period having ended. A closed campaign cannot be reopened; its history is kept.",
+        "next": "You can create a new campaign from your INFLUX space.",
+        "why": "the period of your campaign is over"
+      },
+      "corrected": {
+        "subject": "Your INFLUX campaign was corrected",
+        "preheader": "An INFLUX sales representative corrected a field of your campaign.",
+        "title": "A field of your campaign was corrected",
+        "body": "An INFLUX sales representative corrected the “{field}” field of your “{type}” campaign on {date}.",
+        "next": "You can review your campaign from your INFLUX space.",
+        "why": "an INFLUX sales representative corrected a field of your campaign"
+      },
+      "createdForBrand": {
+        "subject": "An INFLUX campaign draft was created for you",
+        "preheader": "An INFLUX sales representative created a campaign draft, at your request.",
+        "title": "Your campaign draft is created",
+        "body": "At your request, an INFLUX sales representative created a “{type}” campaign draft on {date}.",
+        "next": "Complete it and submit it from your INFLUX space: it is only published after review.",
+        "why": "an INFLUX sales representative created a campaign draft at your request"
+      }
+    },
     "verificationNotice": {
       "network": {
         "instagram": "Instagram",

@@ -42,7 +42,9 @@ import {
   createWorkerQueue,
   readApolloSubjectOf,
   readBrandProfileAttributesOf,
+  readBrevoCampaignDecisionOf,
   readBrevoCreatorProfileDecisionOf,
+  readCampaignAttributesOf,
   readBrevoPortfolioDecisionOf,
   readCreatorProfileAttributesOf,
   readBrevoBadgeEmailOf,
@@ -72,6 +74,7 @@ import {
   createPeriodicScheduler,
   createPeriodicStore,
   createBadgeLifecycle,
+  createCampaignClosure,
   createVerificationExpiry,
   type PeriodicLogger,
   type PeriodicScheduler,
@@ -132,6 +135,10 @@ function connectorsOf(
         readBrevoBadgeEmailOf(database, randomUUID(), line, worker),
       readVerifiedBadge: (line) =>
         readVerifiedBadgeOf(database, randomUUID(), line, worker),
+      readCampaignDecision: (line) =>
+        readBrevoCampaignDecisionOf(database, randomUUID(), line, worker),
+      readCampaignAttributes: (line) =>
+        readCampaignAttributesOf(database, randomUUID(), line, worker),
       logger,
     },
   );
@@ -140,6 +147,8 @@ function connectorsOf(
       readApolloSubjectOf(database, randomUUID(), line, worker),
     readBrandProfile: (line) =>
       readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+    readCampaignAttributes: (line) =>
+      readCampaignAttributesOf(database, randomUUID(), line, worker),
     logger,
   });
   return {
@@ -153,8 +162,8 @@ function connectorsOf(
  * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue and
  * the purge of Storage (0205, D80) with the secret key of the project; a task without its key is
  * never claimed. The 30-day purge, the purge of the
- * exports (J8 commit 8), the retention of ops (J9 commit 8) and the expiry of the verification
- * codes (L2E commit 07) need neither.
+ * exports (J8 commit 8), the retention of ops (J9 commit 8), the expiry of the verification
+ * codes (L2E commit 07) and the closure of the ended campaigns (L3C commit 06) need neither.
  */
 function periodicSchedulerOf(
   config: WorkerConfig,
@@ -174,6 +183,8 @@ function periodicSchedulerOf(
     verification_expiry: createVerificationExpiry(store),
     // 0230: the cycle of the badges, then the retention of their findings (08 RG69 to RG71)
     badge_lifecycle: createBadgeLifecycle(store),
+    // 0309: the campaigns whose period ended campaign_auto_close_days ago (09 RG9)
+    campaign_closure: createCampaignClosure(store),
   };
   if (config.brevoTransport.apiKey !== null) {
     runners.brevo_reconciliation = createBrevoReconciliation({

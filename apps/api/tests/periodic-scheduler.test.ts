@@ -28,8 +28,11 @@ import {
   createDataExportPurge,
   createOpsRetention,
   createBadgeLifecycle,
+  createCampaignClosure,
   createVerificationExpiry,
   BADGE_LIFECYCLE_BATCH,
+  CAMPAIGN_CLOSURE_BATCH,
+  CAMPAIGN_CLOSURE_MAX_BATCHES,
   BADGE_LIFECYCLE_MAX_BATCHES,
   EXPORT_PURGE_BATCH,
   OPS_RETENTION_MAX_STEPS,
@@ -107,6 +110,9 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
       return 0;
     },
     async purgeVerificationFindings() {
+      return 0;
+    },
+    async closeEndedCampaigns() {
       return 0;
     },
   };
@@ -945,5 +951,132 @@ describe("badge_lifecycle (0230; 08 RG69 to RG71, RG100; L2F commit 12)", () => 
       ),
     ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
     expect(cycles).toBe(1);
+  });
+});
+
+describe("campaign_closure (0309; 09 RG9; L3C commit 06)", () => {
+  it("is a daily task keyed by UTC day: one run a day whatever the clock of the instance", () => {
+    expect(periodKeyOf("campaign_closure", AT_0259)).toBe("2026-10-13");
+    expect(periodKeyOf("campaign_closure", AT_0300)).toBe("2026-10-13");
+    expect(isDue("campaign_closure", AT_0259, 3)).toBe(true);
+  });
+
+  it("is claimed once per period once its runner is there, and a process without it never claims it", async () => {
+    const { store, claims, finishes } = memoryStore();
+    const closed: PeriodicRun[] = [];
+    store.closeEndedCampaigns = async (run) => {
+      closed.push(run);
+      return 3;
+    };
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: { campaign_closure: createCampaignClosure(store) },
+      logger: silentLogger().logger,
+      now: () => AT_0259,
+    });
+    await scheduler.tick(signal());
+    await scheduler.tick(signal());
+    expect(claims).toEqual([
+      { task: "campaign_closure", periodKey: "2026-10-13" },
+    ]);
+    expect(closed).toEqual([{ runId: "run-1", attempt: 1 }]);
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["succeeded", { closed: 3 }],
+    ]);
+
+    const without = memoryStore();
+    await createPeriodicScheduler({
+      store: without.store,
+      runners: { badge_lifecycle: async () => {} },
+      logger: silentLogger().logger,
+      now: () => AT_0259,
+    }).tick(signal());
+    expect(without.claims.map((claim) => claim.task)).not.toContain(
+      "campaign_closure",
+    );
+  });
+
+  it("closes by full batches of 500 and stops at the first short one, adding up the count", async () => {
+    const { store } = memoryStore();
+    const answers = [CAMPAIGN_CLOSURE_BATCH, CAMPAIGN_CLOSURE_BATCH, 7];
+    let calls = 0;
+    store.closeEndedCampaigns = async () => {
+      calls += 1;
+      return answers.shift() ?? 0;
+    };
+    const counts: PeriodicCounts = {};
+    await createCampaignClosure(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(CAMPAIGN_CLOSURE_BATCH).toBe(500);
+    expect(calls).toBe(3);
+    expect(counts).toEqual({ closed: CAMPAIGN_CLOSURE_BATCH * 2 + 7 });
+  });
+
+  it("is bounded per run, and stops between two batches when asked, leaving the run open", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.closeEndedCampaigns = async () => {
+      calls += 1;
+      return CAMPAIGN_CLOSURE_BATCH;
+    };
+    await createCampaignClosure(store)(
+      { runId: "run-2", attempt: 1 },
+      {},
+      signal(),
+    );
+    expect(calls).toBe(CAMPAIGN_CLOSURE_MAX_BATCHES);
+
+    const stop = new AbortController();
+    let batches = 0;
+    store.closeEndedCampaigns = async () => {
+      batches += 1;
+      stop.abort();
+      return CAMPAIGN_CLOSURE_BATCH;
+    };
+    await expect(
+      createCampaignClosure(store)(
+        { runId: "run-3", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+    expect(batches).toBe(1);
+  });
+
+  it("a failure of the database closes the run failed with the counts reached, and the next period runs again", async () => {
+    let now = AT_0300;
+    const { store, finishes } = memoryStore();
+    const answers = [CAMPAIGN_CLOSURE_BATCH];
+    store.closeEndedCampaigns = async () => {
+      const next = answers.shift();
+      if (next === undefined) {
+        throw new Error("boom");
+      }
+      return next;
+    };
+    const { logger, lines } = silentLogger();
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: { campaign_closure: createCampaignClosure(store) },
+      logger,
+      now: () => now,
+    });
+    await scheduler.tick(signal());
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["failed", { closed: CAMPAIGN_CLOSURE_BATCH }],
+    ]);
+    expect(
+      lines.some((line) => line.message === "maintenance.periodic.failed"),
+    ).toBe(true);
+    now += 24 * 3_600_000;
+    answers.push(2);
+    await scheduler.tick(signal());
+    expect(finishes.at(-1)).toMatchObject({
+      outcome: "succeeded",
+      counts: { closed: 2 },
+    });
   });
 });

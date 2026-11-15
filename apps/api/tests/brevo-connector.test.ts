@@ -262,6 +262,8 @@ function connectors(setup: Setup = {}): {
         badgeReads.push(claimed.id);
         return Promise.resolve(setup.badge === undefined ? null : setup.badge);
       },
+      readCampaignDecision: () => Promise.resolve(null),
+      readCampaignAttributes: () => Promise.resolve(null),
       ...(setup.mapContact === undefined
         ? {}
         : { mapContact: setup.mapContact }),

@@ -18,6 +18,7 @@ import {
   type BrevoDouble,
 } from "@influx/test-kit/brevo-double";
 import {
+  accountIdOf,
   connectAsLocalSuperuser,
   inRolledBackTransaction,
   localRoleUrl,
@@ -53,6 +54,7 @@ import {
   readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
   readBrevoBadgeEmailOf,
+  readBrevoCampaignDecisionOf,
   readBrevoVerificationEmailOf,
   readCreatorProfileAttributesOf,
   readVerifiedBadgeOf,
@@ -61,7 +63,7 @@ import type { ClaimedLine } from "../src/domains/leads/repository.ts";
 import english from "../src/locales/en/email.json" with { type: "json" };
 import french from "../src/locales/fr/email.json" with { type: "json" };
 import { createLogger } from "../src/platform/logger.ts";
-import { localSuperuser, migrationRole } from "./support.ts";
+import { localSuperuser, migrationRole, testDataSet } from "./support.ts";
 
 const INVALID_PARAMETER = "22023";
 const UNIQUE_VIOLATION = "23505";
@@ -270,6 +272,9 @@ async function turn(): Promise<number> {
         readBrevoVerificationEmailOf(database, randomUUID(), line, worker),
       readVerifiedBadge: (line) =>
         readVerifiedBadgeOf(database, randomUUID(), line, worker),
+      readCampaignDecision: (line) =>
+        readBrevoCampaignDecisionOf(database, randomUUID(), line, worker),
+      readCampaignAttributes: () => Promise.resolve(null),
       logger,
     },
   );
@@ -3010,5 +3015,132 @@ describe("L2E commit 16, 08 RG92, RG94, fiche invariants 14 and 17: the verifica
       expect(sources).toHaveLength(4);
       expect(sources.filter((row) => !row.ok)).toEqual([]);
     });
+  });
+});
+
+// L3C commit 06, 0310: campaign.decision, written from the facts read at consumption, through the real
+// queue (09 RG93, RG94). The SQL of the read itself (every code, every refusal) is in
+// leads-campaign-reads.test.ts; here the worker's function, the date as text in the account's time zone,
+// and the e-mail that leaves.
+describe("L3C commit 06, 09 RG93, RG94: campaign.decision, written from the facts read, through the real queue (0310)", () => {
+  const campaigns: string[] = [];
+
+  beforeAll(async () => {
+    await testDataSet();
+  });
+
+  afterEach(async () => {
+    const ids = campaigns.splice(0);
+    if (ids.length > 0) {
+      await migration`delete from campaigns.agent_interventions where campaign_id = any (${ids}::uuid[])`;
+      await migration`delete from campaigns.campaigns where id = any (${ids}::uuid[])`;
+    }
+  });
+
+  /** A draft campaign of the brand and the intervention of an agent that created it, at `at`. */
+  async function createdForBrand(
+    brand: string,
+    at: string,
+  ): Promise<{ campaign: string; intervention: string }> {
+    const [campaign] = await migration<{ id: string }[]>`
+      insert into campaigns.campaigns (advertiser_account_id, status, title, campaign_type_code)
+      values (${brand}, 'draft', 'Tm1 title never in an e-mail', 'contest')
+      returning id::text as id`;
+    const [intervention] = await migration<{ id: string }[]>`
+      insert into campaigns.agent_interventions
+        (campaign_id, advertiser_account_id, kind, reason_code, internal_comment,
+         agent_account_id, created_at)
+      values (${campaign?.id ?? ""}, ${brand}, 'created', 'brand_request',
+              'Internal: never in an e-mail.', ${accountIdOf("agent", "a")}, ${at}::timestamptz)
+      returning id::text as id`;
+    campaigns.push(campaign?.id ?? "");
+    return {
+      campaign: campaign?.id ?? "",
+      intervention: intervention?.id ?? "",
+    };
+  }
+
+  async function decisionLine(
+    brand: string,
+    campaign: string,
+    intervention: string,
+    emailCode: string,
+  ): Promise<string> {
+    const event = randomUUID();
+    const [row] = await migration<{ id: string }[]>`
+      insert into leads.outbox_events
+        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key)
+      values (${event}, 'campaign.decision', 'brevo_transactional', ${`account:${brand}`}, 100,
+              jsonb_build_object('event_id', ${event}::text, 'account_id', ${brand}::text,
+                                 'campaign_id', ${campaign}::text,
+                                 'intervention_id', ${intervention}::text,
+                                 'email_code', ${emailCode}::text),
+              ${`campaign.decision:${intervention}`})
+      returning id::text as id`;
+    lines.push(row?.id ?? "");
+    return row?.id ?? "";
+  }
+
+  it("the e-mail of a creation for the brand leaves in its language with the day of the act in the account's time zone, and nothing of the campaign but its type", async () => {
+    const brand = await createAccount({ role: "advertiser", language: "fr" });
+    const address = emails[emails.length - 1] ?? "";
+    // 20:00 UTC on the 14th is already the 15th in Kiritimati (UTC+14)
+    await migration`
+      update identity.accounts set timezone = 'Pacific/Kiritimati' where id = ${brand}`;
+    const { campaign, intervention } = await createdForBrand(
+      brand,
+      "2026-11-14T20:00:00Z",
+    );
+    const line = await decisionLine(
+      brand,
+      campaign,
+      intervention,
+      "created_for_brand",
+    );
+    expect(await turn()).toBeGreaterThan(0);
+    const [row] = await migration<
+      { status: string; last_error_code: string | null }[]
+    >`
+      select status::text as status, last_error_code from leads.outbox_events where id = ${line}`;
+    expect(row).toEqual({ status: "succeeded", last_error_code: null });
+    const message = double.delivered.find((sent) =>
+      JSON.stringify(sent.body.to).includes(address),
+    );
+    expect(message?.body.tags).toEqual(["campaign.decision"]);
+    expect(message?.body.subject).toBe(
+      french.email.campaignDecision.createdForBrand.subject,
+    );
+    expect(message?.body.textContent).toContain("15 novembre 2026");
+    expect(message?.body.textContent).toContain("Concours ou jeu concours");
+    // the title and the internal comment of the intervention are never read
+    expect(JSON.stringify(message?.body)).not.toMatch(/Tm1 title|Internal:/);
+  });
+
+  it("a code that does not match its act fails visibly, nothing sent", async () => {
+    const brand = await createAccount({ role: "advertiser", language: "en" });
+    const address = emails[emails.length - 1] ?? "";
+    const { campaign, intervention } = await createdForBrand(
+      brand,
+      "2026-11-14T20:00:00Z",
+    );
+    // a pause named by the line of a creation: the base gives no row (EC-L3C-05-7)
+    const line = await decisionLine(
+      brand,
+      campaign,
+      intervention,
+      "paused_by_influx",
+    );
+    await turn();
+    const [row] = await migration<
+      { status: string; last_error_code: string | null }[]
+    >`
+      select status::text as status, last_error_code from leads.outbox_events where id = ${line}`;
+    expect(row?.last_error_code).toBe("decision_not_found");
+    expect(row?.status).not.toBe("succeeded");
+    expect(
+      double.delivered.filter((sent) =>
+        JSON.stringify(sent.body.to).includes(address),
+      ),
+    ).toEqual([]);
   });
 });

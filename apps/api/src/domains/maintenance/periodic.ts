@@ -17,6 +17,8 @@
 //   verification_expiry    hourly: the draft verification requests whose code expired (0223)
 //   badge_lifecycle        daily: the reminder, « à rafraîchir » and expiry of the badges (a SYSTEM
 //                          event, no agent), then the retention of the findings (0230, L2F commit 12)
+//   campaign_closure       daily: the campaigns whose period ended campaign_auto_close_days ago are
+//                          closed by the system (09 RG9; 0309, L3C commit 06)
 //
 // A task without its key in this process (no Brevo key, no GoTrue key) is never claimed. A task
 // that fails closes its run `failed` with the counts reached and a closed code in pino (D60): the
@@ -33,7 +35,9 @@ import {
 } from "../../db/index.ts";
 import { sqlStateOf } from "../../db/sql-state.ts";
 import {
+  CAMPAIGN_CLOSURE_BATCH,
   claimPeriodicRun,
+  closeEndedCampaigns,
   filterAuthOrphans,
   finishPeriodicRun,
   gotrueRealignmentCandidates,
@@ -61,6 +65,7 @@ import {
 
 export {
   BADGE_LIFECYCLE_BATCH,
+  CAMPAIGN_CLOSURE_BATCH,
   PERIODIC_TASKS,
   type PeriodicCounts,
   type PeriodicRun,
@@ -91,6 +96,8 @@ export const OPS_RETENTION_MAX_STEPS = 50;
 export const VERIFICATION_EXPIRY_MAX_BATCHES = 10;
 /** Calls of the cycle of the badges, and of the retention of their findings, per run at most. */
 export const BADGE_LIFECYCLE_MAX_BATCHES = 20;
+/** Calls of ops.close_ended_campaigns() per run at most; beyond, the next day goes on. */
+export const CAMPAIGN_CLOSURE_MAX_BATCHES = 20;
 
 const INVALID_PARAMETER_VALUE = "22023";
 
@@ -139,6 +146,8 @@ export type PeriodicStore = {
   runBadgeLifecycle(run: PeriodicRun): Promise<number>;
   /** 0230: one call of ops.purge_verification_findings(); the count. */
   purgeVerificationFindings(run: PeriodicRun): Promise<number>;
+  /** 0309: one call of ops.close_ended_campaigns() (at most CAMPAIGN_CLOSURE_BATCH campaigns); the count. */
+  closeEndedCampaigns(run: PeriodicRun): Promise<number>;
 };
 
 export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
@@ -279,6 +288,13 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
     purgeVerificationFindings: (run) =>
       elevated(async (tx) => {
         const count = await purgeVerificationFindings(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    // the database writes the register lines of the closure itself (system events, no actor)
+    closeEndedCampaigns: (run) =>
+      elevated(async (tx) => {
+        const count = await closeEndedCampaigns(tx, run);
         return { value: count, auditSubject: count > 0 ? run.runId : null };
       }),
   };
@@ -574,6 +590,29 @@ export function createBadgeLifecycle(store: PeriodicStore): PeriodicTaskRunner {
       const purged = await store.purgeVerificationFindings(run);
       counts.purged += purged;
       if (purged < BADGE_LIFECYCLE_BATCH) {
+        return;
+      }
+    }
+  };
+}
+
+/**
+ * 0309 (09 RG9; modele §5): the campaigns whose period ended campaign_auto_close_days ago closed by
+ * the system, by batches, each in its own transaction (their e-mail and register line written by the
+ * database, the oldest end first, a campaign another transaction holds waiting for the next call); a
+ * stop requested leaves the run open for another instance to take back. The day and the delay are the
+ * database's: nothing here reads a clock.
+ */
+export function createCampaignClosure(
+  store: PeriodicStore,
+): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    counts.closed = 0;
+    for (let batch = 0; batch < CAMPAIGN_CLOSURE_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const closed = await store.closeEndedCampaigns(run);
+      counts.closed += closed;
+      if (closed < CAMPAIGN_CLOSURE_BATCH) {
         return;
       }
     }

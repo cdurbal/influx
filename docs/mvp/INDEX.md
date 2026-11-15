@@ -496,14 +496,14 @@
 | 1492 | 162 | Additif du document 16 (2026-09-19) | RG9–RG131 |
 | 1654 | 46 | Additif du J9 (2026-10-21) — alertes techniques de D60 | RG46–RG165 |
 
-## 16-backoffice-emails-brevo.md (~53k tokens)
+## 16-backoffice-emails-brevo.md (~54k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 48 | 32 | Besoin | RG9–RG78 |
 | 80 | 20 | Acteurs | RG90 |
 | 100 | 57 | User stories | RG35 |
-| 157 | 1506 | Règles de gestion | RG1–RG162 |
+| 157 | 1514 | Règles de gestion | RG1–RG162 |
 | 159 | 94 | ↳ A — Portée, vocabulaire et principes | RG1–RG93 |
 | 253 | 154 | ↳ B — Le parcours d'envoi de masse, écran par écran | RG4–RG102 |
 | 407 | 52 | ↳ C — Source 1 : les contacts de la plateforme | RG22–RG93 |
@@ -518,25 +518,25 @@
 | 1214 | 96 | ↳ J — Le garde-fou d'environnement et l'interrupteur d'urgence | RG9–RG148 |
 | 1310 | 65 | ↳ K — La supervision | RG15–RG134 |
 | 1375 | 36 | ↳ L — Ce qui ne doit jamais partir dans un e-mail | RG3–RG137 |
-| 1411 | 207 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
-| 1618 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
-| 1663 | 51 | Cas limites | RG7–RG146 |
-| 1714 | 435 | Critères d'acceptation | RG85–RG160 |
-| 1716 | 68 | ↳ Le parcours d'envoi de masse |  |
-| 1784 | 36 | ↳ Source 1 — contacts de la plateforme |  |
-| 1820 | 29 | ↳ Source 2 — segment Brevo |  |
-| 1849 | 51 | ↳ Source 3 — saisie libre |  |
-| 1900 | 26 | ↳ Les modèles |  |
-| 1926 | 22 | ↳ La cadence |  |
-| 1948 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
-| 2017 | 23 | ↳ Le suivi des résultats |  |
-| 2040 | 29 | ↳ Environnement et interrupteur d'urgence |  |
-| 2069 | 25 | ↳ La supervision |  |
-| 2094 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
-| 2133 | 16 | ↳ Langue et accessibilité | RG155 |
-| 2149 | 88 | Impacts | RG6–RG146 |
-| 2237 | 19 | Hors périmètre | RG44–RG107 |
-| 2256 | 27 | Questions ouvertes | RG9–RG160 |
+| 1411 | 215 | ↳ M — Le contrat d'interface avec Brevo | RG9–RG161 |
+| 1626 | 45 | ↳ N — Messages, langue et accessibilité | RG11–RG155 |
+| 1671 | 51 | Cas limites | RG7–RG146 |
+| 1722 | 435 | Critères d'acceptation | RG85–RG160 |
+| 1724 | 68 | ↳ Le parcours d'envoi de masse |  |
+| 1792 | 36 | ↳ Source 1 — contacts de la plateforme |  |
+| 1828 | 29 | ↳ Source 2 — segment Brevo |  |
+| 1857 | 51 | ↳ Source 3 — saisie libre |  |
+| 1908 | 26 | ↳ Les modèles |  |
+| 1934 | 22 | ↳ La cadence |  |
+| 1956 | 69 | ↳ Les e-mails transactionnels | RG85–RG160 |
+| 2025 | 23 | ↳ Le suivi des résultats |  |
+| 2048 | 29 | ↳ Environnement et interrupteur d'urgence |  |
+| 2077 | 25 | ↳ La supervision |  |
+| 2102 | 39 | ↳ Les interdits et le contrat d'interface | RG135 |
+| 2141 | 16 | ↳ Langue et accessibilité | RG155 |
+| 2157 | 88 | Impacts | RG6–RG146 |
+| 2245 | 19 | Hors périmètre | RG44–RG107 |
+| 2264 | 27 | Questions ouvertes | RG9–RG160 |
 
 ## 17-parcours-et-ecrans-espaces-membres.md (~60k tokens)
 

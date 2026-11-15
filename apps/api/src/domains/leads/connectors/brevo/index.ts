@@ -66,6 +66,16 @@
 // message, is a visible failure. The contact of a creator carries the attributes of RG107 from the
 // live storefront (leads.read_creator_profile_attributes, 0245), read on a Brevo contact line only
 // (the base refuses an Apollo line, RG109); absent, they are sent empty (RG110).
+// campaign.decision (09 RG90, RG93, RG94; L3C commit 06): the answer to a decision of INFLUX on a campaign
+// (published, refused, paused, resumed, closed, corrected, created for the brand, closed by the
+// system), written from the facts read at consumption (leads.read_brevo_campaign_decision, 0310) and
+// never from the payload (ids and the code only): a code, type, reason or field outside the closed
+// lists, or a reason that needs the agent's message without it, is a visible failure. The e-mail
+// code of those lines is the decision's own (`published`, `rejected`...), so the line is routed by
+// its event type. The contact of a brand carries the attributes of RG104 from its campaigns
+// (leads.read_campaign_attributes, 0310), read on every rewrite of the contact; campaign.published
+// is skipped no_consent without marketing consent, as lead.created is, never counted as a failure
+// (CA71).
 // What leaves for the drain is names and verdicts; the values stay in the closure of `send`.
 import {
   UNIDENTIFIED_USER_AGENT,
@@ -80,6 +90,16 @@ import { renderWelcomeEmail } from "../../../identity/welcome-email.ts";
 import { renderErasureCompletedEmail } from "../../../privacy/erasure-completed-email.ts";
 import type { ErasureNotificationSubject } from "../../../privacy/erasure-notification-subject.ts";
 import { renderExportReadyEmail } from "../../../privacy/export-ready-email.ts";
+import {
+  campaignDecisionEmailCodeOf,
+  campaignFieldOf,
+  campaignReasonNeedsMessage,
+  campaignRejectionReasonOf,
+  campaignTypeOf,
+  interventionReasonOf,
+  renderCampaignDecisionEmail,
+  type CampaignDecisionEmailInput,
+} from "../../../campaigns/campaign-decision-email.ts";
 import {
   renderBrandDecisionEmail,
   rejectionReasonOf,
@@ -117,7 +137,9 @@ import type {
   BrevoPortfolioDecision,
   BrevoProfileDecision,
   BrevoBadgeEmail,
+  BrevoCampaignDecision,
   BrevoVerificationEmail,
+  CampaignAttributes,
   ClaimedLine,
   CreatorProfileAttributes,
   VerifiedBadge,
@@ -144,6 +166,7 @@ import {
 } from "./mapping.ts";
 
 export {
+  BREVO_CAMPAIGN_ATTRIBUTES,
   BREVO_CONTACT_ATTRIBUTES,
   checkContactOutput,
   checkEmailChangeOutput,
@@ -180,12 +203,20 @@ export const WORKER_RENDERED_EMAILS = [
   "verification.dispute_outcome",
   "verification.reconfirm_required",
   "verification.agent_opened_notice",
+  "campaign.decision",
 ] as const;
 
 type RenderedEmailCode = (typeof WORKER_RENDERED_EMAILS)[number];
 
-/** The e-mails of an active account, read through its subject (the others have their own read). */
-type AccountEmailCode = Exclude<RenderedEmailCode, "privacy.erasure_completed">;
+/**
+ * The e-mails of an active account, read through its subject (the others have their own read):
+ * privacy.erasure_completed leaves after the erasure, and campaign.decision is routed by the event
+ * type of its line, its payload carrying the code of the decision.
+ */
+type AccountEmailCode = Exclude<
+  RenderedEmailCode,
+  "privacy.erasure_completed" | "campaign.decision"
+>;
 
 /** Sender name of the transactional flow (16 RG156). */
 const SENDER_NAME = "INFLUX";
@@ -254,6 +285,19 @@ export type BrevoBadgeEmailReader = (
   line: ClaimedLine,
 ) => Promise<BrevoBadgeEmail | null>;
 
+/** The facts of a campaign.decision line (0310), without any address, title, value nor agent. */
+export type BrevoCampaignDecisionReader = (
+  line: ClaimedLine,
+) => Promise<BrevoCampaignDecision | null>;
+
+/**
+ * The campaigns of the brand of a contact line (0310; 09 RG104): read only for an advertiser, in its
+ * own short transaction; null when the account holds no brand profile.
+ */
+export type CampaignAttributesReader = (
+  line: ClaimedLine,
+) => Promise<CampaignAttributes | null>;
+
 /** The level of the badges an account holds and its date (0227): a contact line of Brevo only. */
 export type VerifiedBadgeReader = (
   line: ClaimedLine,
@@ -287,6 +331,10 @@ export type BrevoConnectorDependencies = {
   readBadgeEmail: BrevoBadgeEmailReader;
   /** Reads the badge level of the account of a contact line (0227), its own transaction. */
   readVerifiedBadge: VerifiedBadgeReader;
+  /** Reads the facts of a campaign.decision line (0310), its own transaction. */
+  readCampaignDecision: BrevoCampaignDecisionReader;
+  /** Reads the campaigns of the brand of a contact line (0310), its own transaction. */
+  readCampaignAttributes: CampaignAttributesReader;
   /** Reads the contact of an erased account on an account.deleted line (0136), its own transaction. */
   readErasureSubject: BrevoErasureSubjectReader;
   /** Reads the live brand profile of a contact line (0212), its own transaction. */
@@ -854,6 +902,80 @@ export function createBrevoConnectors(
   }
 
   /**
+   * campaign.decision (09 RG90, RG93, RG94; L3C commit 06): the answer to a decision of INFLUX on a
+   * campaign. The address and the account checks come from the subject; the code of the decision, the
+   * type of the campaign, its day, its reason, the agent's message to the brand and the language from
+   * the facts read at consumption (0310), never from the payload. One decision, one e-mail: the
+   * idempotency key is the decision's own. A code, type, reason or field outside the closed lists, or
+   * a reason that needs the agent's message without it, is a visible failure, never guessed.
+   */
+  async function campaignDecision(
+    line: ClaimedLine,
+    subject: BrevoSubject,
+  ): Promise<Preparation> {
+    const read = await dependencies.readCampaignDecision(line);
+    if (read === null) {
+      // No such decision of this account behind the line: nothing to announce, visible.
+      return { kind: "fail", errorCode: "decision_not_found" };
+    }
+    const locale: "fr" | "en" = read.preferredLanguage === "fr" ? "fr" : "en";
+    const code = campaignDecisionEmailCodeOf(read.emailCode);
+    if (code === null) {
+      return { kind: "fail", errorCode: "decision_unknown" };
+    }
+    const type =
+      read.campaignType === null ? null : campaignTypeOf(read.campaignType);
+    if (type === null) {
+      return { kind: "fail", errorCode: "campaign_type_unknown" };
+    }
+    const common = { locale, type, occurredOn: read.occurredOn };
+    let input: CampaignDecisionEmailInput;
+    if (code === "rejected") {
+      const reason =
+        read.reasonCode === null
+          ? null
+          : campaignRejectionReasonOf(read.reasonCode);
+      if (reason === null) {
+        return { kind: "fail", errorCode: "rejection_reason_unknown" };
+      }
+      if (campaignReasonNeedsMessage(reason) && read.memberMessage === null) {
+        return { kind: "fail", errorCode: "member_message_missing" };
+      }
+      input = { ...common, code, reason, memberMessage: read.memberMessage };
+    } else if (
+      code === "paused_by_influx" ||
+      code === "resumed_by_influx" ||
+      code === "closed_by_influx" ||
+      code === "corrected"
+    ) {
+      const reason =
+        read.reasonCode === null ? null : interventionReasonOf(read.reasonCode);
+      if (reason === null) {
+        return { kind: "fail", errorCode: "intervention_reason_unknown" };
+      }
+      if (code === "corrected") {
+        const field =
+          read.fieldCode === null ? null : campaignFieldOf(read.fieldCode);
+        if (field === null) {
+          return { kind: "fail", errorCode: "campaign_field_unknown" };
+        }
+        input = { ...common, code, reason, field };
+      } else {
+        input = { ...common, code, reason };
+      }
+    } else {
+      input = { ...common, code };
+    }
+    return rendered(
+      line,
+      "campaign.decision",
+      subject.email,
+      renderCampaignDecisionEmail(input),
+      locale,
+    );
+  }
+
+  /**
    * The five e-mails of the verification (08 RG94, EC-L2E-3). The address and the account checks
    * come from the subject; the level, network line, reason, badge date, code and language from the
    * facts read at consumption (0227), never from the payload. A refusal speaks with the text of its
@@ -1267,11 +1389,12 @@ export function createBrevoConnectors(
       if (
         unsubscribe &&
         (line.eventType === "lead.created" ||
-          line.eventType === "profile.completed")
+          line.eventType === "profile.completed" ||
+          line.eventType === "campaign.published")
       ) {
-        // 05 RG80, CA39; 06 CA41: no consent, no marketing contact; a skip, never a failure, and
-        // never counted as one (ignored, without consent). The first publication of a brand reads
-        // no profile for a member who never agreed to marketing.
+        // 05 RG80, CA39; 06 CA41; 09 CA71: no consent, no marketing contact; a skip, never a failure,
+        // and never counted as one (ignored, without consent). The first publication of a brand, or
+        // of its first campaign, reads nothing for a member who never agreed to marketing.
         return { kind: "skip", reason: "no_consent" };
       }
       const subject = await dependencies.readSubject(line);
@@ -1307,13 +1430,27 @@ export function createBrevoConnectors(
       // 0227, 08 RG92: the level of the badge and its date, read from the base at every rewrite of
       // the contact, never guessed from the event (a replayed lead.created must not erase a badge)
       const badge = await dependencies.readVerifiedBadge(line);
+      // 09 RG104: the campaigns of a brand enrich the contact the same way, read for an advertiser
+      // only, on every rewrite (a replayed lead.created must not erase them); never for a creator
+      const campaigns =
+        role === "advertiser"
+          ? await dependencies.readCampaignAttributes(line)
+          : null;
       const body =
         line.eventType === "consent.granted"
           ? {
-              ...map(account, subject, listId, profile, badge, creator),
+              ...map(
+                account,
+                subject,
+                listId,
+                profile,
+                badge,
+                creator,
+                campaigns,
+              ),
               emailBlacklisted: false,
             }
-          : map(account, subject, listId, profile, badge, creator);
+          : map(account, subject, listId, profile, badge, creator, campaigns);
       const description: CallDescription = {
         operation: "upsert_contact",
         templateCode: null,
@@ -1354,6 +1491,15 @@ export function createBrevoConnectors(
         return skipped ?? { kind: "skip", reason: "account_absent" };
       }
       const account = state.account;
+      if (line.eventType === "campaign.decision") {
+        // The code of its payload is the decision's own (published, rejected...): routed by the
+        // event type, before the list of the codes of the other e-mails.
+        const campaignSubject = await dependencies.readSubject(line);
+        if (campaignSubject === null) {
+          return { kind: "skip", reason: "account_absent" };
+        }
+        return campaignDecision(line, campaignSubject);
+      }
       const code = line.payload.email_code;
       if (
         typeof code !== "string" ||

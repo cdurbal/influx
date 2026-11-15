@@ -229,6 +229,144 @@
         "caption_brand_unauthorised": "La légende cite une marque sans que vous ayez déclaré y être autorisé."
       }
     },
+    "campaignDecision": {
+      "type": {
+        "product_placement": "Placement de produit dans un contenu",
+        "ugc_delivered": "Contenu livré à la marque (UGC)",
+        "product_review": "Test de produit et avis",
+        "ambassador": "Ambassadeur sur la durée",
+        "contest": "Concours ou jeu concours",
+        "event_presence": "Présence à un événement ou déplacement",
+        "affiliate_program": "Programme d'affiliation"
+      },
+      "field": {
+        "title": "Titre de la campagne",
+        "campaign_type": "Type de campagne",
+        "public_summary": "Résumé public",
+        "brief": "Brief détaillé",
+        "internal_reference": "Référence interne",
+        "product_description": "Produit ou service concerné",
+        "product_sector": "Catégorie du produit",
+        "restrictions": "Interdits et points de vigilance",
+        "key_messages": "Messages clés",
+        "product_is_sent": "Envoi d'un produit",
+        "product_value_band": "Valeur du produit envoyé",
+        "creator_keeps_product": "Produit conservé par le créateur",
+        "shipping_costs_borne_by": "Frais d'expédition",
+        "deliverables": "Livrables",
+        "usage_rights": "Droits d'usage",
+        "usage_rights_duration": "Durée des droits d'usage",
+        "usage_rights_territory": "Territoire des droits d'usage",
+        "exclusivity": "Exclusivité",
+        "content_review_delay": "Délai de relecture du contenu",
+        "audience_countries": "Pays de l'audience",
+        "audience_languages": "Langues de l'audience",
+        "audience_bands": "Tranches d'audience",
+        "audience_age_bands": "Tranches d'âge de l'audience",
+        "audience_gender": "Genre de l'audience",
+        "audience_topics": "Thématiques",
+        "currency": "Devise",
+        "remuneration_kind": "Nature de la rémunération",
+        "budget_band": "Budget par créateur",
+        "creators_wanted": "Nombre de créateurs recherchés",
+        "total_budget": "Budget total",
+        "applications_close_on": "Date limite de candidature",
+        "content_due_on": "Date de remise des contenus",
+        "starts_on": "Début de la période",
+        "ends_on": "Fin de la période",
+        "max_applications": "Nombre maximal de candidatures",
+        "requested_items": "Éléments demandés aux candidats"
+      },
+      "interventionReason": {
+        "brand_request": "Cette décision fait suite à votre demande.",
+        "entry_error": "Elle corrige une erreur de saisie.",
+        "non_compliant_content": "Le contenu de votre campagne ne respecte pas les règles d'INFLUX.",
+        "other": "Elle ne relève d'aucun des motifs courants : contactez INFLUX pour en connaître la raison."
+      },
+      "published": {
+        "subject": "Votre campagne INFLUX est publiée",
+        "preheader": "Un commercial INFLUX a relu et publié votre campagne.",
+        "title": "Votre campagne est publiée",
+        "body": "Un commercial INFLUX a relu votre campagne de type « {type} » et l'a publiée le {date}.",
+        "next": "Vous pouvez la suivre, la mettre en pause ou la clôturer depuis votre espace INFLUX.",
+        "why": "votre campagne a été relue par un commercial INFLUX"
+      },
+      "rejected": {
+        "subject": "Votre campagne INFLUX n'a pas été publiée",
+        "preheader": "Un commercial INFLUX a relu votre campagne : voici pourquoi elle n'est pas publiée.",
+        "title": "Votre campagne n'a pas été publiée",
+        "body": "Un commercial INFLUX a relu votre campagne de type « {type} » le {date} et ne l'a pas publiée en l'état.",
+        "why": "votre campagne a été relue par un commercial INFLUX"
+      },
+      "reason": {
+        "contact_in_text": "Votre campagne contient une adresse, un numéro, un lien ou une invitation à vous contacter en dehors d'INFLUX.",
+        "amount_in_text": "Un montant figure dans votre texte. Les montants se déclarent dans le bloc budget, qui n'est jamais publié.",
+        "link_in_text": "Les liens ne sont pas acceptés dans une campagne. Votre site figure déjà sur votre profil.",
+        "brief_insufficient": "Votre brief ne permet pas à un créateur de comprendre ce que vous attendez.",
+        "deliverables_inconsistent": "Les formats demandés ne correspondent pas aux réseaux visés.",
+        "budget_inconsistent": "La tranche de budget déclarée n'est pas exploitable en l'état.",
+        "calendar_invalid": "Les dates de votre campagne ne sont plus valides.",
+        "creator_personal_criterion": "Votre campagne exprime un critère portant sur la personne du créateur (âge, genre, apparence). Le ciblage porte sur l'audience, jamais sur le créateur.",
+        "minor_audience": "Une campagne ne peut pas viser une audience de moins de 18 ans.",
+        "concealed_advertising": "Une campagne ne peut pas demander de présenter un contenu rémunéré comme un avis spontané.",
+        "duplicate": "Une campagne identique est déjà publiée.",
+        "sensitive_authorizations_missing": "Nous n'avons pas pu vérifier vos autorisations pour ce type de produit.",
+        "illicit_content": "Votre campagne ne peut pas être publiée : elle est contraire à la loi ou aux conditions d'utilisation d'INFLUX. Le message de l'équipe INFLUX :",
+        "other": "Votre campagne n'a pas pu être publiée en l'état. Le message de l'équipe INFLUX :"
+      },
+      "nextStep": {
+        "fix": "Corrigez votre campagne depuis votre espace INFLUX, puis soumettez-la de nouveau.",
+        "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
+      },
+      "pausedByInflux": {
+        "subject": "Votre campagne INFLUX est en pause",
+        "preheader": "Un commercial INFLUX a mis votre campagne en pause.",
+        "title": "Votre campagne est en pause",
+        "body": "Un commercial INFLUX a mis votre campagne de type « {type} » en pause le {date}. Elle n'accepte plus de candidature tant qu'elle est en pause.",
+        "next": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion.",
+        "why": "un commercial INFLUX a mis votre campagne en pause"
+      },
+      "resumedByInflux": {
+        "subject": "Votre campagne INFLUX est reprise",
+        "preheader": "Un commercial INFLUX a remis votre campagne en ligne.",
+        "title": "Votre campagne est reprise",
+        "body": "Un commercial INFLUX a repris votre campagne de type « {type} » le {date}, après sa mise en pause.",
+        "next": "Vous pouvez la suivre depuis votre espace INFLUX.",
+        "why": "un commercial INFLUX a repris votre campagne"
+      },
+      "closedByInflux": {
+        "subject": "Votre campagne INFLUX est clôturée",
+        "preheader": "Un commercial INFLUX a clôturé votre campagne.",
+        "title": "Votre campagne est clôturée",
+        "body": "Un commercial INFLUX a clôturé votre campagne de type « {type} » le {date}. Une campagne clôturée ne peut plus être rouverte ; son historique est conservé.",
+        "next": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion.",
+        "why": "un commercial INFLUX a clôturé votre campagne"
+      },
+      "closedAutomatically": {
+        "subject": "Votre campagne INFLUX est clôturée",
+        "preheader": "La période de votre campagne est terminée : elle a été clôturée.",
+        "title": "Votre campagne est clôturée",
+        "body": "Votre campagne de type « {type} » a été clôturée automatiquement le {date}, la période prévue étant terminée. Une campagne clôturée ne peut plus être rouverte ; son historique est conservé.",
+        "next": "Vous pouvez créer une nouvelle campagne depuis votre espace INFLUX.",
+        "why": "la période de votre campagne est terminée"
+      },
+      "corrected": {
+        "subject": "Votre campagne INFLUX a été corrigée",
+        "preheader": "Un commercial INFLUX a corrigé un champ de votre campagne.",
+        "title": "Un champ de votre campagne a été corrigé",
+        "body": "Un commercial INFLUX a corrigé le champ « {field} » de votre campagne de type « {type} » le {date}.",
+        "next": "Vous pouvez relire votre campagne depuis votre espace INFLUX.",
+        "why": "un commercial INFLUX a corrigé un champ de votre campagne"
+      },
+      "createdForBrand": {
+        "subject": "Un brouillon de campagne INFLUX a été créé pour vous",
+        "preheader": "Un commercial INFLUX a créé un brouillon de campagne, à votre demande.",
+        "title": "Votre brouillon de campagne est créé",
+        "body": "À votre demande, un commercial INFLUX a créé le {date} un brouillon de campagne de type « {type} ».",
+        "next": "Complétez-le et soumettez-le depuis votre espace INFLUX : il n'est publié qu'après relecture.",
+        "why": "un commercial INFLUX a créé un brouillon de campagne à votre demande"
+      }
+    },
     "verificationNotice": {
       "network": {
         "instagram": "Instagram",

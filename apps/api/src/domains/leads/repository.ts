@@ -316,6 +316,46 @@ export type CreatorProfileAttributes = {
   everPublished: boolean;
 };
 
+/**
+ * What the contact connectors read of the campaigns of a brand (0310; 09 RG104, RG105): codes, dates and
+ * a counter, never a text, a band, a budget nor a note (RG106, D78). The base serves a row to an
+ * advertiser with a brand profile only. On an Apollo line (RG105, CA70) it holds the boolean and the
+ * date ONLY: every other column is null. `campaignsPublished` counts the campaigns ever published,
+ * closed ones included; the "last" is the latest first publication. Countries and networks are
+ * empty when the last campaign names none, null without a published campaign.
+ */
+export type CampaignAttributes = {
+  hasPublished: boolean;
+  campaignsPublished: number | null;
+  /** ISO 8601 UTC; null without a published campaign. */
+  lastPublishedAt: string | null;
+  /** Code of reference.sectors. */
+  lastSector: string | null;
+  /** ISO 4217. */
+  lastCurrency: string | null;
+  /** ISO 3166-1 alpha-2, in the order of the audience slots. */
+  lastCountries: readonly string[] | null;
+  /** Codes of reference.networks, in the order of the first slot of their deliverables. */
+  lastNetworks: readonly string[] | null;
+};
+
+/**
+ * What the worker reads of a campaign.decision line (0310; 09 RG93, RG94; modele §8): the e-mail code of
+ * the payload, the type of the campaign, the day of the act in the account's time zone (`YYYY-MM-DD`),
+ * the reason (of RG90 for a refusal, of RG94 for an intervention), the message of a refusal to the
+ * brand, the field of a correction and the account's language. Never a title, a text of the
+ * campaign, a value, an amount, the internal comment, the opinion nor an agent.
+ */
+export type BrevoCampaignDecision = {
+  emailCode: string;
+  campaignType: string | null;
+  occurredOn: string;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  fieldCode: string | null;
+  preferredLanguage: string;
+};
+
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
 export type ApolloSubject = {
   email: string;
@@ -925,6 +965,89 @@ export async function readBrandProfileAttributes(
         targetMarkets:
           row.target_markets === "" ? [] : row.target_markets.split(","),
         everPublished: row.ever_published,
+      };
+}
+
+/**
+ * The campaign attributes of a Brevo or Apollo contact line in processing for this worker (0310): the
+ * campaigns of the line's account. On an Apollo line the base nulls every column but the boolean and
+ * the date (RG105, CA70). null: no brand profile (a creator, or an erased account).
+ */
+export async function readCampaignAttributes(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<CampaignAttributes | null> {
+  const rows = await tx.execute<{
+    has_published: boolean;
+    campaigns_published: number | null;
+    last_published_at: string | null;
+    last_sector_code: string | null;
+    last_currency: string | null;
+    last_countries: string | null;
+    last_networks: string | null;
+  }>(
+    sql`select has_published, campaigns_published,
+               to_char(last_published_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as last_published_at,
+               last_sector_code, last_currency, last_countries, last_networks
+          from leads.read_campaign_attributes(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  const listOf = (value: string | null): readonly string[] | null =>
+    value === null ? null : value === "" ? [] : value.split(",");
+  return row === undefined
+    ? null
+    : {
+        hasPublished: row.has_published,
+        campaignsPublished:
+          row.campaigns_published === null
+            ? null
+            : Number(row.campaigns_published),
+        lastPublishedAt: row.last_published_at,
+        lastSector: row.last_sector_code,
+        lastCurrency: row.last_currency,
+        lastCountries: listOf(row.last_countries),
+        lastNetworks: listOf(row.last_networks),
+      };
+}
+
+/**
+ * The facts of a campaign.decision line to brevo_transactional in processing for this worker (0310):
+ * null when the act is not the line's account's or campaign's, the code does not match its act, or the
+ * account is erased. The day is cast to text (`YYYY-MM-DD`) here: the driver would return a JS
+ * Date for a SQL `date`, which this code never builds.
+ */
+export async function readBrevoCampaignDecision(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoCampaignDecision | null> {
+  const rows = await tx.execute<{
+    email_code: string;
+    campaign_type_code: string | null;
+    occurred_on: string;
+    reason_code: string | null;
+    member_message: string | null;
+    field_code: string | null;
+    preferred_language: string;
+  }>(
+    sql`select email_code, campaign_type_code,
+               to_char(occurred_on, 'YYYY-MM-DD') as occurred_on,
+               reason_code, member_message, field_code, preferred_language
+          from leads.read_brevo_campaign_decision(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        emailCode: row.email_code,
+        campaignType: row.campaign_type_code,
+        occurredOn: row.occurred_on,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        fieldCode: row.field_code,
+        preferredLanguage: row.preferred_language,
       };
 }
 

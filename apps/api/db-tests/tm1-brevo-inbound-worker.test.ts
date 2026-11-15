@@ -231,6 +231,8 @@ async function turn(): Promise<number> {
       readVerificationEmail: () => Promise.resolve(null),
       readBadgeEmail: () => Promise.resolve(null),
       readVerifiedBadge: () => Promise.resolve(null),
+      readCampaignDecision: () => Promise.resolve(null),
+      readCampaignAttributes: () => Promise.resolve(null),
       logger,
     },
   );

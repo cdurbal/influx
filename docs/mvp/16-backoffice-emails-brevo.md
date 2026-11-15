@@ -1490,6 +1490,12 @@ et coûte cher à reconstituer.
 | État du profil | `PROFILE_STATUS` | liste fermée `draft` · `pending_review` · `published` · `rejected` · `suspended` | — | Créateur : l'état de la vitrine vivante (`07` RG9, L2G ; **vide** sans vitrine) ; marque : l'état de la ligne vivante ; une révision en examen laisse `published` (`06` RG9) |
 | Niveau de badge | `VERIFIED_LEVEL` | liste fermée `none` · `n1` · `n2` *(L2E : `n1` compte vérifié créateur ou marque vérifiée, `n2` audience vérifiée ; valeur lue du badge tenant)* | `none` | `none` |
 | Date du badge | `VERIFIED_AT` *(L2E, créé sur `staging` le 2026-11-07)* | texte (date ISO), comme `CONSENT_AT` | — | Vide ; date du badge qui fixe `VERIFIED_LEVEL`, relue à chaque réécriture du contact (Brevo seul, jamais Apollo) |
+| Campagnes publiées | `CAMPAIGNS_PUBLISHED` *(L3C, créé sur `staging` le 2026-11-15, D70)* | nombre (float), compteur des campagnes **jamais publiées** (`first_published_at`, closes comprises) | `0` | `0` : un vrai compte (aucune campagne publiée), jamais une valeur inventée. **Marque seulement** ; envoyé quand la base sert les campagnes du compte (annonceur avec profil marque), jamais pour un créateur (`09` RG104) |
+| Dernière campagne : date | `LAST_CAMPAIGN_AT` *(L3C)* | texte (date ISO UTC), première publication de la dernière campagne | — | **Vide** (`09` RG107). Marque seulement |
+| Dernière campagne : catégorie | `LAST_CAMPAIGN_SECTOR` *(L3C)* | code de `reference.sectors` | — | **Vide.** Marque seulement |
+| Dernière campagne : devise | `LAST_CAMPAIGN_CURRENCY` *(L3C)* | ISO 4217 | — | **Vide.** Marque seulement |
+| Dernière campagne : pays visés | `LAST_CAMPAIGN_COUNTRIES` *(L3C)* | codes ISO 3166-1 alpha-2, dans l'ordre des pays d'audience, séparés par des virgules | — | **Vide.** Marque seulement |
+| Dernière campagne : réseaux visés | `LAST_CAMPAIGN_NETWORKS` *(L3C)* | codes de `reference.networks`, dans l'ordre du premier livrable de chaque réseau, séparés par des virgules | — | **Vide.** Marque seulement |
 | Consentement marketing | `MARKETING_CONSENT` | booléen | `false` | `false` — **jamais `true` par défaut** |
 | Date du consentement | `CONSENT_AT` | date-heure | — | Vide |
 | Source du consentement | `CONSENT_SOURCE` | liste fermée | — | Vide |
@@ -1501,6 +1507,8 @@ et coûte cher à reconstituer.
 outil qui l'exploite pour segmenter et pour écrire.
 
 *Amendé le 2026-11-04 (L2C commit 10, `06` RG79 à RG81) : `SECTOR`, `COMPANY_SIZE`, `TARGET_MARKETS` et `PROFILE_STATUS` rejoignent la liste fermée ; le budget et le badge n'y sont pas (aucun budget au pilote, `06` réponse A du L2B, D48, D78 ; badge au L2E). Les valeurs viennent de la ligne vivante du profil, lue par le worker à la consommation (`leads.read_brand_profile_attributes()`, `0212`). Ne partent jamais : la raison sociale, le numéro d'immatriculation, les pièces, les notes, l'interlocuteur (prénom, e-mail, téléphone, page), la présentation et le domaine du site (Apollo seul).*
+
+*Amendé le 2026-11-15 (L3C commit 06, `09` RG103 à RG107) : les six attributs de campagne ci-dessus rejoignent la liste fermée, séparés de la liste des trente (`BREVO_CAMPAIGN_ATTRIBUTES`) ; ils sont des codes, des dates et un compteur, jamais une tranche de rémunération, un budget, une référence, une note ni un texte (D78, RG106). Ils viennent de `leads.read_campaign_attributes()` (`0310`), lue à chaque réécriture du contact d'un annonceur ; `FUNNEL_STAGE` passe à `campaign_published` dès la première publication d'une campagne. Apollo ne reçoit que « a publié une campagne » et sa date, en deux étiquettes (`influx_campaign_published`, `influx_campaign_published_on_AAAA_MM_JJ`), sans champ personnalisé (`09` RG105, CA70).*
 
 **RG143 — Ne sont jamais envoyés comme attribut de contact** : nom ou prénom d'une personne
 physique, pseudonyme, identifiant de réseau social, lien de réseau, numéro de téléphone, montant,

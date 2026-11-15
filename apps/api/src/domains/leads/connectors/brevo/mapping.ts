@@ -6,6 +6,7 @@
 import type {
   BrandProfileAttributes,
   BrevoSubject,
+  CampaignAttributes,
   CreatorProfileAttributes,
   SubjectAccount,
   VerifiedBadge,
@@ -48,6 +49,24 @@ export const BREVO_CONTACT_ATTRIBUTES = [
 ] as const;
 
 export type BrevoContactAttribute = (typeof BREVO_CONTACT_ATTRIBUTES)[number];
+
+/**
+ * 16 §M4, L3C commit 06 (09 RG104): the attributes of the campaigns of a brand, codes, a counter and
+ * dates only (RG106, D78: no band, no budget, no text). They are sent when the base serves the
+ * campaign attributes of the account (an advertiser with a brand profile) and for no one else, so the
+ * contact of a creator is rewritten exactly as before; the output check accepts them with the list
+ * above, and nothing else.
+ */
+export const BREVO_CAMPAIGN_ATTRIBUTES = [
+  "CAMPAIGNS_PUBLISHED",
+  "LAST_CAMPAIGN_AT",
+  "LAST_CAMPAIGN_SECTOR",
+  "LAST_CAMPAIGN_CURRENCY",
+  "LAST_CAMPAIGN_COUNTRIES",
+  "LAST_CAMPAIGN_NETWORKS",
+] as const;
+
+export type BrevoCampaignAttribute = (typeof BREVO_CAMPAIGN_ATTRIBUTES)[number];
 
 /**
  * The fields of the body of operation 1 (`POST /contacts`); `emailBlacklisted` only ever false,
@@ -110,7 +129,10 @@ export function languageOf(account: SubjectAccount): "fr" | "en" {
  * level the account holds and its date (0227; 16 §M4, 08 RG92: a level and a date, nothing else);
  * none, and an empty date, without one. `creator`: the live storefront of a creator (0245; 07
  * RG107 to RG110), null for a brand or a creator without one: its attributes are then sent empty
- * (RG110). The state, the score, the first topic and the funnel stage take the creator's values
+ * (RG110). `campaigns`: the campaigns of a brand (0310; 09 RG104), null for an account the base serves
+ * none of: no campaign attribute is then sent. A brand that never published sends the counter at 0 (a
+ * true count, never invented) and every other campaign attribute empty (RG107); one that did moves its
+ * funnel stage to campaign_published. The state, the score, the first topic and the funnel stage take the creator's values
  * where a brand's would sit (an account is one or the other); the networks, the band and the
  * country of the main audience are the creator's only, codes and a band, never a figure (RG108).
  */
@@ -121,6 +143,7 @@ export function mapContact(
   profile: BrandProfileAttributes | null = null,
   badge: VerifiedBadge | null = null,
   creator: CreatorProfileAttributes | null = null,
+  campaigns: CampaignAttributes | null = null,
 ): BrevoContactBody {
   const attributes: Record<BrevoContactAttribute, string | number | boolean> = {
     INFLUX_ACCOUNT_ID: account.id,
@@ -135,10 +158,13 @@ export function mapContact(
     SIGNUP_SOURCE: subject.viaInvitation ? "invitation" : "direct",
     // 06 RG78, 07 RG106: a brand or a creator is "profile_completed" from its first publication,
     // "registered" before
+    // 09 RG104, modele §8: a brand with a published campaign is campaign_published
     FUNNEL_STAGE:
-      profile?.everPublished === true || creator?.everPublished === true
-        ? "profile_completed"
-        : "registered",
+      campaigns?.hasPublished === true
+        ? "campaign_published"
+        : profile?.everPublished === true || creator?.everPublished === true
+          ? "profile_completed"
+          : "registered",
     PROFILE_COMPLETENESS:
       profile?.completenessPercent ?? creator?.completenessPercent ?? 0,
     MAIN_TOPIC: profile?.mainTopic ?? creator?.mainTopic ?? "",
@@ -164,9 +190,28 @@ export function mapContact(
     REFERRER_DOMAIN: subject.referrerDomain ?? "",
     HEARD_FROM: subject.heardFrom ?? "",
   };
+  const campaignAttributes: Record<
+    BrevoCampaignAttribute,
+    string | number
+  > | null =
+    campaigns === null
+      ? null
+      : {
+          CAMPAIGNS_PUBLISHED: campaigns.campaignsPublished ?? 0,
+          LAST_CAMPAIGN_AT: campaigns.lastPublishedAt ?? "",
+          LAST_CAMPAIGN_SECTOR: campaigns.lastSector ?? "",
+          LAST_CAMPAIGN_CURRENCY: campaigns.lastCurrency ?? "",
+          // ISO 3166-1 codes in the order of the audience slots, comma-separated
+          LAST_CAMPAIGN_COUNTRIES: campaigns.lastCountries?.join(",") ?? "",
+          // codes of reference.networks, comma-separated
+          LAST_CAMPAIGN_NETWORKS: campaigns.lastNetworks?.join(",") ?? "",
+        };
   return {
     email: subject.email,
-    attributes,
+    attributes:
+      campaignAttributes === null
+        ? attributes
+        : { ...attributes, ...campaignAttributes },
     listIds: listId === null ? [] : [listId],
     updateEnabled: true,
   };
@@ -179,9 +224,10 @@ function outside(
   return [...names].filter((name) => !allowed.has(name));
 }
 
-const CONTACT_ATTRIBUTE_SET: ReadonlySet<string> = new Set(
-  BREVO_CONTACT_ATTRIBUTES,
-);
+const CONTACT_ATTRIBUTE_SET: ReadonlySet<string> = new Set([
+  ...BREVO_CONTACT_ATTRIBUTES,
+  ...BREVO_CAMPAIGN_ATTRIBUTES,
+]);
 const TRANSACTIONAL_PARAM_SET: ReadonlySet<string> = new Set(
   TRANSACTIONAL_PARAMS,
 );

@@ -8,7 +8,7 @@
 | 04 | 04.md | commit | opus | high | expert-database | fait | 0309 : cycle posé par déclencheur (origine = rôle écrivain), reprise ≠ publication, clôture irréversible ; interventions immuables, ancienne et nouvelle valeur |
 | 05 | 05.md | commit | opus | high | expert-database | fait | I-4. 0310 : export sans agent, avis ni commentaire ; journal L3BS-5 acteur INFLUX ; effacement vide les textes ; leads : codes seuls, Apollo date |
 | X1 | fix-1.md | fix | opus | high | expert-database | fait | I-4. 0311 : campaign.decision journalisé sous son code de catalogue (email_code, template_ref) ; charge sans code : 22023 ; signature et droits inchangés |
-| 06 | 06.md | commit | sonnet | high | expert-integrations-api | à faire | |
+| 06 | 06.md | commit | sonnet | high | expert-integrations-api | fait | CA70 sans tranche ni texte ; sans consentement skipped ; clôture auto quotidienne. EC-1 date Apollo en étiquette, EC-2 compteur 0, EC-3 minor_audience à relire PO |
 | 07 | 07.md | commit | sonnet | high | dev-react-node | à faire | |
 | 08 | 08.md | commit | sonnet | high | dev-react-node | à faire | |
 | 09 | 09.md | commit | sonnet | high | dev-react-node | à faire | |

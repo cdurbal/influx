@@ -9,8 +9,8 @@ import { STORAGE_BUCKETS, type StorageBucket } from "../../platform/storage.ts";
 /**
  * The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8; ops_retention:
  * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09; verification_expiry: 0223, L2E commit 07;
- * badge_lifecycle: 0230, L2F commit 05; campaign_closure: 0309, L3C commit 04, its runner with L3C
- * commit 06: until then the tick skips it).
+ * badge_lifecycle: 0230, L2F commit 05; campaign_closure: 0309, L3C commit 04, its runner L3C
+ * commit 06).
  */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
@@ -273,6 +273,25 @@ export async function purgeVerificationFindings(
   const rows = await tx.execute<{ count: number }>(
     sql`select ops.purge_verification_findings(${run.runId}::uuid, ${run.attempt}::smallint)
                  as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** 0309: campaigns closed per call of ops.close_ended_campaigns() at most. */
+export const CAMPAIGN_CLOSURE_BATCH = 500;
+
+/**
+ * 0309 (09 RG9; modele §5): the published or paused campaigns whose UTC day reached ends_on +
+ * campaign_auto_close_days closed, by the system (no actor), their e-mail queued and their register
+ * line written by the database; the count (at most CAMPAIGN_CLOSURE_BATCH: call again). Only inside
+ * the open campaign_closure run of this attempt (55000 otherwise).
+ */
+export async function closeEndedCampaigns(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.close_ended_campaigns(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
   );
   return Number(rows[0]?.count ?? 0);
 }
