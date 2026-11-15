@@ -88,6 +88,8 @@ type LineSpec = {
   /** Seconds from now: negative = available for that long already, positive = in the future. */
   availableIn?: number;
   emailCode?: string;
+  /** The event type of the line: lead.created by default. */
+  eventType?: string;
   /** A line already taken: by which worker, how many seconds ago. */
   processing?: { by: string; secondsAgo: number };
   attempts?: number;
@@ -112,7 +114,7 @@ async function insertLine(spec: LineSpec = {}): Promise<string> {
     `insert into leads.outbox_events
        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key,
         available_at, status, locked_by, locked_at, attempts)
-     values ($1, 'lead.created', $2::leads.outbox_destination, $3, $4::smallint, $5::jsonb, $6,
+     values ($1, $12, $2::leads.outbox_destination, $3, $4::smallint, $5::jsonb, $6,
              now() + make_interval(secs => $7::double precision), $8::leads.outbox_status, $9,
              case when $9::text is null then null
                   else now() - make_interval(secs => $10::double precision) end,
@@ -130,6 +132,7 @@ async function insertLine(spec: LineSpec = {}): Promise<string> {
       spec.processing?.by ?? null,
       spec.processing?.secondsAgo ?? 0,
       spec.attempts ?? 0,
+      spec.eventType ?? "lead.created",
     ] as postgres.ParameterOrJSON<never>[],
   );
   if (row === undefined) {
@@ -1021,6 +1024,120 @@ describe("leads.complete_outbox_attempt(): the four outcomes", () => {
     ]);
     // the channel of the sign-in code has no contact state (0101, RG35)
     expect(await contactStates(account)).toEqual([]);
+  });
+
+  it("succeeded (live) on a campaign decision: journaled under campaign.decision, the code of the catalogue, never its variant (0311, arbitrage A2)", async () => {
+    const account = await createAccount("advertiser");
+    const id = await insertLine({
+      subject: `account:${account}`,
+      destination: "brevo_transactional",
+      eventType: "campaign.decision",
+      emailCode: "published",
+    });
+    const messageId = `<tm1-${randomUUID()}@smtp-relay.test>`;
+    const result = await withOthersLocked(() =>
+      committedAsWorker(async (tx) => {
+        await claim(tx);
+        await begin(tx, id);
+        return complete(tx, id, {
+          status: "succeeded",
+          providerMessageId: messageId,
+          locale: "fr",
+          templateVersion: 1,
+        });
+      }),
+    );
+    expect(result).toEqual({
+      written_status: "succeeded",
+      journal_inserted: true,
+      account_id: account,
+    });
+    expect(await lineRow(id)).toMatchObject({
+      status: "succeeded",
+      locked: false,
+      completed: true,
+      provider_message_id: messageId,
+      last_error_code: null,
+    });
+    expect(await journalOf(id)).toEqual([
+      {
+        email_code: "campaign.decision",
+        priority: "p1",
+        account_id: account,
+        recipient_email: null,
+        locale: "fr",
+        template_ref: "campaign.decision",
+        template_version: 1,
+        status: "sent",
+        sent: true,
+        provider_message_id: messageId,
+      },
+    ]);
+  });
+
+  it("succeeded (live) on a profile decision: still journaled under the code its line names (0311)", async () => {
+    const account = await createAccount("advertiser");
+    const id = await insertLine({
+      subject: `account:${account}`,
+      destination: "brevo_transactional",
+      eventType: "profile.decision",
+      emailCode: "profile.decision",
+    });
+    const messageId = `<tm1-${randomUUID()}@smtp-relay.test>`;
+    const result = await withOthersLocked(() =>
+      committedAsWorker(async (tx) => {
+        await claim(tx);
+        await begin(tx, id);
+        return complete(tx, id, {
+          status: "succeeded",
+          providerMessageId: messageId,
+          locale: "en",
+          templateVersion: 2,
+        });
+      }),
+    );
+    expect(result).toEqual({
+      written_status: "succeeded",
+      journal_inserted: true,
+      account_id: account,
+    });
+    expect(await journalOf(id)).toEqual([
+      {
+        email_code: "profile.decision",
+        priority: "p1",
+        account_id: account,
+        recipient_email: null,
+        locale: "en",
+        template_ref: "profile.decision",
+        template_version: 2,
+        status: "sent",
+        sent: true,
+        provider_message_id: messageId,
+      },
+    ]);
+  });
+
+  it("refuses the live success of a campaign decision whose line names no e-mail code (22023, 0311)", async () => {
+    const account = await createAccount("advertiser");
+    const id = await insertLine({
+      subject: `account:${account}`,
+      destination: "brevo_transactional",
+      eventType: "campaign.decision",
+    });
+    const result = await withOthersLocked(() =>
+      asWorker(async (tx) => {
+        await claim(tx);
+        await begin(tx, id);
+        return tryComplete(tx, id, {
+          status: "succeeded",
+          providerMessageId: `<tm1-${randomUUID()}@smtp-relay.test>`,
+          locale: "fr",
+          templateVersion: 1,
+        });
+      }),
+    );
+    expect(result).toEqual({ outcome: "error", code: INVALID_PARAMETER });
+    expect(await journalOf(id)).toEqual([]);
   });
 
   it("skipped: a normal case with its reason, written in the contact state, never a failure (RG36, RG80)", async () => {
