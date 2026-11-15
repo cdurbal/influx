@@ -112,6 +112,7 @@ export const messages = {
     brandReviewQueue: "Profils marque à valider",
     creatorReviewQueue: "Profils créateur à valider",
     portfolioQueue: "Visuels de portfolio à modérer",
+    campaignReviewQueue: "Campagnes à valider",
     verificationCreators: "Vérifications créateurs",
     verificationBrands: "Vérifications marques",
     verificationDisputes: "Contestations",
@@ -135,6 +136,7 @@ export const messages = {
     profiles_advertiser: "Profils marque à valider",
     profiles_creator: "Profils créateur à valider",
     portfolio_moderation: "Visuels de portfolio à modérer",
+    campaigns: "Campagnes à valider",
     verification_creators: "Vérifications des créateurs",
     verification_brands: "Vérifications des marques",
     verification_disputes: "Contestations de badge",
@@ -2747,6 +2749,25 @@ export const messages = {
         "Le pseudo d’une ligne porteuse d’un badge « Compte vérifié » actif se contrôle dans la file Identifiants modifiés : rien n’a été enregistré.",
       notReplaceable:
         "Un visuel de remplacement ne peut plus prendre la place de l’original : rien n’a été enregistré.",
+      // queue 7 (campaigns, L3C-08): the issues of CAMPAIGN_DECISION_CONFLICT_ISSUES this screen translates
+      campaignState:
+        "La campagne n’est plus dans un état que cette entrée peut décider : rien n’a été enregistré. Relisez l’entrée ou rendez la main.",
+      campaignClosed:
+        "La campagne est close : aucune décision n’est plus possible. Rien n’a été enregistré.",
+      notEnhancedReview:
+        "Cette campagne n’est pas en revue renforcée : elle se publie directement. Relisez l’entrée.",
+      enhancedReviewRequired:
+        "Cette campagne est en revue renforcée : elle doit d’abord être transmise au 2ᵉ examinateur. Relisez l’entrée.",
+      enhancedReview:
+        "Une revue renforcée exige deux personnes distinctes : le 1ᵉʳ examinateur ne peut pas publier la campagne. Rien n’a été enregistré.",
+      firstReviewGiven:
+        "Le 1ᵉʳ examen est déjà donné : la campagne attend le 2ᵉ examinateur. Relisez l’entrée.",
+      brandNotPublishable:
+        "La marque a été suspendue. Cette campagne ne peut pas être publiée. Vous pouvez la refuser avec un motif, ou rendre la main.",
+      calendarPassed:
+        "La date limite de candidature est passée : la campagne ne peut plus être publiée. Refusez-la avec le motif du calendrier, ou rendez la main.",
+      liveCampaignCap:
+        "La marque a atteint son plafond de campagnes en ligne : elle doit en clore une avant que celle-ci soit publiée. Rien n’a été enregistré.",
     },
     shortcuts: {
       title: "Raccourcis de l’écran de décision",
@@ -3289,6 +3310,326 @@ export const messages = {
       publish:
         "ouvrir le récapitulatif de la publication (ne publie jamais seul)",
       show: "afficher le prochain visuel non affiché (la lecture est enregistrée)",
+      reject: "ouvrir le choix du motif (ne refuse jamais seul)",
+    },
+  },
+  /**
+   * L3C-08 (09 RG5, RG85, RG87 to RG95, RG21 to RG23; 15 RG26 to RG28, RG33; 17b §2.7 line 6, §3.8; l3c-fiche
+   * invariants 2, 5, 12, 13): queue 7, the campaigns to validate, as a list. The list shows the brand, the title,
+   * the category, the mention of the enhanced review and the alerts in words: no text of the campaign, no band
+   * (09 RG87). The queue has no filter of its own (the contract is closed on the common ones, 15 RG33).
+   */
+  campaignQueue: {
+    lead: "Une campagne soumise par une marque attend ici : prenez l’entrée en charge, lisez la campagne et son brief, puis publiez-la ou refusez-la avec un motif. En secteur sensible, deux personnes distinctes examinent la campagne. La liste ne montre ni le brief ni le budget : l’écran de décision les montre à la personne qui a pris l’entrée en charge.",
+    tableLabel: "Entrées de la file Campagnes à valider",
+    columns: {
+      state: "État",
+      due: "Échéance",
+      brand: "Marque",
+      title: "Titre",
+      category: "Catégorie",
+      review: "Examen",
+      owner: "Responsable",
+      holder: "Verrou",
+    },
+    untitled: "Campagne sans titre",
+    unknownBrand: "Marque sans nom",
+    none: "non renseignée",
+    review: {
+      single: "Un examen",
+      first: "Revue renforcée : 1ᵉʳ examen",
+      second: (name: string | null) =>
+        `Revue renforcée : 2ᵉ examen, 1ᵉʳ avis de ${name ?? "un collègue"}`,
+    },
+    alerts: {
+      contact: "Coordonnée possible dans un texte",
+      link: "Lien dans un texte",
+      amount: "Montant dans un texte",
+      duplicate: "Campagne proche de la même marque",
+    },
+    openEntryOf: (title: string, brand: string) =>
+      `Ouvrir l’entrée de la campagne ${title} de ${brand}`,
+  },
+  /**
+   * L3C-08 (09 RG1, RG5, RG6, RG21 to RG23, RG85, RG88 to RG95, CA56 to CA58; 15 RG27 C1 to C8, RG36, RG114 to
+   * RG116; 17b §3.8; l3c/modele.md §1, §3, §4; l3c-fiche invariants 2, 5, 12, 13): the decision screen of a
+   * campaign. The sentences sent to the brand are never written here: they come from apps/api with the reasons,
+   * from the very files of the e-mail (what the agent reads is what is sent). The budget is read by the label
+   * of its band alone (D78): no figure, no total, no currency, no commission, no net (D48). The first opinion of
+   * an enhanced review is served to the holder of the live claim only.
+   */
+  campaignReview: {
+    title: (title: string | null, brand: string | null) =>
+      `Campagne ${title === null ? "sans titre" : `« ${title} »`}${brand === null ? "" : ` — ${brand}`}`,
+    subtitle: (submittedAt: string) => `Soumise le ${submittedAt}`,
+    sections: {
+      brand: "La marque",
+      campaign: "La campagne",
+      brief: "Le brief",
+      alerts: "Contrôles et alertes",
+      decision: "Décision",
+    },
+    enhanced: {
+      title: "Revue renforcée — catégorie de produit sensible",
+      first: "Deux personnes sont requises. Cette entrée en est au 1ᵉʳ examen.",
+      firstYou: "Deux personnes sont requises. Vous êtes le 1ᵉʳ examinateur.",
+      second: (name: string | null, at: string | null) =>
+        `2ᵉ examen — 1ᵉʳ avis de ${name ?? "un collègue"}${at === null ? "" : `, le ${at}`}.`,
+      secondYou: "Deux personnes sont requises. Vous êtes le 2ᵉ examinateur.",
+      opinionTitle: "Avis du 1ᵉʳ examinateur",
+      opinionHolderOnly:
+        "L’avis du 1ᵉʳ examinateur n’est lisible que par la personne qui a pris l’entrée en charge.",
+      opinionNote:
+        "Interne : cet avis ne part ni à la marque, ni vers un outil externe.",
+    },
+    facts: {
+      brandName: "Marque",
+      country: "Pays",
+      language: "Langue du compte",
+      verified: "Compte",
+      published: "Campagnes déjà publiées",
+      owner: "Commercial responsable du compte",
+      category: "Catégorie de campagne",
+      sector: "Secteur du produit",
+      reference: "Référence interne de la marque",
+      remuneration: "Nature de la contrepartie",
+      budget: "Budget par créateur (tranche)",
+      creatorsWanted: "Créateurs recherchés",
+      period: "Période de la campagne",
+      applicationsClose: "Candidatures jusqu’au",
+      contentDue: "Contenu à remettre le",
+      deliverables: "Livrables",
+      usage: "Droits d’usage",
+      exclusivity: "Exclusivité",
+      reviewDelay: "Délai de relecture par la marque",
+      productSent: "Produit envoyé au créateur",
+      keepsProduct: "Produit conservé par le créateur",
+      shipping: "Frais d’envoi à la charge de",
+      audience: "Audience visée",
+      maxApplications: "Plafond de candidatures",
+      publicSummary: "Résumé public",
+      productDescription: "Description du produit",
+      restrictions: "Restrictions",
+      keyMessages: "Messages clés",
+    },
+    verified: { yes: "vérifié", no: "non vérifié" },
+    sensitive: "sensible",
+    unset: "non renseigné",
+    none: "aucun",
+    yes: "oui",
+    no: "non",
+    budgetNote:
+      "Le budget se lit par tranche : aucune somme n’est enregistrée ni calculée ici. Les coûts se négocient avec le commercial.",
+    periodRange: (from: string | null, to: string | null) =>
+      `du ${from ?? "?"} au ${to ?? "?"}`,
+    deliverable: (quantity: number, network: string, format: string) =>
+      `${quantity} × ${network}, ${format}`,
+    audienceLine: (label: string, values: string) => `${label} : ${values}`,
+    audienceLabels: {
+      countries: "pays",
+      languages: "langues",
+      bands: "tranches d’audience",
+      ageBands: "âges",
+      gender: "répartition",
+      topics: "thèmes",
+    },
+    keyMessage: (position: number, text: string) => `${position}. ${text}`,
+    remunerationKinds: {
+      cash: "Numéraire",
+      cash_and_gift: "Numéraire et produit offert",
+      gift_only: "Produit offert seul",
+      affiliate: "Affiliation",
+    } as Readonly<Record<string, string>>,
+    shippingPayers: {
+      brand: "La marque",
+      creator: "Le créateur",
+    } as Readonly<Record<string, string>>,
+    usageDurations: {
+      "1m": "1 mois",
+      "3m": "3 mois",
+      "6m": "6 mois",
+      "12m": "12 mois",
+      unlimited: "sans limite de durée",
+    } as Readonly<Record<string, string>>,
+    territoryScopes: {
+      worldwide: "monde entier",
+      selected_countries: "pays choisis",
+    } as Readonly<Record<string, string>>,
+    reviewDelays: {
+      "48h": "48 heures",
+      "5bd": "5 jours ouvrés",
+      "10bd": "10 jours ouvrés",
+    } as Readonly<Record<string, string>>,
+    exclusivities: {
+      none: "aucune",
+      le_1m: "jusqu’à 1 mois",
+      le_3m: "jusqu’à 3 mois",
+      negotiable: "à discuter",
+    } as Readonly<Record<string, string>>,
+    /** The statuses a duplicate can be in (09 RG3). */
+    statuses: {
+      draft: "brouillon",
+      pending_review: "en cours de validation",
+      published: "publiée",
+      paused: "en pause",
+      closed: "close",
+      rejected: "refusée",
+    } as Readonly<Record<string, string>>,
+    /** The labels of the bands, by their key `price_band.<code>` (D78): the label alone, without its currency. */
+    priceBands: {
+      "price_band.under_100": "moins de 100",
+      "price_band.100_250": "100 à 250",
+      "price_band.250_500": "250 à 500",
+      "price_band.500_1000": "500 à 1 000",
+      "price_band.1000_2500": "1 000 à 2 500",
+      "price_band.2500_5000": "2 500 à 5 000",
+      "price_band.5000_10000": "5 000 à 10 000",
+      "price_band.10000_25000": "10 000 à 25 000",
+      "price_band.25000_50000": "25 000 à 50 000",
+      "price_band.50000_plus": "50 000 et plus",
+    } as Readonly<Record<string, string>>,
+    unknownBand: "tranche non reconnue",
+    brief: {
+      lead: "Texte brut, affiché en entier : jamais tronqué, jamais interprété.",
+      empty: "Aucun brief saisi.",
+    },
+    alerts: {
+      none: "Aucune alerte sur cette campagne.",
+      intro:
+        "Les alertes informent : aucune ne bloque la décision. Elles nomment le champ et la nature du signal, jamais le texte.",
+      contact: (field: string, signals: string) =>
+        `Coordonnée possible dans « ${field} » (${signals}).`,
+      link: (field: string, signals: string) =>
+        `Lien possible dans « ${field} » (${signals}).`,
+      amount: (field: string) => `Montant possible dans « ${field} ».`,
+      keyMessageOf: (field: string, position: number) =>
+        `${field}, n° ${position}`,
+      duplicate: (title: string | null, status: string) =>
+        `La même marque a déjà une campagne au titre proche, période qui se recouvre : ${title === null ? "sans titre" : `« ${title} »`} (${status}). Information, pas un refus.`,
+      fields: {
+        title: "Titre",
+        publicSummary: "Résumé public",
+        brief: "Brief",
+        productDescription: "Description du produit",
+        restrictions: "Restrictions",
+        keyMessages: "Messages clés",
+      } as Readonly<Record<string, string>>,
+      signals: {
+        email: "adresse e-mail",
+        url: "lien",
+        domain: "nom de domaine",
+        phone: "numéro de téléphone",
+        handle: "pseudo",
+        messenger: "messagerie",
+        amount: "montant",
+      } as Readonly<Record<string, string>>,
+    },
+    suspended: {
+      title: "Marque suspendue",
+      text: "La marque a été suspendue. Cette campagne ne peut pas être publiée. Refusez-la avec un motif, ou rendez la main.",
+    },
+    decision: {
+      leadSingle:
+        "Deux issues : publier la campagne, ou la refuser avec un motif. La décision porte sur la version affichée ici.",
+      leadFirst:
+        "Revue renforcée, 1ᵉʳ examen : vous ne publiez pas. Vous transmettez la campagne au 2ᵉ examinateur avec un avis motivé, ou vous la refusez avec un motif.",
+      leadSecond:
+        "Revue renforcée, 2ᵉ examen : vous publiez la campagne, ou vous la refusez avec un motif.",
+      ownerLabel: "Commercial responsable *",
+      ownerHelp:
+        "Une campagne sans responsable est une campagne que personne ne vendra.",
+      ownerPlaceholder: "Choisir le commercial responsable",
+      ownerRequired: "Choisissez le commercial responsable avant de publier.",
+      ownerInvalid:
+        "Ce commercial ne peut pas être responsable de cette campagne.",
+      ownerNone: "Aucun commercial ne peut être désigné responsable.",
+      publish: "Publier",
+      forward: "Transmettre au 2ᵉ examinateur",
+      reject: "Refuser avec motif",
+      busy: "Enregistrement…",
+      publishTitle: "Publier cette campagne ?",
+      publishLead:
+        "La campagne est publiée telle qu’affichée ici : elle devient visible des créateurs, sans budget ni référence interne.",
+      publishRecap: (
+        title: string | null,
+        brand: string | null,
+        language: string,
+        owner: string,
+      ) =>
+        `La campagne ${title === null ? "sans titre" : `« ${title} »`}${brand === null ? "" : ` de ${brand}`} sera publiée, et la marque en sera informée par e-mail, en ${language}. Responsable : ${owner}.`,
+      publishConfirm: "Confirmer la publication",
+      publishCommentRecap: "Commentaire interne joint :",
+      forwardTitle: "Transmettre au 2ᵉ examinateur",
+      forwardLead:
+        "L’entrée revient dans la file, masquée pour vous ; une autre personne la publiera ou la refusera. Votre avis ne part ni à la marque, ni vers un outil externe.",
+      forwardConfirm: "Transmettre",
+      opinionLabel: "Avis motivé (20 à 1 000 caractères)",
+      opinionHelp:
+        "Pourquoi cette campagne vous paraît publiable, malgré la catégorie sensible. Lu par le 2ᵉ examinateur seul.",
+      opinionCount: (length: number, max: number, min: number) =>
+        `${length} / ${max} caractères (${min} au moins).`,
+      opinionTooShort: "L’avis motivé doit compter au moins 20 caractères.",
+      opinionTooLong: "L’avis motivé dépasse 1 000 caractères.",
+      opinionInvalid: "L’avis n’a pas été accepté : vérifiez sa longueur.",
+      rejectTitle: "Refuser cette campagne",
+      rejectLead:
+        "La marque reçoit par e-mail le motif et ce qu’elle peut faire ensuite ; sa campagne reste modifiable et se soumet de nouveau.",
+      reasonLegend: "Motif du refus (liste fermée)",
+      reasonRequired: "Choisissez un motif avant de refuser.",
+      reasonConfirm: "Refuser",
+      messageToBrand: "Message envoyé à la marque :",
+      nextStep: "Ce que la marque pourra faire :",
+      otherMessage:
+        "Message à la marque (20 à 500 caractères, sans coordonnée)",
+      otherMessageHelp:
+        "Ce texte est envoyé tel quel à la marque, à la suite de la phrase ci-dessus.",
+      otherCount: (length: number, max: number, min: number) =>
+        `${length} / ${max} caractères (${min} au moins).`,
+      otherTooShort:
+        "Le message à la marque doit compter au moins 20 caractères.",
+      otherTooLong: "Le message à la marque dépasse 500 caractères.",
+      commentTooLong: "Le commentaire dépasse 1 000 caractères.",
+      reasonLabels: {
+        contact_in_text: "Coordonnée dans un texte",
+        amount_in_text: "Montant dans un texte",
+        link_in_text: "Lien dans un texte",
+        brief_insufficient: "Brief insuffisant",
+        deliverables_inconsistent: "Livrables incohérents",
+        budget_inconsistent: "Budget incohérent",
+        calendar_invalid: "Calendrier invalide",
+        creator_personal_criterion: "Critère personnel sur le créateur",
+        minor_audience: "Audience de mineurs",
+        concealed_advertising: "Publicité dissimulée",
+        duplicate: "Doublon d’une campagne de la marque",
+        sensitive_authorizations_missing:
+          "Autorisations d’un secteur sensible manquantes",
+        illicit_content: "Contenu illicite ou contraire aux CGU",
+        other: "Autre — message rédigé par vous",
+      } as Readonly<Record<string, string>>,
+      publishedNotice: (title: string | null) =>
+        `Campagne ${title === null ? "sans titre" : `« ${title} »`} publiée. La marque en est informée par e-mail.`,
+      forwardedNotice: (title: string | null) =>
+        `Avis enregistré : la campagne ${title === null ? "sans titre" : `« ${title} »`} attend le 2ᵉ examinateur.`,
+      rejectedNotice: (title: string | null, reason: string) =>
+        `Campagne ${title === null ? "sans titre" : `« ${title} »`} refusée — ${reason}. La marque en est informée par e-mail.`,
+      lateMark:
+        "Décision prise après l’échéance : elle est marquée comme telle.",
+    },
+    closed: {
+      published: "Cette entrée est close : la campagne a été publiée.",
+      rejected: "Cette entrée est close : la campagne a été refusée.",
+      withdrawn: "Cette entrée est close : elle a été retirée de la file.",
+      open: "Cette entrée est close.",
+      decidedBy: (name: string, at: string) => `Décidée par ${name}, le ${at}.`,
+      decidedAt: (at: string) => `Décidée le ${at}.`,
+      late: "Décision prise après l’échéance.",
+      reason: (reason: string) => `Motif : ${reason}.`,
+      message: "Message reçu par la marque :",
+    },
+    shortcuts: {
+      keys: "‹v› publier ou transmettre (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      publish:
+        "ouvrir le récapitulatif de la publication, ou de la transmission au 2ᵉ examinateur (ne décide jamais seul)",
       reject: "ouvrir le choix du motif (ne refuse jamais seul)",
     },
   },

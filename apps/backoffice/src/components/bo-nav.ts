@@ -26,6 +26,7 @@ export type SectionKey =
   | "verificationBrands"
   | "verificationDisputes"
   | "identifierChanges"
+  | "campaignReviewQueue"
   | "signups"
   | "memberInvitations"
   | "dualControl"
@@ -88,6 +89,12 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       {
         key: "identifierChanges",
         href: "/files/identifiants-modifies",
+        adminOnly: false,
+      },
+      // queue 7, the campaigns to validate (09 RG5; 17b §3.8; L3C-08)
+      {
+        key: "campaignReviewQueue",
+        href: "/files/campagnes",
         adminOnly: false,
       },
     ],

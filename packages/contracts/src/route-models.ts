@@ -269,6 +269,8 @@ export const BACKOFFICE_PAGE_MODELS: readonly string[] = [
   "/files/contestations/:id",
   "/files/identifiants-modifies",
   "/files/identifiants-modifies/:id",
+  "/files/campagnes",
+  "/files/campagnes/:id",
   "/inscrits",
   "/inscrits/:id",
   "/invitations",

@@ -212,14 +212,27 @@ const ISSUE_TEXT: Readonly<Record<string, string>> = {
   required_field_missing: t.refusals.requiredFieldMissing,
   verified_handle: t.refusals.verifiedHandle,
   not_replaceable: t.refusals.notReplaceable,
+  // queue 7 (L3C-08), the issues of CAMPAIGN_DECISION_CONFLICT_ISSUES this screen translates; the claim and
+  // version ones (held_by_other, claim_*, entry_closed, stale_token) read the entry again, as for every queue
+  campaign_state: t.refusals.campaignState,
+  campaign_closed: t.refusals.campaignClosed,
+  not_enhanced_review: t.refusals.notEnhancedReview,
+  enhanced_review_required: t.refusals.enhancedReviewRequired,
+  enhanced_review: t.refusals.enhancedReview,
+  first_review_given: t.refusals.firstReviewGiven,
+  brand_not_publishable: t.refusals.brandNotPublishable,
+  calendar_passed: t.refusals.calendarPassed,
+  live_campaign_cap: t.refusals.liveCampaignCap,
 };
 
 /**
  * The queues that share the screens: 5 (contests of a decision), 6 (identifier changed) and, since L2G-15,
  * 2 (the creator profiles to validate: a publication, or a refusal with a typed reason) and, since L2G-16,
- * 3 (one visual of a portfolio: an approval, or a refusal with a reason of the grid of 07 RG79).
+ * 3 (one visual of a portfolio: an approval, or a refusal with a reason of the grid of 07 RG79) and, since
+ * L3C-08, 7 (a campaign: a publication, the opinion of an enhanced review's first examination, or a refusal).
  */
-export type ClaimedQueue = "dispute" | "identifier" | "creator" | "portfolio";
+export type ClaimedQueue =
+  "dispute" | "identifier" | "creator" | "portfolio" | "campaign";
 
 /**
  * What a refused call of these queues means: a lost claim, a stale version or a closed entry read the
@@ -242,6 +255,23 @@ export function claimedRefusalOf(
         if (issues.includes(issue)) {
           return { kind: "text", text, field: null };
         }
+      }
+    }
+    if (queue === "campaign" && result.code === "validation_failed") {
+      // the database refused a value of queue 7: the opinion, the responsible (22023 on the body field)
+      if (issues.includes("invalid_opinion")) {
+        return {
+          kind: "text",
+          text: messages.campaignReview.decision.opinionInvalid,
+          field: "opinion",
+        };
+      }
+      if (issues.includes("invalid_owner_agent")) {
+        return {
+          kind: "text",
+          text: messages.campaignReview.decision.ownerInvalid,
+          field: "owner",
+        };
       }
     }
     if (

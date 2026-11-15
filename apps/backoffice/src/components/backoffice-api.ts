@@ -93,6 +93,22 @@ import {
   type ReleaseEntryResponse,
 } from "@influx/contracts/backoffice-queues";
 import {
+  campaignEntriesResponseSchema,
+  firstReviewCampaignEntryResponseSchema,
+  openCampaignEntryResponseSchema,
+  publishCampaignEntryResponseSchema,
+  rejectCampaignEntryResponseSchema,
+  type CampaignEntriesResponse,
+  type CampaignEntriesSearchBody,
+  type FirstReviewCampaignEntryRequest,
+  type FirstReviewCampaignEntryResponse,
+  type OpenCampaignEntryResponse,
+  type PublishCampaignEntryRequest,
+  type PublishCampaignEntryResponse,
+  type RejectCampaignEntryRequest,
+  type RejectCampaignEntryResponse,
+} from "@influx/contracts/campaign-review";
+import {
   creatorEntriesResponseSchema,
   decidedEntryResponseSchema,
   openCreatorEntryResponseSchema,
@@ -1183,6 +1199,102 @@ export function readCreatorEntryVisual(
     "GET",
     `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/portfolio/${idSegment(itemId)}/image`,
     reviewImageResponseSchema,
+  );
+}
+
+// --- Queue 7, the campaigns to validate (09 RG5, RG85, RG87 to RG95; 15 RG27; 17b §3.8; l3c/modele.md; L3C-08) ---
+
+const CAMPAIGN_REVIEW_ENTRIES = "/v1/bo/campaigns/entries";
+
+/** One page: filters, period and cursor in the BODY, as queues 1 and 2; the counters ride on the answer. */
+export function searchCampaignEntries(
+  body: CampaignEntriesSearchBody,
+): Promise<RelayResult<CampaignEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/search`,
+    campaignEntriesResponseSchema,
+    body,
+  );
+}
+
+/** Opening is claiming (15 C1): the decision view, its token, the phase of the review and the closed reasons. */
+export function openCampaignEntry(
+  id: string,
+): Promise<RelayResult<OpenCampaignEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/open`,
+    openCampaignEntryResponseSchema,
+  );
+}
+
+/** Time 1 of an enhanced review: a reasoned opinion, the entry goes back to the queue for a second person. */
+export function firstReviewCampaignEntry(
+  id: string,
+  body: FirstReviewCampaignEntryRequest,
+): Promise<RelayResult<FirstReviewCampaignEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/first-review`,
+    firstReviewCampaignEntryResponseSchema,
+    body,
+  );
+}
+
+export function publishCampaignEntry(
+  id: string,
+  body: PublishCampaignEntryRequest,
+): Promise<RelayResult<PublishCampaignEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/publish`,
+    publishCampaignEntryResponseSchema,
+    body,
+  );
+}
+
+export function rejectCampaignEntry(
+  id: string,
+  body: RejectCampaignEntryRequest,
+): Promise<RelayResult<RejectCampaignEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/reject`,
+    rejectCampaignEntryResponseSchema,
+    body,
+  );
+}
+
+export function releaseCampaignEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendCampaignEntryClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseCampaignEntryClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
   );
 }
 

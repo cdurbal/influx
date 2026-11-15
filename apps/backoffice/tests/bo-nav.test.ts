@@ -120,6 +120,12 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
       "verificationCreators",
     ],
     ["/files/verifications-marques", "queues", "verificationBrands"],
+    ["/files/campagnes", "queues", "campaignReviewQueue"],
+    [
+      "/files/campagnes/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "campaignReviewQueue",
+    ],
     ["/files/contestations", "queues", "verificationDisputes"],
     [
       "/files/contestations/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
@@ -184,6 +190,7 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
       "verificationBrands",
       "verificationDisputes",
       "identifierChanges",
+      "campaignReviewQueue",
     ]);
     expect(queues.href).toBe("/files/profils-marque");
     expect(subEntriesOf(queues).map((section) => section.href)).toEqual([
@@ -194,6 +201,7 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
       "/files/verifications-marques",
       "/files/contestations",
       "/files/identifiants-modifies",
+      "/files/campagnes",
     ]);
   });
 
@@ -244,6 +252,7 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
       "verificationBrands",
       "verificationDisputes",
       "identifierChanges",
+      "campaignReviewQueue",
       "signups",
       "memberInvitations",
     ]);
