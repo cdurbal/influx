@@ -71,9 +71,15 @@ const WEB_VERIFICATION_PREFIXES = [
  * `creator-queues` (L2G 11) is the contract of queues 2 and 3 of the backoffice, served to agents and
  * administrators on /v1/bo/ only (T14 keeps every other role off it): the moderator reads the layer I
  * (handle, link, figures) of the profile he decides, so it is held with the backoffice modules.
+ * `campaign-review` (L3C 07) is the contract of queue 7 and of the record of a campaign, served to agents
+ * and administrators on /v1/bo/ only: its codes (sector, network, deadlines, claim) are the campaign's own.
  */
 function isBackofficeModule(name: string): boolean {
-  return name.startsWith("backoffice-") || name === "creator-queues";
+  return (
+    name.startsWith("backoffice-") ||
+    name === "creator-queues" ||
+    name === "campaign-review"
+  );
 }
 
 function isVerificationModule(name: string): boolean {

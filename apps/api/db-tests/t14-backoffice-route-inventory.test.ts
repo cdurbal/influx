@@ -121,6 +121,41 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
     body: { reasonCode: "holder_absent" },
   },
   "GET /v1/bo/queues/portfolio-moderation/entries/:id/image": {},
+  // L3C 07: queue 7 (the campaigns to validate, 0307, 0308) and the record of a campaign (0309)
+  "GET /v1/bo/campaigns/entries": {},
+  "POST /v1/bo/campaigns/entries/search": { body: {} },
+  "POST /v1/bo/campaigns/entries/:id/open": {},
+  "POST /v1/bo/campaigns/entries/:id/release": {},
+  "POST /v1/bo/campaigns/entries/:id/extend": {},
+  "POST /v1/bo/campaigns/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/campaigns/entries/:id/first-review": {
+    body: {
+      reviewToken: "0".repeat(64),
+      opinion: "A favourable opinion of at least twenty characters.",
+    },
+  },
+  "POST /v1/bo/campaigns/entries/:id/publish": {
+    body: { reviewToken: "0".repeat(64), ownerAgentId: NIL },
+  },
+  "POST /v1/bo/campaigns/entries/:id/reject": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "brief_insufficient" },
+  },
+  "GET /v1/bo/campaigns/:id": {},
+  "POST /v1/bo/campaigns": {
+    body: {
+      advertiserAccountId: NIL,
+      title: "Inventory",
+      campaignType: "product_placement",
+    },
+  },
+  "POST /v1/bo/campaigns/:id/corrections": {
+    body: { fieldCode: "title", value: "Inventory", reasonCode: "entry_error" },
+  },
+  "POST /v1/bo/campaigns/:id/pause": { body: { reasonCode: "brand_request" } },
+  "POST /v1/bo/campaigns/:id/resume": { body: { reasonCode: "brand_request" } },
+  "POST /v1/bo/campaigns/:id/close": { body: { reasonCode: "brand_request" } },
   "GET /v1/bo/queues/verification-creators/entries": {},
   "POST /v1/bo/queues/verification-creators/entries/search": { body: {} },
   "POST /v1/bo/queues/verification-creators/entries/:id/open": {},
@@ -657,6 +692,37 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     "GET /v1/bo/queues/portfolio-moderation/entries/:id/image": async () => [
       { who: agent, id: (await ownCreatorFixture()).itemId },
     ],
+    // L3C 07: an entry of queue 7 and a campaign on the caller's own account are hidden by the database
+    // (0307, 0308, C(3)): the answer of an unknown one, on every route. (An account the caller holds
+    // answers its own 403, 17b §2.5: t14-campaign-review-route.)
+    ...Object.fromEntries(
+      [
+        "POST /v1/bo/campaigns/entries/:id/open",
+        "POST /v1/bo/campaigns/entries/:id/release",
+        "POST /v1/bo/campaigns/entries/:id/extend",
+        "POST /v1/bo/campaigns/entries/:id/force-release",
+        "POST /v1/bo/campaigns/entries/:id/first-review",
+        "POST /v1/bo/campaigns/entries/:id/publish",
+        "POST /v1/bo/campaigns/entries/:id/reject",
+      ].map((route) => [
+        route,
+        async () => [{ who: agent, id: (await ownCampaignFixture()).entryId }],
+      ]),
+    ),
+    ...Object.fromEntries(
+      [
+        "GET /v1/bo/campaigns/:id",
+        "POST /v1/bo/campaigns/:id/corrections",
+        "POST /v1/bo/campaigns/:id/pause",
+        "POST /v1/bo/campaigns/:id/resume",
+        "POST /v1/bo/campaigns/:id/close",
+      ].map((route) => [
+        route,
+        async () => [
+          { who: agent, id: (await ownCampaignFixture()).campaignId },
+        ],
+      ]),
+    ),
     // L2E 14: a verification request of the caller's own account is hidden by the database (0221,
     // C(3)): the answer of an unknown request, on every route of both views (an own request of the
     // creator view on the creator routes, of the brand view on the brand routes).
@@ -866,6 +932,46 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
         await tx`delete from profiles.portfolio_items where id = ${itemId}`;
         await tx`delete from profiles.creator_review_entries where id = ${entryId}`;
         await tx`delete from profiles.creator_public_profiles where account_id = ${agent.accountId}`;
+      });
+    }
+  });
+
+  type OwnCampaign = { campaignId: string; entryId: string };
+  let ownCampaign: Promise<OwnCampaign> | undefined;
+
+  /**
+   * A campaign of the agent's own account with an open entry of queue 7 (L3C 07): the doors never write
+   * one (one role per account, D41), so the superuser writes it with the foreign keys and the triggers out
+   * of the way; the policies of 0307 and 0308 are a second line, and this is how they are tried. Removed
+   * with the file.
+   */
+  function ownCampaignFixture(): Promise<OwnCampaign> {
+    ownCampaign ??= (async () => {
+      const campaignId = randomUUID();
+      const entryId = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into campaigns.campaigns (id, advertiser_account_id)
+          values (${campaignId}, ${agent.accountId})`;
+        await tx`
+          insert into campaigns.campaign_review_entries
+            (id, campaign_id, advertiser_account_id, created_at, sla_due_at, escalate_at)
+          values (${entryId}, ${campaignId}, ${agent.accountId}, now(), now() + interval '1 day',
+                  now() + interval '2 days')`;
+      });
+      return { campaignId, entryId };
+    })();
+    return ownCampaign;
+  }
+
+  afterAll(async () => {
+    if (ownCampaign !== undefined) {
+      const { campaignId, entryId } = await ownCampaign;
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`delete from campaigns.campaign_review_entries where id = ${entryId}`;
+        await tx`delete from campaigns.campaigns where id = ${campaignId}`;
       });
     }
   });

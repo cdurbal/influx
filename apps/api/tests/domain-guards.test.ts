@@ -29,6 +29,7 @@ import {
   BRAND_PROFILE_REQUIRED_FIELDS,
   BRAND_PROFILE_WEIGHTS,
 } from "@influx/domain/brand-profile";
+import { CAMPAIGN_ALERT_FIELDS } from "@influx/contracts/campaign-review";
 import {
   CAMPAIGN_LIST_LIMITS,
   CAMPAIGN_REQUIRED_FIELD_CODES,
@@ -36,6 +37,7 @@ import {
 import {
   CAMPAIGN_AUDIENCE_COUNTRIES_MAX,
   CAMPAIGN_DELIVERABLES_MAX,
+  CAMPAIGN_FREE_TEXT_FIELDS,
   CAMPAIGN_KEY_MESSAGES_MAX,
   CAMPAIGN_REQUESTED_ITEMS_MAX,
   CAMPAIGN_REQUIRED_FIELDS,
@@ -204,7 +206,7 @@ describe("the completeness is computed in packages/domain only (stockage.md §9)
 });
 
 describe("@influx/domain at L2B", () => {
-  it("is imported by the profile domain of apps/api, the campaigns a brand writes (L3B 07), the alerts of queue 1 (L2C 11) the gap of the typing of queue 4 (L2E 14), the reasons of a withdrawal (L2F 13), the end of a grace period (L2F 13) and the text of a contest (L2F 14), the count of the portfolio (L2G 07), the alerts of queues 2 and 3 (L2G 11), the ONE door of the campaign form (L3B 09: apps/web/src/components/campaign/campaign-domain.ts), and nobody else", () => {
+  it("is imported by the profile domain of apps/api, the campaigns a brand writes (L3B 07), the alerts of queue 1 (L2C 11) the gap of the typing of queue 4 (L2E 14), the reasons of a withdrawal (L2F 13), the end of a grace period (L2F 13) and the text of a contest (L2F 14), the count of the portfolio (L2G 07), the alerts of queues 2 and 3 (L2G 11), the alerts of queue 7 (L3C 07), the ONE door of the campaign form (L3B 09: apps/web/src/components/campaign/campaign-domain.ts), and nobody else", () => {
     const importers = sourcesOf(
       SOURCE_ROOTS.filter((root) => root !== "packages/domain/src"),
     )
@@ -215,6 +217,7 @@ describe("@influx/domain at L2B", () => {
       )
       .map(relative);
     expect(importers).toEqual([
+      "apps/api/src/domains/backoffice/campaign-queue/alerts.ts",
       "apps/api/src/domains/backoffice/creator-queues/alerts.ts",
       "apps/api/src/domains/backoffice/queues/entry-alerts.ts",
       "apps/api/src/domains/backoffice/verification-badges-routes.ts",
@@ -281,6 +284,10 @@ describe("the contract repeats the code lists of the domain, equal (it has no de
       audienceTopics: CAMPAIGN_TOPICS_MAX,
       requestedItems: CAMPAIGN_REQUESTED_ITEMS_MAX,
     });
+  });
+
+  it("lists the texts the detection reads in the alerts of queue 7 as the domain does (L3C 07)", () => {
+    expect([...CAMPAIGN_ALERT_FIELDS]).toEqual([...CAMPAIGN_FREE_TEXT_FIELDS]);
   });
 
   it("lists the criteria and the blocks of the score in the same order", () => {

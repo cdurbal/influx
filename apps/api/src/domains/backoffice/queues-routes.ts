@@ -51,6 +51,7 @@ import { ApiError, RequestValidationError } from "../../platform/errors.ts";
 import type { ObjectStore } from "../../platform/storage.ts";
 import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
+import { registerCampaignQueueRoutes } from "./campaign-queue-routes.ts";
 import { registerCreatorQueueRoutes } from "./creator-queues-routes.ts";
 import { registerBackofficeQueueDecisionRoutes } from "./queues-decision-routes.ts";
 import { registerBackofficeQueueLogoRoutes } from "./queues-logo-routes.ts";
@@ -240,6 +241,8 @@ export function registerBackofficeQueueRoutes(
   registerVerificationQueueRoutes(app, dependencies);
   // Queues 2 and 3 (L2G 11): their own files, their counters on their lists (creator-queues-routes.ts)
   registerCreatorQueueRoutes(app, dependencies);
+  // Queue 7 and the record of a campaign (L3C 07): campaign-queue-routes.ts
+  registerCampaignQueueRoutes(app, dependencies);
 
   app.get(
     "/v1/bo/queues/counters",

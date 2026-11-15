@@ -532,7 +532,7 @@ async function listPortfolioEntries(
  * queue is exhausted, or ALERT_SCAN_LIMIT lines were read. Without it, one read of `limit + 1`.
  * `resumeAfter` is where the next page starts, null at the end.
  */
-async function pageOf<T extends { cursor: Cursor }>(
+export async function pageOf<T extends { cursor: Cursor }>(
   fetch: (filters: ListFilters, limit: number) => Promise<T[]>,
   filters: ListFilters,
   limit: number,
