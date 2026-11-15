@@ -1567,6 +1567,9 @@ describe("L3B-T9: L3B (commit 08): the campaign of a brand joins the sweeps", ()
         `PATCH ${CAMPAIGNS}/:id`,
         `POST ${CAMPAIGNS}/:id/submit`,
         `GET ${CAMPAIGNS}/:id/creator-view`,
+        `POST ${CAMPAIGNS}/:id/pause`,
+        `POST ${CAMPAIGNS}/:id/resume`,
+        `POST ${CAMPAIGNS}/:id/close`,
       ].sort(),
     );
   });
@@ -1625,6 +1628,16 @@ describe("T1.1, T1.4 every route, called as a brand on the web surface: no marke
     expect(statuses).toContain(404);
     expect(result.statuses.get("GET /v1/me")).toContain(200);
     expect(result.statuses.get("GET /v1/me/brand-profile")).toContain(200);
+    // L3C: the lifecycle doors of a campaign were walked, and answer an unknown or another brand's
+    // campaign by the one 404, the same for both (no 5xx, no other status than a refused body or a rule)
+    for (const door of ["pause", "resume", "close"]) {
+      const seen = result.statuses.get(`POST ${CAMPAIGNS}/:id/${door}`) ?? [];
+      expect(seen, door).toContain(404);
+      expect(
+        seen.filter((status) => ![400, 404, 409, 200].includes(status)),
+        door,
+      ).toEqual([]);
+    }
     // the creator routes answer the brand as unknown, whatever the identifier; a body refused by
     // its schema is refused first, as on every route (the schema runs before the session, EC-L2D-10-1)
     for (const [route, seen] of result.statuses) {
