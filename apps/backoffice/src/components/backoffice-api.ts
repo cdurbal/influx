@@ -94,12 +94,23 @@ import {
 } from "@influx/contracts/backoffice-queues";
 import {
   campaignEntriesResponseSchema,
+  campaignPassageResponseSchema,
+  campaignRecordResponseSchema,
+  correctCampaignFieldResponseSchema,
+  createCampaignForBrandResponseSchema,
   firstReviewCampaignEntryResponseSchema,
   openCampaignEntryResponseSchema,
   publishCampaignEntryResponseSchema,
   rejectCampaignEntryResponseSchema,
   type CampaignEntriesResponse,
   type CampaignEntriesSearchBody,
+  type CampaignPassageRequest,
+  type CampaignPassageResponse,
+  type CampaignRecordResponse,
+  type CorrectCampaignFieldRequest,
+  type CorrectCampaignFieldResponse,
+  type CreateCampaignForBrandRequest,
+  type CreateCampaignForBrandResponse,
   type FirstReviewCampaignEntryRequest,
   type FirstReviewCampaignEntryResponse,
   type OpenCampaignEntryResponse,
@@ -1294,6 +1305,60 @@ export function forceReleaseCampaignEntryClaim(
     "POST",
     `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/force-release`,
     forceReleaseResponseSchema,
+    body,
+  );
+}
+
+// --- The record of a campaign and the acts of an agent on it (09 RG1, RG8, RG9, RG94; l3c/modele.md §5, §6; L3C-09) ---
+
+const CAMPAIGNS = "/v1/bo/campaigns";
+
+/** The record of a campaign: a GET with an effect, the reading is journaled by apps/api (`campaign.record_read`). */
+export function readCampaignRecord(
+  id: string,
+): Promise<RelayResult<CampaignRecordResponse>> {
+  return callRelay(
+    "GET",
+    `${CAMPAIGNS}/${idSegment(id)}`,
+    campaignRecordResponseSchema,
+  );
+}
+
+/** ONE field, a typed reason (RG94): the old and the new value are kept by the base, the brand is told. */
+export function correctCampaignField(
+  id: string,
+  body: CorrectCampaignFieldRequest,
+): Promise<RelayResult<CorrectCampaignFieldResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGNS}/${idSegment(id)}/corrections`,
+    correctCampaignFieldResponseSchema,
+    body,
+  );
+}
+
+/** A draft opened for a brand that called (RG1, Q2): the brand completes and submits it, never INFLUX. */
+export function createCampaignForBrand(
+  body: CreateCampaignForBrandRequest,
+): Promise<RelayResult<CreateCampaignForBrandResponse>> {
+  return callRelay(
+    "POST",
+    CAMPAIGNS,
+    createCampaignForBrandResponseSchema,
+    body,
+  );
+}
+
+/** The passages of an agent with authority (RG8, RG9): a reason of the closed list, a closing is irreversible. */
+export function passCampaign(
+  id: string,
+  passage: "pause" | "resume" | "close",
+  body: CampaignPassageRequest,
+): Promise<RelayResult<CampaignPassageResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGNS}/${idSegment(id)}/${passage}`,
+    campaignPassageResponseSchema,
     body,
   );
 }

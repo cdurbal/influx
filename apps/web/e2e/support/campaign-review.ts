@@ -7,7 +7,7 @@ import type { Page } from "@playwright/test";
 import { seedMember } from "./account";
 import { campaignCalendar } from "./campaign-calendar";
 import { expect } from "./journey";
-import { WEB_ORIGIN } from "./servers";
+import { BACKOFFICE_ORIGIN, WEB_ORIGIN } from "./servers";
 import { withSql } from "./verification-cycle";
 
 /** What a page's own script sends, which a request of the test runner does not (03 §6.4 A4). */
@@ -63,6 +63,34 @@ function wholeCampaign(
 }
 
 /**
+ * A brand member, signed in on this page, owned by `ownerAgentId`, whose profile is published by the base (the
+ * decision of its own queue is L2C's): what every campaign journey starts from.
+ */
+async function publishedBrand(
+  page: Page,
+  brandName: string,
+  ownerAgentId: string,
+): Promise<string> {
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await withSql(async (sql) => {
+    await sql`
+      update profiles.advertiser_profiles
+         set status = 'published', submitted_at = now(), first_published_at = now(),
+             legal_name = ${brandName}
+       where account_id = ${member.accountId}`;
+    await sql`
+      update identity.accounts set owner_agent_id = ${ownerAgentId}
+       where id = ${member.accountId}`;
+  });
+  return member.accountId;
+}
+
+/**
  * A brand (owned by `ownerAgentId`) whose campaign waits in queue 7: the profile published by the base (the
  * decision of its own queue is L2C's), the campaign written and submitted by the member's own API routes.
  * `sensitive` puts it in a sensitive sector, which the submission accepts with its declaration (CA56).
@@ -77,22 +105,7 @@ export async function submittedCampaign(
   },
 ): Promise<SubmittedCampaign> {
   const brandName = `Maison ${options.title.slice(0, 24)}`;
-  const member = await seedMember(page, {
-    role: "advertiser",
-    language: "fr",
-    acceptTerms: true,
-    sessions: ["chrome.windows"],
-  });
-  await withSql(async (sql) => {
-    await sql`
-      update profiles.advertiser_profiles
-         set status = 'published', submitted_at = now(), first_published_at = now(),
-             legal_name = ${brandName}
-       where account_id = ${member.accountId}`;
-    await sql`
-      update identity.accounts set owner_agent_id = ${options.ownerAgentId}
-       where id = ${member.accountId}`;
-  });
+  const accountId = await publishedBrand(page, brandName, options.ownerAgentId);
   const created = await page.request.post("/api/v1/me/campaigns", {
     data: {},
     headers: SAME_ORIGIN,
@@ -123,7 +136,7 @@ export async function submittedCampaign(
   });
   expect(entryId).not.toBe("");
   return {
-    accountId: member.accountId,
+    accountId,
     campaignId,
     entryId,
     title: options.title,
@@ -191,6 +204,91 @@ export async function campaignDecisionOf(campaignId: string): Promise<{
       status: campaign?.status ?? "",
       ownerAgentId: campaign?.owner ?? null,
       entries: [...entries],
+    };
+  });
+}
+
+/** A brand with a published profile and an active account, given to `ownerAgentId`: no campaign yet (L3C-09). */
+export async function brandAccount(
+  page: Page,
+  options: { name: string; ownerAgentId: string },
+): Promise<{ accountId: string; brandName: string }> {
+  const brandName = `Maison ${options.name.slice(0, 24)}`;
+  return {
+    accountId: await publishedBrand(page, brandName, options.ownerAgentId),
+    brandName,
+  };
+}
+
+/**
+ * The agent signed in on this page (its cookie is the backoffice origin's) publishes the campaign waiting in
+ * `entryId` through the API's own routes (opening takes the entry in charge, the token binds the version): the
+ * decision screen is not under test here.
+ */
+export async function publishAsAgent(
+  page: Page,
+  entryId: string,
+  ownerAgentId: string,
+): Promise<void> {
+  const headers = {
+    origin: BACKOFFICE_ORIGIN,
+    "sec-fetch-site": "same-origin",
+  };
+  const entry = `${BACKOFFICE_ORIGIN}/api/v1/bo/campaigns/entries/${entryId}`;
+  const opened = await page.request.post(`${entry}/open`, { headers });
+  expect(opened.status(), await opened.text()).toBe(200);
+  const { reviewToken } = (await opened.json()) as {
+    reviewToken: string | null;
+  };
+  const published = await page.request.post(`${entry}/publish`, {
+    headers,
+    data: { reviewToken, ownerAgentId },
+  });
+  expect(published.status(), await published.text()).toBe(200);
+}
+
+/** What the acts of an agent left on the campaign, as the base holds them: the row, then each intervention. */
+export async function campaignActsOf(campaignId: string): Promise<{
+  title: string | null;
+  status: string;
+  closedAt: string | null;
+  interventions: {
+    kind: string;
+    fieldCode: string | null;
+    oldValue: unknown;
+    newValue: unknown;
+    reasonCode: string;
+    internalComment: string | null;
+    agentAccountId: string;
+  }[];
+}> {
+  return withSql(async (sql) => {
+    const [campaign] = await sql<
+      { title: string | null; status: string; closedAt: string | null }[]
+    >`
+      select title, status::text as status, closed_at::text as "closedAt"
+        from campaigns.campaigns where id = ${campaignId}`;
+    const interventions = await sql<
+      {
+        kind: string;
+        fieldCode: string | null;
+        oldValue: unknown;
+        newValue: unknown;
+        reasonCode: string;
+        internalComment: string | null;
+        agentAccountId: string;
+      }[]
+    >`
+      select kind::text as kind, field_code as "fieldCode", old_value as "oldValue",
+             new_value as "newValue", reason_code as "reasonCode",
+             internal_comment as "internalComment", agent_account_id::text as "agentAccountId"
+        from campaigns.agent_interventions
+       where campaign_id = ${campaignId} order by created_at, id`;
+    return {
+      title: campaign?.title ?? null,
+      status: campaign?.status ?? "",
+      closedAt: campaign?.closedAt ?? null,
+      interventions: [...interventions],
     };
   });
 }

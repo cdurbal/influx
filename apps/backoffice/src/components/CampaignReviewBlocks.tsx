@@ -36,7 +36,7 @@ const BRIEF_CLASSES = cn(
   "text-sm break-words whitespace-pre-wrap text-text-primary",
 );
 
-function FactList({ facts }: { facts: readonly Fact[] }) {
+export function FactList({ facts }: { facts: readonly Fact[] }) {
   return (
     <dl className={DL_CLASSES}>
       {facts.map((fact) => (
@@ -54,7 +54,11 @@ function FactList({ facts }: { facts: readonly Fact[] }) {
 }
 
 /** Block ① — the brand, and the campaign of the same brand a duplicate alert points at (09 RG95). */
-export function BrandBlock({ view }: { view: OpenCampaignEntryResponse }) {
+export function BrandBlock({
+  view,
+}: {
+  view: Pick<OpenCampaignEntryResponse, "brand" | "duplicateOf">;
+}) {
   const duplicate = duplicateLine(view);
   return (
     <section aria-labelledby="campaign-brand" className={SECTION_CLASSES}>
@@ -89,7 +93,11 @@ export function CampaignBlock({ view }: { view: OpenCampaignEntryResponse }) {
 }
 
 /** Block ③ — the brief, whole, as plain text: a text node, never markup, never truncated (17b §3.8). */
-export function BriefBlock({ view }: { view: OpenCampaignEntryResponse }) {
+export function BriefBlock({
+  view,
+}: {
+  view: Pick<OpenCampaignEntryResponse, "campaign">;
+}) {
   const brief = briefOf(view);
   return (
     <section aria-labelledby="campaign-brief" className={SECTION_CLASSES}>
@@ -109,7 +117,11 @@ export function BriefBlock({ view }: { view: OpenCampaignEntryResponse }) {
 }
 
 /** Block ④ — the alerts of detection (09 RG21 to RG23): in sentences, informative, never a refusal. */
-export function AlertsBlock({ view }: { view: OpenCampaignEntryResponse }) {
+export function AlertsBlock({
+  view,
+}: {
+  view: Pick<OpenCampaignEntryResponse, "alerts">;
+}) {
   return (
     <section aria-labelledby="campaign-alerts" className={SECTION_CLASSES}>
       <h2 id="campaign-alerts" className={SECTION_TITLE}>

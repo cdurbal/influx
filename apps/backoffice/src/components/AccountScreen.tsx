@@ -33,6 +33,7 @@ import { HELP_CLASSES, inputClasses, TITLE_CLASSES } from "./auth-classes";
 import { AccountBadgesBlock } from "./AccountBadgesBlock";
 import { AccountOpeningBlock } from "./AccountOpeningBlock";
 import { AccountBrandBlocks } from "./AccountBrandBlocks";
+import { AccountCampaignsBlock } from "./AccountCampaignsBlock";
 import { AccountCreatorBlocks } from "./AccountCreatorBlocks";
 import { ActionFeedback, AdminOnlyNotice } from "./ActionFeedback";
 import {
@@ -793,6 +794,9 @@ export function AccountScreen({ id }: { id: string }) {
         </dl>
       </section>
       <AccountBrandBlocks brand={detail.brand} />
+      {account.role === "advertiser" ? (
+        <AccountCampaignsBlock accountId={account.id} />
+      ) : null}
       <AccountCreatorBlocks accountId={account.id} creator={detail.creator} />
       <AccountBadgesBlock accountId={account.id} />
       {account.role === "creator" || account.role === "advertiser" ? (

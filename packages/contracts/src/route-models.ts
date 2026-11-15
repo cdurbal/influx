@@ -273,6 +273,7 @@ export const BACKOFFICE_PAGE_MODELS: readonly string[] = [
   "/files/campagnes/:id",
   "/inscrits",
   "/inscrits/:id",
+  "/inscrits/campagnes/:id",
   "/invitations",
   "/reglages/apollo",
   "/reglages/sources-registre",

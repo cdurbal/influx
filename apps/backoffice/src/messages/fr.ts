@@ -2768,6 +2768,17 @@ export const messages = {
         "La date limite de candidature est passée : la campagne ne peut plus être publiée. Refusez-la avec le motif du calendrier, ou rendez la main.",
       liveCampaignCap:
         "La marque a atteint son plafond de campagnes en ligne : elle doit en clore une avant que celle-ci soit publiée. Rien n’a été enregistré.",
+      // the record of a campaign (L3C-09): the passages and the correction of an agent, the draft for a brand
+      campaignNotPausable:
+        "Cette campagne n’est pas publiée : elle ne peut pas être mise en pause. Rien n’a été enregistré ; la fiche est relue.",
+      campaignNotResumable:
+        "Cette campagne n’est pas en pause : elle ne peut pas être reprise. Rien n’a été enregistré ; la fiche est relue.",
+      campaignNotClosable:
+        "Cette campagne n’est ni publiée ni en pause : elle ne peut pas être close. Rien n’a été enregistré ; la fiche est relue.",
+      campaignNotCorrectable:
+        "Seule une campagne en brouillon, refusée, ou en cours de validation sous votre prise en charge se corrige. Rien n’a été enregistré ; la fiche est relue.",
+      brandNotActive:
+        "Le compte de la marque n’est pas actif : aucune campagne ne peut lui être ouverte. Rien n’a été créé.",
     },
     shortcuts: {
       title: "Raccourcis de l’écran de décision",
@@ -3631,6 +3642,243 @@ export const messages = {
       publish:
         "ouvrir le récapitulatif de la publication, ou de la transmission au 2ᵉ examinateur (ne décide jamais seul)",
       reject: "ouvrir le choix du motif (ne refuse jamais seul)",
+    },
+  },
+  /**
+   * L3C-09 (09 RG1, RG8, RG9, RG83, RG93, RG94, CA60, CA61; 17b §3.5 block 4, §3.8; l3c/modele.md §5, §6;
+   * l3c-fiche invariants 6, 12, 13): the record of a campaign for an agent, the correction of ONE field, the
+   * pause, the resumption and the closing of an agent, and the draft opened for a brand. Every act asks for a
+   * typed reason of the closed list, is journaled in the agent's name and told to the brand by e-mail, in its
+   * language (the e-mail carries the type and the date, never the text). No figure is read or written here:
+   * the budget is its band by its label, the total is « non communiqué » (D48, D78); the amounts, the bands
+   * and the currency are not corrected from this screen (invariant 12).
+   */
+  campaignRecord: {
+    title: (title: string | null) =>
+      `Fiche de la campagne ${title === null || title.trim() === "" ? "sans titre" : `« ${title} »`}`,
+    back: "Retour à la fiche du compte",
+    journaled: (at: string) =>
+      `Consultation enregistrée à votre nom, le ${at}.`,
+    notFound:
+      "Cette campagne n’existe pas ou n’est plus disponible sur ce compte.",
+    unavailable:
+      "La fiche n’a pas pu être ouverte. Rien n’a été modifié. Réessayez dans quelques minutes.",
+    sections: {
+      cycle: "État et cycle de vie",
+      internal: "Bloc interne",
+      history: "Historique des décisions et des interventions",
+      actions: "Actions de l’agent",
+    },
+    cycle: {
+      status: "État",
+      createdAt: "Créée le",
+      submittedAt: "Soumise le",
+      firstPublishedAt: "Première publication le",
+      pausedAt: "En pause depuis le",
+      pauseOrigin: "Pause demandée par",
+      origins: { brand: "la marque", influx: "INFLUX" } as Readonly<
+        Record<string, string>
+      >,
+      closedAt: "Close le",
+      owner: "Commercial responsable de la campagne",
+      ownerNone: "non désigné",
+      snapshot: "Version lue des créateurs",
+      snapshotValue: (version: number) => `version ${version}`,
+      snapshotNone: "aucune pour l’instant",
+    },
+    internal: {
+      lead: "Interne : jamais lu d’un créateur, jamais publié. La marque voit ce qu’elle a saisi.",
+      totalBudget: "Budget total de la campagne",
+      totalBudgetValue: "non communiqué",
+      totalBudgetNote:
+        "Aucune somme n’est lue, enregistrée ni calculée ici : le budget se lit par tranche, et les coûts se négocient avec le commercial.",
+      band: "Budget par créateur (tranche)",
+      reference: "Référence interne de la marque",
+      owner: "Commercial responsable",
+    },
+    history: {
+      lead: "Du plus récent au plus ancien. Les commentaires internes et les avis ne sont pas repris ici.",
+      empty: "Aucune décision ni intervention sur cette campagne.",
+      submitted: (at: string) => `Soumise le ${at} : en attente de décision.`,
+      published: (at: string, by: string) => `Publiée le ${at} par ${by}.`,
+      rejected: (at: string, by: string, reason: string) =>
+        `Refusée le ${at} par ${by} — motif : ${reason}.`,
+      withdrawn: (at: string) => `Entrée retirée de la file le ${at}.`,
+      late: " Décision prise après l’échéance.",
+      firstReview: (at: string, by: string) =>
+        `1ᵉʳ examen (revue renforcée) : avis favorable de ${by}, le ${at}.`,
+      openEntry: "Ouvrir l’entrée dans la file",
+      intervention: (kind: string, at: string, by: string, reason: string) =>
+        `${kind} le ${at} par ${by} — motif : ${reason}.`,
+      kinds: {
+        created: "Créée pour la marque",
+        corrected: "Champ corrigé",
+        paused: "Mise en pause",
+        resumed: "Reprise",
+        closed: "Close",
+      } as Readonly<Record<string, string>>,
+      field: (label: string) => ` Champ : ${label}.`,
+      values: (before: string, after: string) =>
+        ` Ancienne valeur : ${before}. Nouvelle valeur : ${after}.`,
+      valuesNotServed:
+        " Les valeurs d’un montant, d’une tranche ou de la devise ne sont pas reprises ici.",
+      emptyValue: "vide",
+      unknownAgent: "un agent",
+    },
+    fields: {
+      title: "Titre",
+      campaign_type: "Type de campagne",
+      public_summary: "Résumé public",
+      brief: "Brief",
+      internal_reference: "Référence interne",
+      product_description: "Description du produit",
+      product_sector: "Secteur du produit",
+      restrictions: "Restrictions",
+      key_messages: "Messages clés",
+      product_is_sent: "Produit envoyé au créateur",
+      product_value_band: "Valeur du produit (tranche)",
+      creator_keeps_product: "Produit conservé par le créateur",
+      shipping_costs_borne_by: "Frais d’envoi à la charge de",
+      deliverables: "Livrables",
+      usage_rights: "Droits d’usage",
+      usage_rights_duration: "Durée des droits d’usage",
+      usage_rights_territory: "Territoire des droits d’usage",
+      exclusivity: "Exclusivité",
+      content_review_delay: "Délai de relecture par la marque",
+      audience_countries: "Pays de l’audience",
+      audience_languages: "Langues de l’audience",
+      audience_bands: "Tranches d’audience",
+      audience_age_bands: "Âges de l’audience",
+      audience_gender: "Répartition de l’audience",
+      audience_topics: "Thèmes de l’audience",
+      currency: "Devise",
+      remuneration_kind: "Nature de la contrepartie",
+      budget_band: "Budget par créateur (tranche)",
+      creators_wanted: "Créateurs recherchés",
+      total_budget: "Budget total",
+      applications_close_on: "Candidatures jusqu’au",
+      content_due_on: "Contenu à remettre le",
+      starts_on: "Début de la campagne",
+      ends_on: "Fin de la campagne",
+      max_applications: "Plafond de candidatures",
+      requested_items: "Éléments demandés aux candidats",
+    } as Readonly<Record<string, string>>,
+    campaignTypes: {
+      product_placement: "Placement de produit dans un contenu",
+      ugc_delivered: "Contenu livré à la marque (UGC)",
+      product_review: "Test de produit et avis",
+      ambassador: "Ambassadeur sur la durée",
+      contest: "Concours ou jeu concours",
+      event_presence: "Présence à un événement ou déplacement",
+      affiliate_program: "Programme d’affiliation",
+    } as Readonly<Record<string, string>>,
+    actions: {
+      lead: "Chaque action exige un motif, est enregistrée à votre nom, et la marque en est informée par e-mail, dans sa langue.",
+      correct: "Corriger un champ",
+      pause: "Mettre en pause",
+      resume: "Reprendre",
+      close: "Clore la campagne",
+      frozen:
+        "Cette campagne est publiée ou en pause : sa version publiée est figée, aucun champ ne s’y corrige. Une pause, une reprise ou une clôture reste possible.",
+      closedNote:
+        "Cette campagne est close : la clôture est irréversible et aucune action n’est possible. Rien n’a été effacé.",
+      informed: (language: string) =>
+        `La marque en est informée par e-mail, en ${language}.`,
+      reasonLegend: "Motif (liste fermée) *",
+      reasons: {
+        brand_request: "À la demande de la marque",
+        entry_error: "Erreur de saisie",
+        non_compliant_content: "Contenu non conforme",
+        other: "Autre — à préciser dans le commentaire interne",
+      },
+      reasonRequired: "Choisissez un motif.",
+      comment:
+        "Commentaire interne (1 000 caractères au plus ; obligatoire pour « Autre »)",
+      commentHelp:
+        "Visible des seuls agents INFLUX : jamais de la marque, ni dans l’e-mail.",
+      commentRequired: "Le motif « Autre » exige un commentaire interne.",
+      commentTooLong: "Le commentaire dépasse 1 000 caractères.",
+      busy: "Enregistrement…",
+      cancel: "Annuler",
+    },
+    correct: {
+      title: "Corriger un champ",
+      lead: "Un seul champ à la fois. L’ancienne et la nouvelle valeur sont gardées, avec votre nom et le motif.",
+      scope:
+        "Les montants, les tranches, la devise, les listes de référence (pays, langues, thèmes), les livrables et le territoire ne se corrigent pas depuis cet écran.",
+      field: "Champ à corriger *",
+      fieldPlaceholder: "Choisissez un champ",
+      valuePlaceholder: "Choisissez une valeur",
+      current: "Valeur actuelle",
+      currentEmpty: "non renseignée",
+      newValue: "Nouvelle valeur *",
+      linesHelp: "Un message par ligne (5 au plus).",
+      yes: "oui",
+      no: "non",
+      fieldRequired: "Choisissez le champ à corriger.",
+      valueRequired: "Saisissez la nouvelle valeur.",
+      valueUnchanged: "La nouvelle valeur est identique à l’ancienne.",
+      optionInvalid: "Choisissez une valeur de la liste.",
+      integerInvalid: "Saisissez un nombre entier de 0 à 32 767.",
+      dateInvalid: "Saisissez une date valide.",
+      linesTooMany: "Cinq messages clés au plus.",
+      confirm: "Enregistrer la correction",
+      done: "Correction enregistrée. La marque en est informée par e-mail.",
+      doneHeld:
+        "Correction enregistrée sous votre prise en charge. La version de la campagne a changé : rouvrez l’entrée avant de décider. La marque en est informée par e-mail.",
+      pending:
+        "Cette campagne est en cours de validation : une correction n’est possible que sous votre prise en charge de l’entrée, avant tout premier avis de la revue renforcée.",
+      openEntry: "Ouvrir l’entrée (elle se prend en charge à l’ouverture)",
+    },
+    passage: {
+      pause: {
+        title: "Mettre cette campagne en pause",
+        lead: "La marque ne peut pas la reprendre : seul un agent le peut.",
+        confirm: "Confirmer la pause",
+        done: "Campagne mise en pause. La marque en est informée par e-mail.",
+      },
+      resume: {
+        title: "Reprendre cette campagne",
+        lead: "La campagne reprend telle qu’elle a été publiée, sans nouvelle validation : ce n’est pas une nouvelle publication.",
+        confirm: "Confirmer la reprise",
+        done: "Campagne reprise. La marque en est informée par e-mail.",
+      },
+      close: {
+        title: "Clore cette campagne ?",
+        lead: "La clôture est irréversible. Aucune donnée n’est effacée, mais la campagne ne se rouvre pas.",
+        confirm: "Confirmer la clôture",
+        done: "Campagne close. La marque en est informée par e-mail.",
+      },
+    },
+    create: {
+      title: "Campagnes de la marque",
+      lead: "Un agent ouvre un brouillon pour une marque qui l’a appelé : la marque le complète et le soumet elle-même, INFLUX ne le soumet jamais. L’intervention est enregistrée à votre nom et la marque en est informée par e-mail.",
+      formTitle: "Créer une campagne pour cette marque",
+      titleLabel: "Titre de la campagne *",
+      typeLabel: "Type de campagne *",
+      typePlaceholder: "Choisissez un type",
+      titleRequired: "Saisissez le titre de la campagne.",
+      titleTooLong: "Le titre dépasse 140 caractères.",
+      typeRequired: "Choisissez le type de campagne.",
+      confirm: "Créer le brouillon",
+      done: (title: string) =>
+        `Brouillon « ${title} » créé. La marque le complète et le soumet ; elle en est informée par e-mail.`,
+      open: "Ouvrir la fiche de la campagne",
+    },
+    failures: {
+      claimNeeded:
+        "Une campagne en cours de validation se corrige sous votre prise en charge de l’entrée : ouvrez l’entrée dans la file, puis revenez corriger. Rien n’a été enregistré.",
+      valueRefused:
+        "La valeur n’a pas été acceptée pour ce champ : vérifiez-la. Rien n’a été enregistré.",
+      unchanged:
+        "La nouvelle valeur est identique à l’ancienne : rien n’a été enregistré.",
+      commentRefused:
+        "Le commentaire interne n’a pas été accepté : vérifiez sa longueur. Rien n’a été enregistré.",
+      reasonRefused: "Le motif n’a pas été accepté. Rien n’a été enregistré.",
+      titleRefused:
+        "Le titre n’a pas été accepté : 1 à 140 caractères. Rien n’a été créé.",
+      typeRefused:
+        "Le type de campagne n’a pas été accepté. Rien n’a été créé.",
     },
   },
   /**

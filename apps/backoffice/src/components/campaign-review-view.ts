@@ -142,7 +142,9 @@ function yesNo(value: boolean | null): string | null {
 }
 
 /** Block ① — the brand, as the agent who examines the campaign sees it (17b §3.8). */
-export function brandFacts(view: OpenCampaignEntryResponse): Fact[] {
+export function brandFacts(
+  view: Pick<OpenCampaignEntryResponse, "brand">,
+): Fact[] {
   const { brand } = view;
   return [
     fact("brandName", brand.name),
@@ -166,7 +168,10 @@ export function budgetWords(labelKey: string | null): string | null {
   return t.priceBands[labelKey] ?? t.unknownBand;
 }
 
-function deliverableLines(view: OpenCampaignEntryResponse): string | null {
+/** What the facts of the campaign read: the fields as stored, in the opening of an entry or in the record. */
+type WithCampaign = Pick<OpenCampaignEntryResponse, "campaign">;
+
+function deliverableLines(view: WithCampaign): string | null {
   const { deliverables } = view.campaign;
   return deliverables.length === 0
     ? null
@@ -181,7 +186,7 @@ function deliverableLines(view: OpenCampaignEntryResponse): string | null {
         .join("\n");
 }
 
-function usageWords(view: OpenCampaignEntryResponse): string | null {
+function usageWords(view: WithCampaign): string | null {
   const c = view.campaign;
   const scope = wordsOf(t.territoryScopes, c.usageRightsTerritoryScope);
   const countries =
@@ -200,7 +205,7 @@ function usageWords(view: OpenCampaignEntryResponse): string | null {
   return parts.length === 0 ? null : parts.join(" · ");
 }
 
-function audienceLines(view: OpenCampaignEntryResponse): string | null {
+function audienceLines(view: WithCampaign): string | null {
   const c = view.campaign;
   const label = t.audienceLabels;
   const groups: readonly (readonly [string, string | null])[] = [
@@ -220,7 +225,7 @@ function audienceLines(view: OpenCampaignEntryResponse): string | null {
   return lines.length === 0 ? null : lines.join("\n");
 }
 
-function periodWords(view: OpenCampaignEntryResponse): string | null {
+function periodWords(view: WithCampaign): string | null {
   const { startsOn, endsOn } = view.campaign;
   return startsOn === null && endsOn === null
     ? null
@@ -235,7 +240,7 @@ function dayWords(day: string | null): string | null {
 }
 
 /** Block ② — the campaign as submitted, in the order of the form (09 blocks 1 to 7); the texts keep their breaks. */
-export function campaignFacts(view: OpenCampaignEntryResponse): Fact[] {
+export function campaignFacts(view: WithCampaign): Fact[] {
   const c = view.campaign;
   return [
     fact(
@@ -286,7 +291,7 @@ export function campaignFacts(view: OpenCampaignEntryResponse): Fact[] {
 }
 
 /** Block ③ — the brief, whole: no cut, no markup (17b §3.8); null when none was written. */
-export function briefOf(view: OpenCampaignEntryResponse): string | null {
+export function briefOf(view: WithCampaign): string | null {
   const { brief } = view.campaign;
   return brief === null || brief.trim() === "" ? null : brief;
 }

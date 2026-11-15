@@ -135,6 +135,11 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
     ["/files/identifiants-modifies", "queues", "identifierChanges"],
     ["/inscrits", "accounts", "signups"],
     ["/inscrits/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22", "accounts", "signups"],
+    [
+      "/inscrits/campagnes/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "accounts",
+      "signups",
+    ],
     ["/invitations", "accounts", "memberInvitations"],
     ["/double-validation", "admin", "dualControl"],
     [
