@@ -1,14 +1,15 @@
 # Jalon L3C — Le commercial valide la campagne ; publiée, elle vit ses états
 > Source : `jalons/lot3-plan.md` l. 33 (validé le 2026-11-13) · 2026-11-14 · Statut : validé par le fondateur le 2026-11-14 (« oui à toutes les questions » : Q1 à Q3 comme recommandé) · Annexe : `l3c/annexe.md`
+> **Amendée le 2026-11-16 par D84** (recette F) : aucune double validation obligatoire ; secteur sensible publié par une seule personne, second avis facultatif ; lignes X4, X5.
 
 ## Objectif et périmètre
 Une campagne soumise (L3B) entre en file 7 (`campaigns`, `15` l. 298) ; un agent la prend (verrou de
 30 min), la publie (instantané versionné, commercial responsable) ou la refuse (motif de RG90) ; en
-secteur sensible, deux personnes internes distinctes (RG85, `17b` §3.8). Publiée, la marque la met en
+secteur sensible, déclaration exigée et second avis facultatif (D84). Publiée, la marque la met en
 pause, la reprend ou la clôture ; un agent aussi ; le worker la clôture à la fin de période + 30 j
 (RG9). Un agent crée un brouillon pour une marque et corrige un champ (RG1, RG94 ; réponse 1 du
 fondateur, 2026-11-13). Chaque décision est notifiée par e-mail (RG93) ; la publication part vers
-Brevo et Apollo sans texte ni tranche (CA69 à CA71). Migrations `0307` à `0310`.
+Brevo et Apollo sans texte ni tranche (CA69 à CA71). Migrations `0307` à `0313` (recherche à `0314`).
 **Hors périmètre :** RG7 et CA6, CA7 (Q1) ; lecture créateur (L3D : aucun droit créateur sur
 `campaigns.*`) ; candidatures, plafond RG78 (Lot 4) ; RG11 à la suspension (porte du Lot 5) ; RG96,
 alerte CA63, RG91 (tableau de bord, mode serré `00` §9 point 4) ; duplication ; `campaign_price_bands` (D78).
@@ -17,9 +18,10 @@ alerte CA63, RG91 (tableau de bord, mode serré `00` §9 point 4) ; duplication 
 ## Invariants
 1. RG5, CA5 : `published` n'est écrit que par la porte de décision d'un agent ou d'un admin ; aucune
    porte membre ni tâche ; `campaigns_published_needs_review`.
-2. RG85, CA56, CA57 : secteur sensible (jointure sur `reference.sectors`, jamais recopié) → deux
-   personnes internes distinctes, admin compris ; premier avis motivé, entrée masquée au premier
-   examinateur ; un refus n'exige qu'une personne.
+2. RG85, CA56, CA57 amendés par D84 : secteur sensible (jointure sur `reference.sectors`, jamais
+   recopié) → deux personnes ne sont plus obligatoires ; déclaration de la marque exigée ; un compte
+   interne publie ou refuse seul ; second avis facultatif, jamais bloquant (demande motivée, entrée
+   lisible par tous, reprise par le demandeur) ; publieur, et demandeur s'il y en a un, journalisés.
 3. D78, TM5.6 : l'instantané est la sortie de `campaign_creator_view()` (`l3b/modele.md` §6) ; jamais
    devise, tranche, budget total, référence, notes, déclaration, sensibilité ; `influx_creator` sans
    droit sur `campaigns.*`.

@@ -86,3 +86,9 @@
 - **Numéros** : recherche à `0313`. À la clôture : fiche l. 11, §9, EC-L3C-1, annexe (critère `0307` à `0312`), `21` l. 133 et 241.
 - **`run.md`**, entre 06 et 07 : `| X2 | fix-2.md | fix | opus | high | expert-database | à faire | |` ; commit `fix(db): 0312 queue 7 read policy shows an open entry before its first review`.
 - **07 ensuite** : attend X2 sans toucher la migration ni contourner la politique ; ses commentaires citent `0312` ; ajoute un cas « entrée fraîche listée, comptée, ouverte » ; rejoue ses deux fichiers ; commite ses seuls hunks.
+
+## Amendement D84
+> Fondateur, 2026-11-16 (`decisions-detail.md` § D84, fait foi) ; prime sur ce qui précède pour la revue renforcée ; réalisé par X4 (`0313`) et X5. Arbitrages ci-dessus gardés pour l'historique.
+- **§3, caduc** : temps 2 obligatoire (`enhanced_review_required`, CA57, EC-L3C-4), masquage au premier examinateur, « aucune voie dégradée » ; `assert_enhanced_review()` n'exige plus que la déclaration. Le temps 1 devient la demande facultative d'un second avis : verrou rendu, entrée lisible par tous, décidée par un collègue ou reprise par le demandeur. Délai renforcé (`campaign_enhanced_review_minutes`) gardé.
+- **§1, §2, caduc** : « décideur ≠ premier examinateur », le refus 42501 du premier examinateur, `first_reviewed_by_account_id` ≠ publieur (CHECK `…_two_persons`) ; le demandeur reste nommé. **§6** : rien de caduc, la correction reste refusée après une demande d'avis (`first_review_given`).
+- **Arbitrage A3, caduc** : troisième clause de la politique (masquage au seul auteur de l'avis) ; `0313` revient aux deux premières clauses de `0307`. Recherche à `0314`.

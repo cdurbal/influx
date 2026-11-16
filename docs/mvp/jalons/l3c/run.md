@@ -16,6 +16,8 @@
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | routes pause/reprise/clôture (404 identique, 409 règle nommée) ; motif de refus servi (followUp) ; pause d'INFLUX non reprenable ; e2e 5,0 s |
 | U | ux.md | ux | sonnet | high | expert-ux | fait | 0 bloquant, 0 jalon, 12 avant production, 8 plus tard (ux-constats.md) ; L3CU-1 : fiche campagne sans porte d'entrée (EC-L3C-09-1) |
 | X3 | fix-3.md | fix | sonnet | high | dev-react-node | à valider | constat de recette F : radios cochés illisibles en lecture seule |
-| F | recette.md | fondateur | — | — | fondateur | à faire | recette en cours, constat 1 (fondateur, 2026-11-16) : « Pour la recette quand c'est grisé ( Compagne en cours de validation) on ne voit pas bien les radios boutons activé » → X3 |
+| X4 | fix-4.md | fix | opus | high | expert-database | à valider | D84 : revue renforcée à une personne, second avis facultatif (0313) |
+| X5 | fix-5.md | fix | sonnet | high | dev-react-node | à valider | D84 : écran et routes, publication seul, e2e <= 7,6 s |
+| F | recette.md | fondateur | — | — | fondateur | à faire | recette en cours, constat 1 (fondateur, 2026-11-16) : « Pour la recette quand c'est grisé ( Compagne en cours de validation) on ne voit pas bien les radios boutons activé » → X3 ; constat 2 (fondateur, 2026-11-16) : D84, pas de double validation obligatoire → X4, X5 |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |

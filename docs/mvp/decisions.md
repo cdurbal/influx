@@ -1,4 +1,4 @@
-# INFLUX — Registre des décisions (D1 à D83)
+# INFLUX — Registre des décisions (D1 à D84)
 
 > Déplacé depuis `CLAUDE.md` §13 le 2026-10-05. Registre résumé (sujet, statut) ; le texte intégral des colonnes d'origine est dans `decisions-detail.md` (§ Dxx), qui **fait foi en cas d'écart**. `CLAUDE.md` ne liste plus que les décisions ouvertes.
 
@@ -61,7 +61,7 @@ caractères au plus** (sujet, date, arbitre, l'essentiel du statut) : le reste v
 | D48 | Discours public pendant le MVP | Tranchée 2026-09-24 (fondateur) : landing réécrite pour le MVP courté ; pendant le pilote, aucun pourcentage ni net estimé : « commission INFLUX incluse, précisée par votre commercial ». | § D48 |
 | D49 | Dépassement du délai de la file de validation | Tranchée 2026-09-24 (fondateur) : l'entrée reste en file jusqu'à décision, marquée hors délai ; initiateur prévenu, administrateur alerté à J+1. | § D49 |
 | D50 | Qui écrit sur une affaire | Tranchée 2026-09-24 (fondateur) : seuls le commercial responsable et l'administrateur écrivent ; un autre agent lit et demande la réattribution, journalisée. | § D50 |
-| D51 | Qui retire un badge | Tranchée 2026-09-24 (fondateur) : un agent demande, un administrateur distinct approuve ; tant qu'une personne cumule les rôles, confirmation différée journalisée. | § D51 |
+| D51 | Qui retire un badge | Tranchée 2026-09-24 (fondateur) : un agent demande, un administrateur distinct approuve ; tant qu'une personne cumule les rôles, confirmation différée journalisée. Amendée par D84 : l'agent retire seul, avis d'un pair facultatif. | § D51 |
 | D52 | Suivi de l'exécution après signature | Tranchée 2026-09-24 (fondateur) : suivi léger par le commercial (dates, lien de publication, validation par la marque) ; Lot 5. | § D52 |
 | D53 | Affaires conclues hors plateforme, relations préexistantes et mesure de départ du pilote | Tranchée 2026-09-24 (fondateur) : mesure de départ avant le pilote, registre des relations préexistantes, clients du fondateur par invitation (D54) puis proposition INFLUX. | § D53 |
 | D54 | Invitation nominative par un commercial | Tranchée 2026-09-24 (fondateur) : lien d'invitation nominatif ; l'inscription reste faite par la personne ; le commercial devient son responsable, source « invitation » (D55). | § D54 |
@@ -94,6 +94,7 @@ caractères au plus** (sujet, date, arbitre, l'essentiel du statut) : le reste v
 | D81 | Patron des files de validation du backoffice (file 1, L2C) | Tranchée 2026-11-03 (`architecte`, rôle à signer par `expert-cybersecurite`) : une entrée par objet examiné (verrou, échéances figées, décision), jeton = empreinte du contenu, codes `queue.*` communs, `influx_moderation_definer`. Repris par L2G. | § D81 |
 | D82 | Pièces de vérification et portfolio (D80, L2E) | Tranchée 2026-11-07 (`architecte`, à relire par le fondateur) : passe-plat 8 Mio sur la seule route de dépôt, WebP qualité 90 sans métadonnée, compartiment privé `verification-evidence`, lecture JSON journalisée, aucune URL signée ; portfolio lu par l'annonceur au Lot 3. | § D82 |
 | D83 | Validation d'un membre déjà connu à l'initiative d'un agent (« Compte vérifié », « Marque vérifiée ») | Tranchée 2026-11-08 (fondateur) : A + A-bis ; l'agent ouvre et constate, libellés inchangés ; marque prouvée par l'adresse de connexion sur son domaine ; « Audience vérifiée » sur pièce seulement. Réalisée au L2F ; amende `06` RG51. | § D83 |
+| D84 | Double validation dans les cas d'usage métier | Tranchée 2026-11-16 (fondateur) : jamais obligatoire ; second avis facultatif, non bloquant ; administration et sécurité gardent le contrôle d'un pair (`0130`). Amende RG85, CA56, CA57, D51. | § D84 |
 
 > **Points ouverts de D72 (fiche de la zone de danger, close le 2026-10-28).** Défaut appliqué
 > entre parenthèses. **DZ-1** délai de grâce avant exécution (aucun ; fondateur après avis

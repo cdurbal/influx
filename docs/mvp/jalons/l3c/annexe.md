@@ -24,12 +24,13 @@ L3F (plan l. 58-60). **Base** : éclat le plus long + contrôle ≤ 8 min.
 
 ## Critère de fin
 - [ ] Sur `staging`, une campagne soumise est prise en charge, publiée (instantané v1, responsable
-      nommé), mise en pause, reprise, clôturée ; une campagne « alcool » n'est publiée que par une
-      seconde personne — preuve : ligne F de `run.md` (états, rangs `campaign.*` du registre).
+      nommé), mise en pause, reprise, clôturée ; une campagne « alcool » est publiée par une seule
+      personne, déclaration exigée, second avis respecté s'il est demandé (D84) — preuve : ligne F
+      de `run.md` (états, rangs `campaign.*` du registre).
 - [ ] Clôture automatique à la fin de période + 30 j par le seul worker — preuve : L3C-T4, L3C-T6.
 - [ ] Brevo et Apollo sans texte, tranche, budget ni note (CA70) ; sans consentement ignoré (CA71)
       — preuve : L3C-T6 ; `staging` : ligne `leads.outbox_events` de la recette, aucun texte en `ops`.
-- [ ] `0307` à `0310` sur `staging` — preuve : run CI, « Migrate staging » vert.
+- [ ] `0307` à `0313` sur `staging` — preuve : run CI, « Migrate staging » vert.
 - [ ] TM5.1, TM5.6 (base), T2, T14, T16 verts — preuve : L3C-T2 à T8, suite base (ligne C).
 - [ ] L3BT-9, L3BS-2, L3BS-5 soldés — preuve : SHA des lignes 01, 02, 05 ; `21` §8.
 - [ ] e2e ajoutés ≤ 18 s, éclats CI < 7 min 30 — preuve : `run.md` § Mesures de clôture.
@@ -46,6 +47,7 @@ L3F (plan l. 58-60). **Base** : éclat le plus long + contrôle ≤ 8 min.
   (`archives/jalons/l3b/modele.md` §1).
 - **EC-L3C-4** : RG85 (« un admin, ou un agent approuvé par un second rôle ») et plan (« deux
   agents ») : lecture la plus sûre, deux personnes distinctes toujours, admin compris (`17b` §3.8).
+  *Caduc le 2026-11-16 : remplacé par D84 (une personne publie, second avis facultatif).*
 - **EC-L3C-5** : CA63 : responsable exigé à la publication (`17b` l. 1273) ; l'alerte d'une campagne
   publiée sans responsable suit le tableau de bord (Lot 6bis).
 - **EC-L3C-6** : RG11 : la publication refuse une marque non publiée ou un compte non `active`

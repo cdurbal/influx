@@ -82,8 +82,9 @@ configuration, D33). La synchronisation est une fonctionnalité de premier plan.
 - **Commercial INFLUX (backoffice)** : partie prenante de chaque mise en relation — file de
   validation (SLA 1 jour ouvré, une entrée hors délai reste en file, D49), proposition INFLUX,
   conversation à trois, pipeline (seuls le responsable et l'admin écrivent, D50), invitation
-  nominative (D54), badge « vérifié » (retrait approuvé par un admin distinct, D51), leads, e-mails
-  Brevo. Produit à part entière, pour poste de travail ; mobile limité à deux gestes (D58).
+  nominative (D54), badge « vérifié » (retrait par un agent, avis d'un pair facultatif, D51
+  amendée par D84), leads, e-mails Brevo. Produit à part entière, pour poste de travail ; mobile
+  limité à deux gestes (D58).
 
 Parcours détaillés : `00`, `17` et `17b`.
 
@@ -241,7 +242,9 @@ est hors MVP).
   encaissé, D20 au premier litige.**
 - **Tranchées qui cadrent le travail courant** : D25 (société en Angleterre ; identité en
   marqueurs dans `apps/api/legal/`) · D70 · D71 (`production` n'avance que par
-  `git merge --no-ff main`) · D73 à D75 · D76 · D77 · D78 (étendue au Lot 3) · D79 · D83.
+  `git merge --no-ff main`) · D73 à D75 · D76 · D77 · D78 (étendue au Lot 3) · D79 · D83 · D84
+  (aucune double validation obligatoire en métier ; administration et sécurité sous contrôle
+  d'un pair).
 
 ## 10. Lots du MVP
 

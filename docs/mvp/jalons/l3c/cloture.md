@@ -7,9 +7,12 @@ Grille `testeur`. Aucun code applicatif. **Préalable :** toutes les lignes `fix
 3. `21` §8 : L3BT-9, L3BS-2, L3BS-5 soldés (SHA) ; constats « avant production » et « plus tard » de
    R et U reportés au reliquat (une ligne par groupe, détail `archives/jalons/l3c/annexe.md`
    § Revue) ; DS-flaky mis à jour ; ligne de clôture de L3C.
-4. Amendements : `04` §11 (EC-L3C-1) et §5.4 selon `modele.md` ; `09` (EC-L3C-2, EC-L3C-4, réponses
-   Q1 et Q2) ; `15` l. 298 (file 7 en service, comme les files 2 et 3) ; `03` P7 si la porte ou les
-   droits l'exigent ; `18` §10 Lot 3 (TM5.1, TM5.6 au niveau base).
+4. Amendements : `04` §11 (EC-L3C-1 ; `0307` à `0313`, recherche à `0314`) et §5.4 selon
+   `modele.md` ; `09` (EC-L3C-2, réponses Q1 et Q2) ; **D84 consignée** (EC-L3C-4 caduc) : `09`
+   RG85 point 2, CA56, CA57, `17b` §3.8, `15` l. 358, `04` §5.4 et §12 point 10 (une personne
+   publie, déclaration exigée, second avis facultatif) ; `15` l. 298 (file 7 en service, comme les
+   files 2 et 3) ; `03` P7 si la porte ou les droits l'exigent ; `18` §10 Lot 3 (TM5.1, TM5.6 au
+   niveau base).
 5. **Attestation I-4**, commit vide (`--allow-empty`), jamais en réécrivant `main` : titre
    `chore(security): attest the end-of-L3C review`, corps `security-reviewed: <date>` puis
    `security-reviewed: <date> covers <SHA complets>` fournis par l'annexe § Revue.
