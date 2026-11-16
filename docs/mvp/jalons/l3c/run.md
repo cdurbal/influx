@@ -15,6 +15,7 @@
 | 09 | 09.md | commit | sonnet | high | dev-react-node | fait | fiche, correction d’un champ hors montants, pause/reprise/clôture motivées, brouillon pour marque ; e2e 4,8 s ; EC-1 : pas de liste des campagnes par marque |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | routes pause/reprise/clôture (404 identique, 409 règle nommée) ; motif de refus servi (followUp) ; pause d'INFLUX non reprenable ; e2e 5,0 s |
 | U | ux.md | ux | sonnet | high | expert-ux | fait | 0 bloquant, 0 jalon, 12 avant production, 8 plus tard (ux-constats.md) ; L3CU-1 : fiche campagne sans porte d'entrée (EC-L3C-09-1) |
-| F | recette.md | fondateur | — | — | fondateur | à faire | |
+| X3 | fix-3.md | fix | sonnet | high | dev-react-node | à valider | constat de recette F : radios cochés illisibles en lecture seule |
+| F | recette.md | fondateur | — | — | fondateur | à faire | recette en cours, constat 1 (fondateur, 2026-11-16) : « Pour la recette quand c'est grisé ( Compagne en cours de validation) on ne voit pas bien les radios boutons activé » → X3 |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
