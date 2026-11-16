@@ -44,37 +44,43 @@ export function entrySubtitle(view: OpenCampaignEntryResponse): string {
   return t.subtitle(formatDateTime(view.entry.createdAt));
 }
 
-// --- The phase of the review (09 RG85, 17b §3.8 « Temps 1 / Temps 2 ») --------------------------------
+// --- The review of a sensitive sector (09 RG85, 17b §3.8, amended by D84) -----------------------------
 
-/** What the main button does: it publishes, or (time 1 of an enhanced review) it passes the campaign on. */
-export type DecisionKind = "publish" | "forward";
-
-export function decisionKindOf(view: OpenCampaignEntryResponse): DecisionKind {
-  return view.entry.review.phase === "first" ? "forward" : "publish";
-}
-
-/** The sentence of the enhanced review: who examines, in which time; null for a campaign of one examination. */
+/**
+ * The sentence of the enhanced review: one person decides, a second opinion is facultative (D84, never a
+ * blocking phase); null for a campaign of an ordinary sector. When an opinion was asked the sentence names who
+ * asked it and when, and tells the holder whether it is his own request (he takes the entry back) or a
+ * colleague's (he is the second look).
+ */
 export function reviewBanner(
-  view: { entry: Pick<OpenCampaignEntryResponse["entry"], "review"> },
+  view: {
+    entry: Pick<OpenCampaignEntryResponse["entry"], "review" | "claim">;
+  },
   mode: ClaimedMode,
 ): Banner | null {
-  const { review } = view.entry;
+  const { review, claim } = view.entry;
   if (!review.enhancedReview || mode === "closed") {
     return null;
   }
   const deciding = mode === "deciding";
-  if (review.phase === "second") {
+  if (review.phase === "second_opinion") {
+    const own =
+      deciding &&
+      review.firstReviewer !== null &&
+      review.firstReviewer.accountId === claim.holder?.accountId;
     return {
       tone: "info",
       lines: [
         t.enhanced.title,
-        t.enhanced.second(
+        t.enhanced.asked(
           review.firstReviewer?.displayName ?? null,
           review.firstReviewedAt === null
             ? null
             : formatDateTime(review.firstReviewedAt),
         ),
-        ...(deciding ? [t.enhanced.secondYou] : []),
+        ...(deciding
+          ? [own ? t.enhanced.askedByYou : t.enhanced.askedOfYou]
+          : []),
       ],
     };
   }
@@ -82,12 +88,12 @@ export function reviewBanner(
     tone: "info",
     lines: [
       t.enhanced.title,
-      deciding ? t.enhanced.firstYou : t.enhanced.first,
+      deciding ? t.enhanced.singleYou : t.enhanced.single,
     ],
   };
 }
 
-/** The opinion of the first examiner: served to the holder of the live claim only, never guessed otherwise. */
+/** The note of the request of a second opinion: served to the holder of the live claim only, never guessed otherwise. */
 export function firstOpinionOf(view: {
   entry: Pick<OpenCampaignEntryResponse["entry"], "review">;
 }): string | null {
@@ -401,7 +407,7 @@ export function defaultOwnerOf(
     : null;
 }
 
-// --- The decisions: publish, pass on, refuse with a typed reason (09 RG5, RG85, RG89 to RG92) ----------
+// --- The decisions: publish, ask a second opinion, refuse with a typed reason (09 RG5, RG85, RG89 to RG92) ---
 
 function problem(
   field: Problem["field"],
@@ -450,7 +456,7 @@ export function publishCheck(
   };
 }
 
-/** Time 1 of an enhanced review: a reasoned opinion of 20 to 1 000 characters (modele §3); the lengths are the contract's. */
+/** The facultative request of a second opinion (D84): a reasoned note of 20 to 1 000 characters; the lengths are the contract's. */
 export function firstReviewCheck(
   opinion: string,
   reviewToken: string,
@@ -535,10 +541,10 @@ export function publishedLines(
   return lines;
 }
 
-export function forwardedLines(
+export function askedLines(
   view: Pick<OpenCampaignEntryResponse, "campaign">,
 ): string[] {
-  return [t.decision.forwardedNotice(view.campaign.title)];
+  return [t.decision.askedNotice(view.campaign.title)];
 }
 
 export function rejectedLines(

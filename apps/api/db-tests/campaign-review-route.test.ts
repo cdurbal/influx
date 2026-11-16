@@ -308,7 +308,7 @@ describe("L3C-T7: the list of queue 7 (09 RG87; 15 RG26 to RG28, RG33, RG34)", (
 });
 
 describe("L3C-T7: a fresh entry (0312: read policy of queue 7)", () => {
-  it("L3C-T7.21 lists, counts and opens an entry that has no first review yet", async () => {
+  it("L3C-T7.21 lists, counts and opens an entry that has no second opinion asked yet", async () => {
     const before = (await list(agentA)).body.counters?.pending ?? 0;
     const submitted = await fresh();
     const after = await list(agentA);
@@ -644,9 +644,10 @@ describe("L3C-T7: the decisions (09 RG5, RG85, RG89 to RG92; modele §3, §4)", 
     // one person publishes a sensitive campaign alone (D84)
     const alone = await fresh({ sector, declare: true });
     const single = await open(agentA, alone.entryId);
+    // D84: no blocking phase, the entry reads as a single examination
     expect(single.entry.review).toMatchObject({
       enhancedReview: true,
-      phase: "first",
+      phase: "single",
     });
     const done1 = await publish(
       agentA,
@@ -658,11 +659,11 @@ describe("L3C-T7: the decisions (09 RG5, RG85, RG89 to RG92; modele §3, §4)", 
     const row = (await list(agentA)).body.items.find(
       (item) => item.id === submitted.entryId,
     );
-    expect(row).toMatchObject({ enhancedReview: true, phase: "first" });
+    expect(row).toMatchObject({ enhancedReview: true, phase: "single" });
     const first = await open(agentA, submitted.entryId);
     expect(first.entry.review).toMatchObject({
       enhancedReview: true,
-      phase: "first",
+      phase: "single",
     });
     // a short opinion is refused before anything is read
     const short = await kit.bo(
@@ -681,21 +682,39 @@ describe("L3C-T7: the decisions (09 RG5, RG85, RG89 to RG92; modele §3, §4)", 
       { reviewToken: first.reviewToken, opinion },
     );
     expect(given.statusCode, given.body).toBe(200);
+    // the entry given back is free and readable by him again, yet it is never the entry to open next (D84)
+    expect(
+      given.json<{ next: { entryId: string } | null }>().next?.entryId,
+    ).not.toBe(submitted.entryId);
     // D84: the entry stays listed for its requester
     expect((await list(agentA)).body.items.map((item) => item.id)).toContain(
       submitted.entryId,
     );
-    // the second person reads « 2e examen », the opinion as the holder, and decides
+    // the requester reads his own entry again, and his own opinion as the holder (D84), then gives it back
+    const taken = await open(agentA, submitted.entryId);
+    expect(taken.outcome).toBe("claimed");
+    expect(taken.entry.review).toMatchObject({
+      phase: "second_opinion",
+      firstReviewer: { accountId: agentA.accountId },
+      firstOpinion: opinion,
+    });
+    const released = await kit.bo(
+      "POST",
+      `${BO_ENTRIES}/${submitted.entryId}/release`,
+      agentA.session,
+    );
+    expect(released.json()).toEqual({ released: true });
+    // the second person reads « second avis demandé », the opinion as the holder, and decides
     const listed = (await list(agentB)).body.items.find(
       (item) => item.id === submitted.entryId,
     );
     expect(listed).toMatchObject({
-      phase: "second",
+      phase: "second_opinion",
       firstReviewer: { displayName: "Alix" },
     });
     const second = await open(agentB, submitted.entryId);
     expect(second.entry.review).toMatchObject({
-      phase: "second",
+      phase: "second_opinion",
       firstOpinion: opinion,
     });
     // a colleague who only reads never gets it, the requester neither (D84: he opens it like anybody)

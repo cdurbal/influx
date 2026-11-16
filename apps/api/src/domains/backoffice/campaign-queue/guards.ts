@@ -45,7 +45,7 @@ export function campaignActsOf(database: ApiDatabase) {
 
   /**
    * One act on an entry, in the transaction of the request. An unknown entry, the one of the caller's own
-   * account and an open one whose first examination he gave (hidden by the database) answer 404. The act
+   * account answer 404 (D84: an entry whose second opinion he asked is no longer hidden from him). The act
    * runs in a savepoint: its refusal leaves the transaction readable, for the name of the holder or the
    * notice of a lifted claim.
    */
@@ -118,12 +118,16 @@ export function campaignActsOf(database: ApiDatabase) {
     return withBackofficeSession(database, request, reply, work);
   }
 
-  /** 17b §2.6: the entry to open after a decision, or null. */
+  /**
+   * 17b §2.6: the entry to open after a decision, or null. `except` is the entry the caller has just given
+   * back by asking a second opinion (D84): it is free again and readable by him, it is never the next one.
+   */
   async function next(
     tx: Transaction,
     context: BackofficeContext,
+    except: string | null = null,
   ): Promise<{ entryId: string } | null> {
-    const entryId = await nextCampaignEntryId(tx, context.accountId);
+    const entryId = await nextCampaignEntryId(tx, context.accountId, except);
     return entryId === null ? null : { entryId };
   }
 

@@ -35,7 +35,7 @@
     "button": "Submit my campaign",
     "busy": "Sending…",
     "explain": "An INFLUX account manager reviews the campaign before it is published. Once submitted, it cannot be edited during the review.",
-    "sensitiveNotice": "This product category calls for an enhanced review: two people of the INFLUX team approve the publication, which may lengthen the review.",
+    "sensitiveNotice": "This product category calls for an enhanced review, which may lengthen the review.",
     "declarationRequired": "Tick this declaration to submit the campaign.",
     "submittedTitle": "Your campaign is submitted.",
     "submittedText": "It cannot be edited during the review.",

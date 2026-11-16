@@ -10,7 +10,7 @@
 //   55000 by DETAIL or MESSAGE -> 409 on the path `entry` (a decision) or `campaign` (an act on the record):
 //         the closed list of CAMPAIGN_DECISION_CONFLICT_ISSUES; `live_campaign_cap` also names the live
 //         campaigns of the brand (RG15), each as an issue of the path `campaign.live`
-//   23514 `enhanced_review` -> 409, the second person is missing (CA56)
+//   23514 `enhanced_review` -> 409, the declaration of the brand is missing for a sensitive sector (CA56, D84)
 //   23514, 23503 on a correction -> 400 on `value`: a constraint of the campaign refused the value
 //   22023 -> 400 on the body field the MESSAGE names
 // Anything else is returned unchanged (a 500, whose log carries no value).

@@ -34,17 +34,15 @@ export function campaignCategoryWords(
   return row.campaignType === null ? t.none : humanCode(row.campaignType);
 }
 
-/** One examination, or the two of an enhanced review (09 RG85): written, never by a colour alone. */
+/** One examination, an enhanced review, or an enhanced review whose second opinion was asked (09 RG85, D84): written, never by a colour alone. */
 export function campaignReviewWords(
-  row: Pick<CampaignEntryRow, "phase" | "firstReviewer">,
+  row: Pick<CampaignEntryRow, "phase" | "firstReviewer" | "enhancedReview">,
 ): string {
   switch (row.phase) {
     case "single":
-      return t.review.single;
-    case "first":
-      return t.review.first;
-    case "second":
-      return t.review.second(row.firstReviewer?.displayName ?? null);
+      return row.enhancedReview ? t.review.enhanced : t.review.single;
+    case "second_opinion":
+      return t.review.secondOpinion(row.firstReviewer?.displayName ?? null);
   }
 }
 

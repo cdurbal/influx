@@ -4,7 +4,8 @@
 // of its own; no brief, no band), opens the entry (which takes it in charge), reads the campaign and its brief
 // whole, publishes it with a responsible, the recap first; a colleague reads a held entry without deciding; a
 // refusal names a reason of the closed list and shows the sentence the brand will read; an enhanced review
-// (sensitive sector) has two times, two people, the second one reading the opinion of the first; a brand
+// (sensitive sector) is decided by one person, published alone by the first journey; a second opinion is
+// facultative (D84), given back to the queue and read by the next holder with the note of its requester; a brand
 // suspended in the meantime blocks the publication and leaves the refusal. The campaigns waiting are written by
 // the API's own routes (the brand's screens are not under test); the decisions are the screens'. The texts are
 // the locale files', never copies. No amount, rate or price anywhere: the budget is a band by its label (D78, D48).
@@ -63,6 +64,7 @@ test("an agent reads the campaigns to validate, opens one, reads the brief whole
     title: `Gamme ${tag}`,
     ownerAgentId: owner.accountId,
     brief: BRIEF_WITH_CONTACT,
+    sensitive: true,
   });
   await seedInternal(page, "agent", "Lou");
 
@@ -78,7 +80,7 @@ test("an agent reads the campaigns to validate, opens one, reads the brief whole
   await expect(line).toContainText(campaign.brandName);
   await expect(line).toContainText(campaign.title);
   await expect(line).toContainText("Product review");
-  await expect(line).toContainText(L.review.single);
+  await expect(line).toContainText(L.review.enhanced);
   await expect(table).toContainText(bo.queueList.alertLine(L.alerts.contact));
   const listText = await page.locator("main").innerText();
   for (const secret of [CONTACT, "soins du visage", "1 000"]) {
@@ -92,6 +94,13 @@ test("an agent reads the campaigns to validate, opens one, reads the brief whole
     campaign.title,
   );
   await expect(page.getByText(TAKEN)).toBeVisible();
+  // a sensitive sector (D84): one person decides, « Publier » is the main button, a second opinion is
+  // facultative and secondary, and nobody is told that two people are required
+  await expect(page.getByText(R.enhanced.singleYou)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: R.decision.askOpinion }),
+  ).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(/deux personnes/i);
   const brand = page.getByRole("region", { name: R.sections.brand });
   await expect(brand).toContainText(campaign.brandName);
   await expect(brand).toContainText("France");
@@ -134,7 +143,13 @@ test("an agent reads the campaigns to validate, opens one, reads the brief whole
   const decided = await campaignDecisionOf(campaign.campaignId);
   expect(decided.status).toBe("published");
   expect(decided.ownerAgentId).toBe(owner.accountId);
-  expect(decided.entries.map((entry) => entry.state)).toEqual(["published"]);
+  expect(decided.entries).toMatchObject([
+    {
+      state: "published",
+      firstReviewedBy: null,
+      decidedBy: expect.any(String),
+    },
+  ]);
 });
 
 test("an entry held by a colleague is read, never decided: « En cours — Lou », no button of decision, the same brief (09 RG89; 15 C2, CA58)", async ({
@@ -170,77 +185,66 @@ test("an entry held by a colleague is read, never decided: « En cours — Lou �
   expect(kept.entries.map((entry) => entry.state)).toEqual(["open"]);
 });
 
-test("a campaign of a sensitive sector is examined twice: the first agent passes it on with a reasoned opinion and cannot publish, the second reads the opinion and publishes (09 RG85, CA56, CA57; 17b §3.8)", async ({
+test("a second opinion on a sensitive campaign is facultative: asked, the entry is given back, readable by all, and a colleague publishes it (09 RG85, CA56; D84; 17b §3.8)", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const owner = await commercial();
-  const campaign = await submittedCampaign(page, {
-    title: `Cave ${runTag("C")}`,
+  const asked = await submittedCampaign(page, {
+    title: `Chai ${runTag("C")}`,
     ownerAgentId: owner.accountId,
     sensitive: true,
   });
   const lou = await seedInternal(page, "agent", "Lou");
 
-  // Time 1: « Vous êtes le 1ᵉʳ examinateur »; the main button passes on, there is no « Publier » and no responsible.
-  await page.goto(entryAddress(campaign.entryId));
+  // The facultative second opinion, with its note (the length is the unit tests'): the entry is given back.
+  await page.goto(entryAddress(asked.entryId));
   await expect(page.getByText(TAKEN)).toBeVisible();
-  await expect(page.getByText(R.enhanced.firstYou)).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: R.decision.publish, exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByLabel(R.decision.ownerLabel, { exact: true }),
-  ).toHaveCount(0);
-  await page.keyboard.press("v");
-  const forward = page.getByRole("form", { name: R.decision.forwardTitle });
-  await expect(forward).toBeVisible();
-  const field = forward.getByLabel(R.decision.opinionLabel, { exact: true });
-  await field.fill("Trop court");
-  await forward
-    .getByRole("button", { name: R.decision.forwardConfirm })
-    .click();
-  await expect(page.getByText(R.decision.opinionTooShort)).toBeVisible();
+  await page.getByRole("button", { name: R.decision.askOpinion }).click();
+  const request = page.getByRole("form", { name: R.decision.askOpinionTitle });
+  await expect(request).toBeVisible();
+  const field = request.getByLabel(R.decision.opinionLabel, { exact: true });
   const opinion =
-    "Les autorisations du secteur sont déclarées et cohérentes avec le brief.";
+    "Les autorisations du secteur sont déclarées, un regard de plus est bienvenu.";
   await field.fill(opinion);
-  await forward
-    .getByRole("button", { name: R.decision.forwardConfirm })
+  await request
+    .getByRole("button", { name: R.decision.askOpinionConfirm })
     .click();
   await expect(
-    page.getByText(R.decision.forwardedNotice(campaign.title)),
+    page.getByText(R.decision.askedNotice(asked.title)),
   ).toBeVisible();
-  const forwarded = await campaignDecisionOf(campaign.campaignId);
-  expect(forwarded.status).toBe("pending_review");
-  expect(forwarded.entries).toMatchObject([
+  const requested = await campaignDecisionOf(asked.campaignId);
+  expect(requested.status).toBe("pending_review");
+  expect(requested.entries).toMatchObject([
     { state: "open", firstOpinion: opinion, firstReviewedBy: lou.accountId },
   ]);
 
-  // The entry is hidden from the first examiner: the same sentence as an unknown entry (15 RG36).
-  await page.goto(entryAddress(campaign.entryId));
-  await expect(page.getByText(bo.claimedReview.errors.notFound)).toBeVisible();
-
-  // Time 2: another agent reads « 1ᵉʳ avis de Lou » and its opinion, and publishes (the same browser, signed in
-  // again as another person).
+  // A colleague reads « Second avis demandé par Lou » and the note, and publishes (the same browser, signed in
+  // again as another person; the request gave the claim back).
   const marie = await seedInternal(page, "agent", "Marie");
-  await page.goto(entryAddress(campaign.entryId));
+  await page.goto(entryAddress(asked.entryId));
   await expect(page.getByText(TAKEN)).toBeVisible();
-  await expect(page.getByText(/1ᵉʳ avis de Lou/)).toBeVisible();
-  await expect(page.getByText(R.enhanced.secondYou)).toBeVisible();
+  await expect(page.getByText(/Second avis demandé par Lou/)).toBeVisible();
+  await expect(page.getByText(R.enhanced.askedOfYou)).toBeVisible();
   await expect(page.locator("[data-first-opinion]")).toHaveText(opinion);
   await page.keyboard.press("v");
-  const publish = page.getByRole("form", { name: R.decision.publishTitle });
-  await publish
+  await page
+    .getByRole("form", { name: R.decision.publishTitle })
     .getByRole("button", { name: R.decision.publishConfirm })
     .click();
   await expect(
-    page.getByText(R.decision.publishedNotice(campaign.title)),
+    page.getByText(R.decision.publishedNotice(asked.title)),
   ).toBeVisible();
-  const published = await campaignDecisionOf(campaign.campaignId);
+  const published = await campaignDecisionOf(asked.campaignId);
   expect(published.status).toBe("published");
   expect(published.ownerAgentId).toBe(marie.accountId);
-  expect(published.entries.map((entry) => entry.state)).toEqual(["published"]);
-  expect(published.entries[0]?.decidedBy).toBe(marie.accountId);
+  expect(published.entries).toMatchObject([
+    {
+      state: "published",
+      firstReviewedBy: lou.accountId,
+      decidedBy: marie.accountId,
+    },
+  ]);
 });
 
 test("a brand suspended while its campaign waits blocks the publication with its banner and leaves the refusal: a reason of the closed list, the sentence the brand will read (09 RG89 à RG92; 17b §3.8)", async ({

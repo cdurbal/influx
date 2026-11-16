@@ -1,11 +1,12 @@
 "use client";
 
 // The decision block of the screen of queue 7 (docs/mvp/09 RG5, RG6, RG85, RG89 to RG92; 15 RG114 to RG116; 17b
-// §3.8, §4.3; jalons/l3c/modele.md §3, §4; L3C-08): the responsible (compulsory to publish), two buttons and two
-// only (the main one publishes, or, at time 1 of an enhanced review, passes the campaign on with a reasoned
-// opinion: never « Publier »), the recap that comes before either (a key never decides alone, RG115), the
-// picker of the closed list of reasons before a refusal (‹r› never refuses alone, as `BoReasonPicker` draws it
-// for queue 1, with the reasons and the message of this queue). The draft belongs to the screen: closing a
+// §3.8, §4.3; jalons/l3c/modele.md §3, §4; L3C-08, L3C-X5): the responsible (compulsory to publish), the main
+// button always « Publier » (D84: one person decides, a sensitive sector included), the facultative secondary
+// button « Demander un second avis » (a sensitive sector, no opinion asked yet; it blocks nothing), the refusal,
+// the recap that comes before each (a key never decides alone, RG115), the picker of the closed list of reasons
+// before a refusal (‹r› never refuses alone, as `BoReasonPicker` draws it for queue 1, with the reasons and the
+// message of this queue). The draft belongs to the screen: closing a
 // panel with ‹Échap› loses nothing (RG116). No rule here: the screen says what it sends, the server decides.
 import {
   CAMPAIGN_MEMBER_MESSAGE_MAX_LENGTH,
@@ -28,19 +29,15 @@ import {
   SMALL_SECONDARY_CLASSES,
   TEXTAREA_CLASSES,
 } from "./bo-classes";
-import {
-  decisionKindOf,
-  ownerOptions,
-  reasonPreview,
-} from "./campaign-review-view";
+import { ownerOptions, reasonPreview } from "./campaign-review-view";
 import { CommentField, DecisionPanel } from "./ClaimedDecisionParts";
 import { ErrorNotice } from "./ErrorNotice";
 import type { Draft, Problem } from "./verification-decision-view";
 
 const t = messages.campaignReview.decision;
 
-/** The two panels of this block: the main decision (publish, or pass on) and the refusal. */
-export type CampaignPanel = "publish" | "reject";
+/** The three panels of this block: the publication, the request of a second opinion (facultative) and the refusal. */
+export type CampaignPanel = "publish" | "opinion" | "reject";
 
 function KeyHint({ keys }: { keys: string }) {
   return (
@@ -66,6 +63,7 @@ export function CampaignReviewDecision({
   onOwner,
   onOpinion,
   onMain,
+  onAskOpinion,
   onReject,
 }: {
   view: OpenCampaignEntryResponse;
@@ -86,6 +84,7 @@ export function CampaignReviewDecision({
   onOwner: (next: string | null) => void;
   onOpinion: (next: string) => void;
   onMain: () => void;
+  onAskOpinion: () => void;
   onReject: () => void;
 }) {
   const ids = {
@@ -95,8 +94,9 @@ export function CampaignReviewDecision({
     reason: useId(),
   };
   const busyNow = busy !== null;
-  const kind = decisionKindOf(view);
-  const forward = kind === "forward";
+  const { review } = view.entry;
+  // facultative and asked once (first_review_given): a sensitive sector whose opinion is not asked yet
+  const canAskOpinion = review.enhancedReview && review.phase === "single";
   const language = (messages.languages as Readonly<Record<string, string>>)[
     view.brand.preferredLanguage
   ];
@@ -111,7 +111,6 @@ export function CampaignReviewDecision({
   const reasonProblem = problem?.field === "reason" ? problem : null;
   const messageProblem = problem?.field === "memberMessage" ? problem : null;
   const comment = draft.internalComment.trim();
-  const mainLabel = forward ? t.forward : t.publish;
 
   return (
     <section aria-labelledby="campaign-decision" className={SECTION_CLASSES}>
@@ -119,47 +118,45 @@ export function CampaignReviewDecision({
         {messages.campaignReview.sections.decision}
       </h2>
       <p className={HELP_CLASSES}>
-        {forward
-          ? t.leadFirst
-          : view.entry.review.phase === "second"
-            ? t.leadSecond
+        {review.phase === "second_opinion"
+          ? t.leadSecondOpinion
+          : review.enhancedReview
+            ? t.leadEnhanced
             : t.leadSingle}
       </p>
 
-      {forward ? null : (
-        <div className={FIELD_CLASSES}>
-          <label htmlFor={ids.owner} className={SMALL_LABEL_CLASSES}>
-            {t.ownerLabel}
-          </label>
-          <select
-            id={ids.owner}
-            value={ownerAgentId ?? ""}
-            required
-            aria-required="true"
-            aria-invalid={ownerProblem !== null || undefined}
-            aria-describedby={`${ids.owner}-help${ownerProblem === null ? "" : ` ${ids.owner}-problem`}`}
-            onChange={(event) =>
-              onOwner(event.target.value === "" ? null : event.target.value)
-            }
-            className={SELECT_CLASSES}
-          >
-            <option value="">{t.ownerPlaceholder}</option>
-            {owners.map((owner) => (
-              <option key={owner.value} value={owner.value}>
-                {owner.label}
-              </option>
-            ))}
-          </select>
-          <p id={`${ids.owner}-help`} className={HELP_CLASSES}>
-            {t.ownerHelp}
-          </p>
-          {ownerProblem === null ? null : (
-            <ErrorNotice id={`${ids.owner}-problem`}>
-              {ownerProblem.text}
-            </ErrorNotice>
-          )}
-        </div>
-      )}
+      <div className={FIELD_CLASSES}>
+        <label htmlFor={ids.owner} className={SMALL_LABEL_CLASSES}>
+          {t.ownerLabel}
+        </label>
+        <select
+          id={ids.owner}
+          value={ownerAgentId ?? ""}
+          required
+          aria-required="true"
+          aria-invalid={ownerProblem !== null || undefined}
+          aria-describedby={`${ids.owner}-help${ownerProblem === null ? "" : ` ${ids.owner}-problem`}`}
+          onChange={(event) =>
+            onOwner(event.target.value === "" ? null : event.target.value)
+          }
+          className={SELECT_CLASSES}
+        >
+          <option value="">{t.ownerPlaceholder}</option>
+          {owners.map((owner) => (
+            <option key={owner.value} value={owner.value}>
+              {owner.label}
+            </option>
+          ))}
+        </select>
+        <p id={`${ids.owner}-help`} className={HELP_CLASSES}>
+          {t.ownerHelp}
+        </p>
+        {ownerProblem === null ? null : (
+          <ErrorNotice id={`${ids.owner}-problem`}>
+            {ownerProblem.text}
+          </ErrorNotice>
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-3">
         <button
@@ -174,9 +171,24 @@ export function CampaignReviewDecision({
           }}
           className={SMALL_PRIMARY_CLASSES}
         >
-          {mainLabel}
+          {t.publish}
           <KeyHint keys="‹v›" />
         </button>
+        {canAskOpinion && !brandBlocked ? (
+          <button
+            type="button"
+            aria-expanded={panel === "opinion"}
+            aria-disabled={busyNow || undefined}
+            onClick={() => {
+              if (!busyNow) {
+                onPanel(panel === "opinion" ? null : "opinion");
+              }
+            }}
+            className={SMALL_SECONDARY_CLASSES}
+          >
+            {t.askOpinion}
+          </button>
+        ) : null}
         <button
           type="button"
           aria-keyshortcuts="r"
@@ -195,6 +207,7 @@ export function CampaignReviewDecision({
       </div>
 
       {panel !== "publish" &&
+      panel !== "opinion" &&
       panel !== "reject" &&
       problem !== null &&
       problem.field !== "owner" &&
@@ -204,79 +217,79 @@ export function CampaignReviewDecision({
       ) : null}
 
       {panel === "publish" && !brandBlocked ? (
-        forward ? (
-          <DecisionPanel
-            id="campaign-forward"
-            title={t.forwardTitle}
-            lead={t.forwardLead}
-            problem={problem}
-            busy={busy === "forward"}
-            busyNow={busyNow}
-            confirmLabel={t.forwardConfirm}
-            onConfirm={onMain}
-            onCancel={() => onPanel(null)}
-          >
-            <div className={FIELD_CLASSES}>
-              <label htmlFor={ids.opinion} className={SMALL_LABEL_CLASSES}>
-                {t.opinionLabel}
-              </label>
-              <textarea
-                id={ids.opinion}
-                rows={5}
-                value={opinion}
-                maxLength={CAMPAIGN_OPINION_MAX_LENGTH + 200}
-                aria-invalid={opinionProblem !== null || undefined}
-                aria-describedby={`${ids.opinion}-help${opinionProblem === null ? "" : ` ${ids.opinion}-problem`}`}
-                onChange={(event) => onOpinion(event.target.value)}
-                className={TEXTAREA_CLASSES}
-              />
-              <p
-                id={`${ids.opinion}-help`}
-                className={`${HELP_CLASSES} tabular-nums`}
-              >
-                {t.opinionHelp}{" "}
-                {t.opinionCount(
-                  opinion.trim().length,
-                  CAMPAIGN_OPINION_MAX_LENGTH,
-                  CAMPAIGN_OPINION_MIN_LENGTH,
-                )}
-              </p>
-              {opinionProblem === null ? null : (
-                <ErrorNotice id={`${ids.opinion}-problem`}>
-                  {opinionProblem.text}
-                </ErrorNotice>
-              )}
-            </div>
-          </DecisionPanel>
-        ) : (
-          <DecisionPanel
-            id="campaign-publish"
-            title={t.publishTitle}
-            lead={t.publishLead}
-            problem={problem}
-            busy={busy === "publish"}
-            busyNow={busyNow}
-            confirmLabel={t.publishConfirm}
-            onConfirm={onMain}
-            onCancel={() => onPanel(null)}
-          >
-            <p className="text-sm text-text-primary">
-              {t.publishRecap(
-                view.campaign.title,
-                view.brand.name,
-                language ?? "",
-                ownerName === "" ? messages.campaignReview.unset : ownerName,
+        <DecisionPanel
+          id="campaign-publish"
+          title={t.publishTitle}
+          lead={t.publishLead}
+          problem={problem}
+          busy={busy === "publish"}
+          busyNow={busyNow}
+          confirmLabel={t.publishConfirm}
+          onConfirm={onMain}
+          onCancel={() => onPanel(null)}
+        >
+          <p className="text-sm text-text-primary">
+            {t.publishRecap(
+              view.campaign.title,
+              view.brand.name,
+              language ?? "",
+              ownerName === "" ? messages.campaignReview.unset : ownerName,
+            )}
+          </p>
+          {comment === "" ? null : (
+            <p className="text-sm text-text-secondary">
+              {t.publishCommentRecap}{" "}
+              <span className="whitespace-pre-wrap">{comment}</span>
+            </p>
+          )}
+          <CommentField draft={draft} problem={problem} onDraft={onDraft} />
+        </DecisionPanel>
+      ) : null}
+
+      {panel === "opinion" && canAskOpinion && !brandBlocked ? (
+        <DecisionPanel
+          id="campaign-opinion-request"
+          title={t.askOpinionTitle}
+          lead={t.askOpinionLead}
+          problem={problem}
+          busy={busy === "opinion"}
+          busyNow={busyNow}
+          confirmLabel={t.askOpinionConfirm}
+          onConfirm={onAskOpinion}
+          onCancel={() => onPanel(null)}
+        >
+          <div className={FIELD_CLASSES}>
+            <label htmlFor={ids.opinion} className={SMALL_LABEL_CLASSES}>
+              {t.opinionLabel}
+            </label>
+            <textarea
+              id={ids.opinion}
+              rows={5}
+              value={opinion}
+              maxLength={CAMPAIGN_OPINION_MAX_LENGTH + 200}
+              aria-invalid={opinionProblem !== null || undefined}
+              aria-describedby={`${ids.opinion}-help${opinionProblem === null ? "" : ` ${ids.opinion}-problem`}`}
+              onChange={(event) => onOpinion(event.target.value)}
+              className={TEXTAREA_CLASSES}
+            />
+            <p
+              id={`${ids.opinion}-help`}
+              className={`${HELP_CLASSES} tabular-nums`}
+            >
+              {t.opinionHelp}{" "}
+              {t.opinionCount(
+                opinion.trim().length,
+                CAMPAIGN_OPINION_MAX_LENGTH,
+                CAMPAIGN_OPINION_MIN_LENGTH,
               )}
             </p>
-            {comment === "" ? null : (
-              <p className="text-sm text-text-secondary">
-                {t.publishCommentRecap}{" "}
-                <span className="whitespace-pre-wrap">{comment}</span>
-              </p>
+            {opinionProblem === null ? null : (
+              <ErrorNotice id={`${ids.opinion}-problem`}>
+                {opinionProblem.text}
+              </ErrorNotice>
             )}
-            <CommentField draft={draft} problem={problem} onDraft={onDraft} />
-          </DecisionPanel>
-        )
+          </div>
+        </DecisionPanel>
       ) : null}
 
       {panel === "reject" ? (

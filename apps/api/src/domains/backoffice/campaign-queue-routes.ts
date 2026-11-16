@@ -11,7 +11,7 @@
 //   POST …/entries/:id/open: opening is claiming (C1): the entry is taken, or read in read-only mode with the
 //        name of its holder (C2); the decision view comes back with the version token, the alerts of
 //        detection (RG21 to RG23), the duplicate alert (RG95), the refusal reasons with the message the brand
-//        will receive (the very words of the e-mail) and the opinion of the first examiner, to the HOLDER of
+//        will receive (the very words of the e-mail) and the note of a requested second opinion, to the HOLDER of
 //        a live claim only. A POST: it has an effect (the claim, the register line).
 // Decisions, release, extension and forced release: campaign-queue-decision-routes.ts, registered from here;
 // the record and the acts on the campaign: campaign-record-routes.ts.
@@ -159,11 +159,8 @@ function rowOf(entry: ListedCampaignEntry, caller: string): CampaignEntryRow {
     campaignType: entry.campaignType,
     sectorCode: entry.sectorCode,
     enhancedReview: entry.enhancedReview,
-    phase: !entry.enhancedReview
-      ? "single"
-      : entry.firstReviewer === null
-        ? "first"
-        : "second",
+    // D84: one person decides; `second_opinion` only says an opinion was asked, it blocks nothing
+    phase: entry.firstReviewer === null ? "single" : "second_opinion",
     firstReviewer: entry.firstReviewer,
     createdAt: entry.createdAt,
     slaDueAt: entry.slaDueAt,
@@ -330,15 +327,11 @@ export function registerCampaignQueueRoutes(
         decision:
           entry.decision as OpenCampaignEntryResponse["entry"]["decision"],
         review: {
-          phase: !entry.enhancedReview
-            ? "single"
-            : entry.firstReviewedAt === null
-              ? "first"
-              : "second",
+          phase: entry.firstReviewedAt === null ? "single" : "second_opinion",
           enhancedReview: entry.enhancedReview,
           firstReviewer: entry.firstReviewer,
           firstReviewedAt: entry.firstReviewedAt,
-          // modele §1: the opinion goes to the holder of a live claim, never to anybody else
+          // modele §1: the opinion goes to the holder of a live claim, the requester included, never to anybody else
           firstOpinion: holds ? opening.firstOpinion : null,
         },
       },

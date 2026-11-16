@@ -318,17 +318,19 @@ export function listCampaignEntriesPage(
 /**
  * 17b §2.6: the entry to open after a decision: oldest deadline first, ties by entry into the queue,
  * among the open ones nobody holds, never the caller's own account nor one he holds (RG36). The policy
- * hides from him the entry whose first examination he gave. Null when none.
+ * is read as everywhere else; `except` leaves out the entry just given back (D84). Null when none.
  */
 export async function nextCampaignEntryId(
   tx: Transaction,
   caller: string,
+  except: string | null = null,
 ): Promise<string | null> {
   const rows = await tx.execute<{ id: string }>(sql`
     select e.id::text as id
       from campaigns.campaign_review_entries e
       join identity.accounts a on a.id = e.advertiser_account_id
      where ${sql.join(campaignConditionsOf({ holder: "free" }, caller), sql` and `)}
+       and (${except}::uuid is null or e.id <> ${except}::uuid)
      order by e.sla_due_at, e.created_at, e.id
      limit 1`);
   return rows[0]?.id ?? null;
@@ -340,7 +342,7 @@ export async function nextCampaignEntryId(
 
 /**
  * The brand behind an entry of queue 7, and who holds it: null for an unknown entry, the caller's own
- * account, or an open entry whose first examination he gave (hidden by the policy of 0307, 0312).
+ * account (hidden by the policy of 0307, 0313: the requester of a second opinion reads his entry again, D84).
  */
 export async function campaignEntryTargetOf(
   tx: Transaction,

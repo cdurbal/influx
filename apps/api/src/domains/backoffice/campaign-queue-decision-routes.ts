@@ -3,9 +3,11 @@
 // T14). Backoffice surface; the aal2 guard of server.ts runs first, then each handler reads and writes
 // through withBackofficeSession() (agent and admin).
 //   …/campaigns/entries/:id/
-//   - first-review: time 1 of an enhanced review: a reasoned favourable opinion, never published nor sent;
+//   - first-review: the facultative request of a second opinion on an enhanced review (D84): a reasoned note,
+//     never published nor sent, the claim given back; it blocks nothing;
 //   - publish: the human decision that publishes (RG5), bound to the version examined (`reviewToken`), a
-//     responsible named; in an enhanced review only by a second person (RG85);
+//     responsible named; one person decides, in an enhanced review too (D84), the declaration of the brand
+//     being required;
 //   - reject: a typed reason of RG90; `memberMessage` for `illicit_content` and `other` only, a direct contact
 //     in it refused here as the e-mail holds no link (RG158);
 //   - release, extend (the holder gives the entry back, or takes the delay again, A9), force-release (an
@@ -189,9 +191,10 @@ export function registerCampaignQueueDecisionRoutes(
                 body.opinion,
               ),
           );
+          // the entry given back is free and readable by its requester: it is never his next one (D84)
           return reviewed === CONFLICT_OF_INTEREST
             ? reviewed
-            : { ...reviewed, next: await acts.next(tx, context) };
+            : { ...reviewed, next: await acts.next(tx, context, entryId) };
         }),
       );
     },

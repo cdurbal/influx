@@ -148,8 +148,8 @@ export function AlertsBlock({
 }
 
 /**
- * The opinion of the first examiner (modele §1): served to the holder of the live claim only. A reader who is
- * not the holder is told so, rather than shown a block that looks empty.
+ * The note of the requested second opinion (modele §1, D84): served to the holder of the live claim only, the
+ * requester included. A reader who is not the holder is told so, rather than shown a block that looks empty.
  */
 export function FirstOpinionBlock({
   view,
@@ -158,7 +158,7 @@ export function FirstOpinionBlock({
   view: OpenCampaignEntryResponse;
   mode: ClaimedMode;
 }) {
-  if (view.entry.review.phase !== "second" || mode === "closed") {
+  if (view.entry.review.phase !== "second_opinion" || mode === "closed") {
     return null;
   }
   const opinion = firstOpinionOf(view);

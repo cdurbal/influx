@@ -217,7 +217,6 @@ const ISSUE_TEXT: Readonly<Record<string, string>> = {
   campaign_state: t.refusals.campaignState,
   campaign_closed: t.refusals.campaignClosed,
   not_enhanced_review: t.refusals.notEnhancedReview,
-  enhanced_review_required: t.refusals.enhancedReviewRequired,
   enhanced_review: t.refusals.enhancedReview,
   first_review_given: t.refusals.firstReviewGiven,
   brand_not_publishable: t.refusals.brandNotPublishable,

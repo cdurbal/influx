@@ -7,9 +7,9 @@
 // claim is the caller's), it reads (a colleague holds the entry: « En cours — … », never an error screen), or
 // the entry is closed. The frame, the claim and the calls are those the other claimed queues share
 // (`ClaimedEntryFrame`, `useClaimedEntry`); the blocks and the three decisions are this screen's own. ‹v› and
-// ‹r› open a panel and never decide. An enhanced review (RG85) has two times: the first examiner passes the
-// campaign on with a reasoned opinion, a second person publishes. It only draws: the rules are the database's
-// and apps/api's.
+// ‹r› open a panel and never decide. An enhanced review (RG85, D84) is decided by one person like any other:
+// the main button stays « Publier »; « Demander un second avis » is a facultative secondary gesture that gives
+// the entry back, readable by all, and blocks nothing. It only draws: the rules are the database's and apps/api's.
 import type {
   CampaignRejectionReasonCode,
   OpenCampaignEntryResponse,
@@ -27,12 +27,11 @@ import {
 } from "./backoffice-api";
 import { CAMPAIGN_REVIEW_LIST } from "./campaign-queue-view";
 import {
-  decisionKindOf,
+  askedLines,
   defaultOwnerOf,
   entrySubtitle,
   entryTitle,
   firstReviewCheck,
-  forwardedLines,
   publishCheck,
   publishedLines,
   rejectCheck,
@@ -69,7 +68,7 @@ const API: ClaimedApi<OpenCampaignEntryResponse> = {
   forceRelease: forceReleaseCampaignEntryClaim,
 };
 
-/** ‹v› opens the recap of the publication (or of the opinion), ‹r› the picker of the reason: neither decides. */
+/** ‹v› opens the recap of the publication, ‹r› the picker of the reason: neither decides. */
 const KEYS: ClaimedKeys<CampaignPanel> = {
   positive: "publish",
   negative: "reject",
@@ -107,25 +106,28 @@ export function CampaignReviewEntryScreen({ id }: { id: string }) {
   // the API said the brand is suspended (« brand_not_publishable »): publishing is over, refusing is not
   const [brandBlocked, setBrandBlocked] = useState(false);
 
+  function askOpinion(view: OpenCampaignEntryResponse) {
+    if (view.reviewToken === null) {
+      return;
+    }
+    const checked = firstReviewCheck(opinion, view.reviewToken);
+    if (!checked.ok) {
+      setProblem(checked.problem);
+      return;
+    }
+    void perform(
+      "opinion",
+      view,
+      () => firstReviewCampaignEntry(view.entry.id, checked.body),
+      (data) => finish(view, data.next, askedLines(view)),
+    );
+  }
+
   function mainDecision(view: OpenCampaignEntryResponse) {
     if (view.reviewToken === null) {
       return;
     }
     const token = view.reviewToken;
-    if (decisionKindOf(view) === "forward") {
-      const checked = firstReviewCheck(opinion, token);
-      if (!checked.ok) {
-        setProblem(checked.problem);
-        return;
-      }
-      void perform(
-        "forward",
-        view,
-        () => firstReviewCampaignEntry(view.entry.id, checked.body),
-        (data) => finish(view, data.next, forwardedLines(view)),
-      );
-      return;
-    }
     const owner =
       pickedOwner === null ? defaultOwnerOf(view) : pickedOwner.value;
     const checked = publishCheck(draft, owner, view.responsibles, token);
@@ -225,6 +227,7 @@ export function CampaignReviewEntryScreen({ id }: { id: string }) {
                 onOwner={(value) => setPickedOwner({ value })}
                 onOpinion={setOpinion}
                 onMain={() => mainDecision(view)}
+                onAskOpinion={() => askOpinion(view)}
                 onReject={() => reject(view)}
               />
             ) : null}

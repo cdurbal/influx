@@ -29,12 +29,11 @@ import {
   budgetWords,
   campaignFacts,
   closedLines,
-  decisionKindOf,
   defaultOwnerOf,
   duplicateLine,
   firstOpinionOf,
   firstReviewCheck,
-  forwardedLines,
+  askedLines,
   ownerOptions,
   publishCheck,
   publishedLines,
@@ -223,19 +222,24 @@ describe("L3C-08 queue 7, the list: the words of a line (17b §2.7 line 6, 09 RG
     expect(campaignCategoryWords(bare)).toBe(messages.campaignQueue.none);
   });
 
-  it("writes the phase of the review, the second naming the first examiner", () => {
+  it("writes the review of a line: one examination, an enhanced review, or a second opinion asked and by whom (D84)", () => {
     const q = messages.campaignQueue.review;
     expect(campaignReviewWords(row())).toBe(q.single);
-    expect(campaignReviewWords(row({ phase: "first" }))).toBe(q.first);
+    expect(campaignReviewWords(row({ enhancedReview: true }))).toBe(q.enhanced);
     expect(
       campaignReviewWords(
         row({
-          phase: "second",
+          enhancedReview: true,
+          phase: "second_opinion",
           firstReviewer: { accountId: LOU, displayName: "Lou" },
         }),
       ),
-    ).toBe(q.second("Lou"));
-    expect(campaignReviewWords(row({ phase: "second" }))).toBe(q.second(null));
+    ).toBe(q.secondOpinion("Lou"));
+    expect(
+      campaignReviewWords(
+        row({ enhancedReview: true, phase: "second_opinion" }),
+      ),
+    ).toBe(q.secondOpinion(null));
   });
 
   it("puts the alerts in a line of their own, informative, and nothing when there is none", () => {
@@ -392,47 +396,57 @@ describe("L3C-08 queue 7, the campaign as the agent reads it (09 blocks 1 to 7; 
   });
 });
 
-describe("L3C-08 queue 7, the enhanced review in two times (09 RG85, CA56, CA57; 17b §3.8)", () => {
+describe("L3C-08 queue 7, the enhanced review decided by one person, a second opinion facultative (09 RG85, CA56; D84; 17b §3.8)", () => {
   const sensitive = { enhancedReview: true } as const;
 
-  it("says nothing of a campaign of one examination, and publishes it directly", () => {
+  it("says nothing of a campaign of one examination", () => {
     expect(reviewBanner(view(), "deciding")).toBeNull();
-    expect(decisionKindOf(view())).toBe("publish");
   });
 
-  it("makes the main button of time 1 pass the campaign on, never publish it", () => {
-    const first = view({}, { ...sensitive, phase: "first" });
-    expect(decisionKindOf(first)).toBe("forward");
-    expect(reviewBanner(first, "deciding")?.lines).toEqual([
+  it("lets a sensitive entry be decided alone: one person, the second opinion facultative, no blocking phase", () => {
+    const alone = view({}, sensitive);
+    expect(reviewBanner(alone, "deciding")?.lines).toEqual([
       t.enhanced.title,
-      t.enhanced.firstYou,
+      t.enhanced.singleYou,
     ]);
-    expect(reviewBanner(first, "readOnly")?.lines).toEqual([
+    expect(reviewBanner(alone, "readOnly")?.lines).toEqual([
       t.enhanced.title,
-      t.enhanced.first,
+      t.enhanced.single,
     ]);
+    // nobody is told that two people are required
+    for (const line of reviewBanner(alone, "deciding")?.lines ?? []) {
+      expect(line).not.toMatch(/deux personnes|2ᵉ examinateur/i);
+    }
   });
 
-  it("names the first examiner at time 2 and makes the main button publish", () => {
-    const second = view(
+  it("names who asked the second opinion, a colleague's request apart from one's own, the opinion kept for the holder", () => {
+    const asked = {
+      ...sensitive,
+      phase: "second_opinion",
+      firstReviewedAt: "2026-11-10T09:30:00.000Z",
+      firstOpinion: "Autorisations vérifiées, rien à redire.",
+    } as const;
+    const byColleague = view(
       {},
-      {
-        ...sensitive,
-        phase: "second",
-        firstReviewer: { accountId: LOU, displayName: "Lou" },
-        firstReviewedAt: "2026-11-10T09:30:00.000Z",
-        firstOpinion: "Autorisations vérifiées, rien à redire.",
-      },
+      { ...asked, firstReviewer: { accountId: LOU, displayName: "Lou" } },
     );
-    expect(decisionKindOf(second)).toBe("publish");
-    const lines = reviewBanner(second, "deciding")?.lines ?? [];
-    expect(lines[1]).toContain("1ᵉʳ avis de Lou");
-    expect(lines).toContain(t.enhanced.secondYou);
-    expect(firstOpinionOf(second)).toBe(
+    const lines = reviewBanner(byColleague, "deciding")?.lines ?? [];
+    expect(lines[1]).toContain("Second avis demandé par Lou");
+    expect(lines).toContain(t.enhanced.askedOfYou);
+    expect(firstOpinionOf(byColleague)).toBe(
       "Autorisations vérifiées, rien à redire.",
     );
+    const byMe = view(
+      {},
+      { ...asked, firstReviewer: { accountId: ME, displayName: "Alice" } },
+    );
+    expect(reviewBanner(byMe, "deciding")?.lines).toContain(
+      t.enhanced.askedByYou,
+    );
+    // read by a colleague who holds nothing: the request is named, no word on whose turn it is
+    expect(reviewBanner(byMe, "readOnly")?.lines).toHaveLength(2);
     // a closed entry carries no banner
-    expect(reviewBanner(second, "closed")).toBeNull();
+    expect(reviewBanner(byColleague, "closed")).toBeNull();
   });
 
   it("reads the opinion only where the API served it", () => {
@@ -440,7 +454,7 @@ describe("L3C-08 queue 7, the enhanced review in two times (09 RG85, CA56, CA57;
     expect(firstOpinionOf(view({}, { firstOpinion: "  " }))).toBeNull();
   });
 
-  it("asks a reasoned opinion of 20 to 1 000 characters, trimmed, bound to the version read", () => {
+  it("asks a second opinion with a reasoned note of 20 to 1 000 characters, trimmed, bound to the version read", () => {
     expect(firstReviewCheck("trop court", TOKEN)).toEqual({
       ok: false,
       problem: { field: "opinion", text: t.decision.opinionTooShort },
@@ -623,8 +637,8 @@ describe("L3C-08 queue 7, the decision: the responsible, the publication, the re
       t.decision.publishedNotice("Gamme de soins du visage"),
     ]);
     expect(publishedLines(view(), true)).toContain(t.decision.lateMark);
-    expect(forwardedLines(view())).toEqual([
-      t.decision.forwardedNotice("Gamme de soins du visage"),
+    expect(askedLines(view())).toEqual([
+      t.decision.askedNotice("Gamme de soins du visage"),
     ]);
     expect(rejectedLines(view(), "brief_insufficient", false)).toEqual([
       t.decision.rejectedNotice(
@@ -687,7 +701,6 @@ describe("L3C-08 queue 7, what a refused call means", () => {
       campaign_state: r.campaignState,
       campaign_closed: r.campaignClosed,
       not_enhanced_review: r.notEnhancedReview,
-      enhanced_review_required: r.enhancedReviewRequired,
       enhanced_review: r.enhancedReview,
       first_review_given: r.firstReviewGiven,
       brand_not_publishable: r.brandNotPublishable,

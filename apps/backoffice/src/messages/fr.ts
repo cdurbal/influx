@@ -2755,13 +2755,11 @@ export const messages = {
       campaignClosed:
         "La campagne est close : aucune décision n’est plus possible. Rien n’a été enregistré.",
       notEnhancedReview:
-        "Cette campagne n’est pas en revue renforcée : elle se publie directement. Relisez l’entrée.",
-      enhancedReviewRequired:
-        "Cette campagne est en revue renforcée : elle doit d’abord être transmise au 2ᵉ examinateur. Relisez l’entrée.",
+        "Cette campagne n’est pas d’un secteur sensible : aucun second avis ne se demande, elle se publie directement. Relisez l’entrée.",
       enhancedReview:
-        "Une revue renforcée exige deux personnes distinctes : le 1ᵉʳ examinateur ne peut pas publier la campagne. Rien n’a été enregistré.",
+        "La déclaration d’autorisations de la marque manque : une campagne d’un secteur sensible ne peut pas être publiée sans elle. Rien n’a été enregistré.",
       firstReviewGiven:
-        "Le 1ᵉʳ examen est déjà donné : la campagne attend le 2ᵉ examinateur. Relisez l’entrée.",
+        "Un second avis est déjà demandé sur cette campagne : vous pouvez la publier ou la refuser vous-même. Relisez l’entrée.",
       brandNotPublishable:
         "La marque a été suspendue. Cette campagne ne peut pas être publiée. Vous pouvez la refuser avec un motif, ou rendre la main.",
       calendarPassed:
@@ -3331,7 +3329,7 @@ export const messages = {
    * (09 RG87). The queue has no filter of its own (the contract is closed on the common ones, 15 RG33).
    */
   campaignQueue: {
-    lead: "Une campagne soumise par une marque attend ici : prenez l’entrée en charge, lisez la campagne et son brief, puis publiez-la ou refusez-la avec un motif. En secteur sensible, deux personnes distinctes examinent la campagne. La liste ne montre ni le brief ni le budget : l’écran de décision les montre à la personne qui a pris l’entrée en charge.",
+    lead: "Une campagne soumise par une marque attend ici : prenez l’entrée en charge, lisez la campagne et son brief, puis publiez-la ou refusez-la avec un motif. En secteur sensible, une seule personne décide ; demander un second avis est facultatif. La liste ne montre ni le brief ni le budget : l’écran de décision les montre à la personne qui a pris l’entrée en charge.",
     tableLabel: "Entrées de la file Campagnes à valider",
     columns: {
       state: "État",
@@ -3348,9 +3346,9 @@ export const messages = {
     none: "non renseignée",
     review: {
       single: "Un examen",
-      first: "Revue renforcée : 1ᵉʳ examen",
-      second: (name: string | null) =>
-        `Revue renforcée : 2ᵉ examen, 1ᵉʳ avis de ${name ?? "un collègue"}`,
+      enhanced: "Revue renforcée",
+      secondOpinion: (name: string | null) =>
+        `Second avis demandé par ${name ?? "un collègue"}`,
     },
     alerts: {
       contact: "Coordonnée possible dans un texte",
@@ -3367,7 +3365,7 @@ export const messages = {
    * campaign. The sentences sent to the brand are never written here: they come from apps/api with the reasons,
    * from the very files of the e-mail (what the agent reads is what is sent). The budget is read by the label
    * of its band alone (D78): no figure, no total, no currency, no commission, no net (D48). The first opinion of
-   * an enhanced review is served to the holder of the live claim only.
+   * a requested second opinion (D84) is served to the holder of the live claim only.
    */
   campaignReview: {
     title: (title: string | null, brand: string | null) =>
@@ -3382,16 +3380,21 @@ export const messages = {
     },
     enhanced: {
       title: "Revue renforcée — catégorie de produit sensible",
-      first: "Deux personnes sont requises. Cette entrée en est au 1ᵉʳ examen.",
-      firstYou: "Deux personnes sont requises. Vous êtes le 1ᵉʳ examinateur.",
-      second: (name: string | null, at: string | null) =>
-        `2ᵉ examen — 1ᵉʳ avis de ${name ?? "un collègue"}${at === null ? "" : `, le ${at}`}.`,
-      secondYou: "Deux personnes sont requises. Vous êtes le 2ᵉ examinateur.",
-      opinionTitle: "Avis du 1ᵉʳ examinateur",
+      single:
+        "Une seule personne décide ; la déclaration de la marque est requise. Un second avis est facultatif.",
+      singleYou:
+        "Vous pouvez publier ou refuser seul. Demander un second avis est facultatif et ne bloque rien.",
+      asked: (name: string | null, at: string | null) =>
+        `Second avis demandé par ${name ?? "un collègue"}${at === null ? "" : `, le ${at}`}.`,
+      askedByYou:
+        "C’est votre demande : si personne ne répond, vous reprenez la main et décidez.",
+      askedOfYou:
+        "On vous demande un second avis : vous publiez la campagne ou vous la refusez avec un motif.",
+      opinionTitle: "Note de la demande de second avis",
       opinionHolderOnly:
-        "L’avis du 1ᵉʳ examinateur n’est lisible que par la personne qui a pris l’entrée en charge.",
+        "La note de la demande n’est lisible que par la personne qui a pris l’entrée en charge.",
       opinionNote:
-        "Interne : cet avis ne part ni à la marque, ni vers un outil externe.",
+        "Interne : cette note ne part ni à la marque, ni vers un outil externe.",
     },
     facts: {
       brandName: "Marque",
@@ -3542,10 +3545,10 @@ export const messages = {
     decision: {
       leadSingle:
         "Deux issues : publier la campagne, ou la refuser avec un motif. La décision porte sur la version affichée ici.",
-      leadFirst:
-        "Revue renforcée, 1ᵉʳ examen : vous ne publiez pas. Vous transmettez la campagne au 2ᵉ examinateur avec un avis motivé, ou vous la refusez avec un motif.",
-      leadSecond:
-        "Revue renforcée, 2ᵉ examen : vous publiez la campagne, ou vous la refusez avec un motif.",
+      leadEnhanced:
+        "Revue renforcée : vous publiez la campagne, ou vous la refusez avec un motif. Demander un second avis est facultatif et ne bloque rien.",
+      leadSecondOpinion:
+        "Un second avis a été demandé : vous publiez la campagne, ou vous la refusez avec un motif.",
       ownerLabel: "Commercial responsable *",
       ownerHelp:
         "Une campagne sans responsable est une campagne que personne ne vendra.",
@@ -3555,7 +3558,7 @@ export const messages = {
         "Ce commercial ne peut pas être responsable de cette campagne.",
       ownerNone: "Aucun commercial ne peut être désigné responsable.",
       publish: "Publier",
-      forward: "Transmettre au 2ᵉ examinateur",
+      askOpinion: "Demander un second avis",
       reject: "Refuser avec motif",
       busy: "Enregistrement…",
       publishTitle: "Publier cette campagne ?",
@@ -3570,18 +3573,18 @@ export const messages = {
         `La campagne ${title === null ? "sans titre" : `« ${title} »`}${brand === null ? "" : ` de ${brand}`} sera publiée, et la marque en sera informée par e-mail, en ${language}. Responsable : ${owner}.`,
       publishConfirm: "Confirmer la publication",
       publishCommentRecap: "Commentaire interne joint :",
-      forwardTitle: "Transmettre au 2ᵉ examinateur",
-      forwardLead:
-        "L’entrée revient dans la file, masquée pour vous ; une autre personne la publiera ou la refusera. Votre avis ne part ni à la marque, ni vers un outil externe.",
-      forwardConfirm: "Transmettre",
-      opinionLabel: "Avis motivé (20 à 1 000 caractères)",
+      askOpinionTitle: "Demander un second avis",
+      askOpinionLead:
+        "L’entrée revient dans la file, lisible par tous : un collègue la publie ou la refuse, ou vous la reprenez si personne ne répond. Votre note ne part ni à la marque, ni vers un outil externe.",
+      askOpinionConfirm: "Demander l’avis",
+      opinionLabel: "Note pour le second avis (20 à 1 000 caractères)",
       opinionHelp:
-        "Pourquoi cette campagne vous paraît publiable, malgré la catégorie sensible. Lu par le 2ᵉ examinateur seul.",
+        "Ce que vous voulez faire vérifier, malgré la catégorie sensible. Lue par la personne qui prend l’entrée en charge, seule.",
       opinionCount: (length: number, max: number, min: number) =>
         `${length} / ${max} caractères (${min} au moins).`,
-      opinionTooShort: "L’avis motivé doit compter au moins 20 caractères.",
-      opinionTooLong: "L’avis motivé dépasse 1 000 caractères.",
-      opinionInvalid: "L’avis n’a pas été accepté : vérifiez sa longueur.",
+      opinionTooShort: "La note doit compter au moins 20 caractères.",
+      opinionTooLong: "La note dépasse 1 000 caractères.",
+      opinionInvalid: "La note n’a pas été acceptée : vérifiez sa longueur.",
       rejectTitle: "Refuser cette campagne",
       rejectLead:
         "La marque reçoit par e-mail le motif et ce qu’elle peut faire ensuite ; sa campagne reste modifiable et se soumet de nouveau.",
@@ -3619,8 +3622,8 @@ export const messages = {
       } as Readonly<Record<string, string>>,
       publishedNotice: (title: string | null) =>
         `Campagne ${title === null ? "sans titre" : `« ${title} »`} publiée. La marque en est informée par e-mail.`,
-      forwardedNotice: (title: string | null) =>
-        `Avis enregistré : la campagne ${title === null ? "sans titre" : `« ${title} »`} attend le 2ᵉ examinateur.`,
+      askedNotice: (title: string | null) =>
+        `Second avis demandé : la campagne ${title === null ? "sans titre" : `« ${title} »`} reste dans la file, lisible par tous.`,
       rejectedNotice: (title: string | null, reason: string) =>
         `Campagne ${title === null ? "sans titre" : `« ${title} »`} refusée — ${reason}. La marque en est informée par e-mail.`,
       lateMark:
@@ -3638,9 +3641,9 @@ export const messages = {
       message: "Message reçu par la marque :",
     },
     shortcuts: {
-      keys: "‹v› publier ou transmettre (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
+      keys: "‹v› publier (récapitulatif) · ‹r› refuser avec motif · ‹l› rendre la main · ‹Échap› fermer sans perdre la saisie · ‹?› raccourcis",
       publish:
-        "ouvrir le récapitulatif de la publication, ou de la transmission au 2ᵉ examinateur (ne décide jamais seul)",
+        "ouvrir le récapitulatif de la publication (ne décide jamais seul)",
       reject: "ouvrir le choix du motif (ne refuse jamais seul)",
     },
   },
@@ -3706,7 +3709,7 @@ export const messages = {
       withdrawn: (at: string) => `Entrée retirée de la file le ${at}.`,
       late: " Décision prise après l’échéance.",
       firstReview: (at: string, by: string) =>
-        `1ᵉʳ examen (revue renforcée) : avis favorable de ${by}, le ${at}.`,
+        `Second avis demandé (revue renforcée) par ${by}, le ${at}.`,
       openEntry: "Ouvrir l’entrée dans la file",
       intervention: (kind: string, at: string, by: string, reason: string) =>
         `${kind} le ${at} par ${by} — motif : ${reason}.`,

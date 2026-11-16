@@ -35,7 +35,7 @@
     "button": "Soumettre ma campagne",
     "busy": "Envoi en cours…",
     "explain": "Un commercial INFLUX relit la campagne avant sa publication. Une fois soumise, elle n'est plus modifiable pendant l'examen.",
-    "sensitiveNotice": "La catégorie de ce produit demande une revue renforcée : deux personnes de l'équipe INFLUX valident la publication, ce qui peut allonger l'examen.",
+    "sensitiveNotice": "La catégorie de ce produit demande une revue renforcée, ce qui peut allonger l'examen.",
     "declarationRequired": "Cochez cette déclaration pour soumettre la campagne.",
     "submittedTitle": "Votre campagne est soumise.",
     "submittedText": "Elle n'est plus modifiable pendant l'examen.",

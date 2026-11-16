@@ -17,7 +17,7 @@ export type Decided = { decidedAt: string; late: boolean };
 export type CampaignOpeningRow = {
   outcome: "claimed" | "held" | "read_only" | "closed";
   reviewToken: string | null;
-  /** The opinion of the first examiner: given by the database to the holder of a live claim only. */
+  /** The note of the requested second opinion: given by the database to the holder of a live claim only. */
   firstOpinion: string | null;
 };
 
@@ -85,7 +85,7 @@ export async function forceReleaseCampaignClaim(
   return rows[0]?.holder ?? null;
 }
 
-/** 09 RG85, modele §3: the first examination of an enhanced review, a reasoned favourable opinion. */
+/** 09 RG85, D84: the facultative request of a second opinion on an enhanced review, with a reasoned note. */
 export async function firstReviewCampaignEntry(
   tx: Transaction,
   entryId: string,

@@ -267,7 +267,9 @@ describe("L3C-U9.3: the history of the decisions and the interventions (09 RG93,
     expect(lines[0]?.text).toContain("Mise en pause");
     expect(lines[0]?.text).toContain("Lou");
     expect(lines[0]?.text).toContain("À la demande de la marque");
-    expect(lines[1]?.text).toContain("avis favorable de Alice");
+    expect(lines[1]?.text).toContain(
+      "Second avis demandé (revue renforcée) par Alice",
+    );
     expect(lines[2]?.entryId).toBe("e-open");
     expect(lines[3]?.text).toContain("Brief insuffisant");
     expect(lines[3]?.text).toContain("après l’échéance");

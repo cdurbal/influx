@@ -8,7 +8,7 @@
 //   detection and the duplicate alert (09 RG87): no text of the campaign, no band.
 // - The budget is read by the LABEL of its band (D78, fiche invariant 12): the key of the label, never a
 //   bound, a total or an amount. No operation on an amount exists in any route (D48, T16).
-// - The first opinion of an enhanced review and the version token are returned to the holder of a live
+// - The note of a requested second opinion (D84) and the version token are returned to the holder of a live
 //   claim only; the internal comment is never served (no right on its column, modele §9).
 // - A detection alert names the field and the kind of signal (09 RG21 to RG23), never the text.
 // - Every object is closed (strict). Nothing here carries a rate, a commission or a net (CLAUDE.md §2).
@@ -72,7 +72,7 @@ export {
 /** The message the brand will receive for `illicit_content` and `other` (09 RG90): 20 to 500 characters. */
 export const CAMPAIGN_MEMBER_MESSAGE_MIN_LENGTH = 20;
 export const CAMPAIGN_MEMBER_MESSAGE_MAX_LENGTH = 500;
-/** The reasoned opinion of the first examination of an enhanced review (modele §3): 20 to 1 000. */
+/** The reasoned note of the request of a second opinion on an enhanced review (D84): 20 to 1 000. */
 export const CAMPAIGN_OPINION_MIN_LENGTH = 20;
 export const CAMPAIGN_OPINION_MAX_LENGTH = 1000;
 
@@ -256,8 +256,12 @@ export type CampaignEntriesSearchBody = z.input<
   typeof campaignEntriesSearchSchema
 >;
 
-/** The phase of an entry: one examination, or the two of an enhanced review (09 RG85). */
-export const CAMPAIGN_REVIEW_PHASES = ["single", "first", "second"] as const;
+/**
+ * The phase of an entry (09 RG85, amended by D84): `single`, one person decides (an enhanced review included);
+ * `second_opinion`, a second opinion was asked and the entry waits, readable by every internal account. Neither
+ * blocks: the second opinion is facultative.
+ */
+export const CAMPAIGN_REVIEW_PHASES = ["single", "second_opinion"] as const;
 export const campaignReviewPhaseSchema = z.enum(CAMPAIGN_REVIEW_PHASES);
 export type CampaignReviewPhase = z.infer<typeof campaignReviewPhaseSchema>;
 
@@ -270,9 +274,9 @@ export const campaignEntryRowSchema = z.strictObject({
   title: z.string().nullable(),
   campaignType: z.string().nullable(),
   sectorCode: z.string().nullable(),
-  /** The sector is sensitive: two persons are required (RG85), read by join on every list. */
+  /** The sector is sensitive: the brand's declaration is required, a second opinion may be asked (RG85, D84). */
   enhancedReview: z.boolean(),
-  /** `second`: the first examination is given, its author is named; the entry is hidden from him. */
+  /** `second_opinion`: an opinion was asked, its requester is named; the entry stays open to every internal account. */
   phase: campaignReviewPhaseSchema,
   firstReviewer: accountOwnerSchema.nullable(),
   /** The submission of the campaign: the instant the entry opened. */
@@ -444,13 +448,13 @@ export const campaignReviewReasonSchema = z.strictObject({
 });
 export type CampaignReviewReason = z.infer<typeof campaignReviewReasonSchema>;
 
-/** The state of the review of an entry (09 RG85, 17b §3.8 "Temps 1 / Temps 2"). */
+/** The state of the review of an entry (09 RG85, 17b §3.8, amended by D84: no time 1 and time 2). */
 export const campaignReviewStateSchema = z.strictObject({
   phase: campaignReviewPhaseSchema,
   enhancedReview: z.boolean(),
   firstReviewer: accountOwnerSchema.nullable(),
   firstReviewedAt: instantSchema.nullable(),
-  /** The opinion of the first examiner: to the HOLDER of the live claim only, never otherwise (modele §1). */
+  /** The opinion asked: to the HOLDER of the live claim only, the requester included, never otherwise (modele §1). */
   firstOpinion: z.string().nullable(),
 });
 
@@ -499,7 +503,7 @@ export type CampaignRecordParams = z.infer<typeof campaignRecordParamsSchema>;
 // The decisions (09 RG5, RG85, RG89, RG90, RG92; modele §3, §4)
 // ---------------------------------------------------------------------------------------------
 
-/** `POST …/entries/:id/first-review` (enhanced review, time 1): a reasoned favourable opinion. */
+/** `POST …/entries/:id/first-review` (D84): the facultative request of a second opinion, with a reasoned note. */
 export const firstReviewCampaignEntryRequestSchema = z.strictObject({
   reviewToken: reviewTokenSchema,
   opinion: z
@@ -659,7 +663,7 @@ export type CampaignPassageResponse = z.infer<
  * `stale_token`) and those of queue 7: the state of the campaign does not allow the act
  * (`campaign_state`, `campaign_not_pausable`, `campaign_not_resumable`, `campaign_not_closable`,
  * `campaign_not_correctable`, `campaign_closed`), the enhanced review (`not_enhanced_review`,
- * `enhanced_review_required`, `enhanced_review`, `first_review_given`), the publication
+ * `enhanced_review`, `first_review_given`), the publication
  * (`brand_not_publishable`, `calendar_passed`, `live_campaign_cap`), and the creation (`brand_not_active`).
  * A 400 for a value the database refuses (`reasonCode`, `memberMessage`, `internalComment`, `opinion`,
  * `ownerAgentId`, `value`, `fieldCode`, `title`, `campaignType`, `unchanged`).
@@ -677,7 +681,6 @@ export const CAMPAIGN_DECISION_CONFLICT_ISSUES = [
   "campaign_not_correctable",
   "campaign_closed",
   "not_enhanced_review",
-  "enhanced_review_required",
   "enhanced_review",
   "first_review_given",
   "brand_not_publishable",
