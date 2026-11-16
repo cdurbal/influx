@@ -1,12 +1,15 @@
-// L3C commit 03 — the decisions of queue 7: the publication and its snapshot, the enhanced review in
-// two examinations, the typed refusal, the e-mail and the lead queued in the transaction (0308;
-// docs/mvp/09 RG5, RG15, RG85, RG89, RG90, RG92, RG93, RG103, CA5, CA48, CA56, CA57, CA59, CA69;
-// 18 TM5.1, TM5.6; jalons/l3c/modele.md §2 to §4, §8; fiche invariants 1 to 6, 8, 10).
+// L3C commit 03 — the decisions of queue 7: the publication and its snapshot, the enhanced review
+// (one person, a second opinion optional: D84, 0313), the typed refusal, the e-mail and the lead
+// queued in the transaction (0308, 0313; docs/mvp/09 RG5, RG15, RG85, RG89, RG90, RG92, RG93, RG103,
+// CA5, CA48, CA56, CA57, CA59, CA69; 18 TM5.1, TM5.6; jalons/l3c/modele.md §2 to §4, §8, "Amendement
+// D84"; fiche invariants 1 to 6, 8, 10).
 //   L3C-T3  TM5.1 and CA5 (published written by the decision of a holder only); the snapshot is
 //           campaign_creator_view(), versioned, hashed (TM5.6, doubled by a CHECK); the responsible
-//           salesperson; CA48; a brand not publishable; RG15 read again; CA56, CA57 (the same person
-//           refused, an admin included); CA59; the stale token; T14; campaign.published, the decision
-//           e-mail and the lead in the transaction of the decision, ids only.
+//           salesperson; CA48; a brand not publishable; RG15 read again; CA56, CA57 amended by D84
+//           (one person publishes, agent or admin; a second opinion asked is read by all, decided by
+//           a colleague or taken back by its requester; review_mode and requester in the register);
+//           CA59; the stale token; T14; campaign.published, the decision e-mail and the lead in the
+//           transaction of the decision, ids only.
 // Each case runs in a rolled-back transaction of the local superuser, which acts as apps/api does
 // (support.ts: actAsMember, actAsInternal).
 import {
@@ -931,64 +934,77 @@ describe("L3C-T3 TM5.6 the snapshot is campaign_creator_view() at the decision (
 });
 
 // ---------------------------------------------------------------------------------------------
-// L3C-T3: CA56, CA57 — the enhanced review in two examinations
+// L3C-T3: CA56, CA57, D84 — the enhanced review by one person, a second opinion optional
 // ---------------------------------------------------------------------------------------------
 
-describe("L3C-T3 CA56 CA57 a sensitive sector is published after two examinations by two persons (09 RG85)", () => {
-  it("L3C-T3 CA57 a sensitive campaign published alone is refused, an admin included (55000 enhanced_review_required)", async () => {
-    const outcome = await scenario(async (tx) => {
-      const id = await sensitiveA(tx);
-      const agent = await publish(
-        tx,
-        AGENT_A,
-        id,
-        await claim(tx, AGENT_A, id),
-      );
-      await call(
-        tx,
-        AGENT_A,
-        "select campaigns.release_campaign_review_entry($1::uuid)",
-        [id],
-      );
-      const admin = await publish(
-        tx,
-        ADMIN_A,
-        id,
-        await claim(tx, ADMIN_A, id),
-      );
-      return { agent, admin, state: await nothingDecided(tx, id) };
-    });
-    expect(outcome).toEqual({
-      agent: refused(
-        NOT_IN_PREREQUISITE_STATE,
-        "enhanced_review_required",
-        "enhanced_review_required",
-      ),
-      admin: refused(
-        NOT_IN_PREREQUISITE_STATE,
-        "enhanced_review_required",
-        "enhanced_review_required",
-      ),
-      state: UNTOUCHED,
-    });
+describe("L3C-T3 CA56 CA57 D84 a sensitive sector is published by one person, a second opinion optional (09 RG85)", () => {
+  it("L3C-T3 CA57 D84 a sensitive campaign is published by one person, an agent or an admin: single in the register, no requester", async () => {
+    const alone = (who: Internal) =>
+      scenario(async (tx) => {
+        const id = await sensitiveA(tx);
+        const published = await publish(tx, who, id, await claim(tx, who, id));
+        const [snapshot] = await snapshotsOfA(tx);
+        return {
+          published: published.outcome,
+          status: (await campaignOfA(tx)).status,
+          snapshot: {
+            published_by: snapshot?.published_by,
+            first_reviewed_by: snapshot?.first_reviewed_by,
+          },
+          decided_by: (await entry(tx, id)).decided_by,
+          line: (await campaignLines(tx)).at(-1),
+        };
+      });
+    for (const who of [AGENT_A, ADMIN_A]) {
+      expect(await alone(who), who.role).toEqual({
+        published: "rows",
+        status: "published",
+        snapshot: { published_by: who.account, first_reviewed_by: null },
+        decided_by: who.account,
+        line: {
+          event_type: "campaign.published",
+          actor_account_id: who.account,
+          payload: expect.objectContaining({
+            enhanced_review: true,
+            review_mode: "single",
+            first_reviewed_by_account_id: null,
+          }),
+        },
+      });
+    }
   });
 
-  it("L3C-T3 CA56 the first examination keeps the opinion, gives the claim back and hides the entry from its author", async () => {
+  it("L3C-T3 CA56 D84 asking a second opinion keeps the opinion, gives the claim back; the entry stays readable by all, its requester included", async () => {
     const outcome = await scenario(async (tx) => {
       const id = await sensitiveA(tx);
       const token = await claim(tx, AGENT_A, id);
       const first = await call(tx, AGENT_A, FIRST_REVIEW, [id, token, OPINION]);
-      const listed = await asInternal(tx, AGENT_A, () =>
-        rows<{ n: number }>(
+      const listedBy = async (who: Internal) =>
+        (
+          await asInternal(tx, who, () =>
+            rows<{ n: number }>(
+              tx,
+              "select count(*)::int as n from campaigns.campaign_review_entries where id = $1::uuid",
+              [id],
+            ),
+          )
+        )[0]?.n;
+      const listed = {
+        requester: await listedBy(AGENT_A),
+        colleague: await listedBy(AGENT_B),
+        admin: await listedBy(ADMIN_A),
+      };
+      const given = await entry(tx, id);
+      const [reopened] = await asInternal(tx, AGENT_A, () =>
+        rows<{ outcome: string; first_review_opinion: string | null }>(
           tx,
-          "select count(*)::int as n from campaigns.campaign_review_entries where id = $1::uuid",
+          OPEN,
           [id],
         ),
       );
-      const reopened = await call(tx, AGENT_A, OPEN, [id]);
       return {
         first: first.outcome,
-        entry: await entry(tx, id),
+        entry: given,
         listed,
         reopened,
         lines: await campaignLines(tx),
@@ -1003,8 +1019,11 @@ describe("L3C-T3 CA56 CA57 a sensitive sector is published after two examination
         claimed_by: null,
         decided_by: null,
       }),
-      listed: [{ n: 0 }],
-      reopened: refused(INSUFFICIENT_PRIVILEGE, "forbidden"),
+      listed: { requester: 1, colleague: 1, admin: 1 },
+      reopened: expect.objectContaining({
+        outcome: "claimed",
+        first_review_opinion: OPINION,
+      }),
       lines: [
         {
           event_type: "campaign.first_reviewed",
@@ -1016,7 +1035,7 @@ describe("L3C-T3 CA56 CA57 a sensitive sector is published after two examination
     expect(JSON.stringify(outcome.lines)).not.toContain("Autorisations");
   });
 
-  it("L3C-T3 CA56 a second person publishes: the snapshot names both, the opinion is served to the second holder only", async () => {
+  it("L3C-T3 CA56 D84 a colleague publishes after the request: the snapshot names both, second_opinion in the register, the opinion served to the holder", async () => {
     const outcome = await scenario(async (tx) => {
       const id = await sensitiveA(tx);
       await call(tx, ADMIN_A, FIRST_REVIEW, [
@@ -1059,6 +1078,7 @@ describe("L3C-T3 CA56 CA57 a sensitive sector is published after two examination
         actor_account_id: agentB,
         payload: expect.objectContaining({
           enhanced_review: true,
+          review_mode: "second_opinion",
           first_reviewed_by_account_id: adminA,
           snapshot_version: 1,
         }),
@@ -1066,21 +1086,80 @@ describe("L3C-T3 CA56 CA57 a sensitive sector is published after two examination
     });
   });
 
-  it("L3C-T3 CA57 the first reviewer never decides the second examination, an admin first reviewer neither (42501)", async () => {
-    const outcome = await scenario(async (tx) => {
+  it("L3C-T3 D84 the requester takes the entry back and decides himself: an admin publishes (single, named twice), an agent refuses; no second request", async () => {
+    const byAdmin = await scenario(async (tx) => {
       const id = await sensitiveA(tx);
+      await call(tx, ADMIN_A, FIRST_REVIEW, [
+        id,
+        await claim(tx, ADMIN_A, id),
+        OPINION,
+      ]);
       const token = await claim(tx, ADMIN_A, id);
-      await call(tx, ADMIN_A, FIRST_REVIEW, [id, token, OPINION]);
+      const firstAgain = await call(tx, ADMIN_A, FIRST_REVIEW, [
+        id,
+        token,
+        OPINION,
+      ]);
+      const published = await publish(tx, ADMIN_A, id, token);
+      const [snapshot] = await snapshotsOfA(tx);
       return {
-        publish: await publish(tx, ADMIN_A, id, token),
-        reject: await reject(tx, ADMIN_A, id, token, "brief_insufficient"),
-        firstAgain: await call(tx, ADMIN_A, FIRST_REVIEW, [id, token, OPINION]),
+        firstAgain,
+        published: published.outcome,
+        snapshot: {
+          published_by: snapshot?.published_by,
+          first_reviewed_by: snapshot?.first_reviewed_by,
+        },
+        decided_by: (await entry(tx, id)).decided_by,
+        line: (await campaignLines(tx)).at(-1),
       };
     });
-    expect(outcome).toEqual({
-      publish: refused(INSUFFICIENT_PRIVILEGE, "forbidden"),
-      reject: refused(INSUFFICIENT_PRIVILEGE, "forbidden"),
-      firstAgain: refused(INSUFFICIENT_PRIVILEGE, "forbidden"),
+    expect(byAdmin).toEqual({
+      firstAgain: refused(
+        NOT_IN_PREREQUISITE_STATE,
+        "first_review_given",
+        "first_review_given",
+      ),
+      published: "rows",
+      snapshot: { published_by: adminA, first_reviewed_by: adminA },
+      decided_by: adminA,
+      line: {
+        event_type: "campaign.published",
+        actor_account_id: adminA,
+        payload: expect.objectContaining({
+          enhanced_review: true,
+          review_mode: "single",
+          first_reviewed_by_account_id: adminA,
+        }),
+      },
+    });
+    const byAgent = await scenario(async (tx) => {
+      const id = await sensitiveA(tx);
+      await call(tx, AGENT_A, FIRST_REVIEW, [
+        id,
+        await claim(tx, AGENT_A, id),
+        OPINION,
+      ]);
+      const rejected = await reject(
+        tx,
+        AGENT_A,
+        id,
+        await claim(tx, AGENT_A, id),
+        "sensitive_authorizations_missing",
+      );
+      return {
+        rejected: rejected.outcome,
+        entry: await entry(tx, id),
+        status: (await campaignOfA(tx)).status,
+      };
+    });
+    expect(byAgent).toEqual({
+      rejected: "rows",
+      entry: expect.objectContaining({
+        state: "rejected",
+        decided_by: agentA,
+        first_reviewed_by: agentA,
+      }),
+      status: "rejected",
     });
   });
 
@@ -1150,20 +1229,31 @@ describe("L3C-T3 CA56 CA57 a sensitive sector is published after two examination
     expect(outcome).toEqual({ rejected: "rows", status: "rejected" });
   });
 
-  it("L3C-T3 the trigger of the enhanced review refuses a sensitive snapshot without first reviewer, even from the migration role (23514)", async () => {
-    const outcome = await scenario(async (tx) => {
-      await sensitiveA(tx);
-      try {
-        await tx.savepoint((savepoint) =>
-          publishAsInflux(savepoint, campaignA),
-        );
-        return "published";
-      } catch (error) {
-        const found = error as { code?: string; message?: string };
-        return `${found.code ?? ""} ${found.message ?? ""}`;
-      }
+  it("L3C-T3 D84 the trigger of the enhanced review refuses a sensitive snapshot without the declaration only, even from the migration role (23514)", async () => {
+    const attempt = (fixture: (tx: Tx) => Promise<unknown>) =>
+      scenario(async (tx) => {
+        await fixture(tx);
+        try {
+          await tx.savepoint((savepoint) =>
+            publishAsInflux(savepoint, campaignA),
+          );
+          return "published";
+        } catch (error) {
+          const found = error as { code?: string; message?: string };
+          return `${found.code ?? ""} ${found.message ?? ""}`;
+        }
+      });
+    // declared at the submission, without a requester: published
+    const declared = await attempt((tx) => sensitiveA(tx));
+    // submitted outside a sensitive sector (no declaration), the sector then made sensitive
+    const undeclared = await attempt(async (tx) => {
+      await submittedA(tx);
+      await tx`update campaigns.campaigns set sector_code = 'alcohol' where id = ${campaignA}`;
     });
-    expect(outcome).toBe(`${CHECK_VIOLATION} enhanced_review`);
+    expect({ declared, undeclared }).toEqual({
+      declared: "published",
+      undeclared: `${CHECK_VIOLATION} enhanced_review`,
+    });
   });
 });
 
@@ -1458,6 +1548,7 @@ describe("L3C-T3 CA69 the decision queues its e-mail and the first publication i
           first_publication: true,
           owner_agent_id: agentB,
           enhanced_review: false,
+          review_mode: "single",
           first_reviewed_by_account_id: null,
           late: false,
         },

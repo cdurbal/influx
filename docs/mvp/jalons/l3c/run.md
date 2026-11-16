@@ -16,7 +16,7 @@
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | routes pause/reprise/clôture (404 identique, 409 règle nommée) ; motif de refus servi (followUp) ; pause d'INFLUX non reprenable ; e2e 5,0 s |
 | U | ux.md | ux | sonnet | high | expert-ux | fait | 0 bloquant, 0 jalon, 12 avant production, 8 plus tard (ux-constats.md) ; L3CU-1 : fiche campagne sans porte d'entrée (EC-L3C-09-1) |
 | X3 | fix-3.md | fix | sonnet | high | dev-react-node | fait | anneau + point plein text-secondary ; valeurs 8,7:1 ; e2e médiane 6,5 s (avant 7,6) ; captures apps/web/test-results/x3/ ; EC-1 case en rond, EC-2 sans opacity |
-| X4 | fix-4.md | fix | opus | high | expert-database | à faire | D84 : revue renforcée à une personne, second avis facultatif (0313) ; validé par le fondateur (valider X3 X4 X5, 2026-11-16) |
+| X4 | fix-4.md | fix | opus | high | expert-database | fait | I-4. 0313 : sensible publié seul (déclaration exigée), avis facultatif lu de tous, repris par son auteur ; review_mode au registre ; recherche à 0314 |
 | X5 | fix-5.md | fix | sonnet | high | dev-react-node | à faire | D84 : écran et routes, publication seul, e2e <= 7,6 s ; validé par le fondateur (valider X3 X4 X5, 2026-11-16) |
 | F | recette.md | fondateur | — | — | fondateur | à faire | recette en cours, constat 1 (fondateur, 2026-11-16) : « Pour la recette quand c'est grisé ( Compagne en cours de validation) on ne voit pas bien les radios boutons activé » → X3 ; constat 2 (fondateur, 2026-11-16) : D84, pas de double validation obligatoire → X4, X5 |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |

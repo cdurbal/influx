@@ -1,8 +1,8 @@
 // T14 (L3C, commit 07) — the routes of queue 7 and of the campaign record, on the local stack through the pools of
 // apps/api (docs/mvp/09 RG85, RG88; 15 RG36, CA19; 18 T14.1 to T14.4; jalons/l3c/modele.md §1, §5, §6; l3c-fiche
-// invariants 4, 11; migrations 0307, 0312): for each route of /v1/bo/campaigns, the web surface, no session and a
-// member session never reach it; an entry or a campaign that does not exist, the one of the caller's own account
-// and the open entry whose first examination the caller gave answer ONE answer (same status, code, message);
+// invariants 4, 11; migrations 0307, 0313; D84): for each route of /v1/bo/campaigns, the web surface, no session and
+// a member session never reach it; an entry or a campaign that does not exist and the one of the caller's own
+// account answer ONE answer (same status, code, message), the requester of a second opinion is not hidden (D84);
 // an account the caller HOLDS answers 403 `conflict_of_interest`, the attempt journaled, and is absent from the
 // list and the counters; and no brief, title, opinion, comment nor address typed here reaches a log (D60).
 // The brands and campaigns are those of campaign-review-kit.ts (submitted through the member routes).
@@ -258,7 +258,7 @@ describe("T14.3, T14.4: what is not the caller's answers like what does not exis
     }
   });
 
-  it("T14.4 an entry whose first examination the caller gave is hidden from him: the same 404 as an unknown entry", async () => {
+  it("T14.4 D84 an entry whose second opinion the caller asked is not hidden from him: listed and opened like any other", async () => {
     const sector = await kit.sensitiveSector();
     const submitted = await fresh({ sector, declare: true });
     const token = (await opened(agentA, submitted.entryId)).reviewToken;
@@ -274,23 +274,7 @@ describe("T14.3, T14.4: what is not the caller's answers like what does not exis
     );
     expect(first.statusCode, first.body).toBe(200);
     kit.fx.watch("T14-OPINION-MARKER");
-    const missing = answer(
-      await kit.bo("POST", `${BO_ENTRIES}/${NIL}/open`, agentA.session),
-    );
-    for (const act of ["open", "publish", "reject", "first-review", "extend"]) {
-      const route = ENTRY_ROUTES[act];
-      expect(route).toBeDefined();
-      const got = answer(
-        await kit.bo(
-          "POST",
-          route?.url(submitted.entryId) ?? "",
-          agentA.session,
-          route?.body,
-        ),
-      );
-      expect(got, act).toEqual(missing);
-    }
-    // the list does not show it to him either
+    // the list shows it to him (0313: the read policy of 0307)
     const listed = await kit.bo(
       "GET",
       `${BO_ENTRIES}?owner=${holder.accountId}&limit=50`,
@@ -298,7 +282,15 @@ describe("T14.3, T14.4: what is not the caller's answers like what does not exis
     );
     expect(
       listed.json<{ items: { id: string }[] }>().items.map((item) => item.id),
-    ).not.toContain(submitted.entryId);
+    ).toContain(submitted.entryId);
+    // he takes it back: the opening claims it, never the answer of an unknown entry
+    const reopened = await kit.bo(
+      "POST",
+      `${BO_ENTRIES}/${submitted.entryId}/open`,
+      agentA.session,
+    );
+    expect(reopened.statusCode, reopened.body).toBe(200);
+    expect(reopened.json<{ outcome: string }>().outcome).toBe("claimed");
   });
 
   it("T14.4 a body or an identifier of the wrong shape is a 400, never a signal about an object", async () => {
@@ -329,7 +321,7 @@ describe("15 RG36, CA19: the account the caller holds", () => {
       items: { id: string }[];
       counters: { pending: number };
     };
-    // agent B, who gave no first examination: the entries hidden from agent A are not his case
+    // agent B, a colleague who holds no brand of this file
     const colleague = await kit.bo(
       "GET",
       `${BO_ENTRIES}?limit=50`,

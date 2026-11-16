@@ -1,7 +1,7 @@
 // L3C-T7 (commit 07) — the routes of queue 7, « campagnes à valider », and of the record of a campaign on the
 // local stack through the pools of apps/api (docs/mvp/09 RG1, RG5, RG8, RG9, RG21 to RG23, RG85, RG87 to RG95;
 // 15 RG26 to RG28, RG33, RG34, C1 to C8; 17b §3.8; jalons/l3c/modele.md §1, §3 to §6; l3c-fiche invariants 1, 2,
-// 4 to 6, 12; migrations 0307 to 0309, 0312):
+// 4 to 6, 12; migrations 0307 to 0309, 0312, 0313; D84):
 //   the list and its search, the opening that claims, release, extension and forced release, the first review,
 //   the publication, the refusal, the record (a journaled read), the correction of a field, the creation for a
 //   brand, and the pause, resume and close of an agent.
@@ -639,8 +639,21 @@ describe("L3C-T7: the decisions (09 RG5, RG85, RG89 to RG92; modele §3, §4)", 
     expect(good.statusCode, good.body).toBe(200);
   });
 
-  it("L3C-T7.14 asks two persons in a sensitive sector: no publication at time 1, the opinion stays with the holder of the second review (RG85, CA56, CA57)", async () => {
+  it("L3C-T7.14 D84 a sensitive sector is published by one person; a second opinion asked stays readable by all, the opinion with the next holder (RG85, CA56, CA57)", async () => {
     const sector = await kit.sensitiveSector();
+    // one person publishes a sensitive campaign alone (D84)
+    const alone = await fresh({ sector, declare: true });
+    const single = await open(agentA, alone.entryId);
+    expect(single.entry.review).toMatchObject({
+      enhancedReview: true,
+      phase: "first",
+    });
+    const done1 = await publish(
+      agentA,
+      alone.entryId,
+      single.reviewToken ?? "",
+    );
+    expect(done1.statusCode, done1.body).toBe(200);
     const submitted = await fresh({ sector, declare: true });
     const row = (await list(agentA)).body.items.find(
       (item) => item.id === submitted.entryId,
@@ -651,16 +664,6 @@ describe("L3C-T7: the decisions (09 RG5, RG85, RG89 to RG92; modele §3, §4)", 
       enhancedReview: true,
       phase: "first",
     });
-    // the publication of the only examiner is refused
-    const alone = await publish(
-      agentA,
-      submitted.entryId,
-      first.reviewToken ?? "",
-    );
-    expect(alone.statusCode).toBe(409);
-    expect(issuesOf(alone)).toEqual([
-      { path: "entry", issue: "enhanced_review_required" },
-    ]);
     // a short opinion is refused before anything is read
     const short = await kit.bo(
       "POST",
@@ -678,19 +681,10 @@ describe("L3C-T7: the decisions (09 RG5, RG85, RG89 to RG92; modele §3, §4)", 
       { reviewToken: first.reviewToken, opinion },
     );
     expect(given.statusCode, given.body).toBe(200);
-    // the entry is hidden from the first examiner: the list, the opening
-    expect(
-      (await list(agentA)).body.items.map((item) => item.id),
-    ).not.toContain(submitted.entryId);
-    expect(
-      (
-        await kit.bo(
-          "POST",
-          `${BO_ENTRIES}/${submitted.entryId}/open`,
-          agentA.session,
-        )
-      ).statusCode,
-    ).toBe(404);
+    // D84: the entry stays listed for its requester
+    expect((await list(agentA)).body.items.map((item) => item.id)).toContain(
+      submitted.entryId,
+    );
     // the second person reads « 2e examen », the opinion as the holder, and decides
     const listed = (await list(agentB)).body.items.find(
       (item) => item.id === submitted.entryId,
@@ -704,11 +698,13 @@ describe("L3C-T7: the decisions (09 RG5, RG85, RG89 to RG92; modele §3, §4)", 
       phase: "second",
       firstOpinion: opinion,
     });
-    // a colleague who only reads never gets it
-    const reader = await open(admin, submitted.entryId);
-    expect(reader.outcome).toBe("read_only");
-    expect(reader.entry.review.firstOpinion).toBeNull();
-    expect(JSON.stringify(reader)).not.toContain("L3C-OPINION-MARKER");
+    // a colleague who only reads never gets it, the requester neither (D84: he opens it like anybody)
+    for (const who of [admin, agentA]) {
+      const reader = await open(who, submitted.entryId);
+      expect(reader.outcome).toBe("read_only");
+      expect(reader.entry.review.firstOpinion).toBeNull();
+      expect(JSON.stringify(reader)).not.toContain("L3C-OPINION-MARKER");
+    }
     const done = await publish(
       agentB,
       submitted.entryId,

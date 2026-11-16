@@ -5,8 +5,9 @@
 //           business days of age), a new entry for a rejected campaign submitted again, the deadlines
 //           frozen by the base; RG15 (the campaigns to close named) and its setting; RG95 an alert,
 //           never a refusal; the claim (holder named, 30 minutes, expiry taken over, release,
-//           extension, forced release by an admin), the conflict of interest and the first reviewer
-//           (42501, T14); the columns of the agents out of the brand's reach; the freeze L3BS-2.
+//           extension, forced release by an admin), the conflict of interest (42501, T14) and the
+//           requester of a second opinion, read like anybody (D84, 0313); the columns of the agents
+//           out of the brand's reach; the freeze L3BS-2.
 // Each case runs in a rolled-back transaction of the local superuser, which acts as apps/api does
 // (support.ts: actAsMember, actAsInternal).
 import {
@@ -817,7 +818,7 @@ describe("L3C-T2 the claim of an entry of queue 7 (09 RG88, 15 RG27 C1 to C4, CA
 // L3C-T2: who never claims (15 RG36, modele §3, T14)
 // ---------------------------------------------------------------------------------------------
 
-describe("L3C-T2 the conflict of interest, the first reviewer and the outsiders (15 RG36, T14)", () => {
+describe("L3C-T2 the conflict of interest, the requester of a second opinion and the outsiders (15 RG36, T14, D84)", () => {
   it("L3C-T2 an agent holding the brand gets the answer of an unknown entry (42501 forbidden)", async () => {
     const outcome = await scenario(async (tx) => {
       await tx`update identity.accounts set owner_agent_id = ${agentA} where id = ${brandA}`;
@@ -834,7 +835,7 @@ describe("L3C-T2 the conflict of interest, the first reviewer and the outsiders 
     expect(outcome.extend).toEqual(outcome.held);
   });
 
-  it("L3C-T2 an open entry is hidden from its first reviewer (list and 42501); the next holder reads the opinion, a reader does not", async () => {
+  it("L3C-T2 D84 an open entry with a second opinion asked is read by all, its requester included (list, opening); the next holder reads the opinion, a reader does not", async () => {
     const outcome = await scenario(async (tx) => {
       await readyA(tx, { sector_code: "alcohol" });
       const entry = await submittedA(tx, "en");
@@ -860,15 +861,21 @@ describe("L3C-T2 the conflict of interest, the first reviewer and the outsiders 
       return {
         seenByFirst: seenByFirst.length,
         seenByAdmin: seenByAdmin.length,
-        openByFirst: await call(tx, AGENT_B, OPEN, [entry]),
         holder: await open(tx, ADMIN_A, entry),
         reader: await open(tx, ADMIN_B, entry),
+        openByFirst: await open(tx, AGENT_B, entry),
       };
     });
-    expect(outcome.seenByFirst).toBe(0);
+    expect(outcome.seenByFirst).toBe(1);
     expect(outcome.seenByAdmin).toBe(1);
+    // the requester opens it like anybody: here a reader, the claim being held
     expect(outcome.openByFirst).toEqual(
-      refused(INSUFFICIENT_PRIVILEGE, "forbidden"),
+      expect.objectContaining({
+        outcome: "read_only",
+        holder_account_id: adminA,
+        first_reviewed_by_account_id: agentB,
+        first_review_opinion: null,
+      }),
     );
     expect(outcome.holder).toEqual(
       expect.objectContaining({
@@ -886,7 +893,7 @@ describe("L3C-T2 the conflict of interest, the first reviewer and the outsiders 
     );
   });
 
-  it("L3C-T2 the read policy (0312, modele A3): an open entry is read before its first review, hidden from its first reviewer only, read by him once closed", async () => {
+  it("L3C-T2 D84 the read policy (0313, the clauses of 0307): an open entry is read before and after a second opinion is asked, its requester included, and once closed", async () => {
     const outcome = await scenario(async (tx) => {
       await readyA(tx, { sector_code: "alcohol" });
       const entry = await submittedA(tx, "en");
@@ -941,7 +948,7 @@ describe("L3C-T2 the conflict of interest, the first reviewer and the outsiders 
       adminAal1: 0,
     });
     expect(outcome.claimedByHolder).toBe(1);
-    expect(outcome.reviewed).toEqual({ author: 0, otherAgent: 1, admin: 1 });
+    expect(outcome.reviewed).toEqual({ author: 1, otherAgent: 1, admin: 1 });
     expect(outcome.closedByAuthor).toBe(1);
   });
 

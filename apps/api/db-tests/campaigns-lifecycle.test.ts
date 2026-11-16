@@ -1378,7 +1378,7 @@ describe("L3C-T4 RG94 CA60 an agent corrects a field, its old and new value, a r
     ]);
   });
 
-  it("L3C-T4 modele §3 after the first opinion, the correction is refused (55000 first_review_given; 42501 for the first reviewer)", async () => {
+  it("L3C-T4 modele §3 D84 after a second opinion is asked, the correction is refused to its requester who took the entry back and to a colleague (55000 first_review_given)", async () => {
     const outcome = await scenario(async (tx) => {
       const entry = await submittedA(tx, { sector_code: "alcohol" }, "en");
       const token = await claim(tx, AGENT_A, entry);
@@ -1392,13 +1392,21 @@ describe("L3C-T4 RG94 CA60 an agent corrects a field, its old and new value, a r
           "Autorisations vérifiées, déclaration conforme aux pays.",
         ],
       );
+      // D84: the requester is no longer refused; he takes the claim back, the correction stays refused
+      await claim(tx, AGENT_A, entry);
       const firstReviewer = await correct(tx, AGENT_A, "title", "A new title");
+      await call(
+        tx,
+        AGENT_A,
+        "select campaigns.release_campaign_review_entry($1::uuid)",
+        [entry],
+      );
       await claim(tx, AGENT_B, entry);
       const second = await correct(tx, AGENT_B, "title", "A new title");
       return { firstReviewer, second };
     });
     expect(outcome.firstReviewer).toEqual(
-      refused(INSUFFICIENT_PRIVILEGE, "forbidden"),
+      refused(NOT_IN_PREREQUISITE_STATE, "first_review_given"),
     );
     expect(outcome.second).toEqual(
       refused(NOT_IN_PREREQUISITE_STATE, "first_review_given"),
