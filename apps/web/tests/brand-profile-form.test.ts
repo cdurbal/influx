@@ -188,7 +188,7 @@ describe("a field's texts are tied to its control (06 RG85)", () => {
       }),
     );
     expect(markup.match(/type="radio"/g)).toHaveLength(2);
-    expect(markup).not.toContain("checked");
+    expect(markup).not.toMatch(/ checked=""/);
     expect(markup).toContain("Yes");
     expect(markup).toContain("No");
     const answered = html(

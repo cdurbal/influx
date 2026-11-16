@@ -658,7 +658,7 @@
 | 326 | 17 | 8. Angles morts du dark theme |  |
 | 343 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 356 | 24 | 10. Tokens proposés |  |
-| 380 | 548 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
+| 380 | 549 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
 | 393 | 40 | ↳ 11.1 Périmètre et frontière |  |
 | 433 | 14 | ↳ 11.2 Ce qui ne change pas |  |
 | 447 | 163 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
@@ -666,8 +666,8 @@
 | 679 | 116 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
 | 795 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
 | 828 | 32 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
-| 860 | 56 | ↳ 11.8 Gabarits et composants |  |
-| 916 | 12 | ↳ 11.9 Points soumis au fondateur |  |
+| 860 | 57 | ↳ 11.8 Gabarits et composants |  |
+| 917 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
 ## 21-plan-de-developpement.md (~14k tokens)
 

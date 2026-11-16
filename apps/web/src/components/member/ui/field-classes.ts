@@ -35,21 +35,31 @@ export function memberChoiceRowClasses(blocked = false): string {
     "flex min-h-(--size-touch-target) items-start gap-3 py-2 text-md",
     blocked
       ? "cursor-not-allowed text-text-disabled"
-      : "cursor-pointer text-text-primary",
+      : "cursor-pointer text-text-primary has-disabled:cursor-default",
   );
 }
 
+/**
+ * The native control keeps `disabled` (it blocks every gesture and reads "checked, unavailable"); only
+ * its drawing changes under `disabled:` (L3C-X3). The browser paints a disabled radio or box in its own
+ * grey, which hides what is checked: it is redrawn as a `border-strong` outline (3:1 on the card) whose
+ * checked state is a filled inner mark in `text-secondary`, a shape and not a tint, never green. One
+ * drawing for both kinds (CA22 forbids the `[type=…]` variant that would tell a box from a radio).
+ */
 export function memberChoiceInputClasses(blocked = false): string {
   return cn(
     "mt-1 size-(--size-checkbox) shrink-0 accent-action-primary-bg",
     blocked ? "cursor-not-allowed" : "cursor-pointer",
+    "disabled:appearance-none disabled:border-(length:--border-width-thick) disabled:border-border-strong disabled:bg-transparent",
+    "disabled:rounded-pill",
+    "disabled:checked:border-text-secondary disabled:checked:bg-text-secondary disabled:checked:bg-clip-content disabled:checked:p-1",
   );
 }
 
 function outlineClasses(hasError: boolean): string {
   return cn(
     "bg-surface-page text-md text-text-primary",
-    "disabled:border-border-default disabled:bg-surface-raised disabled:text-text-disabled",
+    "disabled:border-border-default disabled:bg-surface-raised disabled:text-text-secondary",
     hasError
       ? "border-(length:--border-width-thick) border-border-error"
       : "border-(length:--border-width-thin) border-border-strong",

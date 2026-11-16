@@ -15,6 +15,7 @@ import {
   withdrawOpenEntries,
 } from "./support/campaign-states";
 import { expect, open, test, title } from "./support/journey";
+import { computed, contrast, rgbaOf, tokenColor } from "./support/rendering";
 import { withSql } from "./support/verification-cycle";
 
 test.afterAll(async () => {
@@ -187,6 +188,40 @@ test("L3C-E3: a pause of INFLUX is not the brand's to lift, and a refused campai
     page.getByText(copy.status.label.paused, { exact: true }),
   ).toBeVisible();
   expect(await campaignStateOf(paused)).toBe("paused");
+
+  // X3: the locked form (step 1) still shows what is chosen: a checked radio is a drawn shape that reads on the
+  // card and differs from an unchecked one (never the browser's grey), and a locked value stays readable
+  const card = await tokenColor(page, "--color-surface-card");
+  const raised = await tokenColor(page, "--color-surface-raised");
+  if (card === null || raised === null) {
+    throw new Error("a surface token is not declared");
+  }
+  const checked = page.locator('input[name="productIsSent"]:checked');
+  const unchecked = page.locator('input[name="productIsSent"]:not(:checked)');
+  await expect(checked).toBeDisabled();
+  expect(await computed(checked, "appearance")).toBe("none");
+  const mark = rgbaOf(await computed(checked, "background-color"));
+  const ring = rgbaOf(await computed(checked, "border-top-color"));
+  const emptyRing = rgbaOf(await computed(unchecked, "border-top-color"));
+  const emptyGround = rgbaOf(await computed(unchecked, "background-color"));
+  if (
+    mark === null ||
+    ring === null ||
+    emptyRing === null ||
+    emptyGround === null
+  ) {
+    throw new Error("a radio color is unread");
+  }
+  expect(contrast(mark, card)).toBeGreaterThanOrEqual(3);
+  expect(contrast(ring, card)).toBeGreaterThanOrEqual(3);
+  expect(contrast(emptyRing, card)).toBeGreaterThanOrEqual(3);
+  expect(emptyGround.a).toBe(0);
+  expect(mark.a).toBe(1);
+  const currency = rgbaOf(
+    await computed(page.locator('select[name="currency"]'), "color"),
+  );
+  if (currency === null) throw new Error("the currency color is unread");
+  expect(contrast(currency, raised)).toBeGreaterThanOrEqual(4.5);
 
   await open(page, `/fr/campagnes/${refused}`);
   await expect(

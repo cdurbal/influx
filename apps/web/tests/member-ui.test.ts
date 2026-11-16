@@ -10,12 +10,19 @@ import {
 } from "@/components/member/ui/button-classes";
 import { counterText } from "@/components/member/ui/counter";
 import { CounterBadge } from "@/components/member/ui/CounterBadge";
+import {
+  memberChoiceInputClasses,
+  memberChoiceRowClasses,
+  memberControlClasses,
+  memberTextAreaClasses,
+} from "@/components/member/ui/field-classes";
 import { MemberButton } from "@/components/member/ui/MemberButton";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import { RoleBadge } from "@/components/member/ui/RoleBadge";
 import { StatusBadge } from "@/components/member/ui/StatusBadge";
 import { VerifiedBadge } from "@/components/member/ui/VerifiedBadge";
+import { YesNoField } from "@/components/member/ui/YesNoField";
 
 const html = (element: Parameters<typeof renderToStaticMarkup>[0]) =>
   renderToStaticMarkup(element);
@@ -192,5 +199,47 @@ describe("badges and notices", () => {
     expect(
       html(createElement(Notice, { tone: "info", announce: false }, "Text")),
     ).not.toContain("role=");
+  });
+});
+
+describe("locked fields (L3C-X3)", () => {
+  it("keeps a locked radio disabled and checked, redrawn as a shape and never dimmed, its value still readable", () => {
+    const markup = html(
+      createElement(YesNoField, {
+        name: "remote",
+        label: "Remote",
+        value: true,
+        onChange: () => undefined,
+        yesLabel: "Yes",
+        noLabel: "No",
+        disabled: true,
+      }),
+    );
+    const radios = markup.match(/<input[^>]*type="radio"[^>]*>/g) ?? [];
+    expect(radios).toHaveLength(2);
+    expect(radios.filter((radio) => / checked=""/.test(radio))).toHaveLength(1);
+    for (const radio of radios) {
+      expect(radio).toContain("disabled");
+      expect(radio).not.toMatch(/readonly|aria-readonly|aria-disabled/);
+    }
+    const classes = [
+      memberChoiceInputClasses(),
+      memberChoiceInputClasses(true),
+      memberControlClasses(false),
+      memberTextAreaClasses(false),
+    ].join(" ");
+    expect(classes).not.toMatch(/opacity-(?!100)/);
+    expect(classes).not.toContain("text-disabled");
+    expect(memberChoiceInputClasses()).toContain("disabled:appearance-none");
+    expect(memberChoiceInputClasses()).toContain(
+      "disabled:checked:bg-text-secondary",
+    );
+    expect(memberChoiceInputClasses()).toContain(
+      "disabled:border-border-strong",
+    );
+    expect(memberControlClasses(false)).toContain(
+      "disabled:text-text-secondary",
+    );
+    expect(memberChoiceRowClasses()).toContain("has-disabled:cursor-default");
   });
 });
