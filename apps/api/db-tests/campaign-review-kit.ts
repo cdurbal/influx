@@ -21,6 +21,7 @@ import {
   type Member,
   type Server,
 } from "./campaign-routes-kit.ts";
+import { letterName } from "./support.ts";
 
 export const BO_CAMPAIGNS = "/v1/bo/campaigns";
 export const BO_ENTRIES = "/v1/bo/campaigns/entries";
@@ -160,7 +161,10 @@ export async function openReviewKit(): Promise<ReviewKit> {
       return sensitive;
     },
     async submitCampaign(brand, options = {}) {
-      const title = options.title ?? `L3C titre ${randomUUID().slice(0, 8)}`;
+      // Letters only: eight hexadecimal digits in a row (one title in 43) read as a phone number
+      // (RG21, PHONE_MIN_DIGITS), and a "clean" campaign would carry a contact alert (L3C-X8).
+      const title =
+        options.title ?? `L3C titre ${letterName(randomUUID().slice(0, 8))}`;
       const brief = options.brief ?? `L3C brief ${"b".repeat(300)}`;
       const created = await fx.call(
         server,
