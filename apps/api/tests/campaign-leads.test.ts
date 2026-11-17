@@ -243,7 +243,7 @@ beforeEach(() => {
   reads = [];
 });
 
-describe("09 RG104, CA69: the contact of a brand carries the attributes of its campaigns", () => {
+describe("L3C-T6: 09 RG104, CA69: the contact of a brand carries the attributes of its campaigns", () => {
   it("campaign.published rewrites the Brevo contact with codes, dates and a counter, and the funnel stage campaign_published", async () => {
     const claimed = line("brevo_contact");
     const result = await run(
@@ -384,7 +384,7 @@ describe("09 RG104, CA69: the contact of a brand carries the attributes of its c
   });
 });
 
-describe("09 CA71: without marketing consent no marketing contact is updated, and the line is not a failure", () => {
+describe("L3C-T6: 09 CA71: without marketing consent no marketing contact is updated, and the line is not a failure", () => {
   it("campaign.published of a brand without consent is skipped no_consent, nothing read, nothing sent", async () => {
     const claimed = line("brevo_contact");
     const preparation = await brevoContact(PUBLISHED).prepare(
@@ -410,7 +410,7 @@ describe("09 CA71: without marketing consent no marketing contact is updated, an
   });
 });
 
-describe("09 RG106: the output check of the Brevo contact", () => {
+describe("L3C-T6: 09 RG106: the output check of the Brevo contact", () => {
   it("accepts the six attributes of the campaigns with the closed list, and refuses any other name", () => {
     const attributes = Object.fromEntries(
       BREVO_CAMPAIGN_ATTRIBUTES.map((name) => [name, ""]),
@@ -477,7 +477,7 @@ describe("09 RG106: the output check of the Brevo contact", () => {
   });
 });
 
-describe("09 RG105, CA70: Apollo receives « a publié une campagne » and its date, nothing else", () => {
+describe("L3C-T6: 09 RG105, CA70: Apollo receives « a publié une campagne » and its date, nothing else", () => {
   it("a brand that published carries two labels more, and the body keeps its fields", async () => {
     const claimed = line("apollo_contact");
     const result = await run(

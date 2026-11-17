@@ -182,7 +182,7 @@ async function ownFixture(): Promise<{ campaignId: string; entryId: string }> {
 
 const WEB = { surface: "web", cookie: "__Host-influx-session" } as const;
 
-describe("T14.1: the surface and the session (18 T14.1; 03 §6.2)", () => {
+describe("L3C-T7: T14.1: the surface and the session (18 T14.1; 03 §6.2)", () => {
   it("T14.1 the web surface never reaches a route of /v1/bo/campaigns: the answer of an unknown route, even with a member cookie", async () => {
     const member = await kit.memberSession();
     const unknown = answer(
@@ -218,7 +218,7 @@ describe("T14.1: the surface and the session (18 T14.1; 03 §6.2)", () => {
   });
 });
 
-describe("T14.3, T14.4: what is not the caller's answers like what does not exist", () => {
+describe("L3C-T7: T14.3, T14.4: what is not the caller's answers like what does not exist", () => {
   it("T14.3 an entry that does not exist, and the one of the caller's own account, answer ONE answer on every route of the queue", async () => {
     const own = await ownFixture();
     for (const [name, route] of Object.entries(ENTRY_ROUTES)) {
@@ -314,7 +314,7 @@ describe("T14.3, T14.4: what is not the caller's answers like what does not exis
   });
 });
 
-describe("15 RG36, CA19: the account the caller holds", () => {
+describe("L3C-T7: 15 RG36, CA19: the account the caller holds", () => {
   it("T14 the entries of a brand the caller holds are neither listed nor counted for him, and are for a colleague", async () => {
     const submitted = await fresh();
     type Page = {
@@ -413,7 +413,7 @@ describe("15 RG36, CA19: the account the caller holds", () => {
   });
 });
 
-describe("D60: nothing typed in this file reaches a log", () => {
+describe("L3C-T7: D60: nothing typed in this file reaches a log", () => {
   it("T14 wrote no brief, title, opinion, comment nor address in any log of the file", async () => {
     const submitted = await fresh();
     kit.fx.watch("T14-COMMENT-MARKER", "t14-contact@example.com");

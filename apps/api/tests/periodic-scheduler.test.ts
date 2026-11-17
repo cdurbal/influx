@@ -954,7 +954,7 @@ describe("badge_lifecycle (0230; 08 RG69 to RG71, RG100; L2F commit 12)", () => 
   });
 });
 
-describe("campaign_closure (0309; 09 RG9; L3C commit 06)", () => {
+describe("L3C-T6: campaign_closure (0309; 09 RG9; L3C commit 06)", () => {
   it("is a daily task keyed by UTC day: one run a day whatever the clock of the instance", () => {
     expect(periodKeyOf("campaign_closure", AT_0259)).toBe("2026-10-13");
     expect(periodKeyOf("campaign_closure", AT_0300)).toBe("2026-10-13");

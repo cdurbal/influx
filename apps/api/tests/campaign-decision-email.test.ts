@@ -175,7 +175,7 @@ function pathsOf(value: unknown, prefix = ""): string[] {
   );
 }
 
-describe("09 RG90, RG94: the closed lists, in both languages", () => {
+describe("L3C-T6: 09 RG90, RG94: the closed lists, in both languages", () => {
   it("the translation files hold exactly the fourteen reasons, seven types, fields and four intervention reasons, under the same keys", () => {
     for (const messages of [french, english]) {
       const texts = messages.email.campaignDecision;
@@ -227,7 +227,7 @@ describe("09 RG90, RG94: the closed lists, in both languages", () => {
   });
 });
 
-describe("one text per decision code and language, accepted by the output check", () => {
+describe("L3C-T6: one text per decision code and language, accepted by the output check", () => {
   it.each(
     CAMPAIGN_DECISION_EMAIL_CODES.flatMap((code) =>
       LOCALES.map((locale) => [code, locale] as const),
@@ -286,7 +286,7 @@ describe("one text per decision code and language, accepted by the output check"
   });
 });
 
-describe("09 RG90: a refusal speaks with the message of its reason, word for word", () => {
+describe("L3C-T6: 09 RG90: a refusal speaks with the message of its reason, word for word", () => {
   it("the table of RG90, in French, under D78 for the amount and the budget band", () => {
     const text = (reason: CampaignRejectionReasonCode) =>
       renderCampaignDecisionEmail({
@@ -411,7 +411,7 @@ describe("09 RG90: a refusal speaks with the message of its reason, word for wor
   });
 });
 
-describe("09 RG94: an intervention tells the brand its typed reason, never a value nor an agent", () => {
+describe("L3C-T6: 09 RG94: an intervention tells the brand its typed reason, never a value nor an agent", () => {
   it("a pause, a resumption, a closure and a correction carry the sentence of the reason read", () => {
     for (const code of [
       "paused_by_influx",
@@ -629,7 +629,7 @@ beforeEach(() => {
   reads = [];
 });
 
-describe("L3C commit 06, 09 RG93: the connector writes the e-mail of a decision from the facts read", () => {
+describe("L3C-T6: 09 RG93: the connector writes the e-mail of a decision from the facts read", () => {
   it("a publication leaves by the event type of its line, in the language read, with the key of the decision, whatever the marketing consent", async () => {
     const claimed = decided("published");
     const result = await send(

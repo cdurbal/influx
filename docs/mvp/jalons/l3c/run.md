@@ -21,5 +21,5 @@
 | F | recette.md | fondateur | — | — | fondateur | fait | « je valide la recette » (fondateur, 2026-11-17) ; constat 1 (2026-11-16) : radios grisés illisibles → X3 ; constat 2 : D84, pas de double validation obligatoire → X4, X5 |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | revue : 0 bloquant ; 3 jalon (L3CT-1 à 3, L3CT-3 en C) ; sécurité : autorisé sous conditions, L3CS-1 à 3 avant production |
 | X6 | fix-6.md | fix | opus | high | dev-react-node | fait | validé fondateur 17/11 ; afterAll hors cas (55-270 ms), base inchangée ×3 ; médianes E1 7,55 E2 5,05 E3 6,14 L3B 26,6 s > plafonds, corps inchangés |
-| X7 | fix-7.md | fix | sonnet | high | dev-react-node | à faire | L3CT-2 : identifiants L3C-T6 et L3C-T7 dans les titres ; validé par le fondateur (valider X6 X7, 2026-11-17) |
+| X7 | fix-7.md | fix | sonnet | high | dev-react-node | fait | 9 describe préfixés L3C-T6 (5 fichiers) et 4 L3C-T7, titres seuls ; cas 15/17/10 inchangés, planchers intacts ; T9.6-A en timeout sous charge, vert seul |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | reprend L3CT-3, L3CS-2 et l'attestation I-4 (à montrer au fondateur avant commit) |
