@@ -22,7 +22,7 @@
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | revue : 0 bloquant ; 3 jalon (L3CT-1 à 3, L3CT-3 en C) ; sécurité : autorisé sous conditions, L3CS-1 à 3 avant production |
 | X6 | fix-6.md | fix | opus | high | dev-react-node | fait | validé fondateur 17/11 ; afterAll hors cas (55-270 ms), base inchangée ×3 ; médianes E1 7,55 E2 5,05 E3 6,14 L3B 26,6 s > plafonds, corps inchangés |
 | X7 | fix-7.md | fix | sonnet | high | dev-react-node | fait | 9 describe préfixés L3C-T6 (5 fichiers) et 4 L3C-T7, titres seuls ; cas 15/17/10 inchangés, planchers intacts ; T9.6-A en timeout sous charge, vert seul |
-| C | cloture.md | cloture | sonnet | medium | testeur | à faire | reprend L3CT-3, L3CS-2 et l'attestation I-4 (à montrer au fondateur avant commit) |
+| C | cloture.md | cloture | sonnet | medium | testeur | fait | « clôture avec réserves » (fondateur) ; critères 1, 3 (staging), 7 non prouvés ; T7.3 et next build en reliquat ; attestation 09d058c |
 
 ## Mesures de clôture (2026-11-17)
 **CI, dernier run 44157039696 (success, « Migrate staging » compris, production sautée)** : contrôles
@@ -44,3 +44,5 @@ contrôle fusionné 30 s, soit 4 min 45 pour 8 min ; **éclats e2e** 3 min 41, *
 - **Plafonds e2e de la fiche** (E1 7,6 s, E2 5 s, E3 5 s, `brand-campaign.spec.ts` 25 s, L3C 18 s) :
   **non tenus en local sur ce poste, éclats CI tenus, décision du fondateur : remesurer en CI par spec
   ou relever les plafonds** (`21` §8, L3C-E2E).
+
+**Réserves de clôture (fondateur, 2026-11-18, « clôture avec réserves »)** : critères 1, 3 (moitié `staging`) et 7 non prouvés (relevé `staging` en lecture seule, plafonds e2e) ; `db-tests/campaign-review-route.test.ts:275` (T7.3) échoue en suite base complète locale, passe seul ; `next build` local refusé (`SecurityFatalError`, avis de sécurité de Next.js). Reportés au reliquat de `21` §8.

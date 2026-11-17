@@ -678,4 +678,4 @@
 | 93 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 117 | 9 | 6. Configuration des services externes |  |
 | 126 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 143 | 112 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 143 | 113 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
