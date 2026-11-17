@@ -18,6 +18,6 @@
 | X3 | fix-3.md | fix | sonnet | high | dev-react-node | fait | anneau + point plein text-secondary ; valeurs 8,7:1 ; e2e médiane 6,5 s (avant 7,6) ; captures apps/web/test-results/x3/ ; EC-1 case en rond, EC-2 sans opacity |
 | X4 | fix-4.md | fix | opus | high | expert-database | fait | I-4. 0313 : sensible publié seul (déclaration exigée), avis facultatif lu de tous, repris par son auteur ; review_mode au registre ; recherche à 0314 |
 | X5 | fix-5.md | fix | sonnet | high | dev-react-node | fait | D84 : Publier seul même en secteur sensible, second avis facultatif, next exclut l'entrée rendue ; e2e médiane 7,3 s |
-| F | recette.md | fondateur | — | — | fondateur | à faire | recette en cours, constat 1 (fondateur, 2026-11-16) : « Pour la recette quand c'est grisé ( Compagne en cours de validation) on ne voit pas bien les radios boutons activé » → X3 ; constat 2 (fondateur, 2026-11-16) : D84, pas de double validation obligatoire → X4, X5 |
+| F | recette.md | fondateur | — | — | fondateur | fait | « je valide la recette » (fondateur, 2026-11-17) ; constat 1 (2026-11-16) : radios grisés illisibles → X3 ; constat 2 : D84, pas de double validation obligatoire → X4, X5 |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
