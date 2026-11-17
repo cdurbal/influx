@@ -15,6 +15,7 @@ import {
   seedColleague,
   seedInternal,
 } from "./support/backoffice";
+import { ownBrand, removeOwnCampaigns } from "./support/campaign-cleanup";
 import {
   brandAccount,
   campaignActsOf,
@@ -25,6 +26,7 @@ import { expect, test } from "./support/journey";
 import { BACKOFFICE_ORIGIN } from "./support/servers";
 
 test.afterAll(async () => {
+  await removeOwnCampaigns();
   await retireInternals();
 });
 
@@ -50,6 +52,7 @@ test("an agent opens a draft for a brand (a title and a type), then corrects its
     name: tag,
     ownerAgentId: owner.accountId,
   });
+  ownBrand(brand.accountId);
   const agent = await seedInternal(page, "agent", "Lou");
 
   // The account record: a title and a type, nothing else; the type is compulsory.
@@ -151,6 +154,7 @@ test("a published campaign is paused, resumed and closed by an agent: a reason e
     title: `Gamme ${tag}`,
     ownerAgentId: owner.accountId,
   });
+  ownBrand(campaign.accountId);
   const agent = await seedInternal(page, "agent", "Lou");
 
   // Published (by the API's own routes): frozen for the correction, offered the pause and the closing.

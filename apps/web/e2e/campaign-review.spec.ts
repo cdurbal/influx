@@ -17,6 +17,7 @@ import {
   seedColleague,
   seedInternal,
 } from "./support/backoffice";
+import { ownBrand, removeOwnCampaigns } from "./support/campaign-cleanup";
 import {
   campaignDecisionOf,
   holdEntry,
@@ -27,6 +28,7 @@ import { expect, test } from "./support/journey";
 import { BACKOFFICE_ORIGIN } from "./support/servers";
 
 test.afterAll(async () => {
+  await removeOwnCampaigns();
   await retireInternals();
 });
 
@@ -66,6 +68,7 @@ test("an agent reads the campaigns to validate, opens one, reads the brief whole
     brief: BRIEF_WITH_CONTACT,
     sensitive: true,
   });
+  ownBrand(campaign.accountId);
   await seedInternal(page, "agent", "Lou");
 
   // The list: what a line says in words, the alert in a line of its own; no brief, no band, no contact.
@@ -162,6 +165,7 @@ test("an entry held by a colleague is read, never decided: « En cours — Lou �
     title: `Soins ${runTag("B")}`,
     ownerAgentId: owner.accountId,
   });
+  ownBrand(campaign.accountId);
   await holdEntry(campaign.entryId, holder.accountId);
   await seedInternal(page, "agent", "Marie");
 
@@ -195,6 +199,7 @@ test("a second opinion on a sensitive campaign is facultative: asked, the entry 
     ownerAgentId: owner.accountId,
     sensitive: true,
   });
+  ownBrand(asked.accountId);
   const lou = await seedInternal(page, "agent", "Lou");
 
   // The facultative second opinion, with its note (the length is the unit tests'): the entry is given back.
@@ -256,6 +261,7 @@ test("a brand suspended while its campaign waits blocks the publication with its
     title: `Marque ${runTag("D")}`,
     ownerAgentId: owner.accountId,
   });
+  ownBrand(campaign.accountId);
   await seedInternal(page, "agent", "Lou");
   await page.goto(entryAddress(campaign.entryId));
   await expect(page.getByText(TAKEN)).toBeVisible();

@@ -433,14 +433,19 @@ describe("L3C-T2 the submission opens one entry of queue 7 with its frozen deadl
   });
 
   it("L3C-T2 every pending_review campaign of the stack has exactly one open entry, and only they (modele -1)", async () => {
-    const mismatches = await scenario(
-      (tx) =>
-        tx<{ id: string }[]>`
+    // L3CT-1: read on the campaigns of the data set alone (what other files and runs left is not this case's),
+    // campaign A submitted first, so that one pending_review campaign at least is read
+    const mismatches = await scenario(async (tx) => {
+      await readyA(tx);
+      await submittedA(tx);
+      return tx<{ id: string }[]>`
         select c.id::text from campaigns.campaigns c
-         where (c.status = 'pending_review')
+         where c.id = any(${Object.values(CAMPAIGN_IDS)}::uuid[])
+           and c.advertiser_account_id = any(${[brandA, brandB]}::uuid[])
+           and (c.status = 'pending_review')
                <> exists (select 1 from campaigns.campaign_review_entries e
-                           where e.campaign_id = c.id and e.state = 'open')`,
-    );
+                           where e.campaign_id = c.id and e.state = 'open')`;
+    });
     expect(mismatches).toEqual([]);
   });
 });

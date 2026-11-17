@@ -321,10 +321,11 @@ describe("15 RG36, CA19: the account the caller holds", () => {
       items: { id: string }[];
       counters: { pending: number };
     };
-    // agent B, a colleague who holds no brand of this file
+    // agent B, a colleague who holds no brand of this file, reads the brands of the holder alone (15 RG36:
+    // `?owner=`), whatever other files and runs left in the queue (L3CT-1)
     const colleague = await kit.bo(
       "GET",
-      `${BO_ENTRIES}?limit=50`,
+      `${BO_ENTRIES}?owner=${holder.accountId}&limit=50`,
       agentB.session,
     );
     const held = await kit.bo("GET", `${BO_ENTRIES}?limit=50`, holder.session);

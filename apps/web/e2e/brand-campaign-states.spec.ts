@@ -9,6 +9,7 @@ import frCampaign from "@/locales/fr/campaign.json" with { type: "json" };
 import { seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
 import { retireInternals, seedColleague } from "./support/backoffice";
+import { ownBrand, removeOwnCampaigns } from "./support/campaign-cleanup";
 import {
   campaignStateOf,
   seedCampaignInState,
@@ -19,6 +20,7 @@ import { computed, contrast, rgbaOf, tokenColor } from "./support/rendering";
 import { withSql } from "./support/verification-cycle";
 
 test.afterAll(async () => {
+  await removeOwnCampaigns();
   await retireInternals();
 });
 
@@ -40,6 +42,7 @@ async function signedInBrand(
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await withSql(async (sql) => {
     await sql`
       update profiles.advertiser_profiles

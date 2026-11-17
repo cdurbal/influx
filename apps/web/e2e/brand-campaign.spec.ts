@@ -24,8 +24,14 @@ import frMember from "@/locales/fr/member.json" with { type: "json" };
 import { seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
 import { campaignCalendar, civilDateIn } from "./support/campaign-calendar";
+import { ownBrand, removeOwnCampaigns } from "./support/campaign-cleanup";
 import { expect, open, reload, test, title } from "./support/journey";
 import { WEB_ORIGIN } from "./support/servers";
+
+// L3CT-1: the campaigns of the journeys leave the stack after the file (outside the time of the cases)
+test.afterAll(async () => {
+  await removeOwnCampaigns();
+});
 
 type Locale = "fr" | "en";
 
@@ -188,6 +194,7 @@ test("L3B-E1: my campaigns: the invitation to write waits for a published profil
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
 
   // Draft profile: the sentence that says so, the way to the profile, no button to create.
   await open(page, LIST_PATH.fr);
@@ -256,6 +263,7 @@ test("L3B-E1: the offer, the work expected and the audience, in French at 375 px
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await publishProfile(member.accountId);
   const id = await draftThroughApi(page, {
     title: "Test de notre nouvelle gamme de soins",
@@ -422,6 +430,7 @@ test("L3B-E1: the form in English at 1 440 px: a campaign taken up where it was 
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await publishProfile(member.accountId);
   const id = await draftThroughApi(page, {
     title: "A trial of our new skincare range",
@@ -498,6 +507,7 @@ test("L3B-E1: a save that fails keeps the entry on screen and says so, then goes
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await publishProfile(member.accountId);
   const id = await draftThroughApi(page, {});
   await open(page, `/fr/campagnes/${id}`);
@@ -538,6 +548,7 @@ test("L3B-E2: the budget, the calendar and the submission in French at 1 440 px:
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await publishProfile(member.accountId);
   const id = await draftThroughApi(page, wholeOffer());
   await open(page, `/fr/campagnes/${id}?step=4`);
@@ -663,6 +674,7 @@ test("L3B-E2: a submission names what is missing, step by step, with a way to ea
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await publishProfile(member.accountId);
   const id = await draftThroughApi(
     page,
@@ -725,6 +737,7 @@ test("L3B-E2: a sensitive category is refused without its declaration, then acce
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await publishProfile(member.accountId);
   const id = await draftThroughApi(
     page,
@@ -767,6 +780,7 @@ test("L3B-E2: a save that fails on the budget keeps the entry on screen and says
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await publishProfile(member.accountId);
   const id = await draftThroughApi(page, wholeOffer());
   await open(page, `/fr/campagnes/${id}?step=4`);
@@ -819,6 +833,7 @@ test("L3B-E3: what a creator sees, in French at 1 440 px: reached from step 4, t
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   await publishProfile(member.accountId);
   const id = await draftThroughApi(page, withInternalFields());
   await open(page, `/fr/campagnes/${id}?step=4`);
@@ -908,12 +923,13 @@ test("L3B-E3: what a creator sees, in English at 375 px: reached from the list, 
 }) => {
   const copy = COPY.en;
   await page.setViewportSize({ width: 375, height: 800 });
-  await seedMember(page, {
+  const member = await seedMember(page, {
     role: "advertiser",
     language: "en",
     acceptTerms: true,
     sessions: ["chrome.windows"],
   });
+  ownBrand(member.accountId);
   const id = await draftThroughApi(
     page,
     withInternalFields({
