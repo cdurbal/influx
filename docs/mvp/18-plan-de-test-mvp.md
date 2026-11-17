@@ -1566,6 +1566,7 @@ e2e **56** (7 fichiers) ; `apps/api` (unitaire et base) inchangé. Aucun planche
 **Tests exigibles :** T1 (rejoué sur les routes de recherche), T14, T15 + TM5, TM12 — **5 familles,
 28 cas.**
 
+- [x] TM5.1 et TM5.6 **au niveau base** (L3C, `0307` à `0313`) : TM5.1 par `campaigns-publication.test.ts` (L3C-T3 ; seul écrivain de `published` : la porte de décision d'un agent ou d'un admin, la reprise n'étant pas une publication, `modele.md` §5), TM5.6 par l'instantané égal à la vue créateur et son `CHECK` sans clé interne ; une campagne de secteur sensible est publiée par une seule personne, déclaration exigée (D84). TM5.2 suit la recherche (L3D, `0314`)
 - [ ] TM12.1 à TM12.5 : k-anonymat, pagination plafonnée, **export interdit à tout le monde**, recherches journalisées, vue identifiée refusée aux membres
 - [ ] I-9 : alerte sur un volume anormal de profils distincts consultés par un même compte sur 24 h
 - [ ] **Non automatisable** : le fondateur a tranché **D38** (masse critique de profils avant d'ouvrir la recherche)

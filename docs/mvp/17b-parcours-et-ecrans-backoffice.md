@@ -1248,7 +1248,7 @@ campagne. **Deux délais** : 1 jour ouvré, **2 jours en revue renforcée** (`09
 ```
 ┌ CMP-2026-0431 · « ⟨titre⟩ » · ⟨raison sociale⟩ ──────────────────────── ▮ ─┐
 │ ⏱ Échéance dans 1 j 3 h   ⚑⚑ REVUE RENFORCÉE — catégorie de produit sensible│
-│    Deux personnes sont requises. Vous êtes le 1ᵉʳ examinateur.              │
+│    Une personne publie ; un second avis est facultatif (D84).               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ ① LA MARQUE   ⟨raison sociale⟩ · FR · ✓ vérifiée · 3 campagnes publiées    │
 │    ⚑ La même marque a déjà une campagne au titre proche, période qui se     │
@@ -1273,19 +1273,20 @@ campagne. **Deux délais** : 1 jour ouvré, **2 jours en revue renforcée** (`09
 │    Commercial responsable *  [▾ ⟨moi⟩]   ⓘ une campagne sans responsable    │
 │                                            est une campagne que personne ne │
 │                                            vendra (AL20)                    │
-│    [■ Transmettre au 2ᵉ examinateur]      [⚠ Refuser avec motif ‹r›]        │
+│    [■ Publier ‹v›]  [Demander un second avis]  [⚠ Refuser avec motif ‹r›]  │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**La revue renforcée en deux temps** (`09` RG85) — et la différence à ne pas manquer avec la
-double validation de §4.5 : ici, **deux examens**, pas une confirmation différée.
+**La revue renforcée (`09` RG85, amendée par D84)** — aucune double validation obligatoire : **une seule
+personne publie**, la déclaration de la marque étant exigée. Le **second avis est facultatif** et ne
+bloque jamais.
 
-| Temps | Écran | Qui |
+| Phase | Écran | Qui |
 |---|---|---|
-| 1 | Le bouton principal devient **« Transmettre au 2ᵉ examinateur »**, jamais « Publier ». Le 1ᵉʳ examinateur saisit un **avis motivé** obligatoire | `agent` ou `admin` |
-| 2 | L'entrée réapparaît en file, marquée « 2ᵉ examen — 1ᵉʳ avis de ⟨nom⟩ », **masquée au 1ᵉʳ examinateur** (`15` RG36 par analogie) ; le bouton devient **« Publier »** | `admin` ou un **second** agent |
+| Décision | Le bouton principal reste **« Publier »** ; le décideur peut aussi **« Demander un second avis »** (texte de 20 à 1 000 caractères), ce qui rend le verrou | `agent` ou `admin` |
+| Second avis (si demandé) | L'entrée réapparaît en file, marquée « Second avis demandé par ⟨nom⟩ », **lisible par tous**, y compris le demandeur, qui peut la reprendre ; un collègue la publie ou la refuse | `agent` ou `admin` |
 
-Hors revue renforcée, le bouton est directement `[■ Publier ‹v›]`.
+Hors revue renforcée, aucune demande de second avis n'est proposée.
 
 **États.** Aucune campagne en attente : état vide de §2.3. Marque suspendue en cours d'examen :
 bandeau bloquant « La marque a été suspendue. Cette campagne ne peut pas être publiée. » +
@@ -2271,7 +2272,7 @@ l'hypothèse indiquée et la rend visible.
 | 17 | **Fiche de compte créateur** — 13 blocs | 3.6 | `agent` `admin` | 2 |
 | 18 | Vérification d'un profil et attribution du badge | 3.7 | `agent` `admin` | 2 |
 | 19 | Validation d'une campagne | 3.8 | `agent` `admin` | 3 |
-| 20 | Revue renforcée — deux examens | 3.8 | `agent` + `admin` | 3 |
+| 20 | Revue renforcée — publication par une personne, second avis facultatif (D84) | 3.8 | `agent` `admin` | 3 |
 | 21 | Liste des affaires et totaux par devise | 3.9.a | `agent` `admin` | 5 |
 | 22 | Fiche d'affaire — états, montants, encaissements | 3.9.b | responsable, `admin` | 5 |
 | 23 | E-mails — écran 1, « Mes envois » | 3.10 | `agent` `admin` | 5 |

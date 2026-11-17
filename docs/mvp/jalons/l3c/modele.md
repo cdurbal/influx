@@ -59,7 +59,7 @@
 - Réglages : `campaign_enhanced_review_minutes` 960, `campaign_live_cap` 10, `campaign_auto_close_days` 30.
 - Droits : agent, admin (`aal2`) lisent tout sauf avis, commentaire, fourchette ; annonceur : ses entrées (état, dates, motif, message) ; `influx_creator` : rien (TM5.6).
 - Export : `reviews`, `snapshots`, `interventions`, sans agent ni commentaire ; journal (L3BS-5) : sujet `campaign`, acteur « INFLUX ». Effacement : entrée `withdrawn`, textes vidés.
-- **0307** file, garde, porte ; **0308** publication ; **0309** cycle, interventions ; **0310** export, `leads.read_*`. Recherche : `0311`.
+- **0307** file, garde, porte ; **0308** publication ; **0309** cycle, interventions ; **0310** export, `leads.read_*` ; puis `0311` (A2), `0312` (A3), `0313` (D84). Recherche : `0314` (écart consigné à la clôture dans `04` §11).
 - À relire : -4 à -6 ; export, `excluded_third_party` (`expert-conformite-rgpd`, Lot 6).
 
 ## Arbitrage A2 — journal de `campaign.decision`

@@ -181,7 +181,7 @@ pas par l'application.
 
 **RG6** — L'objectif de délai de validation d'une campagne est de **1 jour ouvré** (aligné sur
 **D39**), mesuré en délai médian **et** en délai du 9e cas sur 10. Il est de **2 jours ouvrés** pour
-une campagne en **revue renforcée** (RG85), parce qu'elle exige deux décideurs. Au-delà de **3 jours
+une campagne en **revue renforcée** (RG85), parce qu'elle appelle une attention plus longue. Au-delà de **3 jours
 ouvrés**, l'entrée remonte en alerte sur le tableau de bord du backoffice. Ces trois valeurs sont
 **des paramètres en table**, pas des constantes (**Q9**).
 
@@ -199,6 +199,8 @@ Une campagne ne devient jamais invisible parce que sa marque a corrigé une faut
 modification soumise à re-validation sur une campagne ayant déjà reçu des candidatures est
 **notifiée aux candidats**, qui peuvent retirer leur candidature (Lot 4, **Q12**).
 
+> *Réponse 1 du fondateur (2026-11-13), L3C : RG7, CA6 et CA7 sont réalisés au Lot 4 avec **Q12** ; jusque-là, une campagne `publiée` ou `en pause` est figée pour la marque et pour la correction d'un agent (RG94, 55000 `campaign_not_correctable`).*
+
 **RG8** — Une campagne `en pause` reste lisible, affiche la mention « en pause », **n'accepte plus
 aucune candidature** et n'apparaît plus dans la recherche de campagnes. Les candidatures déjà déposées
 et les mises en relation déjà ouvertes ne sont **pas** affectées. La reprise est immédiate et **ne
@@ -209,6 +211,8 @@ interne, **atteinte du plafond de candidatures** (RG78), ou **30 jours après la
 publication** (valeur de départ, paramètre en table). Une clôture n'efface **aucune** donnée et
 n'affecte **aucune** mise en relation ouverte. Elle est **irréversible** : une nouvelle campagne se
 duplique, elle ne se rouvre pas.
+
+> *EC-L3C-2 : la clôture à 30 jours (valeur de départ `campaign_auto_close_days`, en table) est écrite par le seul worker, avec l'acteur système. La date limite de candidature dépassée ne clôt rien : elle ne ferme que les candidatures (CA49, Lot 4), sans écriture.*
 
 **RG10** — Une campagne `refusée` porte **un motif typé** choisi dans la liste fermée de RG90, reste
 intégralement modifiable et peut être resoumise sans délai. **Aucun refus muet, aucun dossier laissé
@@ -693,7 +697,7 @@ dans aucun cas** :
 | Commercial responsable | Un agent ou un admin | Attribution de l'affaire |
 | Agent validateur et date de décision | Le système, à la décision | Traçabilité |
 | Motif de refus | L'agent décideur | Traçabilité et statistiques |
-| Second validateur (revue renforcée) | Un admin ou un second agent | Traçabilité de la double validation (RG85) |
+| Demandeur d'un second avis (revue renforcée) | Un agent ou un admin, s'il en demande un | Traçabilité du second avis facultatif (RG85, D84) |
 
 > **Le budget total et la référence interne sont visibles de la marque qui les a saisis et d'INFLUX.
 > Ils ne sont visibles d'aucun créateur.** « Interne » ne veut pas dire « interne à INFLUX » : il veut
@@ -709,8 +713,10 @@ renforcée**, et elle seule :
 1. La marque coche une **case non pré-cochée** : « Je déclare détenir les autorisations nécessaires
    pour promouvoir ce produit dans les pays visés et respecter les règles de publicité qui s'y
    appliquent. » La déclaration est horodatée et conservée.
-2. La décision de publication exige **deux personnes** : un `admin`, ou un `agent` approuvé par un
-   second rôle interne distinct. Le second validateur est enregistré nommément.
+2. *(Amendé par D84, 2026-11-16.)* **Une seule personne** publie : un `agent` ou un `admin`, déclaration
+   de la marque exigée. Aucune double validation obligatoire. Un **second avis est facultatif** : le
+   décideur peut le demander (demande motivée), l'entrée reste lisible par tous et ne bloque jamais ;
+   le publieur et, s'il y en a un, le demandeur sont enregistrés nommément.
 3. Le délai cible passe à **2 jours ouvrés** (RG6).
 
 **RG86** — Une campagne dont la catégorie de produit figure parmi les **secteurs refusés** d'un
@@ -767,6 +773,8 @@ contestable.
 d'une marque** qui l'a appelé (`03` C(7)). Toute intervention enregistre l'ancienne et la nouvelle
 valeur, exige un motif, est journalisée nominativement, et **l'annonceur en est informé**. Un agent
 qui modifie une campagne sans trace est indistinguable d'une falsification.
+
+> *Réponse 2 du fondateur (2026-11-13), L3C : la création pour une marque est un **brouillon** ouvert par l'agent (titre, type), complété champ par champ par « Corriger un champ » (RG94), puis **soumis par la marque elle-même**, déclaration RG85 comprise ; le backoffice n'a aucun formulaire de huit blocs.*
 
 **RG95** — À la soumission, le système **alerte** l'agent si la **même marque** a déjà une campagne
 publiée avec un titre normalisé identique **et** une période de publication qui se recouvre. L'alerte
@@ -957,7 +965,7 @@ passent par les tokens (`design-system-influx`).
 | Un créateur appelle l'adresse d'une campagne en brouillon, en pause, clôturée ou refusée | Refus au niveau de la base, journalisé (RG100) |
 | Un annonceur tente de lire ou de modifier la campagne d'une autre marque | Refus : il n'existe aucun chemin de lecture d'une campagne d'un tiers en brouillon, et aucun chemin d'écriture (`03` §3.3) |
 | Un annonceur tente de passer lui-même sa campagne en « publiée » | Refus côté serveur : seul un rôle interne publie (RG5) |
-| Un agent tente de publier seul une campagne en secteur sensible | Refus : la double validation est exigée (RG85) |
+| Un agent publie seul une campagne en secteur sensible | Accepté si la déclaration de la marque est présente ; refusé sans elle (RG85, D84). Le second avis est facultatif |
 | Un créateur tente d'exporter la liste des campagnes publiées | Refus : l'export est interdit, et les garde-fous anti-aspiration de `03` C(17) s'appliquent aux campagnes comme à l'annuaire |
 | Un créateur tente d'accéder au budget total par une route de détail | Refus au niveau de la base : la colonne n'est pas accordée au rôle créateur (`04` §5.4). *Au pilote, la tranche de budget par créateur non plus (D78)* |
 
@@ -1225,11 +1233,12 @@ la marque remplit le formulaire, *alors* **le champ n'est pas affiché**.
 ### Validation, secteurs sensibles et backoffice
 
 **CA56** — *Étant donné* une campagne en catégorie « alcool », *quand* la marque la soumet, *alors*
-la case de déclaration d'autorisations est exigée, **non pré-cochée**, et sa validation demande
-**deux rôles internes distincts**.
+la case de déclaration d'autorisations est exigée, **non pré-cochée**. *(D84 : la validation n'exige
+plus deux rôles internes ; un second avis est facultatif.)*
 
-**CA57** — *Étant donné* la même campagne, *quand* un agent tente de la publier seul, *alors*
-l'action est refusée avec un message explicite.
+**CA57** — *Étant donné* la même campagne, *quand* un agent la publie seul avec la déclaration de la
+marque, *alors* la publication est acceptée ; *quand* il demande un second avis, *alors* celui-ci est
+facultatif et ne bloque jamais (D84). Sans déclaration, l'action est refusée avec un message explicite.
 
 **CA58** — *Étant donné* une entrée en file de validation, *quand* un premier agent la prend en
 charge, *alors* un second voit « déjà prise en charge par … » ; sans décision, l'entrée retourne dans

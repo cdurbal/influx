@@ -7,13 +7,13 @@ commit dans `apps/api/db-tests/case-floors.ts` ou `apps/web/e2e/case-floors.ts`,
 |---|---|---|---|---|---|
 | L3C-T1 | base, e2e | tests de campagnes existants | dates dérivées du jour ; mêmes cas, mêmes attendus | inchangé | 01 |
 | L3C-T2 | base | `campaigns-review-queue.test.ts` | entrée à la soumission (1 j ; 2 j sensible), une seule ouverte ; RG15 (CA10, campagnes nommées) ; RG95 (CA62, aucun refus) ; verrou (CA58 : titulaire nommé, expiration 30 min, levée admin) ; conflit d'intérêts ; garde L3BS-2 | 22 | 02 |
-| L3C-T3 | base | `campaigns-publication.test.ts` | TM5.1, CA5 (aucune autre écriture de `published`) ; instantané = vue créateur, version, empreinte ; TM5.6 ; responsable exigé ; CA48 ; marque non publiée, compte inactif ; CA56, CA57 (même personne refusée, admin compris) ; CA59 ; jeton périmé ; `campaign.published` et événement de leads dans la transaction | 25 | 03 |
+| L3C-T3 | base | `campaigns-publication.test.ts` | TM5.1, CA5 (aucune autre écriture de `published`) ; instantané = vue créateur, version, empreinte ; TM5.6 ; responsable exigé ; CA48 ; marque non publiée, compte inactif ; CA56, CA57 (le second avis est facultatif et ne bloque jamais, D84) ; CA59 ; jeton périmé ; `campaign.published` et événement de leads dans la transaction | 25 | 03 |
 | L3C-T4 | base | `campaigns-lifecycle.test.ts` | RG8, CA8 ; RG9, CA9 (irréversible) ; pause et clôture d'agent ; clôture système à fin + N j, pas avant, acteur système ; RG1, CA60, CA61 (ancienne et nouvelle valeur, motif) ; correction refusée hors des états de `modele.md` | 20 | 04 |
 | L3C-T5 | base | `t8-privacy-execution.test.ts` ; `leads-campaign-reads.test.ts` | instantanés et entrées dans l'export et l'effacement ; décisions d'agent au journal d'activité sans agent nommé (L3BS-5) ; lectures `leads.*` sans texte, tranche, budget ni note | +6 ; 6 | 05 |
 | L3C-T6 | intégration | `campaign-leads.test.ts`, `campaign-decision-email.test.ts`, test de `periodic.ts` | RG104 (codes, dates, compteurs), RG105, CA70 sur la charge brute envoyée, CA71 (`skipped`, hors compteur d'échecs) ; un e-mail par décision, FR et EN, sans lien ni montant ; tâche réclamée une fois par période | 15 | 06 |
 | L3C-T7 | intégration | `campaign-review-route.test.ts`, `t14-campaign-review-route.test.ts` | file, décisions, fiche (lecture journalisée), correction, création ; membre refusé ; T14.1 à T14.4 | 15 ; 8 | 07 |
 | L3C-T8 | intégration | `campaigns-route.test.ts`, `t14-campaigns-route.test.ts` | pause, reprise, clôture ; état interdit 409 ; autre marque = inconnu | +6 ; +3 | 10 |
-| L3C-E1 | e2e | `campaign-review.spec.ts` | prise, « déjà prise en charge par … », publication, deux temps en secteur sensible, refus avec motif ; axe FR et EN 1 440 | 4 | 08 |
+| L3C-E1 | e2e | `campaign-review.spec.ts` | prise, « déjà prise en charge par … », publication, deux temps en secteur sensible, refus avec motif ; axe FR 1 440 (backoffice en français seul, D36) | 4 | 08 |
 | L3C-E2 | e2e | `campaign-record.spec.ts` | correction motivée, brouillon créé pour une marque | 2 | 09 |
 | L3C-E3 | e2e | `brand-campaign-states.spec.ts` | six états écrits (CA74), motif de refus (CA59), pause, reprise, clôture confirmée ; axe FR 375, EN 1 440 | 3 | 10 |
 
@@ -23,24 +23,25 @@ specs neuves (`brand-campaign.spec.ts` reste à 24,5 s, L3BT-5) ; mesure dans `r
 L3F (plan l. 58-60). **Base** : éclat le plus long + contrôle ≤ 8 min.
 
 ## Critère de fin
-- [ ] Sur `staging`, une campagne soumise est prise en charge, publiée (instantané v1, responsable
+- [ ] *(non coché : la recette est validée par le fondateur, ligne F, mais les états, l'instantané v1 et les rangs `campaign.*` du registre lus sur `staging` ne sont consignés nulle part ; lecture seule à faire, D70)* Sur `staging`, une campagne soumise est prise en charge, publiée (instantané v1, responsable
       nommé), mise en pause, reprise, clôturée ; une campagne « alcool » est publiée par une seule
       personne, déclaration exigée, second avis respecté s'il est demandé (D84) — preuve : ligne F
       de `run.md` (états, rangs `campaign.*` du registre).
-- [ ] Clôture automatique à la fin de période + 30 j par le seul worker — preuve : L3C-T4, L3C-T6.
-- [ ] Brevo et Apollo sans texte, tranche, budget ni note (CA70) ; sans consentement ignoré (CA71)
+- [x] Clôture automatique à la fin de période + 30 j par le seul worker — preuve : L3C-T4, L3C-T6, verts au run CI 44157039696 (`campaigns-lifecycle.test.ts`, `periodic-scheduler.test.ts`).
+- [ ] *(non coché pour la part `staging` : aucune ligne `leads.outbox_events` ni lecture de `ops` consignée ; la part test, L3C-T6, est verte au run CI 44157039696)* Brevo et Apollo sans texte, tranche, budget ni note (CA70) ; sans consentement ignoré (CA71)
       — preuve : L3C-T6 ; `staging` : ligne `leads.outbox_events` de la recette, aucun texte en `ops`.
-- [ ] `0307` à `0313` sur `staging` — preuve : run CI, « Migrate staging » vert.
-- [ ] TM5.1, TM5.6 (base), T2, T14, T16 verts — preuve : L3C-T2 à T8, suite base (ligne C).
-- [ ] L3BT-9, L3BS-2, L3BS-5 soldés — preuve : SHA des lignes 01, 02, 05 ; `21` §8.
-- [ ] e2e ajoutés ≤ 18 s, éclats CI < 7 min 30 — preuve : `run.md` § Mesures de clôture.
-- [ ] `pnpm check` puis `pnpm test:e2e` verts — preuve : ligne C.
-- [ ] Revue soldée et attestée (`security-reviewed:`) — preuve : commit d'attestation, contrôle I-4 vert.
+- [x] `0307` à `0313` sur `staging` — preuve : run CI 44157039696, « Migrate staging » vert (29 s).
+- [x] TM5.1, TM5.6 (base), T2, T14, T16 verts — preuve : L3C-T2 à T8, suite base verte en CI (run 44157039696, deux éclats et contrôle). Local : un cas rouge en suite complète, vert seul (`run.md` § Mesures de clôture).
+- [x] L3BT-9, L3BS-2, L3BS-5 soldés — preuve : `fe5186a` (01), `19576dc` (02), `fa9fad5` (05) ; `21` §8.
+- [ ] *(non coché : éclats CI tenus, 4 min 08 s au plus ; plafonds e2e non tenus en local sur ce poste, décision du fondateur, `21` §8 L3C-E2E)* e2e ajoutés ≤ 18 s, éclats CI < 7 min 30 — preuve : `run.md` § Mesures de clôture.
+- [x] `pnpm check` puis `pnpm test:e2e` verts — preuve : CI, run 44157039696 (contrôles statiques, tests unitaires, build, base, parcours navigateur). *Local, 2026-11-17 : `pnpm check` rouge sur un cas (`campaign-review-route.test.ts:275`, vert seul), `pnpm test:e2e` non démarré (build refusé par l'avis de sécurité de Next.js).*
+- [ ] *(non coché : attestation en attente de la décision du fondateur)* Revue soldée et attestée (`security-reviewed:`) — preuve : commit d'attestation, contrôle I-4 vert.
 
 ## Écarts, décisions ouvertes, risques
 - **EC-L3C-1** : `04` §11 l. 6240-6245 (`0307` publication, `0308` à `0310` recherche, `0311`
-  réglages) : L3C prend `0307` à `0310` et les réglages des campagnes (RG6, RG9, RG15) ; la recherche
-  est décalée à `0311` et suivants ; amendé à la clôture.
+  réglages) : L3C prend `0307` à `0313` (`0311` à `0313` par les fix X1, X2, X4) et les réglages des
+  campagnes (RG6, RG9, RG15) ; la recherche est décalée à `0314` et suivants ; amendé à la clôture
+  (`04` §11, fiche, `modele.md` §9, `21`, `16`).
 - **EC-L3C-2** : plan l. 33 « clôture à date limite par le worker » : RG9 fait foi (fin de période
   + 30 j, paramètre) ; la date limite ne ferme que les candidatures (CA49, Lot 4), sans écriture.
 - **EC-L3C-3** : plan l. 33 « `campaign_price_bands` » : table non créée tant que D78 tient
@@ -52,6 +53,13 @@ L3F (plan l. 58-60). **Base** : éclat le plus long + contrôle ≤ 8 min.
   publiée sans responsable suit le tableau de bord (Lot 6bis).
 - **EC-L3C-6** : RG11 : la publication refuse une marque non publiée ou un compte non `active`
   (`17b` l. 1290) ; dépublication à la suspension avec la porte du Lot 5 (L3AS-4).
+- **EC-L3C-08-4** *(décrit seulement au compte rendu de la ligne 08)* : le sélecteur de responsable
+  n'apparaît qu'aux phases qui publient ; par défaut l'appelant s'il figure dans `responsibles`, sinon
+  l'agent choisit.
+- **EC-L3C-08-6** *(idem)* : la réponse d'ouverture ne porte pas l'état de la marque ; le bandeau
+  « marque suspendue » n'apparaît qu'après le 409 `brand_not_publishable` (voir L3CU-12).
+- **EC-L3C-06-3** : le texte `minor_audience` est rédigé par l'agent ; à relire par `product-owner`
+  (reliquat `21` §8, L3C-TXT).
 - **Questions au fondateur (validation de la fiche)** : **Q1** RG7 (modifier une campagne publiée) au
   Lot 4 avec `09` Q12, campagne publiée ou en pause figée pour la marque et pour la correction
   d'agent au L3C ? *Recommandé : oui.* **Q2** Création pour une marque : brouillon ouvert par l'agent

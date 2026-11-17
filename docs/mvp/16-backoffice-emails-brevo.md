@@ -800,7 +800,7 @@ files (`15` RG26), qui a déjà évité onze files orphelines.
 | `badge.expired` | Badge périmé | J+0 (90 jours) | Le créateur | P2 | badge + étape (J+0) | `08` RG70 |
 | `badge.withdrawn` | Badge retiré, avec le motif | Retrait | Le créateur | P1 | identifiant de décision | `08` |
 | `badge.dispute_outcome` | Issue d'une contestation | Décision de réexamen | Le créateur | P1 | identifiant de contestation | `08` RG77 |
-| `campaign.decision` | Campagne validée ou refusée, avec le motif | Décision de la file `campaigns` | La marque | P1 | identifiant de décision | `09` |
+| `campaign.decision` | Campagne validée, refusée, mise en pause, reprise, clôturée, corrigée ou créée pour la marque (huit variantes : `published`, `rejected`, `paused_by_influx`, `resumed_by_influx`, `closed_by_influx`, `closed_automatically`, `corrected`, `created_for_brand`), avec le motif de refus ; ni titre, montant ni lien. *L3C : la variante vit dans la charge ; le journal `leads.transactional_sends` garde le code du catalogue `campaign.decision` (`0311`, arbitrage A2)* | Décision de la file `campaigns` ou intervention d'un agent | La marque | P1 | identifiant de décision ou d'intervention | `09` |
 | `intro.acknowledgement` | Accusé d'une demande de contact ou d'une candidature | Dépôt | L'initiateur | P2 | mise en relation + destinataire | `13` RG111 |
 | `intro.invitation` | Invitation à accepter une mise en relation | Validation, ou proposition INFLUX | Chaque partie | P1 | mise en relation + destinataire + `invitation` | `13` RG111, `04` |
 | `intro.reminder` | Relance d'acceptation | **J+3**, puis **J+6** | La partie silencieuse | P2 | mise en relation + destinataire + **étape** (3 ou 6) | `13`, AL6 |

@@ -30,7 +30,7 @@
 > **`campaigns`** — type de campagne, quatre textes distincts et messages clés, dotation, droits
 > d'usage remontés au niveau de la campagne avec durée et territoires, **quatre dates nommées**
 > et ordonnées, nature de la rémunération, nombre de créateurs, tranches de budget dérivées,
-> éléments demandés, ciblage d'audience détaillé, revue renforcée à deux validateurs, six états
+> éléments demandés, ciblage d'audience détaillé, revue renforcée (une personne publie, second avis facultatif, D84), six états
 > (`09`).
 > **`search`** — **table de blocage entre parties** (`matching.party_blocks`, le manque le plus
 > important de la liste), réglages et facettes en table, tri et version des facettes journalisés,
@@ -599,7 +599,7 @@ migration `0303` : les ajouter n'exige aucun changement de schéma.
 | Code | `domain` | `subject_type` | `severity` | `export_class` | Fait relaté |
 |---|---|---|---|---|---|
 | `campaign.submitted` | `campaigns` | `campaign` | `info` | `exported` | La marque soumet sa campagne à validation |
-| **`campaign.published`** | `campaigns` | `campaign` | `sensitive` | `exported` | Décision humaine de publication (`09` RG5), avec le ou **les deux** validateurs |
+| **`campaign.published`** | `campaigns` | `campaign` | `sensitive` | `exported` | Décision humaine de publication (`09` RG5) par **une seule personne** (D84), `review_mode` dans la charge (`single`, ou avec second avis facultatif) |
 | **`campaign.updated`** | `campaigns` | `campaign` | `info` | `exported` | Modification d'une campagne publiée, avec le régime appliqué (re-validation ou effet immédiat, `09` RG7) |
 | `campaign.rejected` | `campaigns` | `campaign` | `sensitive` | `exported` | Refus avec motif typé |
 | `campaign.paused` · `campaign.closed` | `campaigns` | `campaign` | `info` | `exported` | Mise en pause, clôture (y compris automatique) |
@@ -1978,7 +1978,9 @@ comment on table campaigns.campaign_requested_items is
 **`active_applications_count`** (`integer not null default 0`) est maintenue par déclencheur sur
 `matching.introductions` : c'est le compteur que `max_applications` contraint (§5.6, `11` écart 2).
 
-#### La revue renforcée à deux validateurs
+#### La revue renforcée — une personne publie, second avis facultatif (D84)
+
+> *Amendé à la clôture de L3C (`jalons/l3c/modele.md`, § Amendement D84) : aucune double validation obligatoire. Le second validateur, la contrainte `campaigns_second_reviewer_is_distinct` et les colonnes `second_*` ci-dessous ne sont pas réalisés ; le premier examen vit sur l'entrée de file (`campaigns.campaign_review_entries`), le demandeur d'un second avis facultatif est nommé, la déclaration RG85 reste exigée. Le texte qui suit garde l'historique de la conception.*
 
 `reviewed_by_agent_id` était **unique** : il n'y avait aucune place pour le second décideur qu'exige
 `09` RG85 sur un secteur sensible, ni pour la déclaration d'autorisations.
@@ -2007,7 +2009,7 @@ alter table campaigns.campaigns
 ```
 
 **Le reste ne peut pas être déclaratif, et c'est assumé** : « une campagne de secteur sensible exige
-un second validateur et une déclaration » suppose de lire `reference.sectors.is_sensitive`, ce qu'un
+une déclaration » (D84 : plus de second validateur obligatoire) suppose de lire `reference.sectors.is_sensitive`, ce qu'un
 `CHECK` ne sait pas faire — et `09` RG84 interdit de recopier ce caractère sur la campagne. Un
 déclencheur `BEFORE UPDATE` `campaigns.assert_enhanced_review()` fait la jointure et refuse le
 passage à `published` si le second validateur ou la déclaration manque. C'est le **seul** endroit du
@@ -2027,8 +2029,8 @@ version est en examen.*
 | `payload` | `jsonb` | `not null check (pg_column_size(payload) <= 32000)` — **la projection publiée**, codes et montants uniquement |
 | `content_hash` | `bytea` | `not null` — empreinte de ce qui a été montré aux créateurs |
 | `published_at` | `timestamptz` | `not null` |
-| `published_by_agent_id` | `uuid` | `not null` FK interne |
-| `second_published_by_agent_id` | `uuid` | FK interne — revue renforcée |
+| `published_by_account_id` | `uuid` | `not null` FK interne (réalisé en L3C, `0308`) |
+| `first_reviewed_by_account_id` | `uuid` | FK interne — demandeur d'un second avis facultatif (D84, remplace `second_published_by_agent_id`) |
 | `created_at` | `timestamptz` | `not null` |
 
 Et sur la campagne : `current_snapshot_id uuid references campaigns.campaign_published_snapshots(id)`.
@@ -6237,11 +6239,16 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0304 | `reference_price_bands_grid` (L3B) | Grille de `reference.price_bands` : cinq devises × dix tranches contiguës (`archives/jalons/l3b/tranches.md`), nets nuls | Oui |
 | 0305 | `campaigns_submission` (L3B) | `influx_campaign_definer`, `campaigns.submit_own_campaign()`, règle de parité des obligatoires, déclaration RG85, vue créateur `campaign_creator_view()`, `campaign.submitted` | Oui |
 | 0306 | `privacy_campaigns` (L3B) | Campagnes dans l'export « mes données » et l'effacement (`privacy.*` recréées depuis `0302`) | Non |
-| 0307 | `campaigns_publication` | `campaign_published_snapshots`, fonction de publication (contrôle des dates, revue renforcée à deux validateurs) ; **`campaign_price_bands` n'est pas créée tant que D78 tient** (`archives/jalons/l3b/modele.md` §1) | Oui |
-| 0308 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
-| 0309 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
-| 0310 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
-| 0311 | `backoffice_operational_settings` | Clés des plafonds et délais d'exploitation et leurs valeurs de départ (`11` P1 à P4, `09` RG15, RG88, `08` RG100), **ajoutées à la table de `0206`**, qui n'est plus créée ici (EC-L2C-2) | Oui |
+| 0307 | `campaigns_review_queue` (L3C) | File 7 `campaign_review_entries`, délais et réglages (`campaign_enhanced_review_minutes`, `campaign_live_cap`, `campaign_auto_close_days`), `influx_campaign_review_definer`, verrou, plafond RG15, alerte RG95, garde de gel en liste fermée de rôles (L3BS-2) ; ajoute ces clés à `operational_settings` (`0206`, EC-L3C-1) : le `0311` initial de ce tableau (plafonds d'exploitation) est absorbé pour les clés des campagnes, les autres clés restent à ajouter à leur lot | Oui |
+| 0308 | `campaigns_publication` (L3C) | `campaign_published_snapshots` (= vue créateur, version, empreinte), portes de publication et de refus (CA48, TM5.1, TM5.6), `campaign.published` ; **`campaign_price_bands` n'est pas créée tant que D78 tient** (`archives/jalons/l3b/modele.md` §1) | Oui |
+| 0309 | `campaigns_lifecycle` (L3C) | Pause, reprise, clôture (marque, agent, système), `campaigns.agent_interventions`, création et correction par un agent (RG94) | Oui |
+| 0310 | `privacy_and_leads_campaigns` (L3C) | Campagnes dans l'export et l'effacement, journal d'activité des décisions d'agent (L3BS-5), lectures `leads.*` | Non |
+| 0311 | `leads_campaign_decision_journal` (L3C) | `campaign.decision` journalisé sous son code de catalogue (arbitrage A2) | Oui |
+| 0312 | `campaign_review_entries_read_policy` (L3C) | Politique de lecture de la file 7 : une entrée ouverte sans avis est visible (arbitrage A3) | Oui |
+| 0313 | `campaign_one_person_review` (L3C) | D84 : un secteur sensible est publié par une seule personne, second avis facultatif, `review_mode` au registre | Oui |
+| 0314 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
+| 0315 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
+| 0316 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |
@@ -6372,7 +6379,7 @@ comporte pas de manque ; chacun peut être rouvert par son arbitre.
 | 7 | **`search.impression_reasons`** | Raisons **conservées** avec leurs paramètres en codes et tranches, jamais en valeurs exactes. Double finalité déjà signalée au §12.2 point 5 : cette table l'étend | `expert-conformite-rgpd` — **veto** |
 | 8 | **`reach_band` réutilise `reference.audience_bands`** | Réutilisé plutôt que créer un référentiel de portée : un vocabulaire unique pour deux comptages de personnes. **À confirmer** — une portée moyenne et un nombre d'abonnés n'ont pas les mêmes ordres de grandeur, et des bornes mal calibrées rendraient la facette inutile | `expert-matching` + `product-owner` |
 | 9 | **Bornes de `reference.engagement_bands`** | Un référentiel **global**, en points de base. Un taux d'engagement « bon » n'a pourtant pas la même valeur selon le réseau : la calibration par réseau est possible sans changement de schéma (colonne `network_code` à ajouter) | `expert-matching` |
-| 10 | **Second validateur de la revue renforcée** | `09` RG85 autorise « un admin, ou un agent approuvé par un second rôle interne distinct » ; `03` §3.2 impose la double validation administrateur. La base exige seulement **deux personnes distinctes**, la règle plus stricte est appliquée par la fonction de publication | `expert-cybersecurite` — **veto** |
+| 10 | **Second validateur de la revue renforcée** | *Amendé par D84 (2026-11-16) : une personne publie, second avis facultatif, déclaration de la marque exigée ; aucune double validation obligatoire. La base n'exige plus deux personnes (`0313`). **Levée du veto : à écrire par le fondateur dans D84 (6) avant `production`** ; l'expert sécurité y est favorable sous deux conditions : contrôle a posteriori en place (requête de runbook sur les `campaign.published` de secteur sensible en `review_mode='single'` et les `campaign.corrected` de `product_sector` sur une campagne `pending_review`, revue hebdomadaire par un administrateur) et levée écrite.* Historique : `09` RG85 autorisait « un admin, ou un agent approuvé par un second rôle interne distinct » ; `03` §3.2 imposait la double validation administrateur | `expert-cybersecurite` — **veto** |
 | 11 | **Emplacement des paramètres d'exploitation** | `backoffice.operational_settings` (§5.10), clé/valeur à liste fermée, sur le modèle éprouvé de `leads.sync_settings`. Les SLA restent dans `backoffice.sla_policies`, les réglages de recherche dans `search.search_settings` | `architecte` + `chef-de-projet` |
 
 **Écarts signalés par les spécifications et *non* traités dans cette version**, parce qu'ils

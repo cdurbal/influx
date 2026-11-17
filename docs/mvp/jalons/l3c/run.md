@@ -23,3 +23,24 @@
 | X6 | fix-6.md | fix | opus | high | dev-react-node | fait | validé fondateur 17/11 ; afterAll hors cas (55-270 ms), base inchangée ×3 ; médianes E1 7,55 E2 5,05 E3 6,14 L3B 26,6 s > plafonds, corps inchangés |
 | X7 | fix-7.md | fix | sonnet | high | dev-react-node | fait | 9 describe préfixés L3C-T6 (5 fichiers) et 4 L3C-T7, titres seuls ; cas 15/17/10 inchangés, planchers intacts ; T9.6-A en timeout sous charge, vert seul |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | reprend L3CT-3, L3CS-2 et l'attestation I-4 (à montrer au fondateur avant commit) |
+
+## Mesures de clôture (2026-11-17)
+**CI, dernier run 44157039696 (success, « Migrate staging » compris, production sautée)** : contrôles
+statiques, tests unitaires, build 2 min 51 ; **éclats base** 3 min 39 et **4 min 15** (le plus long),
+contrôle fusionné 30 s, soit 4 min 45 pour 8 min ; **éclats e2e** 3 min 41, **4 min 08** (le plus long),
+3 min 24, fusion 18 s, pour 7 min 30 ; « Migrate staging » 29 s. Éclats CI tenus.
+
+**Local (ce poste, ~20 % plus lent qu'aux lignes 08 à 10)** :
+- `pnpm check` : formats, types, lint et tests unitaires (planchers tenus) verts ; build et artefacts non atteints (la chaîne s'arrête au premier rouge) ; suite base
+  3 474 verts sur 3 475 en 798 s, **un rouge** : `db-tests/campaign-review-route.test.ts:275` (L3C-T7.3,
+  filtre d'alerte : une entrée propre figure dans la liste filtrée), **vert seul** (21 cas, 15 s) ;
+  contrôle des planchers de la base non atteint (échec avant). Lié à la base grossie (reliquat L3C-DB).
+  Total 16 min 13 s.
+- `pnpm test:e2e` : **non exécuté**, le build de `apps/web` est refusé par Next.js (avis de sécurité,
+  `SecurityFatalError`) ; aucune mesure e2e locale neuve, rien purgé à la main.
+- Cas e2e ajoutés : 9 (E1 4, E2 2, E3 3). Dernières médianes locales (X6) : E1 7,55 s, E2 5,05 s,
+  E3 6,14 s, `brand-campaign.spec.ts` 26,6 s ; E1+E2+E3 = 22 s avec ou sans X6, contre 17,1 s à la fin des
+  lignes 08 à 10.
+- **Plafonds e2e de la fiche** (E1 7,6 s, E2 5 s, E3 5 s, `brand-campaign.spec.ts` 25 s, L3C 18 s) :
+  **non tenus en local sur ce poste, éclats CI tenus, décision du fondateur : remesurer en CI par spec
+  ou relever les plafonds** (`21` §8, L3C-E2E).

@@ -295,7 +295,7 @@ les motifs et les messages ; ce document-ci ne fait autorité que sur les colonn
 | 4 | `verification` | **Demandes de vérification et de badge** — deux vues : créateurs, marques | Demande de badge, redépôt après péremption | `08` RG61–RG68 | **1 j ouvré** | 4 h ouvrées | 30 min | `agent`, `admin` | Non |
 | 5 | `verification_disputes` | **Contestations de badge** | Contestation d'un refus ou d'un retrait, sous 30 j | `08` RG77 | **5 j ouvrés** *(proposition, Q2)* | 1 j ouvré | 30 min | `agent` **différent du décideur**, sinon `admin` | Non |
 | 6 | `identity_change_review` | **Identifiants modifiés à contrôler** | Déclaration d'un changement de pseudo après vérification | `08` RG78 | **1 j ouvré** | 4 h ouvrées | 30 min | `agent`, `admin` | Non |
-| 7 | `campaigns` | **Campagnes à valider** | Soumission d'une campagne | `09` RG87–RG97 | **1 j ouvré**, **2 j** en revue renforcée | 4 h ouvrées | 30 min | `agent`, `admin` ; **revue renforcée : deux personnes** (`09` RG85) | Non |
+| 7 | `campaigns` | **Campagnes à valider** | Soumission d'une campagne | `09` RG87–RG97 | **1 j ouvré**, **2 j** en revue renforcée | 4 h ouvrées | 30 min | `agent`, `admin` ; **revue renforcée : une personne publie, second avis facultatif** (`09` RG85, D84) | Non |
 | 8 | `introductions` | **Demandes de contact et candidatures** — file unique, filtre par origine | Déclencheurs 1 et 2 (`10`, `11`). La **proposition INFLUX ne passe pas par la file** | `13` §B à §D, `11` §I | **1 j ouvré** (**D39**) | **4 h ouvrées** (`13` RG17) | 30 min | `agent`, `admin` | **Interdite** (`13` RG50) |
 | 9 | `team_selection` | **Demandes « sélection par l'équipe INFLUX »** | Bouton de la recherche anonymisée | `10` RG61, RG84 | **1 j ouvré** *(proposition, Q3)* | 4 h ouvrées | 30 min | `agent`, `admin` | Non |
 | 10 | `reports` | **Signalements** | Signalement émis depuis un fil | `12` RG79–RG85 | **1 j ouvré** | 4 h ouvrées | 30 min | `agent`, `admin` | Non |
@@ -308,6 +308,8 @@ les motifs et les messages ; ce document-ci ne fait autorité que sur les colonn
 *Amendé à la clôture de L2F (`0232`, `0233`) : files 5 et 6 en service. File 5 : décision sous 5 jours ouvrés (2 400 min, provisoire), prise en charge 1 jour ouvré (480 min), escalade 960 min ; le décideur d'origine ouvre en lecture seule tant qu'une autre personne existe, sinon 24 h de réflexion (`08` RG77). File 6 : décision sous 1 jour ouvré (480 min), prise en charge 240 min, escalade 960 min ; l'entrée ne porte l'ancien et le nouvel identifiant qu'au seul détenteur du verrou. Les deux : prise atomique de 30 min, jeton de version, levée forcée par un administrateur. La 2V du retrait de badge (`verification.revoke_badge`) passe par la file 15.*
 
 *Amendé à la clôture de L2G (`0242` à `0245`) : files 2 et 3 en service. Verrou de 30 min, décision sous 1 jour ouvré, escalade à 3 jours ouvrés, compte propre ou détenu refusé (`queue.conflict_of_interest`) ; file 2 : une entrée par soumission ou révision ; file 3 : **une entrée = un visuel**, filtre « Profil », lecture d'un visuel journalisée (`queue.portfolio_read`), **aucune action de masse au MVP serré** (colonne « Action de masse » : « Non » en service ; la modération par lot revient au Lot 6bis, `00` §9).*
+
+*Amendé à la clôture de L3C (`0307` à `0313`) : file 7 en service, comme les files 2 et 3. Verrou de 30 min, décision sous 1 jour ouvré (2 jours en revue renforcée, réglage `campaign_enhanced_review_minutes`), compte propre ou détenu refusé (`queue.conflict_of_interest`), jeton de version, levée forcée par un administrateur ; une entrée ouverte au plus par campagne. Secteur sensible : une personne publie, déclaration de la marque exigée, second avis facultatif qui ne bloque jamais (D84) ; aucune action de masse.*
 
 **Escalade de la file 1** (L2C, `0206`) : `escalate_after_minutes = 960`, compté **après** l'échéance de
 décision ; 480 + 960 = **3 jours ouvrés d'ancienneté** (`06` RG7). Échéance et escalade sont calculées une
@@ -355,7 +357,7 @@ faut le dire pour que personne ne « corrige » l'écart par mégarde :
 | File | Écart | Raison |
 |---|---|---|
 | `introductions` | **Escalade administrateur à J+1** après l'échéance (`13` RG99), au lieu de 3 jours ouvrés ailleurs (`06` RG7, `08` RG66, `09` RG6) | C'est la seule file dont le délai détruit directement la conversion : deux parties qui attendent se cherchent ailleurs (**R2**) |
-| `campaigns` | **Deux délais** : 1 j ouvré, **2 j** en revue renforcée | La revue renforcée exige deux personnes (`09` RG85) : un délai identique serait intenable |
+| `campaigns` | **Deux délais** : 1 j ouvré, **2 j** en revue renforcée | La revue renforcée appelle une attention plus longue et un second avis facultatif (`09` RG85, D84) : un délai identique serait intenable |
 | `data_subject_requests` | Délai **légal** de 30 jours calendaires, pas un SLA d'exploitation | Un délai légal ne se règle pas en table pour se donner de l'air. L'objectif interne de 10 jours ouvrés, lui, est paramétrable |
 
 **RG38** — **Toutes les valeurs de délai, d'objectif, d'expiration et de plafond de ce document sont
