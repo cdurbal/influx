@@ -23,6 +23,7 @@
 | X6 | fix-6.md | fix | opus | high | dev-react-node | fait | validé fondateur 17/11 ; afterAll hors cas (55-270 ms), base inchangée ×3 ; médianes E1 7,55 E2 5,05 E3 6,14 L3B 26,6 s > plafonds, corps inchangés |
 | X7 | fix-7.md | fix | sonnet | high | dev-react-node | fait | 9 describe préfixés L3C-T6 (5 fichiers) et 4 L3C-T7, titres seuls ; cas 15/17/10 inchangés, planchers intacts ; T9.6-A en timeout sous charge, vert seul |
 | C | cloture.md | cloture | sonnet | medium | testeur | fait | « clôture avec réserves » (fondateur) ; critères 1, 3 (staging), 7 non prouvés ; T7.3 et next build en reliquat ; attestation 09d058c |
+| X8 | fix-8.md | fix | opus | high | testeur | à faire | ouverte 18/11 par le fondateur après clôture : T7.3 rouge en suite base complète locale, vert seul ; cause d'abord (reliquat L3C-RESERVES) |
 
 ## Mesures de clôture (2026-11-17)
 **CI, dernier run 44157039696 (success, « Migrate staging » compris, production sautée)** : contrôles
