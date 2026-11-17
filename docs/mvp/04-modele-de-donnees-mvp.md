@@ -1980,7 +1980,7 @@ comment on table campaigns.campaign_requested_items is
 
 #### La revue renforcée — une personne publie, second avis facultatif (D84)
 
-> *Amendé à la clôture de L3C (`jalons/l3c/modele.md`, § Amendement D84) : aucune double validation obligatoire. Le second validateur, la contrainte `campaigns_second_reviewer_is_distinct` et les colonnes `second_*` ci-dessous ne sont pas réalisés ; le premier examen vit sur l'entrée de file (`campaigns.campaign_review_entries`), le demandeur d'un second avis facultatif est nommé, la déclaration RG85 reste exigée. Le texte qui suit garde l'historique de la conception.*
+> *Amendé à la clôture de L3C (`archives/jalons/l3c/modele.md`, § Amendement D84) : aucune double validation obligatoire. Le second validateur, la contrainte `campaigns_second_reviewer_is_distinct` et les colonnes `second_*` ci-dessous ne sont pas réalisés ; le premier examen vit sur l'entrée de file (`campaigns.campaign_review_entries`), le demandeur d'un second avis facultatif est nommé, la déclaration RG85 reste exigée. Le texte qui suit garde l'historique de la conception.*
 
 `reviewed_by_agent_id` était **unique** : il n'y avait aucune place pour le second décideur qu'exige
 `09` RG85 sur un secteur sensible, ni pour la déclaration d'autorisations.
