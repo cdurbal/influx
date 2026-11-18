@@ -59,7 +59,7 @@
     }
   },
   "usageRights": {
-    "warning": "Ce que devient votre contenu : la marque demande l'achat média, sans limite de durée et dans le monde entier. Elle pourra le diffuser comme sa propre publicité, partout et sans fin. Assurez-vous de l'avoir bien compris."
+    "warning": "Ce que devient votre contenu : cette campagne demande un achat média illimité et mondial. Votre contenu pourra être diffusé sans limite de durée ni de pays. Vérifiez ces conditions avant de vous engager."
   },
   "disclosure": {
     "notice": "Votre publication devra indiquer son caractère commercial, selon les règles de votre pays et de celui de l'audience. INFLUX vous rappelle cette obligation sans en garantir la conformité locale."
@@ -501,7 +501,7 @@
     "none": "Aucun : le contenu reste sur le compte du créateur",
     "organic_repost": "Repost organique : vous republiez le contenu sur vos comptes, sans budget publicitaire",
     "paid_whitelisting": "Whitelisting publicitaire : vous diffusez de la publicité payante depuis le compte du créateur",
-    "media_buy": "Achat média : vous diffusez le contenu comme votre propre publicité"
+    "media_buy": "Achat média : le contenu est diffusé comme publicité de la marque"
   },
   "usage_duration": {
     "1m": "1 mois",

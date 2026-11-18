@@ -454,6 +454,9 @@ test("the record of a campaign with the heaviest usage rights says both notices 
   await expect(
     record.locator('[data-campaign-notice="usageRights"]'),
   ).toHaveText(en.usageRights.warning);
+  await expect(record.locator('[data-field="usageRights"]')).toContainText(
+    en.usage_right.media_buy,
+  );
   await expect(
     record.locator('[data-campaign-notice="disclosure"]'),
   ).toHaveText(en.disclosure.notice);

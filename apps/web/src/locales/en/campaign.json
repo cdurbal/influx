@@ -59,7 +59,7 @@
     }
   },
   "usageRights": {
-    "warning": "What becomes of your content: the brand asks for media buying, with no time limit and worldwide. It may run the content as its own advertising, everywhere and without end. Make sure you have fully understood this."
+    "warning": "What becomes of your content: this campaign requires unlimited worldwide paid media rights. Your content may be used with no time or country limit. Check these conditions before you commit."
   },
   "disclosure": {
     "notice": "Your post must state that it is commercial, under the rules of your country and of your audience's. INFLUX reminds you of this obligation without guaranteeing local compliance."
@@ -501,7 +501,7 @@
     "none": "None: the content stays on the creator's account",
     "organic_repost": "Organic repost: you republish the content on your own accounts, with no advertising budget",
     "paid_whitelisting": "Paid whitelisting: you run paid advertising from the creator's account",
-    "media_buy": "Media buy: you run the content as your own advertising"
+    "media_buy": "Media buy: the content runs as the brand's own advertising"
   },
   "usage_duration": {
     "1m": "1 month",
