@@ -1,7 +1,7 @@
 # Exécution du jalon L3D
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | sonnet | high | testeur | à faire | dette L3C-DB : instantanés de fixture réels, campagnes publiées des runs antérieurs closes ; aucun attendu changé |
+| 01 | 01.md | commit | sonnet | high | testeur | fait | fixtures: real creator view + SHA-256 in snapshots; published/paused swept to closed (102 -> 0); no expectation changed |
 | A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
 | 02 | 02.md | commit | opus | xhigh | expert-database | à faire | I-4 ; D46 : ligne publique de marque lue par un créateur |
 | 03 | 03.md | commit | opus | high | dev-react-node | à faire | T1 rejoué côté créateur (D46) |

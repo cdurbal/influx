@@ -2,7 +2,10 @@
 // tests (0308, L3C-03). From 0308 a published or paused campaign carries its snapshot
 // (campaigns_published_needs_review): this writes, as the connection given (the migration role or the
 // local superuser, outside the freeze), a published entry of queue 7, a snapshot naming it and the
-// state, in ONE statement. The real publication is publish_campaign_review_entry() (L3C-T3).
+// state, in ONE statement. The snapshot holds the real creator view, campaign_creator_view(), and its
+// SHA-256 as publish_campaign_review_entry() writes them (0308), never an empty object: the creator's
+// feed (L3D) reads every published campaign through a strict contract. The real publication is
+// publish_campaign_review_entry() (L3C-T3).
 import { accountIdOf } from "@influx/test-kit/db";
 import type postgres from "postgres";
 
@@ -22,6 +25,9 @@ export async function publishAsInflux(
         from campaigns.campaigns c
        where c.id = ${campaignId}::uuid
       returning id, campaign_id),
+    shown as (
+      select e.id, e.campaign_id, campaigns.campaign_creator_view(e.campaign_id) as payload
+        from entry e),
     snapshot as (
       insert into campaigns.campaign_published_snapshots
         (campaign_id, version, payload, content_hash, published_at, published_by_account_id,
@@ -29,8 +35,9 @@ export async function publishAsInflux(
       select e.campaign_id,
              coalesce((select max(s.version) from campaigns.campaign_published_snapshots s
                         where s.campaign_id = e.campaign_id), 0) + 1,
-             '{}'::jsonb, sha256(convert_to('{}', 'UTF8')), now(), ${FIXTURE_PUBLISHER}::uuid, e.id
-        from entry e
+             e.payload, sha256(convert_to(e.payload::text, 'UTF8')), now(), ${FIXTURE_PUBLISHER}::uuid,
+             e.id
+        from shown e
       returning id, campaign_id)
     update campaigns.campaigns c
        set status = ${status}::campaigns.campaign_status,

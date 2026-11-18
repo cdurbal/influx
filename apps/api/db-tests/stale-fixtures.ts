@@ -4,6 +4,7 @@
 // rows: privacy.pending_work (oldest authorisation first, PENDING_WORK_LIMIT per tick) and
 // GET /v1/bo/internal-accounts (INTERNAL_ACCOUNT_LIST_CAP). An interrupted run leaves them too, its
 // afterAll never ran. Local stack only (disposable); the data set of T2 is kept.
+import { closeStalePublishedCampaigns } from "@influx/test-kit/db";
 import type postgres from "postgres";
 
 export async function sweepStaleFixtures(
@@ -42,5 +43,8 @@ export async function sweepStaleFixtures(
       update profiles.creator_review_entries
          set state = 'withdrawn', closed_at = pg_catalog.now()
        where state = 'open' and sla_due_at < pg_catalog.now() - interval '1 hour'`;
+    // Campaigns still published or paused from an earlier run: the creator's feed (L3D) reads every
+    // one of them. Closed, none deleted, no trigger disabled (@influx/test-kit/db).
+    await closeStalePublishedCampaigns(tx);
   });
 }

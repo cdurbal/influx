@@ -34,7 +34,8 @@ async function create(
 /**
  * A campaign of the signed-in brand in `state`. `decider` is an internal account (published, refused by it);
  * `refusal` is the reason of a `rejected` one. Published, paused and closed are written as a published entry and
- * its snapshot, in ONE statement (the state needs them, 0308); a `paused` one reads as INFLUX's pause (0309).
+ * its snapshot, in ONE statement (the state needs them, 0308), the snapshot holding the real creator view and its
+ * SHA-256 as the publication writes them; a `paused` one reads as INFLUX's pause (0309).
  */
 export async function seedCampaignInState(
   page: Page,
@@ -78,12 +79,16 @@ export async function seedCampaignInState(
         select c.id, c.advertiser_account_id, 'published', ${decider}::uuid, now(), now()
           from campaigns.campaigns c where c.id = ${id}::uuid
         returning id, campaign_id),
+      shown as (
+        select e.id, e.campaign_id, campaigns.campaign_creator_view(e.campaign_id) as payload
+          from entry e),
       snapshot as (
         insert into campaigns.campaign_published_snapshots
           (campaign_id, version, payload, content_hash, published_at, published_by_account_id,
            review_entry_id)
-        select e.campaign_id, 1, '{}'::jsonb, sha256(convert_to('{}', 'UTF8')), now(), ${decider}::uuid, e.id
-          from entry e
+        select e.campaign_id, 1, e.payload, sha256(convert_to(e.payload::text, 'UTF8')), now(),
+               ${decider}::uuid, e.id
+          from shown e
         returning id, campaign_id)
       update campaigns.campaigns c
          set status = ${state === "paused" ? "paused" : "published"}::campaigns.campaign_status,
