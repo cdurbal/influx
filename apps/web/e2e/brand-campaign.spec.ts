@@ -199,6 +199,7 @@ test("L3B-E1: my campaigns: the invitation to write waits for a published profil
   // Draft profile: the sentence that says so, the way to the profile, no button to create.
   await open(page, LIST_PATH.fr);
   await expect(title(page)).toHaveText(copy.list.title);
+  await expect(page).toHaveTitle(copy.meta.list);
   const main = page.locator("main");
   await expect(main.getByText(copy.publish.profileRequired)).toBeVisible();
   await expect(
@@ -236,6 +237,7 @@ test("L3B-E1: my campaigns: the invitation to write waits for a published profil
   // The first draft: its own address, the state written, the first step, nothing saved yet but the draft.
   await expect(page).toHaveURL(/\/fr\/campagnes\/[0-9a-f-]{36}$/);
   await expect(title(page)).toHaveText(copy.form.newTitle);
+  await expect(page).toHaveTitle(copy.meta.form);
   await expect(
     page.getByRole("heading", { level: 2, name: copy.form.steps["1"].title }),
   ).toBeVisible();

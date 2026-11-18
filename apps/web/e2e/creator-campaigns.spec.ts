@@ -120,6 +120,8 @@ test("a creator reads the feed in French at 375 px: the count before the cards, 
   await expect(
     page.getByRole("heading", { level: 1, name: fr.title }),
   ).toBeVisible();
+  // L3DU-4: the page title is shared by both roles, so it says "Campagnes", not "Mes campagnes".
+  await expect(page).toHaveTitle(frCampaign.meta.list);
 
   // The count of RG35 is in the page BEFORE the first card, and counts every card of the feed.
   const count = page.locator("[data-feed-count]");
@@ -376,6 +378,7 @@ test("a creator opens the record of a campaign from its card in French at 375 px
   await expect(
     page.getByRole("heading", { level: 1, name: titles.alpha }),
   ).toBeVisible();
+  await expect(page).toHaveTitle(fr.meta.form);
 
   // What the card carries, plus the brief and the brand as published, the role of its contact and nothing more.
   const record = page.locator("[data-campaign-record]");

@@ -1,7 +1,7 @@
 {
   "meta": {
-    "list": "My campaigns",
-    "form": "My campaign",
+    "list": "Campaigns",
+    "form": "Campaign",
     "preview": "What a creator sees"
   },
   "list": {
