@@ -2,9 +2,9 @@
 Grille `dev-react-node`. Skill : `design-system-influx`. Constat L3DU-1 (`l3d/ux-constats.md` l. 14-22).
 **Préalable :** la note de X1 porte l'accord du fondateur et de `product-owner` (hors catalogue
 `09`) ; sinon `ETAT: arret decision`.
-**Texte, mot pour mot, rien d'autre :** FR « Vous ne pouvez pas encore candidater depuis INFLUX : cette
-page sert à découvrir la campagne. » · EN « You cannot apply through INFLUX yet: this page lets you read
-the campaign. »
+**Texte, mot pour mot, rien d'autre :** FR « La candidature n'est pas encore disponible : cette page
+sert à découvrir la campagne. » · EN « Applying is not available yet: this page lets you read the
+campaign. » (version de `product-owner`, « depuis INFLUX » retiré : risque de contournement D45/D46)
 **Lire :** annexe EC-L3D-3 ; `17` l. 1605-1617 ; `09` l. 879 ; `CampaignRecordScreen.tsx` l. 114-170 ;
 `CampaignFeedScreen.tsx` l. 129-207 ; `e2e/creator-campaigns.spec.ts` l. 362-477.
 **Livrer :**

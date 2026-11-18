@@ -41,6 +41,14 @@ plus long + contrôle ≤ 8 min.
 - **EC-L3D-3** : sans candidature au Lot 3 (frontière du 2026-11-13) : ni bouton, ni
   `application.blocked.*`, ni `campaign.application.validationNotice` (« au-dessus du bouton »), ni
   état de candidature sur la carte ; CA1 réduit à la lecture du fil par un profil en brouillon.
+  - *Relecture `product-owner` de L3DU-1 (2026-11-18) : accord sous réserve, fiche seule.* « depuis INFLUX » et
+    « through INFLUX » sont retirés : ils opposent INFLUX à un autre canal et laissent entendre qu'on peut
+    candidater ailleurs, auprès de la marque nommée sur la fiche (D45, D46, `CLAUDE.md` §2). La phrase devient
+    impersonnelle : elle décrit l'état du produit, pas un refus lié au profil, au pays (L3DU-19) ou à la campagne.
+    Texte retenu : FR « La candidature n'est pas encore disponible : cette page sert à découvrir la campagne. » ·
+    EN « Applying is not available yet: this page lets you read the campaign. » « pas encore » est admis (pas de
+    date, pas de « bientôt ») parce que la notice disparaît au Lot 4, avant toute ouverture au public (Lot 6) ;
+    si cet ordre change, elle doit être relue. Pas de montant, de lien, de bouton ni de mention d'un commercial.
 - **EC-L3D-4** : mention « réservée aux vérifiés » non servie : option désactivée (`09` Q10),
   colonne non créée (`archives/jalons/l3b/modele.md` §2, -6).
 **Réponses du fondateur (2026-11-18)** : « oui aux 3 questions » : Q1 à Q3 retenues comme recommandé.
