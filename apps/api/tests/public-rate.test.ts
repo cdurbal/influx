@@ -61,6 +61,10 @@ const SESSION_ROUTES: readonly string[] = [
   "POST /v1/me/campaigns/:id/pause",
   "POST /v1/me/campaigns/:id/resume",
   "POST /v1/me/campaigns/:id/close",
+  // L3D 03: the creator's read of the open campaigns (its address bound: platform/member-rate.ts)
+  "GET /v1/open-campaigns",
+  "GET /v1/open-campaigns/:id",
+  "GET /v1/open-campaigns/:id/brand-logo",
   "GET /v1/me/creator-profile",
   "PATCH /v1/me/creator-profile",
   "GET /v1/me/creator-profile/networks",

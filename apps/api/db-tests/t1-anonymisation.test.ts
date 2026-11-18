@@ -42,6 +42,11 @@
 //         creator's sweep of T1.6 meets none of them; brand M reads them on its own routes, and its
 //         preview of what a creator sees (GET …/creator-view) carries the title, never the internal
 //         reference nor the total budget (positive control, CA41, CA68).
+//   L3D   (commit 03) brand P, its profile PUBLISHED with a contact person, and its campaign PUBLISHED
+//         (the snapshot of 0308), its internal reference, total budget and band filled: the creator's
+//         read of the open campaigns (0314) serves a creator the title and the brief of it, nothing
+//         else. The internal markers and the contact of brand P join every sweep and C-1; the creator's
+//         sweep of T1.6 meets the title (feed, record) and the brief (record) alone, never the band.
 // Deferred: the agent's identified view (the queue routes of L2G 11 serve layer I to an agent, by
 // design); T1.3 and the "after" of T1.6 (a revealed introduction) at Lot 4. The rights side of the
 // same rule (influx_advertiser reaches no `creator_%` object, non reversible) is T1-R, in
@@ -92,6 +97,8 @@ import {
   testDataSet,
 } from "./support.ts";
 import { requestsOf, type Method } from "./route-requests.ts";
+import { campaignCalendar } from "./campaign-dates-kit.ts";
+import { publishAsInflux } from "./campaign-publication-kit.ts";
 
 const PROFILE = "/v1/me/creator-profile";
 const NETWORKS = "/v1/me/creator-profile/networks";
@@ -99,6 +106,7 @@ const VERIFICATION = "/v1/me/verification";
 const BRAND_VERIFICATION = "/v1/me/brand-verification";
 const PORTFOLIO = "/v1/me/creator-profile/portfolio";
 const CAMPAIGNS = "/v1/me/campaigns";
+const OPEN_CAMPAIGNS = "/v1/open-campaigns";
 const HEALTH = "GET /health";
 const agentA = accountIdOf("agent", "a");
 const PORTFOLIO_BUCKET = "portfolio";
@@ -159,7 +167,21 @@ let l2g: {
  */
 let l3b: { campaignId: string; markers: Marker[] };
 
-/** Every marker of both parties, the verification's, L2F's, L2G's and L3B's included. */
+/**
+ * L3D (commit 03): brand P, published with a contact person, and its published campaign. `markers`
+ * are served to no creator nor another brand (the contact of brand P, the internal values of the
+ * campaign); `band` is a code of the closed list a brand's form offers, so it is searched in the
+ * creator's sweep alone; `served` are what a creator reads of it (the title, the brief).
+ */
+let l3d: {
+  brand: Member;
+  campaignId: string;
+  markers: Marker[];
+  band: Marker;
+  served: Marker[];
+};
+
+/** Every marker of both parties, the verification's, L2F's, L2G's, L3B's and L3D's included. */
 function allMarkers(): Marker[] {
   return [
     ...creator.markers,
@@ -169,6 +191,7 @@ function allMarkers(): Marker[] {
     ...l2f.markers,
     ...l2g.markers,
     ...l3b.markers,
+    ...l3d.markers,
   ];
 }
 /** The brand that sweeps (T1.1), and the creator that sweeps (T1.6). */
@@ -512,6 +535,7 @@ beforeAll(async () => {
   l2f = await l2fFixtures(server);
   l2g = await l2gFixtures(server);
   l3b = await l3bFixtures(server);
+  l3d = await l3dFixtures(server);
 
   sweepingBrand = await newMember("advertiser");
   sweepingCreator = await newMember("creator");
@@ -540,6 +564,83 @@ async function l3bFixtures(
       { name: "L3B internal reference", value: reference },
       { name: "L3B total budget", value: String(totalBudget) },
       { name: "L3B campaign identifier", value: created.id },
+    ],
+  };
+}
+
+/**
+ * L3D (commit 03): brand P, its profile published by INFLUX with a contact person, and its campaign
+ * complete, then published as INFLUX would (the snapshot of 0308): what the open campaigns serve.
+ */
+async function l3dFixtures(server: Server): Promise<typeof l3d> {
+  const p = await newMember("advertiser");
+  const firstName = `Ondine${letterName(hex(3))}`;
+  const contactEmail = `t1-l3d-contact-${hex(5)}@example.test`;
+  const contactPhone = `+3363${String(randomInt(1_000_000, 9_999_999))}`;
+  const contactPage = `https://www.example.test/l3d-contact-${hex(5)}`;
+  await through(server, p, "PATCH", "/v1/me/brand-profile", {
+    primarySector: "sports_leisure",
+    companySize: "11_50",
+    contactRole: "partnerships_influence",
+    contact: {
+      firstName,
+      email: contactEmail,
+      phone: contactPhone,
+      url: contactPage,
+    },
+  });
+  await migration`
+    update profiles.advertiser_profiles set status = 'published'
+     where account_id = ${p.accountId}`;
+  const calendar = campaignCalendar();
+  const title = `Campagne ouverte T1 ${letterName(hex(5))}`;
+  const brief = `Brief ouvert T1 ${letterName(hex(6))} ${"b".repeat(300)}`;
+  const reference = `T1-L3D-REF-${hex(4)}`;
+  const totalBudget = randomInt(800_000_000, 899_999_999);
+  const band = "10000_25000";
+  const created = (await through(server, p, "POST", CAMPAIGNS, {
+    title,
+    campaignType: "product_placement",
+    publicSummary: `Résumé T1 ${"s".repeat(120)}`,
+    brief,
+    internalReference: reference,
+    productDescription: "Un réchaud qui bout un litre en trois minutes",
+    productSector: "sports_leisure",
+    productIsSent: false,
+    deliverables: [
+      { networkCode: "instagram", formatCode: "instagram_reel", quantity: 1 },
+    ],
+    usageRights: "organic_repost",
+    usageRightsDuration: "3m",
+    usageRightsTerritoryScope: "worldwide",
+    exclusivity: "none",
+    contentReviewDelay: "5bd",
+    audienceCountries: ["FR"],
+    currency: "EUR",
+    remunerationKind: "cash",
+    budgetBand: band,
+    creatorsWanted: 2,
+    totalBudgetMinor: totalBudget,
+    ...calendar,
+  })) as { id: string };
+  await publishAsInflux(migration, created.id);
+  return {
+    brand: p,
+    campaignId: created.id,
+    markers: [
+      { name: "L3D internal reference", value: reference },
+      { name: "L3D total budget", value: String(totalBudget) },
+      { name: "L3D brand contact first name", value: firstName },
+      { name: "L3D brand contact e-mail", value: contactEmail },
+      { name: "L3D brand contact phone", value: contactPhone },
+      { name: "L3D brand contact page", value: contactPage },
+      { name: "L3D brand sign-in e-mail", value: p.email },
+      { name: "L3D brand account identifier", value: p.accountId },
+    ],
+    band: { name: "L3D budget band", value: band },
+    served: [
+      { name: "L3D campaign title", value: title },
+      { name: "L3D campaign brief", value: brief.slice(0, 24) },
     ],
   };
 }
@@ -1180,9 +1281,16 @@ afterAll(async () => {
          set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now()
        where id = ${l2f.reviewId}::uuid and state = 'open'`;
   }
+  // L3D: the published campaign of brand P leaves the feed of the shared stack
+  if (l3d !== undefined) {
+    await migration`
+      update campaigns.campaigns set status = 'closed'
+       where id = ${l3d.campaignId} and status in ('published', 'paused')`;
+  }
   await retireBrandFixtures(migration, [
     brand.accountId,
     sweepingBrand.accountId,
+    ...(l3d === undefined ? [] : [l3d.brand.accountId]),
   ]);
 });
 
@@ -1603,6 +1711,85 @@ describe("L3B-T9: L3B (commit 08): the campaign of a brand joins the sweeps", ()
   });
 });
 
+describe("L3D-T6: L3D (commit 03): the open campaigns join the sweeps", () => {
+  it("T1.2: the routes of L3D are in the inventory the sweeps walk", async () => {
+    const swept = (await sweptRoutes(app())).map(routeName);
+    expect(
+      swept
+        .filter((route) => route.split(" ")[1]?.startsWith(OPEN_CAMPAIGNS))
+        .sort(),
+    ).toEqual(
+      [
+        `GET ${OPEN_CAMPAIGNS}`,
+        `GET ${OPEN_CAMPAIGNS}/:id`,
+        `GET ${OPEN_CAMPAIGNS}/:id/brand-logo`,
+      ].sort(),
+    );
+  });
+
+  it("serves a creator the title and the brief of brand P's campaign, never its internal values nor the contact of brand P (D46, D78)", async () => {
+    const server = app();
+    const reader = await newMember("creator");
+    const feed = await call(
+      server,
+      "GET",
+      OPEN_CAMPAIGNS,
+      await newSession(reader.accountId),
+    );
+    expect(feed.statusCode, feed.body).toBe(200);
+    expect(markersIn(feed.body, l3d.served)).toEqual(["L3D campaign title"]);
+    const record = await call(
+      server,
+      "GET",
+      `${OPEN_CAMPAIGNS}/${l3d.campaignId}`,
+      await newSession(reader.accountId),
+    );
+    expect(record.statusCode, record.body).toBe(200);
+    expect(markersIn(record.body, l3d.served)).toEqual([
+      "L3D campaign title",
+      "L3D campaign brief",
+    ]);
+    for (const response of [feed, record]) {
+      const raw = `${response.body}\n${JSON.stringify(response.headers)}`;
+      expect(markersIn(raw, [...allMarkers(), l3d.band])).toEqual([]);
+    }
+    // the function of the contact person is public by design (06 RG35), its coordinates never
+    expect(
+      (record.json() as { brand: { contactRole: string | null } }).brand
+        .contactRole,
+    ).toBe("partnerships_influence");
+  });
+
+  it("the markers are real: brand P reads its contact and its campaign's internal values on its own routes", async () => {
+    const server = app();
+    const own = await call(
+      server,
+      "GET",
+      "/v1/me/brand-profile",
+      await newSession(l3d.brand.accountId),
+    );
+    expect(own.statusCode).toBe(200);
+    const campaign = await call(
+      server,
+      "GET",
+      `${CAMPAIGNS}/${l3d.campaignId}`,
+      await newSession(l3d.brand.accountId),
+    );
+    expect(campaign.statusCode).toBe(200);
+    expect(
+      markersIn(`${own.body}\n${campaign.body}`, [
+        ...l3d.markers,
+        l3d.band,
+        ...l3d.served,
+      ]),
+    ).toEqual(
+      [...l3d.markers, l3d.band, ...l3d.served]
+        .map((marker) => marker.name)
+        .filter((name) => name !== "L3D brand account identifier"),
+    );
+  });
+});
+
 describe("T1.1, T1.4 every route, called as a brand on the web surface: no marker of a creator, errors included", () => {
   it("finds no marker in any body or header, over 2xx, 400 and 404 answers", async () => {
     const server = app();
@@ -1618,6 +1805,8 @@ describe("T1.1, T1.4 every route, called as a brand on the web surface: no marke
       ...l2g.ids,
       // L3B: brand M's campaign, another brand's for the sweeping one (T14)
       l3b.campaignId,
+      // L3D: brand P's published campaign, another brand's too
+      l3d.campaignId,
     ];
     const result = await sweep(server, sweepingBrand, ids, allMarkers());
     expect(result.findings).toEqual([]);
@@ -1711,9 +1900,22 @@ describe("T1.6 before the reveal: no contact of the other party, no data of anot
       ...l2g.ids,
       // L3B: brand M's campaign, which no creator reads at L3B
       l3b.campaignId,
+      // L3D: brand P's published campaign, which the open campaigns serve
+      l3d.campaignId,
     ];
-    const result = await sweep(server, sweepingCreator, ids, allMarkers());
-    expect(result.findings).toEqual([]);
+    const result = await sweep(server, sweepingCreator, ids, [
+      ...allMarkers(),
+      l3d.band,
+      ...l3d.served,
+    ]);
+    // L3D: the title on the card and the record, the brief on the record; nothing else of anyone
+    expect(result.findings.sort()).toEqual(
+      [
+        `GET ${OPEN_CAMPAIGNS} (200): L3D campaign title`,
+        `GET ${OPEN_CAMPAIGNS}/:id (200): L3D campaign title`,
+        `GET ${OPEN_CAMPAIGNS}/:id (200): L3D campaign brief`,
+      ].sort(),
+    );
     const statuses = statusesOf(result);
     expect(statuses).toContain(200);
     expect(statuses).toContain(400);

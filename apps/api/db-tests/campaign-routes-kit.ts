@@ -17,6 +17,7 @@ import {
   ensureInForce,
   LOCAL_SEED_DRAFTS,
 } from "../scripts/terms-publication.ts";
+import type { ObjectStore } from "../src/platform/storage.ts";
 import { buildServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
 import { migrationRole, retireBrandFixtures, testDataSet } from "./support.ts";
@@ -50,8 +51,11 @@ export type CampaignRouteFixtures = {
   ): Promise<Member>;
   /** The profile of a brand in the state INFLUX would give it (no decision exists in these files). */
   setProfileStatus(member: Member, status: string): Promise<void>;
-  /** A server with its own captured log stream. */
-  server(): Server;
+  /**
+   * A server with its own captured log stream (Storage: the adapter, or the double given; the clock
+   * of the process: the system's, or the one given, which the in-memory rates count by).
+   */
+  server(options?: { storage?: ObjectStore; now?: () => Date }): Server;
   call(
     server: Server,
     method: Method,
@@ -126,6 +130,12 @@ export async function openCampaignRouteFixtures(): Promise<CampaignRouteFixtures
           await tx`
             insert into profiles.advertiser_profiles (account_id, legal_name)
             values (${accountId}, ${name})`;
+        } else {
+          // as identity.provision_account() does at sign-up (0216): the storefront, a draft (07 RG7),
+          // which the creator's read of the open campaigns requires (L3D, 11 RG13, RG23)
+          await tx`
+            insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+            values (${accountId}, profiles.new_creator_alias(), 'FR')`;
         }
         await tx`
           insert into identity.consent_events (account_id, purpose, granted, source, occurred_at)
@@ -151,12 +161,16 @@ export async function openCampaignRouteFixtures(): Promise<CampaignRouteFixtures
         update profiles.advertiser_profiles set status = ${status}
          where account_id = ${member.accountId}`;
     },
-    server() {
+    server(options = {}) {
       const logs = captureLogs();
       logStreams.push(() => logs.text());
       return buildServer(testApiConfig(), {
         logDestination: logs.destination,
         database,
+        ...(options.storage === undefined ? {} : { storage: options.storage }),
+        ...(options.now === undefined
+          ? {}
+          : { identity: { now: options.now } }),
       });
     },
     call(server, method, url, session, body) {

@@ -4,6 +4,7 @@
 // the run. Raise a floor when a file gains cases. LOWERING a floor is done in a commit whose
 // message says which cases disappear and why (18 §3 rule 2).
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
+  "db-tests/campaign-feed-route.test.ts": 16,
   "db-tests/campaign-parity.test.ts": 116,
   "db-tests/campaigns-core.test.ts": 68,
   "db-tests/campaigns-creator-feed.test.ts": 32,
@@ -39,7 +40,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/profiles-creator-public.test.ts": 54,
   "db-tests/reference-labels.test.ts": 37,
   "db-tests/reference-taxonomies.test.ts": 180,
-  "db-tests/t1-anonymisation.test.ts": 17,
+  "db-tests/t1-anonymisation.test.ts": 20,
   "db-tests/t13-ops-recording.test.ts": 10,
   "db-tests/t14-backoffice-accounts-route.test.ts": 27,
   "db-tests/t14-backoffice-actions-route.test.ts": 37,
@@ -48,11 +49,13 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/t14-backoffice-queue-route.test.ts": 55,
   "db-tests/t14-creator-queue-route.test.ts": 28,
   "db-tests/t14-backoffice-route-inventory.test.ts": 6,
+  "db-tests/t14-campaign-feed-route.test.ts": 7,
   "db-tests/t14-campaign-review-route.test.ts": 10,
   "db-tests/t14-campaigns-route.test.ts": 13,
   "db-tests/t14-verification-badges-route.test.ts": 10,
   "db-tests/t14-verification-opening-route.test.ts": 12,
   "db-tests/t14-verification-queue-route.test.ts": 37,
+  "db-tests/t15-campaign-feed-rate.test.ts": 5,
   "db-tests/t16-commission.test.ts": 37,
   "db-tests/t2-rls-matrix.test.ts": 29,
   "db-tests/t3-audit-chain.test.ts": 46,

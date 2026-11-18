@@ -12,11 +12,49 @@ import {
   campaignBrandViewSchema,
   type CampaignBrandView,
 } from "@influx/contracts/campaign-creator-view";
+import * as z from "zod";
 import type { Transaction } from "../../db/index.ts";
 import {
   readOwnPublishedBrandPublicRow,
   type PublishedBrandPublicRow,
 } from "./repository.ts";
+
+const listSchema = z.array(z.string());
+
+/**
+ * The row of another brand as a door of the base serves it (search.brand_public_row(), 0314; L3D
+ * modele §1): EXACTLY the keys of PublishedBrandPublicRow, strict, checked before the mapping below.
+ * A key the base would add (a contact, the internal block) fails here rather than reach a creator.
+ */
+export const publishedBrandPublicRowSchema = z.strictObject({
+  legal_name: z.string(),
+  country: z.string(),
+  primary_sector_code: z.string().nullable(),
+  company_size_band: z.string().nullable(),
+  website_domain: z.string().nullable(),
+  presentation: z.string().nullable(),
+  exclusivity_band: z.string().nullable(),
+  collaboration_rhythm: z.string().nullable(),
+  offers_non_monetary: z.boolean().nullable(),
+  contact_role: z.string().nullable(),
+  has_logo: z.boolean(),
+  badge_granted_at: z.string().nullable(),
+  secondarySectors: listSchema,
+  targetMarkets: listSchema,
+  workingLanguages: listSchema,
+  topics: listSchema,
+  networks: listSchema,
+  formats: listSchema,
+  audienceCountries: listSchema,
+  usageRights: listSchema,
+} satisfies Record<keyof PublishedBrandPublicRow, z.ZodType>);
+
+/** The public row of another brand, served by a door of the base, checked whole (strict). */
+export function publishedBrandPublicRowOf(
+  value: unknown,
+): PublishedBrandPublicRow {
+  return publishedBrandPublicRowSchema.parse(value);
+}
 
 /** The public view of a published profile row (the mapping L3D reuses for another brand). */
 export function brandPublicViewOf(

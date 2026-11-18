@@ -33,6 +33,7 @@ import { registerVerificationBadgesRoutes } from "./domains/backoffice/verificat
 import { registerVerificationOpeningRoutes } from "./domains/backoffice/verification-opening-routes.ts";
 import { registerVerificationRegistryRoutes } from "./domains/backoffice/verification-registry-routes.ts";
 import { registerCampaignRoutes } from "./domains/campaigns/routes.ts";
+import { registerOpenCampaignRoutes } from "./domains/search/open-campaigns/routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
@@ -77,6 +78,7 @@ import {
   readClientAddress,
 } from "./platform/client-address.ts";
 import { createLogger } from "./platform/logger.ts";
+import { MemberAddressRateLimiter } from "./platform/member-rate.ts";
 import { PublicRateLimiter } from "./platform/public-rate.ts";
 import { readClientUserAgent } from "./platform/user-agent.ts";
 import {
@@ -278,6 +280,10 @@ export function buildServer(
   const publicRate = new PublicRateLimiter(
     options.identity?.now ?? (() => new Date()),
   );
+  // 11 CA18, 18 T15.4: the creator's reads of the open campaigns, per client address (member-rate.ts).
+  const memberAddressRate = new MemberAddressRateLimiter(
+    options.identity?.now ?? (() => new Date()),
+  );
 
   const app = Fastify({
     loggerInstance: logger,
@@ -443,6 +449,22 @@ export function buildServer(
       );
       throw new RetryLaterError("rate_limited", refusal.retryAfterSeconds);
     }
+    // 11 RG21, CA18, 18 T15.4 (L3D): the bulk reads of a member, per client address, before the
+    // session; the account's own bucket is in the database. The line never names the address.
+    const memberRefusal = memberAddressRate.take(
+      `${request.method} ${routeUrl}`,
+      request.clientAddress,
+    );
+    if (memberRefusal !== null) {
+      request.log.info(
+        { route: routeUrl, scope: "address" },
+        "member route over its address rate",
+      );
+      throw new RetryLaterError(
+        "rate_limited",
+        memberRefusal.retryAfterSeconds,
+      );
+    }
   });
 
   // D60 (02 §20.5): every completed request, by route model, in memory; written each minute.
@@ -586,6 +608,14 @@ export function buildServer(
   registerCampaignRoutes(app, {
     database,
     now: options.identity?.now ?? (() => new Date()),
+  });
+
+  // The creator's read of the open campaigns: the feed, the record, the brand's logo (docs/mvp/11; jalon
+  // L3D commit 03), through the doors of the schema search (0314).
+  registerOpenCampaignRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+    store: objectStore,
   });
 
   // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08); its
