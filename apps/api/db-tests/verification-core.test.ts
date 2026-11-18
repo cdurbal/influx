@@ -280,8 +280,14 @@ describe("queue 4 and the parameters of 08 RG100 (modele §4, D79)", () => {
         // 0307 (L3C commit 02): queue 7 in enhanced review, RG15 and RG9 (l3c/modele §9)
         campaign_auto_close_days: 30,
         campaign_enhanced_review_minutes: 960,
+        // 0314 (L3D commit 02): the creator's feed and the bucket of an account (l3d/modele §5)
+        campaign_feed_closed_days: 7,
+        campaign_feed_max_pages: 10,
+        campaign_feed_page_size: 12,
         campaign_live_cap: 10,
         claim_expiry_minutes: 30,
+        creator_campaign_reads_per_day: 600,
+        creator_campaign_reads_per_minute: 30,
         // 0232 (L2F commit 07): a decider of a single team decides a contest after it (08 RG77)
         dispute_reflection_hours: 24,
         dispute_window_days: 30,

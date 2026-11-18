@@ -865,6 +865,9 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
       "influx_advertiser",
       "influx_agent",
       "influx_campaign_definer",
+      // 0314 (L3D commit 02): the owner of the creator's doors (eight live columns of a published
+      // campaign, its current snapshot); influx_creator still nothing (TM5.6)
+      "influx_campaign_feed_definer",
       "influx_campaign_review_definer",
       // 0310 (L3C commit 05): the worker's reads (codes, dates, counters, decision facts)
       "influx_leads_definer",

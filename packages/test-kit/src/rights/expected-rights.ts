@@ -2225,6 +2225,18 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
       },
     }),
   },
+  // 0314 (L3D commit 02, l3d/modele.md §6): the journal of the creator's reads of the open campaigns.
+  // No right for any execution role: written and counted by the doors of influx_campaign_feed_definer
+  // only, exported and deleted by the erasure (influx_privacy_definer); influx_creator NOTHING on it
+  // (fiche invariant 4), the brand never (11 RG40, RG101).
+  {
+    table: "search.creator_campaign_reads",
+    source:
+      "0314 (11 RG22, CA18; l3d/modele §6): one line per read of the feed or of a record, written by " +
+      "search.read_open_campaigns() and read_open_campaign() only, immutable outside the erasure",
+    probeColumn: "creator_account_id",
+    expected: {},
+  },
 ];
 
 /**
@@ -2307,7 +2319,9 @@ export const FOREIGN_SCHEMAS_OWNED_BY_MIGRATION_ROLE = [
  * 5 to 8 and l3c/modele.md §1, §9; then with those of 0308 (L3C commit 03, the decisions), each line
  * checked against its sections 5 and 6 and l3c/modele.md §2 to §4, §9; then with those of 0309 (L3C
  * commit 04, the cycle and the interventions), each line checked against its sections 2, 3, 5 to 7
- * and l3c/modele.md §5, §6, §9.
+ * and l3c/modele.md §5, §6, §9; and on 2026-11-18 with those of 0314 (L3D commit 02, the creator's
+ * read of the open campaigns), each line checked against its sections 5, 7 to 9 and
+ * l3d/modele.md §1, §5, §6.
  */
 export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_admin|column|identity.accounts.display_name|UPDATE",
@@ -6995,6 +7009,113 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|column|campaigns.campaigns.paused_at|SELECT",
   "influx_worker|function|leads.read_brevo_campaign_decision(bigint,text)|EXECUTE",
   "influx_worker|function|leads.read_campaign_attributes(bigint,text)|EXECUTE",
+  // 0314 (L3D commit 02, jalons/l3d/modele.md §1, §5, §6): influx_campaign_feed_definer reads the eight
+  // live columns of a published campaign, its current snapshot, the public row of a published brand
+  // (never its contact nor its internal block), its active logo and holding badge, the caller and
+  // the advertiser accounts, the caller's storefront and refused sectors, the five keys of the feed,
+  // and inserts and counts the caller's journal lines; influx_creator executes the three doors
+  // only; influx_privacy_definer reads the journal and deletes the lines of an erased account.
+  "influx_campaign_feed_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_campaign_feed_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaign_published_snapshots.campaign_id|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaign_published_snapshots.id|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaign_published_snapshots.payload|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaigns.advertiser_account_id|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaigns.applications_close_on|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaigns.current_snapshot_id|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaigns.ends_on|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaigns.first_published_at|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaigns.id|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaigns.sector_code|SELECT",
+  "influx_campaign_feed_definer|column|campaigns.campaigns.status|SELECT",
+  "influx_campaign_feed_definer|column|identity.account_roles.account_id|SELECT",
+  "influx_campaign_feed_definer|column|identity.account_roles.role|SELECT",
+  "influx_campaign_feed_definer|column|identity.accounts.country_code|SELECT",
+  "influx_campaign_feed_definer|column|identity.accounts.id|SELECT",
+  "influx_campaign_feed_definer|column|identity.accounts.status|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_audience_countries.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_audience_countries.country_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_audience_countries.slot|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_formats.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_formats.format_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_networks.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_networks.network_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.collaboration_rhythm|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.company_size_band|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.contact_role|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.exclusivity_band|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.legal_name|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.offers_non_monetary|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.presentation|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.primary_sector_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.status|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_profiles.website_domain|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_secondary_sectors.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_secondary_sectors.sector_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_secondary_sectors.slot|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_target_markets.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_target_markets.country_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_target_markets.slot|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_topics.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_topics.slot|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_topics.topic_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_usage_rights.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_usage_rights.usage_right_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_working_languages.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.advertiser_working_languages.language_code|SELECT",
+  "influx_campaign_feed_definer|column|profiles.brand_logo_objects.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.brand_logo_objects.activated_at|SELECT",
+  "influx_campaign_feed_definer|column|profiles.brand_logo_objects.created_at|SELECT",
+  "influx_campaign_feed_definer|column|profiles.brand_logo_objects.height|SELECT",
+  "influx_campaign_feed_definer|column|profiles.brand_logo_objects.object_key|SELECT",
+  "influx_campaign_feed_definer|column|profiles.brand_logo_objects.state|SELECT",
+  "influx_campaign_feed_definer|column|profiles.brand_logo_objects.width|SELECT",
+  "influx_campaign_feed_definer|column|profiles.creator_public_profiles.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.creator_public_profiles.status|SELECT",
+  "influx_campaign_feed_definer|column|profiles.creator_refused_sectors.account_id|SELECT",
+  "influx_campaign_feed_definer|column|profiles.creator_refused_sectors.sector_code|SELECT",
+  "influx_campaign_feed_definer|column|search.creator_campaign_reads.campaign_id|INSERT",
+  "influx_campaign_feed_definer|column|search.creator_campaign_reads.creator_account_id|INSERT,SELECT",
+  "influx_campaign_feed_definer|column|search.creator_campaign_reads.feed_page|INSERT",
+  "influx_campaign_feed_definer|column|search.creator_campaign_reads.feed_sort|INSERT",
+  "influx_campaign_feed_definer|column|search.creator_campaign_reads.kind|INSERT",
+  "influx_campaign_feed_definer|column|search.creator_campaign_reads.outcome|INSERT,SELECT",
+  "influx_campaign_feed_definer|column|search.creator_campaign_reads.read_at|SELECT",
+  "influx_campaign_feed_definer|column|verification.badges.account_id|SELECT",
+  "influx_campaign_feed_definer|column|verification.badges.granted_at|SELECT",
+  "influx_campaign_feed_definer|column|verification.badges.level|SELECT",
+  "influx_campaign_feed_definer|column|verification.badges.state|SELECT",
+  "influx_campaign_feed_definer|function|influx.current_account_id()|EXECUTE",
+  "influx_campaign_feed_definer|function|influx.current_account_role()|EXECUTE",
+  "influx_campaign_feed_definer|function|search.brand_public_row(uuid)|EXECUTE",
+  "influx_campaign_feed_definer|function|search.campaign_read_retry_after(uuid)|EXECUTE",
+  "influx_campaign_feed_definer|function|search.read_open_campaign(uuid)|EXECUTE",
+  "influx_campaign_feed_definer|function|search.read_open_campaign_brand_logo(uuid)|EXECUTE",
+  "influx_campaign_feed_definer|function|search.read_open_campaigns(text,integer)|EXECUTE",
+  "influx_campaign_feed_definer|function|search.require_campaign_reader()|EXECUTE",
+  "influx_campaign_feed_definer|function|search.visible_campaigns(uuid)|EXECUTE",
+  "influx_campaign_feed_definer|schema|backoffice|USAGE",
+  "influx_campaign_feed_definer|schema|campaigns|USAGE",
+  "influx_campaign_feed_definer|schema|identity|USAGE",
+  "influx_campaign_feed_definer|schema|influx|USAGE",
+  "influx_campaign_feed_definer|schema|profiles|USAGE",
+  "influx_campaign_feed_definer|schema|search|USAGE",
+  "influx_campaign_feed_definer|schema|verification|USAGE",
+  "influx_creator|function|search.read_open_campaign(uuid)|EXECUTE",
+  "influx_creator|function|search.read_open_campaign_brand_logo(uuid)|EXECUTE",
+  "influx_creator|function|search.read_open_campaigns(text,integer)|EXECUTE",
+  "influx_creator|schema|search|USAGE",
+  "influx_privacy_definer|column|search.creator_campaign_reads.campaign_id|SELECT",
+  "influx_privacy_definer|column|search.creator_campaign_reads.creator_account_id|SELECT",
+  "influx_privacy_definer|column|search.creator_campaign_reads.feed_page|SELECT",
+  "influx_privacy_definer|column|search.creator_campaign_reads.feed_sort|SELECT",
+  "influx_privacy_definer|column|search.creator_campaign_reads.id|SELECT",
+  "influx_privacy_definer|column|search.creator_campaign_reads.kind|SELECT",
+  "influx_privacy_definer|column|search.creator_campaign_reads.outcome|SELECT",
+  "influx_privacy_definer|column|search.creator_campaign_reads.read_at|SELECT",
+  "influx_privacy_definer|schema|search|USAGE",
+  "influx_privacy_definer|table|search.creator_campaign_reads|DELETE",
 ];
 
 /**
@@ -7004,8 +7125,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
  * influx_moderation_definer, 0210, twenty-one from L2E with influx_creator_verification_definer,
  * 0222, twenty-two with influx_verification_definer, 0224, twenty-three from L2G with
  * influx_creator_profile_definer, 0242, twenty-four from L3B with influx_campaign_definer, 0305,
- * twenty-five from L3C with influx_campaign_review_definer, 0307),
- * memberships.
+ * twenty-five from L3C with influx_campaign_review_definer, 0307, twenty-six from L3D with
+ * influx_campaign_feed_definer, 0314), memberships.
  */
 export const EXPECTED_ROLES: Readonly<
   Record<string, { login: boolean; memberOf: readonly string[] }>
@@ -7050,6 +7171,8 @@ export const EXPECTED_ROLES: Readonly<
   influx_campaign_definer: { login: false, memberOf: [] },
   // 0307 (L3C, l3c/modele §4): the owner of queue 7 and, from 0308, of the decisions
   influx_campaign_review_definer: { login: false, memberOf: [] },
+  // 0314 (L3D, l3d/modele §1): the owner of the creator's doors on the open campaigns
+  influx_campaign_feed_definer: { login: false, memberOf: [] },
 };
 
 /** Owners of SECURITY DEFINER functions: no login, NO member (only C-9 tolerance). */
@@ -7066,6 +7189,7 @@ export const FUNCTION_OWNER_ROLES = [
   "influx_creator_profile_definer",
   "influx_campaign_definer",
   "influx_campaign_review_definer",
+  "influx_campaign_feed_definer",
 ] as const;
 
 /** Execution roles (T4.4: own nothing). */
@@ -7565,4 +7689,10 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0310 (L3C commit 05): the campaign attributes of a contact, the facts of a decision e-mail
   "leads.read_campaign_attributes(bigint,text)": "influx_leads_definer",
   "leads.read_brevo_campaign_decision(bigint,text)": "influx_leads_definer",
+  // 0314 (L3D commit 02): the creator's three doors on the open campaigns; their four helpers
+  // (require_campaign_reader, campaign_read_retry_after, visible_campaigns, brand_public_row) are
+  // SECURITY INVOKER, same owner; the guard of the journal is the migration role's.
+  "search.read_open_campaigns(text,integer)": "influx_campaign_feed_definer",
+  "search.read_open_campaign(uuid)": "influx_campaign_feed_definer",
+  "search.read_open_campaign_brand_logo(uuid)": "influx_campaign_feed_definer",
 };

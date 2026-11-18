@@ -468,6 +468,8 @@ describe("L2D-D14: the creator profile in the export (art. 15, 15 RG81)", () => 
       portfolio: [],
       review_entries: [],
       field_revisions: [],
+      // 0314 (L3D): no read of the open campaigns by this creator
+      campaign_reads: [],
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),
     });

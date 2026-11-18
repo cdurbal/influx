@@ -17,6 +17,8 @@
 // - L3B-T7 (0306): the campaigns in the export and the erasure (l3b/modele.md §7).
 // - L3C-T5 (0310): the entries of queue 7, the snapshots and the interventions of an agent in the
 //   export and the erasure; the decisions of INFLUX on the campaigns in the activity log (L3BS-5).
+// - L3D-T2 (0314): the creator's reads of the open campaigns in the export and the erasure
+//   (l3d/modele.md §6).
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, which writes the fixtures
 // and acts as apps/api and the worker do (support.ts: actAsInternal, actAsMember, actAs).
@@ -5102,6 +5104,109 @@ describe("L3C-T5 the entries, snapshots and interventions in the export and the 
       expect(rowsOf(result)).toEqual([]);
     }
     expect(outcome.after).toEqual(outcome.before);
+  });
+});
+
+/** Two reads of the open campaigns of `account` (0314): the feed, then a refused record. */
+async function giveCampaignReads(
+  tx: Tx,
+  account: string,
+  campaign: string,
+): Promise<void> {
+  await tx`
+    insert into search.creator_campaign_reads
+      (creator_account_id, kind, campaign_id, feed_sort, feed_page, outcome, read_at)
+    values (${account}, 'feed', null, 'deadline', 2, 'served', '2026-11-10T08:00:00Z'),
+           (${account}, 'record', ${campaign}, null, null, 'refused', '2026-11-10T08:01:00Z')`;
+}
+
+async function campaignReadsOf(tx: Tx, account: string): Promise<number> {
+  const [row] = await tx<{ n: number }[]>`
+    select count(*)::int as n from search.creator_campaign_reads
+     where creator_account_id = ${account}`;
+  return row?.n ?? 0;
+}
+
+describe("L3D-T2 the reads of the open campaigns in the export and the erasure (0314, modele §6)", () => {
+  it("exports each read in creator_profile.campaign_reads (kind, campaign asked, sort, page, outcome, instant), never its id nor another creator's", async () => {
+    const asked = randomUUID();
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const stranger = await newMember(tx);
+      await tx`
+        insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+        values (${member.id}, profiles.new_creator_alias(), 'FR')`;
+      await giveCampaignReads(tx, member.id, asked);
+      await giveCampaignReads(tx, stranger.id, randomUUID());
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { content: String(stored?.content) };
+    });
+    const file = JSON.parse(outcome.content) as {
+      data: { creator_profile: { campaign_reads: Row[] } };
+    };
+    expect(file.data.creator_profile.campaign_reads).toEqual([
+      {
+        kind: "feed",
+        campaign_id: null,
+        feed_sort: "deadline",
+        feed_page: 2,
+        outcome: "served",
+        read_at: "2026-11-10T08:00:00.000Z",
+      },
+      {
+        kind: "record",
+        campaign_id: asked,
+        feed_sort: null,
+        feed_page: null,
+        outcome: "refused",
+        read_at: "2026-11-10T08:01:00.000Z",
+      },
+    ]);
+  });
+
+  it("deletes every read of the erased creator, those of another creator kept", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const stranger = await newMember(tx);
+      await giveCampaignReads(tx, member.id, randomUUID());
+      await giveCampaignReads(tx, stranger.id, randomUUID());
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        member: await campaignReadsOf(tx, member.id),
+        stranger: await campaignReadsOf(tx, stranger.id),
+      };
+    });
+    expect(outcome).toEqual({ member: 0, stranger: 2 });
+  });
+
+  it("lets influx_privacy_definer delete nothing of an active account's reads, and update none", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      await giveCampaignReads(tx, member.id, randomUUID());
+      await tx.unsafe("set local role influx_privacy_definer");
+      const removed = await attempt(
+        tx,
+        "delete from search.creator_campaign_reads where creator_account_id = $1 returning 1",
+        [member.id],
+      );
+      const updated = await attempt(
+        tx,
+        "update search.creator_campaign_reads set outcome = 'served' " +
+          "where creator_account_id = $1 returning 1",
+        [member.id],
+      );
+      await tx.unsafe("reset role");
+      return { removed, updated, left: await campaignReadsOf(tx, member.id) };
+    });
+    expect(rowsOf(outcome.removed)).toEqual([]);
+    expect(codeOf(outcome.updated)).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(outcome.left).toBe(2);
   });
 });
 

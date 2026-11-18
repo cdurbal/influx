@@ -2050,6 +2050,16 @@ Et sur la campagne : `current_snapshot_id uuid references campaigns.campaign_pub
 > **c'est une copie datée de ce qui a été montré**, dont la forme est validée par un schéma zod dans
 > `packages/contracts` et dont l'empreinte est conservée. La vérité reste la ligne vivante.
 
+**La lecture du créateur (L3D, `0314` ; `jalons/l3d/modele.md` §1 à §4, §8).** Le rôle créateur ne
+lit ni la ligne vivante ni l'instantané par un droit : trois portes `search.*` (`03` C(39)) servent
+l'instantané **courant** d'une campagne que le prédicat `search.visible_campaigns()` déclare visible,
+sur les colonnes **vivantes** (état, date limite, fin de période, secteur) ; la charge, elle, est
+toujours l'instantané. Le fil se trie par `first_published_at` (stable : une re-validation ne la
+remonte pas, `09` RG103) ou par date limite, l'identifiant départageant, d'où l'index :
+
+`campaigns_feed_idx on campaigns.campaigns (first_published_at desc, id) where status = 'published'`
+— le fil ne lit que les campagnes publiées, les autres états croissent.
+
 #### Les tables filles du ciblage et des livrables
 
 `campaigns.campaign_deliverables` : `(campaign_id, network_code, format_code)` **PK**, `quantity`,
@@ -2225,6 +2235,34 @@ Pourquoi stocker plutôt que compter à la demande : ce qu'on veut savoir n'est 
 aujourd'hui », c'est **« la courbe monte-t-elle ? »**. Une série datée répond aux deux ; un `count(*)`
 ne répond qu'à la première, et jamais rétrospectivement. L'index partiel
 `creator_public_profiles (status, is_searchable)` du §10.3 sert exactement à alimenter cette tâche.
+
+#### `search.creator_campaign_reads` — les lectures du fil et des fiches par un créateur (L3D, `0314`)
+
+*Chaque appel du fil des campagnes ouvertes ou d'une fiche, par quel créateur, avec quelle issue*
+(`11` RG22, CA18 ; `jalons/l3d/modele.md` §6). **Un journal propre, pas le registre** : `11` Q12
+veut une purge, que le registre n'a pas, et un sujet « campagne » entrerait dans l'export de la
+marque (`0310`), contre `11` RG40 et `09` RG101.
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `bigint` | identité, PK |
+| `creator_account_id` | `uuid` | `not null` FK `identity.accounts` |
+| `kind` | `text` | `feed` · `record` |
+| `campaign_id` | `uuid` | la campagne demandée d'une fiche, **sans FK** (un refus garde l'identifiant demandé) ; nulle pour le fil |
+| `feed_sort` | `text` | `recent` · `deadline`, pour le fil seul |
+| `feed_page` | `smallint` | 1 à 50, pour le fil seul |
+| `outcome` | `text` | `served` · `refused` (fiche) · `page_cap` (fil) · `rate_limited` |
+| `read_at` | `timestamptz` | `not null default now()` |
+
+Un `CHECK` de cohérence lie le genre à ses colonnes et à ses issues ; RLS forcée ; **immuable** hors
+l'effacement (déclencheur) ; index `(creator_account_id, read_at desc)`, qui sert le débit par compte
+(lignes hors `rate_limited` comptées sur 60 s et 24 h glissantes) et l'export. Écrit par les seules
+portes de `influx_campaign_feed_definer` ; aucun rôle d'exécution n'y a de droit ; la marque n'en voit
+jamais rien ; l'agent et l'administrateur au Lot 5 (alerte I-9). Le logo n'est pas journalisé.
+Export : `creator_profile.campaign_reads` (colonnes sauf `id`) ; effacement : lignes du compte
+supprimées (§9). Réglages du fil et du débit : `backoffice.operational_settings`
+(`campaign_feed_page_size`, `campaign_feed_max_pages`, `campaign_feed_closed_days`,
+`creator_campaign_reads_per_minute`, `creator_campaign_reads_per_day`, §5.10).
 
 **Ce qui rend ces tables sensibles :** `filters` décrit ce qu'une marque cherche — une information
 commerciale. Et le journal sert **deux finalités** (sécurité anti-aspiration, amélioration produit),
@@ -5867,6 +5905,7 @@ les préparer serait inventer.
 | **Suspensions** | `backoffice.account_suspensions` | **5 ans** après la levée | `ended_at` | Une suspension est une décision opposable : le titulaire peut la contester, et INFLUX doit pouvoir l'expliquer |
 | Incidents de délivrance | `identity.email_delivery_incidents` | **24 mois** | `occurred_at` | Diagnostic d'un compte fermé et suivi de la réputation d'envoi ; au-delà, sans usage |
 | Journal des recherches | `search.search_queries`, `search_impressions` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite |
+| Lectures du fil et des fiches de campagne | `search.creator_campaign_reads` (L3D, `0314`) | **12 mois** (hypothèse, comme le journal des recherches) | `read_at` | Contrepartie de l'ouverture du fil (`11` RG22) et anti-aspiration (CA18). Purge livrée avec celle du journal des recherches, **au plus tard au Lot 6** (aucune ligne n'a 12 mois avant) ; à l'effacement, les lignes du compte sont **supprimées**, aucune survie pseudonymisée ; durée soumise au veto RGPD du Lot 6 |
 | File de synchronisation | `leads.outbox_events` | `succeeded` : **30 jours** · `failed` : jusqu'à traitement | `completed_at` | Document `02` §6 |
 | Affaires | `billing.deals`, `deal_field_changes` | **10 ans** | `created_at` | Obligation comptable dans la plupart des pays visés. **Aucune suppression physique** (R6) |
 | **Registre chaîné** | `audit.audit_events`, `chain_checks` | **Aucune purge** | — | Une chaîne trouée n'est plus une chaîne. Pseudonyme par construction (aucun nom, aucun contenu) |
@@ -6246,9 +6285,10 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0311 | `leads_campaign_decision_journal` (L3C) | `campaign.decision` journalisé sous son code de catalogue (arbitrage A2) | Oui |
 | 0312 | `campaign_review_entries_read_policy` (L3C) | Politique de lecture de la file 7 : une entrée ouverte sans avis est visible (arbitrage A3) | Oui |
 | 0313 | `campaign_one_person_review` (L3C) | D84 : un secteur sensible est publié par une seule personne, second avis facultatif, `review_mode` au registre | Oui |
-| 0314 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
-| 0315 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
-| 0316 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
+| 0314 | `search_open_campaigns` (L3D, EC-L3D-1) | `influx_campaign_feed_definer`, portes `search.read_open_campaigns()`, `read_open_campaign()`, `read_open_campaign_brand_logo()` (`EXECUTE` créateur seul), prédicat `visible_campaigns()`, journal `creator_campaign_reads`, cinq réglages du fil et du débit, `campaigns_feed_idx` ; export et effacement (`privacy.*` recréées depuis `0310`) | Oui tant qu'aucune ligne n'est journalisée |
+| 0315 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
+| 0316 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
+| 0317 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend ; `party_blocks` entre alors dans `search.visible_campaigns()` | Oui |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

@@ -604,6 +604,15 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
         insert into profiles.creator_usage_rights (account_id, usage_right_code, inclusion)
         values (${account}, ${rows.right}, 'included') on conflict do nothing`;
     }
+    // 0314 (L3D): one inert read of the feed by creator A, at a fixed past instant (outside the
+    // 60 s and 24 h of the bucket of the account; append-only: inserted once)
+    await tx`
+      insert into search.creator_campaign_reads
+        (creator_account_id, kind, feed_sort, feed_page, outcome, read_at)
+      select ${accountIdOf("creator", "a")}, 'feed', 'recent', 1, 'served', '2026-01-01T00:00:00Z'
+       where not exists (select 1 from search.creator_campaign_reads
+                          where creator_account_id = ${accountIdOf("creator", "a")}
+                            and read_at = '2026-01-01T00:00:00Z')`;
     // 0217 (L2D): the identifying objects of each creator. The identity row comes with the
     // storefront (trigger, or the reprise of 0217 on an older stack); one primary network line with
     // its exact figures and one row per audience dimension; one refused sector; one history row
