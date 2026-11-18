@@ -1,0 +1,49 @@
+# L3D — lecture créateur des campagnes ouvertes (L3D-A)
+> `architecte`, grille `expert-database`, 2026-11-18. **Prime sur `03`, `04`, `09`, `11` et les prompts 02 à 05 pour tout nom.** *M.* : motif ; `-n` : `EC-L3D-A-n`.
+
+## 1. Porte
+- Schéma **`search`** : le fil est la recherche de campagnes du mode serré (`00` §9, `11` RG32). `influx_creator` : `USAGE` sur `search`, `EXECUTE` sur trois portes, **rien sur `campaigns`**, schéma compris (L3C-T3), ni `profiles.advertiser_*` (TM5.6).
+- Propriétaire **neuf `influx_campaign_feed_definer`** (NOLOGIN NOINHERIT, sans membre, `03` P7, signé en R). *M.* : D81 (5) ; un rôle atteint depuis le créateur ne tient rien de ce que D78 cache (L3B §5), or `influx_campaign_definer` lit la tranche.
+- Portes `SECURITY DEFINER`, `search_path = ''`, `REVOKE ALL … FROM PUBLIC`, `EXECUTE` à `influx_creator` seul, sans `execute` dynamique : `search.read_open_campaigns(p_sort text, p_page integer) → jsonb`, `search.read_open_campaign(p_campaign_id uuid) → jsonb` (VOLATILE : journal) ; `search.read_open_campaign_brand_logo(p_campaign_id uuid) → table (visible, object_key, width, height, activated_at)`. Aides invoker sans `EXECUTE` : `search.visible_campaigns(p_creator_account_id uuid)`, seul prédicat (§2) ; `search.brand_public_row(p_advertiser_account_id uuid) → jsonb`.
+- Appelant, d'abord : rôle `creator`, compte `active` portant ce rôle, profil non `suspended` (RG23 ; autres états admis : RG13, RG99) ; sinon 42501, rien journalisé.
+- Droits du propriétaire, par colonne : `campaigns.campaigns` (id, advertiser_account_id, status, current_snapshot_id, first_published_at, applications_close_on, ends_on, sector_code), `published` ; `campaign_published_snapshots` (id, campaign_id, payload), instantané courant ; `advertiser_profiles` (account_id, status, colonnes `p.*` de `readOwnPublishedBrandPublicRow()`) et les huit listes de `BRAND_PROFILE_LISTS`, profil publié ; `brand_logo_objects` (account_id, state, object_key, width, height, activated_at, created_at), `active` ; `verification.badges` (account_id, level, state, granted_at), `brand_verified` `active` ou `to_refresh` ; `identity.accounts` (id, status, country_code), `account_roles` (account_id, role) : l'appelant et les comptes `advertiser` ; `creator_public_profiles` (account_id, status), `creator_refused_sectors` : l'appelant ; `operational_settings` : les clés du §5 ; journal (§6). **Jamais** `advertiser_contact_details`, `advertiser_internal_details`, tranche, budget, référence, déclaration, responsable. *M.* : D46, D78 tenus par les droits.
+- `brand_public_row()` rend **les clés exactes de `PublishedBrandPublicRow`** (`profiles/repository.ts` l. 229 ; ordre de `listColumn()`, badge en `ISO_UTC`) ; l'API la valide en zod strict puis appelle `brandPublicViewOf()`. *M.* : un seul mapping (invariant 2) ; L3D-T3 prouve la parité avec l'aperçu de la marque (même `brand`).
+
+## 2. Visibilité (`visible_campaigns()`)
+`jour` = `(now() at time zone 'UTC')::date`. Au fil ssi : (1) `status = 'published'` ; (2) profil de marque `published`, compte `active` (RG11, RG14, CA2) ; (3) `ends_on >= jour` ; (4) `sector_code` hors des secteurs refusés, sans trace ni décompte (RG42, CA8) ; (5) **ouverte** si `applications_close_on >= jour`, **grisée** (`applicationsClosed`) entre `jour - campaign_feed_closed_days` et `jour - 1` (RG26, CA9), absente au-delà.
+- Colonnes **vivantes** (état, dates, secteur) ; charge = **instantané**. *M.* : l'instantané n'est jamais une source de vérité (`0308`) ; égaux tant que RG7 attend le Lot 4, qui dira si l'instantané suit un report de date (-1).
+- Fiche : ouverte seule. Logo : ouverte ou grisée. Pause, clôture, brouillon, à valider, refus, marque suspendue ou dépubliée, inconnue : un seul refus (RG100, T14, Q1).
+- Hors L3D : RG14 point 5 (Lot 4) ; `party_blocks` entre dans `visible_campaigns()` avec sa migration (L3E).
+
+## 3. Carte et fiche
+- Carte : `id` (uuid opaque, RG39), `publishedOn` (`first_published_at`, jour UTC), `applicationsClosed`, `campaign` pris dans l'instantané (`title`, `audienceTopics`, `deliverables`, `remunerationKind`, `audienceCountries`, `startsOn`, `endsOn`, `applicationsCloseOn`), `brand` pris dans `brandPublicViewOf()` (`companyName`, `hasLogo`, `primarySector`, `companySize`, `badge`), `remunerationNotice` (`campaign.budget.negotiate`). Rien d'autre (RG15 au pilote, RG25, EC-L3D-3, -4). Choix par `.pick()` des deux schémas de `packages/contracts`, sur charge et ligne entières.
+- `first_published_at`, pas `published_at` de l'instantané : *M.* stable (RG103, une re-validation ne la remonte pas), indexé.
+- Fiche : `id`, `publishedOn`, `campaign` = **instantané entier**, `brand` = `brandPublicViewOf()` entier (non nul), `remunerationNotice`. *M.* : invariant 5 ; charge de l'aperçu (`09` RG102) plus `id`, `publishedOn`.
+
+## 4. Tri, pagination, nombre
+- `recent` (défaut) : `first_published_at desc, id asc` ; `deadline` : ouvertes d'abord, `applications_close_on asc nulls last, id asc`. *M.* : RG33, départage stable (CA17) ; une date passée n'est pas « la plus proche » (-2).
+- **Rang** (numéro de page), pas de curseur. *M.* : plafond tenu en base sans jeton signé (EC-L2C-18c-1 évité) ; « Voir la suite » ajoute la page, l'écran ignore un `id` déjà vu ; un changement entre deux pages peut décaler d'une carte (-3).
+- `campaign_feed_page_size`, `campaign_feed_max_pages` ; au-delà : `page_cap`, journalisé (CA18). Réponse : `total` (grisées comprises, RG35), `page`, `nextPage` (null en fin ou au plafond), `capReached`.
+
+## 5. Débit
+- **Compte, en base** (patron `0133`) : fil et fiche, un seau, verrou transactionnel par compte ; lignes hors `rate_limited` comptées sur 60 s et 24 h glissantes ; au-delà : ligne `rate_limited`, `retryAfterSeconds` (sortie de la plus ancienne comptée), rien servi ; logo hors seau. *M.* : valeurs en table, sûr à plusieurs instances, refus journalisé avec le compte (T15.5).
+- **Adresse, en mémoire** : `MEMBER_ROUTE_ADDRESS_RATES` (`platform/member-rate.ts`, `MinuteCounter`) : fil 60, fiche 60, logo 240 par minute, avant la session ; ligne pino sans adresse. *M.* : l'adresse n'entre pas en base (D60) ; régime de `public-rate.ts` (T15.4) (-4).
+- `operational_settings` (liste fermée recréée, CHECK entier par clé, patron `0307`) : `campaign_feed_page_size` 12 (1-50), `campaign_feed_max_pages` 10 (1-50), `campaign_feed_closed_days` 7 (1-30), `creator_campaign_reads_per_minute` 30 (1-600), `creator_campaign_reads_per_day` 600 (1-20 000). Hypothèses `staging`.
+
+## 6. Journal (RG22, RG100, CA18)
+- **`search.creator_campaign_reads`**, pas le registre : `id` (identity), `creator_account_id` (FK), `kind` (`feed`, `record`), `campaign_id` (fiche, **sans FK** : un refus garde l'identifiant demandé), `feed_sort`, `feed_page` (fil), `outcome` (`served`, `refused` fiche, `page_cap` fil, `rate_limited`), `read_at` ; CHECK de cohérence, RLS forcée, immuable hors effacement ; index `(creator_account_id, read_at desc)`. *M.* : `11` Q12 veut une purge, le registre n'en a pas (`01` M4) ; un sujet campagne entrerait dans l'export de la marque (`0310`), contre RG40, RG101.
+- Aucun code `audit.*` (F3 sans objet) ; logo non journalisé ; marque : rien ; agent, admin : Lot 5 (alerte I-9).
+- Export : `creator_profile.campaign_reads` (colonnes sauf `id`), 15 catégories inchangées ; effacement : lignes du compte supprimées ; `export_document()`, `execute_request()` recréées depuis `0310`. *M.* : `04` §9, aucune survie pseudonymisée.
+- Conservation **12 mois** sur `read_at` (hypothèse, comme le journal des recherches) ; purge du worker livrée avec celle du journal de recherche, au plus tard au Lot 6 (aucune ligne n'a 12 mois avant) ; veto RGPD au Lot 6 (-5).
+
+## 7. Routes, contrat, page
+- `GET /v1/open-campaigns?sort=recent|deadline&page=1..50`, `GET /v1/open-campaigns/:id`, `GET /v1/open-campaigns/:id/brand-logo` (relais de `readBrandLogo()`, `{ logo }`). Rôle `creator` ; autre rôle : `not_found` (T14). `no-store`. Code : `apps/api/src/domains/search/open-campaigns/`.
+- Refus **après COMMIT** (patron `accounts-routes.ts`) : invisible ou inconnue, 404 `not_found` au corps de route inconnue (T14.3, T14.4, RG24) ; profil suspendu, 403 `forbidden` ; débit, 429 `rate_limited` + `Retry-After` ; `page_cap`, 400 `validation_failed` (`page`). Aucun code neuf.
+- `packages/contracts/src/open-campaigns.ts`, zod strict : `openCampaigns{Query,Response}Schema`, `openCampaign{Card,RecordResponse,BrandLogoResponse}Schema`.
+- Page : `/campagnes` · `/campaigns` et `/campagnes/[id]` · `/campaigns/[id]` **communes aux deux rôles**, l'écran suit le rôle (patron `PROFILE_ACCOUNT_PAGE`) : marque inchangée, créateur C5, C6. Clés `advertiserCampaigns`, `advertiserCampaign` gardées, nommées `CAMPAIGNS_PAGE`, `CAMPAIGN_PAGE`, hors `PAGE_SPACES` ; l'aperçu reste à la marque. **Attendus changés, décidés ici** : l'entrée créateur et le cas l. 588 de `member-nav.test.ts` (pages sans espace ; l'aperçu renvoie le créateur chez lui) ; aucun autre. Titre des métadonnées inchangé (le serveur ignore le rôle), revu par U (-6).
+
+## 8. Index, numéro, amendements
+- `campaigns_feed_idx on campaigns.campaigns (first_published_at desc, id) where status = 'published'`. *M.* : le fil ne lit que les publiées, les autres états croissent.
+- **`0314_search_open_campaigns.sql`** (EC-L3D-1) : tout ce modèle ; assertions de fin (patron `0305` §8, aucun droit `influx_creator` sur `campaigns`, `profiles.advertiser_*` ni une table de `search`). T2 (`expected-rights.ts`), T4 (`EXPECTED_ROLES`) à jour. Recherche : `0315` `search_journal`, `0316` `search_settings`, `0317` `matching_party_blocks`.
+- Amendements (02) : `03` §3.3, P7 ; `04` §5.4 (index), §5.5 (journal), §9 (conservation), §11 (numéros).
+- À relire : -2, -3 (`product-owner`) ; -4 et §5 (`expert-cybersecurite`) ; -5 (`expert-conformite-rgpd`, Lot 6).
