@@ -58,3 +58,24 @@ plus long + contrôle ≤ 8 min.
 
 ## Revue
 *(rempli par `/jalon-run` : L3DT-n, L3DS-n, L3DU-n, une ligne chacun)*
+
+### Constats U (ligne U, 2026-11-18, détail : `l3d/ux-constats.md`)
+0 bloquant · 4 jalon : L3DU-1 (→ fix-1), L3DU-2 et L3DU-3 (→ fix-2), L3DU-4 (→ fix-3), textes à
+valider par le fondateur · 9 avant production · 6 plus tard.
+| Id | Gravité | Où | Correctif |
+|---|---|---|---|
+| L3DU-5 | avant prod. | `CampaignFeedCard.tsx` l. 95-106 ; `campaign-classes.ts` l. 99 | « Candidatures closes » gardé ; badge au-dessus de la marque, icône (`icons.ts`) et date (« Candidatures closes le … ») au lieu de « Candidatures avant le … », pleine opacité, aucun token neuf |
+| L3DU-6 | avant prod. | `CampaignFeedCard.tsx` l. 99, 147-153 | deux liens de même cible : le titre reste le lien, le bouton devient l'appui de la carte entière ou disparaît |
+| L3DU-7 | avant prod. | `CampaignRecordScreen.tsx` l. 103-112 ; `use-open-campaigns.ts` | retour au fil repart de zéro : tri et rang dans l'adresse |
+| L3DU-8 | avant prod. | `CampaignReadBody.tsx` l. 45-57 | les deux encarts avant tout contenu : RG32 sous la section rémunération, RG40 gardé en tête |
+| L3DU-9 | avant prod. | `campaign.json` l. 65 ; `09` l. 878 | encart RG32 hors catalogue, mise en garde juridique : relu par `expert-conformite-rgpd` (Lot 6) ou aligné sur le catalogue (fondateur, juriste) |
+| L3DU-10 | avant prod. | `CampaignReadBody.tsx` l. 81-112 | marque, logo et badge après les six sections : bloc marque remonté (attendus de l'aperçu ajustés) |
+| L3DU-11 | avant prod. | `CampaignFeedCard.tsx` ; `CampaignReadBody.tsx` l. 106-108 | badge de marque : `VerifiedBadge` des deux côtés ; pilule de 70 signes à confirmer en capture 375 (recette F) |
+| L3DU-12 | avant prod. | `CampaignRecordScreen.tsx` l. 121-126 | « n'est plus ouverte » : un lien « Voir les campagnes ouvertes », phrase « Elle n'accepte plus de candidatures ou a été retirée. » |
+| L3DU-13 | avant prod. | `feed.forbidden`, `record.forbidden` | refus 403 sans issue : lien vers « Mon compte » |
+| L3DU-14 | plus tard | `CampaignFeedScreen.tsx` l. 151-159 | « Voir la suite » silencieux : « 12 campagnes affichées sur 14 » dans une zone `status` |
+| L3DU-15 | plus tard | tri « Plus récentes » | une carte close peut ouvrir le fil (`11` RG33, à relire par `product-owner`) |
+| L3DU-16 | plus tard | nombre (RG35) | compte les closes : nombre d'ouvertes dans la réponse |
+| L3DU-17 | plus tard | `feed.capReached` | plafond sans filtre (EC-L3D-2) : impasse traitée avec les filtres, Lot 6bis |
+| L3DU-18 | plus tard | `campaign.json` l. 487-491 | « numéraire », « dotation », « Affiliation » : « en argent », « produit offert », « commission sur ventes », avec `product-owner` |
+| L3DU-19 | plus tard | fil | créateur d'un pays non ouvert (principe 9) : posé avec la candidature, Lot 4 |
