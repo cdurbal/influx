@@ -88,3 +88,32 @@ valider par le fondateur · 9 avant production · 6 plus tard.
 | L3DU-17 | plus tard | `feed.capReached` | plafond sans filtre (EC-L3D-2) : impasse traitée avec les filtres, Lot 6bis |
 | L3DU-18 | plus tard | `campaign.json` l. 487-491 | « numéraire », « dotation », « Affiliation » : « en argent », « produit offert », « commission sur ventes », avec `product-owner` |
 | L3DU-19 | plus tard | fil | créateur d'un pays non ouvert (principe 9) : posé avec la candidature, Lot 4 |
+
+### Constats T (testeur, 2026-11-18)
+0 bloquant · 0 jalon · 5 avant production · 6 plus tard.
+- L3DT-1 (avant prod.) `apps/api/src/domains/search/open-campaigns/open-campaigns.ts:41-49,112-124` : un seul snapshot non conforme au schéma strict donne un 500 sur toute la page, lecture non journalisée, non testé ; trancher écarter+journaliser ou 500 assumé, test avec snapshot non conforme.
+- L3DT-2 (avant prod.) `0314` verrou consultatif de `campaign_read_retry_after` (~l.520) : concurrence non testée ; ajouter un cas à N lectures parallèles à limite-1.
+- L3DT-3 (avant prod.) les identifiants L3D-T1, L3D-E1, L3D-E2 ne sont dans aucun titre : à préfixer, à plier dans la clôture C.
+- L3DT-4 (avant prod.) l'annexe promet en E2 la marque suspendue, mais `e2e/creator-campaigns.spec.ts:428-494` couvre pause et identifiant inconnu seulement ; secteur refusé et marque suspendue prouvés en base seulement, critère de fin n°1 appuyé sur la déclaration du fondateur : à dire en clair à la clôture.
+- L3DT-5 (avant prod.) `routes.ts:163-196` et `member-rate.ts` : échec du magasin du logo (503), objet manquant, plafond 240/min du logo, seau partagé de l'adresse inconnue non testés ; un seau « inconnu » de 60/min rendrait le fil inutilisable si le front ne relaie pas l'adresse : à vérifier sur staging.
+- L3DT-6 (plus tard) member-nav : le « +1 » de l'annexe non livré (34→34), deux attendus changés en plus : à dire dans l'annexe.
+- L3DT-7 (plus tard) bord `total == max_pages × page_size` (`capReached` false) non testé.
+- L3DT-8 (plus tard) `newCampaign` calcule les dates en JS (UTC) alors que le SQL lit now() : fragile à cheval sur 00:00 UTC ; calculer en SQL.
+- L3DT-9 (plus tard) le 1er cas e2e lit la page 1 seule : carte grisée après les ouvertes en tri par échéance ; suivre « Voir la suite ».
+- L3DT-10 (plus tard) DS-flaky : le run 44365941348 a eu un échec d'infrastructure (conteneur inbucket, base 1/2) et `keo-tokens.artifacts` G3i(b) réellement cassé, corrigé par dbefe32.
+- L3DT-11 (plus tard) `read_open_campaigns` total et page en deux requêtes READ COMMITTED : décalage de rang possible, accepté par le modèle, non testé en base.
+
+### Constats S (expert-cybersecurite, 2026-11-18)
+0 bloquant · 0 jalon · 2 avant production · 6 plus tard.
+- L3DS-1 (avant prod.) `0314:239-240,525-531,744-746,834-835` : le seau compte aussi les lignes `rate_limited` sans borne ; un compte via 10 adresses écrit ~1,7 M de lignes en 24 h, l'index (creator_account_id, read_at) ne filtre pas outcome, chaque appel les parcourt sous le verrou du compte, le pool de 10 connexions s'épuise (indisponibilité de l'API, aucune donnée exposée) ; correctif : index partiel `where outcome <> 'rate_limited'` et une seule ligne rate_limited par compte et fenêtre (ou pg_try_advisory_xact_lock → 429), au plus tard avec `0315`, effort S.
+- L3DS-2 (avant prod.) pas de purge à 12 mois de `search.creator_campaign_reads` (modèle §6, EC-L3D-A-5) : tâche du worker avant l'ouverture de production, veto RGPD au Lot 6.
+- L3DS-3 (plus tard) `platform/member-rate.ts:16-20` limite par adresse tenue par instance : à passer en base dès une 2e instance.
+- L3DS-4 (plus tard) `routes.ts:174-224`, `0314:880-923` le logo hors du seau du compte, lecture Storage + visible_campaigns() à chaque appel : cache par object_key ou borne par compte.
+- L3DS-5 (plus tard) les trois GET écrivent (journal, seau), cookie lax : refuser `sec-fetch-site: cross-site`.
+- L3DS-6 (plus tard) `t14-campaign-feed-route.test.ts:182-195` 400 sur identifiant mal formé pour une marque au lieu de « route inconnue » : écart accepté à documenter.
+- L3DS-7 (plus tard) `open-campaigns.ts:49-55,115` ajout d'une clé au schéma de l'instantané (Lot 4) : anciens instantanés → 500 sur tout le fil, échec fermé juste ; versionner le schéma (architecte).
+- L3DS-8 (plus tard) textes libres de l'instantané protégés par la seule revue humaine de L3C : contrôle e-mails/téléphones à la publication (lier à D30).
+
+### SHA de l'attestation I-4
+- Exigé (seul le commit 02 touche les droits) : a778c28618e4d33d6fa33aeea5d3ffa0222fac1d
+- Recommandés (tous les commits de code) : c362dd953568c31e348b9f78d7e6aad3533ef0c4 a778c28618e4d33d6fa33aeea5d3ffa0222fac1d a505b847103e20796ab9acad17cbc6cd0981f14c 202493be43a6b862edcd8635ac8562fab5a9a897 3bab80a0af9a2823d5360ff4b780156336d25465 dbefe324ec5c6d9928ab593623769800c0b721c3 b816d03ac6fd54f2c3afacfca1dbdfde726f5cd7 c69b241134b79f6a7098e7dc3662e0406addab00 3e5151657c6224f5599c64e1583b393b8fb479ad

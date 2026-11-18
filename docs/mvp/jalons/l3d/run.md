@@ -12,5 +12,13 @@
 | X2 | fix-2.md | fix | sonnet | high | dev-react-node | fait | media_buy label has no pronoun; RG40 notice back to the catalogue text + closing instruction; 09 l. 877 aligned; organic_repost/paid_whitelisting untouched |
 | X3 | fix-3.md | fix | sonnet | high | dev-react-node | fait | shared titles Campagnes/Campaign (FR, EN); keys and PAGE_TITLES untouched; brand h1 unchanged; toHaveTitle added to 4 existing cases; e2e 15 passed in 1.1 min |
 | F | recette.md | fondateur | — | — | fondateur | fait | fondateur 2026-11-18 : « je valide la recette » ; staging non préparé par l'agent, aucune donnée écrite, rien à remettre en état |
-| R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
+| R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | T : 0 bloquant, 0 jalon, 5 avant prod, 6 plus tard ; S : 0 bloquant, 0 jalon, 2 avant prod, 6 plus tard ; détail : annexe § Revue |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
+
+## Mesures de clôture
+Mesures e2e du run CI 44403125344 :
+- E1 : 3 cas, 1,7 + 1,2 + 1,5 = 4,4 s (budget 8 s).
+- E2 : 2 cas, 1,3 + 2,5 = 3,8 s (budget 7 s).
+- creator-campaigns : total 8,2 s (budget 15 s).
+- Éclats e2e : 4:12, 4:36, 3:27 (limite 7:30).
+- Éclats base : 4:04, 3:59 + fusion 14 s (limite 8:00).
