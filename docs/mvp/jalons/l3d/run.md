@@ -11,6 +11,6 @@
 | X1 | fix-1.md | fix | sonnet | high | dev-react-node | fait | notice on the record only, not the feed; text verbatim of fix-1; no button, link or date; brand preview untouched; e2e 15 passed in 1.3 min |
 | X2 | fix-2.md | fix | sonnet | high | dev-react-node | fait | media_buy label has no pronoun; RG40 notice back to the catalogue text + closing instruction; 09 l. 877 aligned; organic_repost/paid_whitelisting untouched |
 | X3 | fix-3.md | fix | sonnet | high | dev-react-node | fait | shared titles Campagnes/Campaign (FR, EN); keys and PAGE_TITLES untouched; brand h1 unchanged; toHaveTitle added to 4 existing cases; e2e 15 passed in 1.1 min |
-| F | recette.md | fondateur | — | — | fondateur | à faire | |
+| F | recette.md | fondateur | — | — | fondateur | fait | fondateur 2026-11-18 : « je valide la recette » ; staging non préparé par l'agent, aucune donnée écrite, rien à remettre en état |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
