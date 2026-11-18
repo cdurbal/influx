@@ -22,6 +22,42 @@
     "view": "Consulter",
     "profileLink": "Aller à mon profil de marque"
   },
+  "feed": {
+    "title": "Campagnes",
+    "loading": "Chargement des campagnes…",
+    "count": "{count, plural, one {# campagne} other {# campagnes}}",
+    "sort": {
+      "label": "Trier par",
+      "recent": "Plus récentes",
+      "deadline": "Date limite la plus proche"
+    },
+    "more": "Voir la suite",
+    "moreLoading": "Chargement…",
+    "capReached": "Liste limitée : {count} campagnes affichées sur {total}.",
+    "closed": "Candidatures closes",
+    "empty": {
+      "title": "Aucune campagne ouverte pour le moment.",
+      "text": "Complétez votre profil : c'est ce que regarde un commercial INFLUX quand il rapproche une marque d'un créateur.",
+      "profileLink": "Aller à mon profil"
+    },
+    "unavailable": "Nous ne parvenons pas à afficher les campagnes pour le moment. Réessayez dans quelques minutes.",
+    "forbidden": "Les campagnes ne sont pas accessibles avec l'état actuel de votre compte.",
+    "rateLimited": "Vous consultez les campagnes très souvent. Réessayez dans un instant.",
+    "rateLimitedWait": "Vous consultez les campagnes très souvent. Réessayez dans {seconds, plural, one {# seconde} other {# secondes}}.",
+    "retry": "Réessayer",
+    "card": {
+      "open": "Voir la campagne",
+      "publishedOn": "Publiée le {date}",
+      "deadline": "Candidatures avant le {date}",
+      "period": {
+        "range": "Du {from} au {to}",
+        "from": "À partir du {from}",
+        "until": "Jusqu'au {to}"
+      },
+      "countries": "Audience visée : {countries}",
+      "logoAlt": "Logo de {name}"
+    }
+  },
   "home": {
     "title": "Mes campagnes",
     "text": "Créez une campagne, enregistrée au fur et à mesure, puis soumettez-la à un commercial INFLUX.",

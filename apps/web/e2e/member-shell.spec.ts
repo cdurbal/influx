@@ -611,7 +611,8 @@ for (const width of [375, 768]) {
       .click();
     await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
     await expect(title(page)).toBeFocused();
-    expect(await visibleLinks()).toBe(2);
+    // Accueil, Campagnes (L3D) and Compte: the three entries a creator has.
+    expect(await visibleLinks()).toBe(3);
     // The creator's profile leads the four pages common to both spaces (L2D, commit 12).
     await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(
       ACCOUNT_SUB_PAGES.length + 1,
@@ -630,7 +631,7 @@ for (const width of [375, 768]) {
         .click();
       await expect(title(page), key).toHaveText(heading);
       await expect(title(page), key).toBeFocused();
-      expect(await visibleLinks(), key).toBe(2);
+      expect(await visibleLinks(), key).toBe(3);
       await expect(
         nav.getByRole("link", {
           name: MEMBER.fr.nav.entries.account,

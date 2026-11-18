@@ -88,7 +88,7 @@ describe("TD2.1: five entries at most per role, in a fixed order (17 §2.1)", ()
     }
   });
 
-  it("shows the entries whose screen exists only: Accueil, Campagnes (L3B) and Compte for a brand, Accueil and Compte for a creator", () => {
+  it("shows the entries whose screen exists only: Accueil, Campagnes (L3B) and Compte for a brand, Accueil, Campagnes (L3D) and Compte for a creator", () => {
     expect(navItemsOf("advertiser")).toEqual([
       { entry: "home", page: "advertiserHome" },
       { entry: "campaigns", page: "advertiserCampaigns" },
@@ -96,6 +96,7 @@ describe("TD2.1: five entries at most per role, in a fixed order (17 §2.1)", ()
     ]);
     expect(navItemsOf("creator")).toEqual([
       { entry: "home", page: "creatorHome" },
+      { entry: "campaigns", page: "advertiserCampaigns" },
       { entry: "account", page: "accountHub" },
     ]);
   });
@@ -585,15 +586,11 @@ describe("L3B-09: the campaigns of a brand, a list and a form with an identifier
     expect(memberPageSegmentOfPath("/inconnue/x", "fr")).toBeNull();
   });
 
-  it("keeps the campaigns in the brand's space: a creator is sent to their own home", () => {
-    expect(spaceOf("advertiserCampaigns")).toBe("advertiser");
-    expect(spaceOf("advertiserCampaign")).toBe("advertiser");
-    expect(spaceRedirectOf("advertiserCampaigns", "creator")).toBe(
-      "creatorHome",
-    );
-    expect(spaceRedirectOf("advertiserCampaign", "creator")).toBe(
-      "creatorHome",
-    );
+  it("shares the campaigns between the two spaces (L3D-A §7): the list and the record belong to none, so neither role is sent home", () => {
+    expect(spaceOf("advertiserCampaigns")).toBeNull();
+    expect(spaceOf("advertiserCampaign")).toBeNull();
+    expect(spaceRedirectOf("advertiserCampaigns", "creator")).toBeNull();
+    expect(spaceRedirectOf("advertiserCampaign", "creator")).toBeNull();
     expect(spaceRedirectOf("advertiserCampaigns", "advertiser")).toBeNull();
     expect(isTermsExempt("advertiserCampaigns")).toBe(false);
   });

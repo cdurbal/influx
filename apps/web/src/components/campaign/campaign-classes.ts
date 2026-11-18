@@ -80,3 +80,33 @@ export const PREVIEW_LOGO_CLASSES =
 export const PREVIEW_ROW_LIST_CLASSES = "flex flex-col gap-2 text-md";
 export const PREVIEW_LABEL_CLASSES = "text-sm text-text-secondary";
 export const PREVIEW_VALUE_CLASSES = "text-md text-text-primary";
+
+/** The feed of a creator (L3D, C5): the count and the sort above, the cards in one column, two from lg. */
+export const FEED_TOOLBAR_CLASSES =
+  "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between";
+
+export const FEED_SORT_CLASSES = "flex min-w-0 flex-col gap-1 sm:w-72";
+
+export const FEED_COUNT_CLASSES =
+  "font-display text-md font-bold text-text-primary";
+
+export const FEED_LIST_CLASSES = "grid grid-cols-1 gap-4 lg:grid-cols-2";
+
+/** A card of the feed: its blocks stacked; a greyed one (applications closed) keeps the page's own ground. */
+export const FEED_CARD_CLASSES = "h-full";
+
+export const FEED_CARD_CLOSED_CLASSES = "bg-surface-page";
+
+/** The brand at the head of a card: its logo when it has one, its name, then what is checked of it. */
+export const FEED_BRAND_CLASSES = "flex items-start gap-3";
+
+/** What the brand pays and the notice that follows it, set apart from the facts of the campaign. */
+export const FEED_PAY_CLASSES =
+  "flex flex-col gap-1 border-t-(length:--border-width-thin) border-border-default pt-3";
+
+export const FEED_FACTS_CLASSES =
+  "flex flex-col gap-1 text-sm text-text-secondary";
+
+/** A skeleton of a card while the first page loads: a block of the card's own height. */
+export const FEED_SKELETON_CLASSES =
+  "h-64 rounded-card border-(length:--border-width-thin) border-border-default bg-surface-card";

@@ -88,6 +88,17 @@ export const MEMBER_PAGE_SLUGS: Readonly<
 };
 
 /**
+ * "Campagnes" (17 §2.6, §4.3, §5.5; L3D-A §7): the list address and the record address are common to both
+ * roles, the screen follows the real role (the pattern of PROFILE_ACCOUNT_PAGE): a brand's "Mes campagnes" and
+ * its form, a creator's feed C5 and record C6. The keys keep the names of L3B; these two constants are what the
+ * code of both roles reads, and neither page belongs to a space (PAGE_SPACES). The preview of a brand's own
+ * campaign stays the brand's.
+ */
+export const CAMPAIGNS_PAGE =
+  "advertiserCampaigns" as const satisfies MemberPage;
+export const CAMPAIGN_PAGE = "advertiserCampaign" as const satisfies MemberPage;
+
+/**
  * The pages of "mon compte", in the order of their navigation; its page-menu (accountHub, 17 §6.0)
  * is the page of the rubric, not one of them.
  */
@@ -219,8 +230,8 @@ export function isTermsExempt(page: MemberPage): boolean {
 const PAGE_SPACES: Readonly<Partial<Record<MemberPage, SignupDoor>>> = {
   advertiserHome: "advertiser",
   creatorHome: "creator",
-  advertiserCampaigns: "advertiser",
-  advertiserCampaign: "advertiser",
+  // CAMPAIGNS_PAGE and CAMPAIGN_PAGE are common to both roles (L3D-A §7): no space. The brand's preview of its
+  // own campaign stays in its space, a creator is sent home.
   advertiserCampaignPreview: "advertiser",
 };
 

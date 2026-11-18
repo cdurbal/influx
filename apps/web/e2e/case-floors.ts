@@ -21,6 +21,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/charter-cascade.spec.ts": 15,
   "e2e/charter-headings.spec.ts": 3,
   "e2e/charter-rendering.spec.ts": 29,
+  "e2e/creator-campaigns.spec.ts": 3,
   "e2e/creator-portfolio.spec.ts": 1,
   "e2e/creator-queue.spec.ts": 1,
   "e2e/portfolio-queue.spec.ts": 1,

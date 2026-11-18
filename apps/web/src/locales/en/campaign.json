@@ -22,6 +22,42 @@
     "view": "View",
     "profileLink": "Go to my brand profile"
   },
+  "feed": {
+    "title": "Campaigns",
+    "loading": "Loading campaigns…",
+    "count": "{count, plural, one {# campaign} other {# campaigns}}",
+    "sort": {
+      "label": "Sort by",
+      "recent": "Most recent",
+      "deadline": "Nearest deadline"
+    },
+    "more": "Show more",
+    "moreLoading": "Loading…",
+    "capReached": "List limited: {count} campaigns shown out of {total}.",
+    "closed": "Applications closed",
+    "empty": {
+      "title": "No open campaign for now.",
+      "text": "Complete your profile: it is what an INFLUX account manager looks at when matching a brand with a creator.",
+      "profileLink": "Go to my profile"
+    },
+    "unavailable": "We cannot show the campaigns right now. Please try again in a few minutes.",
+    "forbidden": "Campaigns are not available with the current state of your account.",
+    "rateLimited": "You are reading campaigns very often. Please try again in a moment.",
+    "rateLimitedWait": "You are reading campaigns very often. Please try again in {seconds, plural, one {# second} other {# seconds}}.",
+    "retry": "Try again",
+    "card": {
+      "open": "View the campaign",
+      "publishedOn": "Published on {date}",
+      "deadline": "Apply before {date}",
+      "period": {
+        "range": "From {from} to {to}",
+        "from": "From {from}",
+        "until": "Until {to}"
+      },
+      "countries": "Target audience: {countries}",
+      "logoAlt": "Logo of {name}"
+    }
+  },
   "home": {
     "title": "My campaigns",
     "text": "Create a campaign, saved as you go, then submit it to an INFLUX account manager.",

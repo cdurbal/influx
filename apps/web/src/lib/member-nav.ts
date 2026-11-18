@@ -5,6 +5,7 @@ import type { SignupDoor } from "@influx/contracts/auth";
 import {
   ACCOUNT_PAGES,
   accountPagesOf,
+  CAMPAIGNS_PAGE,
   PARENT_PAGES,
   type MemberPage,
 } from "./member-paths";
@@ -26,14 +27,14 @@ export const SPACE_ENTRIES: Readonly<
 > = {
   advertiser: [
     { entry: "home", page: "advertiserHome" },
-    { entry: "campaigns", page: "advertiserCampaigns" }, // Lot 3 (L3B), "Mes campagnes"
+    { entry: "campaigns", page: CAMPAIGNS_PAGE }, // Lot 3 (L3B), "Mes campagnes"
     { entry: "creators", page: null }, // Lot 3, the anonymised search
     { entry: "relations", page: null }, // Lot 4, "Mises en relation"
     { entry: "account", page: "accountHub" },
   ],
   creator: [
     { entry: "home", page: "creatorHome" },
-    { entry: "campaigns", page: null }, // Lot 3, the feed of open campaigns
+    { entry: "campaigns", page: CAMPAIGNS_PAGE }, // Lot 3 (L3D), the feed of open campaigns, same page as the brand's
     { entry: "applications", page: null }, // Lot 3, "Mes candidatures"
     { entry: "relations", page: null }, // Lot 4, "Mes relations"
     { entry: "account", page: "accountHub" },
