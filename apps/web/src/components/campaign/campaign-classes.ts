@@ -85,7 +85,8 @@ export const PREVIEW_VALUE_CLASSES = "text-md text-text-primary";
 export const FEED_TOOLBAR_CLASSES =
   "flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between";
 
-export const FEED_SORT_CLASSES = "flex min-w-0 flex-col gap-1 sm:w-72";
+export const FEED_SORT_CLASSES =
+  "flex min-w-0 flex-col gap-1 sm:w-(--size-feed-sort)";
 
 export const FEED_COUNT_CLASSES =
   "font-display text-md font-bold text-text-primary";
@@ -109,4 +110,4 @@ export const FEED_FACTS_CLASSES =
 
 /** A skeleton of a card while the first page loads: a block of the card's own height. */
 export const FEED_SKELETON_CLASSES =
-  "h-64 rounded-card border-(length:--border-width-thin) border-border-default bg-surface-card";
+  "h-(--size-feed-skeleton) rounded-card border-(length:--border-width-thin) border-border-default bg-surface-card";
