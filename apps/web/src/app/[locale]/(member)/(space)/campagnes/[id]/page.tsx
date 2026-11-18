@@ -3,12 +3,13 @@ import {
   memberPageLocale,
   memberPageMetadata,
 } from "@/components/auth/AuthPage";
-import { CampaignFormScreen } from "@/components/campaign/CampaignFormScreen";
+import { CampaignPageScreen } from "@/components/campaign/CampaignPageScreen";
 import { stepOfParameter } from "@/components/campaign/campaign-view";
 
-// The form of a campaign, in five steps (17 §4.3, M3; L3B): French path, behind the session. The campaign is
-// the opaque identifier of the path, the step the query's; a campaign of another brand, an unknown one and any
-// other role find no such page (T14).
+// The form of a brand's campaign, in five steps (17 §4.3, M3; L3B), or the record of an open campaign for a creator
+// (17 §5.6; L3D): French path, behind the session, the screen follows the role. The campaign is the opaque
+// identifier of the path, the step the query's; a campaign of another brand and an unknown one find no such page
+// for a brand (T14), « n'est plus ouverte » for a creator (RG24).
 export async function generateMetadata({
   params,
 }: PageProps<"/[locale]/campagnes/[id]">): Promise<Metadata> {
@@ -23,7 +24,7 @@ export default async function CampaignPage({
   const { locale, id } = await params;
   memberPageLocale(locale, "advertiserCampaign", "campagnes/[id]", id);
   return (
-    <CampaignFormScreen
+    <CampaignPageScreen
       id={id}
       initialStep={stepOfParameter((await searchParams).step)}
     />

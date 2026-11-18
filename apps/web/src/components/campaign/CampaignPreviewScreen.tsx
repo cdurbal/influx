@@ -9,7 +9,8 @@
 // use-campaign-preview.ts. A banner says it is a preview. Nothing in it is a button, a link or an address to
 // contact the brand (CA15): the only way out is the way back, above the title, outside the preview. The
 // page of a brand: a creator, another brand's campaign and an identifier that is nobody's all reach a page
-// that does not exist, as the API answers (T14). No amount, rate, net or price (CLAUDE.md §2, D48, D78).
+// that does not exist, as the API answers (T14). No amount, rate, net or price (CLAUDE.md §2, D48, D78). The drawing is
+// CampaignReadBody, the one the creator's record (CampaignRecordScreen) uses too, notices of RG32 and RG40 included.
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { useMemo, type ReactNode } from "react";
@@ -19,29 +20,22 @@ import {
 } from "@/components/account/account-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
-import { Card } from "@/components/member/ui/Card";
 import { MemberButton } from "@/components/member/ui/MemberButton";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
-import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
-import {
-  CAMPAIGN_PAGE_CLASSES,
-  PREVIEW_LABEL_CLASSES,
-  PREVIEW_LOGO_CLASSES,
-  PREVIEW_ROW_LIST_CLASSES,
-  PREVIEW_VALUE_CLASSES,
-} from "./campaign-classes";
+import { CAMPAIGN_PAGE_CLASSES } from "./campaign-classes";
 import { previewLabelsOf } from "./campaign-preview-labels";
 import {
   previewBrandOf,
+  previewNoticesOf,
   previewSectionsOf,
   type PreviewOrigin,
-  type PreviewRow,
 } from "./campaign-preview-view";
+import { CampaignReadBody } from "./CampaignReadBody";
 import { useCampaignPreview } from "./use-campaign-preview";
 
 /** The page of a brand; any other role finds a page that does not exist (18 T14.3, T14.4). */
@@ -85,6 +79,10 @@ function CampaignPreviewView({
   const brand = useMemo(
     () => (preview === null ? null : previewBrandOf(preview, labels)),
     [preview, labels],
+  );
+  const notices = useMemo(
+    () => (preview === null ? [] : previewNoticesOf(preview.campaign)),
+    [preview],
   );
   if (state.phase === "gone") {
     notFound();
@@ -130,65 +128,14 @@ function CampaignPreviewView({
         </p>
       );
   } else {
-    const title = preview.campaign.title;
     body = (
-      <div data-creator-preview="" className="flex flex-col gap-4">
-        <Card>
-          <h2 className={CARD_TITLE}>{title ?? t("list.untitled")}</h2>
-          {sections.length === 0 ? (
-            <p className="text-md text-text-secondary">{t("preview.empty")}</p>
-          ) : (
-            sections.map((section) => (
-              <section
-                key={section.id}
-                data-preview-section={section.id}
-                aria-labelledby={`preview-section-${section.id}`}
-                className="flex flex-col gap-3"
-              >
-                <h3
-                  id={`preview-section-${section.id}`}
-                  className="font-display text-md font-bold leading-snug text-text-primary"
-                >
-                  {section.title}
-                </h3>
-                <Rows rows={section.rows} />
-              </section>
-            ))
-          )}
-        </Card>
-        <Card>
-          <h2 className={CARD_TITLE} data-preview-brand="">
-            {t("preview.brandTitle")}
-          </h2>
-          {brand === null ? (
-            <Notice tone="info" announce={false}>
-              {t("preview.brandUnpublished")}
-            </Notice>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-center gap-3">
-                {state.logo === null ? null : (
-                  // eslint-disable-next-line @next/next/no-img-element -- a data: source built by the API
-                  <img
-                    src={`data:${state.logo.contentType};base64,${state.logo.data}`}
-                    alt={t("preview.logoAlt")}
-                    width={state.logo.width}
-                    height={state.logo.height}
-                    className={PREVIEW_LOGO_CLASSES}
-                  />
-                )}
-                <p className="font-display text-md font-bold text-text-primary">
-                  {brand.name}
-                </p>
-              </div>
-              {brand.badge === null ? null : (
-                <p className="text-sm text-text-secondary">{brand.badge}</p>
-              )}
-              <Rows rows={brand.rows} />
-            </>
-          )}
-        </Card>
-      </div>
+      <CampaignReadBody
+        heading={preview.campaign.title ?? t("list.untitled")}
+        sections={sections}
+        brand={brand}
+        logo={state.logo}
+        notices={notices}
+      />
     );
   }
 
@@ -203,31 +150,5 @@ function CampaignPreviewView({
         {body}
       </div>
     </PageBackContext>
-  );
-}
-
-/** The rows of a section or of the brand: a name, then what the answer says, as text, a paragraph or a list. */
-function Rows({ rows }: { rows: readonly PreviewRow[] }) {
-  return (
-    <dl className={PREVIEW_ROW_LIST_CLASSES}>
-      {rows.map((row) => (
-        <div key={row.key} data-field={row.key}>
-          <dt className={PREVIEW_LABEL_CLASSES}>{row.label}</dt>
-          <dd className={PREVIEW_VALUE_CLASSES}>
-            {row.kind === "list" ? (
-              <ul className="list-disc pl-5">
-                {row.items.map((item, index) => (
-                  <li key={`${index}-${item}`}>{item}</li>
-                ))}
-              </ul>
-            ) : row.kind === "paragraph" ? (
-              <span className="whitespace-pre-line">{row.text}</span>
-            ) : (
-              row.text
-            )}
-          </dd>
-        </div>
-      ))}
-    </dl>
   );
 }

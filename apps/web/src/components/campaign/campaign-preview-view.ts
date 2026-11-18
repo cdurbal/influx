@@ -359,6 +359,29 @@ export function previewSectionsOf(
   ].filter((entry) => entry.rows.length > 0);
 }
 
+/** The two fixed notices a campaign may carry (09 RG32, RG40): their text is the translation files'. */
+export type PreviewNoticeId = "usageRights" | "disclosure";
+
+/**
+ * The notices that apply to a campaign, in the order they are read. RG40: media purchase, unlimited and worldwide
+ * together is the heaviest condition of the market and is said in words. RG32: a consideration or a product sent
+ * reminds the creator that the publication must say it is commercial. The answer is the only input.
+ */
+export function previewNoticesOf(view: CampaignCreatorView): PreviewNoticeId[] {
+  const notices: PreviewNoticeId[] = [];
+  if (
+    view.usageRights === "media_buy" &&
+    view.usageRightsDuration === "unlimited" &&
+    view.usageRightsTerritoryScope === "worldwide"
+  ) {
+    notices.push("usageRights");
+  }
+  if (view.remunerationKind !== null || view.productIsSent === true) {
+    notices.push("disclosure");
+  }
+  return notices;
+}
+
 /** The published brand profile as the answer carries it; null while the profile is not published (06 RG73). */
 export function previewBrandOf(
   response: CampaignCreatorViewResponse,

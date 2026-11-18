@@ -58,6 +58,26 @@
       "logoAlt": "Logo de {name}"
     }
   },
+  "usageRights": {
+    "warning": "Ce que devient votre contenu : la marque demande l'achat média, sans limite de durée et dans le monde entier. Elle pourra le diffuser comme sa propre publicité, partout et sans fin. Assurez-vous de l'avoir bien compris."
+  },
+  "disclosure": {
+    "notice": "Votre publication devra indiquer son caractère commercial, selon les règles de votre pays et de celui de l'audience. INFLUX vous rappelle cette obligation sans en garantir la conformité locale."
+  },
+  "record": {
+    "campaign": "La campagne",
+    "back": "Campagnes",
+    "loading": "Chargement de la campagne…",
+    "gone": {
+      "title": "Cette campagne n'est plus ouverte.",
+      "text": "Elle a été close, mise en pause ou retirée. D'autres campagnes vous attendent."
+    },
+    "unavailable": "Nous ne parvenons pas à afficher cette campagne pour le moment. Réessayez dans quelques minutes.",
+    "forbidden": "Les campagnes ne sont pas accessibles avec l'état actuel de votre compte.",
+    "rateLimited": "Vous consultez les campagnes très souvent. Réessayez dans un instant.",
+    "rateLimitedWait": "Vous consultez les campagnes très souvent. Réessayez dans {seconds, plural, one {# seconde} other {# secondes}}.",
+    "retry": "Réessayer"
+  },
   "home": {
     "title": "Mes campagnes",
     "text": "Créez une campagne, enregistrée au fur et à mesure, puis soumettez-la à un commercial INFLUX.",

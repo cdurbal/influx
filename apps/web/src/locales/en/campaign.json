@@ -58,6 +58,26 @@
       "logoAlt": "Logo of {name}"
     }
   },
+  "usageRights": {
+    "warning": "What becomes of your content: the brand asks for media buying, with no time limit and worldwide. It may run the content as its own advertising, everywhere and without end. Make sure you have fully understood this."
+  },
+  "disclosure": {
+    "notice": "Your post must state that it is commercial, under the rules of your country and of your audience's. INFLUX reminds you of this obligation without guaranteeing local compliance."
+  },
+  "record": {
+    "campaign": "The campaign",
+    "back": "Campaigns",
+    "loading": "Loading the campaign…",
+    "gone": {
+      "title": "This campaign is no longer open.",
+      "text": "It has closed, been paused or been withdrawn. Other campaigns are waiting for you."
+    },
+    "unavailable": "We cannot show this campaign right now. Please try again in a few minutes.",
+    "forbidden": "Campaigns are not available with your account's current state.",
+    "rateLimited": "You are reading campaigns very often. Please try again in a moment.",
+    "rateLimitedWait": "You are reading campaigns very often. Please try again in {seconds, plural, one {# second} other {# seconds}}.",
+    "retry": "Try again"
+  },
   "home": {
     "title": "My campaigns",
     "text": "Create a campaign, saved as you go, then submit it to an INFLUX account manager.",

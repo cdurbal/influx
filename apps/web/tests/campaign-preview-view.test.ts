@@ -14,6 +14,7 @@ import frCampaign from "@/locales/fr/campaign.json";
 import {
   BRAND_OPTION_GROUPS,
   previewBrandOf,
+  previewNoticesOf,
   previewOriginOf,
   previewOriginQuery,
   previewSectionsOf,
@@ -405,6 +406,60 @@ describe("L3B-fix-1: the way back of the preview returns where it was opened (L3
         to: "campaign",
         step: null,
       });
+    }
+  });
+});
+
+describe("L3D-05: the notices of the creator's record (09 RG32, RG40)", () => {
+  const HEAVIEST = {
+    usageRights: "media_buy",
+    usageRightsDuration: "unlimited",
+    usageRightsTerritoryScope: "worldwide",
+  } as const;
+
+  it("warns of media buying, unlimited and worldwide together, and of nothing less (RG40)", () => {
+    expect(previewNoticesOf(answer(HEAVIEST).campaign)).toContain(
+      "usageRights",
+    );
+    for (const lighter of [
+      { usageRights: "paid_whitelisting" },
+      { usageRightsDuration: "12m" },
+      { usageRightsTerritoryScope: "selected_countries" },
+      { usageRights: null },
+    ] as const) {
+      expect(
+        previewNoticesOf(answer({ ...HEAVIEST, ...lighter }).campaign),
+        JSON.stringify(lighter),
+      ).not.toContain("usageRights");
+    }
+  });
+
+  it("reminds of the commercial nature when there is a consideration or a product sent (RG32)", () => {
+    expect(previewNoticesOf(answer().campaign)).toEqual(["disclosure"]);
+    expect(
+      previewNoticesOf(
+        answer({ remunerationKind: null, productIsSent: true }).campaign,
+      ),
+    ).toEqual(["disclosure"]);
+    expect(
+      previewNoticesOf(
+        answer({ remunerationKind: null, productIsSent: false }).campaign,
+      ),
+    ).toEqual([]);
+  });
+
+  it("says both notices, the heaviest condition first, in each language", () => {
+    expect(previewNoticesOf(answer(HEAVIEST).campaign)).toEqual([
+      "usageRights",
+      "disclosure",
+    ]);
+    for (const copy of [frCampaign, enCampaign]) {
+      expect(copy.usageRights.warning.length).toBeGreaterThan(40);
+      expect(copy.disclosure.notice.length).toBeGreaterThan(40);
+      expect(copy.record.gone.title.length).toBeGreaterThan(10);
+      expect(
+        JSON.stringify([copy.usageRights, copy.disclosure, copy.record]),
+      ).not.toMatch(/%|€|\$|£|\b(EUR|GBP|USD|CAD|CHF)\b/u);
     }
   });
 });

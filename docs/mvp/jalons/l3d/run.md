@@ -6,7 +6,7 @@
 | 02 | 02.md | commit | opus | xhigh | expert-database | fait | 3 doors search.* EXECUTE creator only, owner campaign_feed_definer; visibility in SQL; reads journaled; no right on campaigns.* |
 | 03 | 03.md | commit | opus | high | dev-react-node | fait | card = .pick() of creator view + brandPublicViewOf(); door row zod-strict; refusals after COMMIT; T1.6 serves title+brief only |
 | 04 | 04.md | commit | sonnet | high | dev-react-node | fait | feed page shared by role (no space); card = RG15 pick, greyed has no link; no amount; reducer ignores late pages; e2e median 2.7/1.3/1.6 s |
-| 05 | 05.md | commit | sonnet | high | dev-react-node | à faire | |
+| 05 | 05.md | commit | sonnet | high | dev-react-node | fait | record by role at /campagnes/[id] (FR+EN pages); one body shared with the preview; RG32+RG40 notices; no apply, no contact; gone = n'est plus ouverte |
 | U | ux.md | ux | sonnet | high | expert-ux | à faire | |
 | F | recette.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |

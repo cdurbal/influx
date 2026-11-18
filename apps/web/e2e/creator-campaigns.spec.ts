@@ -7,7 +7,10 @@
 // the same sort). A third journey draws the states the base cannot make cheaply from the same screen with the
 // network answers it would give: unreadable and retried, read too often, « Voir la suite » that skips a card
 // already seen, the cap said, and the empty feed. The texts are the locale files', never copies. No amount, rate
-// or price anywhere (CLAUDE.md §2, D48, D78).
+// or price anywhere (CLAUDE.md §2, D48, D78). Two more journeys read the record C6 (commit 05): from a card, in French
+// at 375 px (the brief, the brand without contact (its role at most), the notice of the commercial nature, no way to apply or to
+// write), and in English at 1 440 px for a campaign with the heaviest usage rights (both notices), paused then
+// unknown: « n'est plus ouverte », the same words, never a technical error (RG24, T14).
 import type { Page } from "@playwright/test";
 import { seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
@@ -36,6 +39,7 @@ type Seeded = {
   tag: string;
   brandName: string;
   titles: Record<string, string>;
+  ids: Record<string, string>;
 };
 
 let seeded: Seeded | null = null;
@@ -83,7 +87,7 @@ async function seedFeed(page: Page): Promise<Seeded> {
          where id = ${id}::uuid`;
     }
   });
-  seeded = { tag, brandName: brand.brandName, titles };
+  seeded = { tag, brandName: brand.brandName, titles, ids };
   return seeded;
 }
 
@@ -353,4 +357,121 @@ test("the feed says what happens: a refusal and an error retried, « Voir la sui
     page.getByRole("link", { name: fr.empty.profileLink }),
   ).toHaveAttribute("href", "/fr/compte/profil");
   expect(frMember.shell.nav.entries.campaigns).toBe("Campagnes");
+});
+
+test("a creator opens the record of a campaign from its card in French at 375 px: the brief, the brand without contact (its role at most), the notice of the commercial nature, no way to apply or to write (09 RG32, RG81; 11 RG16)", async ({
+  page,
+}) => {
+  const fr = frCampaign;
+  const { titles, ids, brandName } = await seedFeed(page);
+  await signInAsCreator(page, "fr");
+  await page.setViewportSize({ width: 375, height: 900 });
+  await open(page, "/fr/campagnes");
+  await page
+    .locator("[data-feed-card]")
+    .filter({ hasText: titles.alpha })
+    .getByRole("link", { name: new RegExp(`^${fr.feed.card.open}`) })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/fr/campagnes/${ids.alpha}$`));
+  await expect(
+    page.getByRole("heading", { level: 1, name: titles.alpha }),
+  ).toBeVisible();
+
+  // What the card carries, plus the brief and the brand as published, the role of its contact and nothing more.
+  const record = page.locator("[data-campaign-record]");
+  await expect(record.locator('[data-field="brief"]')).toBeVisible();
+  await expect(record.locator('[data-field="remunerationKind"]')).toContainText(
+    fr.remuneration.cash,
+  );
+  await expect(
+    record.locator('[data-field="remunerationNotice"]'),
+  ).toContainText(fr.budget.negotiate);
+  await expect(record.locator("[data-preview-brand]")).toBeVisible();
+  await expect(record).toContainText(brandName);
+
+  // The notice of the commercial nature (RG32); the usage rights are light, so no warning (RG40).
+  await expect(
+    record.locator('[data-campaign-notice="disclosure"]'),
+  ).toHaveText(fr.disclosure.notice);
+  await expect(
+    record.locator('[data-campaign-notice="usageRights"]'),
+  ).toHaveCount(0);
+
+  // No application (Lot 4), no way to reach the brand (RG81), no figure (D48, D78): the way back is the only link.
+  await expect(
+    record.getByRole("button").or(record.locator("form, input, textarea")),
+  ).toHaveCount(0);
+  await expect(
+    record.locator("a[href^='mailto:'], a[href^='tel:'], a[href^='http']"),
+  ).toHaveCount(0);
+  const text = await record.innerText();
+  for (const forbidden of ["€", "EUR", "commission", "net créateur", "@"]) {
+    expect(text, forbidden).not.toContain(forbidden);
+  }
+  await expectNoAxeViolation(page, "creator campaign record, FR 375", {
+    wcag22: true,
+  });
+
+  // The way back leads to the feed.
+  await record.getByRole("link", { name: fr.record.back }).first().click();
+  await expect(page).toHaveURL(/\/fr\/campagnes$/);
+});
+
+test("the record of a campaign with the heaviest usage rights says both notices in English at 1 440 px; once paused, and for an unknown one, the same words: no longer open (09 RG32, RG40; 11 RG24; 18 T14)", async ({
+  page,
+}) => {
+  const en = enCampaign;
+  const tag = runTag("H");
+  const agent = await seedColleague("agent", "Bruno");
+  const brand = await brandAccount(page, {
+    name: tag,
+    ownerAgentId: agent.accountId,
+  });
+  ownBrand(brand.accountId);
+  const title = `Lourde ${tag}`;
+  const id = await seedCampaignInState(page, {
+    title,
+    state: "published",
+    decider: agent.accountId,
+    overrides: {
+      usageRights: "media_buy",
+      usageRightsDuration: "unlimited",
+      usageRightsTerritoryScope: "worldwide",
+    },
+  });
+  await signInAsCreator(page, "en");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, `/en/campaigns/${id}`);
+  await expect(
+    page.getByRole("heading", { level: 1, name: title }),
+  ).toBeVisible();
+  const record = page.locator("[data-campaign-record]");
+  await expect(
+    record.locator('[data-campaign-notice="usageRights"]'),
+  ).toHaveText(en.usageRights.warning);
+  await expect(
+    record.locator('[data-campaign-notice="disclosure"]'),
+  ).toHaveText(en.disclosure.notice);
+  await expectNoAxeViolation(page, "creator campaign record, EN 1 440", {
+    wcag22: true,
+  });
+
+  // Paused by INFLUX: the record is no longer served, and the page says so in words.
+  await withSql(async (sql) => {
+    await sql`update campaigns.campaigns set status = 'paused' where id = ${id}::uuid`;
+  });
+  await page.reload();
+  const gone = page.getByRole("heading", {
+    level: 1,
+    name: en.record.gone.title,
+  });
+  await expect(gone).toBeVisible();
+  await expect(page.getByText(en.record.gone.text)).toBeVisible();
+  await expect(record.locator("[data-preview-brand]")).toHaveCount(0);
+
+  // An identifier that is nobody's, and one that is not an identifier: the same page (T14).
+  for (const unknown of ["2f4d6c1e-8a3b-4b7e-9d0a-5c1e7b9f3a21", "not-an-id"]) {
+    await open(page, `/en/campaigns/${unknown}`);
+    await expect(gone, unknown).toBeVisible();
+  }
 });

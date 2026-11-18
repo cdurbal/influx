@@ -1,12 +1,14 @@
-// Calls of the creator's feed of open campaigns (docs/mvp/11 RG13 to RG26, RG33, RG35, RG36; 17 §5.5; jalons/l3d,
+// Calls of the creator's feed and record of open campaigns (docs/mvp/11 RG13 to RG26, RG33, RG35, RG36; 17 §5.5; jalons/l3d,
 // commit 04). Each one goes through the same-origin relay (@influx/web-platform/relay-client) and reads the
 // answer with the schema of packages/contracts (`@influx/contracts/open-campaigns`). No rule lives here: apps/api
 // decides what is visible, in which order, how many, and how often a creator may read; the screen displays. The
 // account is always the session's, and the only identifier of a path is the campaign's own, opaque (RG39).
 import {
   openCampaignBrandLogoResponseSchema,
+  openCampaignRecordResponseSchema,
   openCampaignsResponseSchema,
   type OpenCampaignBrandLogoResponse,
+  type OpenCampaignRecordResponse,
   type OpenCampaignSort,
   type OpenCampaignsResponse,
 } from "@influx/contracts/open-campaigns";
@@ -36,5 +38,16 @@ export function readOpenCampaignBrandLogo(
     "GET",
     `${OPEN_CAMPAIGNS_PATH}/${id}/brand-logo`,
     openCampaignBrandLogoResponseSchema,
+  );
+}
+
+/** The record of an open campaign: the published snapshot, the published brand profile, the notice (RG24, RG81). */
+export function readOpenCampaignRecord(
+  id: string,
+): Promise<RelayResult<OpenCampaignRecordResponse>> {
+  return callRelay(
+    "GET",
+    `${OPEN_CAMPAIGNS_PATH}/${id}`,
+    openCampaignRecordResponseSchema,
   );
 }

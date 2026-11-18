@@ -22,9 +22,12 @@ async function create(
   page: Page,
   title: string,
   complete: boolean,
+  overrides: Record<string, unknown>,
 ): Promise<string> {
   const created = await page.request.post("/api/v1/me/campaigns", {
-    data: complete ? completeCampaignBody(title) : { title },
+    data: complete
+      ? { ...completeCampaignBody(title), ...overrides }
+      : { title },
     headers: SAME_ORIGIN,
   });
   expect(created.status(), await created.text()).toBe(200);
@@ -44,10 +47,17 @@ export async function seedCampaignInState(
     state: SeededState;
     decider: string;
     refusal?: SeededRefusal;
+    /** Fields of the body that replace the whole campaign's own (L3D-05: the heaviest usage rights). */
+    overrides?: Record<string, unknown>;
   },
 ): Promise<string> {
   const { title, state, decider } = options;
-  const id = await create(page, title, state !== "draft");
+  const id = await create(
+    page,
+    title,
+    state !== "draft",
+    options.overrides ?? {},
+  );
   if (state === "draft") {
     return id;
   }
