@@ -109,7 +109,7 @@ async function ownTitles(page: Page, tag: string): Promise<string[]> {
   return titles.filter((title) => title.includes(tag));
 }
 
-test("a creator reads the feed in French at 375 px: the count before the cards, the nature and the notice, no figure, a greyed card with no way in, two sorts (11 RG15, RG26, RG33, RG35, D78)", async ({
+test("L3D-E1: a creator reads the feed in French at 375 px: the count before the cards, the nature and the notice, no figure, a greyed card with no way in, two sorts (11 RG15, RG26, RG33, RG35, D78)", async ({
   page,
 }) => {
   const fr = frCampaign.feed;
@@ -196,7 +196,7 @@ test("a creator reads the feed in French at 375 px: the count before the cards, 
     .toEqual([titles.charlie, titles.alpha, titles.bravo, titles.greyed]);
 });
 
-test("a creator reaches the feed by the column in English at 1 440 px: the entry current, the same cards, the sort in English (17 §2.1, §5.5)", async ({
+test("L3D-E1: a creator reaches the feed by the column in English at 1 440 px: the entry current, the same cards, the sort in English (17 §2.1, §5.5)", async ({
   page,
 }) => {
   const en = enCampaign.feed;
@@ -240,7 +240,7 @@ test("a creator reaches the feed by the column in English at 1 440 px: the entry
   });
 });
 
-test("the feed says what happens: a refusal and an error retried, « Voir la suite » that skips a card already seen, the cap said, the empty feed (11 RG21, RG35, RG36; 17 §5.5)", async ({
+test("L3D-E1: the feed says what happens: a refusal and an error retried, « Voir la suite » that skips a card already seen, the cap said, the empty feed (11 RG21, RG35, RG36; 17 §5.5)", async ({
   page,
 }) => {
   const fr = frCampaign.feed;
@@ -361,7 +361,7 @@ test("the feed says what happens: a refusal and an error retried, « Voir la sui
   expect(frMember.shell.nav.entries.campaigns).toBe("Campagnes");
 });
 
-test("a creator opens the record of a campaign from its card in French at 375 px: the brief, the brand without contact (its role at most), the notice of the commercial nature, no way to apply or to write (09 RG32, RG81; 11 RG16)", async ({
+test("L3D-E2: a creator opens the record of a campaign from its card in French at 375 px: the brief, the brand without contact (its role at most), the notice of the commercial nature, no way to apply or to write (09 RG32, RG81; 11 RG16)", async ({
   page,
 }) => {
   const fr = frCampaign;
@@ -425,7 +425,7 @@ test("a creator opens the record of a campaign from its card in French at 375 px
   await expect(page).toHaveURL(/\/fr\/campagnes$/);
 });
 
-test("the record of a campaign with the heaviest usage rights says both notices in English at 1 440 px; once paused, and for an unknown one, the same words: no longer open (09 RG32, RG40; 11 RG24; 18 T14)", async ({
+test("L3D-E2: the record of a campaign with the heaviest usage rights says both notices in English at 1 440 px; once paused, and for an unknown one, the same words: no longer open (09 RG32, RG40; 11 RG24; 18 T14)", async ({
   page,
 }) => {
   const en = enCampaign;

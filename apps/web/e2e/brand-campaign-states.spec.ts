@@ -52,7 +52,7 @@ async function signedInBrand(
   return member;
 }
 
-test("L3C-E3: my campaigns tell their six states in words, with the reason of a refusal and the step that follows (RG10, RG90, CA59, CA74), in French at 375 px", async ({
+test("L3C-E3 L3D-T1: my campaigns tell their six states in words, with the reason of a refusal and the step that follows (RG10, RG90, CA59, CA74), in French at 375 px", async ({
   page,
 }) => {
   const copy = frCampaign;
@@ -105,7 +105,7 @@ test("L3C-E3: my campaigns tell their six states in words, with the reason of a 
   await withdrawOpenEntries(ids);
 });
 
-test("L3C-E3: a brand pauses, resumes and closes its published campaign, the closing confirmed as final (RG8, RG9, 17 §4.9), in English at 1 440 px", async ({
+test("L3C-E3 L3D-T1: a brand pauses, resumes and closes its published campaign, the closing confirmed as final (RG8, RG9, 17 §4.9), in English at 1 440 px", async ({
   page,
 }) => {
   const copy = enCampaign;
@@ -160,7 +160,7 @@ test("L3C-E3: a brand pauses, resumes and closes its published campaign, the clo
   expect(await campaignStateOf(id)).toBe("closed");
 });
 
-test("L3C-E3: a pause of INFLUX is not the brand's to lift, and a refused campaign states its reason and stays editable (RG8, RG10, CA59), in French", async ({
+test("L3C-E3 L3D-T1: a pause of INFLUX is not the brand's to lift, and a refused campaign states its reason and stays editable (RG8, RG10, CA59), in French", async ({
   page,
 }) => {
   const copy = frCampaign;
