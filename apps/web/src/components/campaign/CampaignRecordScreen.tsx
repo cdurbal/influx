@@ -163,6 +163,13 @@ export function CampaignRecordScreen({ id }: { id: string }) {
       <div className={CAMPAIGN_PAGE_CLASSES} data-campaign-record="">
         {online ? null : <Notice tone="warning">{tAccount("offline")}</Notice>}
         <PageHeader title={title} />
+        {record === null || state.phase === "gone" ? null : (
+          <div data-campaign-notice="noApplication">
+            <Notice tone="info" announce={false}>
+              {t("record.noApplication")}
+            </Notice>
+          </div>
+        )}
         {body}
       </div>
     </PageBackContext>

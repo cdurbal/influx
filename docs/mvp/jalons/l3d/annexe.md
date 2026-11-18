@@ -49,6 +49,7 @@ plus long + contrôle ≤ 8 min.
     EN « Applying is not available yet: this page lets you read the campaign. » « pas encore » est admis (pas de
     date, pas de « bientôt ») parce que la notice disparaît au Lot 4, avant toute ouverture au public (Lot 6) ;
     si cet ordre change, elle doit être relue. Pas de montant, de lien, de bouton ni de mention d'un commercial.
+  - *Livré par X1 :* clé `campaign.record.noApplication`, notice sur la fiche seule (pas sur le fil), cataloguée dans `09` après la clé `campaign.application.validationNotice`.
 - **EC-L3D-4** : mention « réservée aux vérifiés » non servie : option désactivée (`09` Q10),
   colonne non créée (`archives/jalons/l3b/modele.md` §2, -6).
 **Réponses du fondateur (2026-11-18)** : « oui aux 3 questions » : Q1 à Q3 retenues comme recommandé.

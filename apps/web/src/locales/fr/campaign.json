@@ -76,7 +76,8 @@
     "forbidden": "Les campagnes ne sont pas accessibles avec l'état actuel de votre compte.",
     "rateLimited": "Vous consultez les campagnes très souvent. Réessayez dans un instant.",
     "rateLimitedWait": "Vous consultez les campagnes très souvent. Réessayez dans {seconds, plural, one {# seconde} other {# secondes}}.",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "noApplication": "La candidature n'est pas encore disponible : cette page sert à découvrir la campagne."
   },
   "home": {
     "title": "Mes campagnes",

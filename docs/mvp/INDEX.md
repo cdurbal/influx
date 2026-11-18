@@ -306,7 +306,7 @@
 | 48 | 24 | Besoin |  |
 | 72 | 17 | Acteurs |  |
 | 89 | 59 | User stories |  |
-| 148 | 754 | Règles de gestion | RG1–RG110 |
+| 148 | 755 | Règles de gestion | RG1–RG110 |
 | 150 | 97 | ↳ A — Portée, états, publication | RG1–RG94 |
 | 247 | 61 | ↳ B — Bloc 1 : identification | RG16–RG90 |
 | 308 | 58 | ↳ C — Bloc 2 : produit, dotation et divulgation | RG15–RG86 |
@@ -317,12 +317,12 @@
 | 641 | 46 | ↳ H — Bloc 7 : candidature | RG9–RG82 |
 | 687 | 105 | ↳ I — Bloc 8 : interne, secteurs sensibles et backoffice | RG6–RG97 |
 | 792 | 41 | ↳ J — Ce qu'un créateur voit d'une campagne | RG7–RG102 |
-| 833 | 69 | ↳ K — Leads, messages, états d'écran et accessibilité | RG103–RG110 |
-| 902 | 115 | Cas limites | RG4–RG108 |
-| 1017 | 290 | Critères d'acceptation | RG104–RG109 |
-| 1307 | 112 | Impacts | RG6–RG105 |
-| 1419 | 24 | Hors périmètre | RG22–RG82 |
-| 1443 | 21 | Questions ouvertes | RG6–RG84 |
+| 833 | 70 | ↳ K — Leads, messages, états d'écran et accessibilité | RG103–RG110 |
+| 903 | 115 | Cas limites | RG4–RG108 |
+| 1018 | 290 | Critères d'acceptation | RG104–RG109 |
+| 1308 | 112 | Impacts | RG6–RG105 |
+| 1420 | 24 | Hors périmètre | RG22–RG82 |
+| 1444 | 21 | Questions ouvertes | RG6–RG84 |
 
 ## 10-recherche-createurs-anonymisee.md (~31k tokens)
 

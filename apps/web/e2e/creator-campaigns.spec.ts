@@ -397,6 +397,11 @@ test("a creator opens the record of a campaign from its card in French at 375 px
     record.locator('[data-campaign-notice="usageRights"]'),
   ).toHaveCount(0);
 
+  // Why there is nothing to do here: the application is not available yet (L3DU-1), said once, under the title.
+  await expect(
+    record.locator('[data-campaign-notice="noApplication"]'),
+  ).toHaveText(fr.record.noApplication);
+
   // No application (Lot 4), no way to reach the brand (RG81), no figure (D48, D78): the way back is the only link.
   await expect(
     record.getByRole("button").or(record.locator("form, input, textarea")),
@@ -452,6 +457,9 @@ test("the record of a campaign with the heaviest usage rights says both notices 
   await expect(
     record.locator('[data-campaign-notice="disclosure"]'),
   ).toHaveText(en.disclosure.notice);
+  await expect(
+    record.locator('[data-campaign-notice="noApplication"]'),
+  ).toHaveText(en.record.noApplication);
   await expectNoAxeViolation(page, "creator campaign record, EN 1 440", {
     wcag22: true,
   });
@@ -468,6 +476,9 @@ test("the record of a campaign with the heaviest usage rights says both notices 
   await expect(gone).toBeVisible();
   await expect(page.getByText(en.record.gone.text)).toBeVisible();
   await expect(record.locator("[data-preview-brand]")).toHaveCount(0);
+  await expect(
+    record.locator('[data-campaign-notice="noApplication"]'),
+  ).toHaveCount(0);
 
   // An identifier that is nobody's, and one that is not an identifier: the same page (T14).
   for (const unknown of ["2f4d6c1e-8a3b-4b7e-9d0a-5c1e7b9f3a21", "not-an-id"]) {

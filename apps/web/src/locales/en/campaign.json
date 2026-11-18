@@ -76,7 +76,8 @@
     "forbidden": "Campaigns are not available with your account's current state.",
     "rateLimited": "You are reading campaigns very often. Please try again in a moment.",
     "rateLimitedWait": "You are reading campaigns very often. Please try again in {seconds, plural, one {# second} other {# seconds}}.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "noApplication": "Applying is not available yet: this page lets you read the campaign."
   },
   "home": {
     "title": "My campaigns",
