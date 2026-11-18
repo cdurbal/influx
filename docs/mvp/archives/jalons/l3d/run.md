@@ -13,7 +13,7 @@
 | X3 | fix-3.md | fix | sonnet | high | dev-react-node | fait | shared titles Campagnes/Campaign (FR, EN); keys and PAGE_TITLES untouched; brand h1 unchanged; toHaveTitle added to 4 existing cases; e2e 15 passed in 1.1 min |
 | F | recette.md | fondateur | — | — | fondateur | fait | fondateur 2026-11-18 : « je valide la recette » ; staging non préparé par l'agent, aucune donnée écrite, rien à remettre en état |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | T : 0 bloquant, 0 jalon, 5 avant prod, 6 plus tard ; S : 0 bloquant, 0 jalon, 2 avant prod, 6 plus tard ; détail : annexe § Revue |
-| C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
+| C | cloture.md | cloture | sonnet | medium | testeur | fait | critère de fin coché avec preuves ; L3DT-3 soldé ; L3DS-1 en tête du reliquat (avant 0315) ; amendements 09, 11, 18, 21 ; attestation I-4 |
 
 ## Mesures de clôture
 Mesures e2e du run CI 44403125344 :
@@ -22,3 +22,4 @@ Mesures e2e du run CI 44403125344 :
 - creator-campaigns : total 8,2 s (budget 15 s).
 - Éclats e2e : 4:12, 4:36, 3:27 (limite 7:30).
 - Éclats base : 4:04, 3:59 + fusion 14 s (limite 8:00).
+Passage local de clôture (2026-11-18) : `pnpm check` vert (18 min 42 s) ; `pnpm test:e2e` 284 cas verts (6,4 min). Suite base locale complète non rejouée (couverte par les éclats CI).

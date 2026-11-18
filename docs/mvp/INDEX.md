@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/l3d-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -353,26 +350,26 @@
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
-| 54 | 24 | Besoin |  |
-| 78 | 18 | Acteurs |  |
-| 96 | 56 | User stories |  |
-| 152 | 685 | Règles de gestion | RG1–RG116 |
-| 154 | 59 | ↳ A — Portée, vocabulaire et principes | RG1–RG72 |
-| 213 | 89 | ↳ B — Le fil des campagnes ouvertes | RG7–RG80 |
-| 302 | 55 | ↳ C — Filtres, tri et pagination | RG15–RG36 |
-| 357 | 47 | ↳ D — Ce qu'un créateur ne voit jamais | RG18–RG104 |
-| 404 | 100 | ↳ E — Le contenu d'une candidature | RG3–RG103 |
-| 504 | 49 | ↳ F — Plafonds de candidature | RG26–RG92 |
-| 553 | 71 | ↳ G — Les états d'une candidature | RG11–RG82 |
-| 624 | 25 | ↳ H — La restriction « réservée aux profils dont l'audience est vérifiée » | RG11–RG87 |
-| 649 | 80 | ↳ I — La file de validation, et ce qui distingue une candidature d'une demande de contact | RG75–RG99 |
-| 729 | 45 | ↳ J — Notifications | RG40–RG108 |
-| 774 | 63 | ↳ K — Leads, messages, états d'écran et accessibilité | RG9–RG116 |
-| 837 | 111 | Cas limites | RG2–RG110 |
-| 948 | 240 | Critères d'acceptation | RG15–RG113 |
-| 1188 | 76 | Impacts | RG15–RG98 |
-| 1264 | 19 | Hors périmètre | RG17 |
-| 1283 | 19 | Questions ouvertes | RG15–RG110 |
+| 62 | 24 | Besoin |  |
+| 86 | 18 | Acteurs |  |
+| 104 | 56 | User stories |  |
+| 160 | 685 | Règles de gestion | RG1–RG116 |
+| 162 | 59 | ↳ A — Portée, vocabulaire et principes | RG1–RG72 |
+| 221 | 89 | ↳ B — Le fil des campagnes ouvertes | RG7–RG80 |
+| 310 | 55 | ↳ C — Filtres, tri et pagination | RG15–RG36 |
+| 365 | 47 | ↳ D — Ce qu'un créateur ne voit jamais | RG18–RG104 |
+| 412 | 100 | ↳ E — Le contenu d'une candidature | RG3–RG103 |
+| 512 | 49 | ↳ F — Plafonds de candidature | RG26–RG92 |
+| 561 | 71 | ↳ G — Les états d'une candidature | RG11–RG82 |
+| 632 | 25 | ↳ H — La restriction « réservée aux profils dont l'audience est vérifiée » | RG11–RG87 |
+| 657 | 80 | ↳ I — La file de validation, et ce qui distingue une candidature d'une demande de contact | RG75–RG99 |
+| 737 | 45 | ↳ J — Notifications | RG40–RG108 |
+| 782 | 63 | ↳ K — Leads, messages, états d'écran et accessibilité | RG9–RG116 |
+| 845 | 111 | Cas limites | RG2–RG110 |
+| 956 | 240 | Critères d'acceptation | RG15–RG113 |
+| 1196 | 76 | Impacts | RG15–RG98 |
+| 1272 | 19 | Hors périmètre | RG17 |
+| 1291 | 19 | Questions ouvertes | RG15–RG110 |
 
 ## 12-messagerie-a-trois.md (~32k tokens)
 
@@ -669,7 +666,7 @@
 | 860 | 57 | ↳ 11.8 Gabarits et composants |  |
 | 917 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~15k tokens)
+## 21-plan-de-developpement.md (~16k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -681,4 +678,4 @@
 | 93 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 117 | 9 | 6. Configuration des services externes |  |
 | 126 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 143 | 114 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 143 | 117 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |

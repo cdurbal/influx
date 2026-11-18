@@ -22,16 +22,24 @@ réponse Q2. `brand-campaign.spec.ts` (aperçu) reste vert, attendus inchangés 
 plus long + contrôle ≤ 8 min.
 
 ## Critère de fin
-- [ ] Sur `staging`, un créateur publié voit les campagnes ouvertes ; une campagne d'un secteur qu'il
+Preuves de clôture (2026-11-18) : run CI 44403125344 (`3e51516`, tous les jobs verts, « Migrate staging »
+compris) ; run 44405140407 (`7bc0444`, documentation) vert ; mesures dans `run.md` § Mesures de clôture.
+- [x] Sur `staging`, un créateur publié voit les campagnes ouvertes ; une campagne d'un secteur qu'il
       refuse et celle d'une marque suspendue en sont absentes ; la fiche de cette dernière dit « n'est
-      plus ouverte » — preuve : ligne F de `run.md`.
-- [ ] Aucun montant, devise, tranche, budget, référence ni coordonnée de marque dans la charge brute
-      du fil et de la fiche — preuve : L3D-T3, L3D-T6 verts en CI.
-- [ ] TM5.2, TM5.6 (côté créateur), T2, T14, T15 (CA18), T16 verts — preuve : L3D-T2 à T6, run CI.
-- [ ] `0314` sur `staging` — preuve : run CI, « Migrate staging » vert.
-- [ ] e2e ajoutés ≤ 15 s, éclats CI < 7 min 30, job base ≤ 8 min — preuve : `run.md` § Mesures de clôture.
-- [ ] `pnpm check` puis `pnpm test:e2e` verts — preuve : CI (dernier run) et passage local.
-- [ ] Revue soldée et attestée (`security-reviewed:`) — preuve : commit d'attestation, contrôle I-4 vert.
+      plus ouverte » — preuve : ligne F de `run.md`. **À dire en clair (L3DT-4)** : le secteur refusé et la
+      marque suspendue sont prouvés **en base** (L3D-T2), pas en e2e (`creator-campaigns.spec.ts` couvre la
+      pause et l'identifiant inconnu) ; la recette `staging` est le « je valide la recette » du fondateur
+      (2026-11-18, Q3), staging **non préparé par l'agent**, **aucune donnée écrite**, rien à remettre en état.
+- [x] Aucun montant, devise, tranche, budget, référence ni coordonnée de marque dans la charge brute
+      du fil et de la fiche — preuve : L3D-T3, L3D-T6 verts en CI (run 44403125344, jobs base).
+- [x] TM5.2, TM5.6 (côté créateur), T2, T14, T15 (CA18), T16 verts — preuve : L3D-T2 à T6, run CI 44403125344.
+- [x] `0314` sur `staging` — preuve : run CI 44403125344, « Migrate staging » vert.
+- [x] e2e ajoutés ≤ 15 s, éclats CI < 7 min 30, job base ≤ 8 min — preuve : `run.md` § Mesures de clôture
+      (L3D-E1 4,4 s, L3D-E2 3,8 s, total 8,2 s ; éclats e2e 4:12, 4:36, 3:27 ; éclats base 4:04, 3:59).
+- [x] `pnpm check` puis `pnpm test:e2e` verts — preuve : CI (run 44403125344) et passage local
+      (`run.md` § Mesures de clôture).
+- [x] Revue soldée et attestée (`security-reviewed:`) — preuve : commit `chore(security): attest the end-of-L3D
+      review`, contrôle I-4 vert (`check-security-review.ts`).
 
 ## Écarts, décisions ouvertes, risques
 - **EC-L3D-1** : `04` §11 l. 6249-6251 et `21` §7 (« la recherche à `0314` ») : L3D prend `0314`, la
@@ -93,10 +101,10 @@ valider par le fondateur · 9 avant production · 6 plus tard.
 0 bloquant · 0 jalon · 5 avant production · 6 plus tard.
 - L3DT-1 (avant prod.) `apps/api/src/domains/search/open-campaigns/open-campaigns.ts:41-49,112-124` : un seul snapshot non conforme au schéma strict donne un 500 sur toute la page, lecture non journalisée, non testé ; trancher écarter+journaliser ou 500 assumé, test avec snapshot non conforme.
 - L3DT-2 (avant prod.) `0314` verrou consultatif de `campaign_read_retry_after` (~l.520) : concurrence non testée ; ajouter un cas à N lectures parallèles à limite-1.
-- L3DT-3 (avant prod.) les identifiants L3D-T1, L3D-E1, L3D-E2 ne sont dans aucun titre : à préfixer, à plier dans la clôture C.
+- L3DT-3 (avant prod.) les identifiants L3D-T1, L3D-E1, L3D-E2 ne sont dans aucun titre : **soldé à la clôture C** (`test: L3D-T1, L3D-E1 and L3D-E2 identifiers in the titles` ; L3D-T1 porte sur les trois cas de `brand-campaign-states.spec.ts`).
 - L3DT-4 (avant prod.) l'annexe promet en E2 la marque suspendue, mais `e2e/creator-campaigns.spec.ts:428-494` couvre pause et identifiant inconnu seulement ; secteur refusé et marque suspendue prouvés en base seulement, critère de fin n°1 appuyé sur la déclaration du fondateur : à dire en clair à la clôture.
 - L3DT-5 (avant prod.) `routes.ts:163-196` et `member-rate.ts` : échec du magasin du logo (503), objet manquant, plafond 240/min du logo, seau partagé de l'adresse inconnue non testés ; un seau « inconnu » de 60/min rendrait le fil inutilisable si le front ne relaie pas l'adresse : à vérifier sur staging.
-- L3DT-6 (plus tard) member-nav : le « +1 » de l'annexe non livré (34→34), deux attendus changés en plus : à dire dans l'annexe.
+- L3DT-6 (plus tard) member-nav : le « +1 » de l'annexe non livré (34→34), deux attendus changés en plus : **dit à la clôture : le « +1 » de L3D-T7 pour `tests/member-nav.test.ts` n'est pas livré, le plancher reste à 34 (34→34)**.
 - L3DT-7 (plus tard) bord `total == max_pages × page_size` (`capReached` false) non testé.
 - L3DT-8 (plus tard) `newCampaign` calcule les dates en JS (UTC) alors que le SQL lit now() : fragile à cheval sur 00:00 UTC ; calculer en SQL.
 - L3DT-9 (plus tard) le 1er cas e2e lit la page 1 seule : carte grisée après les ouvertes en tri par échéance ; suivre « Voir la suite ».
@@ -105,7 +113,7 @@ valider par le fondateur · 9 avant production · 6 plus tard.
 
 ### Constats S (expert-cybersecurite, 2026-11-18)
 0 bloquant · 0 jalon · 2 avant production · 6 plus tard.
-- L3DS-1 (avant prod.) `0314:239-240,525-531,744-746,834-835` : le seau compte aussi les lignes `rate_limited` sans borne ; un compte via 10 adresses écrit ~1,7 M de lignes en 24 h, l'index (creator_account_id, read_at) ne filtre pas outcome, chaque appel les parcourt sous le verrou du compte, le pool de 10 connexions s'épuise (indisponibilité de l'API, aucune donnée exposée) ; correctif : index partiel `where outcome <> 'rate_limited'` et une seule ligne rate_limited par compte et fenêtre (ou pg_try_advisory_xact_lock → 429), au plus tard avec `0315`, effort S.
+- L3DS-1 (avant prod., **au plus tard avec `0315`, en tête du reliquat de `21` §8**) `0314:239-240,525-531,744-746,834-835` : le seau compte aussi les lignes `rate_limited` sans borne ; un compte via 10 adresses écrit ~1,7 M de lignes en 24 h, l'index (creator_account_id, read_at) ne filtre pas outcome, chaque appel les parcourt sous le verrou du compte, le pool de 10 connexions s'épuise (indisponibilité de l'API, aucune donnée exposée) ; correctif : index partiel `where outcome <> 'rate_limited'` et une seule ligne rate_limited par compte et fenêtre (ou pg_try_advisory_xact_lock → 429), au plus tard avec `0315`, effort S.
 - L3DS-2 (avant prod.) pas de purge à 12 mois de `search.creator_campaign_reads` (modèle §6, EC-L3D-A-5) : tâche du worker avant l'ouverture de production, veto RGPD au Lot 6.
 - L3DS-3 (plus tard) `platform/member-rate.ts:16-20` limite par adresse tenue par instance : à passer en base dès une 2e instance.
 - L3DS-4 (plus tard) `routes.ts:174-224`, `0314:880-923` le logo hors du seau du compte, lecture Storage + visible_campaigns() à chaque appel : cache par object_key ou borne par compte.

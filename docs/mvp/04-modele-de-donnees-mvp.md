@@ -2050,7 +2050,7 @@ Et sur la campagne : `current_snapshot_id uuid references campaigns.campaign_pub
 > **c'est une copie datée de ce qui a été montré**, dont la forme est validée par un schéma zod dans
 > `packages/contracts` et dont l'empreinte est conservée. La vérité reste la ligne vivante.
 
-**La lecture du créateur (L3D, `0314` ; `jalons/l3d/modele.md` §1 à §4, §8).** Le rôle créateur ne
+**La lecture du créateur (L3D, `0314` ; `archives/jalons/l3d/modele.md` §1 à §4, §8).** Le rôle créateur ne
 lit ni la ligne vivante ni l'instantané par un droit : trois portes `search.*` (`03` C(39)) servent
 l'instantané **courant** d'une campagne que le prédicat `search.visible_campaigns()` déclare visible,
 sur les colonnes **vivantes** (état, date limite, fin de période, secteur) ; la charge, elle, est
@@ -2239,7 +2239,7 @@ ne répond qu'à la première, et jamais rétrospectivement. L'index partiel
 #### `search.creator_campaign_reads` — les lectures du fil et des fiches par un créateur (L3D, `0314`)
 
 *Chaque appel du fil des campagnes ouvertes ou d'une fiche, par quel créateur, avec quelle issue*
-(`11` RG22, CA18 ; `jalons/l3d/modele.md` §6). **Un journal propre, pas le registre** : `11` Q12
+(`11` RG22, CA18 ; `archives/jalons/l3d/modele.md` §6). **Un journal propre, pas le registre** : `11` Q12
 veut une purge, que le registre n'a pas, et un sujet « campagne » entrerait dans l'export de la
 marque (`0310`), contre `11` RG40 et `09` RG101.
 

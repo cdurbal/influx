@@ -164,7 +164,7 @@ publié (`06` RG73). Aucun de ces champs n'est ressaisi, et aucun n'est modifiab
 | `brouillon` | En cours de rédaction | L'annonceur ou un agent (état initial) | Non |
 | `à valider` | Soumise, non encore examinée | L'annonceur | Non (ou dernière version validée, RG7) |
 | `publiée` | Validée par un commercial | Un agent ou un admin | **Oui** |
-| `en pause` | Publiée puis suspendue par la marque | L'annonceur, un agent ou un admin | Oui, avec la mention « en pause » |
+| `en pause` | Publiée puis suspendue par la marque | L'annonceur, un agent ou un admin | Oui, avec la mention « en pause » (**Lot 3 : non**, la fiche dit « n'est plus ouverte », réponse Q1 de L3D ; la lecture « en pause » vient au Lot 4 avec les candidats) |
 | `clôturée` | Terminée, définitivement | L'annonceur, un agent, un admin ou le système (RG9) | Non |
 | `refusée` | Examinée et écartée, avec motif typé | Un agent ou un admin | Non |
 
@@ -201,7 +201,7 @@ modification soumise à re-validation sur une campagne ayant déjà reçu des ca
 
 > *Réponse 1 du fondateur (2026-11-13), L3C : RG7, CA6 et CA7 sont réalisés au Lot 4 avec **Q12** ; jusque-là, une campagne `publiée` ou `en pause` est figée pour la marque et pour la correction d'un agent (RG94, 55000 `campaign_not_correctable`).*
 
-**RG8** — Une campagne `en pause` reste lisible, affiche la mention « en pause », **n'accepte plus
+**RG8** — *(Lot 3 : lecture « en pause » réservée aux candidats, Lot 4 ; la fiche servie au créateur dit « n'est plus ouverte », réponse Q1 de L3D, 2026-11-18.)* Une campagne `en pause` reste lisible, affiche la mention « en pause », **n'accepte plus
 aucune candidature** et n'apparaît plus dans la recherche de campagnes. Les candidatures déjà déposées
 et les mises en relation déjà ouvertes ne sont **pas** affectées. La reprise est immédiate et **ne
 repasse pas par la validation**, sauf si un champ soumis à re-validation a été modifié entre-temps.

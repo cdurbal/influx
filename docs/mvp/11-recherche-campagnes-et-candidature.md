@@ -48,6 +48,14 @@
 >
 > **Prolongement des Lots 1 et 2 :** ce document ne redemande **jamais** une information déjà
 > collectée à l'inscription ou déjà présente dans le profil créateur. Toute redemande est un défaut.
+>
+> **Amendements de L3D (2026-11-18, `archives/jalons/l3d-fiche.md`, archivés avec le jalon).** **EC-L3D-2** : les filtres C1 à C7
+> (RG27 à RG32, CA11 à CA14) sont différés au Lot 6bis par le mode serré (`00` §9) ; les deux tris de RG33 sont livrés.
+> **EC-L3D-3** : sans candidature au Lot 3, ni bouton, ni `application.blocked.*`, ni état de candidature sur la carte ;
+> la fiche porte la notice `campaign.record.noApplication`. **EC-L3D-4** : la mention « réservée aux vérifiés » n'est
+> pas servie (option désactivée, colonne non créée). **Réponse Q1 (fondateur, 2026-11-18)** : la fiche d'une campagne en
+> pause répond « n'est plus ouverte » au Lot 3 (RG100 et RG14 l'excluent de toute réponse ; aucun candidat n'existe) ;
+> la lecture « en pause » par les candidats vient au Lot 4 (`09` RG3, RG8).
 
 ---
 
