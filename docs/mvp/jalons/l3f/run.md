@@ -2,7 +2,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | commit | sonnet | medium | testeur | fait | sums 380.7/380.8 s, gap 0.1 s (local, 129 files); shard 1 rerun once (DS-flaky timeout); CI shard times: at first push |
-| A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
+| A | A.md | arbitrage | opus | xhigh | architecte | fait | one owner; origin campaign out of draft, rejected; opening origin derived; visuals relayed, no URL; region on profile; queue 9 at L3F; CA45, CA46 in AL21 |
 | 02 | 02.md | commit | opus | high | expert-database | à faire | |
 | 03 | 03.md | commit | opus | xhigh | expert-database | à faire | |
 | 04 | 04.md | commit | opus | high | expert-database | à faire | |
