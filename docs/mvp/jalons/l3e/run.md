@@ -12,5 +12,5 @@
 | 08 | 08.md | commit | opus | high | dev-react-node | fait | POST /v1/creator-search marque seule, zod strict, carte = projectionOf() unique, 429/400 après COMMIT, 60/min par adresse ; L3E-T8 13+4+6 |
 | 09 | 09.md | commit | sonnet | high | testeur | fait | T1 balaie POST /v1/creator-search (5 servis, témoin onSend), L2DT-5/6, search.* lisible par la marque sans marqueur ; T1 20 à 26 ; aucun marqueur servi |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | 0321 AL21 : seuils en table, fonction definer pour l'admin seul, compte+cause+nombre sans filtre ni profil, état dérivé ; L3E-T10 13 ; I-4 signalé |
-| R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
+| R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | 0 bloquant, 0 jalon ; 6 T (3 avant prod) + 8 S (4 avant prod, L3ES-1 prioritaire) ; détail annexe § Revue ; attestation I-4 accordée |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |

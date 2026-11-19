@@ -64,4 +64,29 @@ thématique propres au fichier) ou balaie les siens (patron `stale-fixtures.ts`)
 (pas de ligne F ; EC-L3E-2 et EC-L3E-3 validés).
 
 ## Revue
-*(rempli par `/jalon-run` : L3ET-n, L3ES-n, une ligne chacun)*
+Revue du 2026-11-19, plage `9f8971d..5c98bb8` : `testeur` 0 bloquant, 0 jalon, 6 constats ; `expert-cybersecurite` 0 bloquant, 0 jalon, 8 constats. CI du dernier push verte (run 44595411008).
+
+**`testeur`**
+- **L3ET-1** (avant production) : quota froid, branche « froids déjà en page 1 comptent dans les `slots` » non exercée (`creator-search-order.test.ts:768-818`, `0320:320-323`) ; ajouter 1 froid naturel + 2 slots, et 2 froids naturels.
+- **L3ET-2** (avant production) : filtre de sortie non testé en négatif (`creator-search.ts:30-53`, `public-projection.ts`) ; test unitaire avec porte doublée, attendu 500 sans marqueur.
+- **L3ET-3** (avant production) : concurrence du seau (`0319:543`, verrou consultatif) non testée à deux connexions réelles, ou « accepté » au reliquat.
+- **L3ET-4** (plus tard) : cas `count = page × taille` manquant (`creator-search-door.test.ts:1408`, `0319:993-995`).
+- **L3ET-5** (plus tard) : annexe L3E-T1 cite le mauvais fichier (`campaigns-creator-feed.test.ts`, 32 à 35) ; EXPLAIN recopié à la main (`:1545`) ; reconnaissance de politique par `like` (`t9:~1107`).
+- **L3ET-6** (plus tard) : journal commité hors nettoyage dans les tests de route, T15 et T1 (AL21 le relève) ; rendu AL21 du backoffice sans test ; pays GL, IS, IE réservés par convention seulement.
+
+**`expert-cybersecurite`**
+- **L3ES-1** (avant production, priorité 1) : `0319:752-762` et `0320:554-559`, campagne d'origine en brouillon admise, secteur changeable : sondage des secteurs refusés (RG31, art. 9) ; n'admettre qu'une campagne sortie du brouillon, sinon 404. Arbitrage `product-owner`, avis `expert-conformite-rgpd` (0,5 j).
+- **L3ES-2** (avant production) : `0316:822-959`, un seul admin en aal2 ouvre l'interrupteur et relève les plafonds ; exiger `confirm_dual_control()` dans les deux écrivains (D84 Q3) (1 j).
+- **L3ES-3** (avant production) : `0321:60`, seuils AL21 `{150, 8000}` hypothétiques, à fixer par le fondateur ; agrégation multi-comptes (CA46) au L3F.
+- **L3ES-4** (avant production) : `creator-search-route.test.ts:197-198`, aucune carte avec visuels servie dans les balayages ; servir visuel approuvé, en attente, légende révisée, vérifier `id` opaque, ni `object_key` ni légende non approuvée.
+- **L3ES-5** (plus tard) : `t9-evidence-unreachable.test.ts:1092-1105`, épingler toutes les politiques de `influx_creator_search_definer`.
+- **L3ES-6** (plus tard) : `0321:77-88`, propriétaire distinct en lecture seule pour AL21 et L3G.
+- **L3ES-7** (plus tard) : `actions-alerts-routes.ts:145`, conditionner à `isAdmin && visible("AL21")`.
+- **L3ES-8** (plus tard, risque accepté) : sous 60 résultats le nombre exact se déduit des cartes ; blocage devinable entre deux comptes ; CA45 et CA46 au L3F.
+
+**Points relus et acceptés par `expert-cybersecurite`** : T1-R (EC-L3E-A-1), exception T9.6 L2G (six colonnes, jamais `object_key`), `influx_search_admin_definer` (réserves L3ES-2 et -6), EC-L3E-A-1, -6, -7.
+
+**Attestation I-4** (lignes 01, 03 à 07, 10) :
+`security-reviewed: 2026-11-19 covers e301c638fc9d20ced0593268fe2daa173b5e1eaa b8f82f5cfa130b251e5fa4c2cec42f139644bf5a 6926e0e919124505da7604a6f6eef3aceb216958 b917cfc26ebe8238fba230f8763cfb01c983f7ed 13501271fcbeaf47410eca2d8052a9596d1b27c4 53f3ca668cfc62a7a7a391ef8ccd897890081e53 5c98bb85a25daffafb39d97cbff39a6ea416a0a2`
+
+**Restes pour la clôture** (`testeur`) : lecture SQL de `staging` (0315 à 0321, interrupteur fermé), « Migrate staging » du run 44595411008, `pnpm check` et `pnpm test:e2e`.
