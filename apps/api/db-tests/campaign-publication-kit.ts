@@ -8,6 +8,7 @@
 // publish_campaign_review_entry() (L3C-T3).
 import { accountIdOf } from "@influx/test-kit/db";
 import type postgres from "postgres";
+import { campaignCalendar } from "./campaign-dates-kit.ts";
 
 /** The agent named as publisher of the fixtures (never the first reviewer: there is none). */
 const FIXTURE_PUBLISHER = accountIdOf("agent", "b");
@@ -48,4 +49,59 @@ export async function publishAsInflux(
     returning c.id::text as id`;
   if (rows.length !== 1)
     throw new Error(`campaign ${campaignId} not published`);
+}
+
+/** The states of a campaign, from its creation in draft. */
+export type CampaignState =
+  "draft" | "pending_review" | "published" | "paused" | "closed" | "rejected";
+
+/**
+ * Puts a campaign created in draft in `state`, as the connection given (the local superuser or the
+ * migration role, outside the guards): the fields a submission requires filled where empty (its sector
+ * kept), then the state; published and paused through publishAsInflux(), closed after a publication.
+ * The creator search admits a campaign of origin out of draft and rejected only (0322, L3ES-1).
+ */
+export async function putCampaignInState(
+  sql: postgres.Sql | postgres.TransactionSql,
+  campaignId: string,
+  state: CampaignState,
+): Promise<void> {
+  if (state === "draft") return;
+  const calendar = campaignCalendar();
+  await sql`
+    update campaigns.campaigns
+       set title = coalesce(title, 'L3F campaign of origin'),
+           campaign_type_code = coalesce(campaign_type_code, 'product_placement'),
+           public_summary = coalesce(public_summary, ${"s".repeat(130)}),
+           brief = coalesce(brief, ${"b".repeat(310)}),
+           product_description = coalesce(product_description, 'L3F product description'),
+           sector_code = coalesce(sector_code, 'sports_leisure'),
+           product_is_sent = coalesce(product_is_sent, false),
+           usage_rights_code = coalesce(usage_rights_code, 'organic_repost'),
+           usage_rights_duration_band = coalesce(usage_rights_duration_band, '3m'),
+           usage_rights_territory_scope = coalesce(usage_rights_territory_scope, 'worldwide'),
+           exclusivity_band = coalesce(exclusivity_band, 'none'),
+           content_review_delay = coalesce(content_review_delay, '5bd'),
+           currency = coalesce(currency, 'EUR'),
+           remuneration_kind = coalesce(remuneration_kind, 'cash'),
+           per_creator_budget_band_code = coalesce(per_creator_budget_band_code, '500_1000'),
+           creators_wanted = coalesce(creators_wanted, 3),
+           applications_close_on = coalesce(applications_close_on,
+                                            ${calendar.applicationsCloseOn}::date),
+           content_due_on = coalesce(content_due_on, ${calendar.contentDueOn}::date),
+           starts_on = coalesce(starts_on, ${calendar.startsOn}::date),
+           ends_on = coalesce(ends_on, ${calendar.endsOn}::date),
+           submitted_at = coalesce(submitted_at, now()),
+           status = ${state === "rejected" ? "rejected" : "pending_review"}::campaigns.campaign_status
+     where id = ${campaignId}::uuid`;
+  if (state === "published" || state === "paused" || state === "closed") {
+    await publishAsInflux(
+      sql,
+      campaignId,
+      state === "paused" ? "paused" : "published",
+    );
+  }
+  if (state === "closed") {
+    await sql`update campaigns.campaigns set status = 'closed' where id = ${campaignId}::uuid`;
+  }
 }

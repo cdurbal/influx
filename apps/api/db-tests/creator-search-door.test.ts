@@ -20,6 +20,10 @@ import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
+  putCampaignInState,
+  type CampaignState,
+} from "./campaign-publication-kit.ts";
+import {
   actAsInternal,
   actAsMember,
   localSuperuser,
@@ -51,7 +55,12 @@ const DOOR_RAW =
 
 type Outcome<T> =
   | { outcome: "rows"; rows: T[] }
-  | { outcome: "error"; code: string; detail: string | undefined };
+  | {
+      outcome: "error";
+      code: string;
+      detail: string | undefined;
+      message: string;
+    };
 
 type Card = {
   creator: Row & {
@@ -106,9 +115,14 @@ async function run<T = Row>(
     );
     return { outcome: "rows", rows: [...rows] as T[] };
   } catch (error) {
-    const found = error as { code?: string; detail?: string };
+    const found = error as { code?: string; detail?: string; message?: string };
     if (found.code === undefined) throw error;
-    return { outcome: "error", code: found.code, detail: found.detail };
+    return {
+      outcome: "error",
+      code: found.code,
+      detail: found.detail,
+      message: found.message ?? "",
+    };
   }
 }
 
@@ -193,21 +207,26 @@ async function newBrand(tx: Tx, spec: BrandSpec = {}): Promise<string> {
   return id;
 }
 
-/** A campaign of `brand` (a draft, or an erased one), its sector given. */
+/**
+ * A campaign of `brand`, its sector given, in `state` (pending_review by default: the first state a
+ * search admits as its origin, 0322), or an erased one.
+ */
 async function newCampaign(
   tx: Tx,
   brand: string,
   sector: string,
-  erased = false,
+  state: CampaignState | "erased" = "pending_review",
 ): Promise<string> {
-  const [row] = erased
-    ? await tx<{ id: string }[]>`
+  const [row] =
+    state === "erased"
+      ? await tx<{ id: string }[]>`
         insert into campaigns.campaigns (advertiser_account_id, sector_code, status, erased_at)
         values (${brand}, ${sector}, 'closed', now()) returning id::text`
-    : await tx<{ id: string }[]>`
+      : await tx<{ id: string }[]>`
         insert into campaigns.campaigns (advertiser_account_id, sector_code)
         values (${brand}, ${sector}) returning id::text`;
   if (row === undefined) throw new Error("no campaign");
+  if (state !== "erased") await putCampaignInState(tx, row.id, state);
   return row.id;
 }
 
@@ -514,6 +533,8 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         "search.creator_order(uuid[],jsonb,text,uuid,integer,integer,date)",
       ),
       helper("search.creator_search_retry_after(uuid)"),
+      // 0322 (L3F-02, EC-L3F-02-1): the admission of a campaign of origin, a sixth invoker helper
+      helper("search.is_admitted_campaign(uuid,uuid)"),
       helper("search.require_creator_searcher()"),
       {
         name: DOOR_SIGNATURE,
@@ -627,6 +648,8 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
       "campaigns.campaigns.erased_at",
       "campaigns.campaigns.id",
       "campaigns.campaigns.sector_code",
+      // 0322 (L3F-02, EC-L3F-02-1): the state of a campaign of origin (L3ES-1)
+      "campaigns.campaigns.status",
       "matching.party_blocks.advertiser_account_id",
       "matching.party_blocks.creator_account_id",
       "matching.party_blocks.lifted_at",
@@ -917,7 +940,12 @@ describe("L3E-T6 the controls in their order (modele §4; 10 RG1, RG2, CA59; T14
       await newCreators(tx, 5);
       const own = await newCampaign(tx, brand, "beauty_personal_care");
       const theirs = await newCampaign(tx, other, "beauty_personal_care");
-      const erased = await newCampaign(tx, brand, "beauty_personal_care", true);
+      const erased = await newCampaign(
+        tx,
+        brand,
+        "beauty_personal_care",
+        "erased",
+      );
       const refused = [];
       for (const campaign of [randomUUID(), theirs, erased]) {
         refused.push(
@@ -935,6 +963,135 @@ describe("L3E-T6 the controls in their order (modele §4; 10 RG1, RG2, CA59; T14
     expect(outcome.refused).toEqual(Array(3).fill(`${NO_DATA_FOUND} campaign`));
     expect(outcome.state).toBe("results");
     expect(outcome.campaign).toBe(outcome.own);
+  });
+});
+
+/** The engine run by the superuser for `brand`: the candidates it keeps (E1 to E6, the filters). */
+async function candidatesOf(
+  tx: Tx,
+  brand: string,
+  campaign: string | null,
+): Promise<string[]> {
+  const rows = await tx<{ id: string }[]>`
+    select c.creator_account_id::text as id
+      from search.creator_candidates('advertiser_anonymous', ${brand}::uuid,
+                                     ${JSON.stringify(HERE)}::text::jsonb, ${campaign}::uuid) c
+     order by 1`;
+  return rows.map((row) => row.id);
+}
+
+describe("L3F-T2 only a campaign out of draft anchors a search (0322, L3ES-1; l3f/modele.md §1)", () => {
+  it("L3F-T2 L3ES-1: a campaign of origin in draft or rejected answers byte for byte as an unknown one (P0002 campaign), nothing written nor counted", async () => {
+    const outcome = await scenario(async (tx) => {
+      const brand = await newBrand(tx);
+      await newCreators(tx, 5);
+      const draft = await newCampaign(tx, brand, "gambling", "draft");
+      const rejected = await newCampaign(tx, brand, "gambling", "rejected");
+      const answers: string[] = [];
+      for (const campaign of [randomUUID(), draft, rejected]) {
+        const searched = await search(tx, brand, HERE, { campaign });
+        answers.push(JSON.stringify(searched.outcome));
+      }
+      return { answers, lines: await linesOf(tx, brand) };
+    });
+    const [unknown, ...others] = outcome.answers;
+    expect(JSON.parse(unknown ?? "{}")).toMatchObject({
+      outcome: "error",
+      code: NO_DATA_FOUND,
+      detail: "campaign",
+    });
+    expect(others).toEqual([unknown, unknown]);
+    // nothing journaled, so nothing counted by the bucket of the account
+    expect(outcome.lines).toEqual([]);
+  });
+
+  it("L3F-T2 L3ES-1, RG31: the sector of a draft changed between two searches has no observable effect; the engine ignores it; submitted, the sector counts", async () => {
+    const outcome = await scenario(async (tx) => {
+      const brand = await newBrand(tx);
+      await newCreators(tx, 5);
+      const refuser = await newCreator(tx, { refused: ["gambling"] });
+      const draft = await newCampaign(tx, brand, "alcohol", "draft");
+      const before = JSON.stringify(
+        (await search(tx, brand, HERE, { campaign: draft })).outcome,
+      );
+      const engineBefore = await candidatesOf(tx, brand, draft);
+      await tx`update campaigns.campaigns set sector_code = 'gambling' where id = ${draft}`;
+      const after = JSON.stringify(
+        (await search(tx, brand, HERE, { campaign: draft })).outcome,
+      );
+      const engineAfter = await candidatesOf(tx, brand, draft);
+      const engineAlone = await candidatesOf(tx, brand, null);
+      const linesInDraft = await linesOf(tx, brand);
+      await putCampaignInState(tx, draft, "pending_review");
+      const submitted = await search(tx, brand, HERE, { campaign: draft });
+      return {
+        before,
+        after,
+        engineBefore,
+        engineAfter,
+        engineAlone,
+        linesInDraft,
+        submitted: {
+          state: submitted.answer.state,
+          count: submitted.line?.result_count,
+          served: aliasesOf(submitted.answer),
+          campaign: submitted.line?.campaign_id,
+        },
+        refuser,
+        draft,
+      };
+    });
+    expect(outcome.after).toBe(outcome.before);
+    expect(JSON.parse(outcome.before)).toMatchObject({
+      outcome: "error",
+      code: NO_DATA_FOUND,
+      detail: "campaign",
+    });
+    expect(outcome.linesInDraft).toEqual([]);
+    // E6 of the engine: the draft's sector, whatever it is, never removes a creator
+    expect(outcome.engineBefore).toEqual(outcome.engineAlone);
+    expect(outcome.engineAfter).toEqual(outcome.engineAlone);
+    expect(outcome.engineAlone).toContain(outcome.refuser.id);
+    expect(outcome.engineAlone).toHaveLength(6);
+    // positive control: submitted, its sector is frozen and counts (E6)
+    expect(outcome.submitted.state).toBe("results");
+    expect(outcome.submitted.count).toBe(5);
+    expect(outcome.submitted.served).not.toContain(outcome.refuser.alias);
+    expect(outcome.submitted.campaign).toBe(outcome.draft);
+  });
+
+  it("L3F-T2 modele §1: a campaign pending_review, published, paused or closed anchors a search: served, journaled with it, its sector excluded (E6)", async () => {
+    const states = ["pending_review", "published", "paused", "closed"] as const;
+    const outcome = await scenario(async (tx) => {
+      const brand = await newBrand(tx);
+      await newCreators(tx, 5);
+      // a sector outside the enhanced review (RG85): the fixture publishes without a first reviewer
+      const refuser = await newCreator(tx, { refused: ["real_estate"] });
+      const served = [];
+      for (const state of states) {
+        const campaign = await newCampaign(tx, brand, "real_estate", state);
+        const [row] = await tx<{ status: string }[]>`
+          select status::text from campaigns.campaigns where id = ${campaign}`;
+        const searched = await search(tx, brand, HERE, { campaign });
+        served.push({
+          status: row?.status,
+          state: searched.answer.state,
+          count: searched.line?.result_count,
+          ownCampaign: searched.line?.campaign_id === campaign,
+          refuserServed: aliasesOf(searched.answer).includes(refuser.alias),
+        });
+      }
+      return served;
+    });
+    expect(outcome).toEqual(
+      states.map((status) => ({
+        status,
+        state: "results",
+        count: 5,
+        ownCampaign: true,
+        refuserServed: false,
+      })),
+    );
   });
 });
 

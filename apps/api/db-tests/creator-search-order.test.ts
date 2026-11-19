@@ -15,6 +15,7 @@ import { accountIdOf, inRolledBackTransaction } from "@influx/test-kit/db";
 import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
+import { putCampaignInState } from "./campaign-publication-kit.ts";
 import { actAsMember, localSuperuser, testDataSet } from "./support.ts";
 
 type Tx = postgres.TransactionSql;
@@ -101,7 +102,10 @@ async function newBrand(tx: Tx, sector = "sports_leisure"): Promise<string> {
   return id;
 }
 
-/** A campaign of `brand`: its deliverables (network, format) and targeted countries. */
+/**
+ * A campaign of `brand`: its deliverables (network, format) and targeted countries, then submitted
+ * (pending_review: a search admits a campaign of origin out of draft only, 0322, EC-L3F-02-2).
+ */
 async function newCampaign(
   tx: Tx,
   brand: string,
@@ -121,6 +125,7 @@ async function newCampaign(
     await tx`insert into campaigns.campaign_audience_countries (campaign_id, slot, country_code)
              values (${id}, ${index + 1}, ${country})`;
   }
+  await putCampaignInState(tx, id, "pending_review");
   return id;
 }
 

@@ -183,10 +183,10 @@
 | 5898 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
 | 5936 | 128 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
 | 6064 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6229 | 187 | 11. Plan de migrations | RG9–RG163 |
-| 6416 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6593 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6629 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 6229 | 188 | 11. Plan de migrations | RG9–RG163 |
+| 6417 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6594 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6630 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 
@@ -331,23 +331,23 @@
 | 56 | 23 | Besoin |  |
 | 79 | 17 | Acteurs | RG105 |
 | 96 | 54 | User stories |  |
-| 150 | 708 | Règles de gestion | RG1–RG117 |
+| 150 | 715 | Règles de gestion | RG1–RG117 |
 | 152 | 49 | ↳ A — Périmètre, ouverture de la recherche et principes | RG1–RG105 |
 | 201 | 146 | ↳ B — Les facettes | RG6–RG117 |
-| 347 | 52 | ↳ C — Exclusions automatiques | RG3–RG84 |
-| 399 | 100 | ↳ D — Tri par défaut, explication et cas froid | RG14–RG73 |
-| 499 | 93 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
-| 592 | 36 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG57–RG78 |
-| 628 | 61 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
-| 689 | 46 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
-| 735 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
-| 771 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
-| 822 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
-| 858 | 115 | Cas limites | RG1–RG92 |
-| 973 | 261 | Critères d'acceptation | RG12–RG117 |
-| 1234 | 62 | Impacts | RG2–RG89 |
-| 1296 | 19 | Hors périmètre | RG6–RG105 |
-| 1315 | 26 | Questions ouvertes | RG1–RG86 |
+| 347 | 59 | ↳ C — Exclusions automatiques | RG3–RG84 |
+| 406 | 100 | ↳ D — Tri par défaut, explication et cas froid | RG14–RG73 |
+| 506 | 93 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
+| 599 | 36 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG57–RG78 |
+| 635 | 61 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
+| 696 | 46 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
+| 742 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
+| 778 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
+| 829 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
+| 865 | 115 | Cas limites | RG1–RG92 |
+| 980 | 262 | Critères d'acceptation | RG12–RG117 |
+| 1242 | 62 | Impacts | RG2–RG89 |
+| 1304 | 19 | Hors périmètre | RG6–RG105 |
+| 1323 | 26 | Questions ouvertes | RG1–RG86 |
 
 ## 11-recherche-campagnes-et-candidature.md (~30k tokens)
 

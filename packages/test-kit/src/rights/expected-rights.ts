@@ -7357,6 +7357,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|column|campaigns.campaigns.erased_at|SELECT",
   "influx_creator_search_definer|column|campaigns.campaigns.id|SELECT",
   "influx_creator_search_definer|column|campaigns.campaigns.sector_code|SELECT",
+  // 0322 (L3F-02, EC-L3F-02-1): the state of a campaign of origin (L3ES-1)
+  "influx_creator_search_definer|column|campaigns.campaigns.status|SELECT",
   "influx_creator_search_definer|column|identity.account_roles.account_id|SELECT",
   "influx_creator_search_definer|column|identity.account_roles.role|SELECT",
   "influx_creator_search_definer|column|identity.accounts.id|SELECT",
@@ -7477,6 +7479,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|function|search.creator_candidates(text,uuid,jsonb,uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.creator_order(uuid[],jsonb,text,uuid,integer,integer,date)|EXECUTE",
   "influx_creator_search_definer|function|search.creator_search_retry_after(uuid)|EXECUTE",
+  // 0322 (L3F-02, EC-L3F-02-1): the admission of a campaign of origin (L3ES-1)
+  "influx_creator_search_definer|function|search.is_admitted_campaign(uuid,uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.require_creator_searcher()|EXECUTE",
   "influx_creator_search_definer|function|search.result_count_band(integer)|EXECUTE",
   "influx_creator_search_definer|function|search.search_creators(jsonb,text,integer,uuid)|EXECUTE",

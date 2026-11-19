@@ -380,6 +380,13 @@ laisser inférer une conviction personnelle du créateur. Elle est silencieuse c
 créateur** : la marque ne sait pas qu'elle a été écartée, le créateur ne sait pas qu'une marque l'a
 cherché. Seul le commercial la voit, via la facette **G10**.
 
+> **Amendé par L3F-02 (`0322`, L3ES-1, `jalons/l3f/modele.md` §1).** Le secteur d'une campagne
+> d'origine n'entre dans E6 que si la campagne est **sortie du brouillon** : de la marque, non effacée,
+> `pending_review`, `published`, `paused` ou `closed` (états où son secteur est figé). Une campagne en
+> `draft` ou `rejected`, que la marque écrit, répond **comme une campagne inconnue** (même erreur,
+> rien journalisé ni décompté) : changer le secteur d'un brouillon et relancer la recherche ne
+> sonde plus les secteurs refusés.
+
 **RG32 — Une paire déjà en relation reste visible, mais signalée.** La carte porte la mention
 **« vous êtes déjà en relation »** et l'action principale devient **« Ouvrir la conversation »**. La
 masquer ferait croire à la disparition du profil et pousserait la marque à chercher le créateur
@@ -1097,7 +1104,8 @@ enregistré** avec les filtres.
 
 **CA33** — *Étant donné* une recherche lancée depuis une campagne, *quand* la liste s'affiche,
 *alors* le palier 2 s'applique ; *quand* la recherche est lancée hors campagne, *alors* il est neutre
-pour tous.
+pour tous. *(Amendé par L3F-02, `0322` : « depuis une campagne » s'entend d'une campagne sortie du
+brouillon, RG31 ; un brouillon ou une campagne refusée répond comme une campagne inconnue.)*
 
 ### k-anonymat
 
