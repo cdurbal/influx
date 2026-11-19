@@ -47,6 +47,15 @@
 //         read of the open campaigns (0314) serves a creator the title and the brief of it, nothing
 //         else. The internal markers and the contact of brand P join every sweep and C-1; the creator's
 //         sweep of T1.6 meets the title (feed, record) and the brief (record) alone, never the band.
+//   L3E   (commit 09) the brand's creator search (POST /v1/creator-search): five creators PUBLISHED and
+//         searchable, the first with distinctive exact figures (47 312 followers, 481 729 posts, 6 204 381
+//         comments per post, 72 % of the audience in one country) and every one with a handle, a URL, a
+//         name, a city, a refused sector and identifiers; a brand whose profile is published, the switch
+//         (D38) open for the file. The markers join every sweep and C-1 (L2DT-5: the city, the posts, the
+//         comments and the share are searched BY VALUE); the route is swept by the inventory, with real
+//         pages served (a counter-test and a witness: a sweep that serves nothing proves nothing); 400,
+//         429, closed and below k are searched too; the whole router is swept WITHOUT a session
+//         (L2DT-6); no table of `search` the brand can read holds a marker.
 // Deferred: the agent's identified view (the queue routes of L2G 11 serve layer I to an agent, by
 // design); T1.3 and the "after" of T1.6 (a revealed introduction) at Lot 4. The rights side of the
 // same rule (influx_advertiser reaches no `creator_%` object, non reversible) is T1-R, in
@@ -96,9 +105,29 @@ import {
   sharedMigrationRole,
   testDataSet,
 } from "./support.ts";
-import { requestsOf, type Method } from "./route-requests.ts";
+import {
+  requestsOf,
+  type Method,
+  type SweepRequest,
+} from "./route-requests.ts";
 import { campaignCalendar } from "./campaign-dates-kit.ts";
 import { publishAsInflux } from "./campaign-publication-kit.ts";
+import {
+  openCampaignRouteFixtures,
+  type CampaignRouteFixtures,
+} from "./campaign-routes-kit.ts";
+import {
+  closeSearch,
+  forgetCampaignSearches,
+  HERE,
+  openSearch,
+  postSearch,
+  searchableCreator,
+  URL_SEARCH,
+  withSearchSetting,
+  type SearchCreator,
+} from "./creator-search-kit.ts";
+import { publishedBrand, type PublishedBrand } from "./open-campaigns-kit.ts";
 
 const PROFILE = "/v1/me/creator-profile";
 const NETWORKS = "/v1/me/creator-profile/networks";
@@ -181,7 +210,27 @@ let l3d: {
   served: Marker[];
 };
 
-/** Every marker of both parties, the verification's, L2F's, L2G's, L3B's and L3D's included. */
+/**
+ * L3E (commit 09): the creators the brand's search serves, and the brands that search. `markers` are
+ * what no brand may read of them, every one (`short` ones, under the six characters `valuesFoundIn`
+ * accepts, are searched as plain text in the answers of the search alone); `sweepMarkers` are those
+ * of the sweeps (a refused sector is a code of a closed list the forms offer: the search alone).
+ */
+let l3e: {
+  fx: CampaignRouteFixtures;
+  /** The brand that searches, and the brand whose session the sweeps use. */
+  brand: PublishedBrand;
+  sweepBrand: PublishedBrand;
+  /** Every published brand of the file: its journal lines leave before its campaigns can. */
+  brands: PublishedBrand[];
+  /** The first creator holds the distinctive figures; the last one has another topic. */
+  creators: SearchCreator[];
+  served: SearchCreator;
+  markers: Marker[];
+  sweepMarkers: Marker[];
+};
+
+/** Every marker of both parties, the verification's, L2F's, L2G's, L3B's, L3D's and L3E's included. */
 function allMarkers(): Marker[] {
   return [
     ...creator.markers,
@@ -192,6 +241,7 @@ function allMarkers(): Marker[] {
     ...l2g.markers,
     ...l3b.markers,
     ...l3d.markers,
+    ...l3e.sweepMarkers,
   ];
 }
 /** The brand that sweeps (T1.1), and the creator that sweeps (T1.6). */
@@ -380,33 +430,40 @@ async function sweep(
   caller: Member | null,
   ids: readonly string[],
   markers: readonly Marker[],
+  /** Requests made first, filed under their own route (L3E: pages the synthesised bodies never serve). */
+  extra: readonly SweepRequest[] = [],
 ): Promise<SweepResult> {
   const findings: string[] = [];
   const statuses = new Map<string, number[]>();
   let calls = 0;
-  for (const route of await sweptRoutes(server)) {
-    const seen: number[] = [];
-    statuses.set(routeName(route), seen);
-    for (const request of requestsOf(route, ids)) {
-      const session =
-        caller === null ? null : await newSession(caller.accountId);
-      const response = await call(
-        server,
-        request.method,
-        request.url,
-        session,
-        request.body,
-      );
-      calls += 1;
-      seen.push(response.statusCode);
-      const raw = `${response.body}\n${JSON.stringify(response.headers)}`;
-      for (const marker of markers) {
-        if (valuesFoundIn(raw, [marker.value]).length > 0) {
-          findings.push(
-            `${routeName(route)} (${response.statusCode}): ${marker.name}`,
-          );
-        }
+  const visit = async (name: string, request: SweepRequest) => {
+    const session = caller === null ? null : await newSession(caller.accountId);
+    const response = await call(
+      server,
+      request.method,
+      request.url,
+      session,
+      request.body,
+    );
+    calls += 1;
+    statuses.get(name)?.push(response.statusCode);
+    const raw = `${response.body}\n${JSON.stringify(response.headers)}`;
+    for (const marker of markers) {
+      if (valuesFoundIn(raw, [marker.value]).length > 0) {
+        findings.push(`${name} (${response.statusCode}): ${marker.name}`);
       }
+    }
+  };
+  for (const request of extra) {
+    const name = `${request.method} ${request.url}`;
+    statuses.set(name, statuses.get(name) ?? []);
+    await visit(name, request);
+  }
+  for (const route of await sweptRoutes(server)) {
+    const name = routeName(route);
+    statuses.set(name, statuses.get(name) ?? []);
+    for (const request of requestsOf(route, ids)) {
+      await visit(name, request);
     }
   }
   return { findings, statuses, calls };
@@ -536,10 +593,53 @@ beforeAll(async () => {
   l2g = await l2gFixtures(server);
   l3b = await l3bFixtures(server);
   l3d = await l3dFixtures(server);
+  l3e = await l3eFixtures(server);
 
   sweepingBrand = await newMember("advertiser");
   sweepingCreator = await newMember("creator");
 });
+
+/**
+ * L3E (commit 09): five creators published and searchable (the switch opened for the file, closed in
+ * afterAll), the first with distinctive exact figures, the last with another topic so that a filter on
+ * the topic of the others stays under k (5); and two brands whose profile is published.
+ */
+async function l3eFixtures(server: Server): Promise<typeof l3e> {
+  const fx = await openCampaignRouteFixtures();
+  await openSearch(fx);
+  const searching = await publishedBrand(fx, server);
+  const sweeping = await publishedBrand(fx, server);
+  const served = await searchableCreator(fx, {
+    posts: 481_729,
+    comments: 6_204_381,
+    share: 72,
+    shareBand: "50_80",
+  });
+  const creators = [served];
+  for (let index = 0; index < 3; index += 1) {
+    creators.push(await searchableCreator(fx));
+  }
+  creators.push(await searchableCreator(fx, { topic: "travel" }));
+  const markers = creators.flatMap((member, index) =>
+    member.markers.map((marker) => ({
+      name: `creator ${index} ${marker.name}`,
+      value: marker.value,
+    })),
+  );
+  return {
+    fx,
+    brand: searching,
+    sweepBrand: sweeping,
+    brands: [searching, sweeping],
+    creators,
+    served,
+    markers,
+    sweepMarkers: markers.filter(
+      (marker) =>
+        marker.value.length >= 6 && !marker.name.endsWith("refused sector"),
+    ),
+  };
+}
 
 /** L3B (commit 08): brand M's campaign, written through its own route, a draft (RG108). */
 async function l3bFixtures(
@@ -1256,6 +1356,12 @@ async function l2gFixtures(server: Server): Promise<typeof l2g> {
 
 afterAll(async () => {
   await closeDatabase(database);
+  // L3E: the switch closed, the creators out of the search, the journal lines of the campaigns gone
+  if (l3e !== undefined) {
+    await closeSearch(l3e.fx);
+    await forgetCampaignSearches(l3e.fx, l3e.brands);
+    await l3e.fx.close();
+  }
   // no visual nor entry of creator G stays in queues 2 and 3 of the shared stack
   if (l2g !== undefined) {
     const account = l2g.creator.accountId;
@@ -1788,6 +1894,402 @@ describe("L3D-T6: L3D (commit 03): the open campaigns join the sweeps", () => {
         .filter((name) => name !== "L3D brand account identifier"),
     );
   });
+});
+
+/** The leaves of a parsed answer, numbers and texts, at any depth. */
+function leavesOf(value: unknown): (string | number)[] {
+  if (typeof value === "string" || typeof value === "number") {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(leavesOf);
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.values(value).flatMap(leavesOf);
+  }
+  return [];
+}
+
+/** A whole number as a text may write it: 47312, 47 312, 47,312, 47.312. */
+function writtenNumber(value: number): RegExp {
+  const groups = String(value)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, " ")
+    .split(" ");
+  return new RegExp(`(?<!\\d)${groups.join("[\\s\\u00a0\\u202f.,']?")}(?!\\d)`);
+}
+
+/**
+ * The exact figures of a creator found in a parsed answer (L2DT-5): a number equal to one of them, or
+ * a text writing one (the share with its unit). The figures too short for a search by value (47 312,
+ * 72) are looked for here, on the leaves; a timestamp is no text of a figure.
+ */
+function exactFiguresIn(
+  answer: unknown,
+  exact: SearchCreator["exact"],
+): string[] {
+  const found = new Set<string>();
+  const share = new RegExp(
+    `(?<!\\d)${exact.share}(?:[.,]\\d+)?\\s?(?:%|percent|pour)`,
+    "i",
+  );
+  for (const leaf of leavesOf(answer)) {
+    if (typeof leaf === "number") {
+      for (const [name, value] of Object.entries(exact)) {
+        if (leaf === value) {
+          found.add(name);
+        }
+      }
+      continue;
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(leaf)) {
+      continue;
+    }
+    for (const name of ["followers", "posts", "comments"] as const) {
+      if (writtenNumber(exact[name]).test(leaf)) {
+        found.add(name);
+      }
+    }
+    if (share.test(leaf)) {
+      found.add("share");
+    }
+  }
+  return [...found].sort();
+}
+
+describe("L3E-T9: L3E (commit 09): the brand's creator search joins the sweeps", () => {
+  const SEARCH = `POST ${URL_SEARCH}`;
+  const here = { filters: HERE };
+  type Answer = LightMyRequestResponse;
+
+  /** The markers of the five creators in an answer of the search, by value then as plain text. */
+  function leaksIn(answer: Answer): string[] {
+    const raw = `${answer.body}\n${JSON.stringify(answer.headers)}`;
+    const plain = raw.toLowerCase();
+    return [
+      ...markersIn(
+        raw,
+        l3e.markers.filter((marker) => marker.value.length >= 6),
+      ),
+      ...l3e.markers
+        .filter(
+          (marker) =>
+            marker.value.length < 6 &&
+            plain.includes(marker.value.toLowerCase()),
+        )
+        .map((marker) => marker.name),
+      ...l3e.markers
+        .filter((marker) => marker.name.endsWith("refused sector"))
+        .filter((marker) => plain.includes(marker.value.toLowerCase()))
+        .map((marker) => marker.name),
+    ];
+  }
+
+  function servedPages(): SweepRequest[] {
+    return [
+      { method: "POST", url: URL_SEARCH, body: here },
+      { method: "POST", url: URL_SEARCH, body: { ...here, sort: "audience" } },
+      {
+        method: "POST",
+        url: URL_SEARCH,
+        body: { ...here, sort: "verified_first" },
+      },
+      {
+        method: "POST",
+        url: URL_SEARCH,
+        body: { ...here, sort: "new_profiles", page: 2 },
+      },
+    ];
+  }
+
+  function sweepIds(): string[] {
+    return [
+      l3e.served.lineId,
+      l3e.served.accountId,
+      l3e.served.alias,
+      randomUUID(),
+      "x",
+    ];
+  }
+
+  it("T1.2, T1.1: the search route is in the inventory the sweeps walk, and a brand served by it finds no marker in any body or header", async () => {
+    const server = app();
+    const swept = (await sweptRoutes(server)).map(routeName);
+    expect(
+      swept.filter((route) => route.split(" ")[1]?.startsWith(URL_SEARCH)),
+    ).toEqual([SEARCH]);
+    const result = await sweep(
+      server,
+      l3e.sweepBrand,
+      sweepIds(),
+      [...allMarkers(), ...l3e.brand.markers],
+      servedPages(),
+    );
+    expect(result.findings).toEqual([]);
+    // the sweep reached the handler: the pages served, the bodies refused (no 5xx)
+    const seen = result.statuses.get(SEARCH) ?? [];
+    expect(
+      seen.filter((status) => status === 200).length,
+    ).toBeGreaterThanOrEqual(servedPages().length);
+    expect(seen).toContain(400);
+    expect(seen.filter((status) => status >= 500)).toEqual([]);
+  });
+
+  it("counter-test: the pages the sweep reads serve the aliases and the bands, the markers are real, and a route that leaks is caught", async () => {
+    const server = app();
+    const response = await postSearch(server, l3e.brand, here);
+    expect(response.statusCode, response.body).toBe(200);
+    const page = response.json() as {
+      state: string;
+      countBand: string;
+      cards: {
+        creator: {
+          alias: string;
+          mainAudienceShareBand: string;
+          networks: { audienceBand: string }[];
+        };
+      }[];
+    };
+    expect(page.state).toBe("results");
+    expect(page.countBand).toEqual(expect.any(String));
+    expect(page.cards.map((card) => card.creator.alias).sort()).toEqual(
+      l3e.creators.map((member) => member.alias).sort(),
+    );
+    // 72 % is served as its band, 47 312 followers as an audience band (CA3, CA4)
+    const card = page.cards.find(
+      (candidate) => candidate.creator.alias === l3e.served.alias,
+    );
+    expect(card?.creator.mainAudienceShareBand).toBe("50_80");
+    expect(card?.creator.networks[0]?.audienceBand).toEqual(expect.any(String));
+    expect(leaksIn(response)).toEqual([]);
+    // the markers are real: the base holds them as typed, on the line and in layer I
+    const [line] = await migration<
+      {
+        handle: string;
+        profile_url: string;
+        followers: number;
+        posts: number;
+        comments: string;
+      }[]
+    >`
+      select handle, profile_url, followers_count::int as followers,
+             posts_last_30_days as posts, avg_comments_per_post::text as comments
+        from profiles.creator_social_accounts where id = ${l3e.served.lineId}`;
+    const [identity] = await migration<{ city: string }[]>`
+      select city from profiles.creator_identities
+       where account_id = ${l3e.served.accountId}`;
+    const typed = Object.fromEntries(
+      l3e.served.markers.map((marker) => [marker.name, marker.value]),
+    );
+    expect(line).toEqual({
+      handle: typed.handle,
+      profile_url: typed["profile URL"],
+      followers: l3e.served.exact.followers,
+      posts: l3e.served.exact.posts,
+      comments: String(l3e.served.exact.comments),
+    });
+    expect(identity?.city).toBe(typed.city);
+    // the instrument finds a figure in every way a text writes it
+    expect(
+      exactFiguresIn(
+        {
+          a: 47312,
+          b: "47 312 followers",
+          c: "72 %",
+          d: [481729],
+          e: "6.204.381",
+        },
+        l3e.served.exact,
+      ),
+    ).toEqual(["comments", "followers", "posts", "share"]);
+    // a route that leaks a handle in a page is caught by the value search of the sweeps
+    const leaking = app();
+    leaking.addHook("onSend", async (_request, _reply, payload) =>
+      typeof payload === "string" && payload.includes('"state":"results"')
+        ? `${payload}${typed.handle}`
+        : payload,
+    );
+    const leaked = await postSearch(leaking, l3e.brand, here);
+    expect(leaked.statusCode).toBe(200);
+    expect(leaksIn(leaked)).toEqual(["creator 0 handle"]);
+  });
+
+  it("T1.4: the 400, the 429, the closed switch, the brand not published and a search below k answer without any marker", async () => {
+    const server = app();
+    const answers = new Map<string, LightMyRequestResponse>();
+    // 400: a size of page, a page beyond the cap, a facet outside the base, no filters at all
+    for (const [name, body] of [
+      ["size", { ...here, pageSize: 50 }],
+      ["cap", { ...here, page: 6 }],
+      ["facet", { filters: { ...HERE, F12: ["lt_500"] } }],
+      ["empty", {}],
+    ] as const) {
+      const refused = await postSearch(
+        server,
+        await publishedBrandOf(server),
+        body as unknown,
+      );
+      expect(refused.statusCode, name).toBe(400);
+      answers.set(name, refused);
+    }
+    // below k: four creators of five hold the topic, the same answer as none
+    const narrow = await postSearch(server, await publishedBrandOf(server), {
+      filters: { ...HERE, F1: "pets" },
+    });
+    expect(narrow.statusCode, narrow.body).toBe(200);
+    expect(narrow.json()).toEqual({ state: "too_narrow" });
+    answers.set("below k", narrow);
+    // not published: no list
+    const draft = await l3e.fx.newMember("advertiser");
+    const unpublished = await postSearch(server, draft, here);
+    expect(unpublished.json()).toEqual({ state: "brand_not_published" });
+    answers.set("not published", unpublished);
+    // closed (D38)
+    await withSearchSetting(
+      l3e.fx,
+      "is_open_to_advertisers",
+      false,
+      async () => {
+        const closed = await postSearch(
+          server,
+          await publishedBrandOf(server),
+          here,
+        );
+        expect(closed.json()).toEqual({ state: "closed" });
+        answers.set("closed", closed);
+      },
+    );
+    // 429: the bucket of the account, one search an hour
+    const limited = await publishedBrandOf(server);
+    await withSearchSetting(
+      l3e.fx,
+      "rate_limits",
+      { perHour: 1, perDay: 200, profileOpensPerDay: 60 },
+      async () => {
+        expect((await postSearch(server, limited, here)).statusCode).toBe(200);
+        const refused = await postSearch(server, limited, here);
+        expect(refused.statusCode, refused.body).toBe(429);
+        expect(Number(refused.headers["retry-after"])).toBeGreaterThanOrEqual(
+          1,
+        );
+        answers.set("429", refused);
+      },
+    );
+    // a creator, who is no brand, finds the route unknown
+    const asCreator = await postSearch(server, l3e.served, here);
+    expect(asCreator.statusCode).toBe(404);
+    answers.set("creator", asCreator);
+    expect([...answers.keys()]).toHaveLength(9);
+    for (const [name, answer] of answers) {
+      expect(leaksIn(answer), name).toEqual([]);
+    }
+  });
+
+  it("L2DT-5: the city, the posts, the comments, the share and the followers typed are in no page, in any sort, and every page holds bands", async () => {
+    const server = app();
+    const pages: Answer[] = [];
+    for (const request of servedPages()) {
+      const response = await postSearch(server, l3e.brand, request.body);
+      expect(response.statusCode, response.body).toBe(200);
+      pages.push(response);
+    }
+    const typed = Object.fromEntries(
+      l3e.served.markers.map((marker) => [marker.name, marker.value]),
+    );
+    // distinctive figures: six digits, a city of its own, as the review L2DT-5 asked
+    expect(String(l3e.served.exact.posts)).toHaveLength(6);
+    expect(String(l3e.served.exact.comments).length).toBeGreaterThanOrEqual(6);
+    expect(typed["exact posts"]).toBe(String(l3e.served.exact.posts));
+    expect(typed["exact comments"]).toBe(String(l3e.served.exact.comments));
+    expect(typed.city).toMatch(/^Quimper[0-9a-f]{10}$/);
+    for (const page of pages) {
+      expect(leaksIn(page)).toEqual([]);
+      expect(exactFiguresIn(JSON.parse(page.body), l3e.served.exact)).toEqual(
+        [],
+      );
+    }
+    // the first page does serve the creator, with bands in place of the figures
+    const first = JSON.parse(pages[0]?.body ?? "") as {
+      cards: { creator: { networks: Record<string, unknown>[] } }[];
+    };
+    expect(first.cards).toHaveLength(5);
+    for (const card of first.cards) {
+      for (const line of card.creator.networks) {
+        for (const key of [
+          "audienceBand",
+          "publicationFrequency",
+          "commentBand",
+        ]) {
+          expect(typeof line[key], key).toBe("string");
+        }
+      }
+    }
+  });
+
+  it("L2DT-6: the whole router, called with no session at all, serves no marker, and the search answers 401", async () => {
+    const result = await sweep(
+      app(),
+      null,
+      sweepIds(),
+      [...allMarkers(), ...l3e.brand.markers],
+      servedPages(),
+    );
+    expect(result.findings).toEqual([]);
+    expect(result.calls).toBeGreaterThan(result.statuses.size);
+    const seen = result.statuses.get(SEARCH) ?? [];
+    expect(seen.length).toBeGreaterThan(servedPages().length);
+    expect(seen.filter((status) => status !== 401 && status !== 400)).toEqual(
+      [],
+    );
+    expect(seen).toContain(401);
+  });
+
+  it("C-1 on the journal: no table of `search` the brand can read holds a marker, the journal of the impressions does hold the creators, out of its reach", async () => {
+    const server = app();
+    // two searches, so that the journal holds a query and its impressions
+    for (const request of servedPages().slice(0, 2)) {
+      expect(
+        (await postSearch(server, l3e.brand, request.body)).statusCode,
+      ).toBe(200);
+    }
+    const dump = async (onlyReadable: boolean): Promise<string> => {
+      const tables = await migration<{ name: string }[]>`
+        select c.relname as name
+          from pg_class c join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'search' and c.relkind in ('r', 'p', 'v', 'm', 'f')
+           and (not ${onlyReadable}
+                or has_any_column_privilege('influx_advertiser', c.oid, 'select'))
+         order by c.relname`;
+      const rows: string[] = [];
+      for (const table of tables) {
+        const lines = await migration<{ line: string }[]>`
+          select to_jsonb(t)::text as line from search.${migration(table.name)} t`;
+        rows.push(...lines.map((row) => row.line));
+      }
+      return rows.join("\n");
+    };
+    const every = await dump(false);
+    const readable = await dump(true);
+    // the instrument: the base does hold the identifier of every creator served, in the journal
+    expect(every).toContain(l3e.served.accountId);
+    expect(
+      l3e.creators.filter((member) => every.includes(member.accountId)),
+    ).toHaveLength(5);
+    // and the brand reads none of it, nor any other marker, in any table it can read
+    expect(readable).not.toContain(l3e.served.accountId);
+    const plain = readable.toLowerCase();
+    expect(
+      l3e.markers
+        .filter((marker) => plain.includes(marker.value.toLowerCase()))
+        .map((marker) => marker.name),
+    ).toEqual([]);
+  });
+
+  /** A brand of its own: the journal and the bucket of one case are no other's. */
+  async function publishedBrandOf(server: Server): Promise<PublishedBrand> {
+    const made = await publishedBrand(l3e.fx, server);
+    l3e.brands.push(made);
+    return made;
+  }
 });
 
 describe("T1.1, T1.4 every route, called as a brand on the web surface: no marker of a creator, errors included", () => {

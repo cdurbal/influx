@@ -38,9 +38,23 @@ export type SearchCreator = Member & {
   alias: string;
   lineId: string;
   markers: Marker[];
+  /** The exact figures typed on his line and his main audience, served as bands only (CA3, CA4). */
+  exact: { followers: number; posts: number; comments: number; share: number };
 };
 
-export type CreatorSpec = { topic?: string; languages?: string[] };
+/**
+ * `posts`, `comments` and `share` override the exact figures of the line (17 posts, 43 comments,
+ * 83 % of the main audience): a distinctive posts or comments figure (six digits at least) joins the
+ * markers, so that the sweeps of T1 search it BY VALUE (L2DT-5); `shareBand` follows `share`.
+ */
+export type CreatorSpec = {
+  topic?: string;
+  languages?: string[];
+  posts?: number;
+  comments?: number;
+  share?: number;
+  shareBand?: "ge_80" | "50_80" | "lt_50";
+};
 
 const creatorsOf = new Map<CampaignRouteFixtures, string[]>();
 
@@ -128,11 +142,14 @@ export async function searchableCreator(
   const firstName = `Maelle${tag}`;
   const lastName = `Kervella${tag}`;
   const city = `Quimper${tag}`;
+  const posts = spec.posts ?? 17;
+  const comments = spec.comments ?? 43;
+  const share = spec.share ?? 83;
   const [line] = await fx.migration<{ id: string }[]>`
     insert into profiles.creator_social_accounts
       (account_id, network_code, is_primary, handle, profile_url, followers_count,
        posts_last_30_days, avg_comments_per_post, figures_measured_at)
-    values (${member.accountId}, 'instagram', true, ${handle}, ${url}, ${EXACT_FOLLOWERS}, 17, 43,
+    values (${member.accountId}, 'instagram', true, ${handle}, ${url}, ${EXACT_FOLLOWERS}, ${posts}, ${comments},
             now())
     returning id::text`;
   const lineId = line?.id ?? "";
@@ -142,7 +159,7 @@ export async function searchableCreator(
   await fx.migration`
     insert into profiles.creator_audience_countries
       (social_account_id, account_id, slot, country_code, share_percent)
-    values (${lineId}, ${member.accountId}, 0, ${SEARCH_COUNTRY}, 83)`;
+    values (${lineId}, ${member.accountId}, 0, ${SEARCH_COUNTRY}, ${share})`;
   await fx.migration`
     insert into profiles.creator_identities (account_id, legal_first_name, legal_last_name, city)
     values (${member.accountId}, ${firstName}, ${lastName}, ${city})
@@ -164,7 +181,7 @@ export async function searchableCreator(
     update profiles.creator_public_profiles
        set status = 'published', published_at = now() - interval '40 days',
            is_searchable = true, primary_topic_code = ${spec.topic ?? "pets"},
-           main_audience_country = ${SEARCH_COUNTRY}, main_audience_share_band = 'ge_80'
+           main_audience_country = ${SEARCH_COUNTRY}, main_audience_share_band = ${spec.shareBand ?? "ge_80"}
      where account_id = ${member.accountId}
      returning alias, public_ref::text`;
   if (row === undefined) {
@@ -176,6 +193,7 @@ export async function searchableCreator(
     ...member,
     alias: row.alias,
     lineId,
+    exact: { followers: EXACT_FOLLOWERS, posts, comments, share },
     markers: [
       { name: "handle", value: handle },
       { name: "profile URL", value: url },
@@ -188,6 +206,12 @@ export async function searchableCreator(
       { name: "line identifier", value: lineId },
       { name: "public_ref", value: row.public_ref },
       { name: "refused sector", value: REFUSED_SECTOR },
+      ...(spec.posts === undefined
+        ? []
+        : [{ name: "exact posts", value: String(spec.posts) }]),
+      ...(spec.comments === undefined
+        ? []
+        : [{ name: "exact comments", value: String(spec.comments) }]),
     ],
   };
 }

@@ -10,7 +10,7 @@
 | 06 | 06.md | commit | opus | xhigh | expert-database | fait | 0319 : porte marque seule, E1-E6 en SQL avant compte, k identique 0/4, tranche, seau 30/h 200/j ; couche A unique ; T1-R 10 couples ; L3E-T2, T3, T9 L2G changés |
 | 07 | 07.md | commit | opus | high | expert-database | fait | 0320 : creator_order() invoker, paliers en ORDER BY sans score, quota froid page 1 jamais fabriqué, raisons codes/tranches (F6 50_80) ; L3E-T7 18, T6 suit |
 | 08 | 08.md | commit | opus | high | dev-react-node | fait | POST /v1/creator-search marque seule, zod strict, carte = projectionOf() unique, 429/400 après COMMIT, 60/min par adresse ; L3E-T8 13+4+6 |
-| 09 | 09.md | commit | sonnet | high | testeur | à faire | |
+| 09 | 09.md | commit | sonnet | high | testeur | fait | T1 balaie POST /v1/creator-search (5 servis, témoin onSend), L2DT-5/6, search.* lisible par la marque sans marqueur ; T1 20 à 26 ; aucun marqueur servi |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
