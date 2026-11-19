@@ -215,6 +215,15 @@ export const CAMPAIGN_SNAPSHOT_ID_B = "00000000-0000-4000-8000-00000000ff2d";
 export const CAMPAIGN_INTERVENTION_ID_B =
   "00000000-0000-4000-8000-00000000ff2e";
 
+/**
+ * 0316 (L3E commit 03): one inert search of advertiser A (a fixed past instant, outside every bucket)
+ * serving creator A with two reasons, its exposure, one shortlist of advertiser A holding creator A,
+ * and one counter row, so that T2 finds a row in each table of the journal. Append-only: inserted
+ * once.
+ */
+export const SEARCH_QUERY_ID_A = "00000000-0000-4000-8000-00000000ff2f";
+export const SHORTLIST_ID_A = "00000000-0000-4000-8000-00000000ff30";
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -613,6 +622,48 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
        where not exists (select 1 from search.creator_campaign_reads
                           where creator_account_id = ${accountIdOf("creator", "a")}
                             and read_at = '2026-01-01T00:00:00Z')`;
+    // 0316 (L3E): one inert search of advertiser A serving creator A (SEARCH_QUERY_ID_A), its two
+    // fallback reasons, the exposure of creator A, a shortlist (SHORTLIST_ID_A) and a counter row
+    await tx`
+      insert into search.search_queries
+        (id, account_id, actor_role, view_mode, outcome, filters, sort_code, facet_config_version,
+         result_count, page_reached, created_at)
+      values (${SEARCH_QUERY_ID_A}, ${accountIdOf("advertiser", "a")}, 'advertiser',
+              'advertiser_anonymous', 'served', '{"F1": "beauty"}'::jsonb, 'default',
+              (select min(version) from search.facet_config_versions), 5, 1,
+              '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into search.search_impressions (search_query_id, creator_account_id, rank)
+      values (${SEARCH_QUERY_ID_A}, ${accountIdOf("creator", "a")}, 1)
+      on conflict do nothing`;
+    await tx`
+      insert into search.impression_reasons
+        (search_query_id, creator_account_id, reason_code, position, reason_params)
+      values (${SEARCH_QUERY_ID_A}, ${accountIdOf("creator", "a")}, 'primary_topic', 1,
+              '{"topic": "beauty"}'::jsonb),
+             (${SEARCH_QUERY_ID_A}, ${accountIdOf("creator", "a")}, 'main_audience', 2,
+              '{"country": "FR", "shareBand": "ge_80"}'::jsonb)
+      on conflict do nothing`;
+    await tx`
+      insert into search.creator_exposures (creator_account_id, first_page_at)
+      values (${accountIdOf("creator", "a")}, '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into search.shortlists (id, advertiser_account_id, name, created_at)
+      values (${SHORTLIST_ID_A}, ${accountIdOf("advertiser", "a")}, 'T2 shortlist A',
+              '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into search.shortlist_items (shortlist_id, creator_account_id, added_at)
+      values (${SHORTLIST_ID_A}, ${accountIdOf("creator", "a")}, '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into search.supply_counters
+        (snapshot_on, dimension, dimension_value, published_profiles_count,
+         searchable_profiles_count, computed_at)
+      values ('2026-01-01', 'global', '*', 0, 0, '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
     // 0217 (L2D): the identifying objects of each creator. The identity row comes with the
     // storefront (trigger, or the reprise of 0217 on an older stack); one primary network line with
     // its exact figures and one row per audience dimension; one refused sector; one history row

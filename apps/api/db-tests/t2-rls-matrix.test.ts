@@ -716,6 +716,7 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
     // influx_creator_profile_definer (0242): the creator's deposits and withdrawals, from its doors
     // influx_campaign_definer (0305): campaign.submitted, from the submission door only
     // influx_campaign_review_definer (0307): the claims of queue 7, from its functions only
+    // influx_search_admin_definer (0316): search.settings_changed, from its two writers only
     expect(appenders.sort()).toEqual([
       "influx_audit_writer",
       "influx_campaign_definer",
@@ -727,6 +728,7 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
       "influx_maintenance_definer",
       "influx_moderation_definer",
       "influx_privacy_definer",
+      "influx_search_admin_definer",
       "influx_verification_definer",
     ]);
   });

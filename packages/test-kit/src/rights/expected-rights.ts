@@ -2237,6 +2237,98 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "creator_account_id",
     expected: {},
   },
+  // 0316 (L3E commit 03, l3e/modele.md §7, §9): the journal of the creator search, its settings and
+  // the brand's shortlists. No right for any execution role (fiche invariant 1, 03.md « Arrêt si »):
+  // a RESTRICTIVE policy refuses every row to the members on each table; the settings, the facets
+  // and the versions are written by the two writers of influx_search_admin_definer (EXECUTE
+  // influx_admin), the journal by the doors of 0319 and 0320, the shortlists by those of L3F.
+  {
+    table: "search.explanation_reasons",
+    source:
+      "0316 (10 RG41, RG42; l3e/modele §7): the closed list of the reasons and the vigilance notes, " +
+      "codes and parameter keys, no label (R8)",
+    probeColumn: "code",
+    expected: {},
+  },
+  {
+    table: "search.facet_settings",
+    source:
+      "0316 (10 RG11 to RG14; l3e/modele §9): the 24 facets, the base open but F12 (D78), written " +
+      "by search.write_facet_setting() only",
+    probeColumn: "facet_code",
+    expected: {},
+  },
+  {
+    table: "search.search_settings",
+    source:
+      "0316 (10 RG2, RG57, RG63; l3e/modele §9): eight keys closed by CHECK, " +
+      "is_open_to_advertisers false, written by search.write_search_setting() only",
+    probeColumn: "key",
+    expected: {},
+  },
+  {
+    table: "search.facet_config_versions",
+    source:
+      "0316 (10 RG88; l3e/modele §9): one version per change of the facets, k or the cold quota, " +
+      "append-only (guard_search_journal_write)",
+    probeColumn: "changed_at",
+    expected: {},
+  },
+  {
+    table: "search.search_queries",
+    source:
+      "0316 (10 RG66, CA47; l3e/modele §9): one line per search, written by the doors of 0319 only, " +
+      "append-only outside the erasure (0318)",
+    probeColumn: "account_id",
+    expected: {},
+  },
+  {
+    table: "search.search_impressions",
+    source:
+      "0316 (10 RG66, CA48; l3e/modele §9): one line per creator served with its rank, opened once " +
+      "(L3F), append-only outside the erasure",
+    probeColumn: "creator_account_id",
+    expected: {},
+  },
+  {
+    table: "search.impression_reasons",
+    source:
+      "0316 (10 RG41; l3e/modele §7): the reasons shown on a card, codes and bands only, " +
+      "append-only, deleted with the impression",
+    probeColumn: "reason_code",
+    expected: {},
+  },
+  {
+    table: "search.creator_exposures",
+    source:
+      "0316 (l3e/modele §6, §9): the first page 1 of a creator, the cold quota of 0320, inserted " +
+      "once, deleted by the erasure only",
+    probeColumn: "creator_account_id",
+    expected: {},
+  },
+  {
+    table: "search.shortlists",
+    source:
+      "0316 (04 §5.5; l3e/modele §9): the brand's private shortlists, NO member right (doors by " +
+      "alias at L3F)",
+    probeColumn: "advertiser_account_id",
+    expected: {},
+  },
+  {
+    table: "search.shortlist_items",
+    source:
+      "0316 (04 §5.5; l3e/modele §9): the creators of a shortlist, NO member right (the brand " +
+      "never holds a creator_account_id)",
+    probeColumn: "creator_account_id",
+    expected: {},
+  },
+  {
+    table: "search.supply_counters",
+    source:
+      "0316 (04 §5.5, 10 RG2, D38): the daily counters of critical mass, written by the task of L3G",
+    probeColumn: "dimension",
+    expected: {},
+  },
 ];
 
 /**
@@ -7116,6 +7208,46 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|column|search.creator_campaign_reads.read_at|SELECT",
   "influx_privacy_definer|schema|search|USAGE",
   "influx_privacy_definer|table|search.creator_campaign_reads|DELETE",
+  // 0316 (L3E commit 03, l3e/modele.md §9): influx_search_admin_definer owns the two writers of an
+  // administrator (EXECUTE influx_admin only, who reaches the schema for them and nothing else in it);
+  // it reads its caller (account, roles, agent profile: its own rows), reads and updates the settings
+  // and the facets, inserts a version, executes audit.append() and the snapshot of a version.
+  "influx_admin|function|search.write_facet_setting(text,boolean,integer,text)|EXECUTE",
+  "influx_admin|function|search.write_search_setting(text,jsonb)|EXECUTE",
+  "influx_admin|schema|search|USAGE",
+  "influx_search_admin_definer|column|identity.account_roles.account_id|SELECT",
+  "influx_search_admin_definer|column|identity.account_roles.role|SELECT",
+  "influx_search_admin_definer|column|identity.accounts.id|SELECT",
+  "influx_search_admin_definer|column|identity.accounts.status|SELECT",
+  "influx_search_admin_definer|column|identity.agent_profiles.account_id|SELECT",
+  "influx_search_admin_definer|column|identity.agent_profiles.is_active|SELECT",
+  "influx_search_admin_definer|column|search.facet_config_versions.changed_by_account_id|INSERT",
+  "influx_search_admin_definer|column|search.facet_config_versions.note|INSERT",
+  "influx_search_admin_definer|column|search.facet_config_versions.snapshot|INSERT",
+  "influx_search_admin_definer|column|search.facet_config_versions.version|SELECT",
+  "influx_search_admin_definer|column|search.facet_settings.display_order|SELECT,UPDATE",
+  "influx_search_admin_definer|column|search.facet_settings.facet_code|SELECT",
+  "influx_search_admin_definer|column|search.facet_settings.is_open|SELECT,UPDATE",
+  "influx_search_admin_definer|column|search.facet_settings.updated_at|UPDATE",
+  "influx_search_admin_definer|column|search.facet_settings.updated_by_account_id|UPDATE",
+  "influx_search_admin_definer|column|search.facet_settings.wave|SELECT",
+  "influx_search_admin_definer|column|search.search_settings.key|SELECT",
+  "influx_search_admin_definer|column|search.search_settings.updated_at|UPDATE",
+  "influx_search_admin_definer|column|search.search_settings.updated_by_account_id|UPDATE",
+  "influx_search_admin_definer|column|search.search_settings.value|SELECT,UPDATE",
+  "influx_search_admin_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_search_admin_definer|function|influx.current_aal()|EXECUTE",
+  "influx_search_admin_definer|function|influx.current_account_id()|EXECUTE",
+  "influx_search_admin_definer|function|influx.current_account_role()|EXECUTE",
+  "influx_search_admin_definer|function|influx.has_aal2()|EXECUTE",
+  "influx_search_admin_definer|function|search.facet_config_snapshot()|EXECUTE",
+  "influx_search_admin_definer|function|search.require_search_admin()|EXECUTE",
+  "influx_search_admin_definer|function|search.write_facet_setting(text,boolean,integer,text)|EXECUTE",
+  "influx_search_admin_definer|function|search.write_search_setting(text,jsonb)|EXECUTE",
+  "influx_search_admin_definer|schema|audit|USAGE",
+  "influx_search_admin_definer|schema|identity|USAGE",
+  "influx_search_admin_definer|schema|influx|USAGE",
+  "influx_search_admin_definer|schema|search|USAGE",
 ];
 
 /**
@@ -7126,7 +7258,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
  * 0222, twenty-two with influx_verification_definer, 0224, twenty-three from L2G with
  * influx_creator_profile_definer, 0242, twenty-four from L3B with influx_campaign_definer, 0305,
  * twenty-five from L3C with influx_campaign_review_definer, 0307, twenty-six from L3D with
- * influx_campaign_feed_definer, 0314), memberships.
+ * influx_campaign_feed_definer, 0314, twenty-seven from L3E with influx_search_admin_definer, 0316),
+ * memberships.
  */
 export const EXPECTED_ROLES: Readonly<
   Record<string, { login: boolean; memberOf: readonly string[] }>
@@ -7173,6 +7306,8 @@ export const EXPECTED_ROLES: Readonly<
   influx_campaign_review_definer: { login: false, memberOf: [] },
   // 0314 (L3D, l3d/modele §1): the owner of the creator's doors on the open campaigns
   influx_campaign_feed_definer: { login: false, memberOf: [] },
+  // 0316 (L3E, l3e/modele §9): the owner of the two writers of the search settings
+  influx_search_admin_definer: { login: false, memberOf: [] },
 };
 
 /** Owners of SECURITY DEFINER functions: no login, NO member (only C-9 tolerance). */
@@ -7190,6 +7325,7 @@ export const FUNCTION_OWNER_ROLES = [
   "influx_campaign_definer",
   "influx_campaign_review_definer",
   "influx_campaign_feed_definer",
+  "influx_search_admin_definer",
 ] as const;
 
 /** Execution roles (T4.4: own nothing). */
@@ -7695,4 +7831,9 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "search.read_open_campaigns(text,integer)": "influx_campaign_feed_definer",
   "search.read_open_campaign(uuid)": "influx_campaign_feed_definer",
   "search.read_open_campaign_brand_logo(uuid)": "influx_campaign_feed_definer",
+  // 0316 (L3E commit 03): the two writers of an administrator; require_search_admin() is SECURITY
+  // INVOKER, same owner; the snapshot, the band, the checks and the guard are the migration role's.
+  "search.write_search_setting(text,jsonb)": "influx_search_admin_definer",
+  "search.write_facet_setting(text,boolean,integer,text)":
+    "influx_search_admin_definer",
 };

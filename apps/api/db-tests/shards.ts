@@ -93,6 +93,7 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/profiles-portfolio-privacy.test.ts",
     "db-tests/reference-labels.test.ts",
     "db-tests/reference-taxonomies.test.ts",
+    "db-tests/search-journal-settings.test.ts",
     "db-tests/t13-ops-recording.test.ts",
     "db-tests/t14-backoffice-actions-route.test.ts",
     "db-tests/t14-backoffice-invitations-route.test.ts",

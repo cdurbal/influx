@@ -18,6 +18,7 @@
     "./campaign-creator-view": "./src/campaign-creator-view.ts",
     "./campaign-review": "./src/campaign-review.ts",
     "./open-campaigns": "./src/open-campaigns.ts",
+    "./search-settings": "./src/search-settings.ts",
     "./creator-profile": "./src/creator-profile.ts",
     "./creator-portfolio": "./src/creator-portfolio.ts",
     "./creator-projection": "./src/creator-projection.ts",

@@ -2118,6 +2118,24 @@ vivante**.
 
 ### 5.5 `search` — journal de recherche et sélections (Lot 3)
 
+> **Livré par `0316` (L3E, `jalons/l3e/modele.md` §7, §9, qui prime pour tout nom).** Écarts au
+> texte ci-dessous : `search_queries.outcome` (`served`, `page_cap`, `rate_limited` ; hors `served`
+> nombre 0 et pas de blocage k ; `rate_limited` sans filtre), index `(account_id, created_at desc)`
+> complet et partiel hors `rate_limited` ; `search_impressions.cold_quota`, `vigilance_code` (une
+> note au plus, code de type `vigilance`), `was_opened` vrai une seule fois ;
+> `explanation_reasons.kind` (`reason`, `vigilance`) et `param_keys` (clés exactes de
+> `reason_params`, tenues par un déclencheur), 13 raisons et 4 notes ; `reason_params` : chaînes
+> seules, jamais un nombre, ≤ 500 o ; **`search.creator_exposures`** (`creator_account_id` PK,
+> `first_page_at`, insérée une fois) ; `facet_settings` : 24 codes, **ouverte ⇒ socle**, F12 fermée
+> tant que D78 tient ; `search_settings` **sans `alert_thresholds`** (seuils d'AL21 dans
+> `backoffice.alert_definitions`) ; `search.result_count_band()` (`5_9`, `10_24`, `25_49`,
+> `50_plus`) ; écriture par `search.write_search_setting()` et `write_facet_setting()`, propriétaire
+> `influx_search_admin_definer`, `EXECUTE` à `influx_admin` seul (`aal2`), version à chaque
+> changement de facette, de k ou du quota froid. Journal, impressions, raisons, expositions et
+> versions en ajout seul hors effacement (`0318`) ; **aucun droit membre** sur aucune table du
+> schéma, sélections comprises (politique restrictive `*_no_member_access`), portes par alias au
+> L3F. Bornes des réglages : `0316` EC-L3E-03-1.
+
 #### `search.search_queries`
 
 *Chaque recherche lancée, par qui, avec quels filtres, et ce qu'elle a renvoyé.* C'est à la fois un
@@ -2201,9 +2219,10 @@ constantes**.
 
 Clés de `search.search_settings`, fermées par `CHECK` (`10` RG2, RG57, RG63) :
 `is_open_to_advertisers`, `k_anonymity_threshold` (5), `page_size` (12), `max_pages` (5),
-`rate_limits` (30/h, 200/j, 60 profils ouverts/j), `cold_profile_quota`,
-`critical_mass_thresholds` (30 profils publiés, 5 par thématique), `alert_thresholds`,
+`rate_limits` (30/h, 200/j, 60 profils ouverts/j), `cold_profile_quota` (2 places, 30 jours),
+`critical_mass_thresholds` (30 profils publiés, 5 par thématique),
 `region_display_threshold` (5, lu par `profiles.creator_public_profiles.residence_region_code`).
+*`alert_thresholds` retirée par `0316` (`jalons/l3e/modele.md` §9, §10).*
 
 Trois garanties, calquées sur `leads.sync_settings` (§5.8) : l'écriture est réservée à
 `influx_admin` par une fonction `SECURITY DEFINER` qui **écrit un événement chaîné
@@ -6292,7 +6311,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0313 | `campaign_one_person_review` (L3C) | D84 : un secteur sensible est publié par une seule personne, second avis facultatif, `review_mode` au registre | Oui |
 | 0314 | `search_open_campaigns` (L3D, EC-L3D-1) | `influx_campaign_feed_definer`, portes `search.read_open_campaigns()`, `read_open_campaign()`, `read_open_campaign_brand_logo()` (`EXECUTE` créateur seul), prédicat `visible_campaigns()`, journal `creator_campaign_reads`, cinq réglages du fil et du débit, `campaigns_feed_idx` ; export et effacement (`privacy.*` recréées depuis `0310`) | Oui tant qu'aucune ligne n'est journalisée |
 | 0315 | `search_campaign_read_bucket_bounded` (L3E, EC-L3E-1) | Dette L3DS-1 : index partiel `creator_campaign_reads_bucket_idx` hors `rate_limited`, une ligne `rate_limited` au plus par compte et fenêtre ; `campaign_read_retry_after()` recréée (mêmes entrées, deux colonnes de sortie), `read_open_campaigns()` et `read_open_campaign()` recréées à signature égale | Oui |
-| 0316 | `search_journal` (L3E) | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` ; et les réglages : `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
+| 0316 | `search_journal_and_settings` (L3E, EC-L3E-1) | `search_queries` (**tri, version des facettes et issue compris**), `search_impressions`, `explanation_reasons` (`kind`), `impression_reasons`, `creator_exposures`, `shortlists`, `shortlist_items` (aucun droit membre) ; et les réglages : `search_settings` (huit clés), `facet_settings`, `facet_config_versions` (version 1), `supply_counters`, `result_count_band()` ; `influx_search_admin_definer`, `write_search_setting()` et `write_facet_setting()` (`EXECUTE` à `influx_admin` seul, `search.settings_changed`) | Oui tant qu'aucune recherche n'est journalisée |
 | 0317 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend ; `party_blocks` entre alors dans `search.visible_campaigns()` | Oui |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
