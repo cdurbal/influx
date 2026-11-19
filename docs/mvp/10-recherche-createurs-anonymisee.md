@@ -431,8 +431,12 @@ chiffre de complétude n'apparaît dans aucune réponse servie à une marque.
 
 **RG41 — L'explication affichée sur chaque carte.** Forme attendue :
 
-> **« Proposé car : thématique beauté correspondante · plus de 70 % d'audience en France · propose le
+> **« Proposé car : thématique beauté correspondante · 50 à 80 % d'audience en France · propose le
 > format vidéo TikTok · audience vérifiée le 12 mars 2026. »**
+
+*Exemple amendé par L3E-07 (EC-L3E-2) : la part d'audience se cite par sa tranche de F6 (`ge_80`,
+`50_80`, `lt_50`), jamais « plus de 70 % », qui exigerait le chiffre exact ; codes et tranches
+seulement en base (`search.impression_reasons`, `0320`), la date se lit sur la carte.*
 
 *Exemple révisé au pilote (D78) : le fragment « fourchette tarifaire compatible avec votre budget indicatif » est
 retiré ; aucune explication ne cite un montant.*
@@ -983,7 +987,9 @@ résultats, *alors* elle voit **une tranche**, et la valeur 47 312 **n'apparaît
 réponse.
 
 **CA4** — *Étant donné* un créateur dont l'audience française est de 72 %, *quand* l'explication
-s'affiche, *alors* elle indique **« plus de 70 % d'audience en France »** et **jamais 72 %**.
+s'affiche, *alors* elle indique **la tranche de F6, « 50 à 80 % d'audience en France »** (paramètre
+`50_80`) et **jamais 72 %** *(amendé par L3E-07, EC-L3E-2 : « plus de 70 % » ne se tire pas des
+tranches de F6 sans lire le chiffre exact)*.
 
 **CA5** — *Étant donné* une mise en relation validée, *quand* la marque consulte le créateur, *alors*
 les champs de la couche révélable apparaissent **et l'horodatage de révélation est écrit**.

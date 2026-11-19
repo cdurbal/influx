@@ -7330,6 +7330,14 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // layer A, migration role, invoker) is executed by it and by influx_creator (the preview).
   "influx_advertiser|function|search.search_creators(jsonb,text,integer,uuid)|EXECUTE",
   "influx_advertiser|schema|search|USAGE",
+  // 0320 (L3E commit 07, l3e/modele.md §6, §7): tier 2 reads the deliverables and the targeted
+  // countries of the caller's own campaigns
+  "influx_creator_search_definer|column|campaigns.campaign_audience_countries.campaign_id|SELECT",
+  "influx_creator_search_definer|column|campaigns.campaign_audience_countries.country_code|SELECT",
+  "influx_creator_search_definer|column|campaigns.campaign_deliverables.campaign_id|SELECT",
+  "influx_creator_search_definer|column|campaigns.campaign_deliverables.format_code|SELECT",
+  "influx_creator_search_definer|column|campaigns.campaign_deliverables.network_code|SELECT",
+  "influx_creator_search_definer|column|campaigns.campaign_deliverables.slot|SELECT",
   "influx_creator_search_definer|column|campaigns.campaigns.advertiser_account_id|SELECT",
   "influx_creator_search_definer|column|campaigns.campaigns.erased_at|SELECT",
   "influx_creator_search_definer|column|campaigns.campaigns.id|SELECT",
@@ -7405,7 +7413,13 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|column|profiles.portfolio_items.id|SELECT",
   "influx_creator_search_definer|column|profiles.portfolio_items.state|SELECT",
   "influx_creator_search_definer|column|search.creator_exposures.creator_account_id|INSERT,SELECT",
-  "influx_creator_search_definer|column|search.creator_exposures.first_page_at|INSERT",
+  // 0320: first_page_at read (cold before the UTC day), the reasons of its impressions inserted
+  "influx_creator_search_definer|column|search.creator_exposures.first_page_at|INSERT,SELECT",
+  "influx_creator_search_definer|column|search.impression_reasons.creator_account_id|INSERT",
+  "influx_creator_search_definer|column|search.impression_reasons.position|INSERT",
+  "influx_creator_search_definer|column|search.impression_reasons.reason_code|INSERT",
+  "influx_creator_search_definer|column|search.impression_reasons.reason_params|INSERT",
+  "influx_creator_search_definer|column|search.impression_reasons.search_query_id|INSERT",
   "influx_creator_search_definer|column|search.explanation_reasons.code|SELECT",
   "influx_creator_search_definer|column|search.explanation_reasons.is_active|SELECT",
   "influx_creator_search_definer|column|search.explanation_reasons.kind|SELECT",
@@ -7446,6 +7460,7 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|function|profiles.creator_layer_a(uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.check_creator_search_filters(jsonb)|EXECUTE",
   "influx_creator_search_definer|function|search.creator_candidates(text,uuid,jsonb,uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.creator_order(uuid[],jsonb,text,uuid,integer,integer,date)|EXECUTE",
   "influx_creator_search_definer|function|search.creator_search_retry_after(uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.require_creator_searcher()|EXECUTE",
   "influx_creator_search_definer|function|search.result_count_band(integer)|EXECUTE",

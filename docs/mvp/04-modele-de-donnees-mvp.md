@@ -2148,6 +2148,14 @@ vivante**.
 > seau du compte compte `served` et `page_cap` sur 1 h et 24 h glissantes (`rate_limits`, index
 > partiel `search_queries_bucket_idx`). La carte sort de `profiles.creator_layer_a()`, seule source
 > de la couche A, partagée avec l'aperçu du créateur (`readProjectionLayerA()`).
+>
+> **Écrit par `0320` (L3E, `jalons/l3e/modele.md` §6, §7).** L'ordre sort de l'aide invoker
+> `search.creator_order()` (paliers 1 à 8 de `10` RG35 en clés d'`ORDER BY`, aucun score ; tris
+> `default`, `audience`, `verified_first`, `new_profiles` ; jour UTC de la porte). Le quota froid
+> (`cold_profile_quota`, tri par défaut, page 1) donne les dernières places aux froids les mieux
+> classés et marque leur impression `cold_quota` ; chaque impression porte sa note de vigilance (une
+> au plus) et ses 2 à 4 raisons dans `impression_reasons` (codes et tranches, F6 en tranche, jamais
+> un chiffre exact). `0320` insère une version de `facet_config_versions` (RG88, ordre des paliers).
 
 #### `search.search_queries`
 
@@ -6345,6 +6353,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0317 | `matching_party_blocks` (L3E) | **`block_reasons`** (vide), **`party_blocks`** (un actif par paire, levée conservée, né actif), `check_party_block()` et `guard_party_block_write()`, RLS forcée sans droit membre, agent ni administrateur ; lecture de la paire par `influx_campaign_feed_definer` ; `search.visible_campaigns()` recréée à signature égale, la paire bloquée exclue dans les deux sens | Oui tant qu'aucun blocage n'est posé |
 | 0318 | `privacy_search_and_blocks` (L3E) | `privacy.export_document()` et `execute_request()` recréées depuis `0314` à signature égale : recherches, sélections et blocages posés par le membre à l'export, recherche et blocages du compte supprimés à l'effacement ; droits de `influx_privacy_definer` (colonnes lues, `DELETE` sur un compte `deleted`, `result_count_band()`) | Oui tant qu'aucune recherche, sélection ni blocage n'est écrit et aucun compte effacé |
 | 0319 | `search_creator_search_door` (L3E) | `influx_creator_search_definer`, porte `search.search_creators()` (`EXECUTE` marque seule), aides invoker `require_creator_searcher()`, `creator_search_retry_after()`, `check_creator_search_filters()`, moteur `creator_candidates()` (E1 à E6, filtres du socle, vue identifiée 0A000) ; `profiles.creator_layer_a()`, source unique de la couche A (aperçu et carte) ; droits colonne par colonne et politiques du propriétaire (couche A publiée et cherchable, paire des blocages actifs, journal en insertion) ; `USAGE` sur `search` à `influx_advertiser` | Oui tant qu'aucune recherche n'est journalisée |
+| 0320 | `search_creator_order_and_reasons` (L3E) | Aide invoker `search.creator_order()` (paliers 1 à 8, tris du pilote, quota froid en page 1, raisons et note de la page) ; porte `search_creators()` recréée à signature égale (impressions avec `cold_quota` et note, `impression_reasons` écrites dans la transaction qui sert) ; droits du propriétaire : `cold_profile_quota`, `first_page_at`, livrables et pays visés de ses campagnes, insertion des raisons ; une version de `facet_config_versions` (RG88) | Oui tant qu'aucune recherche n'est journalisée |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

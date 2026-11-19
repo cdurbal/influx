@@ -509,6 +509,10 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
     expect(outcome.functions).toEqual([
       helper("search.check_creator_search_filters(jsonb)"),
       helper("search.creator_candidates(text,uuid,jsonb,uuid)"),
+      // 0320 (L3E-07, EC-L3E-07-8): the explainable order, a fifth invoker helper
+      helper(
+        "search.creator_order(uuid[],jsonb,text,uuid,integer,integer,date)",
+      ),
       helper("search.creator_search_retry_after(uuid)"),
       helper("search.require_creator_searcher()"),
       {
@@ -666,6 +670,8 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
     ]);
     expect(outcome.writes.map((row) => row.name)).toEqual([
       "search.creator_exposures",
+      // 0320 (L3E-07, EC-L3E-07-8): the reasons of its impressions
+      "search.impression_reasons",
       "search.search_impressions",
       "search.search_queries",
     ]);
@@ -1381,7 +1387,17 @@ describe("L3E-T6 k-anonymity and the band (10 RG57 to RG59)", () => {
     expect(outcome.card?.creator.visuals).toEqual([
       { id: outcome.approved, caption: "L3E T6 approved caption" },
     ]);
-    expect(outcome.card).toMatchObject({ reasons: [], vigilance: null });
+    // 0320 (L3E-07, EC-L3E-07-8): the reasons of its tiers, codes and bands only, no note
+    expect(outcome.card).toMatchObject({
+      reasons: [
+        {
+          code: "audience_country_match",
+          params: { country: COUNTRY, shareBand: "ge_80" },
+        },
+        { code: "figures_fresh", params: { network: "instagram" } },
+      ],
+      vigilance: null,
+    });
     expect(
       outcome.markers.filter((marker) => outcome.raw.includes(marker)),
     ).toEqual([]);
@@ -1656,7 +1672,7 @@ describe("L3E-T6 the bucket of the account (10 RG63, RG64; 18 T15.2, T15.5)", ()
 });
 
 describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", () => {
-  it("L3E-T6 D11: tier 8 alone until 0320, the same order for two brands the same UTC day, no score served", async () => {
+  it("L3E-T6 D11: tiers 1 to 7 equal, tier 8 decides (0320), the same order for two brands the same UTC day, no score served", async () => {
     const outcome = await scenario(async (tx) => {
       const brand = await newBrand(tx);
       const other = await newBrand(tx, { sector: "food_beverages" });
