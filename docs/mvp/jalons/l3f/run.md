@@ -1,7 +1,7 @@
 # Exécution du jalon L3F
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | sonnet | medium | testeur | à faire | |
+| 01 | 01.md | commit | sonnet | medium | testeur | fait | sums 380.7/380.8 s, gap 0.1 s (local, 129 files); shard 1 rerun once (DS-flaky timeout); CI shard times: at first push |
 | A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
 | 02 | 02.md | commit | opus | high | expert-database | à faire | |
 | 03 | 03.md | commit | opus | xhigh | expert-database | à faire | |
