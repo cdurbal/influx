@@ -6,6 +6,9 @@
 //           end on the UTC day, a refused sector silently, greyed for 7 days); the two sorts and the
 //           rank; the cap of pages; the bucket of the account; the journal of the reads; one body for
 //           every refusal (T14); the rights of the owner and of the creator (TM5.6, D46, D78).
+//   L3E-T1  (L3E commit 01, 0315, L3DS-1) the bucket bounded under refusals: one rate_limited line
+//           per account in the window that refuses, the Retry-After unchanged, the count on the
+//           partial index creator_campaign_reads_bucket_idx.
 // Each case runs in a rolled-back transaction of the local superuser, which first closes the campaigns
 // earlier files left published (the feed reads every published campaign of the base), then writes
 // the fixtures outside the guards and acts as apps/api does (support.ts: actAsMember).
@@ -1280,7 +1283,7 @@ describe("L3D-T2 the journal and the bucket of the account (11 RG22, CA18; 18 T1
     expect(outcome.others).toEqual([]);
   });
 
-  it("CA18, T15.5: beyond the minute, rate_limited with Retry-After 60 s, journaled, never counted; the logo still served", async () => {
+  it("CA18, T15.5: beyond the minute, rate_limited with Retry-After 60 s, journaled once in the window (0315), never counted; the logo still served", async () => {
     const outcome = await scenario(async (tx) => {
       await setting(tx, "creator_campaign_reads_per_minute", 2);
       const creator = await newCreator(tx);
@@ -1305,8 +1308,8 @@ describe("L3D-T2 the journal and the bucket of the account (11 RG22, CA18; 18 T1
     expect(outcome.reads.map((read) => [read.kind, read.outcome])).toEqual([
       ["feed", "served"],
       ["record", "served"],
+      // L3DS-1 (0315, EC-L3E-01-1): the refusal of the record, in the same window, writes nothing
       ["feed", "rate_limited"],
-      ["record", "rate_limited"],
     ]);
   });
 
@@ -1369,5 +1372,190 @@ describe("L3D-T2 the journal and the bucket of the account (11 RG22, CA18; 18 T1
       outcome: "rate_limited",
       at_now: true,
     });
+  });
+});
+
+// the bucket bounded under refusals (0315, L3DS-1) -------------------------------------------------
+
+/** Writes lines of the journal of `creator` at `ago` before now (outcome, interval). */
+async function pastReads(
+  tx: Tx,
+  creator: string,
+  lines: readonly (readonly [string, string])[],
+): Promise<void> {
+  for (const [outcome, ago] of lines) {
+    await tx`
+      insert into search.creator_campaign_reads
+        (creator_account_id, kind, feed_sort, feed_page, outcome, read_at)
+      values (${creator}, 'feed', 'recent', 1, ${outcome}, now() - ${ago}::interval)`;
+  }
+}
+
+function refusalsOf(reads: readonly Read[]): Read[] {
+  return reads.filter((read) => read.outcome === "rate_limited");
+}
+
+describe("L3E-T1 the bucket stays bounded under refusals (0315, L3DS-1; 18 T15.5; fiche invariant 10)", () => {
+  it("50 successive refusals, feed and record, write one rate_limited line per window, each answered with its Retry-After", async () => {
+    const outcome = await scenario(async (tx) => {
+      await setting(tx, "creator_campaign_reads_per_minute", 2);
+      await setting(tx, "creator_campaign_reads_per_day", 3);
+      const minute = await newCreator(tx);
+      const day = await newCreator(tx);
+      const campaign = await newCampaign(tx, await newBrand(tx));
+      await feed(tx, minute);
+      await record(tx, minute, campaign);
+      // the day full: its oldest counted line leaves in 22 h
+      await pastReads(tx, day, [
+        ["served", "2 hours"],
+        ["page_cap", "1 hour"],
+        ["served", "30 minutes"],
+      ]);
+      const minuteAnswers: Row[] = [];
+      const dayAnswers: Row[] = [];
+      for (let index = 0; index < 50; index += 1) {
+        minuteAnswers.push(
+          index % 2 === 0
+            ? await feed(tx, minute)
+            : await record(tx, minute, campaign),
+        );
+        dayAnswers.push(
+          index % 2 === 0
+            ? await feed(tx, day)
+            : await record(tx, day, campaign),
+        );
+      }
+      return {
+        minuteAnswers,
+        dayAnswers,
+        minuteReads: await readsOf(tx, minute),
+        dayReads: await readsOf(tx, day),
+      };
+    });
+    expect(outcome.minuteAnswers).toEqual(
+      Array.from({ length: 50 }, () => ({
+        outcome: "rate_limited",
+        retryAfterSeconds: 60,
+      })),
+    );
+    expect(outcome.dayAnswers).toEqual(
+      Array.from({ length: 50 }, () => ({
+        outcome: "rate_limited",
+        retryAfterSeconds: 22 * 3600,
+      })),
+    );
+    expect(
+      outcome.minuteReads.map((read) => [read.kind, read.outcome]),
+    ).toEqual([
+      ["feed", "served"],
+      ["record", "served"],
+      ["feed", "rate_limited"],
+    ]);
+    expect(refusalsOf(outcome.dayReads)).toEqual([
+      expect.objectContaining({ kind: "feed", at_now: true }),
+    ]);
+    expect(outcome.dayReads).toHaveLength(4);
+  });
+
+  it("the window that refuses bounds the line: a minute's line 61 s old lets a new one in, a line within the full day does not; a read is served once the window has passed", async () => {
+    const outcome = await scenario(async (tx) => {
+      await setting(tx, "creator_campaign_reads_per_minute", 2);
+      await setting(tx, "creator_campaign_reads_per_day", 5);
+      const campaign = await newCampaign(tx, await newBrand(tx));
+      // the minute full, its last refusal 61 s ago: a new window, a new line
+      const minute = await newCreator(tx);
+      await pastReads(tx, minute, [
+        ["rate_limited", "61 seconds"],
+        ["served", "20 seconds"],
+        ["served", "10 seconds"],
+      ]);
+      const minuteAnswer = await feed(tx, minute);
+      // the day full, a refusal 90 minutes ago: the same window, no line (EC-L3E-01-2)
+      const day = await newCreator(tx);
+      await pastReads(tx, day, [
+        ["served", "2 hours"],
+        ["served", "110 minutes"],
+        ["rate_limited", "90 minutes"],
+        ["served", "1 hour"],
+        ["served", "40 minutes"],
+        ["served", "30 minutes"],
+      ]);
+      const dayAnswer = await record(tx, day, campaign);
+      // the window passed: served, then the minute full again, refused with a line of its own
+      const after = await newCreator(tx);
+      await pastReads(tx, after, [
+        ["served", "70 seconds"],
+        ["served", "65 seconds"],
+        ["rate_limited", "62 seconds"],
+      ]);
+      const afterAnswers = [
+        await feed(tx, after),
+        await record(tx, after, campaign),
+        await feed(tx, after),
+      ];
+      return {
+        minuteAnswer,
+        minuteReads: await readsOf(tx, minute),
+        dayAnswer,
+        dayReads: await readsOf(tx, day),
+        afterAnswers,
+        afterReads: await readsOf(tx, after),
+      };
+    });
+    expect(outcome.minuteAnswer).toEqual({
+      outcome: "rate_limited",
+      retryAfterSeconds: 40,
+    });
+    expect(refusalsOf(outcome.minuteReads).map((read) => read.at_now)).toEqual([
+      false,
+      true,
+    ]);
+    expect(outcome.dayAnswer).toEqual({
+      outcome: "rate_limited",
+      retryAfterSeconds: 22 * 3600,
+    });
+    expect(outcome.dayReads).toHaveLength(6);
+    expect(outcome.dayReads.some((read) => read.at_now)).toBe(false);
+    const [served, opened, refused] = outcome.afterAnswers;
+    expect(served).toMatchObject({ outcome: "served" });
+    expect(opened).toMatchObject({ outcome: "served" });
+    expect(refused).toEqual({ outcome: "rate_limited", retryAfterSeconds: 60 });
+    expect(
+      outcome.afterReads
+        .filter((read) => read.at_now)
+        .map((read) => [read.kind, read.outcome]),
+    ).toEqual([
+      ["feed", "served"],
+      ["record", "served"],
+      ["feed", "rate_limited"],
+    ]);
+  });
+
+  it("counts the bucket on the partial index creator_campaign_reads_bucket_idx, rate_limited lines out of it (explain, seqscan off)", async () => {
+    const plan = await scenario(async (tx) => {
+      const creator = await newCreator(tx);
+      await tx`
+        insert into search.creator_campaign_reads
+          (creator_account_id, kind, feed_sort, feed_page, outcome, read_at)
+        select ${creator}, 'feed', 'recent', 1, 'rate_limited', now() - g * interval '1 second'
+          from generate_series(1, 2000) g`;
+      await pastReads(tx, creator, [["served", "10 seconds"]]);
+      await tx`set local enable_seqscan = off`;
+      // the count of search.campaign_read_retry_after() (0315 §2.1), word for word
+      const rows = await tx.unsafe<{ "QUERY PLAN": string }[]>(
+        `explain
+         select (count(*) filter (where r.read_at > pg_catalog.now() - interval '60 seconds'))::integer,
+                (count(*))::integer
+           from search.creator_campaign_reads r
+          where r.creator_account_id = $1
+            and r.outcome <> 'rate_limited'
+            and r.read_at > pg_catalog.now() - interval '24 hours'`,
+        [creator],
+      );
+      return rows.map((row) => row["QUERY PLAN"]).join("\n");
+    });
+    expect(plan).toContain("creator_campaign_reads_bucket_idx");
+    expect(plan).not.toContain("creator_campaign_reads_account_idx");
+    expect(plan).not.toContain("Seq Scan");
   });
 });

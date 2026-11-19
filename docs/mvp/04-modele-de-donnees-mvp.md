@@ -2255,8 +2255,13 @@ marque (`0310`), contre `11` RG40 et `09` RG101.
 | `read_at` | `timestamptz` | `not null default now()` |
 
 Un `CHECK` de cohérence lie le genre à ses colonnes et à ses issues ; RLS forcée ; **immuable** hors
-l'effacement (déclencheur) ; index `(creator_account_id, read_at desc)`, qui sert le débit par compte
-(lignes hors `rate_limited` comptées sur 60 s et 24 h glissantes) et l'export. Écrit par les seules
+l'effacement (déclencheur) ; index `(creator_account_id, read_at desc)`, qui sert l'export et
+l'effacement, et index partiel `creator_campaign_reads_bucket_idx` (mêmes colonnes,
+`where outcome <> 'rate_limited'`, `0315`, L3DS-1), qui sert seul le débit par compte (lignes hors
+`rate_limited` comptées sur 60 s et 24 h glissantes). **Une ligne `rate_limited` au plus par compte
+dans la fenêtre qui refuse** (24 h si la journée est pleine, 60 s sinon, fil et fiche confondus) : le
+refus suivant de la même fenêtre répond pareil (`rate_limited`, `retryAfterSeconds`) sans rien
+écrire (EC-L3E-01-1, -2) ; le verrou consultatif par compte est gardé. Écrit par les seules
 portes de `influx_campaign_feed_definer` ; aucun rôle d'exécution n'y a de droit ; la marque n'en voit
 jamais rien ; l'agent et l'administrateur au Lot 5 (alerte I-9). Le logo n'est pas journalisé.
 Export : `creator_profile.campaign_reads` (colonnes sauf `id`) ; effacement : lignes du compte
@@ -6286,8 +6291,8 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0312 | `campaign_review_entries_read_policy` (L3C) | Politique de lecture de la file 7 : une entrée ouverte sans avis est visible (arbitrage A3) | Oui |
 | 0313 | `campaign_one_person_review` (L3C) | D84 : un secteur sensible est publié par une seule personne, second avis facultatif, `review_mode` au registre | Oui |
 | 0314 | `search_open_campaigns` (L3D, EC-L3D-1) | `influx_campaign_feed_definer`, portes `search.read_open_campaigns()`, `read_open_campaign()`, `read_open_campaign_brand_logo()` (`EXECUTE` créateur seul), prédicat `visible_campaigns()`, journal `creator_campaign_reads`, cinq réglages du fil et du débit, `campaigns_feed_idx` ; export et effacement (`privacy.*` recréées depuis `0310`) | Oui tant qu'aucune ligne n'est journalisée |
-| 0315 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
-| 0316 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
+| 0315 | `search_campaign_read_bucket_bounded` (L3E, EC-L3E-1) | Dette L3DS-1 : index partiel `creator_campaign_reads_bucket_idx` hors `rate_limited`, une ligne `rate_limited` au plus par compte et fenêtre ; `campaign_read_retry_after()` recréée (mêmes entrées, deux colonnes de sortie), `read_open_campaigns()` et `read_open_campaign()` recréées à signature égale | Oui |
+| 0316 | `search_journal` (L3E) | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` ; et les réglages : `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
 | 0317 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend ; `party_blocks` entre alors dans `search.visible_campaigns()` | Oui |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
@@ -6306,6 +6311,8 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0502 | `backoffice_operations` | Notes **avec `subject_type`, auteur et ajout seul**, **`suspension_reasons`** et **`suspension_lift_reasons`**, suspensions, **`exports`**, plafonds et envois d'e-mails, demandes RGPD **complétées** (`15`, écart 4), **les 14 codes `account.*`, `ownership.bulk_transferred`, `export.produced` et `privacy.*`** | Oui |
 | **Lot 6** | | | |
 | 0601 | `retention_jobs` | Fonctions de purge, index de purge manquants | Oui |
+
+> **Numéros réels du L3E (EC-L3E-1).** `0315` est prise par la dette L3DS-1, en tête du jalon : le journal de recherche et les réglages (anciens `0315` et `0316`) passent ensemble en `0316`, `0317` reste aux blocages ; suivent `0318` (export et effacement), `0319` (porte de recherche anonymisée) et `0320` (tri explicable), décrits par `jalons/l3e-fiche.md`.
 
 > **Numérotation (EC-37, tranché le 2026-09-28).** Un numéro est un **ordre d'application** : la CLI Supabase n'applique pas une migration plus ancienne que la dernière appliquée. Les migrations du J3 prennent donc `0010` à `0015` (suite du Lot 0) ; **l'ancien `0108` du J3 n'existe plus** (son contenu est dans `0014` et `0015`) ; le numéro sert à `0108_identity_terms_public_read` (J5, EC-62) et la série du Lot 1 s'applique dans l'ordre de ses numéros ; **`0102` et `0107`, écrites après `0128`, sont devenues `0129` et `0130`** (J8). **`0101` ajoute la clé étrangère** `leads.transactional_sends.outbox_event_id → leads.outbox_events(id)`. Même règle au Lot 4 pour `0402a`, `0402b`, `0402c` (EC-32).
 

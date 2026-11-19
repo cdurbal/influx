@@ -1,7 +1,7 @@
 # Exécution du jalon L3E
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | opus | high | expert-database | à faire | |
+| 01 | 01.md | commit | opus | high | expert-database | fait | 0315 : seau sur index partiel hors rate_limited, une ligne rate_limited par compte et fenêtre qui refuse ; réponses et Retry-After inchangés |
 | 02 | 02.md | commit | opus | high | testeur | à faire | |
 | A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
 | 03 | 03.md | commit | opus | high | expert-database | à faire | |

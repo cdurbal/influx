@@ -123,7 +123,7 @@ describe("L3D-T5 the bucket of the account, in the base (11 RG21, CA18; 18 T15.3
     });
   });
 
-  it("T15.5: every refusal is journaled with the account, never counted, and the logo stays outside the bucket", async () => {
+  it("T15.5: the refusal is journaled with the account once per window (0315), never counted, and the logo stays outside the bucket", async () => {
     const creator = await fx.newMember("creator");
     await withBucket(2, 600, async () => {
       expect((await get(server, URL_FEED, creator)).statusCode).toBe(200);
@@ -162,32 +162,12 @@ describe("L3D-T5 the bucket of the account, in the base (11 RG21, CA18; 18 T15.3
         feed_page: null,
         outcome: "served",
       },
+      // L3DS-1 (0315, EC-L3E-01-1): the first refusal of the window alone writes its line
       {
         kind: "feed",
         campaign_id: null,
         feed_sort: "recent",
         feed_page: 1,
-        outcome: "rate_limited",
-      },
-      {
-        kind: "feed",
-        campaign_id: null,
-        feed_sort: "recent",
-        feed_page: 1,
-        outcome: "rate_limited",
-      },
-      {
-        kind: "feed",
-        campaign_id: null,
-        feed_sort: "recent",
-        feed_page: 1,
-        outcome: "rate_limited",
-      },
-      {
-        kind: "record",
-        campaign_id: campaign.id,
-        feed_sort: null,
-        feed_page: null,
         outcome: "rate_limited",
       },
     ]);

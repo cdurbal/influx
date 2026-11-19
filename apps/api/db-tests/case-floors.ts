@@ -7,7 +7,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/campaign-feed-route.test.ts": 16,
   "db-tests/campaign-parity.test.ts": 116,
   "db-tests/campaigns-core.test.ts": 68,
-  "db-tests/campaigns-creator-feed.test.ts": 32,
+  "db-tests/campaigns-creator-feed.test.ts": 35,
   "db-tests/campaigns-creator-view-route.test.ts": 9,
   "db-tests/campaigns-lifecycle.test.ts": 28,
   "db-tests/campaigns-publication.test.ts": 33,
