@@ -4,6 +4,7 @@
 import { getTableConfig, type PgTable } from "drizzle-orm/pg-core";
 import { isTable } from "drizzle-orm";
 import * as campaigns from "./campaigns.ts";
+import * as matching from "./matching.ts";
 import * as profilesCreatorIdentity from "./profiles-creator-identity.ts";
 import * as search from "./search.ts";
 import * as verification from "./verification.ts";
@@ -41,4 +42,9 @@ export function campaignsColumns(): Record<string, string[]> {
 /** Database column names of every table declared in search.ts (0314, 0316), by table: 18 TM11. */
 export function searchColumns(): Record<string, string[]> {
   return columnsOf(search);
+}
+
+/** Database column names of every table declared in matching.ts (0317), by table: 18 TM11. */
+export function matchingColumns(): Record<string, string[]> {
+  return columnsOf(matching);
 }

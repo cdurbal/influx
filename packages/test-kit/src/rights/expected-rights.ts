@@ -2329,6 +2329,26 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "dimension",
     expected: {},
   },
+  // 0317 (L3E commit 04, l3e/modele.md §9): the block between parties, without any gesture at Lot 3.
+  // No right for any execution role, member, agent nor admin (fiche invariant 1): a RESTRICTIVE
+  // policy refuses every row to the members; the owner of the creator's doors reads the pair and
+  // lifted_at of the caller's active blocks only (RG30: never the reason, the comment nor who).
+  {
+    table: "matching.block_reasons",
+    source:
+      "0317 (04 §5.6, 10 RG28, Q11; l3e/modele §9): the typed reasons of a block, empty until the " +
+      "gesture (Lot 4)",
+    probeColumn: "code",
+    expected: {},
+  },
+  {
+    table: "matching.party_blocks",
+    source:
+      "0317 (04 §5.6, 10 RG28 to RG30; l3e/modele §9): one active block per pair, kept when " +
+      "lifted, no member, agent nor admin right at Lot 3",
+    probeColumn: "creator_account_id",
+    expected: {},
+  },
 ];
 
 /**
@@ -7248,6 +7268,12 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_search_admin_definer|schema|identity|USAGE",
   "influx_search_admin_definer|schema|influx|USAGE",
   "influx_search_admin_definer|schema|search|USAGE",
+  // 0317 (L3E commit 04, l3e/modele.md §9): the owner of the creator's doors reads the pair and
+  // lifted_at of the caller's active blocks, for search.visible_campaigns() (10 RG28 to RG30)
+  "influx_campaign_feed_definer|column|matching.party_blocks.advertiser_account_id|SELECT",
+  "influx_campaign_feed_definer|column|matching.party_blocks.creator_account_id|SELECT",
+  "influx_campaign_feed_definer|column|matching.party_blocks.lifted_at|SELECT",
+  "influx_campaign_feed_definer|schema|matching|USAGE",
 ];
 
 /**

@@ -224,6 +224,14 @@ export const CAMPAIGN_INTERVENTION_ID_B =
 export const SEARCH_QUERY_ID_A = "00000000-0000-4000-8000-00000000ff2f";
 export const SHORTLIST_ID_A = "00000000-0000-4000-8000-00000000ff30";
 
+/**
+ * 0317 (L3E commit 04): one LIFTED block between advertiser B and creator B, posed by the brand under
+ * the reason `dataset_probe` (the only reason of the stack: the migration loads none), so that T2 finds
+ * a row in each table of matching. Lifted, it excludes nothing from any feed.
+ */
+export const PARTY_BLOCK_ID_B = "00000000-0000-4000-8000-00000000ff31";
+export const DATASET_BLOCK_REASON = "dataset_probe";
+
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
 }
@@ -664,6 +672,24 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
          searchable_profiles_count, computed_at)
       values ('2026-01-01', 'global', '*', 0, 0, '2026-01-01T00:00:00Z')
       on conflict do nothing`;
+    // 0317 (L3E): one reason and one lifted block of the pair (advertiser B, creator B)
+    await tx`
+      insert into matching.block_reasons (code, label_key, available_to_side)
+      values (${DATASET_BLOCK_REASON}, ${`block.reason.${DATASET_BLOCK_REASON}`}, 'any')
+      on conflict do nothing`;
+    await tx`
+      insert into matching.party_blocks
+        (id, advertiser_account_id, creator_account_id, blocked_by_account_id, blocked_by_side,
+         reason_code, created_at)
+      values (${PARTY_BLOCK_ID_B}, ${accountIdOf("advertiser", "b")}, ${accountIdOf("creator", "b")},
+              ${accountIdOf("advertiser", "b")}, 'advertiser', ${DATASET_BLOCK_REASON},
+              '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      update matching.party_blocks
+         set lifted_at = '2026-01-02T00:00:00Z',
+             lifted_by_account_id = ${accountIdOf("advertiser", "b")}
+       where id = ${PARTY_BLOCK_ID_B} and lifted_at is null`;
     // 0217 (L2D): the identifying objects of each creator. The identity row comes with the
     // storefront (trigger, or the reprise of 0217 on an older stack); one primary network line with
     // its exact figures and one row per audience dimension; one refused sector; one history row

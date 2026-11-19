@@ -3127,6 +3127,21 @@ tenable sous concurrence. C'est exactement le critère de R10 — une mesure, pa
 recherche de créateurs en dépend dès son ouverture. Le schéma, lui, existe depuis la migration
 `0001`.*
 
+> **Livré par `0317` (L3E, `jalons/l3e/modele.md` §9, qui prime pour tout nom).** Écarts et
+> précisions au texte ci-dessous : `block_reasons` **vide** (motifs avec le geste, Lot 4, `10` Q11),
+> `label_key = 'block.reason.' || code` ; un blocage **naît actif**, sa levée est la seule
+> modification, une fois (`guard_party_block_write()`, 55000 pour tout rôle `influx_%` hors levée
+> et hors effacement par `influx_privacy_definer`, `0318`) ; `lift_reason_code` est un code sans
+> clé étrangère, nul tant que le blocage est actif ; `blocked_by_account_id` s'accorde au côté
+> (`CHECK`) et `check_party_block()` vérifie les rôles des trois comptes, le motif actif et du côté
+> qui bloque (ou `any`), le commentaire quand le motif l'exige (23514) ; index inverse
+> `party_blocks_creator_active_idx`. **Aucun droit membre, agent ni administrateur au Lot 3**
+> (politique restrictive `*_no_member_access`) ; `influx_campaign_feed_definer` lit la paire et
+> `lifted_at` des seuls blocages actifs de l'appelant, jamais le motif, le commentaire ni l'auteur
+> (RG30) ; `search.visible_campaigns()` exclut la paire bloquée, quel que soit le sens, en
+> silence. `block.created` et `block.lifted` (chargés par `0303`) n'ont pas d'écrivain au Lot 3.
+> Micro-écarts : `0317` EC-L3E-04-1 à -4.
+
 | Colonne | Type | Contrainte |
 |---|---|---|
 | `id` | `uuid` | PK |
@@ -5509,7 +5524,7 @@ create trigger audit_events_no_truncate
 | `verification.evidence_files` | **—** | L (les siennes) | L (journalisé) | L | — |
 | `campaigns.campaigns` | L + E (les siennes) | **—** *(le créateur lit l'instantané, jamais la ligne vivante)* | L | L | L |
 | `campaigns.campaign_published_snapshots` | L | **L** | L | L | L |
-| `matching.party_blocks` | L + E (les siens) | L + E (les siens) | L + E | L + E | L |
+| `matching.party_blocks` | L + E (les siens) *(Lot 4 ; **—** au Lot 3, `0317`)* | L + E (les siens) *(Lot 4 ; **—** au Lot 3)* | L + E *(Lot 4 ; **—** au Lot 3)* | L + E *(Lot 4 ; **—** au Lot 3)* | L *(au Lot 3 : la paire et `lifted_at` des blocages actifs de l'appelant, par `influx_campaign_feed_definer`)* |
 | `matching.application_drafts` | **—** | L + E (les siens) | **—** | **—** | — |
 | `reference.price_bands` (bornes nettes comprises) | L | L | L | L | L |
 | `matching.introductions` | L (les siennes) | L (les siennes) | L + E | L + E | F |
@@ -6071,7 +6086,7 @@ planificateur**.
 | `verification.badges (expires_at) where state = 'active'` | **Tâche quotidienne de péremption à 90 jours** (D34) : sans cet index, elle balaie toute la table chaque nuit |
 | `search_queries (account_id, created_at desc)` | Limitation de débit (30/h, 200/j) et détection d'affinage — lecture à **chaque** recherche |
 | `party_blocks (advertiser_account_id, creator_account_id)` **unique partiel**, `where lifted_at is null` | **Exclusion de premier rang de la recherche** (`10` RG28), évaluée pour chaque résultat. L'unicité **est** la contrainte ; l'index n'en est que l'effet |
-| `party_blocks (creator_account_id) where lifted_at is null` | Le sens inverse : « ce créateur est-il bloqué par quelqu'un ? », lu par la recherche de campagnes et par `open_introduction()` |
+| `party_blocks (creator_account_id) where lifted_at is null` (`party_blocks_creator_active_idx`, `0317`) | Le sens inverse : « ce créateur est-il bloqué par quelqu'un ? », lu par la recherche de campagnes et par `open_introduction()` |
 | `profile_field_revisions (sla_due_at) where status = 'pending_review'` | **File de validation des révisions**, triée par échéance. Index partiel : il ne contient que ce qui est en attente |
 | `campaigns (status, applications_close_on) where status = 'published'` | Le fil de campagnes côté créateur : publiées, non encore fermées aux candidatures, triées par échéance |
 | `campaigns (advertiser_account_id, status)` | « Mes campagnes » côté marque, et le plafond de 10 campagnes simultanées (`09` RG15) |
@@ -6312,7 +6327,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0314 | `search_open_campaigns` (L3D, EC-L3D-1) | `influx_campaign_feed_definer`, portes `search.read_open_campaigns()`, `read_open_campaign()`, `read_open_campaign_brand_logo()` (`EXECUTE` créateur seul), prédicat `visible_campaigns()`, journal `creator_campaign_reads`, cinq réglages du fil et du débit, `campaigns_feed_idx` ; export et effacement (`privacy.*` recréées depuis `0310`) | Oui tant qu'aucune ligne n'est journalisée |
 | 0315 | `search_campaign_read_bucket_bounded` (L3E, EC-L3E-1) | Dette L3DS-1 : index partiel `creator_campaign_reads_bucket_idx` hors `rate_limited`, une ligne `rate_limited` au plus par compte et fenêtre ; `campaign_read_retry_after()` recréée (mêmes entrées, deux colonnes de sortie), `read_open_campaigns()` et `read_open_campaign()` recréées à signature égale | Oui |
 | 0316 | `search_journal_and_settings` (L3E, EC-L3E-1) | `search_queries` (**tri, version des facettes et issue compris**), `search_impressions`, `explanation_reasons` (`kind`), `impression_reasons`, `creator_exposures`, `shortlists`, `shortlist_items` (aucun droit membre) ; et les réglages : `search_settings` (huit clés), `facet_settings`, `facet_config_versions` (version 1), `supply_counters`, `result_count_band()` ; `influx_search_admin_definer`, `write_search_setting()` et `write_facet_setting()` (`EXECUTE` à `influx_admin` seul, `search.settings_changed`) | Oui tant qu'aucune recherche n'est journalisée |
-| 0317 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend ; `party_blocks` entre alors dans `search.visible_campaigns()` | Oui |
+| 0317 | `matching_party_blocks` (L3E) | **`block_reasons`** (vide), **`party_blocks`** (un actif par paire, levée conservée, né actif), `check_party_block()` et `guard_party_block_write()`, RLS forcée sans droit membre, agent ni administrateur ; lecture de la paire par `influx_campaign_feed_definer` ; `search.visible_campaigns()` recréée à signature égale, la paire bloquée exclue dans les deux sens | Oui tant qu'aucun blocage n'est posé |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |
