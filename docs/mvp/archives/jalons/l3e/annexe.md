@@ -22,21 +22,19 @@ des runs antérieurs faussent un décompte ; chaque fichier isole ses créateurs
 thématique propres au fichier) ou balaie les siens (patron `stale-fixtures.ts`).
 
 ## Critère de fin
-- [ ] Interrupteur ouvert, une marque publiée reçoit une page anonyme triée, raisons sans chiffre exact
-      (CA3, CA4) — preuve : L3E-T6 à T8 verts en CI.
-- [ ] 4 résultats : réponse identique à 0, sans compteur (TM12.1) — preuve : L3E-T6.
-- [ ] Page 6 refusée, taille non modifiable (TM12.2) ; aucun export (TM12.3) — preuve : L3E-T6, T8.
-- [ ] 31e recherche dans l'heure : 429 et `Retry-After`, refus journalisé et borné (T15.2, T15.5) —
-      preuve : L3E-T6, T8.
-- [ ] Chaque recherche journalisée avec tri, version, filtres, nombre, page, blocage, impressions et
-      raisons (TM12.4) — preuve : L3E-T6, T7.
-- [ ] T1 rejoué vert avec contre-test ; T1-R avec l'exception par couple — preuve : L3E-T2, T9.
-- [ ] I-9 : AL21 levée au-delà du seuil — preuve : L3E-T10.
-- [ ] Reliquat soldé : L3DS-1, L2GS-8 (volet recherche), L3AS-1, L3AS-2, L3AT-5, L2DT-5, L2DT-6, T15.2 —
-      preuve : lignes 01, 02, 06, 08, 09 de `run.md`.
-- [ ] `0315` à `0320` (et la migration de 10, s'il y en a une) sur `staging` ; l'interrupteur y est
-      faux — preuve : « Migrate staging » vert, lecture SQL de `staging` (D70) dans `run.md`.
-- [ ] T2, T4, TM11 verts ; job base ≤ 8 min ; `pnpm check` puis `pnpm test:e2e` verts — preuve : CI.
+- [x] Interrupteur ouvert, une marque publiée reçoit une page anonyme triée, raisons sans chiffre exact
+      (CA3, CA4) — preuve : CI 44595411008 verte ; L3E-T6 à T8 (lignes 06 à 08 de `run.md`).
+- [x] 4 résultats : réponse identique à 0, sans compteur (TM12.1) — preuve : CI 44595411008 ; L3E-T6 (ligne 06).
+- [x] Page 6 refusée, taille non modifiable (TM12.2) ; aucun export (TM12.3) — preuve : CI 44595411008 ; L3E-T6, T8 (lignes 06, 08).
+- [x] 31e recherche dans l'heure : 429 et `Retry-After`, refus journalisé et borné (T15.2, T15.5) — preuve : CI 44595411008 ; L3E-T6, T8 (lignes 06, 08).
+- [x] Chaque recherche journalisée avec tri, version, filtres, nombre, page, blocage, impressions et
+      raisons (TM12.4) — preuve : CI 44595411008 ; L3E-T6, T7 (lignes 06, 07).
+- [x] T1 rejoué vert avec contre-test ; T1-R avec l'exception par couple — preuve : CI 44595411008 ; L3E-T2, T9 (lignes 02, 09).
+- [x] I-9 : AL21 levée au-delà du seuil — preuve : CI 44595411008 ; L3E-T10 (ligne 10, `0321`).
+- [x] Reliquat soldé : L3DS-1, L2GS-8 (volet recherche), L3AS-1, L3AS-2, L3AT-5, L2DT-5, L2DT-6, T15.2 — preuve : lignes 01, 02, 06, 08, 09 de `run.md` (`e301c63`, `074cd9a`, `1350127`, `825bfbe`, `5192c98`) ; `21` §8.
+- [x] `0315` à `0320` (et la migration de 10, s'il y en a une) sur `staging` ; l'interrupteur y est
+      faux — preuve : « Migrate staging » vert (run 44595411008) ; lecture SQL de `staging` du 2026-11-19 : `0315` à `0321` appliquées, `is_open_to_advertisers` faux (`run.md` § Mesures de clôture).
+- [x] T2, T4, TM11 verts ; job base ≤ 8 min ; `pnpm check` puis `pnpm test:e2e` verts — preuve : CI 44595411008 (T2, T4, TM11 verts ; éclats base 4:47 et 4:35 + fusion 14 s, limite 8:00) ; `pnpm check` local vert (EXIT 0, ~19 min) ; `pnpm test:e2e` local vert (`run.md` § Mesures de clôture).
 
 ## Écarts, décisions ouvertes, risques
 - **EC-L3E-1** : `0315` pris par L3DS-1 ; la recherche passe à `0316` et suivants, journal et réglages

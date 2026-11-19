@@ -1567,8 +1567,9 @@ e2e **56** (7 fichiers) ; `apps/api` (unitaire et base) inchangé. Aucun planche
 28 cas.**
 
 - [x] TM5.1 et TM5.6 **au niveau base** (L3C, `0307` à `0313`) : TM5.1 par `campaigns-publication.test.ts` (L3C-T3 ; seul écrivain de `published` : la porte de décision d'un agent ou d'un admin, la reprise n'étant pas une publication, `modele.md` §5), TM5.6 par l'instantané égal à la vue créateur et son `CHECK` sans clé interne ; une campagne de secteur sensible est publiée par une seule personne, déclaration exigée (D84). TM5.2 **tenu au L3D (2026-11-18)** : `campaigns-creator-feed.test.ts` (L3D-T2), une campagne non publiée n'apparaît dans aucune réponse du fil ; TM5.6 **côté créateur tenu** : aucune clé interne dans le fil ni la fiche (L3D-T3, L3D-T6) et aucun droit `influx_creator` sur `campaigns.*` (EC-L3D-1 : `0314`, la recherche côté marque passe à `0315`)
-- [ ] TM12.1 à TM12.5 : k-anonymat, pagination plafonnée, **export interdit à tout le monde**, recherches journalisées, vue identifiée refusée aux membres
-- [ ] I-9 : alerte sur un volume anormal de profils distincts consultés par un même compte sur 24 h
+- [x] TM12.1 à TM12.4 **au niveau base et route** (L3E, `0315` à `0321`) : k-anonymat à 5 (L3E-T6), pagination plafonnée, **export interdit à tout le monde** (aucune route, L3E-T8), recherches journalisées (L3E-T6, T7) ; CI verte sur `5c98bb8` (run 44595411008) ; T15.2 tenu (31e recherche de l'heure : 429, `Retry-After`, refus borné, L3E-T6, T8) *(2026-11-19)*
+- [ ] TM12.5 : vue identifiée refusée aux membres, en base *(L3G, avec la vue commerciale)*
+- [x] I-9 : alerte AL21 sur un volume anormal de profils distincts servis à un même compte sur 24 h *(L3E, `0321`, L3E-T10 ; seuils hypothétiques `{150, 8000}`, à fixer par le fondateur : L3ES-3 ; agrégation multi-comptes au L3F)*
 - [ ] **Non automatisable** : le fondateur a tranché **D38** (masse critique de profils avant d'ouvrir la recherche)
 - [ ] **Non automatisable** : la recherche en vue identifiée permet au commercial de trouver les bons créateurs d'une campagne **en moins de 30 secondes** — mesuré à la main, sur trois campagnes réelles. C'est la valeur annoncée du lot ; si elle n'est pas là, le lot n'est pas livré
 

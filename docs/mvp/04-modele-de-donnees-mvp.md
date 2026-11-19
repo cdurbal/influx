@@ -2118,7 +2118,7 @@ vivante**.
 
 ### 5.5 `search` — journal de recherche et sélections (Lot 3)
 
-> **Livré par `0316` (L3E, `jalons/l3e/modele.md` §7, §9, qui prime pour tout nom).** Écarts au
+> **Livré par `0316` (L3E, `archives/jalons/l3e/modele.md` §7, §9, qui prime pour tout nom).** Écarts au
 > texte ci-dessous : `search_queries.outcome` (`served`, `page_cap`, `rate_limited` ; hors `served`
 > nombre 0 et pas de blocage k ; `rate_limited` sans filtre), index `(account_id, created_at desc)`
 > complet et partiel hors `rate_limited` ; `search_impressions.cold_quota`, `vigilance_code` (une
@@ -2136,7 +2136,7 @@ vivante**.
 > schéma, sélections comprises (politique restrictive `*_no_member_access`), portes par alias au
 > L3F. Bornes des réglages : `0316` EC-L3E-03-1.
 >
-> **Écrit par `0319` (L3E, `jalons/l3e/modele.md` §1 à §5, §8).** La porte de la marque
+> **Écrit par `0319` (L3E, `archives/jalons/l3e/modele.md` §1 à §5, §8).** La porte de la marque
 > `search.search_creators(filtres, tri, page, campagne)` (propriétaire `influx_creator_search_definer`,
 > `EXECUTE` à `influx_advertiser` seul, `03` C(42)) écrit, dans la transaction qui sert, une ligne de
 > `search_queries` par appel hors `closed` et `brand_not_published` : `served` (nombre exact après
@@ -2149,7 +2149,7 @@ vivante**.
 > partiel `search_queries_bucket_idx`). La carte sort de `profiles.creator_layer_a()`, seule source
 > de la couche A, partagée avec l'aperçu du créateur (`readProjectionLayerA()`).
 >
-> **Écrit par `0320` (L3E, `jalons/l3e/modele.md` §6, §7).** L'ordre sort de l'aide invoker
+> **Écrit par `0320` (L3E, `archives/jalons/l3e/modele.md` §6, §7).** L'ordre sort de l'aide invoker
 > `search.creator_order()` (paliers 1 à 8 de `10` RG35 en clés d'`ORDER BY`, aucun score ; tris
 > `default`, `audience`, `verified_first`, `new_profiles` ; jour UTC de la porte). Le quota froid
 > (`cold_profile_quota`, tri par défaut, page 1) donne les dernières places aux froids les mieux
@@ -2243,7 +2243,7 @@ Clés de `search.search_settings`, fermées par `CHECK` (`10` RG2, RG57, RG63) :
 `rate_limits` (30/h, 200/j, 60 profils ouverts/j), `cold_profile_quota` (2 places, 30 jours),
 `critical_mass_thresholds` (30 profils publiés, 5 par thématique),
 `region_display_threshold` (5, lu par `profiles.creator_public_profiles.residence_region_code`).
-*`alert_thresholds` retirée par `0316` (`jalons/l3e/modele.md` §9, §10).*
+*`alert_thresholds` retirée par `0316` (`archives/jalons/l3e/modele.md` §9, §10).*
 
 Trois garanties, calquées sur `leads.sync_settings` (§5.8) : l'écriture est réservée à
 `influx_admin` par une fonction `SECURITY DEFINER` qui **écrit un événement chaîné
@@ -3148,7 +3148,7 @@ tenable sous concurrence. C'est exactement le critère de R10 — une mesure, pa
 recherche de créateurs en dépend dès son ouverture. Le schéma, lui, existe depuis la migration
 `0001`.*
 
-> **Livré par `0317` (L3E, `jalons/l3e/modele.md` §9, qui prime pour tout nom).** Écarts et
+> **Livré par `0317` (L3E, `archives/jalons/l3e/modele.md` §9, qui prime pour tout nom).** Écarts et
 > précisions au texte ci-dessous : `block_reasons` **vide** (motifs avec le geste, Lot 4, `10` Q11),
 > `label_key = 'block.reason.' || code` ; un blocage **naît actif**, sa levée est la seule
 > modification, une fois (`guard_party_block_write()`, 55000 pour tout rôle `influx_%` hors levée
@@ -5964,7 +5964,7 @@ les préparer serait inventer.
 | **Journal transactionnel** | **`leads.transactional_sends`** | **13 mois** pour une ligne **avec compte** ; **ligne entière supprimée après 30 jours** si elle n'a **pas de compte** (adresse en clair, RG-J3-6) | `created_at` | Diagnostic d'exploitation, pas preuve : assez pour couvrir une saisonnalité complète de délivrabilité, et bien moins que les envois marketing. Ne contient **ni corps, ni code** |
 | **Suspensions** | `backoffice.account_suspensions` | **5 ans** après la levée | `ended_at` | Une suspension est une décision opposable : le titulaire peut la contester, et INFLUX doit pouvoir l'expliquer |
 | Incidents de délivrance | `identity.email_delivery_incidents` | **24 mois** | `occurred_at` | Diagnostic d'un compte fermé et suivi de la réputation d'envoi ; au-delà, sans usage |
-| Journal des recherches | `search.search_queries`, `search_impressions`, `impression_reasons`, `creator_exposures` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite. *L3E (`0318`, `jalons/l3e/modele.md` §9) : export de la marque `advertiser_profile.creator_searches` (instant, filtres, tri, page, issue, tranche du nombre ou nul, blocage k, titre de la campagne), jamais le nombre exact, une impression, une raison, une exposition ni un créateur servi ; le créateur ne reçoit aucune impression (RG8). À l'effacement, **supprimés** : recherches de la marque avec leurs impressions et raisons, impressions et raisons d'un créateur dans toute recherche, son exposition. Purge au Lot 6 avec L3DS-2* |
+| Journal des recherches | `search.search_queries`, `search_impressions`, `impression_reasons`, `creator_exposures` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite. *L3E (`0318`, `archives/jalons/l3e/modele.md` §9) : export de la marque `advertiser_profile.creator_searches` (instant, filtres, tri, page, issue, tranche du nombre ou nul, blocage k, titre de la campagne), jamais le nombre exact, une impression, une raison, une exposition ni un créateur servi ; le créateur ne reçoit aucune impression (RG8). À l'effacement, **supprimés** : recherches de la marque avec leurs impressions et raisons, impressions et raisons d'un créateur dans toute recherche, son exposition. Purge au Lot 6 avec L3DS-2* |
 | Sélections d'une marque | `search.shortlists`, `shortlist_items` | *Non fixée : Lot 6, veto RGPD* | — | *`0318` : exportées à la marque (nom, titre de la campagne, date, créateurs par alias avec date et note, seuls alias de son export) ; supprimées avec la marque effacée, la place d'un créateur effacé retirée de toute sélection* |
 | Blocages entre parties | `matching.party_blocks` | *Non fixée : Lot 6, veto RGPD* | — | *`0318` : à l'export, les seuls blocages **posés par le membre** (l'autre partie par alias ou nom de marque, motif, commentaire, dates), jamais un blocage posé contre lui, par INFLUX, ni qui l'a levé (RG30) ; `block.*` hors journal d'activité (`excluded_third_party`). À l'effacement, tout blocage d'une paire du compte est **supprimé**, quel qu'en soit l'auteur (EC-L3E-05-3)* |
 | Lectures du fil et des fiches de campagne | `search.creator_campaign_reads` (L3D, `0314`) | **12 mois** (hypothèse, comme le journal des recherches) | `read_at` | Contrepartie de l'ouverture du fil (`11` RG22) et anti-aspiration (CA18). Purge livrée avec celle du journal des recherches, **au plus tard au Lot 6** (aucune ligne n'a 12 mois avant) ; à l'effacement, les lignes du compte sont **supprimées**, aucune survie pseudonymisée ; durée soumise au veto RGPD du Lot 6 |
@@ -6354,6 +6354,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0318 | `privacy_search_and_blocks` (L3E) | `privacy.export_document()` et `execute_request()` recréées depuis `0314` à signature égale : recherches, sélections et blocages posés par le membre à l'export, recherche et blocages du compte supprimés à l'effacement ; droits de `influx_privacy_definer` (colonnes lues, `DELETE` sur un compte `deleted`, `result_count_band()`) | Oui tant qu'aucune recherche, sélection ni blocage n'est écrit et aucun compte effacé |
 | 0319 | `search_creator_search_door` (L3E) | `influx_creator_search_definer`, porte `search.search_creators()` (`EXECUTE` marque seule), aides invoker `require_creator_searcher()`, `creator_search_retry_after()`, `check_creator_search_filters()`, moteur `creator_candidates()` (E1 à E6, filtres du socle, vue identifiée 0A000) ; `profiles.creator_layer_a()`, source unique de la couche A (aperçu et carte) ; droits colonne par colonne et politiques du propriétaire (couche A publiée et cherchable, paire des blocages actifs, journal en insertion) ; `USAGE` sur `search` à `influx_advertiser` | Oui tant qu'aucune recherche n'est journalisée |
 | 0320 | `search_creator_order_and_reasons` (L3E) | Aide invoker `search.creator_order()` (paliers 1 à 8, tris du pilote, quota froid en page 1, raisons et note de la page) ; porte `search_creators()` recréée à signature égale (impressions avec `cold_quota` et note, `impression_reasons` écrites dans la transaction qui sert) ; droits du propriétaire : `cold_profile_quota`, `first_page_at`, livrables et pays visés de ses campagnes, insertion des raisons ; une version de `facet_config_versions` (RG88) | Oui tant qu'aucune recherche n'est journalisée |
+| 0321 | `search_creator_search_volume_alert` (L3E, AL21, I-9) | Seuils d'AL21 en table (`alert_definitions`, hypothèse `{150, 8000}`, à fixer par le fondateur : L3ES-3), `search.creator_search_volume_alerts()` (`SECURITY DEFINER`, `EXECUTE` à `influx_admin` seul) : compte, cause, nombre et date, sans filtre ni profil ; état dérivé ; propriétaire `influx_search_admin_definer` en lecture seule |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |
@@ -6372,7 +6373,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | **Lot 6** | | | |
 | 0601 | `retention_jobs` | Fonctions de purge, index de purge manquants | Oui |
 
-> **Numéros réels du L3E (EC-L3E-1).** `0315` est prise par la dette L3DS-1, en tête du jalon : le journal de recherche et les réglages (anciens `0315` et `0316`) passent ensemble en `0316`, `0317` reste aux blocages ; suivent `0318` (export et effacement), `0319` (porte de recherche anonymisée) et `0320` (tri explicable), décrits par `jalons/l3e-fiche.md`.
+> **Numéros réels du L3E (EC-L3E-1).** `0315` est prise par la dette L3DS-1, en tête du jalon : le journal de recherche et les réglages (anciens `0315` et `0316`) passent ensemble en `0316`, `0317` reste aux blocages ; suivent `0318` (export et effacement), `0319` (porte de recherche anonymisée) et `0320` (tri explicable) et `0321` (alerte AL21, I-9), décrits par `archives/jalons/l3e-fiche.md`.
 
 > **Numérotation (EC-37, tranché le 2026-09-28).** Un numéro est un **ordre d'application** : la CLI Supabase n'applique pas une migration plus ancienne que la dernière appliquée. Les migrations du J3 prennent donc `0010` à `0015` (suite du Lot 0) ; **l'ancien `0108` du J3 n'existe plus** (son contenu est dans `0014` et `0015`) ; le numéro sert à `0108_identity_terms_public_read` (J5, EC-62) et la série du Lot 1 s'applique dans l'ordre de ses numéros ; **`0102` et `0107`, écrites après `0128`, sont devenues `0129` et `0130`** (J8). **`0101` ajoute la clé étrangère** `leads.transactional_sends.outbox_event_id → leads.outbox_events(id)`. Même règle au Lot 4 pour `0402a`, `0402b`, `0402c` (EC-32).
 

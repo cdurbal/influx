@@ -1329,3 +1329,11 @@ k-anonymat**, **profils jamais affichés en 30 jours**.
 | **Q11** | **Blocage entre parties (RG28)** : qui peut bloquer, avec quel motif, avec quelle information de la partie bloquée (aucune, selon l'hypothèse), et quel recours ? | Blocage silencieux, motif typé, aucune information de la partie bloquée | `product-owner` + `expert-conformite-rgpd` | Lot 3 |
 | **Q12** | **Valeurs de paramétrage** : plafonds de pagination (12 × 5), de débit (30/h, 200/j, 60 profils/j), quota froid (2 sur 12), seuils d'alerte. Trop bas, ils gênent une marque légitime ; trop hauts, ils laissent copier l'annuaire | Valeurs de départ ci-contre, **en table**, calibrées après un mois de mesure | `expert-cybersecurite` + `expert-matching` | Lot 3 |
 | **Q13** | **D61 — faut-il faire entrer le rythme de publication (F24) et les commentaires moyens (F25) dans le socle dès l'ouverture de la recherche ?** Ce sont deux des trois métriques prioritaires du fondateur, mais chaque facette ouverte au démarrage rapproche les recherches du seuil de k-anonymat (RG10) | **Seconde vague** : les deux chiffres sont **affichés** sur chaque carte dès le premier jour (RG47), le **filtre** s'ouvre au volume (RG11), comme les autres facettes non socle | `expert-matching` + **Fondateur** | Lot 3 |
+
+> **Amendé par la clôture de L3E (2026-11-19, `archives/jalons/l3e/annexe.md` § Écarts).** *EC-L3E-2* : CA4 et
+> RG41 citent la tranche de F6, jamais « plus de 70 % » ni 72 % (lignes 437 et 991). *EC-L3E-3* : des
+> alertes de RG68, **AL21** (volume anormal : profils distincts servis sur 24 h, 80 % d'un plafond)
+> est livrée au L3E (`0321`, seuils `{150, 8000}` hypothétiques, à fixer par le fondateur) ;
+> l'affinage (CA45) et l'aspiration (CA46, agrégation multi-comptes) sont au L3F, AL22 au L3G.
+> *Réponses du fondateur du 2026-11-19 aux trois questions de la fiche L3E* : oui à la preuve par la
+> CI et une lecture SQL de `staging` sans recette (Q1) ; oui à EC-L3E-2 (Q2) ; oui à EC-L3E-3 (Q3).
