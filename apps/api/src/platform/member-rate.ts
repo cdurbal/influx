@@ -1,6 +1,7 @@
 // Rate per client address of the member routes that read another member's published data in bulk
-// (docs/mvp/11 RG21, CA18; 18 T15.3, T15.4; jalons/l3d/modele.md §5). The account has its own bucket,
-// in the database (search.campaign_read_retry_after, 0314): this bound is the second one, per client
+// (docs/mvp/11 RG21, CA18; 10 RG64; 18 T15.3, T15.4; jalons/l3d/modele.md §5, l3e/modele.md §8). The
+// account has its own bucket, in the database (search.campaign_read_retry_after, 0314;
+// search.creator_search_retry_after, 0319): this bound is the second one, per client
 // address and per instance, per minute, in memory, checked by server.ts BEFORE the session is read,
 // so that a burst spread over many accounts from one network is refused too. The address key is the
 // HMAC of A5 (03 §6.4), never the address, and never written to the base nor to a log line (D60); an
@@ -17,6 +18,8 @@ export const MEMBER_ROUTE_ADDRESS_RATES = {
   "GET /v1/open-campaigns": 60,
   "GET /v1/open-campaigns/:id": 60,
   "GET /v1/open-campaigns/:id/brand-logo": 240,
+  // L3E 08 (10 RG64, 18 T15.4; l3e/modele.md §8): the brand's creator search, a page per call
+  "POST /v1/creator-search": 60,
 } as const satisfies Readonly<Record<string, number>>;
 
 const RATE_OF: Readonly<Record<string, number | undefined>> =

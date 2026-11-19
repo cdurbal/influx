@@ -141,6 +141,7 @@ export const API_ROUTE_MODELS: readonly string[] = [
   "/v1/bo/settings/apollo",
   "/v1/bo/verification/registry-sources",
   "/v1/bo/verification/registry-sources/:id",
+  "/v1/creator-search",
   "/v1/me",
   "/v1/me/brand-profile",
   "/v1/me/brand-profile/logo",

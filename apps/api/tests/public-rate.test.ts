@@ -65,6 +65,8 @@ const SESSION_ROUTES: readonly string[] = [
   "GET /v1/open-campaigns",
   "GET /v1/open-campaigns/:id",
   "GET /v1/open-campaigns/:id/brand-logo",
+  // L3E 08: the brand's creator search (its address bound: platform/member-rate.ts)
+  "POST /v1/creator-search",
   "GET /v1/me/creator-profile",
   "PATCH /v1/me/creator-profile",
   "GET /v1/me/creator-profile/networks",

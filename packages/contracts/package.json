@@ -22,6 +22,7 @@
     "./creator-profile": "./src/creator-profile.ts",
     "./creator-portfolio": "./src/creator-portfolio.ts",
     "./creator-projection": "./src/creator-projection.ts",
+    "./creator-search": "./src/creator-search.ts",
     "./verification": "./src/verification.ts",
     "./backoffice-auth": "./src/backoffice-auth.ts",
     "./backoffice-accounts": "./src/backoffice-accounts.ts",

@@ -26,16 +26,22 @@
 // The "after" tab (`readCreatorPreview`) is the same projection plus the layer I of the projected lines
 // (handle, URL, exact figures) and the exact audience of the main line, read from the session of the
 // creator himself (0217 owner policies); what a brand reads after an introduction is Lot 4.
-import type {
-  CreatorPreviewResponse,
-  CreatorProjectionBefore,
-  CreatorProjectionIdentifiedNetwork,
+import { PORTFOLIO_MAX_ITEMS } from "@influx/contracts/creator-portfolio";
+import {
+  creatorProjectionBeforeSchema,
+  creatorProjectionNetworkSchema,
+  creatorProjectionVisualSchema,
+  type CreatorPreviewResponse,
+  type CreatorProjectionBefore,
+  type CreatorProjectionIdentifiedNetwork,
 } from "@influx/contracts/creator-projection";
+import * as z from "zod";
 import type { Transaction } from "../../../db/index.ts";
 import {
   readProjectionLayerA,
   readProjectionLayerI,
   type ProjectedLineRow,
+  type ProjectionLayerARow,
 } from "./projection/repository.ts";
 
 /** Layer A of one creator, and whether a brand can see it now (07 RG5: published only). */
@@ -56,6 +62,48 @@ function layerAOf(
   return network;
 }
 
+/** Layer A as its one SQL source returns it (profiles.creator_layer_a), its status and lines apart. */
+type LayerAFields = Omit<ProjectionLayerARow, "status" | "lines">;
+
+/**
+ * THE mapping of layer A (07 RG104): the preview of the creator and the card of the brand's search
+ * (L3E) both pass through it, so that what a brand is served is exactly what the preview shows.
+ */
+function projectionOf(
+  row: LayerAFields,
+  networks: CreatorProjectionBefore["networks"],
+): CreatorProjectionBefore {
+  return {
+    alias: row.alias,
+    headline: row.headline,
+    bio: row.bio,
+    primaryTopic: row.primary_topic,
+    secondaryTopics: row.secondary_topics,
+    tones: row.tones,
+    publicationLanguages: row.publication_languages,
+    residenceCountry: row.residence_country,
+    travelScope: row.travel_scope,
+    collaborationExperience: row.collaboration_experience,
+    mainAudienceCountry: row.main_audience_country,
+    mainAudienceShareBand: row.main_audience_share_band,
+    audienceGenderBand: row.audience_gender_band,
+    audienceBands: row.audience_bands,
+    formats: row.formats,
+    usageRights: row.usage_rights,
+    deliveryLead: row.delivery_lead,
+    maxExclusivity: row.max_exclusivity,
+    acceptsNonMonetary: row.accepts_non_monetary,
+    availability: row.availability,
+    networks,
+    // 1 to n among the approved ones: no gap tells a brand that a visual waits or was refused
+    visuals: row.visuals.map((visual, index) => ({
+      id: visual.id,
+      order: index + 1,
+      caption: visual.caption,
+    })),
+  };
+}
+
 async function readLayerA(
   tx: Transaction,
   accountId: string,
@@ -67,36 +115,58 @@ async function readLayerA(
   return {
     published: row.status === "published",
     lines: row.lines,
-    projection: {
-      alias: row.alias,
-      headline: row.headline,
-      bio: row.bio,
-      primaryTopic: row.primary_topic,
-      secondaryTopics: row.secondary_topics,
-      tones: row.tones,
-      publicationLanguages: row.publication_languages,
-      residenceCountry: row.residence_country,
-      travelScope: row.travel_scope,
-      collaborationExperience: row.collaboration_experience,
-      mainAudienceCountry: row.main_audience_country,
-      mainAudienceShareBand: row.main_audience_share_band,
-      audienceGenderBand: row.audience_gender_band,
-      audienceBands: row.audience_bands,
-      formats: row.formats,
-      usageRights: row.usage_rights,
-      deliveryLead: row.delivery_lead,
-      maxExclusivity: row.max_exclusivity,
-      acceptsNonMonetary: row.accepts_non_monetary,
-      availability: row.availability,
-      networks: row.lines.map(layerAOf),
-      // 1 to n among the approved ones: no gap tells a brand that a visual waits or was refused
-      visuals: row.visuals.map((visual, index) => ({
-        id: visual.id,
-        order: index + 1,
-        caption: visual.caption,
-      })),
-    },
+    projection: projectionOf(row, row.lines.map(layerAOf)),
   };
+}
+
+const S = creatorProjectionBeforeSchema.shape;
+
+/**
+ * The creator of a card of search.search_creators() (0320, modele §2): profiles.creator_layer_a()
+ * without its status nor the key of a line, checked WHOLE and strict (a key more, a key less: a 500,
+ * never served), then shaped by `projectionOf()` as the preview is.
+ */
+const searchCardLayerASchema = z.strictObject({
+  alias: S.alias,
+  headline: S.headline,
+  bio: S.bio,
+  primary_topic: S.primaryTopic,
+  residence_country: S.residenceCountry,
+  travel_scope: S.travelScope,
+  collaboration_experience: S.collaborationExperience,
+  main_audience_country: S.mainAudienceCountry,
+  main_audience_share_band: S.mainAudienceShareBand,
+  audience_gender_band: S.audienceGenderBand,
+  delivery_lead: S.deliveryLead,
+  max_exclusivity: S.maxExclusivity,
+  accepts_non_monetary: S.acceptsNonMonetary,
+  availability: S.availability,
+  secondary_topics: S.secondaryTopics,
+  tones: S.tones,
+  publication_languages: S.publicationLanguages,
+  formats: S.formats,
+  usage_rights: S.usageRights,
+  audience_bands: S.audienceBands,
+  lines: z.array(creatorProjectionNetworkSchema),
+  visuals: z
+    .array(
+      z.strictObject({
+        id: z.uuid(),
+        caption: creatorProjectionVisualSchema.shape.caption,
+      }),
+    )
+    .max(PORTFOLIO_MAX_ITEMS),
+});
+
+/**
+ * Layer A of a creator as the brand's search serves it (07 RG104; l3e/modele.md §2): the door's own
+ * read of the one SQL source, through the one mapping of this module, checked by the contract.
+ */
+export function searchCardProjectionOf(
+  value: unknown,
+): CreatorProjectionBefore {
+  const row = searchCardLayerASchema.parse(value);
+  return creatorProjectionBeforeSchema.parse(projectionOf(row, row.lines));
 }
 
 /**

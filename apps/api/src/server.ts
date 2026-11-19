@@ -33,6 +33,7 @@ import { registerVerificationBadgesRoutes } from "./domains/backoffice/verificat
 import { registerVerificationOpeningRoutes } from "./domains/backoffice/verification-opening-routes.ts";
 import { registerVerificationRegistryRoutes } from "./domains/backoffice/verification-registry-routes.ts";
 import { registerCampaignRoutes } from "./domains/campaigns/routes.ts";
+import { registerCreatorSearchRoutes } from "./domains/search/creator-search/routes.ts";
 import { registerOpenCampaignRoutes } from "./domains/search/open-campaigns/routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
@@ -280,7 +281,8 @@ export function buildServer(
   const publicRate = new PublicRateLimiter(
     options.identity?.now ?? (() => new Date()),
   );
-  // 11 CA18, 18 T15.4: the creator's reads of the open campaigns, per client address (member-rate.ts).
+  // 11 CA18, 10 RG64, 18 T15.4: the creator's reads of the open campaigns and the brand's creator
+  // search, per client address (member-rate.ts).
   const memberAddressRate = new MemberAddressRateLimiter(
     options.identity?.now ?? (() => new Date()),
   );
@@ -616,6 +618,13 @@ export function buildServer(
     database,
     now: options.identity?.now ?? (() => new Date()),
     store: objectStore,
+  });
+
+  // The brand's anonymous creator search (docs/mvp/10; jalon L3E commit 08), through the door of the
+  // schema search (0319, 0320).
+  registerCreatorSearchRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
   });
 
   // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08); its
