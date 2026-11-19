@@ -6,7 +6,7 @@
 | A | A.md | arbitrage | opus | xhigh | architecte | fait | modele.md : creator_layer_a() source unique, NEVER_EXCEPTED = couche I (E5, E6 en couples), palier 5 neutre, région au L3F, page = recherche, AL21 en 0321 |
 | 03 | 03.md | commit | opus | high | expert-database | fait | 0316 : aucun droit membre (politique restrictive), écrivains admin seuls + settings_changed, F12 fermée, recherche fermée ; L3E-T3 16 |
 | 04 | 04.md | commit | opus | high | expert-database | fait | 0317 : aucun droit membre/agent/admin, feed_definer lit paire+lifted_at des blocages actifs ; visible_campaigns exclut la paire, 2 sens ; L3E-T4 10 |
-| 05 | 05.md | commit | opus | high | expert-database | à faire | |
+| 05 | 05.md | commit | opus | high | expert-database | fait | 0318 : export recherches, sélections (alias), blocages posés seuls, jamais subis ni impression ; effacement supprime journal et blocages de la paire ; L3E-T5 6 |
 | 06 | 06.md | commit | opus | xhigh | expert-database | à faire | |
 | 07 | 07.md | commit | opus | high | expert-database | à faire | |
 | 08 | 08.md | commit | opus | high | dev-react-node | à faire | |

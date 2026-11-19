@@ -19,6 +19,9 @@
 //   export and the erasure; the decisions of INFLUX on the campaigns in the activity log (L3BS-5).
 // - L3D-T2 (0314): the creator's reads of the open campaigns in the export and the erasure
 //   (l3d/modele.md §6).
+// - L3E-T5 (0318): the brand's searches and shortlists, the blocks a member posed in the export,
+//   never a block posed against it; the search and the blocks of an erased account deleted
+//   (l3e/modele.md §9).
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, which writes the fixtures
 // and acts as apps/api and the worker do (support.ts: actAsInternal, actAsMember, actAs).
@@ -2135,6 +2138,10 @@ describe("the full brand profile of 0202 in the export and the erasure (04 §9.2
       verification: { internal_details: null, requests: [], badges: [] },
       // 0306 (L3B, EC-L3B-06-1): no campaign for this brand
       campaigns: [],
+      // 0318 (L3E): no search, shortlist nor block posed by this brand
+      creator_searches: [],
+      shortlists: [],
+      blocks: [],
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),
     });
@@ -5207,6 +5214,679 @@ describe("L3D-T2 the reads of the open campaigns in the export and the erasure (
     expect(rowsOf(outcome.removed)).toEqual([]);
     expect(codeOf(outcome.updated)).toBe(INSUFFICIENT_PRIVILEGE);
     expect(outcome.left).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L3E-T5 (0318; l3e/modele.md §9): the creator search and the blocks in the export and the erasure
+
+/** A creator with a storefront (its alias: what a brand's shortlist names). */
+async function newCreatorWithAlias(
+  tx: Tx,
+): Promise<{ member: Member; alias: string }> {
+  const member = await newMember(tx);
+  const [row] = await tx<{ alias: string }[]>`
+    insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+    values (${member.id}, profiles.new_creator_alias(), 'FR')
+    returning alias`;
+  return { member, alias: String(row?.alias) };
+}
+
+/** A draft campaign of a brand, by its title. */
+async function newDraftCampaign(
+  tx: Tx,
+  brand: string,
+  title: string,
+): Promise<string> {
+  const [row] = await tx<{ id: string }[]>`
+    insert into campaigns.campaigns (advertiser_account_id, title, created_at)
+    values (${brand}, ${title}, '2026-11-01T09:00:00Z')
+    returning id::text`;
+  return String(row?.id);
+}
+
+type SearchLine = {
+  outcome: "served" | "page_cap" | "rate_limited";
+  count: number;
+  page: number;
+  kBlocked?: boolean;
+  filters?: Row;
+  sort?: string;
+  campaign?: string | null;
+  at: string;
+};
+
+/** A line of the search journal, as the door of 0319 will write it (the version read, never a
+ * number assumed: identities are not rolled back). */
+async function giveSearch(
+  tx: Tx,
+  brand: string,
+  line: SearchLine,
+): Promise<string> {
+  const [row] = await tx<{ id: string }[]>`
+    insert into search.search_queries
+      (account_id, actor_role, view_mode, campaign_id, outcome, filters, sort_code,
+       facet_config_version, result_count, page_reached, blocked_by_k_anonymity, created_at)
+    values (${brand}, 'advertiser', 'advertiser_anonymous', ${line.campaign ?? null}, ${line.outcome},
+            ${JSON.stringify(line.filters ?? {})}::text::jsonb, ${line.sort ?? "default"},
+            (select max(version) from search.facet_config_versions), ${line.count}, ${line.page},
+            ${line.kBlocked ?? false}, ${line.at})
+    returning id::text`;
+  return String(row?.id);
+}
+
+/** A creator served by a search, with one reason, and its first exposure. */
+async function giveImpression(
+  tx: Tx,
+  search: string,
+  creator: string,
+  rank: number,
+): Promise<void> {
+  await tx`
+    insert into search.search_impressions (search_query_id, creator_account_id, rank)
+    values (${search}, ${creator}, ${rank})`;
+  await tx`
+    insert into search.impression_reasons
+      (search_query_id, creator_account_id, reason_code, position, reason_params)
+    values (${search}, ${creator}, 'primary_topic', 1, '{"topic": "beauty"}'::jsonb)`;
+  await tx`
+    insert into search.creator_exposures (creator_account_id, first_page_at)
+    values (${creator}, '2026-11-10T08:00:00Z')
+    on conflict (creator_account_id) do nothing`;
+}
+
+/** A shortlist of a brand holding the creators given (date, note). */
+async function giveShortlist(
+  tx: Tx,
+  brand: string,
+  name: string,
+  campaign: string | null,
+  creators: readonly string[],
+  at = "2026-11-11T09:00:00Z",
+): Promise<string> {
+  const [row] = await tx<{ id: string }[]>`
+    insert into search.shortlists (advertiser_account_id, name, campaign_id, created_at)
+    values (${brand}, ${name}, ${campaign}, ${at})
+    returning id::text`;
+  const shortlist = String(row?.id);
+  for (const [index, creator] of creators.entries()) {
+    await tx`
+      insert into search.shortlist_items (shortlist_id, creator_account_id, added_at, note)
+      values (${shortlist}, ${creator}, ${`2026-11-11T09:0${index + 1}:00Z`},
+              ${`t8 note ${index + 1}`})`;
+  }
+  return shortlist;
+}
+
+/** The reasons of a block for the cases (block_reasons is empty until Lot 4: seeded here). */
+const BLOCK_REASON = "t_eight_block";
+
+async function giveBlockReason(tx: Tx): Promise<void> {
+  await tx`
+    insert into matching.block_reasons (code, label_key, available_to_side)
+    values (${BLOCK_REASON}, ${`block.reason.${BLOCK_REASON}`}, 'any')
+    on conflict (code) do nothing`;
+}
+
+/** A block of the pair, posed by a side (the brand, the creator, or INFLUX through an admin). */
+async function giveBlock(
+  tx: Tx,
+  brand: string,
+  creator: string,
+  side: "advertiser" | "creator" | "influx",
+  comment: string,
+  lifted = false,
+): Promise<void> {
+  const by =
+    side === "advertiser" ? brand : side === "creator" ? creator : adminA;
+  const [row] = await tx<{ id: string }[]>`
+    insert into matching.party_blocks
+      (advertiser_account_id, creator_account_id, blocked_by_account_id, blocked_by_side,
+       reason_code, comment, created_at)
+    values (${brand}, ${creator}, ${by}, ${side}, ${BLOCK_REASON}, ${comment},
+            '2026-11-12T10:00:00Z')
+    returning id::text`;
+  if (lifted) {
+    // the superuser, outside influx_%: the guard of 0317 lets it through
+    await tx`
+      update matching.party_blocks
+         set lifted_at = '2026-11-13T10:00:00Z', lifted_by_account_id = ${by},
+             lift_reason_code = 't_eight_lift'
+       where id = ${String(row?.id)}`;
+  }
+}
+
+async function exportOf(tx: Tx, member: Member): Promise<string> {
+  const request = await deposit(tx, member, "access");
+  await approve(tx, request, "access");
+  rowsOf(await execute(tx, request, NOTICE));
+  const [stored] = await tx<{ content: string }[]>`
+    select content from privacy.data_exports where request_id = ${request}`;
+  return String(stored?.content);
+}
+
+async function eraseOf(tx: Tx, member: Member): Promise<void> {
+  const request = await deposit(tx, member, "erasure");
+  await approve(tx, request, "erasure");
+  rowsOf(await execute(tx, request, null));
+}
+
+/** What the base holds of the search and the blocks naming an account, on each side. */
+async function searchTraceOf(tx: Tx, account: string): Promise<Row> {
+  const [row] = await tx<Row[]>`
+    select
+      (select count(*)::int from search.search_queries where account_id = ${account}) as searches,
+      (select count(*)::int from search.search_impressions i
+         where i.creator_account_id = ${account}
+            or i.search_query_id in (select q.id from search.search_queries q
+                                      where q.account_id = ${account})) as impressions,
+      (select count(*)::int from search.impression_reasons r
+         where r.creator_account_id = ${account}
+            or r.search_query_id in (select q.id from search.search_queries q
+                                      where q.account_id = ${account})) as reasons,
+      (select count(*)::int from search.creator_exposures
+         where creator_account_id = ${account}) as exposures,
+      (select count(*)::int from search.shortlists
+         where advertiser_account_id = ${account}) as shortlists,
+      (select count(*)::int from search.shortlist_items i
+         where i.creator_account_id = ${account}
+            or i.shortlist_id in (select s.id from search.shortlists s
+                                   where s.advertiser_account_id = ${account})) as shortlist_items,
+      (select count(*)::int from matching.party_blocks
+         where advertiser_account_id = ${account} or creator_account_id = ${account}) as blocks`;
+  return row ?? {};
+}
+
+type SearchExport = {
+  data: {
+    advertiser_profile: {
+      creator_searches: Row[];
+      shortlists: Row[];
+      blocks: Row[];
+    } | null;
+    creator_profile: { blocks: Row[] } | null;
+    activity_log: Row[];
+  };
+};
+
+describe("L3E-T5 the creator search and the blocks in the export and the erasure (0318, modele §9)", () => {
+  it("L3E-T5 exports the brand's searches (instant, filters, sort, page, outcome, band or null, k block, campaign title); never the exact count, an impression, a reason nor a creator served", async () => {
+    const outcome = await scenario(async (tx) => {
+      const brand = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      const served = await newCreatorWithAlias(tx);
+      const campaign = await newDraftCampaign(
+        tx,
+        brand.id,
+        "t8 search campaign",
+      );
+      const first = await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 37,
+        page: 1,
+        filters: { F1: "beauty", F3: ["instagram"] },
+        campaign,
+        at: "2026-11-10T08:00:00Z",
+      });
+      await giveImpression(tx, first, served.member.id, 1);
+      await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 3,
+        page: 1,
+        kBlocked: true,
+        filters: { F1: "travel" },
+        sort: "verified_first",
+        at: "2026-11-10T08:01:00Z",
+      });
+      await giveSearch(tx, brand.id, {
+        outcome: "page_cap",
+        count: 0,
+        page: 6,
+        sort: "audience",
+        at: "2026-11-10T08:02:00Z",
+      });
+      await giveSearch(tx, brand.id, {
+        outcome: "rate_limited",
+        count: 0,
+        page: 1,
+        at: "2026-11-10T08:03:00Z",
+      });
+      await giveSearch(tx, stranger.id, {
+        outcome: "served",
+        count: 12,
+        page: 1,
+        filters: { F1: "stranger_topic" },
+        at: "2026-11-10T08:04:00Z",
+      });
+      return {
+        content: await exportOf(tx, brand),
+        served: served.member.id,
+        alias: served.alias,
+      };
+    });
+    const file = JSON.parse(outcome.content) as SearchExport;
+    expect(file.data.advertiser_profile?.creator_searches).toEqual([
+      {
+        searched_at: "2026-11-10T08:00:00.000Z",
+        filters: { F1: "beauty", F3: ["instagram"] },
+        sort: "default",
+        page: 1,
+        outcome: "served",
+        count_band: "25_49",
+        blocked_by_k_anonymity: false,
+        campaign_title: "t8 search campaign",
+      },
+      {
+        searched_at: "2026-11-10T08:01:00.000Z",
+        filters: { F1: "travel" },
+        sort: "verified_first",
+        page: 1,
+        outcome: "served",
+        count_band: null,
+        blocked_by_k_anonymity: true,
+        campaign_title: null,
+      },
+      {
+        searched_at: "2026-11-10T08:02:00.000Z",
+        filters: {},
+        sort: "audience",
+        page: 6,
+        outcome: "page_cap",
+        count_band: null,
+        blocked_by_k_anonymity: false,
+        campaign_title: null,
+      },
+      {
+        searched_at: "2026-11-10T08:03:00.000Z",
+        filters: {},
+        sort: "default",
+        page: 1,
+        outcome: "rate_limited",
+        count_band: null,
+        blocked_by_k_anonymity: false,
+        campaign_title: null,
+      },
+    ]);
+    expect(file.data.advertiser_profile?.shortlists).toEqual([]);
+    expect(file.data.advertiser_profile?.blocks).toEqual([]);
+    // the creator served, its alias, the reason shown and the exact count never leave the base
+    for (const absent of [
+      outcome.served,
+      outcome.alias,
+      "result_count",
+      "primary_topic",
+      "rank",
+      "stranger_topic",
+    ]) {
+      expect(outcome.content.includes(absent), absent).toBe(false);
+    }
+  });
+
+  it("L3E-T5 exports the brand's shortlists with their creators by alias and the blocks it posed; never the alias of a creator it only saw served", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const brand = await newMember(tx, "advertiser");
+      const listed = await newCreatorWithAlias(tx);
+      const seen = await newCreatorWithAlias(tx);
+      const blocked = await newCreatorWithAlias(tx);
+      const campaign = await newDraftCampaign(
+        tx,
+        brand.id,
+        "t8 shortlist campaign",
+      );
+      const search = await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 9,
+        page: 1,
+        at: "2026-11-10T08:00:00Z",
+      });
+      await giveImpression(tx, search, listed.member.id, 1);
+      await giveImpression(tx, search, seen.member.id, 2);
+      await giveShortlist(tx, brand.id, "t8 favourites", campaign, [
+        listed.member.id,
+      ]);
+      await giveShortlist(
+        tx,
+        brand.id,
+        "t8 empty",
+        null,
+        [],
+        "2026-11-11T10:00:00Z",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        blocked.member.id,
+        "advertiser",
+        "t8 brand comment",
+        true,
+      );
+      return {
+        content: await exportOf(tx, brand),
+        listed: listed.alias,
+        seen: seen.alias,
+        blocked: blocked.alias,
+      };
+    });
+    const file = JSON.parse(outcome.content) as SearchExport;
+    expect(file.data.advertiser_profile?.shortlists).toEqual([
+      {
+        name: "t8 favourites",
+        campaign_title: "t8 shortlist campaign",
+        created_at: "2026-11-11T09:00:00.000Z",
+        creators: [
+          {
+            alias: outcome.listed,
+            added_at: "2026-11-11T09:01:00.000Z",
+            note: "t8 note 1",
+          },
+        ],
+      },
+      {
+        name: "t8 empty",
+        campaign_title: null,
+        created_at: "2026-11-11T10:00:00.000Z",
+        creators: [],
+      },
+    ]);
+    expect(file.data.advertiser_profile?.blocks).toEqual([
+      {
+        creator_alias: outcome.blocked,
+        reason: BLOCK_REASON,
+        comment: "t8 brand comment",
+        created_at: "2026-11-12T10:00:00.000Z",
+        lifted_at: "2026-11-13T10:00:00.000Z",
+      },
+    ]);
+    // a creator served but never shortlisted stays unnamed (modele §9); who lifted, never
+    expect(outcome.content.includes(outcome.seen)).toBe(false);
+    expect(outcome.content.includes("t_eight_lift")).toBe(false);
+  });
+
+  it("L3E-T5 exports the blocks the creator posed (brand, reason, comment, dates); never an impression, a reason nor its exposure (RG8)", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const creator = await newCreatorWithAlias(tx);
+      const brand = await newMember(tx, "advertiser");
+      await tx`update profiles.advertiser_profiles set legal_name = 't8 Blocked Brand'
+                where account_id = ${brand.id}`;
+      const search = await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 5,
+        page: 1,
+        filters: { F1: "brand_topic" },
+        at: "2026-11-10T08:00:00Z",
+      });
+      await giveImpression(tx, search, creator.member.id, 1);
+      await giveBlock(
+        tx,
+        brand.id,
+        creator.member.id,
+        "creator",
+        "t8 creator comment",
+      );
+      return { content: await exportOf(tx, creator.member) };
+    });
+    const file = JSON.parse(outcome.content) as SearchExport;
+    expect(file.data.creator_profile?.blocks).toEqual([
+      {
+        brand: "t8 Blocked Brand",
+        reason: BLOCK_REASON,
+        comment: "t8 creator comment",
+        created_at: "2026-11-12T10:00:00.000Z",
+        lifted_at: null,
+      },
+    ]);
+    expect(file.data.advertiser_profile).toBeNull();
+    for (const absent of ["brand_topic", "beauty", "first_page_at", "rank"]) {
+      expect(outcome.content.includes(absent), absent).toBe(false);
+    }
+  });
+
+  it("L3E-T5 leaves out of a member's export every block posed against it, by the other party or by INFLUX, its reason and comment, and block.* of its activity log (RG30, L3A-T5)", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const brand = await newMember(tx, "advertiser");
+      const creator = await newCreatorWithAlias(tx);
+      const blocker = await newCreatorWithAlias(tx);
+      const other = await newCreatorWithAlias(tx);
+      const otherBrand = await newMember(tx, "advertiser");
+      // another creator blocks the brand; INFLUX blocks the brand with a third creator and the pair
+      // of the two members exported; another brand blocks the creator
+      await giveBlock(
+        tx,
+        brand.id,
+        blocker.member.id,
+        "creator",
+        "t8 against the brand",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        creator.member.id,
+        "influx",
+        "t8 influx against both",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        other.member.id,
+        "influx",
+        "t8 influx against the brand",
+      );
+      await giveBlock(
+        tx,
+        otherBrand.id,
+        creator.member.id,
+        "advertiser",
+        "t8 against the creator",
+      );
+      // the register line of the gesture (Lot 4), written here by the superuser on each block
+      await tx`
+        select audit.append('block.created', 'party_block', b.id)
+          from matching.party_blocks b
+         where b.advertiser_account_id = ${brand.id} or b.creator_account_id = ${creator.member.id}`;
+      // L3A-T5: the two codes of a block are excluded_third_party, by name
+      const classes = await tx<{ code: string; export_class: string }[]>`
+        select code, export_class from audit.event_types where code like 'block.%' order by code`;
+      return {
+        brand: await exportOf(tx, brand),
+        creator: await exportOf(tx, creator.member),
+        classes,
+      };
+    });
+    expect(outcome.classes).toEqual([
+      { code: "block.created", export_class: "excluded_third_party" },
+      { code: "block.lifted", export_class: "excluded_third_party" },
+    ]);
+    const brand = JSON.parse(outcome.brand) as SearchExport;
+    const creator = JSON.parse(outcome.creator) as SearchExport;
+    expect(brand.data.advertiser_profile?.blocks).toEqual([]);
+    expect(creator.data.creator_profile?.blocks).toEqual([]);
+    for (const content of [outcome.brand, outcome.creator]) {
+      for (const absent of [
+        "t8 against the brand",
+        "t8 influx against the brand",
+        "t8 influx against both",
+        "t8 against the creator",
+        BLOCK_REASON,
+        "block.created",
+      ]) {
+        expect(content.includes(absent), absent).toBe(false);
+      }
+    }
+    // the export of the creator still serves its exported lines (the filter of f3.md only)
+    expect(creator.data.activity_log.map((line) => line.code)).toContain(
+      "privacy.execution_approved",
+    );
+  });
+
+  it("L3E-T5 erases a brand: its searches, their impressions and reasons, its shortlists and their creators, every block of its pairs; another brand's kept", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const brand = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      const creator = await newCreatorWithAlias(tx);
+      const other = await newCreatorWithAlias(tx);
+      for (const owner of [brand.id, stranger.id]) {
+        const search = await giveSearch(tx, owner, {
+          outcome: "served",
+          count: 20,
+          page: 1,
+          at: "2026-11-10T08:00:00Z",
+        });
+        await giveImpression(tx, search, creator.member.id, 1);
+        await giveShortlist(tx, owner, "t8 list", null, [creator.member.id]);
+      }
+      await giveBlock(
+        tx,
+        brand.id,
+        creator.member.id,
+        "advertiser",
+        "t8 posed by the brand",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        other.member.id,
+        "creator",
+        "t8 posed against the brand",
+      );
+      await giveBlock(
+        tx,
+        stranger.id,
+        other.member.id,
+        "influx",
+        "t8 stranger's pair",
+      );
+      await eraseOf(tx, brand);
+      return {
+        brand: await searchTraceOf(tx, brand.id),
+        stranger: await searchTraceOf(tx, stranger.id),
+        creator: await searchTraceOf(tx, creator.member.id),
+      };
+    });
+    expect(outcome.brand).toEqual({
+      searches: 0,
+      impressions: 0,
+      reasons: 0,
+      exposures: 0,
+      shortlists: 0,
+      shortlist_items: 0,
+      blocks: 0,
+    });
+    expect(outcome.stranger).toEqual({
+      searches: 1,
+      impressions: 1,
+      reasons: 1,
+      exposures: 0,
+      shortlists: 1,
+      shortlist_items: 1,
+      blocks: 1,
+    });
+    // the creator served by the stranger keeps its impression, its exposure and its place
+    expect(outcome.creator).toMatchObject({
+      impressions: 1,
+      reasons: 1,
+      exposures: 1,
+      shortlist_items: 1,
+      blocks: 0,
+    });
+  });
+
+  it("L3E-T5 erases a creator: its impressions and reasons in any search, its exposure, its place in any shortlist, every block of its pairs; the searches and shortlists of the brands kept; nothing of an active account deleted", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const brand = await newMember(tx, "advertiser");
+      const creator = await newCreatorWithAlias(tx);
+      const other = await newCreatorWithAlias(tx);
+      const search = await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 30,
+        page: 1,
+        at: "2026-11-10T08:00:00Z",
+      });
+      await giveImpression(tx, search, creator.member.id, 1);
+      await giveImpression(tx, search, other.member.id, 2);
+      await giveShortlist(tx, brand.id, "t8 list", null, [
+        creator.member.id,
+        other.member.id,
+      ]);
+      await giveBlock(
+        tx,
+        brand.id,
+        creator.member.id,
+        "advertiser",
+        "t8 posed against the creator",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        other.member.id,
+        "creator",
+        "t8 the other's block",
+      );
+      await eraseOf(tx, creator.member);
+      // the owner of the erasure, on the lines of active accounts: nothing deleted, nothing updated
+      await tx.unsafe("set local role influx_privacy_definer");
+      const removed: number[] = [];
+      for (const statement of [
+        "delete from search.search_queries where account_id = $1 returning 1",
+        "delete from search.search_impressions where creator_account_id = $2 returning 1",
+        "delete from search.impression_reasons where creator_account_id = $2 returning 1",
+        "delete from search.creator_exposures where creator_account_id = $2 returning 1",
+        "delete from search.shortlist_items where creator_account_id = $2 returning 1",
+        "delete from search.shortlists where advertiser_account_id = $1 returning 1",
+        "delete from matching.party_blocks where creator_account_id = $2 returning 1",
+      ]) {
+        // both parameters typed in every statement (one of them unused)
+        const typed = `${statement.replace(" returning 1", "")} and $1::uuid is not null and $2::uuid is not null returning 1`;
+        removed.push(
+          rowsOf(await attempt(tx, typed, [brand.id, other.member.id])).length,
+        );
+      }
+      const updated = codeOf(
+        await attempt(
+          tx,
+          "update matching.party_blocks set comment = null where creator_account_id = $1",
+          [other.member.id],
+        ),
+      );
+      await tx.unsafe("reset role");
+      return {
+        creator: await searchTraceOf(tx, creator.member.id),
+        brand: await searchTraceOf(tx, brand.id),
+        other: await searchTraceOf(tx, other.member.id),
+        removed,
+        updated,
+      };
+    });
+    expect(outcome.creator).toEqual({
+      searches: 0,
+      impressions: 0,
+      reasons: 0,
+      exposures: 0,
+      shortlists: 0,
+      shortlist_items: 0,
+      blocks: 0,
+    });
+    expect(outcome.brand).toEqual({
+      searches: 1,
+      impressions: 1,
+      reasons: 1,
+      exposures: 0,
+      shortlists: 1,
+      shortlist_items: 1,
+      blocks: 1,
+    });
+    expect(outcome.other).toMatchObject({
+      impressions: 1,
+      exposures: 1,
+      shortlist_items: 1,
+      blocks: 1,
+    });
+    expect(outcome.removed).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    expect(outcome.updated).toBe(INSUFFICIENT_PRIVILEGE);
   });
 });
 
