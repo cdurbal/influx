@@ -58,12 +58,49 @@ const KNOWN_CREATOR_TABLES = [
   "profiles.creator_usage_rights",
 ] as const;
 
+/** One T1-R finding: an object the advertiser reaches, and the creator relation it reaches. */
+type Couple = { object: string; relation: string };
+
 /**
- * The creator objects influx_advertiser may reach, declared here and nowhere else. EMPTY at Lot 2
- * (EC-L2D-1): the Lot 3 declares the storefront with the guards of C(10); creator_identities, the
- * exact audience, the refused sectors and the history never enter this list (04 §11.3).
+ * Layer I (and N) of the creator, plus the blocks between parties (fiche L3E invariant 1, 04
+ * §11.3): no exception may name one of them, as object or as relation reached (L3AS-2).
  */
-const ADVERTISER_EXCEPTIONS: readonly string[] = [];
+const NEVER_EXCEPTED = [
+  "profiles.creator_identities",
+  "profiles.creator_social_accounts",
+  "profiles.creator_audience_ages",
+  "profiles.creator_audience_countries",
+  "profiles.creator_audience_genders",
+  "profiles.creator_network_metrics_history",
+  "profiles.creator_refused_sectors",
+  "matching.party_blocks",
+] as const;
+
+/** The exceptions, refused as a whole when one couple touches layer I. */
+function checkedExceptions(couples: readonly Couple[]): readonly Couple[] {
+  const forbidden: readonly string[] = NEVER_EXCEPTED;
+  const refused = couples.filter(
+    (couple) =>
+      forbidden.includes(couple.relation) || forbidden.includes(couple.object),
+  );
+  if (refused.length > 0) {
+    throw new Error(
+      `T1-R exception on layer I refused: ${refused
+        .map((couple) => `${couple.object} -> ${couple.relation}`)
+        .join(", ")}`,
+    );
+  }
+  return couples;
+}
+
+/**
+ * The couples (object, creator relation reached) influx_advertiser may reach, declared here and
+ * nowhere else (L3AS-2): an exception hides its couple only, never the other branches of the same
+ * object. EMPTY until the first exception of L3E (the storefront, with the guards of C(10));
+ * creator_identities, the lines, the exact audience, the refused sectors and the history never
+ * enter it (checkedExceptions).
+ */
+const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions([]);
 
 /** The reprise of 0217 §9, replayed as written (between its two markers). */
 const REPRISE_SQL = (() => {
@@ -192,78 +229,187 @@ async function signUp(tx: Tx, role: "creator" | "advertiser"): Promise<string> {
 }
 
 /**
- * T1-R findings: every right of influx_advertiser on a profiles object named creator_% (tables,
- * views, sequences), every creator function of profiles it may execute, every policy of a creator
- * object naming it or PUBLIC (the guard BY NAME). Then, in EVERY schema (L2DS-3): every view or
- * materialized view it may touch that depends, through pg_depend on pg_rewrite and recursively, on
- * a profiles.creator_% relation; every function it may execute whose body names profiles.creator_
- * (prosrc) or that depends on such a relation (pg_depend, SQL-standard bodies). A relation or a
- * function keeps one name whichever branch finds it, so one exception covers it. The exceptions of
- * the Lot 3 are taken out here, nowhere else.
+ * The triggers a write of influx_advertiser fires (L2GS-6): an event it holds the right for (an
+ * UPDATE OF a column list, on one of those columns only). SQL fragment shared by the two guards.
  */
-async function advertiserFindings(sql: Sql): Promise<string[]> {
-  const rows = await sql<{ finding: string }[]>`
-    with recursive creator_reach (oid) as (
-      select c.oid
-        from pg_catalog.pg_class c
-        join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-       where n.nspname = 'profiles' and c.relname like 'creator\\_%'
-         and c.relkind in ('r', 'p', 'v', 'm', 'f')
-      union
-      select r.ev_class
-        from creator_reach cr
-        join pg_catalog.pg_depend d
-          on d.refclassid = 'pg_catalog.pg_class'::regclass and d.refobjid = cr.oid
-        join pg_catalog.pg_rewrite r
-          on d.classid = 'pg_catalog.pg_rewrite'::regclass and r.oid = d.objid
-       where r.ev_class <> cr.oid
-    )
-    select c.oid::regclass::text as finding
-      from pg_catalog.pg_class c
-      join creator_reach cr on cr.oid = c.oid
-     where c.relkind in ('v', 'm')
-       and (has_table_privilege('influx_advertiser', c.oid,
-                                'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
-            or has_any_column_privilege('influx_advertiser', c.oid,
-                                        'SELECT, INSERT, UPDATE, REFERENCES'))
-    union
-    select p.oid::regprocedure::text
-      from pg_catalog.pg_proc p
-     where has_function_privilege('influx_advertiser', p.oid, 'EXECUTE')
-       and (p.prosrc ~* '\\mprofiles"?\\s*\\.\\s*"?creator_'
-            or exists (select 1
-                         from pg_catalog.pg_depend d
-                         join creator_reach cr on cr.oid = d.refobjid
-                        where d.classid = 'pg_catalog.pg_proc'::regclass
-                          and d.objid = p.oid
-                          and d.refclassid = 'pg_catalog.pg_class'::regclass))
-    union
-    select c.oid::regclass::text
+const ADVERTISER_TRIGGERS = String.raw`
+  advertiser_triggers (tgfoid, label) as (
+    select t.tgfoid,
+           'trigger ' || t.tgrelid::regclass::text || '.' || t.tgname
+      from pg_catalog.pg_trigger t
+     where not t.tgisinternal
+       and ((t.tgtype & 4 <> 0
+             and has_any_column_privilege('influx_advertiser', t.tgrelid, 'INSERT'))
+            or (t.tgtype & 8 <> 0
+                and has_table_privilege('influx_advertiser', t.tgrelid, 'DELETE'))
+            or (t.tgtype & 32 <> 0
+                and has_table_privilege('influx_advertiser', t.tgrelid, 'TRUNCATE'))
+            or (t.tgtype & 16 <> 0
+                and case when cardinality(t.tgattr::int2[]) = 0
+                         then has_any_column_privilege('influx_advertiser', t.tgrelid, 'UPDATE')
+                         else exists (select 1 from unnest(t.tgattr::int2[]) a (attnum)
+                                       where has_column_privilege('influx_advertiser', t.tgrelid,
+                                                                  a.attnum, 'UPDATE'))
+                    end))
+  )`;
+
+/**
+ * T1-R couples (object, creator relation reached). BY NAME: every right of influx_advertiser on a
+ * profiles object named creator_% (tables, views, sequences), every creator function of profiles
+ * it may execute, every policy of a creator object naming it or PUBLIC. BY REACH, in EVERY schema
+ * (L2DS-3, L3AS-1, L3AT-5): from the profiles.creator_% relations and functions, the recursive
+ * closure over (a) pg_depend (views through pg_rewrite, SQL-standard bodies, a view calling a
+ * function) and (b) the qualified names read in a body (plpgsql, non-atomic SQL, any language but
+ * internal and C, comments included) of a relation or a function already reached, whoever may
+ * execute it, so an assistant of any name is followed; then every view it may touch, every
+ * function it may execute
+ * and every SECURITY DEFINER trigger its writes fire, in that closure. An unqualified reference is
+ * closed by the search_path guard below. The exceptions are taken out by couple, nowhere else.
+ */
+const ADVERTISER_COUPLES = String.raw`
+  with recursive
+  objects (classid, oid, kind, schema, name, label, body) as (
+    select 'pg_catalog.pg_class'::regclass::oid, c.oid, c.relkind::text, n.nspname::text,
+           c.relname::text, c.oid::regclass::text, null::text
       from pg_catalog.pg_class c
       join pg_catalog.pg_namespace n on n.oid = c.relnamespace
-     where n.nspname = 'profiles' and c.relname like 'creator\\_%'
-       and ((c.relkind in ('r', 'p', 'v', 'm')
-             and (has_table_privilege('influx_advertiser', c.oid,
-                                      'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
-                  or has_any_column_privilege('influx_advertiser', c.oid,
-                                              'SELECT, INSERT, UPDATE, REFERENCES')))
-            or (c.relkind = 'S'
-                and has_sequence_privilege('influx_advertiser', c.oid, 'USAGE, SELECT, UPDATE')))
-    union
-    select p.oid::regprocedure::text
+     where c.relkind in ('r', 'p', 'v', 'm', 'f')
+       and n.nspname not in ('pg_catalog', 'information_schema')
+    union all
+    select 'pg_catalog.pg_proc'::regclass::oid, p.oid, 'function', n.nspname::text,
+           p.proname::text, p.oid::regprocedure::text, p.prosrc
       from pg_catalog.pg_proc p
       join pg_catalog.pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'profiles' and p.proname like '%creator%'
-       and has_function_privilege('influx_advertiser', p.oid, 'EXECUTE')
+      join pg_catalog.pg_language l on l.oid = p.prolang
+     where n.nspname not in ('pg_catalog', 'information_schema')
+       and l.lanname not in ('internal', 'c')
+  ),
+  names (classid, oid, schema, name) as (
+    select 'pg_catalog.pg_proc'::regclass::oid, o.oid, m[1], m[2]
+      from objects o
+      cross join lateral regexp_matches(
+        lower(o.body), '"?([[:alnum:]_$]+)"?\s*\.\s*"?([[:alnum:]_$]+)', 'g') m
+     where o.body is not null
     union
-    select 'policy ' || schemaname || '.' || tablename || '.' || policyname
-      from pg_catalog.pg_policies
-     where schemaname = 'profiles' and tablename like 'creator\\_%'
-       and roles && array['influx_advertiser', 'public']::name[]
-     order by 1`;
+    -- database.schema.name: the pass above pairs the database with the schema
+    select 'pg_catalog.pg_proc'::regclass::oid, o.oid, m[1], m[2]
+      from objects o
+      cross join lateral regexp_matches(
+        lower(o.body),
+        '[[:alnum:]_$]+"?\s*\.\s*"?([[:alnum:]_$]+)"?\s*\.\s*"?([[:alnum:]_$]+)', 'g') m
+     where o.body is not null
+  ),
+  edges (src_classid, src_oid, classid, oid) as (
+    select s.classid, s.oid, r.classid, r.oid
+      from names r
+      join objects s on lower(s.schema) = r.schema and lower(s.name) = r.name
+    union
+    select d.refclassid, d.refobjid, 'pg_catalog.pg_class'::regclass::oid, w.ev_class
+      from pg_catalog.pg_depend d
+      join pg_catalog.pg_rewrite w on w.oid = d.objid
+     where d.classid = 'pg_catalog.pg_rewrite'::regclass and w.ev_class <> d.refobjid
+    union
+    select d.refclassid, d.refobjid, d.classid, d.objid
+      from pg_catalog.pg_depend d
+     where d.classid = 'pg_catalog.pg_proc'::regclass
+  ),
+  creator_reach (classid, oid, root) as (
+    select o.classid, o.oid, o.label
+      from objects o
+     where o.schema = 'profiles' and o.name like 'creator\_%'
+    union
+    select e.classid, e.oid, cr.root
+      from creator_reach cr
+      join edges e on e.src_classid = cr.classid and e.src_oid = cr.oid
+  ),
+  ${ADVERTISER_TRIGGERS}
+  select o.label as object, cr.root as relation
+    from creator_reach cr
+    join objects o on o.classid = cr.classid and o.oid = cr.oid
+   where o.kind in ('v', 'm')
+     and (has_table_privilege('influx_advertiser', o.oid,
+                              'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
+          or has_any_column_privilege('influx_advertiser', o.oid,
+                                      'SELECT, INSERT, UPDATE, REFERENCES'))
+  union
+  select o.label, cr.root
+    from creator_reach cr
+    join objects o on o.classid = cr.classid and o.oid = cr.oid
+   where o.kind = 'function'
+     and has_function_privilege('influx_advertiser', o.oid, 'EXECUTE')
+  union
+  select t.label, cr.root
+    from creator_reach cr
+    join advertiser_triggers t on t.tgfoid = cr.oid
+    join pg_catalog.pg_proc p on p.oid = t.tgfoid
+   where cr.classid = 'pg_catalog.pg_proc'::regclass and p.prosecdef
+  union
+  select c.oid::regclass::text, c.oid::regclass::text
+    from pg_catalog.pg_class c
+    join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'profiles' and c.relname like 'creator\_%'
+     and ((c.relkind in ('r', 'p', 'v', 'm')
+           and (has_table_privilege('influx_advertiser', c.oid,
+                                    'SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER')
+                or has_any_column_privilege('influx_advertiser', c.oid,
+                                            'SELECT, INSERT, UPDATE, REFERENCES')))
+          or (c.relkind = 'S'
+              and has_sequence_privilege('influx_advertiser', c.oid, 'USAGE, SELECT, UPDATE')))
+  union
+  select p.oid::regprocedure::text, p.oid::regprocedure::text
+    from pg_catalog.pg_proc p
+    join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'profiles' and p.proname like '%creator%'
+     and has_function_privilege('influx_advertiser', p.oid, 'EXECUTE')
+  union
+  select 'policy ' || schemaname || '.' || tablename || '.' || policyname,
+         schemaname || '.' || tablename
+    from pg_catalog.pg_policies
+   where schemaname = 'profiles' and tablename like 'creator\_%'
+     and roles && array['influx_advertiser', 'public']::name[]
+   order by 1, 2`;
+
+/** Every T1-R couple the exceptions do not cover. */
+async function advertiserCouples(
+  sql: Sql,
+  exceptions: readonly Couple[] = ADVERTISER_EXCEPTIONS,
+): Promise<Couple[]> {
+  const rows = await sql.unsafe<Couple[]>(ADVERTISER_COUPLES);
   return rows
-    .map((row) => row.finding)
-    .filter((finding) => !ADVERTISER_EXCEPTIONS.includes(finding));
+    .map((row) => ({ object: row.object, relation: row.relation }))
+    .filter(
+      (row) =>
+        !exceptions.some(
+          (couple) =>
+            couple.object === row.object && couple.relation === row.relation,
+        ),
+    );
+}
+
+/** T1-R findings: the objects of the couples left once the exceptions are out, one name each. */
+async function advertiserFindings(
+  sql: Sql,
+  exceptions: readonly Couple[] = ADVERTISER_EXCEPTIONS,
+): Promise<string[]> {
+  const couples = await advertiserCouples(sql, exceptions);
+  return [...new Set(couples.map((couple) => couple.object))];
+}
+
+/**
+ * L3AT-5: every SECURITY DEFINER function influx_advertiser may execute, or whose trigger its
+ * writes fire, runs under search_path = '' (an unqualified reference resolves nowhere).
+ */
+async function definersWithoutEmptySearchPath(sql: Sql): Promise<string[]> {
+  const rows = await sql.unsafe<{ name: string }[]>(String.raw`
+    with ${ADVERTISER_TRIGGERS}
+    select p.oid::regprocedure::text as name
+      from pg_catalog.pg_proc p
+     where p.prosecdef
+       and (has_function_privilege('influx_advertiser', p.oid, 'EXECUTE')
+            or exists (select 1 from advertiser_triggers t where t.tgfoid = p.oid))
+       and not coalesce(p.proconfig @> array['search_path=""'], false)
+     order by 1`);
+  return rows.map((row) => row.name);
 }
 
 /** Every relation of profiles named creator_%, found by name in the catalogue. */
@@ -429,6 +575,202 @@ describe("T1-R: influx_advertiser reaches no creator object, examined by name (0
       ),
     );
     expect(outcomes).toEqual(Array(4).fill(refusedBy(INSUFFICIENT_PRIVILEGE)));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L3E-T2 (L3AS-1, L3AS-2, L3AT-5): indirect reads, triggers, exceptions by couple, search_path
+// ---------------------------------------------------------------------------------------------
+
+/** A hidden view of another schema over creator_identities, granted to nobody (rolled back). */
+async function hiddenIdentityView(tx: Tx): Promise<void> {
+  await tx`create schema l3e_t2`;
+  await tx`create view l3e_t2.hidden as
+             select account_id, city from profiles.creator_identities`;
+  await tx`grant usage on schema l3e_t2 to influx_advertiser`;
+}
+
+describe("L3E-T2: T1-R follows indirect reads and triggers, exceptions by couple (L3AS-1, L3AS-2, L3AT-5)", () => {
+  it("L3E-T2.1 sees red on a plpgsql door calling an assistant of any name that reads a view over creator_identities (rolled back)", async () => {
+    const [before, after, couples] = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        const found = await advertiserFindings(tx);
+        await hiddenIdentityView(tx);
+        await tx.unsafe(`
+          create function l3e_t2.helper(p_account uuid) returns text
+            language plpgsql stable security definer set search_path = ''
+          as $fn$
+          begin
+            return (select h.city from l3e_t2.hidden h where h.account_id = p_account);
+          end
+          $fn$`);
+        await tx.unsafe(`
+          create function l3e_t2.door(p_account uuid) returns text
+            language plpgsql stable security definer set search_path = ''
+          as $fn$
+          begin
+            return l3e_t2.helper(p_account);
+          end
+          $fn$`);
+        await tx`revoke all on function l3e_t2.helper(uuid), l3e_t2.door(uuid) from public`;
+        await tx`grant execute on function l3e_t2.door(uuid) to influx_advertiser`;
+        return [
+          found,
+          await advertiserFindings(tx),
+          await advertiserCouples(tx),
+        ];
+      },
+    );
+    expect(before).toEqual([]);
+    expect(after).toEqual(["l3e_t2.door(uuid)"]);
+    expect(couples).toEqual([
+      { object: "l3e_t2.door(uuid)", relation: "profiles.creator_identities" },
+    ]);
+  });
+
+  it("L3E-T2.2 sees red on a non-atomic SQL body reading that view, without pg_depend (rolled back)", async () => {
+    const [before, after] = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        const found = await advertiserFindings(tx);
+        await hiddenIdentityView(tx);
+        await tx.unsafe(`
+          create function l3e_t2.count_cities() returns bigint
+            language sql stable security definer set search_path = ''
+          as $fn$ select count(h.city) from l3e_t2.hidden h $fn$`);
+        await tx`revoke all on function l3e_t2.count_cities() from public`;
+        await tx`grant execute on function l3e_t2.count_cities() to influx_advertiser`;
+        return [found, await advertiserFindings(tx)];
+      },
+    );
+    expect(before).toEqual([]);
+    expect(after).toEqual(["l3e_t2.count_cities()"]);
+  });
+
+  it("L3E-T2.3 sees red on a SECURITY DEFINER trigger its writes fire, not on one it cannot fire (L2GS-6, rolled back)", async () => {
+    const [before, after] = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        const found = await advertiserFindings(tx);
+        await tx`create schema l3e_t2`;
+        await tx`create table l3e_t2.notes (id integer, account_id uuid)`;
+        await tx`grant usage on schema l3e_t2 to influx_advertiser`;
+        await tx`grant insert on l3e_t2.notes to influx_advertiser`;
+        await tx.unsafe(`
+          create function l3e_t2.on_note() returns trigger
+            language plpgsql security definer set search_path = ''
+          as $fn$
+          begin
+            perform 1 from profiles.creator_identities i where i.account_id = new.account_id;
+            return new;
+          end
+          $fn$`);
+        await tx`revoke all on function l3e_t2.on_note() from public`;
+        await tx`create trigger notes_witness before insert on l3e_t2.notes
+                   for each row execute function l3e_t2.on_note()`;
+        // an UPDATE OF a column it may not update: never fired by its writes
+        await tx`create trigger notes_silent before update of account_id on l3e_t2.notes
+                   for each row execute function l3e_t2.on_note()`;
+        return [found, await advertiserFindings(tx)];
+      },
+    );
+    expect(before).toEqual([]);
+    expect(after).toEqual(["trigger l3e_t2.notes.notes_witness"]);
+  });
+
+  it("L3E-T2.4 hides an excepted couple only, and refuses any exception on layer I", async () => {
+    for (const relation of NEVER_EXCEPTED) {
+      expect(() =>
+        checkedExceptions([{ object: "search.witness(uuid)", relation }]),
+      ).toThrow(/layer I refused/);
+    }
+    expect(() =>
+      checkedExceptions([
+        {
+          object: "profiles.creator_identities",
+          relation: "profiles.creator_public_profiles",
+        },
+      ]),
+    ).toThrow(/layer I refused/);
+
+    const storefront: Couple = {
+      object: "l3e_t2.card(uuid)",
+      relation: "profiles.creator_public_profiles",
+    };
+    const accepted = checkedExceptions([storefront]);
+    const [alone, both] = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        await hiddenIdentityView(tx);
+        await tx.unsafe(`
+          create function l3e_t2.card(p_account uuid) returns bigint
+            language plpgsql stable security definer set search_path = ''
+          as $fn$
+          begin
+            return (select count(*) from profiles.creator_public_profiles p
+                     where p.account_id = p_account);
+          end
+          $fn$`);
+        await tx`revoke all on function l3e_t2.card(uuid) from public`;
+        await tx`grant execute on function l3e_t2.card(uuid) to influx_advertiser`;
+        const first = await advertiserFindings(tx, accepted);
+        // the same object, now also reaching the identity: its other couple stays red
+        await tx.unsafe(`
+          create or replace function l3e_t2.card(p_account uuid) returns bigint
+            language plpgsql stable security definer set search_path = ''
+          as $fn$
+          begin
+            return (select count(*) from profiles.creator_public_profiles p
+                     where p.account_id = p_account)
+                 + (select count(h.city) from l3e_t2.hidden h where h.account_id = p_account);
+          end
+          $fn$`);
+        return [first, await advertiserCouples(tx, accepted)];
+      },
+    );
+    expect(alone).toEqual([]);
+    expect(both).toEqual([
+      { object: "l3e_t2.card(uuid)", relation: "profiles.creator_identities" },
+    ]);
+  });
+
+  it("L3E-T2.5 every SECURITY DEFINER function the advertiser may run or fire has search_path = '', red on search_path = profiles (L3AT-5, rolled back)", async () => {
+    expect(await definersWithoutEmptySearchPath(migration)).toEqual([]);
+    const found = await inRolledBackTransaction(
+      localSuperuser(),
+      async (tx) => {
+        await tx`create schema l3e_t2`;
+        await tx`grant usage on schema l3e_t2 to influx_advertiser`;
+        // an unqualified reference T1-R cannot read: closed by the search_path alone
+        await tx.unsafe(`
+          create function l3e_t2.loose() returns bigint
+            language sql stable security definer set search_path = profiles
+          as $fn$ select count(*) from creator_identities $fn$`);
+        await tx.unsafe(`
+          create function l3e_t2.tight() returns bigint
+            language sql stable security definer set search_path = ''
+          as $fn$ select 1::bigint $fn$`);
+        await tx.unsafe(`
+          create function l3e_t2.hidden_loose() returns bigint
+            language sql stable security definer set search_path = profiles
+          as $fn$ select 1::bigint $fn$`);
+        await tx`revoke all on function l3e_t2.loose(), l3e_t2.tight(), l3e_t2.hidden_loose()
+                   from public`;
+        await tx`grant execute on function l3e_t2.loose(), l3e_t2.tight() to influx_advertiser`;
+        await tx`create table l3e_t2.notes (id integer)`;
+        await tx`grant insert on l3e_t2.notes to influx_advertiser`;
+        await tx.unsafe(`
+          create function l3e_t2.on_note() returns trigger
+            language plpgsql security definer
+          as $fn$ begin return new; end $fn$`);
+        await tx`revoke all on function l3e_t2.on_note() from public`;
+        await tx`create trigger notes_witness before insert on l3e_t2.notes
+                   for each row execute function l3e_t2.on_note()`;
+        return definersWithoutEmptySearchPath(tx);
+      },
+    );
+    expect(found).toEqual(["l3e_t2.loose()", "l3e_t2.on_note()"]);
   });
 });
 

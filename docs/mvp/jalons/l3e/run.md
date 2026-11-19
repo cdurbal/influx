@@ -1,8 +1,8 @@
 # Exécution du jalon L3E
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | opus | high | expert-database | fait | 0315 : seau sur index partiel hors rate_limited, une ligne rate_limited par compte et fenêtre qui refuse ; réponses et Retry-After inchangés |
-| 02 | 02.md | commit | opus | high | testeur | à faire | |
+| 01 | 01.md | commit | opus | high | expert-database | fait | 0315 index partiel, 1 ligne rate_limited par fenêtre ; attendus L3D-T2 CA18 et T5 T15.5 changés (EC-L3E-01-1), fondateur OK 2026-11-19 |
+| 02 | 02.md | commit | opus | high | testeur | fait | T1-R : fermeture pg_depend + noms qualifiés, déclencheurs definer, exceptions par couple (vides, couche I refusée), search_path '' ; L3E-T2 +5 |
 | A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
 | 03 | 03.md | commit | opus | high | expert-database | à faire | |
 | 04 | 04.md | commit | opus | high | expert-database | à faire | |
