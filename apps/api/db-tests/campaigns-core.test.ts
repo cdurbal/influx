@@ -869,6 +869,9 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
       // campaign, its current snapshot); influx_creator still nothing (TM5.6)
       "influx_campaign_feed_definer",
       "influx_campaign_review_definer",
+      // 0319 (L3E commit 06): the owner of the brand's creator search door (the id, the brand, the
+      // sector and the erasure of the caller's own campaigns: the origin of a search, E6)
+      "influx_creator_search_definer",
       // 0310 (L3C commit 05): the worker's reads (codes, dates, counters, decision facts)
       "influx_leads_definer",
       // 0309 (L3C commit 04): the automatic closure (id, brand, end and state of a campaign)

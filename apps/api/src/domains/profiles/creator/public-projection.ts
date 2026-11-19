@@ -1,9 +1,10 @@
 // THE public projection of a creator: what a brand sees of him (docs/mvp/07 RG16, RG84, RG85, RG102 to
 // RG104, CA4, CA5, CA47; 03 l. 253, 312; jalons/l2g/modele.md point 9; fiche L2G invariants 1, 12, 16).
 // ONE module, the only place in apps/api that builds layer A of a creator: the preview of the creator
-// (GET /v1/me/creator-profile/preview, tab "before") serves it as it is, and the search of Lot 3 calls
-// `readCreatorPublicProjection()` AS IT IS, never a copy (RG104: the preview is exactly what the API
-// serves). Never rebuilt in a browser. Its SQL: projection/repository.ts.
+// (GET /v1/me/creator-profile/preview, tab "before") serves it as it is, and the brand's creator search
+// (L3E) serves the same source, never a copy (RG104: the preview is exactly what the API serves). Never
+// rebuilt in a browser. Its SQL: profiles.creator_layer_a() (0319), called by projection/repository.ts
+// and by the door search.search_creators(), whose card the route shapes as `readLayerA()` does.
 //
 // Layer A (`readCreatorPublicProjection`) reads the layer-A tables alone: the storefront
 // (creator_public_profiles), its lists, creator_public_networks, creator_public_audience, the APPROVED
@@ -20,7 +21,7 @@
 // - Rights, at Lot 2: the session's own account only. influx_advertiser holds no right on any of these
 //   tables (fiche invariant 1, T9.6); the badges are read with the caller's rights (EC-L2G-09-1:
 //   `profiles.read_creator_public_badges()` waits for its first reader that is not the owner, Lot 3).
-//   Lot 3 gives the brand its reads and calls this function unchanged.
+//   Lot 3 (0319): the brand still holds no right on them; the door's owner reads them for its cards.
 //
 // The "after" tab (`readCreatorPreview`) is the same projection plus the layer I of the projected lines
 // (handle, URL, exact figures) and the exact audience of the main line, read from the session of the

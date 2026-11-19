@@ -204,7 +204,7 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
     expect(outcome.rights).toEqual([]);
   });
 
-  it("L3E-T3 makes influx_search_admin_definer NOLOGIN NOINHERIT without member, owner of two SECURITY DEFINER writers executable by influx_admin alone; the member and the agent execute nothing of search beyond the creator's doors", async () => {
+  it("L3E-T3 makes influx_search_admin_definer NOLOGIN NOINHERIT without member, owner of two SECURITY DEFINER writers executable by influx_admin alone; the members and the agent execute nothing of search beyond their doors", async () => {
     const outcome = await scenario(async (tx) => {
       const [role] = await tx<Record<string, unknown>[]>`
         select rolcanlogin, rolinherit, rolbypassrls, rolsuper,
@@ -268,6 +268,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
         name: "search.write_facet_setting(text,boolean,integer,text)",
       },
       { role: "influx_admin", name: "search.write_search_setting(text,jsonb)" },
+      // 0319 (L3E-06, EC-L3E-06-11): the brand's door of the creator search, its one function
+      {
+        role: "influx_advertiser",
+        name: "search.search_creators(jsonb,text,integer,uuid)",
+      },
       { role: "influx_creator", name: "search.read_open_campaign(uuid)" },
       {
         role: "influx_creator",

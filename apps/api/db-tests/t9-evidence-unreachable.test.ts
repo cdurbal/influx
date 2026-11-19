@@ -33,6 +33,8 @@
 //           declarations, entries and revisions of queue 2, the two grids) named one by one: no right
 //           of the advertiser nor of any role it reaches, no function of theirs names them, 42501, the
 //           bucket `portfolio` private; seen red by a SELECT granted and a reached door naming them.
+//   L3E     (commit 06, 0319, EC-L3E-06-8) one exception, named: the owner of the creator search door
+//           reads the approved visuals by reference (six columns, approved rows) for the card.
 // "After the reveal of identities" (18 T9.6) waits for Lot 4, where no reveal exists yet: this file
 // is replayed then. Fixtures are COMMITTED through the routes (random identifiers, disposable local
 // stack); the piece's row, the open requests and the usage are removed after the file. Storage is a
@@ -119,6 +121,24 @@ const L2G_TABLES = [
   "portfolio_brand_declarations",
   "portfolio_items",
   "portfolio_rejection_reasons",
+];
+/**
+ * L3E (0319, EC-L3E-06-8; jalons/l3e/modele.md §2): the one right a role the advertiser reaches holds
+ * on an L2G table. The owner of the creator search door reads the APPROVED visuals by reference (id,
+ * order, caption on the card; the image at L3F) through THE source of layer A; six columns, never the
+ * object key, the lock, the decision nor the declaration. Any other finding stays red.
+ */
+const SEARCH_CARD_VISUALS = [
+  "influx_creator_search_definer column SELECT on profiles.portfolio_items",
+  "profiles.creator_layer_a(uuid) names portfolio_items",
+];
+const SEARCH_CARD_VISUAL_COLUMNS = [
+  "account_id",
+  "caption",
+  "created_at",
+  "display_order",
+  "id",
+  "state",
 ];
 /** The same tables named in a function body (`profiles.portfolio_items`, quoted or not). */
 const L2G_NAMED = `\\m"?profiles"?\\s*\\.\\s*"?(${L2G_TABLES.join("|")})\\M`;
@@ -1062,9 +1082,31 @@ describe("T9.6-R influx_advertiser holds no right on `verification` nor on Stora
     expect(catalogue?.tables).toEqual([...L2G_TABLES].sort());
     const reached = await reachedRoles(sql);
     expect(reached).toEqual(
-      expect.arrayContaining(["influx_advertiser", "influx_identity_definer"]),
+      expect.arrayContaining([
+        "influx_advertiser",
+        "influx_identity_definer",
+        "influx_creator_search_definer",
+      ]),
     );
-    expect(await l2gFindings(sql, reached)).toEqual([]);
+    // L3E (0319): the approved visuals of the search card, by reference, and nothing else
+    expect(await l2gFindings(sql, reached)).toEqual(SEARCH_CARD_VISUALS);
+    const [visuals] = await sql<{ columns: string[]; approved: boolean }[]>`
+      select coalesce((select array_agg(a.attname::text order by a.attname)
+                         from pg_catalog.pg_attribute a
+                        where a.attrelid = 'profiles.portfolio_items'::regclass
+                          and a.attnum > 0 and not a.attisdropped
+                          and pg_catalog.has_column_privilege('influx_creator_search_definer',
+                                                              a.attrelid, a.attnum, 'SELECT')),
+                      '{}') as columns,
+             exists (select 1 from pg_catalog.pg_policies p
+                      where p.schemaname = 'profiles' and p.tablename = 'portfolio_items'
+                        and p.roles = array['influx_creator_search_definer']::name[]
+                        and p.cmd = 'SELECT'
+                        and p.qual like '%state = ''approved''%') as approved`;
+    expect(visuals).toEqual({
+      columns: SEARCH_CARD_VISUAL_COLUMNS,
+      approved: true,
+    });
     // the check reads the bodies it guards: the owner of the creator's doors names the visuals
     expect(await l2gFindings(sql, ["influx_creator_profile_definer"])).toEqual(
       expect.arrayContaining([

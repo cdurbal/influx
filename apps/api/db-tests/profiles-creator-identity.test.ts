@@ -6,7 +6,9 @@
 // L2D-D4 a handle once per (creator, network), L2D-D5 one primary line, L2D-D6 neither city nor
 // identity outside layer N, plus the identity row of every storefront, the guard of the URL, the
 // exact audience, the history and the shapes the base holds. Rights per table and role are probed
-// by T2 (t2-rls-matrix). Each case runs in a rolled-back transaction.
+// by T2 (t2-rls-matrix). Each case runs in a rolled-back transaction. L3E-06 (0319): the first
+// exceptions of T1-R, by couple, for the creator search door; NEVER_EXCEPTED reduced to layer I
+// (l3e/modele.md §1, EC-L3E-A-1), the refused sectors and the blocks never an object.
 import {
   accountIdOf,
   CREATOR_SOCIAL_ACCOUNT_IDS,
@@ -62,8 +64,9 @@ const KNOWN_CREATOR_TABLES = [
 type Couple = { object: string; relation: string };
 
 /**
- * Layer I (and N) of the creator, plus the blocks between parties (fiche L3E invariant 1, 04
- * §11.3): no exception may name one of them, as object or as relation reached (L3AS-2).
+ * Layer I of the creator: the identity, the lines, the exact audience and the history (fiche L3E
+ * invariant 1, 04 §11.3; l3e/modele.md §1, EC-L3E-A-1): no exception may name one of them, as object
+ * or as relation reached (L3AS-2).
  */
 const NEVER_EXCEPTED = [
   "profiles.creator_identities",
@@ -72,13 +75,23 @@ const NEVER_EXCEPTED = [
   "profiles.creator_audience_countries",
   "profiles.creator_audience_genders",
   "profiles.creator_network_metrics_history",
+] as const;
+
+/**
+ * Never the OBJECT of an exception, layer I and the two objects the advertiser holds no right on
+ * (fiche L3E invariant 1): the refused sectors are reached as a relation by the creator search door
+ * (E6, a predicate never served, 0319); the blocks between parties are no creator relation (E5).
+ */
+const NEVER_EXCEPTED_OBJECTS = [
+  ...NEVER_EXCEPTED,
   "profiles.creator_refused_sectors",
   "matching.party_blocks",
 ] as const;
 
-/** The exceptions, refused as a whole when one couple touches layer I. */
+/** The exceptions, refused as a whole when one couple touches layer I or an object never held. */
 function checkedExceptions(couples: readonly Couple[]): readonly Couple[] {
   const forbidden: readonly string[] = NEVER_EXCEPTED;
+  const neverHeld: readonly string[] = NEVER_EXCEPTED_OBJECTS;
   const refused = couples.filter(
     (couple) =>
       forbidden.includes(couple.relation) || forbidden.includes(couple.object),
@@ -90,17 +103,42 @@ function checkedExceptions(couples: readonly Couple[]): readonly Couple[] {
         .join(", ")}`,
     );
   }
+  const held = couples.filter((couple) => neverHeld.includes(couple.object));
+  if (held.length > 0) {
+    throw new Error(
+      `T1-R exception on an object the advertiser never holds refused: ${held
+        .map((couple) => `${couple.object} -> ${couple.relation}`)
+        .join(", ")}`,
+    );
+  }
   return couples;
 }
+
+/** The brand's door of the creator search (0319, l3e/modele.md §1). */
+const CREATOR_SEARCH_DOOR = "search.search_creators(jsonb,text,integer,uuid)";
 
 /**
  * The couples (object, creator relation reached) influx_advertiser may reach, declared here and
  * nowhere else (L3AS-2): an exception hides its couple only, never the other branches of the same
- * object. EMPTY until the first exception of L3E (the storefront, with the guards of C(10));
- * creator_identities, the lines, the exact audience, the refused sectors and the history never
- * enter it (checkedExceptions).
+ * object. From 0319 (l3e/modele.md §1): the creator search door, one couple per relation of layer A
+ * its engine and its card reach (the storefront, its lists, its lines, its audience bands, the card
+ * function itself) plus the refused sectors (E6, a predicate, never served); creator_identities, the
+ * lines, the exact audience and the history never enter it (checkedExceptions).
  */
-const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions([]);
+const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions(
+  [
+    "profiles.creator_formats",
+    "profiles.creator_layer_a(uuid)",
+    "profiles.creator_public_audience",
+    "profiles.creator_public_networks",
+    "profiles.creator_public_profiles",
+    "profiles.creator_publication_languages",
+    "profiles.creator_refused_sectors",
+    "profiles.creator_tones",
+    "profiles.creator_topics",
+    "profiles.creator_usage_rights",
+  ].map((relation) => ({ object: CREATOR_SEARCH_DOOR, relation })),
+);
 
 /** The reprise of 0217 §9, replayed as written (between its two markers). */
 const REPRISE_SQL = (() => {
@@ -693,12 +731,37 @@ describe("L3E-T2: T1-R follows indirect reads and triggers, exceptions by couple
         },
       ]),
     ).toThrow(/layer I refused/);
+    // EC-L3E-A-1 (l3e/modele.md §1): NEVER_EXCEPTED is layer I alone; the refused sectors are an
+    // accepted relation of the door (E6), never an object, nor are the blocks
+    expect(
+      checkedExceptions([
+        {
+          object: "search.witness(uuid)",
+          relation: "profiles.creator_refused_sectors",
+        },
+      ]),
+    ).toHaveLength(1);
+    for (const object of [
+      "profiles.creator_refused_sectors",
+      "matching.party_blocks",
+    ]) {
+      expect(() =>
+        checkedExceptions([
+          { object, relation: "profiles.creator_public_profiles" },
+        ]),
+      ).toThrow(/never holds refused/);
+    }
+    // every declared couple is found in the base: no exception outlives what it excepts
+    expect(await advertiserCouples(migration, [])).toEqual(
+      expect.arrayContaining([...ADVERTISER_EXCEPTIONS]),
+    );
 
     const storefront: Couple = {
       object: "l3e_t2.card(uuid)",
       relation: "profiles.creator_public_profiles",
     };
-    const accepted = checkedExceptions([storefront]);
+    // the witness's couple beside the declared ones (0319), which stay hidden
+    const accepted = checkedExceptions([...ADVERTISER_EXCEPTIONS, storefront]);
     const [alone, both] = await inRolledBackTransaction(
       localSuperuser(),
       async (tx) => {

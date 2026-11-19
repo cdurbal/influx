@@ -2135,6 +2135,19 @@ vivante**.
 > versions en ajout seul hors effacement (`0318`) ; **aucun droit membre** sur aucune table du
 > schéma, sélections comprises (politique restrictive `*_no_member_access`), portes par alias au
 > L3F. Bornes des réglages : `0316` EC-L3E-03-1.
+>
+> **Écrit par `0319` (L3E, `jalons/l3e/modele.md` §1 à §5, §8).** La porte de la marque
+> `search.search_creators(filtres, tri, page, campagne)` (propriétaire `influx_creator_search_definer`,
+> `EXECUTE` à `influx_advertiser` seul, `03` C(42)) écrit, dans la transaction qui sert, une ligne de
+> `search_queries` par appel hors `closed` et `brand_not_published` : `served` (nombre exact après
+> exclusions, blocage k s'il y a lieu), `page_cap` (page au-delà de `max_pages`, nombre 0),
+> `rate_limited` (au plus une par compte et fenêtre d'1 h ou de 24 h, ni filtre ni campagne) ;
+> `facet_config_version` = la dernière version ; `request_id` = `influx.request_id`. Une page servie
+> écrit une impression par carte (rang dans l'ordre entier, `cold_quota` faux et sans note jusqu'à
+> `0320`) et, en page 1, l'exposition des créateurs servis (une fois, `ON CONFLICT DO NOTHING`). Le
+> seau du compte compte `served` et `page_cap` sur 1 h et 24 h glissantes (`rate_limits`, index
+> partiel `search_queries_bucket_idx`). La carte sort de `profiles.creator_layer_a()`, seule source
+> de la couche A, partagée avec l'aperçu du créateur (`readProjectionLayerA()`).
 
 #### `search.search_queries`
 
@@ -5517,14 +5530,14 @@ create trigger audit_events_no_truncate
 | `identity.accounts` | L (sa ligne) | L (sa ligne) | L | L / E | L / E |
 | `identity.terms_acceptances` | L (les siennes) + E | idem | L | L | E |
 | `identity.consent_events` | L + E | L + E | L | L + E | L + E |
-| `profiles.creator_public_*` | **L** | L + E (les siennes) | L | L | L |
+| `profiles.creator_public_*` | **F** *(L3E, `0319` : la couche A des vitrines publiées et cherchables, par la seule porte `search.search_creators()` ; aucun droit sur les tables)* | L + E (les siennes) | L | L | L |
 | `profiles.creator_social_accounts` | **L après révélation, colonnes limitées** | L + E | L | L | L |
 | `profiles.creator_identities` | **—** | L + E | L | L | L |
 | `profiles.advertiser_contact_details` | L + E (la sienne) | **L après révélation, prénom seulement** (D40, précisée par D46 le 2026-09-24 : e-mail, téléphone et page de contact jamais servis à un membre) | L | L | L |
 | `verification.evidence_files` | **—** | L (les siennes) | L (journalisé) | L | — |
 | `campaigns.campaigns` | L + E (les siennes) | **—** *(le créateur lit l'instantané, jamais la ligne vivante)* | L | L | L |
 | `campaigns.campaign_published_snapshots` | L | **L** | L | L | L |
-| `matching.party_blocks` | L + E (les siens) *(Lot 4 ; **—** au Lot 3, `0317`)* | L + E (les siens) *(Lot 4 ; **—** au Lot 3)* | L + E *(Lot 4 ; **—** au Lot 3)* | L + E *(Lot 4 ; **—** au Lot 3)* | L *(au Lot 3 : la paire et `lifted_at` des blocages actifs de l'appelant, par `influx_campaign_feed_definer`)* |
+| `matching.party_blocks` | L + E (les siens) *(Lot 4 ; **—** au Lot 3, `0317`)* | L + E (les siens) *(Lot 4 ; **—** au Lot 3)* | L + E *(Lot 4 ; **—** au Lot 3)* | L + E *(Lot 4 ; **—** au Lot 3)* | L *(au Lot 3 : la paire et `lifted_at` des blocages actifs de l'appelant, par `influx_campaign_feed_definer` (le créateur) et par `influx_creator_search_definer` (la marque, `0319`), chacun sa politique)* |
 | `matching.application_drafts` | **—** | L + E (les siens) | **—** | **—** | — |
 | `reference.price_bands` (bornes nettes comprises) | L | L | L | L | L |
 | `matching.introductions` | L (les siennes) | L (les siennes) | L + E | L + E | F |
@@ -6331,6 +6344,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0316 | `search_journal_and_settings` (L3E, EC-L3E-1) | `search_queries` (**tri, version des facettes et issue compris**), `search_impressions`, `explanation_reasons` (`kind`), `impression_reasons`, `creator_exposures`, `shortlists`, `shortlist_items` (aucun droit membre) ; et les réglages : `search_settings` (huit clés), `facet_settings`, `facet_config_versions` (version 1), `supply_counters`, `result_count_band()` ; `influx_search_admin_definer`, `write_search_setting()` et `write_facet_setting()` (`EXECUTE` à `influx_admin` seul, `search.settings_changed`) | Oui tant qu'aucune recherche n'est journalisée |
 | 0317 | `matching_party_blocks` (L3E) | **`block_reasons`** (vide), **`party_blocks`** (un actif par paire, levée conservée, né actif), `check_party_block()` et `guard_party_block_write()`, RLS forcée sans droit membre, agent ni administrateur ; lecture de la paire par `influx_campaign_feed_definer` ; `search.visible_campaigns()` recréée à signature égale, la paire bloquée exclue dans les deux sens | Oui tant qu'aucun blocage n'est posé |
 | 0318 | `privacy_search_and_blocks` (L3E) | `privacy.export_document()` et `execute_request()` recréées depuis `0314` à signature égale : recherches, sélections et blocages posés par le membre à l'export, recherche et blocages du compte supprimés à l'effacement ; droits de `influx_privacy_definer` (colonnes lues, `DELETE` sur un compte `deleted`, `result_count_band()`) | Oui tant qu'aucune recherche, sélection ni blocage n'est écrit et aucun compte effacé |
+| 0319 | `search_creator_search_door` (L3E) | `influx_creator_search_definer`, porte `search.search_creators()` (`EXECUTE` marque seule), aides invoker `require_creator_searcher()`, `creator_search_retry_after()`, `check_creator_search_filters()`, moteur `creator_candidates()` (E1 à E6, filtres du socle, vue identifiée 0A000) ; `profiles.creator_layer_a()`, source unique de la couche A (aperçu et carte) ; droits colonne par colonne et politiques du propriétaire (couche A publiée et cherchable, paire des blocages actifs, journal en insertion) ; `USAGE` sur `search` à `influx_advertiser` | Oui tant qu'aucune recherche n'est journalisée |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

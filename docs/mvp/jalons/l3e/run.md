@@ -7,7 +7,7 @@
 | 03 | 03.md | commit | opus | high | expert-database | fait | 0316 : aucun droit membre (politique restrictive), écrivains admin seuls + settings_changed, F12 fermée, recherche fermée ; L3E-T3 16 |
 | 04 | 04.md | commit | opus | high | expert-database | fait | 0317 : aucun droit membre/agent/admin, feed_definer lit paire+lifted_at des blocages actifs ; visible_campaigns exclut la paire, 2 sens ; L3E-T4 10 |
 | 05 | 05.md | commit | opus | high | expert-database | fait | 0318 : export recherches, sélections (alias), blocages posés seuls, jamais subis ni impression ; effacement supprime journal et blocages de la paire ; L3E-T5 6 |
-| 06 | 06.md | commit | opus | xhigh | expert-database | à faire | |
+| 06 | 06.md | commit | opus | xhigh | expert-database | fait | 0319 : porte marque seule, E1-E6 en SQL avant compte, k identique 0/4, tranche, seau 30/h 200/j ; couche A unique ; T1-R 10 couples ; L3E-T2, T3, T9 L2G changés |
 | 07 | 07.md | commit | opus | high | expert-database | à faire | |
 | 08 | 08.md | commit | opus | high | dev-react-node | à faire | |
 | 09 | 09.md | commit | sonnet | high | testeur | à faire | |
