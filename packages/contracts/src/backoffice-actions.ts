@@ -547,7 +547,7 @@ export type SuppressionLiftResponse = z.infer<
 // ---------------------------------------------------------------------------------------------
 
 /** The alerts of RG104 evaluated at J8 (0130 catalogue): all state alerts, derived at each read. */
-export const ALERT_CODES = ["AL24", "AL25", "AL26", "AL27"] as const;
+export const ALERT_CODES = ["AL21", "AL24", "AL25", "AL26", "AL27"] as const;
 
 /** Why the alert is up, a code for the screen to word (RG66: never the colour alone). */
 export const ALERT_CAUSES = [
@@ -563,6 +563,11 @@ export const ALERT_CAUSES = [
   // AL27
   "unsubscribe_gap",
   "reconciliation_failed",
+  // AL21 (I-9, 10 RG68): the volume of the creator search of one account, the window in the code
+  "distinct_profiles_served",
+  "rate_cap_share_hour",
+  "rate_cap_share_day",
+  "rate_limited",
 ] as const;
 
 export const alertSchema = z.strictObject({
@@ -573,8 +578,14 @@ export const alertSchema = z.strictObject({
   /** AL25 configuration_missing only (RG160): the setting at fault, by name, never its value. */
   setting: syncSettingSchema.nullable(),
   /**
+   * AL21 only (I-9): the account whose search volume is abnormal, an identifier and nothing of
+   * what it searched nor of the creators served; absent from every other alert.
+   */
+  accountId: z.uuid().optional(),
+  /**
    * CA62 "le nombre de lignes en attente": AL25 the lines waiting for the destination, AL24 the
-   * failures past the delay, AL26 the lines late, AL27 the gap of the last reconciliation.
+   * failures past the delay, AL26 the lines late, AL27 the gap of the last reconciliation, AL21 the
+   * distinct creators served, the searches of the window or the refusals.
    */
   count: z.number().int().nonnegative(),
   /** The oldest fact behind the alert (first failure waiting, oldest late line, run end). */

@@ -396,12 +396,23 @@ export const messages = {
       unsubscribe_gap: (_destination: string, count: number) =>
         `Le dernier rapprochement Brevo a trouvé ${count} désinscription${count > 1 ? "s" : ""} non reçue${count > 1 ? "s" : ""} par le webhook.`,
       reconciliation_failed: () => "Le dernier rapprochement Brevo a échoué.",
+      // AL21 (I-9): a creator search volume out of the ordinary, by account (the destination is empty)
+      distinct_profiles_served: (_destination: string, count: number) =>
+        `Volume anormal de recherche de créateurs : ${count} profil${count > 1 ? "s" : ""} distinct${count > 1 ? "s" : ""} servi${count > 1 ? "s" : ""} à un compte sur 24 heures.`,
+      rate_cap_share_hour: (_destination: string, count: number) =>
+        `Recherche de créateurs : ${count} recherche${count > 1 ? "s" : ""} en une heure, le plafond horaire d’un compte est presque atteint.`,
+      rate_cap_share_day: (_destination: string, count: number) =>
+        `Recherche de créateurs : ${count} recherche${count > 1 ? "s" : ""} en 24 heures, le plafond quotidien d’un compte est presque atteint.`,
+      rate_limited: (_destination: string, count: number) =>
+        `Recherche de créateurs : ${count} refus pour débit dépassé sur 24 heures.`,
     } as Readonly<
       Record<
         string,
         (destination: string, count: number, setting?: string) => string
       >
     >,
+    /** AL21: the account concerned, opened from its alert. */
+    openAccount: "Ouvrir le compte",
     line: (code: string, text: string, since: string | null) =>
       `Alerte ${code} — ${text}${since === null ? "" : ` (depuis le ${since})`}`,
     newBrowser: {

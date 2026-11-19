@@ -1,8 +1,9 @@
-// The state alerts of the leads (docs/mvp/05 RG104, CA62; 15 §F RG63 to RG66, AL24 to AL27), derived
+// The state alerts of the leads (docs/mvp/05 RG104, CA62; 15 §F RG63 to RG66, AL21, AL24 to AL27), derived
 // at each read from the queue, the delays and the last reconciliation: an alert of state rises and
 // falls by itself, it is never stored nor classified (RG64). Thresholds are data (0130, 0134), read
 // with the facts; this module only decides, from plain values, which alerts are up. Recipients
-// (0130 recipient_roles): AL24 the responsible agent and the admins, AL25 to AL27 the admins. No
+// (0130 recipient_roles): AL24 the responsible agent and the admins, AL21 (0321) and AL25 to AL27 the
+// admins. No
 // alert leaves for Brevo or Apollo (RG70), none sanctions anything (RG65).
 import type { Alert } from "@influx/contracts/backoffice-actions";
 import type {
@@ -11,6 +12,7 @@ import type {
 } from "@influx/contracts/backoffice-accounts";
 import type {
   ConfigurationFailureRow,
+  CreatorSearchVolumeRow,
   DestinationHealthRow,
   FailuresPastDelayRow,
   QueueDelayRow,
@@ -224,6 +226,24 @@ export function reconciliationAlerts(
         },
       ]
     : [];
+}
+
+/**
+ * AL21 (I-9; 10 RG68, CA44): an account whose creators served, searches or refusals are abnormal.
+ * The account, the cause and a count: never a filter nor a creator. It falls by itself (RG64).
+ */
+export function creatorSearchVolumeAlerts(
+  rows: readonly CreatorSearchVolumeRow[],
+): Alert[] {
+  return rows.map((row) => ({
+    code: "AL21",
+    cause: row.cause,
+    destination: null,
+    setting: null,
+    accountId: row.accountId,
+    count: row.count,
+    since: row.since,
+  }));
 }
 
 /** A number of a threshold, or the starting value of its document when absent. */

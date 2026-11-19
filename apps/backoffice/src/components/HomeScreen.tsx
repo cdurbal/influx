@@ -30,6 +30,7 @@ import {
 } from "./bo-classes";
 import { useTeamNames } from "./DualControlScreens";
 import { QueueSummary } from "./QueueSummary";
+import { accountHref } from "./campaign-record-view";
 import { ServicesLink } from "./ServicesLink";
 import { useMe } from "./Shell";
 import {
@@ -123,7 +124,7 @@ function Alerts({ data }: { data: AlertsResponse }) {
         const words = t.cause[alert.cause];
         return (
           <li
-            key={`${alert.code}-${alert.cause}-${alert.destination ?? ""}-${alert.setting ?? ""}`}
+            key={`${alert.code}-${alert.cause}-${alert.destination ?? ""}-${alert.setting ?? ""}-${alert.accountId ?? ""}`}
             className={WARNING_CLASSES}
           >
             {t.line(
@@ -140,6 +141,14 @@ function Alerts({ data }: { data: AlertsResponse }) {
               alert.since === null ? null : formatDateTime(alert.since),
             )}{" "}
             {alert.code === "AL25" ? <ServicesLink /> : null}
+            {alert.accountId === undefined ? null : (
+              <Link
+                href={accountHref(alert.accountId)}
+                className={LINK_CLASSES}
+              >
+                {t.openAccount}
+              </Link>
+            )}
           </li>
         );
       })}

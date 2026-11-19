@@ -359,6 +359,44 @@ export async function lastBrevoReconciliation(
       };
 }
 
+/** AL21: one account and one cause of an abnormal volume of the creator search (I-9). */
+export type CreatorSearchVolumeRow = {
+  accountId: string;
+  cause:
+    | "distinct_profiles_served"
+    | "rate_cap_share_hour"
+    | "rate_cap_share_day"
+    | "rate_limited";
+  /** Distinct creators served, searches of the window or refusals, by the cause. */
+  count: number;
+  since: string;
+};
+
+/**
+ * AL21 (0321 search.creator_search_volume_alerts, admin only): the accounts whose volume is
+ * abnormal over the journal of the search, the thresholds read in table by the function itself.
+ * An account, a cause, a count and a date: never a filter, never a creator.
+ */
+export async function creatorSearchVolume(
+  tx: Transaction,
+): Promise<CreatorSearchVolumeRow[]> {
+  const rows = await tx.execute<{
+    subject_account_id: string;
+    cause: CreatorSearchVolumeRow["cause"];
+    observed: number;
+    since_at: string;
+  }>(sql`
+    select v.subject_account_id::text as subject_account_id, v.cause, v.observed,
+           to_char(v.since_at at time zone 'UTC', ${ISO_UTC}) as since_at
+      from search.creator_search_volume_alerts() v`);
+  return rows.map((row) => ({
+    accountId: row.subject_account_id,
+    cause: row.cause,
+    count: row.observed,
+    since: row.since_at,
+  }));
+}
+
 export type NewBrowserSignInRow = {
   accountId: string;
   firstName: string | null;

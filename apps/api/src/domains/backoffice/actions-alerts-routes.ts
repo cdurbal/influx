@@ -1,6 +1,6 @@
 // Alerts route of the backoffice v0 (docs/mvp/05 §K RG104, CA62; 15 RG101, RG145; 17b §3.11).
 // Backoffice surface; the aal2 guard of server.ts runs first.
-// - GET /v1/bo/alerts (RG104, CA62): the state alerts AL24 to AL27, for their recipients, and for
+// - GET /v1/bo/alerts (RG104, CA62): the state alerts AL21 and AL24 to AL27, for their recipients, and for
 //   the admins the "new browser" sign-ins of B-7 (RG145, 0138) and the `admin` roles granted
 //   (J8S-4, RG101, 0142). `Cache-Control: no-store`.
 import {
@@ -20,6 +20,7 @@ import {
   alertDefinitions,
   databaseNow,
   configurationFailures,
+  creatorSearchVolume,
   destinationHealth,
   failuresPastDelay,
   lastBrevoReconciliation,
@@ -33,6 +34,7 @@ import {
   businessHoursOf,
   delayAlerts,
   configurationAlerts,
+  creatorSearchVolumeAlerts,
   destinationAlerts,
   failureAlerts,
   reconciliationAlerts,
@@ -52,7 +54,7 @@ async function evaluateAlerts(
   const now = await databaseNow(tx);
   const isAdmin = context.role === "admin";
   const definitions = new Map(
-    (await alertDefinitions(tx, ["AL24", "AL25", "AL26", "AL27"])).map(
+    (await alertDefinitions(tx, ["AL21", "AL24", "AL25", "AL26", "AL27"])).map(
       (definition) => [definition.code, definition],
     ),
   );
@@ -137,6 +139,11 @@ async function evaluateAlerts(
         ),
       ),
     );
+  }
+  // AL21 (I-9, 0321): the volume of the creator search, for the admins its recipients; the function
+  // reads its own thresholds and answers an account, a cause and a count, never a filter nor a profile.
+  if (visible("AL21")) {
+    alerts.push(...creatorSearchVolumeAlerts(await creatorSearchVolume(tx)));
   }
   // B-7 (05 RG145): the "new browser" sign-ins of the team, for the admins only.
   const signIns = isAdmin

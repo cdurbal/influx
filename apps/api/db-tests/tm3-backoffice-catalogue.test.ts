@@ -689,7 +689,7 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
 });
 
 describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98) and the technical alerts (15 RG165)", () => {
-  it("holds the fourteen alerts of J8 and the fifteen of D60 (0147), with nature and recipients", async () => {
+  it("holds the fourteen alerts of J8, AL21 of L3E (0321) and the fifteen of D60 (0147), with nature and recipients", async () => {
     const rows = await migration<
       {
         code: string;
@@ -704,6 +704,8 @@ describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98) an
     expect(rows.map((row) => [row.code, row.nature, row.recipients])).toEqual([
       ["AL2", "etat", ["agent", "admin"]],
       ["AL5", "etat", ["agent", "admin"]],
+      // 0321 (L3E-10): the volume of the creator search (I-9), a state alert for the admins
+      ["AL21", "etat", ["admin"]],
       ["AL24", "etat", ["owner_agent", "admin"]],
       ["AL25", "evenement", ["admin"]],
       ["AL26", "etat", ["admin"]],

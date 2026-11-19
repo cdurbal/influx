@@ -7234,6 +7234,21 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // and the facets, inserts a version, executes audit.append() and the snapshot of a version.
   "influx_admin|function|search.write_facet_setting(text,boolean,integer,text)|EXECUTE",
   "influx_admin|function|search.write_search_setting(text,jsonb)|EXECUTE",
+  // 0321 (L3E commit 10, l3e/modele.md §10): AL21, the volume alert derived from the journal; the
+  // owner of the writers reads the journal (no creator but through a count), the AL21 row of the
+  // catalogue and the caps; the admin executes the function (an active admin in aal2 inside)
+  "influx_admin|function|search.creator_search_volume_alerts()|EXECUTE",
+  "influx_search_admin_definer|column|backoffice.alert_definitions.code|SELECT",
+  "influx_search_admin_definer|column|backoffice.alert_definitions.is_active|SELECT",
+  "influx_search_admin_definer|column|backoffice.alert_definitions.threshold_value|SELECT",
+  "influx_search_admin_definer|column|search.search_impressions.creator_account_id|SELECT",
+  "influx_search_admin_definer|column|search.search_impressions.search_query_id|SELECT",
+  "influx_search_admin_definer|column|search.search_queries.account_id|SELECT",
+  "influx_search_admin_definer|column|search.search_queries.created_at|SELECT",
+  "influx_search_admin_definer|column|search.search_queries.id|SELECT",
+  "influx_search_admin_definer|column|search.search_queries.outcome|SELECT",
+  "influx_search_admin_definer|function|search.creator_search_volume_alerts()|EXECUTE",
+  "influx_search_admin_definer|schema|backoffice|USAGE",
   "influx_admin|schema|search|USAGE",
   "influx_search_admin_definer|column|identity.account_roles.account_id|SELECT",
   "influx_search_admin_definer|column|identity.account_roles.role|SELECT",
@@ -8063,6 +8078,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0316 (L3E commit 03): the two writers of an administrator; require_search_admin() is SECURITY
   // INVOKER, same owner; the snapshot, the band, the checks and the guard are the migration role's.
   "search.write_search_setting(text,jsonb)": "influx_search_admin_definer",
+  // 0321 (L3E commit 10): the AL21 volume alert, read by the admins
+  "search.creator_search_volume_alerts()": "influx_search_admin_definer",
   "search.write_facet_setting(text,boolean,integer,text)":
     "influx_search_admin_definer",
   // 0319 (L3E, l3e/modele §1): the brand door of the creator search

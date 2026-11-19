@@ -263,6 +263,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
       },
     ]);
     expect(outcome.executed).toEqual([
+      // 0321 (L3E-10): AL21, the volume alert read by the admins, beside the two writers
+      {
+        role: "influx_admin",
+        name: "search.creator_search_volume_alerts()",
+      },
       {
         role: "influx_admin",
         name: "search.write_facet_setting(text,boolean,integer,text)",
