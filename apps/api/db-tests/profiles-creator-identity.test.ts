@@ -124,13 +124,13 @@ const SHORTLIST_ENGINE_DOORS = [
   "search.add_to_shortlist(uuid,text)",
   "search.create_shortlist(text,uuid)",
   "search.list_shortlists()",
+  // 0327 (L3G-01, L3FS-2): the removal resolves the alias through the engine, as the note
+  "search.remove_from_shortlist(uuid,text)",
   "search.set_shortlist_note(uuid,text,text)",
   "search.update_shortlist(uuid,text,uuid)",
 ] as const;
 /** The door that serves the cards of a shortlist (0324): the engine and the card. */
 const SHORTLIST_READ_DOOR = "search.read_shortlist(uuid)";
-/** The door that removes by alias (0324, EC-L3F-04-4): the storefront alone. */
-const SHORTLIST_REMOVE_DOOR = "search.remove_from_shortlist(uuid,text)";
 
 /** The relations of layer A the engine of the search reaches, and the refused sectors (E6). */
 const ENGINE_RELATIONS = [
@@ -162,8 +162,9 @@ const CARD_RELATIONS = [
  * (the engine, the card, the region of the storefront); the door of a visual reaches the engine alone
  * (its visibility), its visual being no creator relation. From 0324 (l3f/modele.md §5;
  * EC-L3F-04-8): the doors of the shortlists that check an alias or count a list reach the engine, the
- * reading of a list the engine and the card, the removal the storefront alone (the alias); the
- * deletion of a list reaches no creator relation.
+ * reading of a list the engine and the card; the deletion of a list reaches no creator relation.
+ * From 0327 (L3G-01, L3FS-2): the removal reaches the engine, as the note, no longer the storefront
+ * alone.
  */
 const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions([
   ...CARD_RELATIONS.map((relation) => ({
@@ -185,10 +186,6 @@ const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions([
     object: SHORTLIST_READ_DOOR,
     relation,
   })),
-  {
-    object: SHORTLIST_REMOVE_DOOR,
-    relation: "profiles.creator_public_profiles",
-  },
 ]);
 
 /** The reprise of 0217 §9, replayed as written (between its two markers). */

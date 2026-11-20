@@ -1,7 +1,7 @@
 # Exécution du jalon L3G
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | opus | high | expert-database | à faire | Q1 : oui (2026-11-20) |
+| 01 | 01.md | commit | opus | high | expert-database | fait | 0327 : moteur lancé alias connu ou non, masqué non retiré, verrou par compte attendu 1 s (55P03), moteur avant le verrou |
 | 02 | 02.md | commit | sonnet | high | testeur | à faire | Q1 : oui (2026-11-20) |
 | 03 | 03.md | commit | sonnet | medium | dev-react-node | à faire | Q1 : oui (2026-11-20) |
 | D38 | annexe.md | fondateur | — | — | fondateur | fait | « oui aux 4 questions » (2026-11-20) : Q2 de l'annexe, ouverture globale, seuils 30 et 5 en table, alerte seule, admin + pair, interrupteur fermé |

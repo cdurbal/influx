@@ -8,14 +8,23 @@
 //           one; a campaign of another brand or not admitted; the bounds (listsPerAccount, itemsPerList,
 //           the name, the note); a hidden creator masked then back; CA52 (nothing to the creator, the
 //           outbox, audit nor matching).
+//   L3G-T1  (L3G commit 01, 0327; L3FS-2, L3FS-3, D85) a hidden creator no longer removed through its
+//           alias; THE engine run once by add, note and remove for an alias known or unknown (the
+//           calls of the transaction, track_functions = 'pl'), before the lock of the account; that
+//           lock waited 1 s at most by the six writes (55P03), the caller's lock_timeout given back.
 // Each case runs in a rolled-back transaction of the local superuser, which sets aside the storefronts
 // of earlier runs sharing this file's audience country, opens the switch (D38: closed by default),
 // writes its fixtures outside the guards, and acts as apps/api does (influx_app, then the brand's role
-// and context).
-import { accountIdOf, inRolledBackTransaction } from "@influx/test-kit/db";
+// and context). L3G-T1 holds the lock of an account from a second connection (its own
+// transaction: nothing committed).
+import {
+  accountIdOf,
+  connectAsLocalSuperuser,
+  inRolledBackTransaction,
+} from "@influx/test-kit/db";
 import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   putCampaignInState,
   type CampaignState,
@@ -423,6 +432,47 @@ async function aliasesOf(
 ): Promise<string[]> {
   const answer = await door(tx, brand, "read", [list]);
   return (answer.items ?? []).map((item) => item.creator.alias);
+}
+
+// L3G-T1 (0327): THE engine counted, the lock of an account held from elsewhere
+
+const ENGINE = "search.creator_candidates(text,uuid,jsonb,uuid)";
+
+/** A second connection of the local superuser: it holds the lock of an account, nothing committed. */
+const holder = connectAsLocalSuperuser({ max: 1 });
+afterAll(async () => {
+  await holder.end({ timeout: 1 });
+});
+
+/** Counts the calls of the PL/pgSQL functions of this transaction (a superuser's setting). */
+async function trackFunctions(tx: Tx): Promise<void> {
+  await tx`set local track_functions = 'pl'`;
+}
+
+/** The calls of THE engine made by `fn`, read from the statistics of the transaction. */
+async function engineRuns(tx: Tx, fn: () => Promise<unknown>): Promise<number> {
+  const calls = async (): Promise<number> => {
+    const [row] = await tx<{ n: number }[]>`
+      select coalesce(pg_catalog.pg_stat_get_xact_function_calls(${ENGINE}::regprocedure), 0)::int
+               as n`;
+    return row?.n ?? 0;
+  };
+  const before = await calls();
+  await fn();
+  return (await calls()) - before;
+}
+
+/**
+ * Runs `fn` while the second connection holds the advisory lock `key` in a transaction of its own,
+ * open all along (an idle connection would be closed, its lock with it), which writes nothing.
+ */
+async function holdingLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  let result: T | undefined;
+  await holder.begin(async (held) => {
+    await held`select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(${key}, 0))`;
+    result = await fn();
+  });
+  return result as T;
 }
 
 async function rowsOf(tx: Tx, brand: string): Promise<Row> {
@@ -1192,7 +1242,7 @@ describe("L3F-T4 the creators of a list, by alias (10 RG4, RG51, CA49; modele §
     expect(unknown).toBe(hidden);
   });
 
-  it("L3F-T4 removes by alias, idempotent: present, absent, unknown or hidden, the same answer (EC-L3F-04-4: a hidden creator is removed)", async () => {
+  it("L3F-T4 removes by alias, idempotent: present, absent, unknown or hidden, the same answer (L3G-T1, L3FS-2: EC-L3F-04-4 inverted, a hidden creator stays, EC-L3G-1)", async () => {
     const outcome = await scenario(async (tx) => {
       const brand = await newBrand(tx);
       const [present, hidden, absent] = await servedCreators(tx, brand, 3);
@@ -1213,7 +1263,114 @@ describe("L3F-T4 the creators of a list, by alias (10 RG4, RG51, CA49; modele §
     expect(new Set(outcome.answers)).toEqual(
       new Set([JSON.stringify([{ answer: { state: "removed" } }])]),
     );
-    expect(outcome.rows).toEqual({ lists: 1, items: 0 });
+    // L3FS-2: the hidden creator is not removed through its alias (the engine resolves it no more)
+    expect(outcome.rows).toEqual({ lists: 1, items: 1 });
+  });
+
+  it("L3G-T1 L3FS-2, D85: adding, noting and removing run THE engine once for an alias known or unknown, before the lock of the account", async () => {
+    const outcome = await scenario(async (tx) => {
+      await trackFunctions(tx);
+      const brand = await newBrand(tx);
+      const [present] = await servedCreators(tx, brand, 1);
+      const list = await newList(tx, brand);
+      await door(tx, brand, "add", [list, present?.alias]);
+      const runs = async (name: Door, parameters: readonly Parameter[]) => {
+        let state = "none";
+        const engine = await engineRuns(tx, async () => {
+          state = answerOf(await call(tx, brand, name, parameters)).state;
+        });
+        return `${state} ${engine}`;
+      };
+      return [
+        await runs("add", [list, present?.alias]),
+        await runs("add", [list, "BCDFGH"]),
+        await runs("note", [list, present?.alias, "Known"]),
+        await runs("note", [list, "BCDFGH", "Unknown"]),
+        await runs("remove", [list, "BCDFGH"]),
+        await runs("remove", [list, present?.alias]),
+      ];
+    });
+    expect(outcome).toEqual([
+      "added 1",
+      "error P0002 creator 1",
+      "noted 1",
+      "error P0002 creator 1",
+      "removed 1",
+      "removed 1",
+    ]);
+  });
+
+  it("L3G-T1 D85: the lock of the account held elsewhere, every write of a list answers 55P03 after about a second, the engine already run by add, note and remove, nothing written; the caller's lock_timeout given back", async () => {
+    const outcome = await scenario(async (tx) => {
+      await trackFunctions(tx);
+      await tx`set local lock_timeout = '7s'`;
+      const brand = await newBrand(tx);
+      const [present, other] = await servedCreators(tx, brand, 2);
+      // written outside the doors: a door would hold the lock of the account in this transaction
+      const [written] = await tx<{ id: string }[]>`
+        insert into search.shortlists (advertiser_account_id, name)
+        values (${brand}, 'My list') returning id::text`;
+      const list = written?.id ?? null;
+      await tx`insert into search.shortlist_items (shortlist_id, creator_account_id)
+               values (${list}, ${present?.id ?? null})`;
+      const answers = await holdingLock(
+        `search.shortlists:${brand}`,
+        async () => {
+          const seen: Row[] = [];
+          for (const [name, parameters] of [
+            ["create", ["Another", null]],
+            ["update", [list, "Renamed", null]],
+            ["delete", [list]],
+            ["add", [list, other?.alias]],
+            ["note", [list, present?.alias, "Held"]],
+            ["remove", [list, present?.alias]],
+          ] as [Door, Parameter[]][]) {
+            const started = Date.now();
+            let state = "none";
+            const engine = await engineRuns(tx, async () => {
+              state = answerOf(await call(tx, brand, name, parameters)).state;
+            });
+            const elapsed = Date.now() - started;
+            seen.push({
+              name,
+              state,
+              engine,
+              waited: elapsed >= 900 && elapsed < 5_000,
+            });
+          }
+          return seen;
+        },
+      );
+      const [setting] = await tx<{ value: string }[]>`
+        select pg_catalog.current_setting('lock_timeout') as value`;
+      const [item] = await tx<{ note: string | null }[]>`
+        select note from search.shortlist_items where shortlist_id = ${list}`;
+      return {
+        answers,
+        rows: await rowsOf(tx, brand),
+        note: item?.note,
+        names: (await door(tx, brand, "list")).shortlists?.map((s) => s.name),
+        timeout: setting?.value,
+      };
+    });
+    const held = (name: string, engine: number): Row => ({
+      name,
+      state: "error 55P03",
+      engine,
+      waited: true,
+    });
+    expect(outcome.answers).toEqual([
+      held("create", 0),
+      held("update", 0),
+      held("delete", 0),
+      held("add", 1),
+      held("note", 1),
+      held("remove", 1),
+    ]);
+    expect(outcome.rows).toEqual({ lists: 1, items: 1 });
+    expect(outcome.note).toBeNull();
+    expect(outcome.names).toEqual(["My list"]);
+    expect(outcome.timeout).toBe("7s");
   });
 });
 

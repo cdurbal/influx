@@ -10,14 +10,23 @@
 //           threshold in table); CA48 (the impression of origin opened once, the opening journaled in
 //           the transaction that serves); the 60th and 61st opening (T15.2); the reasons of the
 //           search of origin; CA50 (an approved visual of a visible creator, nothing else).
+//   L3G-T1  (L3G commit 01, 0327; L3FS-1, L3FS-3, D85) THE engine run once by the profile and by a
+//           visual for an alias visible, excluded, unknown or malformed alike (the calls of the
+//           transaction, track_functions = 'pl'), never behind a full bucket; the lock of the openings
+//           waited 1 s at most (55P03), the engine run before it, the caller's lock_timeout given back.
 // Each case runs in a rolled-back transaction of the local superuser, which sets aside the storefronts
 // of earlier runs sharing this file's audience country and region, opens the switch (D38: closed by
 // default), writes its fixtures outside the guards, and acts as apps/api does (influx_app, then the
-// brand's role and context).
-import { accountIdOf, inRolledBackTransaction } from "@influx/test-kit/db";
+// brand's role and context). L3G-T1 holds the lock of an account from a second connection (its own
+// transaction: nothing committed).
+import {
+  accountIdOf,
+  connectAsLocalSuperuser,
+  inRolledBackTransaction,
+} from "@influx/test-kit/db";
 import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   putCampaignInState,
   type CampaignState,
@@ -1370,5 +1379,155 @@ describe("L3F-T3 the visuals, relayed (D82 (7), EC-L2G-16; 10 CA50; 07 RG84, RG8
       blocked: 0,
       refusing: 0,
     });
+  });
+});
+
+// L3G-T1 (0327) -------------------------------------------------------------------------------------
+
+const ENGINE = "search.creator_candidates(text,uuid,jsonb,uuid)";
+
+/** A second connection of the local superuser: it holds the lock of an account, nothing committed. */
+const holder = connectAsLocalSuperuser({ max: 1 });
+afterAll(async () => {
+  await holder.end({ timeout: 1 });
+});
+
+/** Counts the calls of the PL/pgSQL functions of this transaction (a superuser's setting). */
+async function trackFunctions(tx: Tx): Promise<void> {
+  await tx`set local track_functions = 'pl'`;
+}
+
+/** The calls of THE engine made by `fn`, read from the statistics of the transaction. */
+async function engineRuns(tx: Tx, fn: () => Promise<unknown>): Promise<number> {
+  const calls = async (): Promise<number> => {
+    const [row] = await tx<{ n: number }[]>`
+      select coalesce(pg_catalog.pg_stat_get_xact_function_calls(${ENGINE}::regprocedure), 0)::int
+               as n`;
+    return row?.n ?? 0;
+  };
+  const before = await calls();
+  await fn();
+  return (await calls()) - before;
+}
+
+/**
+ * Runs `fn` while the second connection holds the advisory lock `key` in a transaction of its own,
+ * open all along (an idle connection would be closed, its lock with it), which writes nothing.
+ */
+async function holdingLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  let result: T | undefined;
+  await holder.begin(async (held) => {
+    await held`select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(${key}, 0))`;
+    result = await fn();
+  });
+  return result as T;
+}
+
+describe("L3G-T1 one path for the unknown and the excluded, a lock waited 1 s at most (0327; L3FS-1, L3FS-3, D85)", () => {
+  it("L3G-T1 L3FS-1: the profile and a visual run THE engine once for an alias visible, excluded, unknown, malformed or absent; a full bucket answers before any alias, the engine never run", async () => {
+    const outcome = await scenario(async (tx) => {
+      await trackFunctions(tx);
+      const brand = await newBrand(tx);
+      const full = await newBrand(tx);
+      const visible = await newCreator(tx);
+      const excluded = await newCreator(tx);
+      await giveBlock(tx, brand, excluded);
+      const seen = await newVisual(tx, visible, "approved", 1);
+      const hidden = await newVisual(tx, excluded, "approved", 1);
+      await giveOpenings(tx, full, visible, 60, "1 hour");
+      const states: Record<string, string> = {};
+      const profile: Record<string, number> = {};
+      for (const [name, alias] of [
+        ["visible", visible.alias],
+        ["excluded", excluded.alias],
+        ["unknown", "BCDFGH"],
+        ["malformed", "not-an-alias"],
+        ["absent", null],
+      ] as [string, string | null][]) {
+        profile[name] = await engineRuns(tx, async () => {
+          states[name] = (await open(tx, brand, alias)).answer.state;
+        });
+      }
+      const visual = {
+        visible: await engineRuns(tx, () =>
+          readVisual(tx, brand, visible.alias, seen.id),
+        ),
+        excluded: await engineRuns(tx, () =>
+          readVisual(tx, brand, excluded.alias, hidden.id),
+        ),
+        unknown: await engineRuns(tx, () =>
+          readVisual(tx, brand, "BCDFGH", seen.id),
+        ),
+        absent: await engineRuns(tx, () => readVisual(tx, brand, null, null)),
+      };
+      const limited = {
+        visible: await engineRuns(tx, async () => {
+          states["full visible"] = (
+            await open(tx, full, visible.alias)
+          ).answer.state;
+        }),
+        unknown: await engineRuns(tx, async () => {
+          states["full unknown"] = (
+            await open(tx, full, "BCDFGH")
+          ).answer.state;
+        }),
+      };
+      return { states, profile, visual, limited };
+    });
+    const notFound = "error P0002 creator";
+    expect(outcome.states).toEqual({
+      visible: "profile",
+      excluded: notFound,
+      unknown: notFound,
+      malformed: notFound,
+      absent: notFound,
+      "full visible": "rate_limited",
+      "full unknown": "rate_limited",
+    });
+    expect(outcome.profile).toEqual({
+      visible: 1,
+      excluded: 1,
+      unknown: 1,
+      malformed: 1,
+      absent: 1,
+    });
+    expect(outcome.visual).toEqual({
+      visible: 1,
+      excluded: 1,
+      unknown: 1,
+      absent: 1,
+    });
+    expect(outcome.limited).toEqual({ visible: 0, unknown: 0 });
+  });
+
+  it("L3G-T1 D85: the lock of the openings held elsewhere, the profile answers 55P03 after about a second, its engine already run, nothing written; free again, it serves; the caller's lock_timeout given back", async () => {
+    const outcome = await scenario(async (tx) => {
+      await trackFunctions(tx);
+      await tx`set local lock_timeout = '7s'`;
+      const brand = await newBrand(tx);
+      const creator = await newCreator(tx);
+      const held = await holdingLock(
+        `search.profile_openings:${brand}`,
+        async () => {
+          const started = Date.now();
+          let state = "none";
+          const engine = await engineRuns(tx, async () => {
+            state = (await open(tx, brand, creator.alias)).answer.state;
+          });
+          return { state, engine, elapsed: Date.now() - started };
+        },
+      );
+      const lines = (await openingsOf(tx, brand)).length;
+      const after = (await open(tx, brand, creator.alias)).answer.state;
+      const [setting] = await tx<{ value: string }[]>`
+        select pg_catalog.current_setting('lock_timeout') as value`;
+      return { held, lines, after, timeout: setting?.value };
+    });
+    expect(outcome.held).toMatchObject({ state: "error 55P03", engine: 1 });
+    expect(outcome.held.elapsed).toBeGreaterThanOrEqual(900);
+    expect(outcome.held.elapsed).toBeLessThan(5_000);
+    expect(outcome.lines).toBe(0);
+    expect(outcome.after).toBe("profile");
+    expect(outcome.timeout).toBe("7s");
   });
 });

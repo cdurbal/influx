@@ -15,7 +15,8 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/campaigns-review-queue.test.ts": 30,
   "db-tests/campaigns-route.test.ts": 25,
   "db-tests/campaigns-submission.test.ts": 33,
-  "db-tests/creator-profile-door.test.ts": 20,
+  // L3G-01 (L3G-T1): one path for the unknown and the excluded, a lock waited 1 s at most
+  "db-tests/creator-profile-door.test.ts": 22,
   "db-tests/creator-profile-parity.test.ts": 24,
   // L3F-07 (L3F-T7): the profile a brand opens and its visuals, T14, T15.2 to T15.5
   "db-tests/creator-profile-route.test.ts": 13,
@@ -52,7 +53,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/search-journal-settings.test.ts": 16,
   // L3F-08 (L3F-T8): the brand's shortlists and its request for a selection, routes over 0324, 0325
   "db-tests/search-shortlists-route.test.ts": 16,
-  "db-tests/search-shortlists.test.ts": 17,
+  "db-tests/search-shortlists.test.ts": 19,
   "db-tests/search-selection-requests.test.ts": 12,
   "db-tests/selection-request-route.test.ts": 9,
   "db-tests/search-volume-alert.test.ts": 13,
