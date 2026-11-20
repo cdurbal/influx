@@ -11,6 +11,7 @@
 //   - the switch closed (D38) and a brand not published (RG1) answer a state alone, nothing written;
 //   - nothing goes to the outbox (Brevo, Apollo), matching nor messaging (D45, CA52, CA64); no route of
 //     export, no « add them all », no size of page (TM12.3).
+//   - L3G-T3 (L3FS-3): each of the six writes is bound per client address, before the session, 429 beyond.
 // Accounts COMMITTED through campaign-routes-kit.ts, creators through creator-search-kit.ts.
 import {
   shortlistCreateBodySchema,
@@ -20,6 +21,7 @@ import {
 import type { LightMyRequestResponse } from "fastify";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { SHORTLIST_WRITE_ADDRESS_RATE } from "../src/platform/member-rate.ts";
 import { routeInventoryOf } from "../src/server.ts";
 import {
   openCampaignRouteFixtures,
@@ -842,4 +844,62 @@ describe("L3F-T8 nothing leaves the brand, no export (10 RG8, RG63; CA52, CA64; 
     }
     await send(owner, "DELETE", `${URL_SHORTLISTS}/${list.id}`);
   });
+});
+
+describe("L3G-T3 the six writes are bound per client address, before the session (L3FS-3; member-rate.ts)", () => {
+  const LIST = randomUUID();
+  const ALIAS = "23456789";
+  const WRITES = [
+    ["POST", URL_SHORTLISTS, { name: "Over the rate", campaignId: null }],
+    ["PUT", `${URL_SHORTLISTS}/${LIST}`, { name: "Renamed", campaignId: null }],
+    ["DELETE", `${URL_SHORTLISTS}/${LIST}`, undefined],
+    ["PUT", itemUrl(LIST, ALIAS), undefined],
+    ["DELETE", itemUrl(LIST, ALIAS), undefined],
+    ["PUT", `${itemUrl(LIST, ALIAS)}/note`, { note: "A note" }],
+  ] as const;
+
+  let block = 0;
+  it.each(WRITES)(
+    "%s %s: beyond the bound of an address, 429 rate_limited with Retry-After and nothing written; another address passes",
+    async (method, url, body) => {
+      block += 1;
+      const address = `10.77.${block}.1`;
+      const before = await rowsOf(owner);
+      // up to the bound, without a session: counted before it is read, and cheap (401 each)
+      for (let call = 0; call < SHORTLIST_WRITE_ADDRESS_RATE; call += 1) {
+        const response = await sendAsMember(
+          server,
+          null,
+          method,
+          url,
+          body,
+          address,
+        );
+        expect(response.statusCode, `${method} ${url} #${call}`).toBe(401);
+      }
+      const refused = await sendAsMember(
+        server,
+        owner,
+        method,
+        url,
+        body,
+        address,
+      );
+      expect(refused.statusCode, refused.body).toBe(429);
+      expect(fx.errorBody(refused).code).toBe("rate_limited");
+      expect(Number(refused.headers["retry-after"])).toBeGreaterThanOrEqual(1);
+      expect(Number(refused.headers["retry-after"])).toBeLessThanOrEqual(60);
+      expect(await rowsOf(owner)).toEqual(before);
+      // another address is not affected
+      const other = await sendAsMember(
+        server,
+        null,
+        method,
+        url,
+        body,
+        `10.77.${block}.2`,
+      );
+      expect(other.statusCode).toBe(401);
+    },
+  );
 });

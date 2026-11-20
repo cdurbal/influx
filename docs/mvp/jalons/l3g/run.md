@@ -3,7 +3,7 @@
 |---|---|---|---|---|---|---|---|
 | 01 | 01.md | commit | opus | high | expert-database | fait | 0327 : moteur lancé alias connu ou non, masqué non retiré, verrou par compte attendu 1 s (55P03), moteur avant le verrou |
 | 02 | 02.md | commit | sonnet | high | testeur | fait | 5 courses à 2 connexions committées, verrou tenu jusqu'à 2 attentes vues : une servie, une refusée, lignes exactes ; plancher 5 |
-| 03 | 03.md | commit | sonnet | medium | dev-react-node | à faire | Q1 : oui (2026-11-20) |
+| 03 | 03.md | commit | sonnet | medium | dev-react-node | fait | 30 écritures/min par adresse sur 6 routes, 429 avant session ; 55P03 devient 429 rate_limited Retry-After 1 ; plancher 22 |
 | D38 | annexe.md | fondateur | — | — | fondateur | fait | « oui aux 4 questions » (2026-11-20) : Q2 de l'annexe, ouverture globale, seuils 30 et 5 en table, alerte seule, admin + pair, interrupteur fermé |
 | A | A.md | arbitrage | opus | xhigh | architecte | à faire | |
 | 04 | 04.md | commit | opus | xhigh | expert-database | à faire | |

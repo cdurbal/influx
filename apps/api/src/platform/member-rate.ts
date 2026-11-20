@@ -12,6 +12,13 @@ import type { ClientAddress } from "./client-address.ts";
 import { MinuteCounter } from "./minute-counter.ts";
 
 /**
+ * Writes per minute from one client address on each route of the brand's shortlists (L3G 03, L3FS-3):
+ * a bound before the session, so that the engine the doors run under the account's lock is never
+ * driven by a burst of one network. A brand edits a list a few times a minute; 30 is far above it.
+ */
+export const SHORTLIST_WRITE_ADDRESS_RATE = 30;
+
+/**
  * Calls per minute from one client address, `METHOD /path` as registered. The logo is a relay of
  * the cards' images: several per page of the feed, outside the account's bucket (modele §5).
  */
@@ -31,6 +38,13 @@ export const MEMBER_ROUTE_ADDRESS_RATES = {
   "GET /v1/me/shortlists": 60,
   "GET /v1/me/shortlists/:id": 60,
   "POST /v1/me/selection-requests": 10,
+  // L3G 03 (L3FS-3): the six writes of the shortlists, each route counted on its own
+  "POST /v1/me/shortlists": SHORTLIST_WRITE_ADDRESS_RATE,
+  "PUT /v1/me/shortlists/:id": SHORTLIST_WRITE_ADDRESS_RATE,
+  "DELETE /v1/me/shortlists/:id": SHORTLIST_WRITE_ADDRESS_RATE,
+  "PUT /v1/me/shortlists/:id/items/:alias": SHORTLIST_WRITE_ADDRESS_RATE,
+  "DELETE /v1/me/shortlists/:id/items/:alias": SHORTLIST_WRITE_ADDRESS_RATE,
+  "PUT /v1/me/shortlists/:id/items/:alias/note": SHORTLIST_WRITE_ADDRESS_RATE,
 } as const satisfies Readonly<Record<string, number>>;
 
 const RATE_OF: Readonly<Record<string, number | undefined>> =

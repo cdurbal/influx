@@ -57,7 +57,7 @@ import {
   sqlMessageOf,
   sqlStateOf,
 } from "../../../db/sql-state.ts";
-import { ApiError } from "../../../platform/errors.ts";
+import { ApiError, RetryLaterError } from "../../../platform/errors.ts";
 import type { IdentityApp } from "../../identity/routes.ts";
 import { asAdvertiser } from "../brand-session.ts";
 import {
@@ -88,6 +88,11 @@ const NOT_PUBLISHED = { state: "brand_not_published" } as const;
 function doorRefusalOf(error: unknown): Error | typeof NOT_PUBLISHED | null {
   const state = sqlStateOf(error);
   const detail = sqlDetailOf(error);
+  if (state === "55P03") {
+    // lock_timeout on the account's lock (0327): a call waiting more than a second behind another
+    // of the same account is asked to come back, never a fault
+    return new RetryLaterError("rate_limited", 1);
+  }
   if (state === "42501" && sqlMessageOf(error) === "forbidden") {
     // a missing GRANT is 42501 too, with another message: a fault, never this answer
     return NOT_PUBLISHED;

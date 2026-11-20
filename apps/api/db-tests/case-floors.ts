@@ -54,7 +54,7 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/search-caps-concurrency.test.ts": 5,
   "db-tests/search-journal-settings.test.ts": 16,
   // L3F-08 (L3F-T8): the brand's shortlists and its request for a selection, routes over 0324, 0325
-  "db-tests/search-shortlists-route.test.ts": 16,
+  "db-tests/search-shortlists-route.test.ts": 22,
   "db-tests/search-shortlists.test.ts": 19,
   "db-tests/search-selection-requests.test.ts": 12,
   "db-tests/selection-request-route.test.ts": 9,
