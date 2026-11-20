@@ -13,7 +13,8 @@
 | 09 | 09.md | commit | sonnet | high | testeur | fait | T1 +6, T9 +2: visual cards, no URL, Storage read for approved only, 08 routes swept; no marker out; t1 about +25 s local |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | M4 at /createurs: 7 facets, address = query, pages kept, widenings from WIDENING_ORDER; card shared (CreatorCardView); E1 4 cases, median of 3: 6.5 s |
 | 11 | 11.md | commit | sonnet | high | dev-react-node | fait | profile = card + 3 visuals + region code; panel, lists, request (delay, no promise); list= in address; E2 3 cases 11.1 s, E1+E2 20.9 s (medians of 3) |
-| U | ux.md | ux | sonnet | high | expert-ux | à faire | |
+| U | ux.md | ux | sonnet | high | expert-ux | fait | 22 constats : 0 bloquant, 5 jalon → fix-1, 9 avant production, 8 plus tard |
+| fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | à valider | |
 | F | recette.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
