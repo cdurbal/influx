@@ -23,6 +23,9 @@ import type { Marker } from "./open-campaigns-kit.ts";
 // The markers and the keys of an answer, read as the feed's tests read them.
 export { keysOf, markersIn } from "./open-campaigns-kit.ts";
 
+/** What the helpers below need of the fixtures: the migration role alone (T9 has no fixtures object). */
+type Db = Pick<CampaignRouteFixtures, "migration">;
+
 export const URL_SEARCH = "/v1/creator-search";
 
 /** The main audience country of the creators of these files: every search filters F6 on it. */
@@ -102,7 +105,7 @@ export async function forgetCampaignSearches(
 
 /** A setting of search.search_settings, written as the migration role (committed). */
 export async function setSearchSetting(
-  fx: CampaignRouteFixtures,
+  fx: Db,
   key: string,
   value: unknown,
 ): Promise<void> {
@@ -113,7 +116,7 @@ export async function setSearchSetting(
 
 /** Sets a setting for the time of `work`, then puts the previous value back. */
 export async function withSearchSetting<T>(
-  fx: CampaignRouteFixtures,
+  fx: Db,
   key: string,
   value: unknown,
   work: () => Promise<T>,
@@ -316,17 +319,19 @@ const VISUAL_AGENT = accountIdOf("agent", "a");
 /**
  * A visual of `creator` in `state`, COMMITTED by the migration role, 640 x 480, its object written to
  * `store` under the key the base generated (`approved` and `rejected` are decided by the data set's
- * agent; a `rejected` one keeps no place, as the base wants). Never `pending`: a committed pending
- * visual would enter queue 3, which other files count.
+ * agent; a `rejected` one keeps no place, as the base wants). A `pending` one (L3F 09) enters queue 3,
+ * which other files count: the file that commits one withdraws it when it ends (`withdrawVisuals`).
  */
 export async function storedVisual(
-  fx: CampaignRouteFixtures,
+  fx: Db,
   store: ObjectStore,
-  creator: Member,
-  state: "approved" | "rejected",
+  creator: { accountId: string },
+  state: "approved" | "rejected" | "pending",
   order: number | null = null,
+  caption: string = `L3F 07 ${state} caption`,
 ): Promise<StoredVisual> {
   const rejected = state === "rejected";
+  const pending = state === "pending";
   const [row] = await fx.migration<{ id: string; object_key: string }[]>`
     insert into profiles.portfolio_items
       (account_id, state, received_bytes, byte_size, width, height, checksum, stored_at,
@@ -334,8 +339,8 @@ export async function storedVisual(
        rejection_reason_code, retention_due_at)
     values (${creator.accountId}, ${state}::profiles.portfolio_item_state, 2048, 2048, 640, 480,
             ${randomUUID().replaceAll("-", "").repeat(2)}, now(), now() + interval '1 day', true,
-            ${VISUAL_AGENT}, now(), ${rejected ? null : order}, ${`L3F 07 ${state} caption`},
-            ${rejected ? "watermark" : null},
+            ${pending ? null : VISUAL_AGENT}, case when ${pending}::boolean then null else now() end,
+            ${rejected ? null : order}, ${caption}, ${rejected ? "watermark" : null},
             case when ${rejected}::boolean then now() + interval '30 days' end)
     returning id::text, object_key`;
   if (row === undefined) {
@@ -352,6 +357,17 @@ export async function storedVisual(
     throw new Error("the visual's object was not written");
   }
   return { id: row.id, objectKey: row.object_key, bytes };
+}
+
+/** The pending visuals of `creators` withdrawn: no entry of queue 3 stays in the shared stack. */
+export async function withdrawVisuals(
+  fx: Db,
+  creators: readonly { accountId: string }[],
+): Promise<void> {
+  const ids = creators.map((creator) => creator.accountId);
+  await fx.migration`
+    update profiles.portfolio_items set state = 'withdrawn'
+     where account_id = any(${ids}::uuid[]) and state = 'pending'`;
 }
 
 /** The openings of `brand` (search.profile_openings), oldest first; never served. */

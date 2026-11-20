@@ -35,6 +35,12 @@
 //           bucket `portfolio` private; seen red by a SELECT granted and a reached door naming them.
 //   L3E     (commit 06, 0319, EC-L3E-06-8) one exception, named: the owner of the creator search door
 //           reads the approved visuals by reference (six columns, approved rows) for the card.
+//   L3F     (commit 09, fiche L3F invariants 3 and 4) T9.6 and T9.7 on the side of the brand, at the end of
+//           the file: the creator who holds the piece is published and searchable with an approved, a
+//           pending and a rejected visual; the profile and the visuals route serve the approved one
+//           alone, every identifier guessed (his other visuals, another creator's, the piece, its request,
+//           an object key) answers as one never issued, Storage is read for the approved object alone,
+//           never the bucket of the pieces, and no code of apps/api can emit an address of Storage.
 // "After the reveal of identities" (18 T9.6) waits for Lot 4, where no reveal exists yet: this file
 // is replayed then. Fixtures are COMMITTED through the routes (random identifiers, disposable local
 // stack); the piece's row, the open requests and the usage are removed after the file. Storage is a
@@ -50,6 +56,9 @@ import {
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { crc32, deflateSync } from "node:zlib";
 import type postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -77,6 +86,12 @@ import {
   WEB_ORIGIN,
   WEB_SECRET,
 } from "../tests/helpers.ts";
+import {
+  setSearchSetting,
+  storedVisual,
+  withdrawVisuals,
+  type StoredVisual,
+} from "./creator-search-kit.ts";
 import {
   requestsOf,
   type Method,
@@ -1470,5 +1485,292 @@ describe("T9.6-W witnesses: a leak makes the check fail", () => {
     expect(result.differences.length).toBeGreaterThan(0);
     expect(readsOfTheBucket().length).toBeGreaterThan(before);
     reads.length = before;
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L3F (commit 09, fiche L3F invariants 3 and 4; jalons/l3f/modele.md §3): T9.6 and T9.7 replayed on
+// the side of the brand, now that the profile of a creator and his visuals are served to it. The
+// creator who holds the real piece is published, searchable and holds three visuals (approved, pending,
+// rejected); a published brand, the switch (D38) open for the time of the cases.
+// ---------------------------------------------------------------------------------------------
+
+describe("L3F-T9: L3F (commit 09): the visuals of a creator reach a brand approved and relayed by apps/api, nothing else", () => {
+  const PROFILES = "/v1/creator-search/profiles";
+  const fx = { migration: undefined as unknown as postgres.Sql };
+  let holder: {
+    alias: string;
+    approved: StoredVisual;
+    pending: StoredVisual;
+    rejected: StoredVisual;
+  };
+  let other: { accountId: string; approved: StoredVisual } | undefined;
+  let searcher: Member | undefined;
+  let switchBefore = "false";
+
+  beforeAll(async () => {
+    fx.migration = migration;
+    // a storefront the search can serve whole: a listed line with its audience, languages and formats
+    const [line] = await migration<{ id: string }[]>`
+      update profiles.creator_social_accounts
+         set followers_count = 47312, posts_last_30_days = 17, avg_comments_per_post = 43,
+             figures_measured_at = now()
+       where account_id = ${piece.creator}
+       returning id::text`;
+    await migration`
+      update profiles.creator_public_networks set listed_at = now()
+       where social_account_id = ${line?.id ?? null}`;
+    await migration`
+      insert into profiles.creator_audience_countries
+        (social_account_id, account_id, slot, country_code, share_percent)
+      values (${line?.id ?? null}, ${piece.creator}, 0, 'GL', 83)`;
+    await migration`
+      insert into profiles.creator_publication_languages (account_id, slot, language_code)
+      values (${piece.creator}, 1, 'fr')`;
+    await migration`
+      insert into profiles.creator_formats (account_id, format_code)
+      values (${piece.creator}, 'instagram_reel')`;
+    const [profile] = await migration<{ alias: string }[]>`
+      update profiles.creator_public_profiles
+         set status = 'published', published_at = now() - interval '40 days',
+             is_searchable = true, primary_topic_code = 'pets',
+             main_audience_country = 'GL', main_audience_share_band = 'ge_80'
+       where account_id = ${piece.creator}
+       returning alias`;
+    if (profile === undefined) {
+      throw new Error("the creator who holds the piece has no storefront");
+    }
+    const owner = { accountId: piece.creator };
+    holder = {
+      alias: profile.alias,
+      approved: await storedVisual(fx, store, owner, "approved", 1),
+      pending: await storedVisual(fx, store, owner, "pending", 2),
+      rejected: await storedVisual(fx, store, owner, "rejected"),
+    };
+    const stranger = await newMember("creator");
+    await migration`
+      update profiles.creator_public_profiles
+         set status = 'published', published_at = now() - interval '40 days',
+             is_searchable = true, primary_topic_code = 'pets'
+       where account_id = ${stranger.accountId}`;
+    other = {
+      accountId: stranger.accountId,
+      approved: await storedVisual(fx, store, stranger, "approved", 1),
+    };
+    searcher = await newMember("advertiser");
+    await migration`
+      update profiles.advertiser_profiles set status = 'published'
+       where account_id = ${searcher.accountId}`;
+    const [setting] = await migration<{ value: string }[]>`
+      select value::text as value from search.search_settings
+       where key = 'is_open_to_advertisers'`;
+    switchBefore = setting?.value ?? "false";
+    await setSearchSetting(fx, "is_open_to_advertisers", true);
+  });
+
+  afterAll(async () => {
+    fx.migration = migration;
+    await setSearchSetting(
+      fx,
+      "is_open_to_advertisers",
+      JSON.parse(switchBefore) as unknown,
+    );
+    const creators = [piece.creator, other?.accountId].filter(
+      (id): id is string => id !== undefined,
+    );
+    await migration`
+      update profiles.creator_public_profiles set is_searchable = false
+       where account_id = any(${creators}::uuid[])`;
+    await withdrawVisuals(
+      fx,
+      creators.map((accountId) => ({ accountId })),
+    );
+    if (searcher !== undefined) {
+      await retireBrandFixtures(migration, [searcher.accountId]);
+    }
+  });
+
+  const visualUrl = (alias: string, id: string) =>
+    `${PROFILES}/${alias}/visuals/${id}`;
+
+  it("T9.6: the profile and the visuals of the creator who holds the piece serve his approved visual alone; his pending and rejected visuals, another creator's, and every identifier of the piece guessed answer as an identifier never issued", async () => {
+    if (searcher === undefined || other === undefined) {
+      throw new Error("no fixtures");
+    }
+    const server = app();
+    const session = await newSession(searcher.accountId);
+    const visit = (url: string) => call(server, "GET", url, session);
+    reads.length = 0;
+    const never = randomUUID();
+    const control = await visit(visualUrl(holder.alias, never));
+    expect(control.statusCode, control.body).toBe(404);
+    // the identifiers a brand could guess, in the shape of a visual's: a uuid answers as one never issued
+    const guesses: [string, string][] = [
+      ["his pending visual", holder.pending.id],
+      ["his rejected visual", holder.rejected.id],
+      ["another creator's approved visual", other.approved.id],
+      ["the piece", piece.evidenceId],
+      ["the request of the piece", piece.requestId],
+      ["his account", piece.creator],
+    ];
+    for (const [name, value] of guesses) {
+      const answer = await visit(visualUrl(holder.alias, value));
+      expect(answer.statusCode, name).toBe(404);
+      expect(normalised(answer.body, [value, never]), name).toBe(
+        normalised(control.body, [value, never]),
+      );
+    }
+    // a key of an object is no visual identifier: refused as one never issued of the same shape (the
+    // router or the schema answers, never a door), a real key and a fake one alike
+    for (const key of [
+      piece.objectKey,
+      holder.approved.objectKey,
+      holder.pending.objectKey,
+    ]) {
+      const fake = `${key
+        .split("/")
+        .map(() => randomUUID())
+        .join("/")}.webp`;
+      const answer = await visit(
+        visualUrl(holder.alias, encodeURIComponent(key)),
+      );
+      const twin = await visit(
+        visualUrl(holder.alias, encodeURIComponent(fake)),
+      );
+      expect([400, 404], key).toContain(answer.statusCode);
+      expect(answer.statusCode, key).toBe(twin.statusCode);
+      expect(normalised(answer.body, [key, fake]), key).toBe(
+        normalised(twin.body, [key, fake]),
+      );
+    }
+    // the identifiers of the piece in the slot of the alias: an address that does not exist
+    const noAlias = await visit(`${PROFILES}/${never}`);
+    expect(noAlias.statusCode).toBe(404);
+    for (const value of [piece.evidenceId, piece.requestId]) {
+      const answer = await visit(`${PROFILES}/${encodeURIComponent(value)}`);
+      expect(answer.statusCode, value).toBe(404);
+      expect(normalised(answer.body, [value, never])).toBe(
+        normalised(noAlias.body, [value, never]),
+      );
+    }
+    // nothing was read from Storage by any of it
+    expect(reads).toEqual([]);
+    // the profile of the creator: the card with the approved visual alone, nothing of the piece, no key
+    const profile = await visit(`${PROFILES}/${holder.alias}`);
+    expect(profile.statusCode, profile.body).toBe(200);
+    const card = (profile.json() as { creator: { visuals: { id: string }[] } })
+      .creator;
+    expect(card.visuals.map((visual) => visual.id)).toEqual([
+      holder.approved.id,
+    ]);
+    for (const value of [
+      holder.pending.id,
+      holder.rejected.id,
+      holder.pending.objectKey,
+      holder.rejected.objectKey,
+      holder.approved.objectKey,
+    ]) {
+      expect(profile.body).not.toContain(value);
+    }
+    const raw = `${profile.body}\n${JSON.stringify(profile.headers)}`;
+    expect(
+      pieceMarkers().filter(
+        (marker) => valuesFoundIn(raw, [marker.value]).length > 0,
+      ),
+    ).toEqual([]);
+    // positive control: his approved visual is served, its own bytes, and Storage read once for it
+    const served = await visit(visualUrl(holder.alias, holder.approved.id));
+    expect(served.statusCode, served.body).toBe(200);
+    expect(
+      Buffer.from((served.json() as { data: string }).data, "base64").equals(
+        holder.approved.bytes,
+      ),
+    ).toBe(true);
+    expect(reads).toEqual([`portfolio/${holder.approved.objectKey}`]);
+    expect(readsOfTheBucket()).toEqual([]);
+    // the sweep of T9.6-A on the two routes, now that the brand is published and the creator visible:
+    // the same answer for the real piece as for an identifier never issued, no byte of it
+    reads.length = 0;
+    const result = await sweep(
+      server,
+      searcher,
+      (route) => route.method === "GET" && route.url.startsWith(PROFILES),
+    );
+    expect(result.findings).toEqual([]);
+    expect(result.differences).toEqual([]);
+    expect([...result.compared].sort()).toEqual([
+      `GET ${PROFILES}/:alias`,
+      `GET ${PROFILES}/:alias/visuals/:visualId`,
+    ]);
+    expect([...result.statuses.values()].flat()).not.toContain(200);
+    expect(reads).toEqual([]);
+  });
+
+  it("T9.7: no URL is emitted, a visual is read by apps/api from its approved object and relayed as JSON, never from the bucket of the pieces", async () => {
+    if (searcher === undefined) {
+      throw new Error("no fixtures");
+    }
+    const server = app();
+    const session = await newSession(searcher.accountId);
+    reads.length = 0;
+    const answers: LightMyRequestResponse[] = [];
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      answers.push(
+        await call(
+          server,
+          "GET",
+          visualUrl(holder.alias, holder.approved.id),
+          session,
+        ),
+      );
+    }
+    answers.push(
+      await call(
+        server,
+        "GET",
+        visualUrl(holder.alias, holder.pending.id),
+        session,
+      ),
+    );
+    answers.push(
+      await call(server, "GET", `${PROFILES}/${holder.alias}`, session),
+    );
+    for (const answer of answers.slice(0, 2)) {
+      expect(answer.statusCode, answer.body).toBe(200);
+      expect(Object.keys(answer.json() as object).sort()).toEqual([
+        "byteSize",
+        "contentType",
+        "data",
+        "height",
+        "width",
+      ]);
+      for (const name of ["location", "content-location", "link"]) {
+        expect(answer.headers[name], name).toBeUndefined();
+      }
+    }
+    for (const answer of answers) {
+      const raw = `${answer.body}\n${JSON.stringify(answer.headers)}`;
+      expect(raw).not.toMatch(/:\/\/|supabase|signed|token/i);
+    }
+    // every read is the approved object, once per visual served; the bucket of the pieces is not touched
+    expect(reads).toEqual([
+      `portfolio/${holder.approved.objectKey}`,
+      `portfolio/${holder.approved.objectKey}`,
+    ]);
+    expect(readsOfTheBucket()).toEqual([]);
+    // and no code of apps/api can emit an address of Storage: no signed URL, no public URL
+    const forbidden =
+      /createSignedUrls?|createSignedUploadUrl|getPublicUrl|\/object\/sign\/|\/object\/public\//;
+    expect(forbidden.test("storage.from(b).createSignedUrl(key, 60)")).toBe(
+      true,
+    );
+    const root = fileURLToPath(new URL("../src/", import.meta.url));
+    const files = readdirSync(root, { recursive: true, encoding: "utf8" })
+      .filter((name) => name.endsWith(".ts"))
+      .map((name) => join(root, name));
+    expect(files.length).toBeGreaterThan(100);
+    expect(
+      files.filter((file) => forbidden.test(readFileSync(file, "utf8"))),
+    ).toEqual([]);
   });
 });

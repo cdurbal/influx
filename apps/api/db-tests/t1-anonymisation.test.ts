@@ -56,6 +56,15 @@
 //         pages served (a counter-test and a witness: a sweep that serves nothing proves nothing); 400,
 //         429, closed and below k are searched too; the whole router is swept WITHOUT a session
 //         (L2DT-6); no table of `search` the brand can read holds a marker.
+//   L3F   (commit 09) the profile a brand opens, its visuals and its shortlists (07, 08) join the
+//         sweeps: one of the five creators of L3E holds two approved visuals (one with a caption
+//         revised and not yet approved), a visual deposited through the route and still pending (its
+//         own caption, its file name of origin), and a brand holds a shortlist of two of them. The
+//         unapproved caption, the revised text, the file name, the three object keys and a slice of
+//         the pending bytes join every sweep and C-1 (L3ES-4: the cards of the search, the profile and
+//         the shortlist carry the approved visuals alone, by opaque identifier, never a key); T1.5: no
+//         URL is emitted and Storage is read for approved objects alone; T1.4 on the errors of both
+//         routes' families; L2DT-5 on the profile and the shortlist; T1-W on the new routes.
 // Deferred: the agent's identified view (the queue routes of L2G 11 serve layer I to an agent, by
 // design); T1.3 and the "after" of T1.6 (a revealed introduction) at Lot 4. The rights side of the
 // same rule (influx_advertiser reaches no `creator_%` object, non reversible) is T1-R, in
@@ -119,13 +128,23 @@ import {
 import {
   closeSearch,
   forgetCampaignSearches,
+  forgetSelections,
   HERE,
+  keysOf,
   openSearch,
   postSearch,
+  RG48_KEYS,
   searchableCreator,
+  storedVisual,
+  unusedAlias,
+  URL_PROFILES,
   URL_SEARCH,
+  URL_SELECTION_REQUESTS,
+  URL_SHORTLISTS,
+  withdrawVisuals,
   withSearchSetting,
   type SearchCreator,
+  type StoredVisual,
 } from "./creator-search-kit.ts";
 import { publishedBrand, type PublishedBrand } from "./open-campaigns-kit.ts";
 
@@ -230,9 +249,31 @@ let l3e: {
   sweepMarkers: Marker[];
 };
 
-/** Every marker of both parties, the verification's, L2F's, L2G's, L3B's, L3D's and L3E's included. */
+/**
+ * L3F (commit 09): the second creator of L3E, given visuals, and a brand holding a shortlist. His two
+ * approved visuals are served by design (identifier, order, validated caption); `markers` are what no
+ * brand may read of them: the caption of the pending visual, the caption revised on an approved one,
+ * the file name of origin, the object keys and a slice of the pending bytes.
+ */
+let l3f: {
+  creator: SearchCreator;
+  brand: PublishedBrand;
+  approved: StoredVisual[];
+  validated: string[];
+  revisedCaption: string;
+  pending: {
+    id: string;
+    objectKey: string;
+    caption: string;
+    fileName: string;
+  };
+  markers: Marker[];
+};
+
+/** Every marker of both parties, the verification's, L2F's, L2G's, L3B's, L3D's, L3E's and L3F's included. */
 function allMarkers(): Marker[] {
   return [
+    ...l3f.markers,
     ...creator.markers,
     ...brand.markers,
     ...verificationMarkers.creator,
@@ -326,16 +367,18 @@ const sender: TransactionalSender = {
 
 /** What the routes wrote to Storage, `bucket/key` → bytes, read back as written (T1.5, T9.9). */
 const objects = new Map<string, Buffer>();
+/** Every read of the store, `bucket/key`, in order (L3F: Storage is read for approved visuals alone). */
+const storeReads: string[] = [];
 
 const store: ObjectStore = {
   write: async (bucket, key, bytes) => {
     objects.set(`${bucket}/${key}`, Buffer.from(bytes));
     return { ok: true, value: null };
   },
-  read: async (bucket, key) => ({
-    ok: true,
-    value: objects.get(`${bucket}/${key}`) ?? null,
-  }),
+  read: async (bucket, key) => {
+    storeReads.push(`${bucket}/${key}`);
+    return { ok: true, value: objects.get(`${bucket}/${key}`) ?? null };
+  },
   remove: async (bucket, key) => {
     objects.delete(`${bucket}/${key}`);
     return { ok: true, value: null };
@@ -345,14 +388,14 @@ const store: ObjectStore = {
 /** Every log stream of the file, searched at the end (C-1, D60). */
 const logStreams: (() => string)[] = [];
 
-function app(over: ApiDatabase = database) {
+function app(over: ApiDatabase = database, storage: ObjectStore = store) {
   const logs = captureLogs();
   logStreams.push(() => logs.text());
   return buildServer(testApiConfig(), {
     logDestination: logs.destination,
     database: over,
     identity: { supabaseAuth, sender },
-    storage: store,
+    storage,
   });
 }
 
@@ -594,6 +637,7 @@ beforeAll(async () => {
   l3b = await l3bFixtures(server);
   l3d = await l3dFixtures(server);
   l3e = await l3eFixtures(server);
+  l3f = await l3fFixtures(server);
 
   sweepingBrand = await newMember("advertiser");
   sweepingCreator = await newMember("creator");
@@ -638,6 +682,77 @@ async function l3eFixtures(server: Server): Promise<typeof l3e> {
       (marker) =>
         marker.value.length >= 6 && !marker.name.endsWith("refused sector"),
     ),
+  };
+}
+
+/**
+ * L3F (commit 09): the second creator of L3E gets two approved visuals (places 1 and 2, a validated
+ * caption each, written as the agent's decision would leave them), a revision of the caption of the
+ * second one through the creator's own route (a published profile: it waits for review, CA48), and a
+ * visual deposited through the route (pending, its own caption); a published brand is made for the
+ * shortlists. The pending visual and the revision enter queues 2 and 3, withdrawn in afterAll.
+ */
+async function l3fFixtures(server: Server): Promise<typeof l3f> {
+  const creator = l3e.creators[1];
+  if (creator === undefined) {
+    throw new Error("no second creator");
+  }
+  const validated = [
+    `Validated caption ${letterName(hex(6))} ${letterName(hex(6))}`,
+    `Validated caption ${letterName(hex(6))} ${letterName(hex(6))}`,
+  ];
+  const revisedCaption = `Revised caption ${letterName(hex(6))} ${letterName(hex(6))}`;
+  const pendingCaption = `Pending caption ${letterName(hex(6))} ${letterName(hex(6))}`;
+  const fileName = `story-l3f-${letterName(hex(6))}.png`;
+  const approved = [
+    await storedVisual(l3e.fx, store, creator, "approved", 1, validated[0]),
+    await storedVisual(l3e.fx, store, creator, "approved", 2, validated[1]),
+  ];
+  const revision = (await through(
+    server,
+    creator,
+    "PATCH",
+    `${PORTFOLIO}/${approved[1]?.id}`,
+    { caption: revisedCaption, brandDeclared: true },
+  )) as { revisionStatus: string };
+  expect(revision.revisionStatus).toBe("pending_review");
+  const pendingId = await depositVisual(server, creator, fileName);
+  await through(server, creator, "PATCH", `${PORTFOLIO}/${pendingId}`, {
+    caption: pendingCaption,
+    brandDeclared: true,
+  });
+  const [pendingRow] = await migration<{ object_key: string; state: string }[]>`
+    select object_key, state::text from profiles.portfolio_items where id = ${pendingId}`;
+  expect(pendingRow?.state).toBe("pending");
+  const objectKey = pendingRow?.object_key ?? "";
+  const pendingBytes = objects.get(`${PORTFOLIO_BUCKET}/${objectKey}`);
+  if (pendingBytes === undefined) {
+    throw new Error("the deposit wrote no object");
+  }
+  const markers: Marker[] = [
+    { name: "L3F pending visual caption", value: pendingCaption },
+    { name: "L3F revised caption", value: revisedCaption },
+    { name: "L3F file name of origin", value: fileName },
+    { name: "L3F pending object key", value: objectKey },
+    ...approved.map((visual, index) => ({
+      name: `L3F approved object key ${index + 1}`,
+      value: visual.objectKey,
+    })),
+    {
+      name: "L3F pending visual bytes (base64)",
+      value: pendingBytes.subarray(300, 360).toString("base64"),
+    },
+  ];
+  const brand = await publishedBrand(l3e.fx, server);
+  l3e.brands.push(brand);
+  return {
+    creator,
+    brand,
+    approved,
+    validated,
+    revisedCaption,
+    pending: { id: pendingId, objectKey, caption: pendingCaption, fileName },
+    markers,
   };
 }
 
@@ -1358,6 +1473,20 @@ afterAll(async () => {
   await closeDatabase(database);
   // L3E: the switch closed, the creators out of the search, the journal lines of the campaigns gone
   if (l3e !== undefined) {
+    // L3F: the pending visual and the revision of the second creator leave queues 2 and 3, the lists
+    // and the requests of the brands go before their campaigns
+    if (l3f !== undefined) {
+      const account = l3f.creator.accountId;
+      await withdrawVisuals(l3e.fx, [l3f.creator]);
+      await migration`
+        update profiles.creator_review_entries set state = 'withdrawn', closed_at = now()
+         where account_id = ${account} and state = 'open'`;
+      await migration`
+        delete from profiles.storage_daily_usage where account_id = ${account}`;
+      await migration`
+        delete from leads.outbox_events where subject_key = ${`account:${account}`}`;
+    }
+    await forgetSelections(l3e.fx, l3e.brands);
     await closeSearch(l3e.fx);
     await forgetCampaignSearches(l3e.fx, l3e.brands);
     await l3e.fx.close();
@@ -2300,6 +2429,787 @@ describe("L3E-T9: L3E (commit 09): the brand's creator search joins the sweeps",
     l3e.brands.push(made);
     return made;
   }
+});
+
+describe("L3F-T1: L3F (commit 09): the profile, its visuals and the shortlists join the sweeps", () => {
+  const here = { filters: HERE };
+  const UUID_TEXT =
+    /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
+  type Answer = LightMyRequestResponse;
+  type Visual = { id: string; order: number; caption: string | null };
+  type Card = { alias: string; visuals: Visual[] } & Record<string, unknown>;
+  type Page = { cards: { creator: Card }[] };
+  type ListRead = {
+    state: string;
+    items: { creator: Card; note: string | null }[];
+  };
+  const profileOf = (alias: string) => `${URL_PROFILES}/${alias}`;
+  const visualOf = (alias: string, id: string) =>
+    `${URL_PROFILES}/${alias}/visuals/${id}`;
+  function approvedAt(index: number): StoredVisual {
+    const found = l3f.approved[index];
+    if (found === undefined) {
+      throw new Error("no approved visual");
+    }
+    return found;
+  }
+  const approvedFirst = () => approvedAt(0);
+  const approvedSecond = () => approvedAt(1);
+
+  /**
+   * The markers of the creators in an answer: by value in every form it may take, and the short ones
+   * (under six characters) as plain text outside the identifiers and the base64 of a visual, where a
+   * run of digits can come by chance.
+   */
+  function leaksIn(answer: Answer): string[] {
+    const raw = `${answer.body}\n${JSON.stringify(answer.headers)}`;
+    const plain = raw
+      .toLowerCase()
+      .replace(UUID_TEXT, "")
+      .replace(/"data":"[^"]*"/, '"data":""');
+    const long = (marker: Marker) => marker.value.length >= 6;
+    return [
+      ...markersIn(raw, [...allMarkers(), ...l3e.markers.filter(long)]),
+      ...l3e.markers
+        .filter(
+          (marker) => !long(marker) || marker.name.endsWith("refused sector"),
+        )
+        .filter((marker) => plain.includes(marker.value.toLowerCase()))
+        .map((marker) => marker.name),
+    ];
+  }
+
+  /** A brand of its own, its profile published: its buckets and its lists are no other's. */
+  async function freshBrand(server: Server): Promise<PublishedBrand> {
+    const made = await publishedBrand(l3e.fx, server);
+    l3e.brands.push(made);
+    return made;
+  }
+
+  /** The brand is served the five creators, then holds a list of the first two, a note on the first. */
+  async function shortlistOf(
+    server: Server,
+    brand: PublishedBrand,
+  ): Promise<string> {
+    expect(
+      (await call(server, "POST", URL_SEARCH, brand.session, here)).statusCode,
+    ).toBe(200);
+    const created = (await through(server, brand, "POST", URL_SHORTLISTS, {
+      name: `Selection ${hex(3)}`,
+    })) as { shortlist: { id: string } };
+    const id = created.shortlist.id;
+    for (const member of l3e.creators.slice(0, 2)) {
+      await through(
+        server,
+        brand,
+        "PUT",
+        `${URL_SHORTLISTS}/${id}/items/${member.alias}`,
+      );
+    }
+    await through(
+      server,
+      brand,
+      "PUT",
+      `${URL_SHORTLISTS}/${id}/items/${l3e.creators[0]?.alias}/note`,
+      { note: "The note of the brand" },
+    );
+    return id;
+  }
+
+  /** The reads that serve cards and visuals: what the sweeps of the new routes need to reach a 200. */
+  function servedReads(listId: string): SweepRequest[] {
+    return [
+      { method: "POST", url: URL_SEARCH, body: here },
+      { method: "GET", url: profileOf(l3f.creator.alias), body: undefined },
+      { method: "GET", url: profileOf(l3e.served.alias), body: undefined },
+      {
+        method: "GET",
+        url: visualOf(l3f.creator.alias, approvedFirst().id),
+        body: undefined,
+      },
+      {
+        method: "GET",
+        url: visualOf(l3f.creator.alias, approvedSecond().id),
+        body: undefined,
+      },
+      { method: "GET", url: URL_SHORTLISTS, body: undefined },
+      { method: "GET", url: `${URL_SHORTLISTS}/${listId}`, body: undefined },
+    ];
+  }
+
+  function sweepIds(listId: string): string[] {
+    return [
+      l3f.creator.alias,
+      l3e.served.alias,
+      approvedFirst().id,
+      l3f.pending.id,
+      listId,
+      randomUUID(),
+      "x",
+    ];
+  }
+
+  it("T1.2, T1.1: the routes of 07 and 08 are in the inventory the sweeps walk, and a brand served by them finds no marker in any body or header", async () => {
+    const server = app();
+    const own = (await sweptRoutes(server))
+      .map(routeName)
+      .filter((name) => {
+        const path = name.split(" ")[1] ?? "";
+        return [URL_PROFILES, URL_SHORTLISTS, URL_SELECTION_REQUESTS].some(
+          (prefix) => path.startsWith(prefix),
+        );
+      })
+      .sort();
+    expect(own).toEqual(
+      [
+        `GET ${URL_PROFILES}/:alias`,
+        `GET ${URL_PROFILES}/:alias/visuals/:visualId`,
+        `GET ${URL_SHORTLISTS}`,
+        `POST ${URL_SHORTLISTS}`,
+        `GET ${URL_SHORTLISTS}/:id`,
+        `PUT ${URL_SHORTLISTS}/:id`,
+        `DELETE ${URL_SHORTLISTS}/:id`,
+        `PUT ${URL_SHORTLISTS}/:id/items/:alias`,
+        `DELETE ${URL_SHORTLISTS}/:id/items/:alias`,
+        `PUT ${URL_SHORTLISTS}/:id/items/:alias/note`,
+        `POST ${URL_SELECTION_REQUESTS}`,
+      ].sort(),
+    );
+    const listId = await shortlistOf(server, l3f.brand);
+    const result = await sweep(
+      server,
+      l3f.brand,
+      sweepIds(listId),
+      [...allMarkers(), ...l3e.brand.markers, ...l3e.sweepBrand.markers],
+      servedReads(listId),
+    );
+    expect(result.findings).toEqual([]);
+    // a sweep that serves nothing proves nothing: the cards, the profiles, the visuals and the list
+    // were all read with a 200
+    for (const request of servedReads(listId)) {
+      expect(
+        result.statuses.get(`${request.method} ${request.url}`),
+        request.url,
+      ).toContain(200);
+    }
+    for (const name of own) {
+      expect(
+        (result.statuses.get(name) ?? []).filter((status) => status >= 500),
+        name,
+      ).toEqual([]);
+    }
+    expect(statusesOf(result)).toContain(404);
+    expect(statusesOf(result)).toContain(400);
+  });
+
+  it("L3ES-4: the cards of the search, the profile and the shortlist carry the approved visuals alone, by opaque identifier, never a key, an unapproved caption nor a revised text", async () => {
+    const server = app();
+    const brand = await freshBrand(server);
+    const listId = await shortlistOf(server, brand);
+    const alias = l3f.creator.alias;
+    const search = await call(server, "POST", URL_SEARCH, brand.session, here);
+    const profile = await call(server, "GET", profileOf(alias), brand.session);
+    const list = await call(
+      server,
+      "GET",
+      `${URL_SHORTLISTS}/${listId}`,
+      brand.session,
+    );
+    for (const answer of [search, profile, list]) {
+      expect(answer.statusCode, answer.body).toBe(200);
+    }
+    const fromSearch = (search.json() as Page).cards.find(
+      (card) => card.creator.alias === alias,
+    )?.creator;
+    const fromProfile = (profile.json() as { creator: Card }).creator;
+    const fromList = (list.json() as ListRead).items.find(
+      (item) => item.creator.alias === alias,
+    )?.creator;
+    // two approved visuals, in their places, with the caption the agent validated: the pending visual
+    // is absent, and the second caption is the validated one, not the text revised on it
+    const served: Visual[] = [
+      { id: approvedFirst().id, order: 1, caption: l3f.validated[0] ?? null },
+      { id: approvedSecond().id, order: 2, caption: l3f.validated[1] ?? null },
+    ];
+    for (const card of [fromSearch, fromProfile, fromList]) {
+      expect(card?.visuals).toEqual(served);
+    }
+    expect(fromProfile).toEqual(fromSearch);
+    expect(fromList).toEqual(fromSearch);
+    for (const answer of [search, profile, list]) {
+      expect(leaksIn(answer), answer.body.slice(0, 80)).toEqual([]);
+      expect(answer.body).not.toContain(l3f.pending.id);
+      expect(answer.body).not.toContain(l3f.revisedCaption);
+      expect(answer.body).not.toContain(l3f.pending.caption);
+      const keys = new Set(keysOf(answer.json()));
+      expect(
+        ["objectKey", "object_key", "signedUrl", "token", "url"].filter((key) =>
+          keys.has(key),
+        ),
+      ).toEqual([]);
+    }
+    // the markers are real: the base holds the pending visual, its caption, and the revision waiting
+    const rows = await migration<
+      { id: string; state: string; caption: string | null }[]
+    >`
+      select id::text, state::text, caption from profiles.portfolio_items
+       where account_id = ${l3f.creator.accountId} order by created_at, id`;
+    expect(rows.map((row) => [row.id, row.state])).toEqual([
+      [approvedFirst().id, "approved"],
+      [approvedSecond().id, "approved"],
+      [l3f.pending.id, "pending"],
+    ]);
+    expect(rows[1]?.caption).toBe(l3f.validated[1]);
+    expect(rows[2]?.caption).toBe(l3f.pending.caption);
+    const [revision] = await migration<{ proposed: string }[]>`
+      select proposed_value::text as proposed from profiles.creator_field_revisions
+       where account_id = ${l3f.creator.accountId} and status = 'pending_review'`;
+    expect(revision?.proposed).toContain(l3f.revisedCaption);
+    // and the creator himself reads the caption waiting for review, never a brand
+    const own = await call(
+      server,
+      "GET",
+      PORTFOLIO,
+      await newSession(l3f.creator.accountId),
+    );
+    expect(own.statusCode, own.body).toBe(200);
+    expect(own.body).toContain(l3f.pending.caption);
+    expect(own.body).toContain('"captionPending":true');
+  });
+
+  it("T1.5: no URL is emitted, a visual is JSON of its own bytes, and Storage is read for the approved objects alone", async () => {
+    const server = app();
+    const brand = await freshBrand(server);
+    const listId = await shortlistOf(server, brand);
+    const alias = l3f.creator.alias;
+    storeReads.length = 0;
+    const first = await call(
+      server,
+      "GET",
+      visualOf(alias, approvedFirst().id),
+      brand.session,
+    );
+    const second = await call(
+      server,
+      "GET",
+      visualOf(alias, approvedSecond().id),
+      brand.session,
+    );
+    const refused = [
+      await call(server, "GET", visualOf(alias, l3f.pending.id), brand.session),
+      await call(
+        server,
+        "GET",
+        visualOf(l3e.served.alias, approvedFirst().id),
+        brand.session,
+      ),
+      await call(server, "GET", visualOf(alias, randomUUID()), brand.session),
+    ];
+    for (const [answer, visual] of [
+      [first, approvedFirst()],
+      [second, approvedSecond()],
+    ] as const) {
+      expect(answer.statusCode, answer.body).toBe(200);
+      const body = answer.json() as Record<string, unknown>;
+      expect(Object.keys(body).sort()).toEqual([
+        "byteSize",
+        "contentType",
+        "data",
+        "height",
+        "width",
+      ]);
+      expect(
+        Buffer.from(body.data as string, "base64").equals(visual.bytes),
+      ).toBe(true);
+      for (const name of ["location", "content-location", "link"]) {
+        expect(answer.headers[name], name).toBeUndefined();
+      }
+    }
+    for (const answer of refused) {
+      expect(answer.statusCode).toBe(404);
+    }
+    // no address, host, key nor token in any answer that serves a card or a visual
+    const others = [
+      await call(server, "POST", URL_SEARCH, brand.session, here),
+      await call(server, "GET", profileOf(alias), brand.session),
+      await call(server, "GET", URL_SHORTLISTS, brand.session),
+      await call(server, "GET", `${URL_SHORTLISTS}/${listId}`, brand.session),
+    ];
+    for (const answer of [first, second, ...refused, ...others]) {
+      const raw = `${answer.body}\n${JSON.stringify(answer.headers)}`;
+      expect(raw).not.toMatch(/:\/\/|supabase|\.webp|storage\/v1|signed/i);
+    }
+    // Storage was read twice, for the two approved objects, and for nothing else: not the pending
+    // visual, not another creator's object, not an identifier guessed
+    expect(storeReads).toEqual([
+      `${PORTFOLIO_BUCKET}/${approvedFirst().objectKey}`,
+      `${PORTFOLIO_BUCKET}/${approvedSecond().objectKey}`,
+    ]);
+    // the keys written to Storage are the base's: <account>/<item>.webp, without the file name of origin
+    const keys = [...objects.keys()].filter((key) =>
+      key.startsWith(`${PORTFOLIO_BUCKET}/${l3f.creator.accountId}/`),
+    );
+    expect(keys).toHaveLength(3);
+    for (const key of keys) {
+      expect(key).toMatch(/^portfolio\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.webp$/);
+      expect(key).not.toContain(l3f.pending.fileName);
+    }
+    expect(keys).toContain(`${PORTFOLIO_BUCKET}/${l3f.pending.objectKey}`);
+  });
+
+  it("T1.4: the 400, 401, 404, 409 and 429, the closed switch, the brand not published and Storage unavailable answer without any marker", async () => {
+    const server = app();
+    const brand = await freshBrand(server);
+    const listId = await shortlistOf(server, brand);
+    const stranger = await freshBrand(server);
+    const draft = await l3e.fx.newMember("advertiser");
+    const alias = l3f.creator.alias;
+    const unknownAlias = await unusedAlias(l3e.fx);
+    const answers = new Map<string, [Answer, number]>();
+    const note = (name: string, answer: Answer, status: number) =>
+      answers.set(name, [answer, status]);
+    const unavailable: ObjectStore = {
+      write: store.write,
+      remove: store.remove,
+      read: async () => ({
+        ok: false,
+        reason: "unavailable",
+        status: 503,
+        errorCode: null,
+      }),
+    };
+    // 404: an alias unknown or malformed, a visual unapproved, another creator's or unknown, a list
+    // unknown or another brand's, an alias never served, a campaign unknown
+    note(
+      "profile unknown",
+      await call(server, "GET", profileOf(unknownAlias), brand.session),
+      404,
+    );
+    note(
+      "profile malformed",
+      await call(server, "GET", profileOf("0000"), brand.session),
+      404,
+    );
+    note(
+      "visual pending",
+      await call(server, "GET", visualOf(alias, l3f.pending.id), brand.session),
+      404,
+    );
+    note(
+      "visual of another creator",
+      await call(
+        server,
+        "GET",
+        visualOf(l3e.served.alias, approvedFirst().id),
+        brand.session,
+      ),
+      404,
+    );
+    note(
+      "list unknown",
+      await call(
+        server,
+        "GET",
+        `${URL_SHORTLISTS}/${randomUUID()}`,
+        brand.session,
+      ),
+      404,
+    );
+    note(
+      "list of another brand",
+      await call(
+        server,
+        "GET",
+        `${URL_SHORTLISTS}/${listId}`,
+        stranger.session,
+      ),
+      404,
+    );
+    note(
+      "alias never served",
+      await call(
+        server,
+        "PUT",
+        `${URL_SHORTLISTS}/${listId}/items/${unknownAlias}`,
+        brand.session,
+      ),
+      404,
+    );
+    note(
+      "campaign unknown",
+      await call(server, "POST", URL_SELECTION_REQUESTS, brand.session, {
+        filters: HERE,
+        campaignId: randomUUID(),
+      }),
+      404,
+    );
+    // 400: a name and a note the base refuses, a message too long
+    note(
+      "name",
+      await call(server, "POST", URL_SHORTLISTS, brand.session, {
+        name: "   ",
+      }),
+      400,
+    );
+    note(
+      "note",
+      await call(
+        server,
+        "PUT",
+        `${URL_SHORTLISTS}/${listId}/items/${alias}/note`,
+        brand.session,
+        { note: "   " },
+      ),
+      400,
+    );
+    note(
+      "message",
+      await call(server, "POST", URL_SELECTION_REQUESTS, brand.session, {
+        filters: HERE,
+        message: "m".repeat(1001),
+      }),
+      400,
+    );
+    // 401 and 404: no session; a creator finds the routes unknown
+    note("no session", await call(server, "GET", profileOf(alias), null), 401);
+    note(
+      "no session, lists",
+      await call(server, "GET", URL_SHORTLISTS, null),
+      401,
+    );
+    note(
+      "creator",
+      await call(
+        server,
+        "GET",
+        profileOf(alias),
+        await newSession(l3e.served.accountId),
+      ),
+      404,
+    );
+    // the states: the brand not published, the switch closed (the request stays possible, RG61)
+    note(
+      "profile, brand not published",
+      await call(server, "GET", profileOf(alias), draft.session),
+      200,
+    );
+    note(
+      "lists, brand not published",
+      await call(server, "GET", URL_SHORTLISTS, draft.session),
+      200,
+    );
+    await withSearchSetting(
+      l3e.fx,
+      "is_open_to_advertisers",
+      false,
+      async () => {
+        note(
+          "profile, closed",
+          await call(server, "GET", profileOf(alias), brand.session),
+          200,
+        );
+        note(
+          "visual, closed",
+          await call(
+            server,
+            "GET",
+            visualOf(alias, approvedFirst().id),
+            brand.session,
+          ),
+          404,
+        );
+        note(
+          "list, closed",
+          await call(
+            server,
+            "GET",
+            `${URL_SHORTLISTS}/${listId}`,
+            brand.session,
+          ),
+          200,
+        );
+        note(
+          "request, closed",
+          await call(server, "POST", URL_SELECTION_REQUESTS, brand.session, {
+            filters: HERE,
+            message: "A request while the switch is closed",
+          }),
+          200,
+        );
+      },
+    );
+    // 429: the opening bucket, the request bucket; 409: the two bounds of the lists
+    const limited = await freshBrand(server);
+    await withSearchSetting(
+      l3e.fx,
+      "rate_limits",
+      { perHour: 30, perDay: 200, profileOpensPerDay: 1 },
+      async () => {
+        expect(
+          (await call(server, "GET", profileOf(alias), limited.session))
+            .statusCode,
+        ).toBe(200);
+        const refused = await call(
+          server,
+          "GET",
+          profileOf(alias),
+          limited.session,
+        );
+        expect(Number(refused.headers["retry-after"])).toBeGreaterThanOrEqual(
+          1,
+        );
+        note("profile, 429", refused, 429);
+      },
+    );
+    await withSearchSetting(
+      l3e.fx,
+      "selection_limits",
+      { listsPerAccount: 10, itemsPerList: 25, requestsPerDay: 1 },
+      async () => {
+        const requester = await freshBrand(server);
+        expect(
+          (
+            await call(
+              server,
+              "POST",
+              URL_SELECTION_REQUESTS,
+              requester.session,
+              { filters: HERE },
+            )
+          ).statusCode,
+        ).toBe(200);
+        note(
+          "request, 429",
+          await call(
+            server,
+            "POST",
+            URL_SELECTION_REQUESTS,
+            requester.session,
+            { filters: HERE },
+          ),
+          429,
+        );
+      },
+    );
+    await withSearchSetting(
+      l3e.fx,
+      "selection_limits",
+      { listsPerAccount: 1, itemsPerList: 1, requestsPerDay: 5 },
+      async () => {
+        const holder = await freshBrand(server);
+        const id = await shortlistOfOne(server, holder);
+        note(
+          "shortlist_full",
+          await call(
+            server,
+            "PUT",
+            `${URL_SHORTLISTS}/${id}/items/${l3e.creators[1]?.alias}`,
+            holder.session,
+          ),
+          409,
+        );
+        note(
+          "shortlist_limit",
+          await call(server, "POST", URL_SHORTLISTS, holder.session, {
+            name: "A second list",
+          }),
+          409,
+        );
+      },
+    );
+    // 503: Storage unavailable; the object gone from Storage answers as an unknown address
+    const down = app(database, unavailable);
+    note(
+      "visual, Storage unavailable",
+      await call(
+        down,
+        "GET",
+        visualOf(alias, approvedFirst().id),
+        brand.session,
+      ),
+      503,
+    );
+    const objectKey = `${PORTFOLIO_BUCKET}/${approvedSecond().objectKey}`;
+    const bytes = objects.get(objectKey);
+    objects.delete(objectKey);
+    try {
+      note(
+        "visual, object gone",
+        await call(
+          server,
+          "GET",
+          visualOf(alias, approvedSecond().id),
+          brand.session,
+        ),
+        404,
+      );
+    } finally {
+      if (bytes !== undefined) {
+        objects.set(objectKey, bytes);
+      }
+    }
+    expect(answers.size).toBeGreaterThanOrEqual(25);
+    expect(new Set([...answers.values()].map(([, status]) => status))).toEqual(
+      new Set([200, 400, 401, 404, 409, 429, 503]),
+    );
+    for (const [name, [answer, status]] of answers) {
+      expect(answer.statusCode, `${name}: ${answer.body}`).toBe(status);
+      expect(leaksIn(answer), name).toEqual([]);
+    }
+  });
+
+  /** One list holding one creator, the bounds of the base set by the caller. */
+  async function shortlistOfOne(
+    server: Server,
+    brand: PublishedBrand,
+  ): Promise<string> {
+    expect(
+      (await call(server, "POST", URL_SEARCH, brand.session, here)).statusCode,
+    ).toBe(200);
+    const created = (await through(server, brand, "POST", URL_SHORTLISTS, {
+      name: "One list",
+    })) as { shortlist: { id: string } };
+    await through(
+      server,
+      brand,
+      "PUT",
+      `${URL_SHORTLISTS}/${created.shortlist.id}/items/${l3e.creators[0]?.alias}`,
+    );
+    return created.shortlist.id;
+  }
+
+  it("L2DT-5, RG48: the profile and the shortlist hold bands and codes, no exact figure, no key of RG48 at any depth, and the request echoes nothing of the brand's message", async () => {
+    const server = app();
+    const brand = await freshBrand(server);
+    const listId = await shortlistOf(server, brand);
+    const profile = await call(
+      server,
+      "GET",
+      profileOf(l3e.served.alias),
+      brand.session,
+    );
+    const other = await call(
+      server,
+      "GET",
+      profileOf(l3f.creator.alias),
+      brand.session,
+    );
+    const list = await call(
+      server,
+      "GET",
+      `${URL_SHORTLISTS}/${listId}`,
+      brand.session,
+    );
+    const message = `Message of the brand ${letterName(hex(6))}`;
+    const request = await call(
+      server,
+      "POST",
+      URL_SELECTION_REQUESTS,
+      brand.session,
+      { filters: HERE, message },
+    );
+    for (const answer of [profile, other, list, request]) {
+      expect(answer.statusCode, answer.body).toBe(200);
+    }
+    // the instrument finds a figure in every way a text writes it (as in L3E)
+    expect(
+      exactFiguresIn({ a: 47312, b: "72 %", c: "6.204.381" }, l3e.served.exact),
+    ).toEqual(["comments", "followers", "share"]);
+    for (const answer of [profile, other, list]) {
+      expect(leaksIn(answer)).toEqual([]);
+      expect(exactFiguresIn(answer.json(), l3e.served.exact)).toEqual([]);
+      const keys = new Set(keysOf(answer.json()));
+      expect(RG48_KEYS.filter((key) => keys.has(key))).toEqual([]);
+    }
+    // the creator whose figures are distinctive is served as bands and codes
+    const card = (profile.json() as { creator: Card }).creator;
+    expect(card.mainAudienceShareBand).toBe("50_80");
+    for (const line of card.networks as Record<string, unknown>[]) {
+      for (const key of [
+        "audienceBand",
+        "publicationFrequency",
+        "commentBand",
+      ]) {
+        expect(typeof line[key], key).toBe("string");
+      }
+    }
+    // the list holds both, the note is the brand's own
+    const read = list.json() as ListRead;
+    expect(read.items.map((item) => item.creator.alias).sort()).toEqual(
+      [l3e.served.alias, l3f.creator.alias].sort(),
+    );
+    expect(
+      read.items.find((item) => item.creator.alias === l3e.served.alias)?.note,
+    ).toBe("The note of the brand");
+    // the request answers a state and a deadline, never the message nor the criteria (D46)
+    expect(Object.keys(request.json() as object).sort()).toEqual([
+      "answerBy",
+      "state",
+    ]);
+    expect(request.body).not.toContain(message);
+    expect(leaksIn(request)).toEqual([]);
+  });
+
+  it("T1-W witness: a route of 07 or 08 that leaks makes the sweep fail, the cards, the visual, the list and the request alike", async () => {
+    const [handle] = l3e.served.markers;
+    if (handle === undefined) {
+      throw new Error("no marker");
+    }
+    const leaking = app();
+    leaking.addHook("onSend", async (request, _reply, payload) =>
+      typeof payload === "string" &&
+      payload.startsWith("{") &&
+      [URL_PROFILES, URL_SHORTLISTS, URL_SELECTION_REQUESTS].some((prefix) =>
+        request.url.startsWith(prefix),
+      )
+        ? `${payload}${handle.value}`
+        : payload,
+    );
+    // the brand and its list are made on an honest server: the hook breaks the JSON it appends to
+    const honestServer = app();
+    const brand = await freshBrand(honestServer);
+    const listId = await shortlistOf(honestServer, brand);
+    const reads: SweepRequest[] = [
+      ...servedReads(listId),
+      {
+        method: "POST",
+        url: URL_SELECTION_REQUESTS,
+        body: { filters: HERE },
+      },
+    ];
+    const result = await sweep(leaking, brand, [randomUUID()], [handle], reads);
+    const caught = result.findings.map((finding) =>
+      finding.replace(/ \(\d+\): .*$/, ""),
+    );
+    for (const request of reads.filter(
+      (candidate) => candidate.url !== URL_SEARCH,
+    )) {
+      expect(caught, request.url).toContain(`${request.method} ${request.url}`);
+    }
+    // the same reads on the honest server leak nothing: the finding is the hook's
+    const honest = app();
+    const calm = await freshBrand(honest);
+    const calmList = await shortlistOf(honest, calm);
+    for (const request of [
+      ...servedReads(calmList),
+      reads[reads.length - 1] as SweepRequest,
+    ]) {
+      const answer = await call(
+        honest,
+        request.method,
+        request.url,
+        calm.session,
+        request.body,
+      );
+      expect(answer.statusCode, request.url).toBe(200);
+      expect(
+        valuesFoundIn(`${answer.body}\n${JSON.stringify(answer.headers)}`, [
+          handle.value,
+        ]),
+        request.url,
+      ).toEqual([]);
+    }
+  });
 });
 
 describe("T1.1, T1.4 every route, called as a brand on the web surface: no marker of a creator, errors included", () => {
