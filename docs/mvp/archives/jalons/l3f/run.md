@@ -15,7 +15,7 @@
 | 11 | 11.md | commit | sonnet | high | dev-react-node | fait | profile = card + 3 visuals + region code; panel, lists, request (delay, no promise); list= in address; E2 3 cases 11.1 s, E1+E2 20.9 s (medians of 3) |
 | U | ux.md | ux | sonnet | high | expert-ux | fait | 22 constats : 0 bloquant, 5 jalon → fix-1, 9 avant production, 8 plus tard |
 | fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | fait | L3FU-1 to 5: one grid, one copy of each control, CSS only; focus to count band/results head; E1 4, E2 3, floors kept; budgets unmeasurable under load |
-| F | recette.md | fondateur | — | — | fondateur | fait | « recette terminée, rien à signaler » ; interrupteur refermé (SQL, seq 3107) ; point 5 non confirmé ; données gardées |
+| F | recette.md | fondateur | — | — | fondateur | fait | « recette terminée, rien à signaler » ; interrupteur refermé (SQL, seq 3107) ; point 5 ok (fondateur) ; données gardées |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | testeur 0/0/1 avant prod/2 plus tard ; sécurité 0/0/3 avant prod/5 plus tard ; attestation I-4 : 5 SHA des lignes 02 à 06, annexe § Revue |
 | C | cloture.md | cloture | sonnet | medium | testeur | fait | `pnpm check` + `test:e2e` verts (291) ; `staging` 0322-0326, interrupteur faux ; CI 44746519403 ; 21 §8, 18 §10 amendés ; attestation I-4 |
 

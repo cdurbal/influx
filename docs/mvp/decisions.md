@@ -1,4 +1,4 @@
-# INFLUX — Registre des décisions (D1 à D84)
+# INFLUX — Registre des décisions (D1 à D85)
 
 > Déplacé depuis `CLAUDE.md` §13 le 2026-10-05. Registre résumé (sujet, statut) ; le texte intégral des colonnes d'origine est dans `decisions-detail.md` (§ Dxx), qui **fait foi en cas d'écart**. `CLAUDE.md` ne liste plus que les décisions ouvertes.
 
@@ -95,6 +95,7 @@ caractères au plus** (sujet, date, arbitre, l'essentiel du statut) : le reste v
 | D82 | Pièces de vérification et portfolio (D80, L2E) | Tranchée 2026-11-07 (`architecte`, à relire par le fondateur) : passe-plat 8 Mio sur la seule route de dépôt, WebP qualité 90 sans métadonnée, compartiment privé `verification-evidence`, lecture JSON journalisée, aucune URL signée ; portfolio lu par l'annonceur au Lot 3. | § D82 |
 | D83 | Validation d'un membre déjà connu à l'initiative d'un agent (« Compte vérifié », « Marque vérifiée ») | Tranchée 2026-11-08 (fondateur) : A + A-bis ; l'agent ouvre et constate, libellés inchangés ; marque prouvée par l'adresse de connexion sur son domaine ; « Audience vérifiée » sur pièce seulement. Réalisée au L2F ; amende `06` RG51. | § D83 |
 | D84 | Double validation dans les cas d'usage métier | Tranchée 2026-11-16 (fondateur) : jamais obligatoire ; second avis facultatif, non bloquant ; administration et sécurité gardent le contrôle d'un pair (`0130`). Amende RG85, CA56, CA57, D51. | § D84 |
+| D85 | Portes SQL à verrou consultatif par compte (L3FT-1, L3FS-1 à 3) | Tranchée 2026-11-20 (`architecte`, sur délégation du fondateur) : `lock_timeout` court, 55P03 → 429 `rate_limited` ; moteur hors verrou, recompte sous verrou ; débit par adresse sur toute écriture membre. | § D85 |
 
 > **Points ouverts de D72 (fiche de la zone de danger, close le 2026-10-28).** Défaut appliqué
 > entre parenthèses. **DZ-1** délai de grâce avant exécution (aucun ; fondateur après avis

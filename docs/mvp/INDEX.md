@@ -321,30 +321,30 @@
 | 1420 | 24 | Hors périmètre | RG22–RG82 |
 | 1444 | 21 | Questions ouvertes | RG6–RG84 |
 
-## 10-recherche-createurs-anonymisee.md (~32k tokens)
+## 10-recherche-createurs-anonymisee.md (~33k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 56 | 23 | Besoin |  |
 | 79 | 17 | Acteurs | RG105 |
 | 96 | 54 | User stories |  |
-| 150 | 745 | Règles de gestion | RG1–RG117 |
+| 150 | 768 | Règles de gestion | RG1–RG117 |
 | 152 | 49 | ↳ A — Périmètre, ouverture de la recherche et principes | RG1–RG105 |
 | 201 | 152 | ↳ B — Les facettes | RG6–RG117 |
 | 353 | 59 | ↳ C — Exclusions automatiques | RG3–RG84 |
 | 412 | 100 | ↳ D — Tri par défaut, explication et cas froid | RG14–RG73 |
 | 512 | 110 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
-| 622 | 40 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG57–RG78 |
-| 662 | 64 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
-| 726 | 46 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
-| 772 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
-| 808 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
-| 859 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
-| 895 | 115 | Cas limites | RG1–RG92 |
-| 1010 | 264 | Critères d'acceptation | RG12–RG117 |
-| 1274 | 62 | Impacts | RG2–RG89 |
-| 1336 | 19 | Hors périmètre | RG6–RG105 |
-| 1355 | 26 | Questions ouvertes | RG1–RG86 |
+| 622 | 54 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG52–RG78 |
+| 676 | 73 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
+| 749 | 46 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
+| 795 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
+| 831 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
+| 882 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
+| 918 | 115 | Cas limites | RG1–RG92 |
+| 1033 | 281 | Critères d'acceptation | RG12–RG117 |
+| 1314 | 62 | Impacts | RG2–RG89 |
+| 1376 | 19 | Hors périmètre | RG6–RG105 |
+| 1395 | 26 | Questions ouvertes | RG1–RG86 |
 
 ## 11-recherche-campagnes-et-candidature.md (~30k tokens)
 
@@ -666,7 +666,7 @@
 | 860 | 57 | ↳ 11.8 Gabarits et composants |  |
 | 917 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~17k tokens)
+## 21-plan-de-developpement.md (~18k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -678,4 +678,4 @@
 | 93 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 117 | 9 | 6. Configuration des services externes |  |
 | 126 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 143 | 126 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 143 | 127 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |

@@ -654,6 +654,20 @@ la demande s'écrit par `search.request_team_selection()` (critères, campagne a
 de la marque, message libre de 1 000 caractères au plus lu des seuls agents), même interrupteur fermé
 (CA59) ; plafond `selection_limits.requestsPerDay` ; délai de la file 9 renvoyé à la marque
 (`answerBy`), jamais une promesse de résultat ; aucune mise en relation ni notification (D45, CA64).
+*Amendé le 2026-11-20 (L3FU-9, arbitrage `product-owner`, option c ; réalisé au L3G, file 9) :*
+- **RG61.1** — La marque peut joindre à sa demande **une seule** de ses sélections non vides, par un
+  choix visible, pré-rempli avec la sélection active et retirable avant l'envoi.
+- **RG61.2** — La demande transporte l'**identifiant de la sélection**, jamais une liste d'alias ; la
+  base résout les profils visibles à cet instant (comme `read_shortlist`) et les **fige** dans la demande.
+- **RG61.3** — La photographie ne garde que les créateurs (au plus `itemsPerList`), ni nom de liste ni
+  notes ; les notes restent privées.
+- **RG61.4** — Sélection d'une autre marque ou inconnue : 404, comme une campagne non admise ; si tous
+  ses profils sont masqués, la demande est acceptée avec zéro créateur.
+- **RG61.5** — Joindre une sélection ne prévient aucun créateur, ne révèle rien à la marque et n'ouvre
+  aucune conversation (D45, D46, CA64).
+- **RG61.6** — L'écran et la confirmation disent « l'équipe INFLUX verra les profils de cette
+  sélection ; votre commercial revient vers vous avec une proposition », sans promesse de contact ni
+  mention de lot (RG52, RG55).
 
 **RG62 — Le k-anonymat ne s'applique pas à la vue commerciale** (§H) : le commercial voit les
 identités, le seuil n'a aucun objet. En revanche ses recherches et ses consultations sont
@@ -708,6 +722,15 @@ du produit.** Les deux figurent au registre des traitements avec une **durée de
 | **Aspiration probable** | Plus de N profils distincts ouverts sur 24 h **sans aucune demande de mise en relation ni ajout à une sélection** |
 | **Affinage** | 6 recherches successives d'un même compte ne variant que d'un filtre, dont au moins 2 bloquées par le k-anonymat |
 | **Pagination systématique** | Compte atteignant la dernière page autorisée sur plus de la moitié de ses recherches |
+
+> **Seuils décidés le 2026-11-20 (L3ES-3)** — décision `expert-cybersecurite`, 2026-11-20, sur
+> délégation du fondateur ; appliquée en code par la migration de L3G (00b). Volume anormal : 150 profils
+> distincts et 80 % d'un plafond (recherches et ouvertures), inchangés ; affinage : **8** et **3** (CA45) ;
+> aspiration : 150, comptes d'au moins **20** ouvertures seuls (CA46). Revue sur données réelles 30 jours
+> après l'ouverture, puis chaque trimestre : objectif moins de 5 lignes AL21 par jour et moins de 10 %
+> des comptes actifs ; au-delà de 1 000 créateurs publiés, le volume anormal passe à une part du catalogue
+> (par exemple 15 %, plancher 150) ; plus de 15 % de recherches bloquées signale la masse critique (AL22,
+> D38) avant un abus. Comptes internes (RG50) : seuils séparés au L3G.
 
 > **Un volume anormal est autant un signal produit qu'un signal de contournement.** 200 profils
 > consultés et zéro demande, c'est **soit** de l'aspiration, **soit** une recherche qui ne convertit
@@ -1162,6 +1185,16 @@ de blocage par k-anonymat est enregistré.
 **CA39** — *Étant donné* le bouton « Demander une sélection à l'équipe INFLUX », *quand* la marque
 clique, *alors* une demande est créée au backoffice **avec tous les critères saisis**, la campagne
 d'origine le cas échéant, et la langue de la marque.
+*Amendé le 2026-11-20 (L3FU-9, RG61.1 à RG61.6) :*
+- **CA39.1** — *Étant donné* une sélection active de 3 profils, *quand* la marque envoie la demande sans
+  retirer le choix, *alors* la demande enregistre ces 3 créateurs.
+- **CA39.2** — *Étant donné* une sélection d'une autre marque, *quand* elle est jointe, *alors* 404 et
+  rien d'écrit.
+- **CA39.3** — *Étant donné* une sélection modifiée ou supprimée après l'envoi, *quand* le commercial
+  ouvre la demande, *alors* il voit les 3 créateurs figés à l'envoi.
+- **CA39.4** — *Étant donné* une demande avec sélection jointe, *alors* aucune ligne côté créateur, dans
+  l'outbox ni dans `matching.*`.
+- **CA39.5** — *Étant donné* un corps contenant un champ `aliases`, *alors* 400 (entrée fermée).
 
 **CA40** — *Étant donné* la vue commerciale, *quand* une recherche renvoie 2 résultats, *alors* **les
 2 résultats s'affichent** : le k-anonymat ne s'y applique pas.
@@ -1182,10 +1215,17 @@ recherche, *alors* il obtient un **refus explicite** et une **alerte interne** e
 
 **CA45** — *Étant donné* six recherches successives d'un même compte ne variant que d'un filtre, dont
 deux bloquées par le seuil, *quand* la sixième s'exécute, *alors* **l'alerte d'affinage est
-déclenchée**.
+déclenchée**. *Amendé le 2026-11-20 (L3ES-3) : **huit** recherches au lieu de six, dont **trois**
+bloquées au lieu de deux (une suite qui ne diffère que d'une facette est le parcours normal : environ
+4 % de faux positifs contre 11 % ; un sondage autour de k reste détecté) ; décision `expert-cybersecurite`,
+2026-11-20, sur délégation du fondateur ; appliquée en code par la migration de L3G (00b).*
 
 **CA46** — *Étant donné* un compte ayant ouvert 150 profils en 24 h sans aucune demande ni sélection,
-*quand* le contrôle s'exécute, *alors* **l'alerte d'aspiration est levée** au backoffice.
+*quand* le contrôle s'exécute, *alors* **l'alerte d'aspiration est levée** au backoffice. *Amendé le
+2026-11-20 (L3ES-3, L3FS-9) : seuil de 150 inchangé ; seuls les comptes d'au moins **20** ouvertures sur
+24 h (`aspiration_min_opens_per_account`, un tiers du plafond de 60) entrent dans la somme et dans la
+liste ; décision `expert-cybersecurite`, 2026-11-20, sur délégation du fondateur ; appliquée en code par
+la migration de L3G (00b).*
 
 **CA47** — *Étant donné* toute recherche, *quand* elle s'exécute, *alors* le journal enregistre :
 compte, rôle, mode de vue, filtres, tri, nombre de résultats, page atteinte, blocage éventuel — **et
