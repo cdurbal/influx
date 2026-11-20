@@ -32,24 +32,36 @@ import {
 } from "@/components/member/ui/field-classes";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
-import { CircleAlertIcon, CloseIcon, FilterIcon } from "@/components/ui/icons";
+import { cn } from "@/components/ui/class-names";
+import {
+  CircleAlertIcon,
+  CloseIcon,
+  FilterIcon,
+  InfoIcon,
+} from "@/components/ui/icons";
 import { Link, useRouter } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
 import { AddToSelectionButton } from "./AddToSelectionButton";
 import {
-  SEARCH_ASIDE_CLASSES,
-  SEARCH_CONTROLS_CLASSES,
+  SEARCH_CAMPAIGN_CLASSES,
+  SEARCH_COUNT_CELL_CLASSES,
   SEARCH_COUNT_CLASSES,
   SEARCH_CRITERIA_CLASSES,
+  SEARCH_FILTERS_BUTTON_CLASSES,
+  SEARCH_FILTERS_CLASSES,
+  SEARCH_FOCUS_TARGET_CLASSES,
+  SEARCH_INFO_TOGGLE_CLASSES,
+  SEARCH_LABEL_ROW_CLASSES,
   SEARCH_LAYOUT_CLASSES,
-  SEARCH_MAIN_CLASSES,
   SEARCH_PAGE_CLASSES,
   SEARCH_PAGER_CLASSES,
   SEARCH_REASON_LIST_CLASSES,
   SEARCH_REASONS_CLASSES,
+  SEARCH_RESULTS_CELL_CLASSES,
   SEARCH_RESULTS_CLASSES,
   SEARCH_SKELETON_CLASSES,
-  SEARCH_TOOLBAR_CLASSES,
+  SEARCH_SORT_CLASSES,
+  SELECTION_PANEL_CELL_CLASSES,
   CARD_ACTIONS_CLASSES,
 } from "./creator-search-classes";
 import {
@@ -73,9 +85,11 @@ import {
 } from "./creator-search-view";
 import { SearchFiltersForm } from "./SearchFiltersForm";
 import { SelectionPanel } from "./SelectionPanel";
+import { ShortlistsLink } from "./ShortlistsLink";
 import { profileHref, requestHref, type SearchPlace } from "./shortlists-view";
 import { useCardVisuals } from "./use-card-visuals";
 import { useCreatorSearch } from "./use-creator-search";
+import { useResultsFocus } from "./use-results-focus";
 import { useShortlists, type Selection } from "./use-shortlists";
 import { useSearchLabels } from "./use-search-labels";
 import {
@@ -150,7 +164,17 @@ function CreatorSearchView({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const panelId = useId();
 
+  const shown = shownResultsOf(screen);
+  const { countRef, startRef, expectFocusAt } = useResultsFocus({
+    addressKey: `${queryKeyOf(query)}|${page}`,
+    settled: screen.kind !== "loading",
+  });
+
   const apply = (next: SearchQuery, nextPage = 1) => {
+    if (filtersOpen) {
+      // the opened block closes with this application: the focus must not fall on <body> (L3FU-2)
+      expectFocusAt(`${queryKeyOf(next)}|${nextPage}`);
+    }
     setFiltersOpen(false);
     router.replace(
       `${memberPageHref("advertiserCreators", locale)}${addressParamsOf(next, nextPage, listId)}`,
@@ -166,7 +190,12 @@ function CreatorSearchView({
     () => criteriaOf(query.filters, labels),
     [query.filters, labels],
   );
-  const shown = shownResultsOf(screen);
+  const closedBlock = filtersOpen ? "" : "max-lg:hidden";
+  const filtersLabel = filtersOpen
+    ? t("filters.close")
+    : criteriaCountOf(query.filters) === 0
+      ? t("filters.open")
+      : t("filters.openCount", { count: criteriaCountOf(query.filters) });
 
   return (
     <div className={SEARCH_PAGE_CLASSES}>
@@ -175,87 +204,84 @@ function CreatorSearchView({
         title={t("page.title")}
         actions={<RequestLink place={place} variant="secondary" />}
       />
+      <ShortlistsLink />
       <p className="text-md text-text-secondary">{t("page.explain")}</p>
       <div className={SEARCH_LAYOUT_CLASSES}>
-        <div className={SEARCH_ASIDE_CLASSES}>
-          <MemberButton
-            variant="secondary"
-            className="lg:hidden"
-            aria-expanded={filtersOpen}
-            aria-controls={panelId}
-            onClick={() => setFiltersOpen((open) => !open)}
-          >
-            <FilterIcon aria-hidden="true" className="size-(--size-icon-md)" />
-            {filtersOpen
-              ? t("filters.close")
-              : criteriaCountOf(query.filters) === 0
-                ? t("filters.open")
-                : t("filters.openCount", {
-                    count: criteriaCountOf(query.filters),
-                  })}
-          </MemberButton>
-          <div
-            id={panelId}
-            className={filtersOpen ? "block" : "hidden lg:block"}
-          >
-            <SearchFiltersForm
-              key={queryKeyOf(query)}
-              filters={query.filters}
-              references={references.state}
-              labels={labels}
-              onApply={(filters) => apply({ ...query, filters })}
-              onClear={() => apply({ ...query, filters: {} })}
-              onReload={references.reload}
-            />
-          </div>
+        <MemberButton
+          variant="secondary"
+          className={SEARCH_FILTERS_BUTTON_CLASSES}
+          aria-expanded={filtersOpen}
+          aria-controls={panelId}
+          onClick={() => setFiltersOpen((open) => !open)}
+        >
+          <FilterIcon aria-hidden="true" className="size-(--size-icon-md)" />
+          {filtersLabel}
+        </MemberButton>
+        <SortControl query={query} labels={labels} onChange={apply} />
+        <CampaignControl
+          query={query}
+          campaigns={campaigns.state}
+          labels={labels}
+          className={closedBlock}
+          onChange={apply}
+        />
+        <div id={panelId} className={cn(SEARCH_FILTERS_CLASSES, closedBlock)}>
+          <SearchFiltersForm
+            key={queryKeyOf(query)}
+            filters={query.filters}
+            references={references.state}
+            labels={labels}
+            onApply={(filters) => apply({ ...query, filters })}
+            onClear={() => apply({ ...query, filters: {} })}
+            onReload={references.reload}
+          />
         </div>
-        <div className={SEARCH_MAIN_CLASSES}>
-          <div className={SEARCH_TOOLBAR_CLASSES}>
-            {shown === null ? null : (
-              <p
-                role="status"
-                data-count-band={shown.countBand}
-                className={SEARCH_COUNT_CLASSES}
-              >
-                {t(`bands.${shown.countBand}`)}
-              </p>
+        {shown === null ? null : (
+          <p
+            ref={countRef}
+            tabIndex={-1}
+            role="status"
+            data-count-band={shown.countBand}
+            className={cn(
+              SEARCH_COUNT_CLASSES,
+              SEARCH_COUNT_CELL_CLASSES,
+              SEARCH_FOCUS_TARGET_CLASSES,
             )}
-            <Controls
-              query={query}
-              campaigns={campaigns.state}
-              labels={labels}
-              onChange={(next) => apply(next)}
-            />
-            {criteria.length === 0 ? null : (
-              <div className={SEARCH_CRITERIA_CLASSES}>
-                <p className={MEMBER_FIELD_LABEL_CLASSES}>
-                  {t("criteria.title")}
-                </p>
-                <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-                  {criteria.map((criterion) => (
-                    <li key={criterion.id}>
-                      <MemberButton
-                        variant="secondary"
-                        data-criterion={criterion.id}
-                        onClick={() =>
-                          apply(withoutCriterion(query, criterion))
-                        }
-                      >
-                        {criterion.label}
-                        <CloseIcon
-                          aria-hidden="true"
-                          className="size-(--size-icon-sm) shrink-0"
-                        />
-                        <span className="sr-only">
-                          {t("criteria.remove", { label: criterion.label })}
-                        </span>
-                      </MemberButton>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          >
+            {t(`bands.${shown.countBand}`)}
+          </p>
+        )}
+        {criteria.length === 0 ? null : (
+          <div className={SEARCH_CRITERIA_CLASSES}>
+            <p className={MEMBER_FIELD_LABEL_CLASSES}>{t("criteria.title")}</p>
+            <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+              {criteria.map((criterion) => (
+                <li key={criterion.id}>
+                  <MemberButton
+                    variant="secondary"
+                    data-criterion={criterion.id}
+                    onClick={() => apply(withoutCriterion(query, criterion))}
+                  >
+                    {criterion.label}
+                    <CloseIcon
+                      aria-hidden="true"
+                      className="size-(--size-icon-sm) shrink-0"
+                    />
+                    <span className="sr-only">
+                      {t("criteria.remove", { label: criterion.label })}
+                    </span>
+                  </MemberButton>
+                </li>
+              ))}
+            </ul>
           </div>
+        )}
+        <div
+          ref={startRef}
+          tabIndex={-1}
+          data-results-start=""
+          className={SEARCH_RESULTS_CELL_CLASSES}
+        >
           <Body
             screen={screen}
             query={query}
@@ -266,12 +292,13 @@ function CreatorSearchView({
             onRetry={retry}
             onSignedOut={onSignedOut}
           />
-          <SelectionPanel
-            selection={selection}
-            place={place}
-            onSelect={selectList}
-          />
         </div>
+        <SelectionPanel
+          selection={selection}
+          place={place}
+          onSelect={selectList}
+          className={SELECTION_PANEL_CELL_CLASSES}
+        />
       </div>
     </div>
   );
@@ -291,89 +318,114 @@ function shownResultsOf(screen: SearchScreen): ResultsScreen | null {
   }
 }
 
-/** The campaign the search is linked to (RG37) and the sort (RG44): each change is a new search. */
-function Controls({
+/** The campaign the search is linked to (RG37): a change is a new search; at the head of the opened block below lg. */
+function CampaignControl({
   query,
   campaigns,
   labels,
+  className,
   onChange,
 }: {
   query: SearchQuery;
   campaigns: SourceState<OriginCampaign[]>;
   labels: SearchLabels;
+  className: string;
   onChange: (query: SearchQuery) => void;
 }) {
   const t = labels.text;
   const campaignId = useId();
-  const sortId = useId();
-  const sortHelpId = useId();
   const options = campaigns.phase === "ready" ? campaigns.value : [];
   const current = query.campaignId;
   const known = current === null || options.some((item) => item.id === current);
   return (
-    <div className={SEARCH_CONTROLS_CLASSES}>
-      <div className="flex min-w-0 flex-col gap-1">
-        <label htmlFor={campaignId} className={MEMBER_FIELD_LABEL_CLASSES}>
-          {t("campaign.label")}
-        </label>
-        <select
-          id={campaignId}
-          name="campaign"
-          value={current ?? ""}
-          onChange={(event) =>
-            onChange({
-              ...query,
-              campaignId: event.target.value === "" ? null : event.target.value,
-            })
-          }
-          className={memberControlClasses(false)}
-        >
-          <option value="">{t("campaign.none")}</option>
-          {known || current === null ? null : (
-            <option value={current}>{t("campaign.current")}</option>
-          )}
-          {options.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.title ?? t("campaign.untitled")}
-            </option>
-          ))}
-        </select>
-        {campaigns.phase === "failed" ? (
-          <p className={MEMBER_FIELD_HELP_CLASSES}>{t("campaign.failed")}</p>
-        ) : null}
-      </div>
-      <div className="flex min-w-0 flex-col gap-1">
+    <div className={cn(SEARCH_CAMPAIGN_CLASSES, className)}>
+      <label htmlFor={campaignId} className={MEMBER_FIELD_LABEL_CLASSES}>
+        {t("campaign.label")}
+      </label>
+      <select
+        id={campaignId}
+        name="campaign"
+        value={current ?? ""}
+        onChange={(event) =>
+          onChange({
+            ...query,
+            campaignId: event.target.value === "" ? null : event.target.value,
+          })
+        }
+        className={memberControlClasses(false)}
+      >
+        <option value="">{t("campaign.none")}</option>
+        {known || current === null ? null : (
+          <option value={current}>{t("campaign.current")}</option>
+        )}
+        {options.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.title ?? t("campaign.untitled")}
+          </option>
+        ))}
+      </select>
+      {campaigns.phase === "failed" ? (
+        <p className={MEMBER_FIELD_HELP_CLASSES}>{t("campaign.failed")}</p>
+      ) : null}
+    </div>
+  );
+}
+
+/**
+ * The sort (RG44), named on the screen. Its explanation (« Pertinence » is not a score) is behind a [i], a native
+ * disclosure, and stays the description of the select (17 §4.4).
+ */
+function SortControl({
+  query,
+  labels,
+  onChange,
+}: {
+  query: SearchQuery;
+  labels: SearchLabels;
+  onChange: (query: SearchQuery) => void;
+}) {
+  const t = labels.text;
+  const sortId = useId();
+  const sortHelpId = useId();
+  return (
+    <div className={SEARCH_SORT_CLASSES}>
+      <div className={SEARCH_LABEL_ROW_CLASSES}>
         <label htmlFor={sortId} className={MEMBER_FIELD_LABEL_CLASSES}>
           {t("sort.label")}
         </label>
-        <select
-          id={sortId}
-          name="sort"
-          value={query.sort}
-          aria-describedby={sortHelpId}
-          onChange={(event) =>
-            onChange({
-              ...query,
-              sort:
-                SEARCH_SORTS.find((sort) => sort === event.target.value) ??
-                EMPTY_QUERY.sort,
-            })
-          }
-          className={memberControlClasses(false)}
-        >
-          {SEARCH_SORTS.map((sort) => (
-            <option key={sort} value={sort}>
-              {t(`sort.${sort}`)}
-            </option>
-          ))}
-        </select>
       </div>
-      <p
-        id={sortHelpId}
-        className={`${MEMBER_FIELD_HELP_CLASSES} sm:col-span-2`}
+      <details data-sort-explain="">
+        <summary
+          aria-label={t("sort.explainToggle")}
+          className={SEARCH_INFO_TOGGLE_CLASSES}
+        >
+          <InfoIcon aria-hidden="true" className="size-(--size-icon-md)" />
+        </summary>
+        <p id={sortHelpId} className={MEMBER_FIELD_HELP_CLASSES}>
+          {t("sort.explain")}
+        </p>
+      </details>
+      <select
+        id={sortId}
+        name="sort"
+        value={query.sort}
+        aria-describedby={sortHelpId}
+        onChange={(event) =>
+          onChange({
+            ...query,
+            sort:
+              SEARCH_SORTS.find((sort) => sort === event.target.value) ??
+              EMPTY_QUERY.sort,
+          })
+        }
+        className={memberControlClasses(false)}
       >
-        {t("sort.explain")}
-      </p>
+        {SEARCH_SORTS.map((sort) => (
+          <option key={sort} value={sort}>
+            {t(`sort.${sort}`)}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

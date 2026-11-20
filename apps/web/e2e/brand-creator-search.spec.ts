@@ -62,6 +62,8 @@ test("L3F-E1: the search closed keeps the criteria and the request for a selecti
     // no search bar, and the explanation says why (RG6)
     await expect(main.getByRole("searchbox")).toHaveCount(0);
     await expect(main.getByText(copy.page.explain)).toBeVisible();
+    // « Mes sélections » has its own way on a phone, the search closed or not (D74, L3FU-3)
+    await expect(main.locator("[data-shortlists-link]")).toBeVisible();
     await expectNoAxeViolation(page, "creator search closed, fr, 375", {
       wcag22: true,
     });

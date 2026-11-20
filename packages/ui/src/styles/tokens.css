@@ -532,6 +532,8 @@
   --size-feed-skeleton: 16rem;
   /* The panel « Ma sélection » of a brand on a phone (L3F, 17 §4.4): opened above the bottom bar, it never covers more than this. */
   --size-selection-panel-max: 50dvh;
+  /* The page of M4 from lg (L3F fix-1, 17 §4.4): the filters span five rows, the last one takes the room they need. */
+  --grid-search-rows: auto auto auto auto 1fr;
   /* Derived, no new visual value: a sub-entry's label aligned on its rubric's (inset, icon, gap; D74) */
   --spacing-nav-sub-indent: calc(
     var(--spacing-3) + var(--size-icon-md) + var(--spacing-3)

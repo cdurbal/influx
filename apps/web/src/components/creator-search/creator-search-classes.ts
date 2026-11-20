@@ -7,28 +7,74 @@ import { cn } from "@/components/ui/class-names";
 
 export const SEARCH_PAGE_CLASSES = PROFILE_PAGE_CLASSES;
 
-/** The filters and the results: one column below lg, twelve from lg (17 §4.4). */
-export const SEARCH_LAYOUT_CLASSES =
-  "flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8";
+/**
+ * The page of M4 is ONE grid whose cells are the controls themselves, so that each control exists once and each
+ * place is a question of CSS (17 §4.4; jalons/l3f, fix-1). Below lg: two columns, « Filtres » and « Tri » on one
+ * line, then the opened block (the campaign, the form), the count, the criteria, the results, the bar « Ma sélection ».
+ * From lg: twelve columns, the filters sticky on the left (rows 1 to 5), the count, the campaign and the sort, the
+ * criteria, the results and the panel stacked on the right. The last row takes the room the filters need.
+ */
+export const SEARCH_LAYOUT_CLASSES = cn(
+  "grid grid-cols-2 gap-x-3 gap-y-4",
+  "lg:grid-cols-12 lg:grid-rows-(--grid-search-rows) lg:items-start lg:gap-x-8 lg:gap-y-0",
+);
 
-/** The column of the filters: above the results on a phone, sticky on the left from lg. */
-export const SEARCH_ASIDE_CLASSES = cn(
-  "flex flex-col gap-4 lg:col-span-4",
+/** The column of the filters: a block that opens below lg, sticky on the left from lg. */
+export const SEARCH_FILTERS_CLASSES = cn(
+  "col-span-2 lg:col-span-4 lg:col-start-1 lg:row-span-5 lg:row-start-1",
   "lg:sticky lg:top-(--spacing-6) lg:max-h-screen lg:overflow-y-auto",
 );
 
-export const SEARCH_MAIN_CLASSES = "flex min-w-0 flex-col gap-4 lg:col-span-8";
+/** « Filtres »: only below lg, on the line of the sort, its bottom on the bottom of the select. */
+export const SEARCH_FILTERS_BUTTON_CLASSES = "col-span-1 self-end lg:hidden";
 
-/** The toolbar of the results: the count, then the link to a campaign and the sort. */
-export const SEARCH_TOOLBAR_CLASSES = "flex flex-col gap-3";
+/** The campaign, at the head of the opened block below lg, on the right from lg. */
+export const SEARCH_CAMPAIGN_CLASSES = cn(
+  "col-span-2 flex min-w-0 flex-col gap-1",
+  "lg:col-span-4 lg:col-start-5 lg:row-start-2 lg:mb-3 lg:self-end",
+);
 
-export const SEARCH_CONTROLS_CLASSES =
-  "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-end";
+/** The sort: beside « Filtres » below lg, on the right of the campaign from lg; the [i] is its corner. */
+export const SEARCH_SORT_CLASSES = cn(
+  "relative col-span-1 flex min-w-0 flex-col gap-1",
+  "lg:col-span-4 lg:col-start-9 lg:row-start-2 lg:mb-3 lg:self-end",
+);
+
+/** The line of the sort's label: its right is left to the [i], whose hit area rises above the line, never over the field. */
+export const SEARCH_LABEL_ROW_CLASSES =
+  "flex items-center pr-(--size-touch-target)";
+
+/** The [i] of the sort: a native disclosure whose summary is the touch target, centred on the label line. */
+export const SEARCH_INFO_TOGGLE_CLASSES = cn(
+  "absolute -top-4 right-0 flex size-(--size-touch-target) cursor-pointer items-center justify-center",
+  "rounded-md text-text-secondary hover:text-text-primary",
+);
+
+/** The count band and the results take the focus from the app, never from the keyboard: no ring (like the titles). */
+export const SEARCH_FOCUS_TARGET_CLASSES = "focus-visible:outline-none";
+
+export const SEARCH_COUNT_CELL_CLASSES =
+  "col-span-2 lg:col-span-8 lg:col-start-5 lg:row-start-1 lg:mb-3";
+
+/** The results (and the states that stand for them): also the place the focus falls on when nothing else is shown. */
+export const SEARCH_RESULTS_CELL_CLASSES = cn(
+  "col-span-2 min-w-0",
+  SEARCH_FOCUS_TARGET_CLASSES,
+  "lg:col-span-8 lg:col-start-5 lg:row-start-4 lg:mb-4",
+);
+
+/** The panel is a cell of the grid itself: a sticky bar needs a parent taller than itself. */
+export const SELECTION_PANEL_CELL_CLASSES =
+  "col-span-2 lg:col-span-8 lg:col-start-5 lg:row-start-5";
 
 export const SEARCH_COUNT_CLASSES =
   "font-display text-md font-bold text-text-primary";
 
-export const SEARCH_CRITERIA_CLASSES = "flex flex-wrap items-center gap-2";
+/** The chips of the active criteria: a cell of the grid, under the campaign and the sort. */
+export const SEARCH_CRITERIA_CLASSES = cn(
+  "flex flex-wrap items-center gap-2",
+  "col-span-2 lg:col-span-8 lg:col-start-5 lg:row-start-3 lg:mb-4",
+);
 
 /** The cards: one column, two from xl (a card is long, the column of results is the narrow one). */
 export const SEARCH_RESULTS_CLASSES = "grid grid-cols-1 gap-4 xl:grid-cols-2";

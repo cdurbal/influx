@@ -165,6 +165,24 @@ test("L3F-E2: the panel sticks above the bottom bar, the lists are made, renamed
     const main = page.locator("main");
     await expect(main.locator("[data-search-card]")).toHaveCount(6);
 
+    // the first card is on the first screen, above the bar of the selection, whose collapsed title says « privée »
+    // (L3FU-1, L3FU-4), and « Mes sélections » has its own link under the title (L3FU-3)
+    const selectionBar = main.locator('[data-selection-panel="ready"]');
+    await expect(selectionBar).toBeVisible();
+    await expect(selectionBar.getByRole("heading", { level: 2 })).toContainText(
+      /privée/,
+    );
+    await expect(main.locator("[data-shortlists-link]")).toBeVisible();
+    const firstTop =
+      (await main.locator("[data-search-card]").first().boundingBox())?.y ??
+      Number.POSITIVE_INFINITY;
+    expect(firstTop).toBeLessThan((await selectionBar.boundingBox())?.y ?? 0);
+
+    // the opened block of filters closes on « Voir les résultats »: the focus goes to the count, not to <body> (L3FU-2)
+    await main.getByRole("button", { name: /^Filtres/ }).click();
+    await main.getByRole("button", { name: copy.filters.apply }).click();
+    await expect(main.locator("[data-count-band]")).toBeFocused();
+
     // two creators added one at a time from their cards: no « tout sélectionner », nothing else offered
     const [first, second] = creators;
     for (const creator of [first, second]) {
@@ -292,6 +310,8 @@ test("L3F-E2: the request for a selection takes the criteria and the campaign ba
     await expect(main.locator("[data-request-sent]")).toHaveText(
       copy.selectionRequest.sent.title,
     );
+    // the confirmation replaced the form: its title takes the focus (L3FU-5)
+    await expect(main.locator("[data-request-sent]")).toBeFocused();
     const [stored] = await requestsOf(brand.accountId);
     expect(stored).toMatchObject({
       campaignId,

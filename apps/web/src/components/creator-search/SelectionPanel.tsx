@@ -38,11 +38,14 @@ export function SelectionPanel({
   selection,
   place,
   onSelect,
+  className,
 }: {
   selection: Selection;
   place: SearchPlace;
   /** The list the brand chose or made: the address carries it from now on. */
   onSelect: (listId: string) => void;
+  /** The place of the panel in the grid of the page: a sticky bar is a cell, never the child of a cell. */
+  className?: string;
 }) {
   const t = useTranslations("creatorSearch");
   const tCard = useTranslations("creatorProfile");
@@ -61,7 +64,7 @@ export function SelectionPanel({
     return (
       <section
         data-selection-panel="failed"
-        className={SELECTION_PANEL_CLASSES}
+        className={cn(SELECTION_PANEL_CLASSES, className)}
       >
         <p className="text-sm text-text-secondary">{t("panel.failed")}</p>
         <MemberButton variant="secondary" onClick={selection.reload}>
@@ -103,7 +106,7 @@ export function SelectionPanel({
       data-action-bar=""
       data-selection-panel="ready"
       aria-labelledby={titleId}
-      className={SELECTION_PANEL_CLASSES}
+      className={cn(SELECTION_PANEL_CLASSES, className)}
     >
       <div className="flex items-center justify-between gap-3">
         <h2 id={titleId} className={CARD_TITLE}>

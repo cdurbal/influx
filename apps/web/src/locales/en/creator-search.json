@@ -8,7 +8,7 @@
   },
   "page": {
     "title": "Creators",
-    "explain": "Search works by criteria, to protect creators' anonymity: there is no search bar, and you never see an identity before an introduction."
+    "explain": "Search works by criteria, to protect creators' anonymity."
   },
   "request": {
     "link": "Ask the INFLUX team for a selection",
@@ -59,6 +59,7 @@
     "audience": "Audience",
     "verified_first": "Verified first",
     "new_profiles": "New profiles",
+    "explainToggle": "How sorting works",
     "explain": "\"Relevance\" puts first the profiles that meet more of your criteria and your campaign, then those whose audience or account is verified and whose figures are recent. It is not a score."
   },
   "bands": {
@@ -179,7 +180,7 @@
     }
   },
   "panel": {
-    "title": "My selection ({count})",
+    "title": "My private selection ({count})",
     "private": "Private: no creator is told.",
     "open": "Show my selection",
     "close": "Hide",

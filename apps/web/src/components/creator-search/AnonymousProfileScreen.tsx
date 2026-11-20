@@ -48,6 +48,7 @@ import {
   type ProfileScreen,
   type SearchPlace,
 } from "./shortlists-view";
+import { ShortlistsLink } from "./ShortlistsLink";
 import { useVisualImages } from "./use-card-visuals";
 import { useSearchLabels } from "./use-search-labels";
 import { useShortlists } from "./use-shortlists";
@@ -129,6 +130,7 @@ function AnonymousProfileView({
       <div className={SEARCH_PAGE_CLASSES}>
         {online ? null : <Notice tone="warning">{tAccount("offline")}</Notice>}
         <PageHeader title={t("profile.title")} />
+        <ShortlistsLink />
         <p className="text-md text-text-secondary">{t("profile.explain")}</p>
         <ProfileBody
           alias={alias}

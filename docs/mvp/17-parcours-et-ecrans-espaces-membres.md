@@ -941,16 +941,20 @@ compte (`10` RG64), aucun critère ne lance la sienne. La pagination est « Page
 sans total : le nombre de pages dirait le nombre de résultats (RG59) ; une page déjà lue ne se redemande pas. L'état ③
 dit « Revenez plus tard », avec le délai de la base (`Retry-After`) quand elle en donne un. La carte n'offre que
 « Ajouter à ma sélection » (L3F, commit 11) ; « Demander une mise en relation (pour ces 3) » disparaît jusqu'au Lot 4
-(RG55). Sur téléphone, le panneau des filtres est un panneau repliable au-dessus des résultats, non un plein écran
-(à revoir par `expert-ux`, ligne U).
+(RG55). Sur téléphone (L3F fix-1, L3FU-1 et -2), « Filtres » et « Tri » sont sur une ligne ; le panneau des filtres, repliable
+au-dessus des résultats (non un plein écran), s'ouvre sur « Recherche liée à » puis le formulaire ; l'explication du tri
+est derrière un `[i]` (à toute largeur) et celle de la page tient en une ligne ; « Voir les résultats » referme le panneau
+et donne le focus à la tranche (à défaut, à la tête des résultats). Un seul exemplaire de chaque contrôle : la page est
+une grille dont les contrôles sont les cellules (dès `lg`, disposition inchangée).
 
 **Amendé par L3F, commit 11 (EC-L3F-11-1 à -4).** Chaque carte offre « Ajouter à ma sélection » (un bouton qui devient
 « Retirer de ma sélection ») et un lien « Voir le profil » vers `createurs/profil/<alias>` (le seul segment d'adresse est
 l'alias, RG65 ; l'adresse de la recherche suit en requête, avec `list=`, la sélection active, qui n'est pas un critère). Le
 profil ouvert est la carte entière, plus grande, avec ses trois visuels et, quand la base la sert (RG15), la région en code
 (aucune liste de noms de régions n'existe encore) ; ses deux seules actions sont « Ajouter à ma sélection » et la demande
-de sélection. Le panneau « Ma sélection (n) », « privé », est une barre collante au-dessus de la barre du bas sous `lg`
-(ouverte par son bouton), une carte en fin de résultats dès `lg` ; la première sélection d'une marque se crée à l'ajout, sous
+de sélection. Le panneau « Ma sélection privée (n) » est une barre collante au-dessus de la barre du bas sous `lg`
+(ouverte par son bouton), une carte en fin de résultats dès `lg`, et sous `lg` « Mes sélections » a son lien sous le
+titre de la recherche et du profil (L3FU-3) ; la première sélection d'une marque se crée à l'ajout, sous
 le nom « Ma sélection ». « Mes sélections » (`createurs/selections`) et une sélection (`createurs/selections/<id>`) forment
 le sous-menu de « Créateurs » (D74) : créer, renommer, rattacher à une campagne ou détacher, noter, retirer, supprimer, sans
 « tout sélectionner » ni export. La demande de sélection reprend critères et campagne, ajoute un message libre borné

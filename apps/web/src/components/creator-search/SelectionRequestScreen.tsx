@@ -9,7 +9,7 @@
 // (RG61, permanent). The page of a brand: any other role finds no such page.
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import {
   BACK_ICON_CLASSES,
   BACK_LINK_CLASSES,
@@ -80,6 +80,13 @@ function SelectionRequestView({ place }: { place: SearchPlace }) {
   );
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const campaignFieldId = useId();
+  // the confirmation replaces the form and the button pressed: the focus goes to its title (WCAG 2.4.3, 4.1.3)
+  const sentTitle = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (status.kind === "sent") {
+      sentTitle.current?.focus();
+    }
+  }, [status.kind]);
   // one request per press: the base counts every request against the day's bound
   const sending = useRef(false);
   const problem = messageProblemOf(message);
@@ -125,7 +132,12 @@ function SelectionRequestView({ place }: { place: SearchPlace }) {
         <PageHeader title={t("selectionRequest.title")} />
         {status.kind === "sent" ? (
           <Card>
-            <h2 data-request-sent="" className={CARD_TITLE}>
+            <h2
+              ref={sentTitle}
+              tabIndex={-1}
+              data-request-sent=""
+              className={CARD_TITLE}
+            >
               {t("selectionRequest.sent.title")}
             </h2>
             <p className="text-md text-text-primary">
