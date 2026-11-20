@@ -12,7 +12,7 @@
 | 08 | 08.md | commit | sonnet | high | dev-react-node | fait | shortlists + request routes over 0324, 0325; door refusals 404/400/409, 429 after COMMIT; reads 60, request 10/min per address; T8 16+9; no export route |
 | 09 | 09.md | commit | sonnet | high | testeur | fait | T1 +6, T9 +2: visual cards, no URL, Storage read for approved only, 08 routes swept; no marker out; t1 about +25 s local |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | M4 at /createurs: 7 facets, address = query, pages kept, widenings from WIDENING_ORDER; card shared (CreatorCardView); E1 4 cases, median of 3: 6.5 s |
-| 11 | 11.md | commit | sonnet | high | dev-react-node | à faire | |
+| 11 | 11.md | commit | sonnet | high | dev-react-node | fait | profile = card + 3 visuals + region code; panel, lists, request (delay, no promise); list= in address; E2 3 cases 11.1 s, E1+E2 20.9 s (medians of 3) |
 | U | ux.md | ux | sonnet | high | expert-ux | à faire | |
 | F | recette.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |

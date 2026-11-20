@@ -164,6 +164,9 @@ describe("TD2.4: the active entry of each page", () => {
     advertiserCampaign: "campaigns",
     advertiserCampaignPreview: "campaigns",
     advertiserCreators: "creators",
+    advertiserCreatorProfile: "creators",
+    advertiserShortlists: "creators",
+    advertiserShortlist: "creators",
     advertiserSelectionRequest: "creators",
     accountHub: "account",
     accountDetails: "account",
@@ -205,6 +208,69 @@ describe("TD2.4: the active entry of each page", () => {
       expect(memberPageOfPath(pathname, locale), pathname).toBeNull();
     }
     expect(activePlaceOf(null)).toBeNull();
+  });
+});
+
+const LIST_ID = "0b6a4f0e-8f3c-4c7e-9d51-2f6e3a1c9b77";
+
+describe("L3F-T11: the pages of the profile and the lists, below « Créateurs » (D74; 17 §4.4, §4.9)", () => {
+  it("addresses the profile by its alias, the lists and one list by their identifier, in both languages", () => {
+    expect(memberPageHref("advertiserCreatorProfile", "fr", "7K3M")).toBe(
+      "/createurs/profil/7K3M",
+    );
+    expect(memberPageHref("advertiserCreatorProfile", "en", "7K3M")).toBe(
+      "/creators/profile/7K3M",
+    );
+    expect(memberPageHref("advertiserShortlists", "fr")).toBe(
+      "/createurs/selections",
+    );
+    expect(memberPageHref("advertiserShortlist", "en", LIST_ID)).toBe(
+      `/creators/selections/${LIST_ID}`,
+    );
+    for (const [page, locale, path] of [
+      ["advertiserCreatorProfile", "fr", "/createurs/profil/7K3M"],
+      ["advertiserCreatorProfile", "en", "/creators/profile/7K3M"],
+      ["advertiserShortlists", "fr", "/createurs/selections"],
+      ["advertiserShortlists", "en", "/creators/selections"],
+      ["advertiserShortlist", "fr", `/createurs/selections/${LIST_ID}`],
+      ["advertiserShortlist", "en", `/creators/selections/${LIST_ID}`],
+    ] as const) {
+      expect(memberPageOfPath(path, locale), path).toBe(page);
+    }
+    expect(memberPageSegmentOfPath("/createurs/profil/7K3M", "fr")).toBe(
+      "7K3M",
+    );
+  });
+
+  it("places the profile under the search and a list under « Mes sélections », both brand pages", () => {
+    expect(activePlaceOf("advertiserCreators")).toEqual({
+      entry: "creators",
+      sub: "advertiserCreators",
+    });
+    expect(activePlaceOf("advertiserCreatorProfile")).toEqual({
+      entry: "creators",
+      sub: "advertiserCreators",
+    });
+    expect(activePlaceOf("advertiserSelectionRequest")).toEqual({
+      entry: "creators",
+      sub: "advertiserCreators",
+    });
+    expect(activePlaceOf("advertiserShortlists")).toEqual({
+      entry: "creators",
+      sub: "advertiserShortlists",
+    });
+    expect(activePlaceOf("advertiserShortlist")).toEqual({
+      entry: "creators",
+      sub: "advertiserShortlists",
+    });
+    for (const page of [
+      "advertiserCreatorProfile",
+      "advertiserShortlists",
+      "advertiserShortlist",
+    ] as const) {
+      expect(spaceOf(page), page).toBe("advertiser");
+      expect(spaceRedirectOf(page, "creator"), page).toBe("creatorHome");
+    }
   });
 });
 
@@ -296,12 +362,16 @@ describe("TN1: the sub-entries of a rubric and the place of a page (D74, sn-fich
     for (const entry of [
       "home",
       "campaigns",
-      "creators",
       "applications",
       "relations",
     ] as const) {
       expect(subEntriesOf(entry), entry).toEqual([]);
     }
+    // "Créateurs" has its sub-menu since L3F, commit 11: the search, then "Mes sélections" (D74)
+    expect(subEntriesOf("creators")).toEqual([
+      "advertiserCreators",
+      "advertiserShortlists",
+    ]);
   });
 
   it("places the page-menu on its rubric, a sub-page under it, a home on its entry", () => {
@@ -406,6 +476,8 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
       advertiserCampaign: "advertiserCampaigns",
       advertiserCampaignPreview: "advertiserCampaigns",
       advertiserSelectionRequest: "advertiserCreators",
+      advertiserCreatorProfile: "advertiserCreators",
+      advertiserShortlist: "advertiserShortlists",
       accountProfilePreview: "accountProfile",
       accountVerificationOwnership: "accountProfile",
       accountVerificationAudience: "accountProfile",

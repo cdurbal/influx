@@ -1,7 +1,10 @@
 {
   "meta": {
     "search": "Creators",
-    "request": "Request a selection"
+    "request": "Request a selection",
+    "profile": "Anonymous profile",
+    "shortlists": "My selections",
+    "shortlist": "My selection"
   },
   "page": {
     "title": "Creators",
@@ -136,6 +139,126 @@
     "explain": "Describe your need: the INFLUX team reviews your request and proposes a selection of creators. No creator is notified.",
     "recap": "Criteria taken from your search",
     "recapNone": "No criteria: your request will cover the whole catalogue.",
-    "back": "Creators"
+    "back": "Creators",
+    "campaign": "Campaign concerned (optional)",
+    "message": "Your need in a few words (optional)",
+    "messageHelp": "The kind of profiles, the tone, the schedule. Give no e-mail or phone number: everything goes through INFLUX.",
+    "counter": "{count} / {max} characters",
+    "submit": "Send my request",
+    "sending": "Sending…",
+    "sent": {
+      "title": "Your request has been passed to the INFLUX team",
+      "text": "The INFLUX team will answer you by {date}.",
+      "note": "This is the team's time to answer, not a guaranteed number of profiles. No creator is told.",
+      "back": "Back to the search"
+    },
+    "refusal": {
+      "not_found": "This campaign is not available for a request.",
+      "limit": "Your request could not be sent. Try again.",
+      "full": "Your request could not be sent. Try again.",
+      "invalid_name": "Your request could not be sent. Try again.",
+      "invalid_note": "Your request could not be sent. Try again.",
+      "rate_limited": "You have sent the maximum number of requests for today. Try again tomorrow.",
+      "unavailable": "Your request could not be sent right now. Your details are kept: try again."
+    }
+  },
+  "shortlist": {
+    "add": "Add to my selection",
+    "remove": "Remove from my selection",
+    "inList": "In your selection “{name}”",
+    "defaultName": "My selection",
+    "refusal": {
+      "not_found": "This creator is no longer available.",
+      "limit": "You have reached the maximum number of selections. Delete one to make another.",
+      "full": "This selection is full: remove a creator to add another.",
+      "invalid_name": "The name must be 1 to 80 characters long.",
+      "invalid_note": "The note must be 1 to 500 characters long.",
+      "invalid_message": "The message must be 1 to 1,000 characters long.",
+      "rate_limited": "Too many actions in a short time. Try again in a moment.",
+      "unavailable": "The action could not be completed. Try again."
+    }
+  },
+  "panel": {
+    "title": "My selection ({count})",
+    "private": "Private: no creator is told.",
+    "open": "Show my selection",
+    "close": "Hide",
+    "choose": "Selection shown",
+    "members": "Creators of the selection",
+    "empty": "No creator yet: add them from the results, one at a time.",
+    "createName": "Name of a new selection",
+    "create": "Create a selection",
+    "all": "My selections",
+    "failed": "Your selection could not be loaded.",
+    "retry": "Reload"
+  },
+  "profile": {
+    "open": "View profile",
+    "back": "Search results",
+    "title": "Anonymous profile",
+    "explain": "This is the profile as the platform shows it: no identity is visible before an introduction.",
+    "region": "Region of residence",
+    "private": "Adding to your selection or asking for a selection does not tell any creator.",
+    "loading": "Opening the profile…",
+    "gone": "This profile is no longer available.",
+    "rateLimited": "You have opened many profiles today. Come back later, or ask the INFLUX team for a selection.",
+    "waitMinutes": "{count, plural, one {You can open another profile in about # minute.} other {You can open another profile in about # minutes.}}",
+    "waitHours": "{count, plural, one {You can open another profile in about # hour.} other {You can open another profile in about # hours.}}",
+    "failed": "This profile cannot be opened right now."
+  },
+  "lists": {
+    "title": "My selections",
+    "explain": "Your selections are private: no creator is told and nothing leaves INFLUX. They keep your ideas and attach them to a campaign.",
+    "loading": "Loading your selections…",
+    "failed": "Your selections could not be loaded.",
+    "closed": "Search is not open yet: your selections will be available when it opens.",
+    "notPublished": "Publish your brand profile to use your selections.",
+    "empty": "You have no selection yet. Add creators from the search, or make a selection below.",
+    "toSearch": "Search for creators",
+    "count": "{count, plural, =0 {No creator} one {# creator} other {# creators}}",
+    "campaign": "Campaign: {title}",
+    "campaignOther": "one of your campaigns",
+    "noCampaign": "No campaign",
+    "open": "Open",
+    "problem": {
+      "empty": "Give the selection a name.",
+      "too_long": "The name must be 80 characters at most."
+    },
+    "form": {
+      "title": "New selection",
+      "name": "Name of the selection",
+      "campaign": "Campaign (optional)",
+      "campaignHelp": "Attaching the selection to a campaign links it to its need; you can detach it later.",
+      "create": "Create the selection",
+      "created": "Selection created."
+    }
+  },
+  "list": {
+    "title": "My selection",
+    "back": "My selections",
+    "explain": "This selection is private: no creator is told. Only you read your notes.",
+    "gone": "This selection does not exist.",
+    "members": "Creators of the selection",
+    "empty": "This selection holds no visible creator. Add some from the search.",
+    "remove": "Remove from the selection",
+    "edit": {
+      "title": "Name and campaign",
+      "save": "Save",
+      "saved": "Changes saved."
+    },
+    "note": {
+      "label": "Your note (private)",
+      "help": "Only you read it. Leave empty to clear the note.",
+      "counter": "{count} / {max} characters",
+      "save": "Save the note",
+      "saved": "Note saved."
+    },
+    "delete": {
+      "title": "Delete the selection",
+      "action": "Delete this selection",
+      "confirm": "Delete this selection? It cannot be recovered. No creator is told.",
+      "yes": "Yes, delete",
+      "cancel": "Cancel"
+    }
   }
 }

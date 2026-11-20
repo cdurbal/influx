@@ -6,6 +6,7 @@ import {
   ACCOUNT_PAGES,
   accountPagesOf,
   CAMPAIGNS_PAGE,
+  CREATORS_PAGES,
   PARENT_PAGES,
   type MemberPage,
 } from "./member-paths";
@@ -70,6 +71,8 @@ export function navItemsOf(role: SignupDoor): NavItem[] {
  */
 const SUB_PAGES: Readonly<Partial<Record<NavEntry, readonly MemberPage[]>>> = {
   account: ACCOUNT_PAGES,
+  // "Créateurs" (L3F, commit 11): the search, then the brand's private lists
+  creators: CREATORS_PAGES,
 };
 
 /**

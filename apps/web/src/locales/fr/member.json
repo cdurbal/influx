@@ -8,6 +8,10 @@
         "campaigns": "Campagnes",
         "creators": "Créateurs",
         "account": "Compte"
+      },
+      "sub": {
+        "advertiserCreators": "Recherche",
+        "advertiserShortlists": "Mes sélections"
       }
     },
     "space": {

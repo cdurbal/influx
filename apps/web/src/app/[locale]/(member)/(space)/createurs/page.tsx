@@ -21,6 +21,8 @@ export default async function CreatorsPage({
 }: PageProps<"/[locale]/createurs">) {
   const { locale } = await params;
   memberPageLocale(locale, "advertiserCreators", "createurs");
-  const { query, page } = addressOfParams(await searchParams);
-  return <CreatorSearchScreen query={query} page={page} />;
+  const { query, page, listId } = addressOfParams(await searchParams);
+  return (
+    <CreatorSearchScreen query={query} page={page} listId={listId ?? null} />
+  );
 }

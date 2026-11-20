@@ -530,6 +530,8 @@
   /* The feed of a creator (L3D, C5): the width of its sort control, the height of a card while it loads. */
   --size-feed-sort: 18rem;
   --size-feed-skeleton: 16rem;
+  /* The panel « Ma sélection » of a brand on a phone (L3F, 17 §4.4): opened above the bottom bar, it never covers more than this. */
+  --size-selection-panel-max: 50dvh;
   /* Derived, no new visual value: a sub-entry's label aligned on its rubric's (inset, icon, gap; D74) */
   --spacing-nav-sub-indent: calc(
     var(--spacing-3) + var(--size-icon-md) + var(--spacing-3)

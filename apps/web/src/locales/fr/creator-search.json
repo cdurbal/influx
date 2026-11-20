@@ -1,7 +1,10 @@
 {
   "meta": {
     "search": "Créateurs",
-    "request": "Demander une sélection"
+    "request": "Demander une sélection",
+    "profile": "Profil anonyme",
+    "shortlists": "Mes sélections",
+    "shortlist": "Ma sélection"
   },
   "page": {
     "title": "Créateurs",
@@ -136,6 +139,126 @@
     "explain": "Décrivez votre besoin : l'équipe INFLUX valide votre demande et vous propose une sélection de créateurs. Aucun créateur n'est prévenu.",
     "recap": "Critères repris de votre recherche",
     "recapNone": "Aucun critère : votre demande portera sur l'ensemble du catalogue.",
-    "back": "Créateurs"
+    "back": "Créateurs",
+    "campaign": "Campagne concernée (facultatif)",
+    "message": "Votre besoin en quelques mots (facultatif)",
+    "messageHelp": "Le type de profils, le ton, le calendrier. N'indiquez ni e-mail ni téléphone : tout passe par INFLUX.",
+    "counter": "{count} / {max} caractères",
+    "submit": "Envoyer ma demande",
+    "sending": "Envoi en cours…",
+    "sent": {
+      "title": "Votre demande est transmise à l'équipe INFLUX",
+      "text": "L'équipe INFLUX vous répondra d'ici le {date}.",
+      "note": "Ce délai est celui de la réponse de l'équipe, pas un nombre de profils garanti. Aucun créateur n'est prévenu.",
+      "back": "Retour à la recherche"
+    },
+    "refusal": {
+      "not_found": "Cette campagne n'est pas disponible pour une demande.",
+      "limit": "Votre demande n'a pas pu être envoyée. Réessayez.",
+      "full": "Votre demande n'a pas pu être envoyée. Réessayez.",
+      "invalid_name": "Votre demande n'a pas pu être envoyée. Réessayez.",
+      "invalid_note": "Votre demande n'a pas pu être envoyée. Réessayez.",
+      "rate_limited": "Vous avez envoyé le nombre maximal de demandes pour aujourd'hui. Réessayez demain.",
+      "unavailable": "Votre demande n'a pas pu être envoyée pour le moment. Vos informations sont conservées : réessayez."
+    }
+  },
+  "shortlist": {
+    "add": "Ajouter à ma sélection",
+    "remove": "Retirer de ma sélection",
+    "inList": "Dans votre sélection « {name} »",
+    "defaultName": "Ma sélection",
+    "refusal": {
+      "not_found": "Ce créateur n'est plus disponible.",
+      "limit": "Vous avez atteint le nombre maximal de sélections. Supprimez-en une pour en créer une autre.",
+      "full": "Cette sélection est pleine : retirez un créateur pour en ajouter un autre.",
+      "invalid_name": "Le nom doit comporter de 1 à 80 caractères.",
+      "invalid_note": "La note doit comporter de 1 à 500 caractères.",
+      "invalid_message": "Le message doit comporter de 1 à 1 000 caractères.",
+      "rate_limited": "Trop d'actions en peu de temps. Réessayez dans quelques instants.",
+      "unavailable": "L'action n'a pas pu aboutir. Réessayez."
+    }
+  },
+  "panel": {
+    "title": "Ma sélection ({count})",
+    "private": "Privée : aucun créateur n'est prévenu.",
+    "open": "Voir ma sélection",
+    "close": "Masquer",
+    "choose": "Sélection affichée",
+    "members": "Créateurs de la sélection",
+    "empty": "Aucun créateur pour le moment : ajoutez-en depuis les résultats, un par un.",
+    "createName": "Nom d'une nouvelle sélection",
+    "create": "Créer une sélection",
+    "all": "Mes sélections",
+    "failed": "Votre sélection n'a pas pu être chargée.",
+    "retry": "Recharger"
+  },
+  "profile": {
+    "open": "Voir le profil",
+    "back": "Résultats de la recherche",
+    "title": "Profil anonyme",
+    "explain": "Voici le profil tel que la plateforme le montre : aucune identité n'est visible avant la mise en relation.",
+    "region": "Région de résidence",
+    "private": "Ajouter à votre sélection ou demander une sélection ne prévient aucun créateur.",
+    "loading": "Ouverture du profil…",
+    "gone": "Ce profil n'est plus disponible.",
+    "rateLimited": "Vous avez ouvert beaucoup de profils aujourd'hui. Revenez plus tard, ou demandez une sélection à l'équipe INFLUX.",
+    "waitMinutes": "{count, plural, one {Nouvelle ouverture possible dans environ # minute.} other {Nouvelle ouverture possible dans environ # minutes.}}",
+    "waitHours": "{count, plural, one {Nouvelle ouverture possible dans environ # heure.} other {Nouvelle ouverture possible dans environ # heures.}}",
+    "failed": "Impossible d'ouvrir ce profil pour le moment."
+  },
+  "lists": {
+    "title": "Mes sélections",
+    "explain": "Vos sélections sont privées : aucun créateur n'est prévenu et rien ne sort d'INFLUX. Elles servent à garder vos idées et à les rattacher à une campagne.",
+    "loading": "Chargement de vos sélections…",
+    "failed": "Vos sélections n'ont pas pu être chargées.",
+    "closed": "La recherche n'est pas encore ouverte : vos sélections seront disponibles à son ouverture.",
+    "notPublished": "Publiez votre profil de marque pour utiliser vos sélections.",
+    "empty": "Vous n'avez pas encore de sélection. Ajoutez des créateurs depuis la recherche, ou créez une sélection ci-dessous.",
+    "toSearch": "Chercher des créateurs",
+    "count": "{count, plural, =0 {Aucun créateur} one {# créateur} other {# créateurs}}",
+    "campaign": "Campagne : {title}",
+    "campaignOther": "une de vos campagnes",
+    "noCampaign": "Sans campagne",
+    "open": "Ouvrir",
+    "problem": {
+      "empty": "Donnez un nom à la sélection.",
+      "too_long": "Le nom doit comporter 80 caractères au plus."
+    },
+    "form": {
+      "title": "Nouvelle sélection",
+      "name": "Nom de la sélection",
+      "campaign": "Campagne (facultatif)",
+      "campaignHelp": "Rattacher la sélection à une campagne la relie à son besoin ; vous pouvez la détacher plus tard.",
+      "create": "Créer la sélection",
+      "created": "Sélection créée."
+    }
+  },
+  "list": {
+    "title": "Ma sélection",
+    "back": "Mes sélections",
+    "explain": "Cette sélection est privée : aucun créateur n'est prévenu. Vos notes ne sont lues que par vous.",
+    "gone": "Cette sélection n'existe pas.",
+    "members": "Créateurs de la sélection",
+    "empty": "Cette sélection ne contient aucun créateur visible. Ajoutez-en depuis la recherche.",
+    "remove": "Retirer de la sélection",
+    "edit": {
+      "title": "Nom et campagne",
+      "save": "Enregistrer",
+      "saved": "Modifications enregistrées."
+    },
+    "note": {
+      "label": "Votre note (privée)",
+      "help": "Lue par vous seul. Laissez vide pour effacer la note.",
+      "counter": "{count} / {max} caractères",
+      "save": "Enregistrer la note",
+      "saved": "Note enregistrée."
+    },
+    "delete": {
+      "title": "Supprimer la sélection",
+      "action": "Supprimer cette sélection",
+      "confirm": "Supprimer cette sélection ? Elle ne pourra pas être récupérée. Aucun créateur n'est prévenu.",
+      "yes": "Oui, supprimer",
+      "cancel": "Annuler"
+    }
   }
 }

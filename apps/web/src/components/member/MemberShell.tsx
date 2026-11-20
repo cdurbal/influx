@@ -94,6 +94,9 @@ type State =
 /** The labels of member.json: only the entries whose screen exists have one (TD2.2, TD2.3). */
 type EntryWithLabel = keyof Messages["member"]["shell"]["nav"]["entries"];
 
+/** The labels of the sub-entries of the rubrics other than "Compte" (L3F, commit 11: « Créateurs »). */
+type SubPageWithLabel = keyof Messages["member"]["shell"]["nav"]["sub"];
+
 export function MemberShell({ children }: { children: ReactNode }) {
   const locale = useLocale();
   const router = useRouter();
@@ -326,7 +329,7 @@ function Frame({
   const locale = useLocale();
   const [signingOut, setSigningOut] = useState(false);
 
-  // "Compte" is the one rubric with sub-entries today: their labels are those of its pages.
+  // "Compte" and "Créateurs" have sub-entries: those of "Compte" are labelled by its pages, the others by nav.sub.
   const entries: MemberNavEntry[] =
     me === null
       ? []
@@ -337,9 +340,12 @@ function Frame({
           subEntries: subEntriesOf(item.entry, me.role).map((sub) => ({
             page: sub,
             href: memberPageHref(sub, locale),
-            label: tAccount(
-              `nav.${accountLabelKeyOf(sub as AccountSubPage, me.role)}`,
-            ),
+            label:
+              item.entry === "account"
+                ? tAccount(
+                    `nav.${accountLabelKeyOf(sub as AccountSubPage, me.role)}`,
+                  )
+                : t(`nav.sub.${sub as SubPageWithLabel}`),
           })),
         }));
 

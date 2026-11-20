@@ -10,7 +10,9 @@ import {
   type CreatorSearchResponse,
 } from "@influx/contracts/creator-search";
 import {
+  creatorSearchProfileResponseSchema,
   creatorSearchVisualResponseSchema,
+  type CreatorSearchProfileResponse,
   type CreatorSearchVisualResponse,
 } from "@influx/contracts/creator-search-profile";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
@@ -33,5 +35,16 @@ export function readCreatorVisual(
     "GET",
     `${SEARCH_PATH}/profiles/${alias}/visuals/${visualId}`,
     creatorSearchVisualResponseSchema,
+  );
+}
+
+/** The anonymous profile of a card: its alias is the one reference of a creator (RG65), the answer a state or the profile. */
+export function openCreatorProfile(
+  alias: string,
+): Promise<RelayResult<CreatorSearchProfileResponse>> {
+  return callRelay(
+    "GET",
+    `${SEARCH_PATH}/profiles/${alias}`,
+    creatorSearchProfileResponseSchema,
   );
 }

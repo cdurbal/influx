@@ -10,10 +10,14 @@ import { randomBytes, randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
 import { seedMember } from "./account";
 import { ownBrand } from "./campaign-cleanup";
+import { approveVisualsAsAgent, depositVisuals } from "./creator-portfolio";
 import { withSql, type Sql } from "./verification-cycle";
 
 /** The audience country of the creators of the journeys of L3F-E1: no other file uses it (L3F annexe, base partagée). */
 export const SEARCH_COUNTRY = "FO";
+
+/** The audience country of the creators of the journeys of L3F-E2: no other file uses it (FO is E1's, GL the base tests'). */
+export const PROFILE_COUNTRY = "AX";
 
 /** The exact number of followers of every line of these journeys: never on a screen of a brand (CA3). */
 export const EXACT_FOLLOWERS = 47312;
@@ -30,6 +34,9 @@ export type SearchableCreator = {
 };
 
 let seeded: string[] = [];
+
+/** The brands of this file: their lists and requests go before their campaigns (a list may hold one). */
+let brands: string[] = [];
 
 /** Sets `is_open_to_advertisers` (D38), as the migration role writes a setting. */
 async function setSwitch(sql: Sql, open: boolean): Promise<void> {
@@ -76,29 +83,76 @@ export async function withSearchSwitch<Result>(
   }
 }
 
-/** One creator to seed: his main topic (the facet F1 a journey filters on). */
-export type CreatorSpec = { topic: string };
+/** One creator to seed: his main topic (the facet F1 a journey filters on) and, if any, his region of residence (RG15). */
+export type CreatorSpec = { topic: string; region?: string };
 
 /**
- * Creators published and searchable in SEARCH_COUNTRY, in one transaction: a storefront, one listed Instagram line
- * of EXACT_FOLLOWERS followers and its main audience, a language, a format, a handle and a link holding what no
- * brand may read. The storefronts of earlier runs in the same country leave the search first, so that a case counts
- * its own creators only.
+ * A creator made published and searchable in `country`, inside `tx`: one listed Instagram line of EXACT_FOLLOWERS
+ * followers and its main audience, a language, a format, a handle and a link holding what no brand may read. The
+ * storefront (`creator_public_profiles`) and the account exist already. Returns the handle and the link the seed
+ * gave, which a brand must never read.
+ */
+// `tx` is a transaction of the same connection; it is only ever used as a tagged template here.
+async function makeSearchable(
+  tx: Sql,
+  accountId: string,
+  spec: CreatorSpec,
+  country: string,
+  prefix: string,
+): Promise<{ alias: string; handle: string; profileUrl: string }> {
+  const tag = randomBytes(5).toString("hex");
+  const handle = `${prefix}_${tag}`;
+  const profileUrl = `https://www.instagram.com/${prefix}_${tag}`;
+  const [line] = await tx<{ id: string }[]>`
+    insert into profiles.creator_social_accounts
+      (account_id, network_code, is_primary, handle, profile_url, followers_count,
+       posts_last_30_days, avg_comments_per_post, figures_measured_at)
+    values (${accountId}, 'instagram', true, ${handle}, ${profileUrl}, ${EXACT_FOLLOWERS}, 17, 43,
+            now())
+    returning id::text`;
+  const lineId = line?.id ?? "";
+  await tx`
+    update profiles.creator_public_networks set listed_at = now()
+     where social_account_id = ${lineId}`;
+  await tx`
+    insert into profiles.creator_audience_countries
+      (social_account_id, account_id, slot, country_code, share_percent)
+    values (${lineId}, ${accountId}, 0, ${country}, 83)`;
+  await tx`
+    insert into profiles.creator_publication_languages (account_id, slot, language_code)
+    values (${accountId}, 1, 'fr')`;
+  await tx`
+    insert into profiles.creator_formats (account_id, format_code)
+    values (${accountId}, 'instagram_reel')`;
+  const [row] = await tx<{ alias: string }[]>`
+    update profiles.creator_public_profiles
+       set status = 'published', published_at = now() - interval '40 days',
+           is_searchable = true, primary_topic_code = ${spec.topic},
+           residence_region_code = ${spec.region ?? null},
+           main_audience_country = ${country}, main_audience_share_band = 'ge_80'
+     where account_id = ${accountId}
+     returning alias`;
+  return { alias: row?.alias ?? "", handle, profileUrl };
+}
+
+/**
+ * Creators published and searchable in `country` (SEARCH_COUNTRY by default), in one transaction: an account, its
+ * storefront and what `makeSearchable` gives it. The storefronts of earlier runs in the same country leave the
+ * search first, so that a case counts its own creators only.
  */
 export async function seedSearchableCreators(
   specs: readonly CreatorSpec[],
+  country: string = SEARCH_COUNTRY,
 ): Promise<SearchableCreator[]> {
   return withSql(async (sql) => {
     await sql`
       update profiles.creator_public_profiles set is_searchable = false
-       where main_audience_country = ${SEARCH_COUNTRY} and is_searchable`;
+       where main_audience_country = ${country} and is_searchable`;
     const creators: SearchableCreator[] = [];
     await sql.begin(async (tx) => {
       for (const spec of specs) {
         const accountId = randomUUID();
         const tag = randomBytes(5).toString("hex");
-        const handle = `l3f10_${tag}`;
-        const profileUrl = `https://www.instagram.com/l3f10_${tag}`;
         await tx`
           insert into identity.accounts
             (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
@@ -111,45 +165,63 @@ export async function seedSearchableCreators(
         await tx`
           insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
           values (${accountId}, profiles.new_creator_alias(), 'FR')`;
-        const [line] = await tx<{ id: string }[]>`
-          insert into profiles.creator_social_accounts
-            (account_id, network_code, is_primary, handle, profile_url, followers_count,
-             posts_last_30_days, avg_comments_per_post, figures_measured_at)
-          values (${accountId}, 'instagram', true, ${handle}, ${profileUrl}, ${EXACT_FOLLOWERS}, 17, 43,
-                  now())
-          returning id::text`;
-        const lineId = line?.id ?? "";
-        await tx`
-          update profiles.creator_public_networks set listed_at = now()
-           where social_account_id = ${lineId}`;
-        await tx`
-          insert into profiles.creator_audience_countries
-            (social_account_id, account_id, slot, country_code, share_percent)
-          values (${lineId}, ${accountId}, 0, ${SEARCH_COUNTRY}, 83)`;
-        await tx`
-          insert into profiles.creator_publication_languages (account_id, slot, language_code)
-          values (${accountId}, 1, 'fr')`;
-        await tx`
-          insert into profiles.creator_formats (account_id, format_code)
-          values (${accountId}, 'instagram_reel')`;
-        const [row] = await tx<{ alias: string }[]>`
-          update profiles.creator_public_profiles
-             set status = 'published', published_at = now() - interval '40 days',
-                 is_searchable = true, primary_topic_code = ${spec.topic},
-                 main_audience_country = ${SEARCH_COUNTRY}, main_audience_share_band = 'ge_80'
-           where account_id = ${accountId}
-           returning alias`;
-        creators.push({
+        const made = await makeSearchable(
+          tx as unknown as Sql,
           accountId,
-          alias: row?.alias ?? "",
-          handle,
-          profileUrl,
-        });
+          spec,
+          country,
+          "l3f10",
+        );
+        creators.push({ accountId, ...made });
       }
     });
     seeded = [...seeded, ...creators.map((creator) => creator.accountId)];
     return creators;
   });
+}
+
+/**
+ * One creator with real portfolio visuals, signed in on this page while it is made (the journey signs a brand in
+ * afterwards): the account and its storefront as the sign-up writes them, `visuals` images deposited through the
+ * API's own door (their objects are stored, so that a brand's profile reads them back), approved as an agent's
+ * decision leaves them (`agentId`), then published and searchable in `country`. The three visuals of a profile
+ * (RG50) are drawn from objects, never from rows.
+ */
+export async function seedCreatorWithVisuals(
+  page: Page,
+  options: {
+    spec: CreatorSpec;
+    country: string;
+    visuals: number;
+    agentId: string;
+    caption: string;
+  },
+): Promise<SearchableCreator> {
+  const member = await seedMember(page, {
+    role: "creator",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await depositVisuals(page, options.visuals);
+  await approveVisualsAsAgent(
+    member.accountId,
+    options.agentId,
+    options.caption,
+  );
+  const made = await withSql((sql) =>
+    sql.begin((tx) =>
+      makeSearchable(
+        tx as unknown as Sql,
+        member.accountId,
+        options.spec,
+        options.country,
+        "l3f11",
+      ),
+    ),
+  );
+  seeded = [...seeded, member.accountId];
+  return { accountId: member.accountId, ...made };
 }
 
 /** The creators of the file out of the search when it ends (they stay published: the stack is disposable). */
@@ -181,6 +253,7 @@ export async function signedInBrand(
     sessions: ["chrome.windows"],
   });
   ownBrand(member.accountId);
+  brands = [...brands, member.accountId];
   await withSql(async (sql) => {
     await sql`
       update profiles.advertiser_profiles
@@ -205,4 +278,80 @@ export async function fillSearchBucket(accountId: string): Promise<void> {
         from generate_series(1, (select (value->>'perHour')::int
                                    from search.search_settings where key = 'rate_limits'))`;
   });
+}
+
+/**
+ * After the journeys of L3F-E2: the lists and the requests of the brands of the file, before their campaigns (a list
+ * or a request may name one, `removeOwnCampaigns`). A list takes its creators with it (cascade); the register
+ * (`audit.*`) and the journal of the search stay untouched.
+ */
+export async function removeOwnSelections(): Promise<void> {
+  if (brands.length === 0) {
+    return;
+  }
+  const ids = brands;
+  brands = [];
+  await withSql(async (sql) => {
+    await sql`
+      delete from search.selection_requests
+       where advertiser_account_id = any(${ids}::uuid[])`;
+    await sql`
+      delete from search.shortlists
+       where advertiser_account_id = any(${ids}::uuid[])`;
+  });
+}
+
+/** A list of a brand as the base holds it, with its creators' aliases and notes. */
+export type StoredList = {
+  name: string;
+  campaignId: string | null;
+  aliases: string[];
+  notes: (string | null)[];
+};
+
+/** The lists of a brand, newest first: what the screens did, as the base kept it. */
+export async function listsOf(accountId: string): Promise<StoredList[]> {
+  return withSql(async (sql) => {
+    const rows = await sql<
+      {
+        name: string;
+        campaignId: string | null;
+        aliases: string[];
+        notes: (string | null)[];
+      }[]
+    >`
+      select l.name, l.campaign_id::text as "campaignId",
+             coalesce(array_agg(p.alias order by i.added_at, p.alias)
+                      filter (where p.alias is not null), '{}') as aliases,
+             coalesce(jsonb_agg(i.note order by i.added_at, p.alias)
+                      filter (where p.alias is not null), '[]'::jsonb) as notes
+        from search.shortlists l
+        left join search.shortlist_items i on i.shortlist_id = l.id
+        left join profiles.creator_public_profiles p on p.account_id = i.creator_account_id
+       where l.advertiser_account_id = ${accountId}
+       group by l.id
+       order by l.created_at desc, l.id`;
+    return rows.map((row) => ({ ...row }));
+  });
+}
+
+/** The requests for a selection of a brand as the base holds them, newest first. */
+export async function requestsOf(accountId: string): Promise<
+  {
+    campaignId: string | null;
+    filters: unknown;
+    language: string;
+    message: string | null;
+    state: string;
+    dueAt: Date;
+  }[]
+> {
+  return withSql(
+    (sql) => sql`
+      select campaign_id::text as "campaignId", filters, language, message, state::text as state,
+             sla_due_at as "dueAt"
+        from search.selection_requests
+       where advertiser_account_id = ${accountId}
+       order by created_at desc, id`,
+  );
 }

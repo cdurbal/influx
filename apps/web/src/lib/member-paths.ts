@@ -16,6 +16,9 @@ export type MemberPage =
   | "advertiserCampaign"
   | "advertiserCampaignPreview"
   | "advertiserCreators"
+  | "advertiserCreatorProfile"
+  | "advertiserShortlists"
+  | "advertiserShortlist"
   | "advertiserSelectionRequest"
   | "accountHub"
   | "accountDetails"
@@ -45,6 +48,24 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   // "Créateurs" (17 §4.4, M4; L3F, commit 10): the anonymous search of a brand, the entry of its column; the applied
   // criteria are the query of the address (creator-search-view.ts), never a path segment.
   advertiserCreators: { fr: "createurs", en: "creators" },
+  // "Profil anonyme" (17 §4.4, §7.1; 10 RG50; L3F, commit 11): the card of a creator opened, a child of the search; the
+  // one dynamic segment is the ALIAS of the card, the only reference of a creator a brand holds (RG65). Its query is
+  // the search's own address, so that the way back finds the page it left.
+  advertiserCreatorProfile: {
+    fr: "createurs/profil/[id]",
+    en: "creators/profile/[id]",
+  },
+  // "Mes sélections" (17 §4.9, 10 RG51; L3F, commit 11): the brand's private lists, the second page of "Créateurs" (D74);
+  // a list is the child below it, its opaque identifier the dynamic segment (the English path is
+  // translated, « selections »).
+  advertiserShortlists: {
+    fr: "createurs/selections",
+    en: "creators/selections",
+  },
+  advertiserShortlist: {
+    fr: "createurs/selections/[id]",
+    en: "creators/selections/[id]",
+  },
   // "Demander une sélection à l'équipe" (17 §4.4, 10 RG61; L3F, commits 10 and 11): a child of the search; it takes the
   // criteria and the campaign of the search back from the query of the address.
   advertiserSelectionRequest: {
@@ -109,6 +130,12 @@ export const CAMPAIGNS_PAGE =
   "advertiserCampaigns" as const satisfies MemberPage;
 export const CAMPAIGN_PAGE = "advertiserCampaign" as const satisfies MemberPage;
 
+/** The pages of "Créateurs", in the order of their sub-menu (D74): the search, then "Mes sélections". */
+export const CREATORS_PAGES = [
+  "advertiserCreators",
+  "advertiserShortlists",
+] as const satisfies readonly MemberPage[];
+
 /**
  * The pages of "mon compte", in the order of their navigation; its page-menu (accountHub, 17 §6.0)
  * is the page of the rubric, not one of them.
@@ -140,6 +167,8 @@ export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
   advertiserCampaign: "advertiserCampaigns",
   advertiserCampaignPreview: "advertiserCampaigns",
   advertiserSelectionRequest: "advertiserCreators",
+  advertiserCreatorProfile: "advertiserCreators",
+  advertiserShortlist: "advertiserShortlists",
   accountProfilePreview: PROFILE_ACCOUNT_PAGE,
   accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
   accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
@@ -246,6 +275,9 @@ const PAGE_SPACES: Readonly<Partial<Record<MemberPage, SignupDoor>>> = {
   // own campaign stays in its space, a creator is sent home.
   advertiserCampaignPreview: "advertiser",
   advertiserCreators: "advertiser",
+  advertiserCreatorProfile: "advertiser",
+  advertiserShortlists: "advertiser",
+  advertiserShortlist: "advertiser",
   advertiserSelectionRequest: "advertiser",
 };
 
@@ -265,7 +297,7 @@ export function spaceRedirectOf(
   return space === null || space === role ? null : homePageOf(role);
 }
 
-/** The one dynamic segment of a member address: the opaque identifier of a campaign (17 §2.6). */
+/** The one dynamic segment of a member address: the identifier of a campaign or a list, the alias of a card (17 §2.6). */
 const DYNAMIC_SEGMENT = "[id]";
 
 /** Whether a path (without its slashes) is the address a slug describes; `[id]` stands for any one segment. */

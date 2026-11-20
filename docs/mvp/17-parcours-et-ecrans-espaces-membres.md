@@ -944,6 +944,18 @@ dit « Revenez plus tard », avec le délai de la base (`Retry-After`) quand ell
 (RG55). Sur téléphone, le panneau des filtres est un panneau repliable au-dessus des résultats, non un plein écran
 (à revoir par `expert-ux`, ligne U).
 
+**Amendé par L3F, commit 11 (EC-L3F-11-1 à -4).** Chaque carte offre « Ajouter à ma sélection » (un bouton qui devient
+« Retirer de ma sélection ») et un lien « Voir le profil » vers `createurs/profil/<alias>` (le seul segment d'adresse est
+l'alias, RG65 ; l'adresse de la recherche suit en requête, avec `list=`, la sélection active, qui n'est pas un critère). Le
+profil ouvert est la carte entière, plus grande, avec ses trois visuels et, quand la base la sert (RG15), la région en code
+(aucune liste de noms de régions n'existe encore) ; ses deux seules actions sont « Ajouter à ma sélection » et la demande
+de sélection. Le panneau « Ma sélection (n) », « privé », est une barre collante au-dessus de la barre du bas sous `lg`
+(ouverte par son bouton), une carte en fin de résultats dès `lg` ; la première sélection d'une marque se crée à l'ajout, sous
+le nom « Ma sélection ». « Mes sélections » (`createurs/selections`) et une sélection (`createurs/selections/<id>`) forment
+le sous-menu de « Créateurs » (D74) : créer, renommer, rattacher à une campagne ou détacher, noter, retirer, supprimer, sans
+« tout sélectionner » ni export. La demande de sélection reprend critères et campagne, ajoute un message libre borné
+(1 000 caractères, sans coordonnée) et confirme **un délai** (le jour de réponse fixé par la base), jamais un résultat.
+
 **Les trois états spécifiques de cette recherche** — ce sont eux qui font ou défont l'écran.
 
 ```

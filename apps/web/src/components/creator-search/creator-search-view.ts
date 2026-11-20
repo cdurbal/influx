@@ -22,6 +22,7 @@ import {
   type CreatorSearchSort,
 } from "@influx/contracts/creator-search";
 import type { ResultCountBand } from "@influx/contracts/search-settings";
+import { shortlistParamsSchema } from "@influx/contracts/shortlists";
 import type { PreviewLabels } from "@/components/creator-profile/creator-preview-view";
 
 /** The sort on opening (RG44): the default order, named « Pertinence » on the screen. */
@@ -65,7 +66,8 @@ export const EMPTY_QUERY: SearchQuery = {
 
 /**
  * The parameters of the address of M4: a facet is its code (`F1` … `F17`, lists as codes separated by commas), the
- * share of F6 is `F6s`, then `sort`, `page` and `campaign`. A value that is unreadable is ignored (never an error,
+ * share of F6 is `F6s`, then `sort`, `page`, `campaign` and `list` (the brand's active list: not a criterion, it never
+ * changes the search nor its key). A value that is unreadable is ignored (never an error,
  * never a page that does not open): inside a list, the unreadable codes are dropped. The address is the applied
  * criteria: a reload, the back button and the request for a selection (reprise) read them.
  */
@@ -81,6 +83,7 @@ const PARAM = {
   sort: "sort",
   page: "page",
   campaign: "campaign",
+  list: "list",
 } as const;
 
 /** Reads one parameter of an address by its name; `undefined` when it holds none. */
@@ -149,11 +152,15 @@ function filtersOf(read: ParamReader): CreatorSearchFilters {
   return filters;
 }
 
-/** The query and the page an address holds (every default when a value is missing or unreadable). */
-export function addressOf(read: ParamReader): {
+/** The query, the page and the active list an address holds (every default when a value is missing or unreadable). */
+export type SearchAddress = {
   query: SearchQuery;
   page: number;
-} {
+  /** The list the panel « Ma sélection » shows; absent when the address names none (the newest one then). */
+  listId?: string;
+};
+
+export function addressOf(read: ParamReader): SearchAddress {
   const sortValue = read(PARAM.sort);
   const sort =
     SEARCH_SORTS.find((candidate) => candidate === sortValue) ??
@@ -169,9 +176,15 @@ export function addressOf(read: ParamReader): {
     pageValue !== undefined && /^[0-9]{1,3}$/.test(pageValue)
       ? Number(pageValue)
       : 1;
+  const list = read(PARAM.list);
+  const listId =
+    list !== undefined && shortlistParamsSchema.safeParse({ id: list }).success
+      ? list
+      : undefined;
   return {
     query: { filters: filtersOf(read), sort, campaignId },
     page: page >= 1 && page <= CREATOR_SEARCH_PAGE_MAX ? page : 1,
+    ...(listId === undefined ? {} : { listId }),
   };
 }
 
@@ -181,10 +194,7 @@ export type RawSearchParams = Readonly<
 >;
 
 /** `addressOf` over the `searchParams` of a page (the first value of a name repeated). */
-export function addressOfParams(params: RawSearchParams): {
-  query: SearchQuery;
-  page: number;
-} {
+export function addressOfParams(params: RawSearchParams): SearchAddress {
   return addressOf((name) => {
     const value = params[name];
     return typeof value === "string" ? value : value?.[0];
@@ -195,7 +205,11 @@ export function addressOfParams(params: RawSearchParams): {
  * The query string of a query and a page, canonical (the order of the facets of the contract, defaults left out):
  * "" for the empty query, else "?F1=beauty&F3=instagram,tiktok". The same string is the key of a query.
  */
-export function addressParamsOf(query: SearchQuery, page = 1): string {
+export function addressParamsOf(
+  query: SearchQuery,
+  page = 1,
+  listId: string | null = null,
+): string {
   const { filters } = query;
   const parts: string[] = [];
   const add = (name: string, value: string | undefined) => {
@@ -215,6 +229,7 @@ export function addressParamsOf(query: SearchQuery, page = 1): string {
     add(PARAM.sort, query.sort);
   }
   add(PARAM.campaign, query.campaignId ?? undefined);
+  add(PARAM.list, listId ?? undefined);
   if (page > 1) {
     add(PARAM.page, String(page));
   }
@@ -751,14 +766,20 @@ export function waitOf(seconds: number | null): {
 
 // --- the cards --------------------------------------------------------------------------------------
 
-/** The visual a card shows: the first approved one in the creator's order, none without (17 §7.1). */
-export function cardVisualsOf(card: CreatorSearchCard): {
+/**
+ * The visuals a card shows: the first approved one in the creator's order on a card (17 §7.1), `shown` of them on a
+ * profile (three); none without.
+ */
+export function cardVisualsOf(
+  card: Pick<CreatorSearchCard, "creator">,
+  shown: number = CARD_VISUALS_SHOWN,
+): {
   alias: string;
   visualId: string;
 }[] {
   return [...card.creator.visuals]
     .sort((a, b) => a.order - b.order)
-    .slice(0, CARD_VISUALS_SHOWN)
+    .slice(0, shown)
     .map((visual) => ({ alias: card.creator.alias, visualId: visual.id }));
 }
 

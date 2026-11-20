@@ -60,3 +60,35 @@ export const FILTER_SUMMARY_CLASSES = cn(
 export const FILTER_CHOICES_CLASSES = "flex flex-col";
 
 export const FILTER_ACTIONS_CLASSES = "flex flex-col gap-2";
+
+/**
+ * The panel « Ma sélection » (17 §4.4): below lg a bar sticky above the bottom navigation (globals.css gives its offset
+ * through `data-action-bar`), opened upward to at most half the screen; from lg a card at the end of the results.
+ */
+export const SELECTION_PANEL_CLASSES = cn(
+  "sticky z-(--z-header) flex flex-col gap-3",
+  "border-t-(length:--border-width-thin) border-border-default bg-surface-page",
+  "-mx-(--spacing-page-gutter) px-page-gutter py-3",
+  "lg:static lg:mx-0 lg:rounded-card lg:border-(length:--border-width-thin) lg:bg-surface-card lg:p-inset-card",
+);
+
+/** The body of the panel when opened: scrolls on its own below lg, never taller than half the screen. */
+export const SELECTION_PANEL_BODY_CLASSES =
+  "flex flex-col gap-3 max-lg:max-h-(--size-selection-panel-max) max-lg:overflow-y-auto";
+
+export const SELECTION_ALIASES_CLASSES =
+  "m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0 text-md";
+
+/** The actions under a card or a profile: the add button, the way to the profile or to the request. */
+export const CARD_ACTIONS_CLASSES = "flex flex-col gap-3";
+
+export const CARD_ACTION_ROW_CLASSES = "flex flex-wrap items-center gap-3";
+
+/** The lists of « Mes sélections »: one card per list, in a grid from md. */
+export const LISTS_GRID_CLASSES = "grid grid-cols-1 gap-4 md:grid-cols-2";
+
+/** The creators of a list: one column, two from xl, like the grid of the search. */
+export const LIST_ITEMS_CLASSES = "grid grid-cols-1 gap-4 xl:grid-cols-2";
+
+/** A form of a screen of the lists: its fields stacked, its action under them. */
+export const FORM_CLASSES = "flex flex-col gap-4";

@@ -364,6 +364,9 @@
         "title": "Search for creators"
       },
       "soon": "Coming soon to your space."
+    },
+    "search": {
+      "text": "Search for creators by criteria: you never see an identity before an introduction."
     }
   },
   "review": {

@@ -8,8 +8,9 @@
 // and for 4), closed (D38, the criteria and the request stay), the bucket full (the results shown stay
 // readable); then the brand's profile not published, the cap of pages, an unusable campaign, loading, error. The
 // list, its order, its count in a band and the pages are the API's: nothing here ranks, filters or counts, and no
-// number, amount, tariff or action of introduction exists on the screen (CLAUDE.md §2, D45, D48, D78). The page of
-// a brand: any other role finds no such page (18 T14.3, T14.4).
+// number, amount, tariff or action of introduction exists on the screen (CLAUDE.md §2, D45, D48, D78). Commit 11 adds
+// to each card « Ajouter à ma sélection » and the way to its profile, and the panel « Ma sélection » (private, the
+// active list of the address). The page of a brand: any other role finds no such page (18 T14.3, T14.4).
 import type { CreatorSearchCard } from "@influx/contracts/creator-search";
 import { notFound } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -34,6 +35,7 @@ import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { CircleAlertIcon, CloseIcon, FilterIcon } from "@/components/ui/icons";
 import { Link, useRouter } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
+import { AddToSelectionButton } from "./AddToSelectionButton";
 import {
   SEARCH_ASIDE_CLASSES,
   SEARCH_CONTROLS_CLASSES,
@@ -48,6 +50,7 @@ import {
   SEARCH_RESULTS_CLASSES,
   SEARCH_SKELETON_CLASSES,
   SEARCH_TOOLBAR_CLASSES,
+  CARD_ACTIONS_CLASSES,
 } from "./creator-search-classes";
 import {
   CARD_VISUALS_SHOWN,
@@ -69,8 +72,11 @@ import {
   type SearchScreen,
 } from "./creator-search-view";
 import { SearchFiltersForm } from "./SearchFiltersForm";
+import { SelectionPanel } from "./SelectionPanel";
+import { profileHref, requestHref, type SearchPlace } from "./shortlists-view";
 import { useCardVisuals } from "./use-card-visuals";
 import { useCreatorSearch } from "./use-creator-search";
+import { useShortlists, type Selection } from "./use-shortlists";
 import { useSearchLabels } from "./use-search-labels";
 import {
   useOriginCampaigns,
@@ -86,30 +92,32 @@ const SKELETON_COUNT = 6;
 export function CreatorSearchScreen({
   query,
   page,
+  listId,
 }: {
   query: SearchQuery;
   page: number;
+  listId: string | null;
 }) {
   const { me } = useMember();
   if (me.role !== "advertiser") {
     notFound();
   }
-  return <CreatorSearchView query={query} page={page} />;
+  return <CreatorSearchView query={query} page={page} listId={listId} />;
 }
 
 /** The permanent way to the request for a selection (RG61), carrying the criteria and the campaign (reprise). */
 function RequestLink({
-  query,
+  place,
   variant,
 }: {
-  query: SearchQuery;
+  place: SearchPlace;
   variant: "primary" | "secondary";
 }) {
   const t = useTranslations("creatorSearch");
   const locale = useLocale();
   return (
     <Link
-      href={`${memberPageHref("advertiserSelectionRequest", locale)}${addressParamsOf(query)}`}
+      href={requestHref(locale, place)}
       className={memberButtonClasses(variant)}
     >
       {t("request.link")}
@@ -120,9 +128,11 @@ function RequestLink({
 function CreatorSearchView({
   query,
   page,
+  listId,
 }: {
   query: SearchQuery;
   page: number;
+  listId: string | null;
 }) {
   const t = useTranslations("creatorSearch");
   const tAccount = useTranslations("account");
@@ -133,6 +143,8 @@ function CreatorSearchView({
   const labels = useSearchLabels();
   const onSignedOut = () => signedOut(null);
   const { screen, retry } = useCreatorSearch({ query, page, onSignedOut });
+  const selection = useShortlists({ preferredId: listId, onSignedOut });
+  const place: SearchPlace = { query, page, listId };
   const references = useSearchReferences();
   const campaigns = useOriginCampaigns();
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -141,7 +153,13 @@ function CreatorSearchView({
   const apply = (next: SearchQuery, nextPage = 1) => {
     setFiltersOpen(false);
     router.replace(
-      `${memberPageHref("advertiserCreators", locale)}${addressParamsOf(next, nextPage)}`,
+      `${memberPageHref("advertiserCreators", locale)}${addressParamsOf(next, nextPage, listId)}`,
+    );
+  };
+  /** The list the brand chose or made: the address carries it, the search itself is untouched. */
+  const selectList = (id: string) => {
+    router.replace(
+      `${memberPageHref("advertiserCreators", locale)}${addressParamsOf(query, page, id)}`,
     );
   };
   const criteria = useMemo(
@@ -155,7 +173,7 @@ function CreatorSearchView({
       {online ? null : <Notice tone="warning">{tAccount("offline")}</Notice>}
       <PageHeader
         title={t("page.title")}
-        actions={<RequestLink query={query} variant="secondary" />}
+        actions={<RequestLink place={place} variant="secondary" />}
       />
       <p className="text-md text-text-secondary">{t("page.explain")}</p>
       <div className={SEARCH_LAYOUT_CLASSES}>
@@ -241,10 +259,17 @@ function CreatorSearchView({
           <Body
             screen={screen}
             query={query}
+            place={place}
             labels={labels}
+            selection={selection}
             onApply={apply}
             onRetry={retry}
             onSignedOut={onSignedOut}
+          />
+          <SelectionPanel
+            selection={selection}
+            place={place}
+            onSelect={selectList}
           />
         </div>
       </div>
@@ -356,14 +381,18 @@ function Controls({
 function Body({
   screen,
   query,
+  place,
   labels,
+  selection,
   onApply,
   onRetry,
   onSignedOut,
 }: {
   screen: SearchScreen;
   query: SearchQuery;
+  place: SearchPlace;
   labels: SearchLabels;
+  selection: Selection;
   onApply: (query: SearchQuery, page?: number) => void;
   onRetry: () => void;
   onSignedOut: () => void;
@@ -392,7 +421,7 @@ function Body({
           <p data-state="closed" className="text-md text-text-secondary">
             {t("closed.notice")}
           </p>
-          <RequestLink query={query} variant="primary" />
+          <RequestLink place={place} variant="primary" />
         </Card>
       );
     case "brand_not_published":
@@ -444,7 +473,7 @@ function Body({
               </ul>
             </div>
           )}
-          <RequestLink query={query} variant="primary" />
+          <RequestLink place={place} variant="primary" />
         </Card>
       );
     }
@@ -453,7 +482,9 @@ function Body({
         <Results
           screen={screen}
           query={query}
+          place={place}
           labels={labels}
+          selection={selection}
           onApply={onApply}
           onSignedOut={onSignedOut}
         />
@@ -473,12 +504,14 @@ function Body({
             )}
             {screen.kept === null ? null : <p>{t("rateLimited.kept")}</p>}
           </Notice>
-          <RequestLink query={query} variant="primary" />
+          <RequestLink place={place} variant="primary" />
           {screen.kept === null ? null : (
             <Results
               screen={screen.kept}
               query={query}
+              place={place}
               labels={labels}
+              selection={selection}
               onApply={onApply}
               onSignedOut={onSignedOut}
               frozen
@@ -525,7 +558,9 @@ function Body({
             <Results
               screen={screen.kept}
               query={query}
+              place={place}
               labels={labels}
+              selection={selection}
               onApply={onApply}
               onSignedOut={onSignedOut}
               frozen
@@ -543,14 +578,18 @@ function Body({
 function Results({
   screen,
   query,
+  place,
   labels,
+  selection,
   onApply,
   onSignedOut,
   frozen = false,
 }: {
   screen: ResultsScreen;
   query: SearchQuery;
+  place: SearchPlace;
   labels: SearchLabels;
+  selection: Selection;
   onApply: (query: SearchQuery, page?: number) => void;
   onSignedOut: () => void;
   frozen?: boolean;
@@ -575,7 +614,13 @@ function Results({
         <ul aria-label={t("results.title")} className={SEARCH_RESULTS_CLASSES}>
           {screen.cards.map((card) => (
             <li key={card.creator.alias} data-search-card={card.creator.alias}>
-              <ResultCard card={card} labels={labels} visuals={visuals} />
+              <ResultCard
+                card={card}
+                labels={labels}
+                visuals={visuals}
+                selection={selection}
+                place={place}
+              />
             </li>
           ))}
         </ul>
@@ -622,12 +667,17 @@ function ResultCard({
   card,
   labels,
   visuals,
+  selection,
+  place,
 }: {
   card: CreatorSearchCard;
   labels: SearchLabels;
   visuals: ReturnType<typeof useCardVisuals>;
+  selection: Selection;
+  place: SearchPlace;
 }) {
   const t = useTranslations("creatorSearch");
+  const locale = useLocale();
   const view = useMemo(() => {
     const drawn = cardOfProjection(
       card.creator,
@@ -647,26 +697,45 @@ function ResultCard({
       images={visuals.images}
       noVisualText={null}
       footer={
-        <div data-reasons="" className={SEARCH_REASONS_CLASSES}>
-          <h3 className={CARD_TITLE}>{t("reasons.title")}</h3>
-          <ul className={SEARCH_REASON_LIST_CLASSES}>
-            {reasons.map((text, index) => (
-              <li key={index}>{text}</li>
-            ))}
-          </ul>
-          {vigilance === null ? null : (
-            <p
-              data-vigilance={card.vigilance}
-              className="flex items-start gap-2 text-sm"
+        <>
+          <div data-reasons="" className={SEARCH_REASONS_CLASSES}>
+            <h3 className={CARD_TITLE}>{t("reasons.title")}</h3>
+            <ul className={SEARCH_REASON_LIST_CLASSES}>
+              {reasons.map((text, index) => (
+                <li key={index}>{text}</li>
+              ))}
+            </ul>
+            {vigilance === null ? null : (
+              <p
+                data-vigilance={card.vigilance}
+                className="flex items-start gap-2 text-sm"
+              >
+                <CircleAlertIcon
+                  aria-hidden="true"
+                  className="size-(--size-icon-md) shrink-0 text-feedback-warning-icon"
+                />
+                <span>{t("reasons.vigilance", { text: vigilance })}</span>
+              </p>
+            )}
+          </div>
+          <div className={CARD_ACTIONS_CLASSES}>
+            <AddToSelectionButton
+              selection={selection}
+              alias={card.creator.alias}
+            />
+            <Link
+              href={profileHref(card.creator.alias, locale, place)}
+              data-open-profile={card.creator.alias}
+              className={TEXT_LINK_CLASSES}
             >
-              <CircleAlertIcon
-                aria-hidden="true"
-                className="size-(--size-icon-md) shrink-0 text-feedback-warning-icon"
-              />
-              <span>{t("reasons.vigilance", { text: vigilance })}</span>
-            </p>
-          )}
-        </div>
+              {t("profile.open")}
+              <span className="sr-only">
+                {" "}
+                {labels.card.text("alias.name", { alias: card.creator.alias })}
+              </span>
+            </Link>
+          </div>
+        </>
       }
     />
   );

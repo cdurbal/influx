@@ -25,6 +25,8 @@ export default async function SelectionRequestPage({
     "advertiserSelectionRequest",
     "createurs/demande-de-selection",
   );
-  const { query } = addressOfParams(await searchParams);
-  return <SelectionRequestScreen filters={query.filters} />;
+  const { query, page, listId } = addressOfParams(await searchParams);
+  return (
+    <SelectionRequestScreen place={{ query, page, listId: listId ?? null }} />
+  );
 }

@@ -144,8 +144,8 @@ function ProfileCard({ summary }: { summary: BrandProfileSummary }) {
 /**
  * Block 2 (17 §2.4): "Publier une campagne" and "Rechercher des créateurs", present and explained,
  * not hidden. Until the profile is published they say so (`search.blockedUntilPublished` for the
- * search); once it is, the campaign card opens "Mes campagnes" (L3B, commit 09) and the search says it
- * is coming, its screen being that of the next jalon.
+ * search); once it is, the campaign card opens "Mes campagnes" (L3B, commit 09) and the search card opens
+ * "Créateurs" (M4, L3F, commit 11).
  */
 function LockedScreens({ published }: { published: boolean }) {
   const t = useTranslations("brandProfile");
@@ -153,22 +153,24 @@ function LockedScreens({ published }: { published: boolean }) {
     {
       key: "campaign",
       title: t("home.locked.campaign.title"),
-      text: published ? t("home.locked.soon") : t("home.locked.campaign.text"),
+      text: t("home.locked.campaign.text"),
     },
     {
       key: "search",
       title: t("home.locked.search.title"),
-      text: published
-        ? t("home.locked.soon")
-        : t("search.blockedUntilPublished"),
+      text: t("search.blockedUntilPublished"),
     },
   ];
   return (
     <ul className="flex flex-col gap-4">
       {items.map((item) => (
         <li key={item.key}>
-          {item.key === "campaign" && published ? (
-            <CampaignCard />
+          {published ? (
+            item.key === "campaign" ? (
+              <CampaignCard />
+            ) : (
+              <SearchCard />
+            )
           ) : (
             <Card>
               <h2 className={cn(CARD_TITLE, "flex items-center gap-2")}>
@@ -184,6 +186,25 @@ function LockedScreens({ published }: { published: boolean }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** The search card of a published brand: no longer locked, it opens "Créateurs" (17 §2.4, M4). */
+function SearchCard() {
+  const t = useTranslations("brandProfile");
+  const tSearch = useTranslations("creatorSearch");
+  const locale = useLocale();
+  return (
+    <Card>
+      <h2 className={CARD_TITLE}>{t("home.locked.search.title")}</h2>
+      <p className="text-md text-text-secondary">{t("home.search.text")}</p>
+      <Link
+        href={memberPageHref("advertiserCreators", locale)}
+        className={memberButtonClasses("primary", "md")}
+      >
+        {tSearch("meta.search")}
+      </Link>
+    </Card>
   );
 }
 

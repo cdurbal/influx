@@ -364,6 +364,9 @@
         "title": "Rechercher des créateurs"
       },
       "soon": "Bientôt disponible dans votre espace."
+    },
+    "search": {
+      "text": "Cherchez des créateurs par critères : vous ne voyez jamais une identité avant la mise en relation."
     }
   },
   "review": {
