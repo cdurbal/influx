@@ -2340,6 +2340,17 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "account_id",
     expected: {},
   },
+  // 0325 (L3F commit 05, l3f/modele.md §6): the brand's requests for a selection by the team. No
+  // right for any execution role: written by search.request_team_selection() only (owner
+  // influx_creator_search_definer), a RESTRICTIVE policy refuses every row to the members.
+  {
+    table: "search.selection_requests",
+    source:
+      "0325 (10 RG61, CA39; l3f/modele §6): one request per deposit, every criterion, the campaign, " +
+      "the language and the deadline of queue 9; the message read by agents alone",
+    probeColumn: "advertiser_account_id",
+    expected: {},
+  },
   // 0317 (L3E commit 04, l3e/modele.md §9): the block between parties, without any gesture at Lot 3.
   // No right for any execution role, member, agent nor admin (fiche invariant 1): a RESTRICTIVE
   // policy refuses every row to the members; the owner of the creator's doors reads the pair and
@@ -7569,6 +7580,41 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|schema|search|USAGE",
   "influx_creator_search_definer|schema|verification|USAGE",
   "influx_creator|function|profiles.creator_layer_a(uuid)|EXECUTE",
+  // 0325 (L3F-05, l3f/modele.md §6; EC-L3F-05-4, -7): the request for a selection by the team. The
+  // brand executes its door; the owner reads its caller's language, the policy of queue 9 and its
+  // requests (the bound), inserts the deposit, computes the deadline and writes the register
+  "influx_advertiser|function|search.request_team_selection(jsonb,uuid,text)|EXECUTE",
+  "influx_creator_search_definer|column|backoffice.sla_policies.business_hours|SELECT",
+  "influx_creator_search_definer|column|backoffice.sla_policies.is_active|SELECT",
+  "influx_creator_search_definer|column|backoffice.sla_policies.queue_code|SELECT",
+  "influx_creator_search_definer|column|backoffice.sla_policies.target_decision_minutes|SELECT",
+  "influx_creator_search_definer|column|identity.accounts.preferred_language|SELECT",
+  "influx_creator_search_definer|column|search.selection_requests.advertiser_account_id|INSERT,SELECT",
+  "influx_creator_search_definer|column|search.selection_requests.campaign_id|INSERT",
+  "influx_creator_search_definer|column|search.selection_requests.created_at|SELECT",
+  "influx_creator_search_definer|column|search.selection_requests.filters|INSERT",
+  "influx_creator_search_definer|column|search.selection_requests.id|SELECT",
+  "influx_creator_search_definer|column|search.selection_requests.language|INSERT",
+  "influx_creator_search_definer|column|search.selection_requests.message|INSERT",
+  "influx_creator_search_definer|column|search.selection_requests.sla_due_at|INSERT,SELECT",
+  "influx_creator_search_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_creator_search_definer|function|backoffice.business_deadline(text,timestamp with time zone,integer)|EXECUTE",
+  "influx_creator_search_definer|function|search.request_team_selection(jsonb,uuid,text)|EXECUTE",
+  "influx_creator_search_definer|schema|audit|USAGE",
+  "influx_creator_search_definer|schema|backoffice|USAGE",
+  // 0325 (L3F-05, 04 §9): the erasure of the openings and of the requests; the export of the requests
+  "influx_privacy_definer|column|search.profile_openings.account_id|SELECT",
+  "influx_privacy_definer|column|search.profile_openings.creator_account_id|SELECT",
+  "influx_privacy_definer|column|search.selection_requests.advertiser_account_id|SELECT",
+  "influx_privacy_definer|column|search.selection_requests.campaign_id|SELECT",
+  "influx_privacy_definer|column|search.selection_requests.created_at|SELECT",
+  "influx_privacy_definer|column|search.selection_requests.filters|SELECT",
+  "influx_privacy_definer|column|search.selection_requests.id|SELECT",
+  "influx_privacy_definer|column|search.selection_requests.language|SELECT",
+  "influx_privacy_definer|column|search.selection_requests.message|SELECT",
+  "influx_privacy_definer|column|search.selection_requests.state|SELECT",
+  "influx_privacy_definer|table|search.profile_openings|DELETE",
+  "influx_privacy_definer|table|search.selection_requests|DELETE",
 ];
 
 /**
@@ -8180,4 +8226,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "search.remove_from_shortlist(uuid,text)": "influx_creator_search_definer",
   "search.set_shortlist_note(uuid,text,text)": "influx_creator_search_definer",
   "search.update_shortlist(uuid,text,uuid)": "influx_creator_search_definer",
+  // 0325 (L3F, l3f/modele §6): the brand door of the request for a selection by the team
+  "search.request_team_selection(jsonb,uuid,text)":
+    "influx_creator_search_definer",
 };

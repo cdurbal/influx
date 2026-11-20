@@ -154,7 +154,7 @@
 | 1898 | 41 | 10. Ce qui sort de mon périmètre |  |
 | 1939 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
-## 04-modele-de-donnees-mvp.md (~157k tokens)
+## 04-modele-de-donnees-mvp.md (~158k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -162,31 +162,31 @@
 | 212 | 17 | 1. Les dix règles qui gouvernent ce modèle |  |
 | 229 | 57 | 2. Vue d'ensemble |  |
 | 286 | 116 | 3. Conventions communes |  |
-| 402 | 402 | 4. Le socle transverse — `influx`, `reference`, `audit` | RG1–RG115 |
+| 402 | 403 | 4. Le socle transverse — `influx`, `reference`, `audit` | RG1–RG115 |
 | 404 | 65 | ↳ 4.1 `influx` — fonctions de contexte |  |
 | 469 | 99 | ↳ 4.2 `reference` — les listes fermées partagées | RG18–RG115 |
-| 568 | 236 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
-| 804 | 4631 | 5. Le schéma, domaine par domaine | RG2–RG163 |
-| 806 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
-| 1254 | 281 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG86 |
-| 1535 | 167 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
-| 1702 | 417 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG103 |
-| 2119 | 225 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG101 |
-| 2344 | 929 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
-| 3273 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
-| 4272 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
-| 4637 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
-| 5018 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
-| 5412 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
-| 5435 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
-| 5642 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
-| 5924 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 5962 | 128 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
-| 6090 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6255 | 190 | 11. Plan de migrations | RG1–RG163 |
-| 6445 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6622 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6658 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 568 | 237 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
+| 805 | 4646 | 5. Le schéma, domaine par domaine | RG2–RG163 |
+| 807 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
+| 1255 | 281 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG86 |
+| 1536 | 167 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
+| 1703 | 417 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG103 |
+| 2120 | 240 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG101 |
+| 2360 | 929 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
+| 3289 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
+| 4288 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
+| 4653 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
+| 5034 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
+| 5428 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
+| 5451 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
+| 5658 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
+| 5940 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
+| 5978 | 130 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
+| 6108 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6273 | 191 | 11. Plan de migrations | RG1–RG163 |
+| 6464 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6641 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6677 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 
@@ -331,23 +331,23 @@
 | 56 | 23 | Besoin |  |
 | 79 | 17 | Acteurs | RG105 |
 | 96 | 54 | User stories |  |
-| 150 | 741 | Règles de gestion | RG1–RG117 |
+| 150 | 745 | Règles de gestion | RG1–RG117 |
 | 152 | 49 | ↳ A — Périmètre, ouverture de la recherche et principes | RG1–RG105 |
 | 201 | 152 | ↳ B — Les facettes | RG6–RG117 |
 | 353 | 59 | ↳ C — Exclusions automatiques | RG3–RG84 |
 | 412 | 100 | ↳ D — Tri par défaut, explication et cas froid | RG14–RG73 |
 | 512 | 110 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
-| 622 | 36 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG57–RG78 |
-| 658 | 64 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
-| 722 | 46 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
-| 768 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
-| 804 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
-| 855 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
-| 891 | 115 | Cas limites | RG1–RG92 |
-| 1006 | 264 | Critères d'acceptation | RG12–RG117 |
-| 1270 | 62 | Impacts | RG2–RG89 |
-| 1332 | 19 | Hors périmètre | RG6–RG105 |
-| 1351 | 26 | Questions ouvertes | RG1–RG86 |
+| 622 | 40 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG57–RG78 |
+| 662 | 64 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
+| 726 | 46 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
+| 772 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
+| 808 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
+| 859 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
+| 895 | 115 | Cas limites | RG1–RG92 |
+| 1010 | 264 | Critères d'acceptation | RG12–RG117 |
+| 1274 | 62 | Impacts | RG2–RG89 |
+| 1336 | 19 | Hors périmètre | RG6–RG105 |
+| 1355 | 26 | Questions ouvertes | RG1–RG86 |
 
 ## 11-recherche-campagnes-et-candidature.md (~30k tokens)
 

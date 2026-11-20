@@ -28,6 +28,8 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/creator-search-route.test.ts",
     "db-tests/matching-party-blocks.test.ts",
     "db-tests/ops-schema.test.ts",
+    // L3F-05: a new file (about 3 s locally), in the shorter shard in CI (4:48 against 5:11 at b0bf605)
+    "db-tests/search-selection-requests.test.ts",
     "db-tests/profiles-brand-review.test.ts",
     "db-tests/profiles-brand-submission.test.ts",
     "db-tests/profiles-creator-bands.test.ts",

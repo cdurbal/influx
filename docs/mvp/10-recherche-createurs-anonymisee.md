@@ -649,7 +649,11 @@ formulations sont grossières et **n'annoncent aucun décompte** : « retirer le
 reprenant **tous les critères saisis**, la campagne d'origine le cas échéant, et la langue de la
 marque. Ce n'est pas une impasse : c'est **un lead qualifié dont le brief est déjà écrit** —
 exactement le créneau où le commercial vaut plus que l'algorithme. Le bouton est présent **en
-permanence**, pas seulement sous le seuil.
+permanence**, pas seulement sous le seuil. *Amendé par L3F-05 (`0325`, `jalons/l3f/modele.md` §6) :*
+la demande s'écrit par `search.request_team_selection()` (critères, campagne admise ou aucune, langue
+de la marque, message libre de 1 000 caractères au plus lu des seuls agents), même interrupteur fermé
+(CA59) ; plafond `selection_limits.requestsPerDay` ; délai de la file 9 renvoyé à la marque
+(`answerBy`), jamais une promesse de résultat ; aucune mise en relation ni notification (D45, CA64).
 
 **RG62 — Le k-anonymat ne s'applique pas à la vue commerciale** (§H) : le commercial voit les
 identités, le seuil n'a aucun objet. En revanche ses recherches et ses consultations sont

@@ -600,6 +600,14 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         callers: ["influx_advertiser"],
         dynamic: false,
       },
+      // 0325 (L3F-05, EC-L3F-05-7): the brand's request for a selection by the team
+      {
+        name: "search.request_team_selection(jsonb,uuid,text)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
       helper("search.require_creator_searcher()"),
       {
         name: DOOR_SIGNATURE,
@@ -784,6 +792,8 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
       "search.profile_openings",
       "search.search_impressions",
       "search.search_queries",
+      // 0325 (L3F-05, EC-L3F-05-7): the caller's requests for a selection, inserted by its door
+      "search.selection_requests",
       // 0324 (L3F-04, EC-L3F-04-8): the caller's own shortlists and their items, by its doors
       "search.shortlist_items",
       "search.shortlists",
@@ -862,6 +872,8 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         "search.read_creator_visual(text,uuid)",
         "search.read_shortlist(uuid)",
         "search.remove_from_shortlist(uuid,text)",
+        // 0325 (L3F-05, EC-L3F-05-7): the request for a selection by the team
+        "search.request_team_selection(jsonb,uuid,text)",
         DOOR_SIGNATURE,
         "search.set_shortlist_note(uuid,text,text)",
         "search.update_shortlist(uuid,text,uuid)",
@@ -1986,13 +1998,18 @@ describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", 
            and p.oid not in ('search.read_open_campaigns(text, integer)'::regprocedure,
                              'search.read_open_campaign(uuid)'::regprocedure,
                              'search.read_open_campaign_brand_logo(uuid)'::regprocedure)`;
-      return { identified: errorOf(identified), doors: doors?.names };
+      // `order by 1` in an aggregate orders by a constant: the names sorted here (CI 44701258993)
+      return {
+        identified: errorOf(identified),
+        doors: [...(doors?.names ?? [])].sort(),
+      };
     });
     expect(outcome.identified).toBe(
       `${FEATURE_NOT_SUPPORTED} agent_identified`,
     );
     // 0323 (L3F-03, EC-L3F-03-8): the brand's doors of the profile and of a visual, both anonymous
     // 0324 (L3F-04, EC-L3F-04-8): the brand's eight doors of the shortlists, by alias
+    // 0325 (L3F-05, EC-L3F-05-7): the brand's request for a selection by the team
     expect(outcome.doors).toEqual([
       "influx_advertiser search.add_to_shortlist(uuid,text)",
       "influx_advertiser search.create_shortlist(text,uuid)",
@@ -2002,6 +2019,7 @@ describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", 
       "influx_advertiser search.read_creator_visual(text,uuid)",
       "influx_advertiser search.read_shortlist(uuid)",
       "influx_advertiser search.remove_from_shortlist(uuid,text)",
+      "influx_advertiser search.request_team_selection(jsonb,uuid,text)",
       `influx_advertiser ${DOOR_SIGNATURE}`,
       "influx_advertiser search.set_shortlist_note(uuid,text,text)",
       "influx_advertiser search.update_shortlist(uuid,text,uuid)",

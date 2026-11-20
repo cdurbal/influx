@@ -152,6 +152,16 @@ describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG2
         is_active: true,
         retired_at: null,
       },
+      // 0325 (L3F): queue 9, 10 RG61, a lock, no bulk action; its claim and closure at L3G
+      {
+        code: "team_selection",
+        label_key: "queue.team_selection",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
       // 0221 (L2E): queue 4, 08 RG61-RG67 and 06 RG51-RG52, a lock, no bulk action
       {
         code: "verification",
@@ -310,6 +320,17 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
         business_hours: D39_BUSINESS_HOURS,
         escalate: 960,
         is_provisional: false,
+        is_active: true,
+      },
+      // 0325 (L3F): queue 9, 1 business day, claim within 4 business hours (15 Q3: a proposal,
+      // provisional), the default escalation
+      {
+        queue_code: "team_selection",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 480,
+        is_provisional: true,
         is_active: true,
       },
       // 0221 (L2E): queue 4, the delay of queue 1 (08 RG61, RG100)
@@ -677,10 +698,12 @@ describe("backoffice.business_deadline(): the deadline in business hours, comput
     // verification.prepare_request() computes with the writer's rights; 0234 (D83 A): the agent's
     // opening makes the request pending at once, through the same trigger; 0242: a stored visual
     // enters queue 3 through the invoker trigger profiles.prepare_portfolio_item_entry(); 0307: a
-    // submitted campaign enters queue 7 through campaigns.prepare_campaign_review_entry()
+    // submitted campaign enters queue 7 through campaigns.prepare_campaign_review_entry(); 0325: the
+    // brand's request for a selection is born with the deadline of queue 9 (its door)
     expect(rows).toEqual([
       { rolname: "influx_campaign_definer" },
       { rolname: "influx_creator_profile_definer" },
+      { rolname: "influx_creator_search_definer" },
       { rolname: "influx_creator_verification_definer" },
       { rolname: "influx_identity_definer" },
       { rolname: "influx_verification_definer" },

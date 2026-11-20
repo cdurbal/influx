@@ -2141,6 +2141,8 @@ describe("the full brand profile of 0202 in the export and the erasure (04 §9.2
       // 0318 (L3E): no search, shortlist nor block posed by this brand
       creator_searches: [],
       shortlists: [],
+      // 0325 (L3F): no request for a selection by the team
+      selection_requests: [],
       blocks: [],
       created_at: expect.stringMatching(/Z$/),
       updated_at: expect.stringMatching(/Z$/),

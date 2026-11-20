@@ -6,7 +6,7 @@
 | 02 | 02.md | commit | opus | high | expert-database | fait | origin admitted by search.is_admitted_campaign() only (pending_review..closed); draft, rejected = unknown P0002; owner reads status |
 | 03 | 03.md | commit | opus | xhigh | expert-database | fait | open_creator_profile: alias in engine else one P0002; card+region; opening journaled, origin opened once; 60/day; visual key read, never served |
 | 04 | 04.md | commit | opus | high | expert-database | fait | 8 doors by alias; add needs engine + already served, else one P0002; other list P0002 shortlist; masked untraced; 54000 bounds; no outbox/matching |
-| 05 | 05.md | commit | opus | high | expert-database | à faire | |
+| 05 | 05.md | commit | opus | high | expert-database | fait | request_team_selection: switch ignored, 5/day, filters+admitted campaign+language; queue 9 deadline; no matching/outbox; export, erasure |
 | 06 | 06.md | commit | opus | high | expert-database | à faire | |
 | 07 | 07.md | commit | opus | high | dev-react-node | à faire | |
 | 08 | 08.md | commit | sonnet | high | dev-react-node | à faire | |

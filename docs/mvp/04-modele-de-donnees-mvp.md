@@ -605,6 +605,7 @@ migration `0303` : les ajouter n'exige aucun changement de schéma.
 | `campaign.paused` · `campaign.closed` | `campaigns` | `campaign` | `info` | `exported` | Mise en pause, clôture (y compris automatique) |
 | `block.created` · `block.lifted` | `matching` | `party_block` | `sensitive` | **`excluded_third_party`** | Blocage entre deux parties, posé ou retiré (`10` RG28) |
 | `search.settings_changed` | `search` | `search_setting` | `sensitive` | `exported` | Modification d'un réglage de recherche ou d'une facette (`10` RG2, RG11) |
+| `search.selection_requested` | `search` | `selection_request` | `info` | `exported` | *`0325` (L3F) :* la marque demande une sélection à l'équipe INFLUX (`10` RG61, CA39) ; charge utile : `campaign_id` seul |
 
 Les deux premiers étaient explicitement manquants (`09`, Impacts) ; les autres sont leurs frères de
 la même migration — un cycle de vie dont seuls deux événements sur six seraient journalisés ne
@@ -2215,6 +2216,21 @@ sinon aucune) **et déjà servi à l'appelant** (impression ou ouverture) ; idem
 créateurs masqués depuis (E1 à E6) sans trace ni compte, revenus s'ils redeviennent visibles ; une
 campagne refusée depuis garde le rattachement, son secteur ignoré. Aucune ligne de
 `leads.outbox_events`, de `matching.*` ni d'audit.
+
+#### `search.selection_requests` — la demande de sélection à l'équipe (L3F, `0325`)
+
+*La demande d'une marque à l'équipe INFLUX* (`jalons/l3f/modele.md` §6 ; `10` RG61, CA39 ; file 9
+`team_selection`). `id uuid` PK, `advertiser_account_id` (→ `profiles.advertiser_profiles`),
+`campaign_id` (nul permis ; admise au dépôt par `search.is_admitted_campaign()`), `filters` (la forme
+de `p_filters`, **tous les critères saisis**), `language` (`preferred_language` au dépôt), `message`
+(nul ou 1 à 1 000 caractères, lu des seuls agents, D46), `state` (`open` ; `closed` et son motif au
+L3G), `sla_due_at` (figé au dépôt par `backoffice.business_deadline('team_selection', …)`),
+`created_at`. RLS forcée, politique restrictive, **aucun droit membre** : écrite par la seule porte
+`search.request_team_selection(p_filters, p_campaign_id, p_message)` de la marque (interrupteur et
+seuil ignorés, RG61 ; plafond `selection_limits.requestsPerDay` sur 24 h glissantes, refus sans
+écriture), avec une ligne `search.selection_requested` (`exported`, identifiants seuls). **Ni
+créateur, ni `matching.*`, ni outbox, ni e-mail** (D45, CA64). Exportée à la marque, effacée avec
+elle ; 12 mois après la clôture (§9).
 
 #### `search.impression_reasons` — l'explication affichée, rejouable et mesurable
 
@@ -5281,7 +5297,7 @@ d'attente non validées**, chargées comme telles :
 | `queue_code` | Délai de décision | Statut |
 |---|---|---|
 | `verification_disputes` | **5 jours ouvrés** | **Proposition `15` Q2 — non validée** |
-| `team_selection` | **1 jour ouvré** | **Proposition `15` Q3 — non validée** |
+| `team_selection` | **1 jour ouvré** | **Proposition `15` Q3 — non validée** · *chargée par `0325` (L3F) : 480 min ouvrées, prise 240, `is_provisional`* |
 | `lead_sync_failures` | **2 jours ouvrés**, **aucun verrou** (`15` RG30 : le rejeu est idempotent) | **Proposition `15` Q4 — non validée** |
 | `email_delivery_incidents` | **2 jours ouvrés** | **Proposition `15` Q4 — non validée** |
 | `data_subject_requests` | **30 jours calendaires** (délai légal), objectif interne 10 jours ouvrés | Délai **légal**, pas une proposition |
@@ -5992,6 +6008,8 @@ les préparer serait inventer.
 | Incidents de délivrance | `identity.email_delivery_incidents` | **24 mois** | `occurred_at` | Diagnostic d'un compte fermé et suivi de la réputation d'envoi ; au-delà, sans usage |
 | Journal des recherches | `search.search_queries`, `search_impressions`, `impression_reasons`, `creator_exposures` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite. *L3E (`0318`, `archives/jalons/l3e/modele.md` §9) : export de la marque `advertiser_profile.creator_searches` (instant, filtres, tri, page, issue, tranche du nombre ou nul, blocage k, titre de la campagne), jamais le nombre exact, une impression, une raison, une exposition ni un créateur servi ; le créateur ne reçoit aucune impression (RG8). À l'effacement, **supprimés** : recherches de la marque avec leurs impressions et raisons, impressions et raisons d'un créateur dans toute recherche, son exposition. Purge au Lot 6 avec L3DS-2* |
 | Sélections d'une marque | `search.shortlists`, `shortlist_items` | *Non fixée : Lot 6, veto RGPD* | — | *`0318` : exportées à la marque (nom, titre de la campagne, date, créateurs par alias avec date et note, seuls alias de son export) ; supprimées avec la marque effacée, la place d'un créateur effacé retirée de toute sélection* |
+| Ouvertures de profil | `search.profile_openings` (L3F, `0323`) | **12 mois** (hypothèse, comme le journal des recherches) | `created_at` | *`0325` : jamais exportées (comme les impressions) ; à l'effacement, **supprimées** pour la marque qui a ouvert comme pour le créateur ouvert. Purge au Lot 6* |
+| Demandes de sélection à l'équipe | `search.selection_requests` (L3F, `0325`) | **12 mois après la clôture** (hypothèse, veto RGPD du Lot 6) | clôture (L3G) | *Exportées à la marque `advertiser_profile.selection_requests` (instant, filtres, titre de la campagne, langue, message, état ; jamais l'identifiant ni le délai) ; supprimées avec la marque effacée. Purge au Lot 6* |
 | Blocages entre parties | `matching.party_blocks` | *Non fixée : Lot 6, veto RGPD* | — | *`0318` : à l'export, les seuls blocages **posés par le membre** (l'autre partie par alias ou nom de marque, motif, commentaire, dates), jamais un blocage posé contre lui, par INFLUX, ni qui l'a levé (RG30) ; `block.*` hors journal d'activité (`excluded_third_party`). À l'effacement, tout blocage d'une paire du compte est **supprimé**, quel qu'en soit l'auteur (EC-L3E-05-3)* |
 | Lectures du fil et des fiches de campagne | `search.creator_campaign_reads` (L3D, `0314`) | **12 mois** (hypothèse, comme le journal des recherches) | `read_at` | Contrepartie de l'ouverture du fil (`11` RG22) et anti-aspiration (CA18). Purge livrée avec celle du journal des recherches, **au plus tard au Lot 6** (aucune ligne n'a 12 mois avant) ; à l'effacement, les lignes du compte sont **supprimées**, aucune survie pseudonymisée ; durée soumise au veto RGPD du Lot 6 |
 | File de synchronisation | `leads.outbox_events` | `succeeded` : **30 jours** · `failed` : jusqu'à traitement | `completed_at` | Document `02` §6 |
@@ -6384,6 +6402,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0322 | `search_creator_search_admitted_campaign` (L3F, L3ES-1) | Aide invoker `search.is_admitted_campaign()` (`l3f/modele.md` §1) : campagne d'origine admise si de la marque, non effacée, `pending_review`, `published`, `paused` ou `closed` ; `draft` et `rejected` répondent comme une campagne inconnue (P0002, rien écrit ni décompté) ; moteur `creator_candidates()` (E6 : secteur d'une campagne admise seule) et porte `search_creators()` recréés à signature égale ; `SELECT (status)` sur `campaigns.campaigns` au propriétaire | Oui tant qu'aucune recherche n'est journalisée |
 | 0323 | `search_creator_profile_door` (L3F, signalé I-4) | Table `search.profile_openings` (§5.5 ; ajout seul, RLS forcée, aucun droit membre) ; portes `search.open_creator_profile(alias)` (RG1, interrupteur, seau `profileOpensPerDay`, alias membre du moteur avec la campagne d'origine admise, sinon P0002 `creator` unique ; ouverture journalisée et impression d'origine ouverte une fois dans la transaction qui sert ; carte de `creator_layer_a()` et région) et `search.read_creator_visual(alias, visuel)` (objet d'un visuel approuvé relu par `apps/api`, jamais servi), `EXECUTE` à `influx_advertiser` seul ; aides invoker `displayed_region()` (seuil sur E1 à E4) et `creator_open_retry_after()` ; droits du propriétaire : région, clé et côtés des visuels approuvés, `region_display_threshold`, filtres et campagne de ses recherches, ouverture de leurs impressions | Oui tant qu'aucun profil n'est ouvert |
 | 0324 | `search_brand_shortlists` (L3F, signalé I-4) | Clé `selection_limits` de `search_settings` (neuvième, `CHECK` et zod) ; huit portes des sélections par alias (`create_shortlist`, `update_shortlist`, `delete_shortlist`, `add_to_shortlist`, `set_shortlist_note`, `remove_from_shortlist`, `list_shortlists`, `read_shortlist`), `EXECUTE` à `influx_advertiser` seul, derrière la garde (42501, RG1, interrupteur) ; ajout d'un alias listé par le moteur avec la campagne de la liste et déjà servi à l'appelant, sinon P0002 `creator` unique ; liste d'autrui P0002 `shortlist` ; bornes 54000 ; masqués sans trace ; six aides invoker ; droits du propriétaire sur les seules listes de l'appelant, le créateur de ses ouvertures, `selection_limits` ; rien vers l'outbox, `matching.*` ni l'audit | Oui tant qu'aucune sélection n'est écrite par une porte |
+| 0325 | `search_selection_requests` (L3F, signalé I-4) | Table `search.selection_requests` (§5.5 ; RLS forcée, aucun droit membre) ; porte `search.request_team_selection(p_filters, p_campaign_id, p_message)`, `EXECUTE` à `influx_advertiser` seul : RG1, interrupteur et seuil ignorés (RG61), `requestsPerDay` sur 24 h (`rate_limited`, rien écrit), filtres (22023), campagne admise (P0002 `campaign`), message 1 à 1 000 (22023), langue de la marque, `sla_due_at` par `business_deadline()` ; code `search.selection_requested` (`exported`) ; file 9 `team_selection` et son délai provisoire (480, prise 240) ; garde du journal étendue aux ouvertures ; E-5 : export `advertiser_profile.selection_requests`, effacement des ouvertures et des demandes. Ni `matching.*`, ni outbox, ni e-mail (D45, CA64) |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

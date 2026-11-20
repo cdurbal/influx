@@ -289,6 +289,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
         role: "influx_advertiser",
         name: "search.remove_from_shortlist(uuid,text)",
       },
+      // 0325 (L3F-05, EC-L3F-05-7): the brand's request for a selection by the team
+      {
+        role: "influx_advertiser",
+        name: "search.request_team_selection(jsonb,uuid,text)",
+      },
       // 0319 (L3E-06, EC-L3E-06-11): the brand's door of the creator search
       {
         role: "influx_advertiser",
@@ -1093,7 +1098,8 @@ describe("L3E-T3 TM11: the Drizzle declaration of search.ts has the columns of t
         catalogue.map((row) => [row.name, [...row.columns].sort()]),
       ),
     );
-    // creator_campaign_reads (0314), the eleven tables of 0316 and profile_openings (0323)
-    expect(Object.keys(declared)).toHaveLength(13);
+    // creator_campaign_reads (0314), the eleven tables of 0316, profile_openings (0323) and
+    // selection_requests (0325)
+    expect(Object.keys(declared)).toHaveLength(14);
   });
 });

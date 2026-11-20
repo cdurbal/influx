@@ -1017,6 +1017,14 @@ describe("L3B-T3 the codes of Lot 3 and the closed lists (04 §4.3, modele §3)"
         severity: "info",
         export_class: "exported",
       },
+      // 0325 (L3F-05, EC-L3F-05-6): the brand asks the team for a selection, its own act
+      {
+        code: "search.selection_requested",
+        domain: "search",
+        subject_type: "selection_request",
+        severity: "info",
+        export_class: "exported",
+      },
       {
         code: "search.settings_changed",
         domain: "search",

@@ -1,7 +1,8 @@
 // Schema `search`, migrations 0314 (the journal of the creator's reads of the open campaigns,
 // jalons/l3d/modele.md §6), 0316 (the journal of the creator search, its settings, the brand's
-// shortlists and the counters of critical mass, jalons/l3e/modele.md §7, §9) and 0323 (the openings
-// of an anonymous profile, jalons/l3f/modele.md §2). The SQL is the source
+// shortlists and the counters of critical mass, jalons/l3e/modele.md §7, §9), 0323 (the openings
+// of an anonymous profile, jalons/l3f/modele.md §2) and 0325 (the requests for a selection by the
+// team, §6). The SQL is the source
 // of truth: this file is aligned by hand, never generated, and held to the catalogue by
 // db-tests/search-journal-settings.test.ts (TM11). Declaring a column here grants nothing: no
 // execution role holds a right on a table of this schema (03 P2; l3e fiche invariant 1); the doors
@@ -10,6 +11,7 @@
 import {
   bigint,
   boolean,
+  char,
   date,
   integer,
   jsonb,
@@ -179,6 +181,22 @@ export const shortlistItems = searchSchema.table(
     primaryKey({ columns: [table.shortlistId, table.creatorAccountId] }),
   ],
 );
+
+/**
+ * 0325: the brand's requests for a selection by the INFLUX team (l3f/modele.md §6; 10 RG61): every
+ * criterion, the campaign, the language, the deadline of queue 9; the message read by agents alone.
+ */
+export const selectionRequests = searchSchema.table("selection_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  advertiserAccountId: uuid("advertiser_account_id").notNull(),
+  campaignId: uuid("campaign_id"),
+  filters: jsonb("filters").notNull().default({}),
+  language: char("language", { length: 2 }).notNull(),
+  message: text("message"),
+  state: text("state").notNull().default("open"),
+  slaDueAt: timestamptz("sla_due_at").notNull(),
+  createdAt: timestamptz("created_at").notNull().defaultNow(),
+});
 
 /** 0316: the daily counters of critical mass (D38), written by the task of L3G. */
 export const supplyCounters = searchSchema.table(
