@@ -15,6 +15,8 @@ export type MemberPage =
   | "advertiserCampaigns"
   | "advertiserCampaign"
   | "advertiserCampaignPreview"
+  | "advertiserCreators"
+  | "advertiserSelectionRequest"
   | "accountHub"
   | "accountDetails"
   | "accountProfile"
@@ -40,6 +42,15 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   // campaign form is a child of it, the identifier of the campaign being the one dynamic segment of a member address.
   advertiserCampaigns: { fr: "campagnes", en: "campaigns" },
   advertiserCampaign: { fr: "campagnes/[id]", en: "campaigns/[id]" },
+  // "Créateurs" (17 §4.4, M4; L3F, commit 10): the anonymous search of a brand, the entry of its column; the applied
+  // criteria are the query of the address (creator-search-view.ts), never a path segment.
+  advertiserCreators: { fr: "createurs", en: "creators" },
+  // "Demander une sélection à l'équipe" (17 §4.4, 10 RG61; L3F, commits 10 and 11): a child of the search; it takes the
+  // criteria and the campaign of the search back from the query of the address.
+  advertiserSelectionRequest: {
+    fr: "createurs/demande-de-selection",
+    en: "creators/selection-request",
+  },
   // "Ce que voit un créateur" (17 §2.6, §4.3; 09 RG102, CA68; L3B, commit 11): the brand reads its campaign as the
   // platform serves it to a creator, a child of the form, nothing to enter; the same identifier, no query.
   advertiserCampaignPreview: {
@@ -128,6 +139,7 @@ export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
 export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
   advertiserCampaign: "advertiserCampaigns",
   advertiserCampaignPreview: "advertiserCampaigns",
+  advertiserSelectionRequest: "advertiserCreators",
   accountProfilePreview: PROFILE_ACCOUNT_PAGE,
   accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
   accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
@@ -233,6 +245,8 @@ const PAGE_SPACES: Readonly<Partial<Record<MemberPage, SignupDoor>>> = {
   // CAMPAIGNS_PAGE and CAMPAIGN_PAGE are common to both roles (L3D-A §7): no space. The brand's preview of its
   // own campaign stays in its space, a creator is sent home.
   advertiserCampaignPreview: "advertiser",
+  advertiserCreators: "advertiser",
+  advertiserSelectionRequest: "advertiser",
 };
 
 export function spaceOf(page: MemberPage): SignupDoor | null {

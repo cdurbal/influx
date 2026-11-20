@@ -3,6 +3,7 @@ import enAuth from "@/locales/en/auth.json";
 import enBrandProfile from "@/locales/en/brand-profile.json";
 import enCampaign from "@/locales/en/campaign.json";
 import enCreatorProfile from "@/locales/en/creator-profile.json";
+import enCreatorSearch from "@/locales/en/creator-search.json";
 import enErrors from "@/locales/en/errors.json";
 import enLanding from "@/locales/en/landing.json";
 import enLegal from "@/locales/en/legal.json";
@@ -13,6 +14,7 @@ import frAuth from "@/locales/fr/auth.json";
 import frBrandProfile from "@/locales/fr/brand-profile.json";
 import frCampaign from "@/locales/fr/campaign.json";
 import frCreatorProfile from "@/locales/fr/creator-profile.json";
+import frCreatorSearch from "@/locales/fr/creator-search.json";
 import frErrors from "@/locales/fr/errors.json";
 import frLanding from "@/locales/fr/landing.json";
 import frLegal from "@/locales/fr/legal.json";
@@ -40,6 +42,8 @@ type FrVerification = typeof frVerification;
 type EnVerification = typeof enVerification;
 type FrCampaign = typeof frCampaign;
 type EnCampaign = typeof enCampaign;
+type FrCreatorSearch = typeof frCreatorSearch;
+type EnCreatorSearch = typeof enCreatorSearch;
 
 // Compile-time parity check (CA23): each file must be assignable to the type of the other one.
 // A key missing or added on either side makes `pnpm typecheck` fail.
@@ -63,6 +67,8 @@ const enVerificationMatchesFr: FrVerification = enVerification;
 const frVerificationMatchesEn: EnVerification = frVerification;
 const enCampaignMatchesFr: FrCampaign = enCampaign;
 const frCampaignMatchesEn: EnCampaign = frCampaign;
+const enCreatorSearchMatchesFr: FrCreatorSearch = enCreatorSearch;
+const frCreatorSearchMatchesEn: EnCreatorSearch = frCreatorSearch;
 
 export type Messages = {
   landing: FrLanding;
@@ -75,6 +81,7 @@ export type Messages = {
   creatorProfile: FrCreatorProfile;
   verification: FrVerification;
   campaign: FrCampaign;
+  creatorSearch: FrCreatorSearch;
 };
 
 export const MESSAGES: Record<AppLocale, Messages> = {
@@ -89,6 +96,7 @@ export const MESSAGES: Record<AppLocale, Messages> = {
     creatorProfile: frCreatorProfileMatchesEn,
     verification: frVerificationMatchesEn,
     campaign: frCampaignMatchesEn,
+    creatorSearch: frCreatorSearchMatchesEn,
   },
   en: {
     landing: enMatchesFr,
@@ -101,5 +109,6 @@ export const MESSAGES: Record<AppLocale, Messages> = {
     creatorProfile: enCreatorProfileMatchesFr,
     verification: enVerificationMatchesFr,
     campaign: enCampaignMatchesFr,
+    creatorSearch: enCreatorSearchMatchesFr,
   },
 };

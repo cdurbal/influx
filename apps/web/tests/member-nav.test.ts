@@ -88,10 +88,11 @@ describe("TD2.1: five entries at most per role, in a fixed order (17 §2.1)", ()
     }
   });
 
-  it("shows the entries whose screen exists only: Accueil, Campagnes (L3B) and Compte for a brand, Accueil, Campagnes (L3D) and Compte for a creator", () => {
+  it("shows the entries whose screen exists only: Accueil, Campagnes (L3B), Créateurs (L3F) and Compte for a brand, Accueil, Campagnes (L3D) and Compte for a creator", () => {
     expect(navItemsOf("advertiser")).toEqual([
       { entry: "home", page: "advertiserHome" },
       { entry: "campaigns", page: "advertiserCampaigns" },
+      { entry: "creators", page: "advertiserCreators" },
       { entry: "account", page: "accountHub" },
     ]);
     expect(navItemsOf("creator")).toEqual([
@@ -162,6 +163,8 @@ describe("TD2.4: the active entry of each page", () => {
     advertiserCampaigns: "campaigns",
     advertiserCampaign: "campaigns",
     advertiserCampaignPreview: "campaigns",
+    advertiserCreators: "creators",
+    advertiserSelectionRequest: "creators",
     accountHub: "account",
     accountDetails: "account",
     accountProfile: "account",
@@ -402,6 +405,7 @@ describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a 
     expect(PARENT_PAGES).toEqual({
       advertiserCampaign: "advertiserCampaigns",
       advertiserCampaignPreview: "advertiserCampaigns",
+      advertiserSelectionRequest: "advertiserCreators",
       accountProfilePreview: "accountProfile",
       accountVerificationOwnership: "accountProfile",
       accountVerificationAudience: "accountProfile",

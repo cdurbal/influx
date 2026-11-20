@@ -886,24 +886,24 @@ Desktop 1440
 │ (colonne collante)    │ Recherche liée à : [Rentrée beauté 2026 v] [◦ Aucune]│
 │                       │                                                      │
 │ Thématique        [v] │ Environ 10-24 profils correspondent.        RG59    │
-│ Réseaux           [ ] │ Tri : [Pertinence v] (Audience · Tarif · Vérifiés    │
-│ Audience / réseau [ ] │        d'abord · Nouveaux profils)           RG43    │
+│ Réseaux           [ ] │ Tri : [Pertinence v] (Audience · Vérifiés d'abord ·  │
+│ Audience / réseau [ ] │        Nouveaux profils)                     RG43    │
 │ Pays d'audience   [v] │ Critères actifs : [Beauté ×][Instagram ×][France ×]  │
 │   + part      [≥80% v]│                                                      │
 │ Langues           [ ] │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │
 │ Formats           [ ] │ │ carte anonyme│ │ carte anonyme│ │ carte anonyme│  │
-│ Tarif        [v]+[EUR]│ │   (§7.1)     │ │              │ │              │  │
-│  [ ] Inclure les      │ └──────────────┘ └──────────────┘ └──────────────┘  │
-│  créateurs qui        │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │
-│  tarifent dans une    │ │              │ │              │ │              │  │
-│  autre devise    RG18 │ └──────────────┘ └──────────────┘ └──────────────┘  │
-│ Badge             [ ] │                                                      │
-│                       │           Page 1 sur 5 · 12 par page         RG63    │
+│ Badge             [ ] │ │   (§7.1)     │ │              │ │              │  │
+│                       │ └──────────────┘ └──────────────┘ └──────────────┘  │
+│                       │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │
+│                       │ │              │ │              │ │              │  │
+│                       │ └──────────────┘ └──────────────┘ └──────────────┘  │
+│                       │                                                      │
+│                       │      [Page précédente]  Page 1  [Page suivante] RG63 │
 │ [□ Tout effacer]      │                                                      │
 │ ───────────────────── │ ┌──────────────────────────────────────────────────┐ │
-│ [□ Demander une       │ │ MA SÉLECTION (3)                                 │ │
+│ [□ Demander une       │ │ MA SÉLECTION (3)  (commit 11 du L3F)             │ │
 │  sélection à l'équipe]│ │ Profil 7K3M · Profil 2QX8 · Profil B40T          │ │
-│        RG61, permanent│ │ [■ Demander une mise en relation pour ces 3]     │ │
+│        RG61, permanent│ │ (aucune demande de mise en relation : Lot 4)     │ │
 │                       │ └──────────────────────────────────────────────────┘ │
 └───────────────────────┴──────────────────────────────────────────────────────┘
 
@@ -926,14 +926,23 @@ Mobile 375
 
 | Élément | Décision et règle |
 |---|---|
-| Facettes ouvertes | Les **8 du socle** uniquement (`10` RG12). Les facettes de seconde vague apparaissent **quand le paramètre les ouvre**, sans redéploiement (RG11). L'écran ne montre jamais une facette fermée, même grisée |
+| Facettes ouvertes | Les **7 du socle** au pilote, la huitième (le tarif, F12) étant suspendue tant que D78 tient (`10` RG12 ; amendé par L3F, EC-L3F-5). Les facettes de seconde vague apparaissent **quand le paramètre les ouvre**, sans redéploiement (RG11). L'écran ne montre jamais une facette fermée, même grisée |
 | Aucun champ texte libre | `10` RG6. Il n'existe **aucune barre de recherche** dans cet écran. C'est contre-intuitif pour un utilisateur habitué aux annuaires : une ligne d'explication le dit (« la recherche se fait par critères, pour protéger l'anonymat des créateurs ») |
-| Tarif + devise | La devise est **obligatoire** et pré-remplie depuis le profil (`10` RG18). La case « inclure les autres devises » est **sous le filtre**, et les profils concernés portent la mention « tarif dans une autre devise » |
+| Tarif + devise | **Suspendus au pilote** (D78, EC-L3F-5) : ni filtre, ni tri, ni devise, ni case « autres devises », ni tarif sur la carte. Ils reviennent avec F12 (`10` RG18) |
 | Nombre de résultats | **Tranche uniquement**, jamais un nombre. Formulé comme une information, pas comme une limitation |
 | Tri | Toujours **nommé à l'écran** (`10` RG44). Le tri par défaut s'appelle « Pertinence » et un `[i:info]` ouvre l'explication des paliers en langage courant — pas un score |
 | Sélection | Panneau persistant, **aucune notification au créateur** (`10` RG51, RG8). Le libellé dit « privée » |
 | Pagination | 12 par page, 5 pages, **explicite** (`10` RG63). Pas de défilement infini : il rendrait le plafond incompréhensible |
 | Demande de sélection à l'équipe | **Présent en permanence**, pas seulement sous le seuil (`10` RG61) |
+
+**Amendé par L3F, commit 10 (EC-L3F-5, EC-L3F-10-1 à -3).** Les critères sont ceux de l'adresse (rechargement, retour,
+reprise par la demande) et s'appliquent ensemble par « Voir les résultats » : une page est une recherche du seau du
+compte (`10` RG64), aucun critère ne lance la sienne. La pagination est « Page précédente · Page N · Page suivante »,
+sans total : le nombre de pages dirait le nombre de résultats (RG59) ; une page déjà lue ne se redemande pas. L'état ③
+dit « Revenez plus tard », avec le délai de la base (`Retry-After`) quand elle en donne un. La carte n'offre que
+« Ajouter à ma sélection » (L3F, commit 11) ; « Demander une mise en relation (pour ces 3) » disparaît jusqu'au Lot 4
+(RG55). Sur téléphone, le panneau des filtres est un panneau repliable au-dessus des résultats, non un plein écran
+(à revoir par `expert-ux`, ligne U).
 
 **Les trois états spécifiques de cette recherche** — ce sont eux qui font ou défont l'écran.
 

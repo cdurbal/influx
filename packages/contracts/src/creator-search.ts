@@ -97,6 +97,18 @@ export const WIDENING_ORDER = [
   "F1",
 ] as const satisfies readonly CreatorSearchFacetCode[];
 
+/**
+ * The states of a brand's campaign a search may be linked to (L3F modele §1, L3ES-1): `draft` and
+ * `rejected` answer as an unknown campaign, so the screen never offers them. The base decides
+ * (`search.is_admitted_campaign()`); this list only draws the choice.
+ */
+export const CREATOR_SEARCH_ORIGIN_CAMPAIGN_STATUSES = [
+  "pending_review",
+  "published",
+  "paused",
+  "closed",
+] as const;
+
 /** POST /v1/creator-search: the whole entry, nothing else (no size of page, RG63). */
 export const creatorSearchBodySchema = z.strictObject({
   filters: creatorSearchFiltersSchema,

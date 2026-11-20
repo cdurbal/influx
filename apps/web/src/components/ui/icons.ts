@@ -19,6 +19,7 @@ export {
   Eye as EyeIcon,
   EyeOff as EyeOffIcon,
   FileCheck as FileCheckIcon,
+  Funnel as FilterIcon,
   FileQuestionMark as FileQuestionIcon,
   Globe as GlobeIcon,
   Heart as HeartIcon,
@@ -45,6 +46,7 @@ export {
   TrendingUp as TrendingUpIcon,
   TriangleAlert as TriangleAlertIcon,
   UserRound as UserRoundIcon,
+  Users as UsersIcon,
   Volume2 as Volume2Icon,
   X as CloseIcon,
 } from "lucide-react";

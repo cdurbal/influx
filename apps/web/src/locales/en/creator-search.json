@@ -1,0 +1,141 @@
+{
+  "meta": {
+    "search": "Creators",
+    "request": "Request a selection"
+  },
+  "page": {
+    "title": "Creators",
+    "explain": "Search works by criteria, to protect creators' anonymity: there is no search bar, and you never see an identity before an introduction."
+  },
+  "request": {
+    "link": "Ask the INFLUX team for a selection",
+    "hint": "You describe your need, the INFLUX team proposes a selection."
+  },
+  "filters": {
+    "title": "Search criteria",
+    "noFreeText": "Choose your criteria, then run the search: it only runs when you ask for it.",
+    "apply": "See the results",
+    "clear": "Clear all",
+    "all": "All",
+    "open": "Filters",
+    "openCount": "Filters ({count})",
+    "close": "Hide the filters",
+    "referencesFailed": "The lists of choices did not load: some criteria are empty for now.",
+    "referencesRetry": "Reload the lists",
+    "badge": {
+      "account_verified": "Verified account",
+      "audience_verified": "Verified audience"
+    }
+  },
+  "facets": {
+    "F1": "Main topic",
+    "F3": "Networks",
+    "F4": "Audience band",
+    "F6": "Audience country",
+    "F6s": "Share of the audience in this country",
+    "F8": "Publication languages",
+    "F11": "Formats",
+    "F17": "Badges"
+  },
+  "criteria": {
+    "title": "Active criteria",
+    "country": "Audience country: {country}",
+    "share": "Share of the audience: {share}",
+    "remove": "Remove the criterion: {label}"
+  },
+  "campaign": {
+    "label": "Search linked to",
+    "none": "No campaign",
+    "untitled": "Untitled campaign",
+    "current": "Chosen campaign",
+    "failed": "Your campaigns did not load."
+  },
+  "sort": {
+    "label": "Sort",
+    "default": "Relevance",
+    "audience": "Audience",
+    "verified_first": "Verified first",
+    "new_profiles": "New profiles",
+    "explain": "\"Relevance\" puts first the profiles that meet more of your criteria and your campaign, then those whose audience or account is verified and whose figures are recent. It is not a score."
+  },
+  "bands": {
+    "5_9": "About 5 to 9 profiles match your search.",
+    "10_24": "About 10 to 24 profiles match your search.",
+    "25_49": "About 25 to 49 profiles match your search.",
+    "50_plus": "More than 50 profiles match your search."
+  },
+  "results": {
+    "title": "Search results",
+    "loading": "Searching…",
+    "pager": "Pages of results",
+    "page": "Page {page}",
+    "previous": "Previous page",
+    "next": "Next page",
+    "capReached": "More profiles exist: refine your criteria to reach them.",
+    "endOfResults": "There are no more profiles on this page.",
+    "backToFirst": "Back to the first page"
+  },
+  "reasons": {
+    "title": "Suggested because",
+    "vigilance": "Point of attention: {text}"
+  },
+  "reason": {
+    "topic_match": "Matching topic: {topic}",
+    "primary_topic": "Main topic: {topic}",
+    "network_match": "On {network}, audience: {band}",
+    "audience_country_match": "Audience country {country}: {share}",
+    "campaign_audience_country": "Audience country targeted by your campaign, {country}: {share}",
+    "main_audience": "Main audience country, {country}: {share}",
+    "language_match": "Publication language: {language}",
+    "format_match": "Format offered: {format}",
+    "campaign_format": "Format of your campaign: {format}, on {network}",
+    "audience_verified": "Audience verified on {network}",
+    "account_verified": "Account verified on {network}",
+    "figures_fresh": "Recent figures on {network}",
+    "available": "{availability}"
+  },
+  "vigilance": {
+    "stale_figures": "The figures of the main network are not recent.",
+    "recent_profile": "Recent profile.",
+    "audience_badge_to_renew": "The audience badge is due for renewal.",
+    "declared_full": "The creator declares a full calendar."
+  },
+  "closed": {
+    "title": "Search is not open yet",
+    "notice": "Search will open once our catalogue is rich enough. In the meantime, describe your need: our team proposes a selection. Your criteria stay editable and are kept."
+  },
+  "notPublished": {
+    "action": "Complete my brand profile"
+  },
+  "tooNarrow": {
+    "title": "Your search is too narrow to be displayed.",
+    "text": "Widen a criterion, or ask the INFLUX team for a selection.",
+    "widen": "To widen it:",
+    "remove": "Remove the criterion \"{facet}\"",
+    "loosen": "Remove the share of the audience"
+  },
+  "rateLimited": {
+    "text": "You have reached the search limit. Come back later, or ask the INFLUX team for a selection.",
+    "waitMinutes": "{count, plural, one {You can search again in about # minute.} other {You can search again in about # minutes.}}",
+    "waitHours": "{count, plural, one {You can search again in about # hour.} other {You can search again in about # hours.}}",
+    "kept": "The results already shown stay readable."
+  },
+  "pageCap": {
+    "text": "You have reached the end of the results that can be displayed: refine your criteria to see other profiles."
+  },
+  "forbidden": {
+    "text": "This campaign is not available for a search.",
+    "action": "Search without a campaign"
+  },
+  "failed": {
+    "text": "The search cannot run right now. Your criteria are kept.",
+    "retry": "Try again"
+  },
+  "selectionRequest": {
+    "title": "Ask the INFLUX team for a selection",
+    "explain": "Describe your need: the INFLUX team reviews your request and proposes a selection of creators. No creator is notified.",
+    "recap": "Criteria taken from your search",
+    "recapNone": "No criteria: your request will cover the whole catalogue.",
+    "back": "Creators"
+  }
+}

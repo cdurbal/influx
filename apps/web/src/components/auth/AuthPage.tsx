@@ -27,6 +27,8 @@ const PAGE_TITLES = {
   advertiserCampaigns: "campaign.meta.list",
   advertiserCampaign: "campaign.meta.form",
   advertiserCampaignPreview: "campaign.meta.preview",
+  advertiserCreators: "creatorSearch.meta.search",
+  advertiserSelectionRequest: "creatorSearch.meta.request",
   accountHub: "account.meta.hub",
   accountDetails: "account.meta.details",
   accountProfile: "account.meta.profile",
@@ -119,6 +121,7 @@ export function SpaceMessages({
     creatorProfile,
     verification,
     campaign,
+    creatorSearch,
   } = MESSAGES[locale];
   return (
     <NextIntlClientProvider
@@ -130,6 +133,7 @@ export function SpaceMessages({
         creatorProfile,
         verification,
         campaign,
+        creatorSearch,
       }}
     >
       {children}

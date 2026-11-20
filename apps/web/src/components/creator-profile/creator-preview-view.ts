@@ -491,20 +491,35 @@ export function previewCardOf(
   const projection: CreatorProjectionBefore | CreatorProjectionAfter =
     tab === "before" ? preview.before : preview.after;
   return {
+    ...cardOfProjection(projection, labels),
+    shares: tab === "after" ? sharesOf(preview.after, labels) : [],
+  };
+}
+
+/**
+ * The card of a projection of layer A, without the exact shares (those are the "after" tab's): the ONE way a card
+ * is written, for the creator's preview and for the brand's search, its profile and its shortlists (L3F, commit
+ * 10: one source). `visualsShown`: how many of the first visuals the card holds (three on the preview and the
+ * profile, one on the card of a list, 17 §7.1).
+ */
+export function cardOfProjection(
+  projection: CreatorProjectionBefore | CreatorProjectionAfter,
+  labels: PreviewLabels,
+  visualsShown: number = PREVIEW_VISUALS_SHOWN,
+): PreviewCard {
+  return {
     alias: projection.alias,
     headline: projection.headline,
     bio: projection.bio,
-    visuals: projection.visuals
-      .slice(0, PREVIEW_VISUALS_SHOWN)
-      .map((visual) => ({
-        id: visual.id,
-        position: visual.order,
-        caption: visual.caption,
-      })),
+    visuals: projection.visuals.slice(0, visualsShown).map((visual) => ({
+      id: visual.id,
+      position: visual.order,
+      caption: visual.caption,
+    })),
     profile: profileRowsOf(projection, labels),
     networks: projection.networks.map((network) => networkOf(network, labels)),
     audience: audienceRowsOf(projection, labels),
-    shares: tab === "after" ? sharesOf(preview.after, labels) : [],
+    shares: [],
     offer: offerRowsOf(projection, labels),
   };
 }
