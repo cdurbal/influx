@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/l3f-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -640,9 +637,9 @@
 | 1267 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
 | 1310 | 31 | 8. Ce qui n'est pas couvert, et pourquoi |  |
 | 1341 | 60 | 9. Ce qui remonte |  |
-| 1401 | 228 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
-| 1629 | 21 | 11. Verdict |  |
-| 1650 | 271 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1401 | 229 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
+| 1630 | 21 | 11. Verdict |  |
+| 1651 | 271 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
 
 ## 20-direction-design.md (~27k tokens)
 
@@ -681,4 +678,4 @@
 | 93 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 117 | 9 | 6. Configuration des services externes |  |
 | 126 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 143 | 122 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 143 | 126 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |

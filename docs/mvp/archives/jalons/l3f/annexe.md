@@ -26,20 +26,22 @@ chaque éclat ≤ 7 min 30, éclat le plus long + contrôle ≤ 8 min. **Base pa
 isole ses créateurs (pays d'audience et thématique propres) ou balaie les siens (`stale-fixtures.ts`).
 
 ## Critère de fin
-- [ ] Interrupteur ouvert (local) : une marque filtre, lit l'explication, ouvre un profil (3 visuels),
+- [x] Interrupteur ouvert (local) : une marque filtre, lit l'explication, ouvre un profil (3 visuels),
       ajoute 3 créateurs à une sélection de sa campagne, demande une sélection — preuve : L3F-E1, E2 en CI.
-- [ ] Interrupteur fermé : critères, message et bouton de demande seuls (CA59) — preuve : L3F-E1, T3.
-- [ ] Profil : clés de la carte (CA6), inconnu = exclu (CA49), 61e ouverture → 429 (T15.2), `was_opened`
+- [x] Interrupteur fermé : critères, message et bouton de demande seuls (CA59) — preuve : L3F-E1, T3.
+- [x] Profil : clés de la carte (CA6), inconnu = exclu (CA49), 61e ouverture → 429 (T15.2), `was_opened`
       (CA48), région (CA15) — preuve : L3F-T3, T7.
-- [ ] Visuels lus par l'annonceur sans URL émise, approuvés seuls (T1.5, T9, CA50) — preuve : L3F-T3, T7, T9.
-- [ ] Sélections sans notification (CA52) ni export (TM12.3) ; demande avec critères, campagne et langue
+- [x] Visuels lus par l'annonceur sans URL émise, approuvés seuls (T1.5, T9, CA50) — preuve : L3F-T3, T7, T9.
+- [x] Sélections sans notification (CA52) ni export (TM12.3) ; demande avec critères, campagne et langue
       (CA39), sans mise en relation (D45) ni lead (CA64) — preuve : L3F-T4, T5, T8.
-- [ ] CA45 et CA46 levées, ouvertures dans AL21 — preuve : L3F-T6.
-- [ ] Reliquat soldé : L3E-DB, L3ES-1 (selon Q1), EC-L2G-16, L3ES-4 — preuve : lignes 01, 02, 03, 07, 09.
-- [ ] `0322` à `0326` sur `staging` ; interrupteur de `staging` faux en fin de jalon — preuve : « Migrate
+- [x] CA45 et CA46 levées, ouvertures dans AL21 — preuve : L3F-T6.
+- [x] Reliquat soldé : L3E-DB, L3ES-1 (selon Q1), EC-L2G-16, L3ES-4 — preuve : lignes 01, 02, 03, 07, 09.
+- [x] `0322` à `0326` sur `staging` ; interrupteur de `staging` faux en fin de jalon — preuve : « Migrate
       staging » vert, lecture SQL.
-- [ ] Recette du fondateur (ligne F, selon Q2) — preuve : réponse mot pour mot dans `run.md`.
-- [ ] T1, T2, T14, T15 verts ; job base ≤ 8 min ; e2e ≤ 25 s ; `pnpm check` puis `pnpm test:e2e` verts.
+- [x] Recette du fondateur (ligne F, selon Q2) — preuve : réponse mot pour mot dans `run.md`.
+- [x] T1, T2, T14, T15 verts ; job base ≤ 8 min ; e2e ≤ 25 s ; `pnpm check` puis `pnpm test:e2e` verts.
+
+**Preuves de clôture (2026-11-20).** Cases, dans l'ordre : (1) L3F-E1 (4 cas) et E2 (3 cas), CI 44746519403, `pnpm test:e2e` 291 verts ; (2) L3F-E1, T3, `staging` faux (lecture SQL), point 5 de la recette non confirmé par le fondateur mais prouvé par E1 et T3 ; (3) L3F-T3 (20 cas), T7 ; (4) L3F-T3, T7, T9, `60dbfdf` ; (5) L3F-T4, T5, T8 ; (6) L3F-T6, `cab91ae` ; (7) L3E-DB partiel (`ec253ba`, 4:30 inatteignable, EC-L3F-3), L3ES-1 (`c6af19a`), EC-L2G-16 (`584a23f`, `a9c9baf`), L3ES-4 (`60dbfdf`) ; (8) `0322` à `0326` lues sur `staging`, « Migrate staging » vert ; (9) ligne F de `run.md` ; (10) CI 44746519403 (base 6:34 et 5:34, e2e 3:56, 4:14, 3:10), mesures dans `run.md` § Mesures de clôture.
 
 ## Écarts, décisions ouvertes, risques
 - **EC-L3F-1** : lecture du portfolio par l'annonceur, E1-8 (URL signée ≤ 5 min) ou relais JSON par

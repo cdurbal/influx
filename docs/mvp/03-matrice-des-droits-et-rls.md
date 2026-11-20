@@ -393,7 +393,7 @@ create policy creator_identity_read_after_reveal
   secteurs refusés), aucun sur la couche I (EC-L3E-A-1). Pas d'`execute` dynamique (assertion de fin
   de `0319`). **À relire** par `expert-cybersecurite` (attendus de T1-R, L3E-T3 et T9.6 L2G changés,
   `0319` EC-L3E-06-8, EC-L3E-06-11).
-  *Amendé par L3F-03 (`0323`, `jalons/l3f/modele.md` §2 à §4, signalé I-4).* Deux portes de plus,
+  *Amendé par L3F-03 (`0323`, `archives/jalons/l3f/modele.md` §2 à §4, signalé I-4).* Deux portes de plus,
   même propriétaire, `EXECUTE` à `influx_advertiser` seul : `search.open_creator_profile(alias)`
   (appelant 42501, RG1, interrupteur, seau de `profileOpensPerDay` en base avec une ligne de refus
   par 24 h, puis l'alias membre du moteur avec la campagne d'origine admise, sinon P0002 `creator`
@@ -408,7 +408,7 @@ create policy creator_identity_read_after_reveal
   une fois) ; **jamais** la couche I, `public_ref`, Storage. Exceptions T1-R : les couples des deux
   portes (dix pour le profil, comme la recherche ; cinq pour un visuel, le moteur seul), aucun sur la
   couche I. **À relire** par `expert-cybersecurite` (`0323` EC-L3F-03-8).
-  *Amendé par L3F-04 (`0324`, `jalons/l3f/modele.md` §5, signalé I-4).* Les sélections de la marque
+  *Amendé par L3F-04 (`0324`, `archives/jalons/l3f/modele.md` §5, signalé I-4).* Les sélections de la marque
   passent par **huit portes** du même propriétaire, `EXECUTE` à `influx_advertiser` seul :
   `create_shortlist`, `update_shortlist`, `delete_shortlist`, `add_to_shortlist`,
   `set_shortlist_note`, `remove_from_shortlist`, `list_shortlists`, `read_shortlist`, toutes derrière

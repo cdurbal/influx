@@ -2191,7 +2191,7 @@ tard.
 
 #### `search.profile_openings` — les ouvertures de profil (L3F, `0323`)
 
-*Chaque ouverture d'un profil anonyme par une marque, servie ou refusée* (`jalons/l3f/modele.md` §2 ;
+*Chaque ouverture d'un profil anonyme par une marque, servie ou refusée* (`archives/jalons/l3f/modele.md` §2 ;
 `10` RG63, RG66, CA48 ; `18` T15.2). `id uuid` PK, `account_id` (la marque), `outcome`
 (`served` · `rate_limited`), `creator_account_id` (nul **si et seulement si** `rate_limited`),
 `search_query_id` (la recherche d'origine : la plus récente de l'appelant, servie depuis moins de
@@ -2206,7 +2206,7 @@ Jamais servie ni exportée, comme les impressions (-7) ; effacée par `0325` ; 1
 `search.shortlists` (`id`, `advertiser_account_id`, `name`, `campaign_id`) et
 `search.shortlist_items` (`shortlist_id`, `creator_account_id`, `added_at`, `note`) : la sélection
 privée de la marque. **Aucune notification au créateur** : l'ajout à une sélection n'est pas un acte
-de mise en relation. *Amendé par L3F-04 (`0324`, `jalons/l3f/modele.md` §5) :* aucun droit membre ;
+de mise en relation. *Amendé par L3F-04 (`0324`, `archives/jalons/l3f/modele.md` §5) :* aucun droit membre ;
 huit portes de la marque, **par alias** (créer, renommer ou rattacher, supprimer, ajouter, noter,
 retirer, lister, lire), dont le propriétaire `influx_creator_search_definer` lit et écrit les seules
 listes de l'appelant. Un ajout exige un alias que le moteur liste avec la campagne de la liste (admise,
@@ -2219,7 +2219,7 @@ campagne refusée depuis garde le rattachement, son secteur ignoré. Aucune lign
 
 #### `search.selection_requests` — la demande de sélection à l'équipe (L3F, `0325`)
 
-*La demande d'une marque à l'équipe INFLUX* (`jalons/l3f/modele.md` §6 ; `10` RG61, CA39 ; file 9
+*La demande d'une marque à l'équipe INFLUX* (`archives/jalons/l3f/modele.md` §6 ; `10` RG61, CA39 ; file 9
 `team_selection`). `id uuid` PK, `advertiser_account_id` (→ `profiles.advertiser_profiles`),
 `campaign_id` (nul permis ; admise au dépôt par `search.is_admitted_campaign()`), `filters` (la forme
 de `p_filters`, **tous les critères saisis**), `language` (`preferred_language` au dépôt), `message`

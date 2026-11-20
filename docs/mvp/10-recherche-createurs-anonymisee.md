@@ -261,7 +261,7 @@ une thématique isole une personne en deux clics, ce qui est exactement l'attaqu
 empêcher. La **ville n'est ni affichée, ni filtrable** avant révélation. La seule facette
 géographique ouverte côté créateur est **F20 (pays + mobilité)**.
 
-> **Amendé par L3F-03 (`0323`, EC-L3F-6, `jalons/l3f/modele.md` §4).** La région s'affiche sur le
+> **Amendé par L3F-03 (`0323`, EC-L3F-6, `archives/jalons/l3f/modele.md` §4).** La région s'affiche sur le
 > **profil ouvert seul** (`residenceRegion`, à côté de la carte) ; la **carte de recherche reste
 > inchangée**. Le seuil `region_display_threshold` (en table, 5) se compte sur les vitrines **E1 à
 > E4** (publiées, cherchables, compte actif, majorité attestée), plus strict que « publiés », et
@@ -386,7 +386,7 @@ laisser inférer une conviction personnelle du créateur. Elle est silencieuse c
 créateur** : la marque ne sait pas qu'elle a été écartée, le créateur ne sait pas qu'une marque l'a
 cherché. Seul le commercial la voit, via la facette **G10**.
 
-> **Amendé par L3F-02 (`0322`, L3ES-1, `jalons/l3f/modele.md` §1).** Le secteur d'une campagne
+> **Amendé par L3F-02 (`0322`, L3ES-1, `archives/jalons/l3f/modele.md` §1).** Le secteur d'une campagne
 > d'origine n'entre dans E6 que si la campagne est **sortie du brouillon** : de la marque, non effacée,
 > `pending_review`, `published`, `paused` ou `closed` (états où son secteur est figé). Une campagne en
 > `draft` ou `rejected`, que la marque écrit, répond **comme une campagne inconnue** (même erreur,
@@ -567,7 +567,7 @@ profil depuis les résultats affiche **exactement les mêmes champs**, en plus g
 visuels au lieu de 1. Une page de détail plus riche que la carte est le chemin par lequel les champs
 interdits reviennent.
 
-> **Amendé par L3F-03 (`0323`, `jalons/l3f/modele.md` §2, §3).** Le profil s'ouvre par l'alias, par
+> **Amendé par L3F-03 (`0323`, `archives/jalons/l3f/modele.md` §2, §3).** Le profil s'ouvre par l'alias, par
 > la porte `search.open_creator_profile()` : `{state: profile, creator, residenceRegion, reasons,
 > vigilance}`, où `creator` est **la carte tirée de la même source** (`profiles.creator_layer_a()`,
 > sans statut ni clé de ligne) et `residenceRegion` la région de RG15 (nulle sous le seuil) ; raisons
@@ -582,7 +582,7 @@ interdits reviennent.
 | **Ajouter à ma sélection** | Ajoute le créateur à une **shortlist privée** de la marque (`search.shortlists`), éventuellement rattachée à une campagne | **Aucune notification au créateur**, aucune révélation, aucun engagement |
 | **Demander une mise en relation** | Crée une entrée dans la **file de validation commerciale**, avec les critères de la recherche d'origine | **N'ouvre pas de conversation, ne révèle rien, ne garantit pas une réponse du créateur** |
 
-> **Amendé par L3F-04 (`0324`, `jalons/l3f/modele.md` §5).** « Ajouter à ma sélection » passe par
+> **Amendé par L3F-04 (`0324`, `archives/jalons/l3f/modele.md` §5).** « Ajouter à ma sélection » passe par
 > les portes `search.*_shortlist*()`, **par alias** : la marque ne tient jamais l'identifiant d'un
 > créateur. L'ajout exige un alias que le moteur liste avec la campagne de la liste (admise, §1) **et
 > déjà servi à la marque** (impression ou ouverture) ; un alias inconnu, exclu (E1 à E6) ou jamais
@@ -649,7 +649,7 @@ formulations sont grossières et **n'annoncent aucun décompte** : « retirer le
 reprenant **tous les critères saisis**, la campagne d'origine le cas échéant, et la langue de la
 marque. Ce n'est pas une impasse : c'est **un lead qualifié dont le brief est déjà écrit** —
 exactement le créneau où le commercial vaut plus que l'algorithme. Le bouton est présent **en
-permanence**, pas seulement sous le seuil. *Amendé par L3F-05 (`0325`, `jalons/l3f/modele.md` §6) :*
+permanence**, pas seulement sous le seuil. *Amendé par L3F-05 (`0325`, `archives/jalons/l3f/modele.md` §6) :*
 la demande s'écrit par `search.request_team_selection()` (critères, campagne admise ou aucune, langue
 de la marque, message libre de 1 000 caractères au plus lu des seuls agents), même interrupteur fermé
 (CA59) ; plafond `selection_limits.requestsPerDay` ; délai de la file 9 renvoyé à la marque
