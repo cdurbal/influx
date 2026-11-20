@@ -1,6 +1,7 @@
 // Schema `search`, migrations 0314 (the journal of the creator's reads of the open campaigns,
-// jalons/l3d/modele.md §6) and 0316 (the journal of the creator search, its settings, the brand's
-// shortlists and the counters of critical mass, jalons/l3e/modele.md §7, §9). The SQL is the source
+// jalons/l3d/modele.md §6), 0316 (the journal of the creator search, its settings, the brand's
+// shortlists and the counters of critical mass, jalons/l3e/modele.md §7, §9) and 0323 (the openings
+// of an anonymous profile, jalons/l3f/modele.md §2). The SQL is the source
 // of truth: this file is aligned by hand, never generated, and held to the catalogue by
 // db-tests/search-journal-settings.test.ts (TM11). Declaring a column here grants nothing: no
 // execution role holds a right on a table of this schema (03 P2; l3e fiche invariant 1); the doors
@@ -141,6 +142,20 @@ export const impressionReasons = searchSchema.table(
 export const creatorExposures = searchSchema.table("creator_exposures", {
   creatorAccountId: uuid("creator_account_id").primaryKey(),
   firstPageAt: timestamptz("first_page_at").notNull(),
+});
+
+/**
+ * 0323: one line per opening of an anonymous profile by a brand, served or refused (l3f/modele.md
+ * §2); the bucket of profileOpensPerDay, append-only, never served nor exported.
+ */
+export const profileOpenings = searchSchema.table("profile_openings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  accountId: uuid("account_id").notNull(),
+  outcome: text("outcome").notNull(),
+  creatorAccountId: uuid("creator_account_id"),
+  searchQueryId: uuid("search_query_id"),
+  requestId: text("request_id"),
+  createdAt: timestamptz("created_at").notNull().defaultNow(),
 });
 
 /** 0316: the brand's private shortlists (no member right until the doors of L3F). */

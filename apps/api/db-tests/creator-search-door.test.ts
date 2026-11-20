@@ -528,13 +528,32 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
     expect(outcome.functions).toEqual([
       helper("search.check_creator_search_filters(jsonb)"),
       helper("search.creator_candidates(text,uuid,jsonb,uuid)"),
+      // 0323 (L3F-03, EC-L3F-03-8): the bucket of the openings, a seventh invoker helper
+      helper("search.creator_open_retry_after(uuid)"),
       // 0320 (L3E-07, EC-L3E-07-8): the explainable order, a fifth invoker helper
       helper(
         "search.creator_order(uuid[],jsonb,text,uuid,integer,integer,date)",
       ),
       helper("search.creator_search_retry_after(uuid)"),
+      // 0323 (L3F-03, EC-L3F-03-8): the region shown on a profile, an eighth invoker helper
+      helper("search.displayed_region(uuid)"),
       // 0322 (L3F-02, EC-L3F-02-1): the admission of a campaign of origin, a sixth invoker helper
       helper("search.is_admitted_campaign(uuid,uuid)"),
+      // 0323 (L3F-03, EC-L3F-03-8): the doors of the profile and of a visual, the brand's alone
+      {
+        name: "search.open_creator_profile(text)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
+      {
+        name: "search.read_creator_visual(text,uuid)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
       helper("search.require_creator_searcher()"),
       {
         name: DOOR_SIGNATURE,
@@ -670,6 +689,8 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         "primary_topic_code",
         "published_at",
         "residence_country_code",
+        // 0323 (L3F-03, EC-L3F-03-8): the region, shown on the profile above its threshold (RG15)
+        "residence_region_code",
         "status",
         "travel_scope",
       ].map((name) => `profiles.creator_public_profiles.${name}`),
@@ -695,10 +716,14 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
       "search.creator_exposures",
       // 0320 (L3E-07, EC-L3E-07-8): the reasons of its impressions
       "search.impression_reasons",
+      // 0323 (L3F-03, EC-L3F-03-8): its openings of a profile (the impressions opened once)
+      "search.profile_openings",
       "search.search_impressions",
       "search.search_queries",
     ]);
-    expect(outcome.never).toEqual({ reached: [], object_key: false });
+    // 0323 (L3F-03, modele §3, -1): the key of an approved visual is read by the door of the visual
+    // and relayed by apps/api, never served (L3F-T3)
+    expect(outcome.never).toEqual({ reached: [], object_key: true });
   });
 
   it("L3E-T6 gives the brand USAGE on search and the door only: no right on a table of search, matching, verification nor profiles.creator_*, 42501 on the storefront and on the engine", async () => {
@@ -752,7 +777,12 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
     });
     expect(outcome.catalogue).toEqual({
       tables: [],
-      functions: [DOOR_SIGNATURE],
+      // 0323 (L3F-03, EC-L3F-03-8): the doors of the profile and of a visual beside the search's
+      functions: [
+        "search.open_creator_profile(text)",
+        "search.read_creator_visual(text,uuid)",
+        DOOR_SIGNATURE,
+      ],
     });
     expect(outcome.tried).toEqual({
       storefront: INSUFFICIENT_PRIVILEGE,
@@ -1878,7 +1908,12 @@ describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", 
     expect(outcome.identified).toBe(
       `${FEATURE_NOT_SUPPORTED} agent_identified`,
     );
-    expect(outcome.doors).toEqual([`influx_advertiser ${DOOR_SIGNATURE}`]);
+    // 0323 (L3F-03, EC-L3F-03-8): the brand's doors of the profile and of a visual, both anonymous
+    expect(outcome.doors).toEqual([
+      "influx_advertiser search.open_creator_profile(text)",
+      "influx_advertiser search.read_creator_visual(text,uuid)",
+      `influx_advertiser ${DOOR_SIGNATURE}`,
+    ]);
   });
 });
 

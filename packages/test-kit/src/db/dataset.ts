@@ -218,8 +218,8 @@ export const CAMPAIGN_INTERVENTION_ID_B =
 /**
  * 0316 (L3E commit 03): one inert search of advertiser A (a fixed past instant, outside every bucket)
  * serving creator A with two reasons, its exposure, one shortlist of advertiser A holding creator A,
- * and one counter row, so that T2 finds a row in each table of the journal. Append-only: inserted
- * once.
+ * and one counter row, so that T2 finds a row in each table of the journal; 0323 (L3F commit 03): one
+ * opening of creator A from that search. Append-only: inserted once.
  */
 export const SEARCH_QUERY_ID_A = "00000000-0000-4000-8000-00000000ff2f";
 export const SHORTLIST_ID_A = "00000000-0000-4000-8000-00000000ff30";
@@ -672,6 +672,16 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
          searchable_profiles_count, computed_at)
       values ('2026-01-01', 'global', '*', 0, 0, '2026-01-01T00:00:00Z')
       on conflict do nothing`;
+    // 0323 (L3F): one inert opening of creator A by advertiser A from that search, at the same fixed
+    // past instant (outside the 24 h of the bucket; append-only: inserted once)
+    await tx`
+      insert into search.profile_openings
+        (account_id, outcome, creator_account_id, search_query_id, created_at)
+      select ${accountIdOf("advertiser", "a")}, 'served', ${accountIdOf("creator", "a")},
+             ${SEARCH_QUERY_ID_A}, '2026-01-01T00:00:00Z'
+       where not exists (select 1 from search.profile_openings
+                          where account_id = ${accountIdOf("advertiser", "a")}
+                            and created_at = '2026-01-01T00:00:00Z')`;
     // 0317 (L3E): one reason and one lifted block of the pair (advertiser B, creator B)
     await tx`
       insert into matching.block_reasons (code, label_key, available_to_side)

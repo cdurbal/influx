@@ -447,7 +447,10 @@ révélée.
 **RG37** — La **région de résidence** (niveau administratif 1) est affichée en couche A **seulement
 si au moins 5 profils publiés partagent le même couple (pays, région)**. En dessous de ce seuil, le
 pays seul est affiché, **sans message ni compteur**. Le seuil est le même que celui du k-anonymat de
-la recherche (`matching-spec` A5) et vit en paramètre (**Q11**).
+la recherche (`matching-spec` A5) et vit en paramètre (**Q11**). *(Amendé par L3F-03, `0323`,
+`jalons/l3f/modele.md` §4 : affichée sur le profil ouvert par une marque, jamais sur la carte ; le
+seuil `region_display_threshold` se compte sur les vitrines publiées, cherchables, de compte actif
+et majeur, `10` RG15.)*
 
 **RG38** — **Ni la ville, ni la région ne sont des facettes de recherche au MVP**
 (`matching-spec` A11, facettes écartées). Elles sont affichées, jamais filtrables : un filtre par

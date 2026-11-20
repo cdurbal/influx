@@ -2329,6 +2329,17 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "dimension",
     expected: {},
   },
+  // 0323 (L3F commit 03, l3f/modele.md §2): the openings of an anonymous profile. No right for any
+  // execution role: written and counted by search.open_creator_profile() only (owner
+  // influx_creator_search_definer), a RESTRICTIVE policy refuses every row to the members.
+  {
+    table: "search.profile_openings",
+    source:
+      "0323 (10 RG63, RG66, CA48; l3f/modele §2): one line per opening served or refused, the bucket " +
+      "of profileOpensPerDay, append-only, never served nor exported",
+    probeColumn: "account_id",
+    expected: {},
+  },
   // 0317 (L3E commit 04, l3e/modele.md §9): the block between parties, without any gesture at Lot 3.
   // No right for any execution role, member, agent nor admin (fiche invariant 1): a RESTRICTIVE
   // policy refuses every row to the members; the owner of the creator's doors reads the pair and
@@ -7343,6 +7354,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // blocks (E5), five settings, the open facets, the latest version, the reasons; it inserts its
   // journal lines, their impressions and the exposures. profiles.creator_layer_a() (THE source of
   // layer A, migration role, invoker) is executed by it and by influx_creator (the preview).
+  // 0323 (L3F-03, l3f/modele.md §2, §3; EC-L3F-03-8): the doors of the anonymous profile and of a
+  // visual (its object relayed by apps/api), executed by the brand alone
+  "influx_advertiser|function|search.open_creator_profile(text)|EXECUTE",
+  "influx_advertiser|function|search.read_creator_visual(text,uuid)|EXECUTE",
   "influx_advertiser|function|search.search_creators(jsonb,text,integer,uuid)|EXECUTE",
   "influx_advertiser|schema|search|USAGE",
   // 0320 (L3E commit 07, l3e/modele.md §6, §7): tier 2 reads the deliverables and the targeted
@@ -7407,6 +7422,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|column|profiles.creator_public_profiles.primary_topic_code|SELECT",
   "influx_creator_search_definer|column|profiles.creator_public_profiles.published_at|SELECT",
   "influx_creator_search_definer|column|profiles.creator_public_profiles.residence_country_code|SELECT",
+  // 0323 (L3F-03, l3f/modele.md §4): the region, shown on the profile above its threshold (RG15)
+  "influx_creator_search_definer|column|profiles.creator_public_profiles.residence_region_code|SELECT",
   "influx_creator_search_definer|column|profiles.creator_public_profiles.status|SELECT",
   "influx_creator_search_definer|column|profiles.creator_public_profiles.travel_scope|SELECT",
   "influx_creator_search_definer|column|profiles.creator_publication_languages.account_id|SELECT",
@@ -7427,8 +7444,13 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|column|profiles.portfolio_items.caption|SELECT",
   "influx_creator_search_definer|column|profiles.portfolio_items.created_at|SELECT",
   "influx_creator_search_definer|column|profiles.portfolio_items.display_order|SELECT",
+  // 0323 (L3F-03, l3f/modele.md §3, -1): the object of an approved visual, read for the relay of
+  // apps/api, never served (T9.6 widened)
+  "influx_creator_search_definer|column|profiles.portfolio_items.height|SELECT",
   "influx_creator_search_definer|column|profiles.portfolio_items.id|SELECT",
+  "influx_creator_search_definer|column|profiles.portfolio_items.object_key|SELECT",
   "influx_creator_search_definer|column|profiles.portfolio_items.state|SELECT",
+  "influx_creator_search_definer|column|profiles.portfolio_items.width|SELECT",
   "influx_creator_search_definer|column|search.creator_exposures.creator_account_id|INSERT,SELECT",
   // 0320: first_page_at read (cold before the UTC day), the reasons of its impressions inserted
   "influx_creator_search_definer|column|search.creator_exposures.first_page_at|INSERT,SELECT",
@@ -7446,18 +7468,30 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|column|search.facet_settings.facet_code|SELECT",
   "influx_creator_search_definer|column|search.facet_settings.is_open|SELECT",
   "influx_creator_search_definer|column|search.facet_settings.wave|SELECT",
+  // 0323 (L3F-03, l3f/modele.md §2): its openings of a profile, counted by the bucket and inserted;
+  // the origin of an opening (the filters and the campaign of its own searches, their impressions
+  // read and opened once)
+  "influx_creator_search_definer|column|search.profile_openings.account_id|INSERT,SELECT",
+  "influx_creator_search_definer|column|search.profile_openings.created_at|SELECT",
+  "influx_creator_search_definer|column|search.profile_openings.creator_account_id|INSERT",
+  "influx_creator_search_definer|column|search.profile_openings.id|SELECT",
+  "influx_creator_search_definer|column|search.profile_openings.outcome|INSERT,SELECT",
+  "influx_creator_search_definer|column|search.profile_openings.request_id|INSERT",
+  "influx_creator_search_definer|column|search.profile_openings.search_query_id|INSERT",
   "influx_creator_search_definer|column|search.search_impressions.cold_quota|INSERT",
-  "influx_creator_search_definer|column|search.search_impressions.creator_account_id|INSERT",
+  "influx_creator_search_definer|column|search.search_impressions.creator_account_id|INSERT,SELECT",
+  "influx_creator_search_definer|column|search.search_impressions.opened_at|UPDATE",
   "influx_creator_search_definer|column|search.search_impressions.rank|INSERT",
-  "influx_creator_search_definer|column|search.search_impressions.search_query_id|INSERT",
+  "influx_creator_search_definer|column|search.search_impressions.search_query_id|INSERT,SELECT",
   "influx_creator_search_definer|column|search.search_impressions.vigilance_code|INSERT",
+  "influx_creator_search_definer|column|search.search_impressions.was_opened|SELECT,UPDATE",
   "influx_creator_search_definer|column|search.search_queries.account_id|INSERT,SELECT",
   "influx_creator_search_definer|column|search.search_queries.actor_role|INSERT",
   "influx_creator_search_definer|column|search.search_queries.blocked_by_k_anonymity|INSERT",
-  "influx_creator_search_definer|column|search.search_queries.campaign_id|INSERT",
+  "influx_creator_search_definer|column|search.search_queries.campaign_id|INSERT,SELECT",
   "influx_creator_search_definer|column|search.search_queries.created_at|SELECT",
   "influx_creator_search_definer|column|search.search_queries.facet_config_version|INSERT",
-  "influx_creator_search_definer|column|search.search_queries.filters|INSERT",
+  "influx_creator_search_definer|column|search.search_queries.filters|INSERT,SELECT",
   "influx_creator_search_definer|column|search.search_queries.id|SELECT",
   "influx_creator_search_definer|column|search.search_queries.outcome|INSERT,SELECT",
   "influx_creator_search_definer|column|search.search_queries.page_reached|INSERT",
@@ -7477,10 +7511,15 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|function|profiles.creator_layer_a(uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.check_creator_search_filters(jsonb)|EXECUTE",
   "influx_creator_search_definer|function|search.creator_candidates(text,uuid,jsonb,uuid)|EXECUTE",
+  // 0323 (L3F-03): the bucket of the openings, the region, the doors of the profile and of a visual
+  "influx_creator_search_definer|function|search.creator_open_retry_after(uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.creator_order(uuid[],jsonb,text,uuid,integer,integer,date)|EXECUTE",
   "influx_creator_search_definer|function|search.creator_search_retry_after(uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.displayed_region(uuid)|EXECUTE",
   // 0322 (L3F-02, EC-L3F-02-1): the admission of a campaign of origin (L3ES-1)
   "influx_creator_search_definer|function|search.is_admitted_campaign(uuid,uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.open_creator_profile(text)|EXECUTE",
+  "influx_creator_search_definer|function|search.read_creator_visual(text,uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.require_creator_searcher()|EXECUTE",
   "influx_creator_search_definer|function|search.result_count_band(integer)|EXECUTE",
   "influx_creator_search_definer|function|search.search_creators(jsonb,text,integer,uuid)|EXECUTE",
@@ -8089,4 +8128,8 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0319 (L3E, l3e/modele §1): the brand door of the creator search
   "search.search_creators(jsonb,text,integer,uuid)":
     "influx_creator_search_definer",
+  // 0323 (L3F, l3f/modele §2, §3): the brand doors of the anonymous profile and of a visual; their
+  // two helpers (displayed_region, creator_open_retry_after) are SECURITY INVOKER, same owner
+  "search.open_creator_profile(text)": "influx_creator_search_definer",
+  "search.read_creator_visual(text,uuid)": "influx_creator_search_definer",
 };

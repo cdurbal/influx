@@ -2188,6 +2188,20 @@ default false`, `opened_at`. PK `(search_query_id, creator_account_id)`.
 manquante bloquante pour D11. Volume : 12 lignes par recherche — négligeable, et irremplaçable plus
 tard.
 
+#### `search.profile_openings` — les ouvertures de profil (L3F, `0323`)
+
+*Chaque ouverture d'un profil anonyme par une marque, servie ou refusée* (`jalons/l3f/modele.md` §2 ;
+`10` RG63, RG66, CA48 ; `18` T15.2). `id uuid` PK, `account_id` (la marque), `outcome`
+(`served` · `rate_limited`), `creator_account_id` (nul **si et seulement si** `rate_limited`),
+`search_query_id` (la recherche d'origine : la plus récente de l'appelant, servie depuis moins de
+24 h, qui a affiché ce créateur ; nulle sinon et pour un refus ; `on delete cascade`), `request_id`,
+`created_at`. Index du seau `(account_id, created_at desc)`, de la date, du créateur. **Ajout seul**
+(`guard_search_journal_write()` de `0316`), RLS forcée, politique restrictive, **aucun droit membre**
+ni d'exécution : écrite par `search.open_creator_profile()` dans la transaction qui sert (avec
+l'ouverture unique de l'impression d'origine, `was_opened`, `opened_at`), comptée contre
+`rate_limits.profileOpensPerDay` (réouverture comprise, une ligne `rate_limited` par 24 h, L3DS-1).
+Jamais servie ni exportée, comme les impressions (-7) ; effacée par `0325` ; 12 mois (`04` §9).
+
 `search.shortlists` (`id`, `advertiser_account_id`, `name`, `campaign_id`) et
 `search.shortlist_items` (`shortlist_id`, `creator_account_id`, `added_at`, `note`) : la sélection
 privée de la marque. **Aucune notification au créateur** : l'ajout à une sélection n'est pas un acte
@@ -6356,6 +6370,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0320 | `search_creator_order_and_reasons` (L3E) | Aide invoker `search.creator_order()` (paliers 1 à 8, tris du pilote, quota froid en page 1, raisons et note de la page) ; porte `search_creators()` recréée à signature égale (impressions avec `cold_quota` et note, `impression_reasons` écrites dans la transaction qui sert) ; droits du propriétaire : `cold_profile_quota`, `first_page_at`, livrables et pays visés de ses campagnes, insertion des raisons ; une version de `facet_config_versions` (RG88) | Oui tant qu'aucune recherche n'est journalisée |
 | 0321 | `search_creator_search_volume_alert` (L3E, AL21, I-9) | Seuils d'AL21 en table (`alert_definitions`, hypothèse `{150, 8000}`, à fixer par le fondateur : L3ES-3), `search.creator_search_volume_alerts()` (`SECURITY DEFINER`, `EXECUTE` à `influx_admin` seul) : compte, cause, nombre et date, sans filtre ni profil ; état dérivé ; propriétaire `influx_search_admin_definer` en lecture seule |
 | 0322 | `search_creator_search_admitted_campaign` (L3F, L3ES-1) | Aide invoker `search.is_admitted_campaign()` (`l3f/modele.md` §1) : campagne d'origine admise si de la marque, non effacée, `pending_review`, `published`, `paused` ou `closed` ; `draft` et `rejected` répondent comme une campagne inconnue (P0002, rien écrit ni décompté) ; moteur `creator_candidates()` (E6 : secteur d'une campagne admise seule) et porte `search_creators()` recréés à signature égale ; `SELECT (status)` sur `campaigns.campaigns` au propriétaire | Oui tant qu'aucune recherche n'est journalisée |
+| 0323 | `search_creator_profile_door` (L3F, signalé I-4) | Table `search.profile_openings` (§5.5 ; ajout seul, RLS forcée, aucun droit membre) ; portes `search.open_creator_profile(alias)` (RG1, interrupteur, seau `profileOpensPerDay`, alias membre du moteur avec la campagne d'origine admise, sinon P0002 `creator` unique ; ouverture journalisée et impression d'origine ouverte une fois dans la transaction qui sert ; carte de `creator_layer_a()` et région) et `search.read_creator_visual(alias, visuel)` (objet d'un visuel approuvé relu par `apps/api`, jamais servi), `EXECUTE` à `influx_advertiser` seul ; aides invoker `displayed_region()` (seuil sur E1 à E4) et `creator_open_retry_after()` ; droits du propriétaire : région, clé et côtés des visuels approuvés, `region_display_threshold`, filtres et campagne de ses recherches, ouverture de leurs impressions | Oui tant qu'aucun profil n'est ouvert |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

@@ -125,20 +125,26 @@ const L2G_TABLES = [
 /**
  * L3E (0319, EC-L3E-06-8; jalons/l3e/modele.md §2): the one right a role the advertiser reaches holds
  * on an L2G table. The owner of the creator search door reads the APPROVED visuals by reference (id,
- * order, caption on the card; the image at L3F) through THE source of layer A; six columns, never the
- * object key, the lock, the decision nor the declaration. Any other finding stays red.
+ * order, caption on the card) through THE source of layer A; never the lock, the decision nor the
+ * declaration. L3F (0323, jalons/l3f/modele.md §3, -1: T9.6 widened, the pattern of the logo of
+ * L3D): the door of a visual reads the object of an approved visual (key, width, height) for apps/api
+ * to relay its bytes, never served. Nine columns; any other finding stays red.
  */
 const SEARCH_CARD_VISUALS = [
   "influx_creator_search_definer column SELECT on profiles.portfolio_items",
   "profiles.creator_layer_a(uuid) names portfolio_items",
+  "search.read_creator_visual(text,uuid) names portfolio_items",
 ];
 const SEARCH_CARD_VISUAL_COLUMNS = [
   "account_id",
   "caption",
   "created_at",
   "display_order",
+  "height",
   "id",
+  "object_key",
   "state",
+  "width",
 ];
 /** The same tables named in a function body (`profiles.portfolio_items`, quoted or not). */
 const L2G_NAMED = `\\m"?profiles"?\\s*\\.\\s*"?(${L2G_TABLES.join("|")})\\M`;
@@ -1088,7 +1094,8 @@ describe("T9.6-R influx_advertiser holds no right on `verification` nor on Stora
         "influx_creator_search_definer",
       ]),
     );
-    // L3E (0319): the approved visuals of the search card, by reference, and nothing else
+    // L3E (0319): the approved visuals of the search card, by reference; L3F (0323): their object, for
+    // the relay of apps/api; nothing else
     expect(await l2gFindings(sql, reached)).toEqual(SEARCH_CARD_VISUALS);
     const [visuals] = await sql<{ columns: string[]; approved: boolean }[]>`
       select coalesce((select array_agg(a.attname::text order by a.attname)

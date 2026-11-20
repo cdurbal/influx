@@ -261,6 +261,12 @@ une thématique isole une personne en deux clics, ce qui est exactement l'attaqu
 empêcher. La **ville n'est ni affichée, ni filtrable** avant révélation. La seule facette
 géographique ouverte côté créateur est **F20 (pays + mobilité)**.
 
+> **Amendé par L3F-03 (`0323`, EC-L3F-6, `jalons/l3f/modele.md` §4).** La région s'affiche sur le
+> **profil ouvert seul** (`residenceRegion`, à côté de la carte) ; la **carte de recherche reste
+> inchangée**. Le seuil `region_display_threshold` (en table, 5) se compte sur les vitrines **E1 à
+> E4** (publiées, cherchables, compte actif, majorité attestée), plus strict que « publiés », et
+> donne **la même réponse à toute marque** (ni E5 ni E6). Seuil absent : pays seul.
+
 > **Écart documenté avec la demande initiale.** L'ouverture d'une facette « région » a été demandée
 > au cadrage. Elle est **refusée au MVP** et inscrite en question ouverte **Q3** : si elle est un
 > jour ouverte, elle devra l'être avec une garde supplémentaire — **seules les valeurs de région
@@ -561,6 +567,14 @@ profil depuis les résultats affiche **exactement les mêmes champs**, en plus g
 visuels au lieu de 1. Une page de détail plus riche que la carte est le chemin par lequel les champs
 interdits reviennent.
 
+> **Amendé par L3F-03 (`0323`, `jalons/l3f/modele.md` §2, §3).** Le profil s'ouvre par l'alias, par
+> la porte `search.open_creator_profile()` : `{state: profile, creator, residenceRegion, reasons,
+> vigilance}`, où `creator` est **la carte tirée de la même source** (`profiles.creator_layer_a()`,
+> sans statut ni clé de ligne) et `residenceRegion` la région de RG15 (nulle sous le seuil) ; raisons
+> et note sont celles de la recherche d'origine. Alias inconnu, mal formé ou exclu (E1 à E6) : **une
+> seule réponse**, rien écrit ni décompté (CA49). Les visuels approuvés sont relus par `apps/api`
+> (`search.read_creator_visual()`, clé d'objet jamais servie) : aucune URL émise.
+
 **RG51 — Deux actions depuis une carte, et deux seulement :**
 
 | Action | Effet | Ce qu'elle ne fait pas |
@@ -663,8 +677,11 @@ jamais lancer une recherche.
 |---|---|
 | `search.search_queries` | Compte, rôle, **mode de vue**, campagne d'origine, **filtres appliqués**, tri actif, nombre de résultats, page atteinte, **indicateur de blocage par k-anonymat**, horodatage |
 | `search.search_impressions` | Pour chaque profil affiché : **rang affiché**, **profil ouvert ou non**, horodatage d'ouverture |
+| `search.profile_openings` *(L3F-03, `0323`)* | Chaque ouverture de profil : compte, issue (`served`, `rate_limited`), créateur, recherche d'origine (la plus récente de moins de 24 h qui l'a servi, sinon nulle), requête, horodatage ; décompte de `profileOpensPerDay` |
 
-Ces deux tables sont **en ajout seul** : aucune correction, aucune suppression.
+Ces tables sont **en ajout seul** : aucune correction, aucune suppression. *(L3F-03 : l'ouverture
+marque `was_opened` et `opened_at` de l'impression d'origine **une fois**, seule mise à jour admise,
+dans la transaction qui sert ; une écriture refusée, rien n'est servi.)*
 
 **RG67 — Le journal sert deux finalités, et c'est assumé : garde-fou anti-aspiration et amélioration
 du produit.** Les deux figurent au registre des traitements avec une **durée de conservation écrite**
@@ -1002,7 +1019,9 @@ tranches de F6 sans lire le chiffre exact)*.
 les champs de la couche révélable apparaissent **et l'horodatage de révélation est écrit**.
 
 **CA6** — *Étant donné* la carte anonyme et la page de profil ouverte, *quand* on compare leurs
-réponses d'API, *alors* elles contiennent **le même ensemble de champs** (RG50).
+réponses d'API, *alors* elles contiennent **le même ensemble de champs** (RG50). *(Amendé par
+L3F-03, `0323` : le `creator` du profil est la carte même ; seule la région de RG15 s'y ajoute, à
+côté, nulle sous le seuil ; aucun champ de RG48, pas même nul.)*
 
 ### Facettes et combinaison
 

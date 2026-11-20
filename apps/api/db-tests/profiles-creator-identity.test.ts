@@ -116,6 +116,28 @@ function checkedExceptions(couples: readonly Couple[]): readonly Couple[] {
 
 /** The brand's door of the creator search (0319, l3e/modele.md §1). */
 const CREATOR_SEARCH_DOOR = "search.search_creators(jsonb,text,integer,uuid)";
+/** The brand's doors of the anonymous profile and of its visuals (0323, l3f/modele.md §2, §3). */
+const CREATOR_PROFILE_DOOR = "search.open_creator_profile(text)";
+const CREATOR_VISUAL_DOOR = "search.read_creator_visual(text,uuid)";
+
+/** The relations of layer A the engine of the search reaches, and the refused sectors (E6). */
+const ENGINE_RELATIONS = [
+  "profiles.creator_formats",
+  "profiles.creator_public_networks",
+  "profiles.creator_public_profiles",
+  "profiles.creator_publication_languages",
+  "profiles.creator_refused_sectors",
+] as const;
+
+/** Beside the engine, what the card reaches: its one source and the lists it serves. */
+const CARD_RELATIONS = [
+  ...ENGINE_RELATIONS,
+  "profiles.creator_layer_a(uuid)",
+  "profiles.creator_public_audience",
+  "profiles.creator_tones",
+  "profiles.creator_topics",
+  "profiles.creator_usage_rights",
+] as const;
 
 /**
  * The couples (object, creator relation reached) influx_advertiser may reach, declared here and
@@ -123,22 +145,25 @@ const CREATOR_SEARCH_DOOR = "search.search_creators(jsonb,text,integer,uuid)";
  * object. From 0319 (l3e/modele.md §1): the creator search door, one couple per relation of layer A
  * its engine and its card reach (the storefront, its lists, its lines, its audience bands, the card
  * function itself) plus the refused sectors (E6, a predicate, never served); creator_identities, the
- * lines, the exact audience and the history never enter it (checkedExceptions).
+ * lines, the exact audience and the history never enter it (checkedExceptions). From 0323
+ * (l3f/modele.md §2, §3; EC-L3F-03-8): the door of the profile reaches what the search door reaches
+ * (the engine, the card, the region of the storefront); the door of a visual reaches the engine alone
+ * (its visibility), its visual being no creator relation.
  */
-const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions(
-  [
-    "profiles.creator_formats",
-    "profiles.creator_layer_a(uuid)",
-    "profiles.creator_public_audience",
-    "profiles.creator_public_networks",
-    "profiles.creator_public_profiles",
-    "profiles.creator_publication_languages",
-    "profiles.creator_refused_sectors",
-    "profiles.creator_tones",
-    "profiles.creator_topics",
-    "profiles.creator_usage_rights",
-  ].map((relation) => ({ object: CREATOR_SEARCH_DOOR, relation })),
-);
+const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions([
+  ...CARD_RELATIONS.map((relation) => ({
+    object: CREATOR_SEARCH_DOOR,
+    relation,
+  })),
+  ...CARD_RELATIONS.map((relation) => ({
+    object: CREATOR_PROFILE_DOOR,
+    relation,
+  })),
+  ...ENGINE_RELATIONS.map((relation) => ({
+    object: CREATOR_VISUAL_DOOR,
+    relation,
+  })),
+]);
 
 /** The reprise of 0217 §9, replayed as written (between its two markers). */
 const REPRISE_SQL = (() => {
