@@ -118,6 +118,9 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/profiles-portfolio-privacy.test.ts",
     "db-tests/reference-taxonomies.test.ts",
     "db-tests/search-journal-settings.test.ts",
+    // L3G-02: a new file (about 3 s of cases, committed fixtures), in shard 2, the shorter one in CI
+    // (5:34 against 6:34 at d3940fb)
+    "db-tests/search-caps-concurrency.test.ts",
     // L3F-04: a new file (about 4 s locally), in shard 2 since L3F-03 went to shard 1
     "db-tests/search-shortlists.test.ts",
     // L3F-08: a new file (about 3 s locally), in shard 2 so that the two new files share the load

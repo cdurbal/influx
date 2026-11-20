@@ -50,6 +50,8 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/reference-taxonomies.test.ts": 180,
   // L3F-06 (L3F-T6): CA45, CA46 and the openings in AL21, 0326
   "db-tests/search-abuse-alerts.test.ts": 12,
+  // L3G-02 (L3G-T2): the caps held by an advisory lock, under two committed connections
+  "db-tests/search-caps-concurrency.test.ts": 5,
   "db-tests/search-journal-settings.test.ts": 16,
   // L3F-08 (L3F-T8): the brand's shortlists and its request for a selection, routes over 0324, 0325
   "db-tests/search-shortlists-route.test.ts": 16,
