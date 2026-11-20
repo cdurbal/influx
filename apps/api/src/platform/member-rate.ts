@@ -25,6 +25,12 @@ export const MEMBER_ROUTE_ADDRESS_RATES = {
   // relay of the images of a profile outside the account's bucket
   "GET /v1/creator-search/profiles/:alias": 60,
   "GET /v1/creator-search/profiles/:alias/visuals/:visualId": 240,
+  // L3F 08 (l3f/modele.md §5, §8): the brand's lists, read with their cards (no journal, no bucket of
+  // the account), and its request for a selection by the team (10 a minute, the bucket of the account
+  // being 5 a day in base)
+  "GET /v1/me/shortlists": 60,
+  "GET /v1/me/shortlists/:id": 60,
+  "POST /v1/me/selection-requests": 10,
 } as const satisfies Readonly<Record<string, number>>;
 
 const RATE_OF: Readonly<Record<string, number | undefined>> =

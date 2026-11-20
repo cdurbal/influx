@@ -37,6 +37,8 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/creator-profile-route.test.ts",
     "db-tests/t14-creator-profile-route.test.ts",
     "db-tests/t15-creator-profile-rate.test.ts",
+    // L3F-08: a new file (about 6 s locally), in shard 1, the shorter one at the last measure
+    "db-tests/search-shortlists-route.test.ts",
     "db-tests/profiles-brand-review.test.ts",
     "db-tests/profiles-brand-submission.test.ts",
     "db-tests/profiles-creator-bands.test.ts",
@@ -118,6 +120,8 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/search-journal-settings.test.ts",
     // L3F-04: a new file (about 4 s locally), in shard 2 since L3F-03 went to shard 1
     "db-tests/search-shortlists.test.ts",
+    // L3F-08: a new file (about 3 s locally), in shard 2 so that the two new files share the load
+    "db-tests/selection-request-route.test.ts",
     "db-tests/t1-anonymisation.test.ts",
     "db-tests/t13-ops-recording.test.ts",
     "db-tests/t14-backoffice-accounts-route.test.ts",

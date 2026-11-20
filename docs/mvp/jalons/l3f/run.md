@@ -9,7 +9,7 @@
 | 05 | 05.md | commit | opus | high | expert-database | fait | request_team_selection: switch ignored, 5/day, filters+admitted campaign+language; queue 9 deadline; no matching/outbox; export, erasure |
 | 06 | 06.md | commit | opus | high | expert-database | fait | CA45, CA46, openings: causes of AL21, thresholds added in table; admin reads account, cause, count, date only; owner reads, writes nothing |
 | 07 | 07.md | commit | opus | high | dev-react-node | fait | profile = card via searchCardProjectionOf + region; visual JSON relay, no URL; 404 one body (CA49); 429 after COMMIT; address 60, 240/min; T7 13+4+4 |
-| 08 | 08.md | commit | sonnet | high | dev-react-node | à faire | |
+| 08 | 08.md | commit | sonnet | high | dev-react-node | fait | shortlists + request routes over 0324, 0325; door refusals 404/400/409, 429 after COMMIT; reads 60, request 10/min per address; T8 16+9; no export route |
 | 09 | 09.md | commit | sonnet | high | testeur | à faire | |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | à faire | |
 | 11 | 11.md | commit | sonnet | high | dev-react-node | à faire | |

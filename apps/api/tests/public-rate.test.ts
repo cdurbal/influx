@@ -70,6 +70,17 @@ const SESSION_ROUTES: readonly string[] = [
   // L3F 07: the profile a brand opens and its visuals (their address bound: platform/member-rate.ts)
   "GET /v1/creator-search/profiles/:alias",
   "GET /v1/creator-search/profiles/:alias/visuals/:visualId",
+  // L3F 08: the brand's shortlists and its request for a selection by the team (their address bounds:
+  // platform/member-rate.ts)
+  "GET /v1/me/shortlists",
+  "POST /v1/me/shortlists",
+  "GET /v1/me/shortlists/:id",
+  "PUT /v1/me/shortlists/:id",
+  "DELETE /v1/me/shortlists/:id",
+  "PUT /v1/me/shortlists/:id/items/:alias",
+  "DELETE /v1/me/shortlists/:id/items/:alias",
+  "PUT /v1/me/shortlists/:id/items/:alias/note",
+  "POST /v1/me/selection-requests",
   "GET /v1/me/creator-profile",
   "PATCH /v1/me/creator-profile",
   "GET /v1/me/creator-profile/networks",

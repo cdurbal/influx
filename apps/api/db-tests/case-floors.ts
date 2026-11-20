@@ -50,8 +50,11 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   // L3F-06 (L3F-T6): CA45, CA46 and the openings in AL21, 0326
   "db-tests/search-abuse-alerts.test.ts": 12,
   "db-tests/search-journal-settings.test.ts": 16,
+  // L3F-08 (L3F-T8): the brand's shortlists and its request for a selection, routes over 0324, 0325
+  "db-tests/search-shortlists-route.test.ts": 16,
   "db-tests/search-shortlists.test.ts": 17,
   "db-tests/search-selection-requests.test.ts": 12,
+  "db-tests/selection-request-route.test.ts": 9,
   "db-tests/search-volume-alert.test.ts": 13,
   "db-tests/t1-anonymisation.test.ts": 26,
   "db-tests/t13-ops-recording.test.ts": 10,

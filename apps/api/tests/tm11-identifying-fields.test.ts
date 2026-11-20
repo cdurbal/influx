@@ -144,6 +144,8 @@ const OWN_CONTACT_BY_MODULE: Readonly<Record<string, readonly string[]>> = {
   "creator-search": LAYER_A_LINE_NAMES,
   // L3F 07: the profile a brand opens, the card of the search whole (CA6, l3f/modele.md §2)
   "creator-search-profile": LAYER_A_LINE_NAMES,
+  // L3F 08: the shortlists of a brand, each creator the card of the search whole (l3f/modele.md §5)
+  shortlists: LAYER_A_LINE_NAMES,
   signup: ["companyName"],
   support: ["contactEmail"],
   "brevo-webhook": ["email"],
@@ -173,6 +175,8 @@ const OWN_CONTACT_BY_ROUTE: Readonly<Record<string, readonly string[]>> = {
   "/v1/creator-search": LAYER_A_LINE_NAMES,
   // L3F 07: the profile a brand opens, the card of the search whole (CA6, l3f/modele.md §2)
   "/v1/creator-search/profiles/:alias": LAYER_A_LINE_NAMES,
+  // L3F 08: a list of a brand read with its creators, each the card of the search whole
+  "/v1/me/shortlists/:id": LAYER_A_LINE_NAMES,
   // The creator's own verification (L2E 12): the network of HIS line, which a request and a badge
   // name. A brand never reaches these routes (T14, db-tests/verification-route.test.ts); the public
   // badge an advertiser will read names a network by design (08 RG89) and is held free of handle, URL,

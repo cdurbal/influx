@@ -24,6 +24,8 @@
     "./creator-projection": "./src/creator-projection.ts",
     "./creator-search": "./src/creator-search.ts",
     "./creator-search-profile": "./src/creator-search-profile.ts",
+    "./shortlists": "./src/shortlists.ts",
+    "./selection-requests": "./src/selection-requests.ts",
     "./verification": "./src/verification.ts",
     "./backoffice-auth": "./src/backoffice-auth.ts",
     "./backoffice-accounts": "./src/backoffice-accounts.ts",

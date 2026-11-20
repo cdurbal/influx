@@ -394,3 +394,136 @@ export async function searchesOf(
      where q.account_id = ${brand.accountId}
      order by q.created_at, q.page_reached`;
 }
+
+// L3F commit 08: the brand's shortlists and its request for a selection (search-shortlists-route,
+// selection-request-route) -----------------------------------------------------------------------------
+
+export const URL_SHORTLISTS = "/v1/me/shortlists";
+export const URL_SELECTION_REQUESTS = "/v1/me/selection-requests";
+
+/** Any call of the brand's routes as the web front relays it (a body is JSON), from a client address. */
+export function sendAsMember(
+  server: Server,
+  member: Member | null,
+  method: "GET" | "POST" | "PUT" | "DELETE",
+  url: string,
+  body?: unknown,
+  address = "203.0.113.7",
+): Promise<LightMyRequestResponse> {
+  return server.inject({
+    method,
+    url,
+    headers: {
+      "x-influx-internal": WEB_SECRET,
+      "x-request-id": randomUUID(),
+      "x-real-ip": address,
+      "sec-fetch-site": "same-origin",
+      ...(body === undefined ? {} : { "content-type": "application/json" }),
+      ...(member === null
+        ? {}
+        : { cookie: `__Host-influx-session=${member.session}` }),
+    },
+    ...(body === undefined ? {} : { payload: JSON.stringify(body) }),
+  });
+}
+
+/** An alias of the alphabet of profiles.new_creator_alias() that no storefront holds. */
+export async function unusedAlias(fx: CampaignRouteFixtures): Promise<string> {
+  const alphabet = "23456789BCDFGHJKLMNPQRSTVWXZ";
+  for (;;) {
+    const alias = Array.from(
+      { length: 6 },
+      () => alphabet[Math.floor(Math.random() * alphabet.length)],
+    ).join("");
+    const [held] = await fx.migration<{ n: number }[]>`
+      select count(*)::int as n from profiles.creator_public_profiles where alias = ${alias}`;
+    if (held?.n === 0) {
+      return alias;
+    }
+  }
+}
+
+/**
+ * The shortlists and the requests of `brands` removed by the migration role, so that
+ * campaign-routes-kit can remove their campaigns when the file ends (both point at a campaign; the stack
+ * is disposable).
+ */
+export async function forgetSelections(
+  fx: CampaignRouteFixtures,
+  brands: readonly Member[],
+): Promise<void> {
+  const ids = brands.map((brand) => brand.accountId);
+  await fx.migration.begin(async (tx) => {
+    await tx`
+      delete from search.shortlists where advertiser_account_id = any(${ids}::uuid[])`;
+    await tx`
+      delete from search.selection_requests where advertiser_account_id = any(${ids}::uuid[])`;
+  });
+}
+
+/** What a brand's route may never write: the counts of the outbox, matching and messaging, and of the register. */
+export async function sideEffectsOf(fx: CampaignRouteFixtures): Promise<{
+  outbox: number;
+  tables: Record<string, number>;
+}> {
+  const [outbox] = await fx.migration<{ n: number }[]>`
+    select count(*)::int as n from leads.outbox_events`;
+  const names = await fx.migration<{ name: string }[]>`
+    select c.oid::regclass::text as name
+      from pg_catalog.pg_class c
+      join pg_catalog.pg_namespace n on n.oid = c.relnamespace
+     where n.nspname in ('matching', 'messaging') and c.relkind in ('r', 'p')
+     order by 1`;
+  const tables: Record<string, number> = {};
+  for (const { name } of names) {
+    const [counted] = await fx.migration.unsafe<{ n: number }[]>(
+      `select count(*)::int as n from ${name}`,
+    );
+    tables[name] = counted?.n ?? -1;
+  }
+  return { outbox: outbox?.n ?? -1, tables };
+}
+
+/** The keys of RG48 (and of the internal order) that no answer holds, at any depth, not even null. */
+export const RG48_KEYS = [
+  "handle",
+  "pseudonym",
+  "profileUrl",
+  "url",
+  "firstName",
+  "lastName",
+  "legalFirstName",
+  "legalLastName",
+  "city",
+  "email",
+  "phone",
+  "followersCount",
+  "postsLast30Days",
+  "avgCommentsPerPost",
+  "avgReachPerPost",
+  "engagementRate",
+  "share",
+  "audienceShares",
+  "refusedSectors",
+  "completeness",
+  "status",
+  "published",
+  "socialAccountId",
+  "accountId",
+  "creatorAccountId",
+  "creator_account_id",
+  "advertiserAccountId",
+  "publicRef",
+  "lineKey",
+  "rank",
+  "score",
+  "price",
+  "rate",
+  "currency",
+  "net",
+  "budget",
+  "objectKey",
+  "object_key",
+  "signedUrl",
+  "token",
+];

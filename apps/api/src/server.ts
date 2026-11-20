@@ -35,6 +35,8 @@ import { registerVerificationRegistryRoutes } from "./domains/backoffice/verific
 import { registerCampaignRoutes } from "./domains/campaigns/routes.ts";
 import { registerCreatorSearchRoutes } from "./domains/search/creator-search/routes.ts";
 import { registerCreatorSearchProfileRoutes } from "./domains/search/creator-search-profile/routes.ts";
+import { registerSelectionRequestRoutes } from "./domains/search/selection-requests/routes.ts";
+import { registerShortlistRoutes } from "./domains/search/shortlists/routes.ts";
 import { registerOpenCampaignRoutes } from "./domains/search/open-campaigns/routes.ts";
 import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
@@ -634,6 +636,17 @@ export function buildServer(
     database,
     now: options.identity?.now ?? (() => new Date()),
     store: objectStore,
+  });
+
+  // The brand's private shortlists and its request for a selection by the INFLUX team (docs/mvp/10;
+  // jalon L3F commit 08), through the doors of the schema search (0324, 0325): no Storage, no outbox.
+  registerShortlistRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+  registerSelectionRequestRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
   });
 
   // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08); its
