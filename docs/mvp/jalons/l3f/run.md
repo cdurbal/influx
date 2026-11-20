@@ -16,5 +16,5 @@
 | U | ux.md | ux | sonnet | high | expert-ux | fait | 22 constats : 0 bloquant, 5 jalon → fix-1, 9 avant production, 8 plus tard |
 | fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | fait | L3FU-1 to 5: one grid, one copy of each control, CSS only; focus to count band/results head; E1 4, E2 3, floors kept; budgets unmeasurable under load |
 | F | recette.md | fondateur | — | — | fondateur | fait | « recette terminée, rien à signaler » ; interrupteur refermé (SQL, seq 3107) ; point 5 non confirmé ; données gardées |
-| R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
+| R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | testeur 0/0/1 avant prod/2 plus tard ; sécurité 0/0/3 avant prod/5 plus tard ; attestation I-4 : 5 SHA des lignes 02 à 06, annexe § Revue |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |

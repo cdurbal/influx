@@ -75,3 +75,52 @@ isole ses créateurs (pays d'audience et thématique propres) ou balaie les sien
 (interrupteur de `staging` ouvert pour la recette puis refermé, ligne F) retenues comme recommandé.
 
 ## Revue
+
+Revue groupée (ligne R) : 0 bloquant, 0 « jalon ». Verdict : `main` et `staging` sans bloquant ;
+`production` autorisée sous conditions : L3FS-1 à 3 (migration 0327 et `member-rate.ts`, environ 1 jour)
+et L3FT-1 à corriger avant, en tête de L3G ou au Lot 6.
+
+### testeur (`L3FT`, plage `eba84af..HEAD`)
+- **L3FT-1** avant production : aucune preuve de concurrence sur les plafonds à verrou consultatif
+  (ouvertures 60/jour, listes, items, demandes 5/jour ; `0323` l. 269, `0324` l. 464-718, `0325` l. 324 ;
+  tests `creator-profile-door.test.ts:1216`, `search-shortlists.test.ts:736`/`:1016`,
+  `search-selection-requests.test.ts:774`, une seule transaction annulée) ; même angle mort sur la porte
+  de recherche de L3E. Correctif : test à deux connexions committées lançant la 60e ouverture ou la 5e
+  demande en parallèle (une servie, une refusée).
+- **L3FT-2** plus tard : `creator-search-door.test.ts:803` catalogue passe `object_key` de false à true
+  pour le propriétaire. Correctif : asserter par `prosrc` que `object_key` n'apparaît que dans
+  `search.read_creator_visual`.
+- **L3FT-3** plus tard : `use-results-focus.ts` et `use-card-visuals.ts` sans test unitaire. Correctif :
+  si régression de focus, vérification Playwright ciblée.
+
+### expert-cybersecurite (`L3FS`)
+- **L3FS-1** avant production : durée de réponse qui trahit une exclusion (profil, visuel) ; `0323`
+  l. 365-393 et 496-500, le moteur ne tourne que si l'alias est trouvé. Correctif : exécuter le moteur et
+  la recherche d'impression même alias non trouvé, comme `0324` l. 336-340 ; migration 0327 et test par
+  `pg_stat_user_functions` (1-2 h).
+- **L3FS-2** avant production : les sélections trahissent une exclusion à coup sûr (`0324` l. 724-729
+  retrait par vitrine visible ; l. 625-630 borne `itemsPerList` sur toutes les lignes). Correctif : retrait
+  par `search.shortlist_creator()` comme `set_shortlist_note` (l. 683), inverser le cas EC-L3F-04-4 de
+  `search-shortlists.test.ts` l. 1195 (1 h).
+- **L3FS-3** avant production : écritures de sélection sans limite de débit, moteur exécuté sous verrou
+  de compte (`member-rate.ts` l. 18-34 ; `0324` l. 592-603 et 669-683 ; pool de 10 connexions
+  `db/index.ts` l. 46). Correctif : débit par adresse sur les six routes d'écriture, moteur avant le
+  verrou, `lock_timeout` court (0,5 jour).
+- **L3FS-4** plus tard (EC-L3F-05-4) : `0325` l. 211, `preferred_language` lu par le propriétaire.
+  Correctif : rejouer l'assertion l. 1975-1982 comme test permanent dans L3E-T6.
+- **L3FS-5** plus tard : coût, le moteur entier tourne pour un seul créateur (visuels, ajouts, notes,
+  lecture de liste jusqu'à 11 fois, `0324` l. 407-412 et 808-811). Correctif : mesurer, puis paramètre
+  « un seul créateur ».
+- **L3FS-6** plus tard : alias de plus de 64 caractères donne un 400 au lieu du 404 commun
+  (`creator-search-profile.ts` l. 29, `shortlists.ts` l. 23). Correctif : répondre le 404 commun.
+- **L3FS-7** plus tard : caractère NUL dans un nom, une note ou un message donne un 500 (`shortlists.ts`
+  l. 48, 69, 76, 86 ; `selection-requests.ts` l. 29). Correctif : refuser les caractères de contrôle ;
+  au L3G afficher le message en texte brut, bidi neutralisés.
+- **L3FS-8** plus tard : les alias inconnus (404) ne sont ni journalisés ni comptés, AL21 ne voit pas
+  l'énumération (28^6). Correctif : ligne pino sans alias et compteur par compte dans `ops`.
+
+### Attestation I-4 (à utiliser par la clôture, telle quelle)
+Les lignes 07 et 08 ne contiennent aucun SQL ; les cinq SHA (lignes 02 à 06) sont vérifiés par
+`git cat-file -t`.
+
+`security-reviewed: 2026-11-20 covers c6af19a30a5e1e1be0a49538680e6ee61cb1cd4a 584a23f4195434d4fb6d2082441c2540ec02a042 b0bf60535d14a2e16df59ccd9c040be84bc87778 65d99b748ddf042df98699987a49c72b702306cf cab91ae078d586f26543aba9946fb201c4fabd43`
