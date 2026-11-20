@@ -366,8 +366,15 @@ export type CreatorSearchVolumeRow = {
     | "distinct_profiles_served"
     | "rate_cap_share_hour"
     | "rate_cap_share_day"
-    | "rate_limited";
-  /** Distinct creators served, searches of the window or refusals, by the cause. */
+    | "rate_limited"
+    // 0326 (l3f/modele §7): the openings at 80 % of their cap, CA45, CA46
+    | "open_cap_share_day"
+    | "refinement"
+    | "aspiration";
+  /**
+   * Distinct creators served or opened, searches of the window, openings of the day, refusals, the
+   * searches of a refinement series or the creators opened without a shortlist, by the cause.
+   */
   count: number;
   since: string;
 };

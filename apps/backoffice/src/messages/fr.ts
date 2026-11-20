@@ -398,13 +398,20 @@ export const messages = {
       reconciliation_failed: () => "Le dernier rapprochement Brevo a échoué.",
       // AL21 (I-9): a creator search volume out of the ordinary, by account (the destination is empty)
       distinct_profiles_served: (_destination: string, count: number) =>
-        `Volume anormal de recherche de créateurs : ${count} profil${count > 1 ? "s" : ""} distinct${count > 1 ? "s" : ""} servi${count > 1 ? "s" : ""} à un compte sur 24 heures.`,
+        `Volume anormal de recherche de créateurs : ${count} profil${count > 1 ? "s" : ""} distinct${count > 1 ? "s" : ""} servi${count > 1 ? "s" : ""} ou ouvert${count > 1 ? "s" : ""} par un compte sur 24 heures.`,
       rate_cap_share_hour: (_destination: string, count: number) =>
         `Recherche de créateurs : ${count} recherche${count > 1 ? "s" : ""} en une heure, le plafond horaire d’un compte est presque atteint.`,
       rate_cap_share_day: (_destination: string, count: number) =>
         `Recherche de créateurs : ${count} recherche${count > 1 ? "s" : ""} en 24 heures, le plafond quotidien d’un compte est presque atteint.`,
       rate_limited: (_destination: string, count: number) =>
-        `Recherche de créateurs : ${count} refus pour débit dépassé sur 24 heures.`,
+        `Recherche de créateurs : ${count} refus pour débit dépassé (recherche ou ouverture de profil) sur 24 heures.`,
+      // AL21 (0326): the openings of a profile, CA45 (refinement), CA46 (probable scraping)
+      open_cap_share_day: (_destination: string, count: number) =>
+        `Recherche de créateurs : ${count} profil${count > 1 ? "s" : ""} ouvert${count > 1 ? "s" : ""} en 24 heures, le plafond quotidien d’ouvertures d’un compte est presque atteint.`,
+      refinement: (_destination: string, count: number) =>
+        `Affinage probable : ${count} recherches successives d’un compte ne variant que d’un filtre, dont plusieurs sous le seuil d’anonymat. Appelez la marque avant toute mesure.`,
+      aspiration: (_destination: string, count: number) =>
+        `Aspiration probable : ${count} profil${count > 1 ? "s" : ""} distinct${count > 1 ? "s" : ""} ouvert${count > 1 ? "s" : ""} en 24 heures par des comptes sans ajout à une sélection ni demande, dont celui-ci. Appelez la marque avant toute mesure.`,
     } as Readonly<
       Record<
         string,

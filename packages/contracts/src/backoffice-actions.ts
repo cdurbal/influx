@@ -568,6 +568,10 @@ export const ALERT_CAUSES = [
   "rate_cap_share_hour",
   "rate_cap_share_day",
   "rate_limited",
+  // AL21 (0326, l3f/modele §7): the openings of a profile at 80 % of their cap, CA45, CA46
+  "open_cap_share_day",
+  "refinement",
+  "aspiration",
 ] as const;
 
 export const alertSchema = z.strictObject({
@@ -585,7 +589,8 @@ export const alertSchema = z.strictObject({
   /**
    * CA62 "le nombre de lignes en attente": AL25 the lines waiting for the destination, AL24 the
    * failures past the delay, AL26 the lines late, AL27 the gap of the last reconciliation, AL21 the
-   * distinct creators served, the searches of the window or the refusals.
+   * distinct creators served or opened, the searches of the window, the openings of the day, the
+   * refusals, the searches of a refinement series or the creators opened without a shortlist.
    */
   count: z.number().int().nonnegative(),
   /** The oldest fact behind the alert (first failure waiting, oldest late line, run end). */

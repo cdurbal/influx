@@ -143,6 +143,8 @@ async function journal(
 
 async function clear(tx: Tx, account: string): Promise<void> {
   await tx`delete from search.search_queries where account_id = ${account}`;
+  // 0326: the openings count in AL21 too; a file before may have left some of this account
+  await tx`delete from search.profile_openings where account_id = ${account}`;
 }
 
 beforeAll(async () => {
@@ -172,6 +174,10 @@ describe("L3E-T10 AL21 in the catalogue and in the function (15 AL21; modele §1
         threshold_value: {
           distinct_profiles_served_24h: 150,
           rate_cap_share_bp: 8000,
+          // 0326 (L3F-06, l3f/modele §7): CA45 and CA46 added beside, the two above unchanged
+          refinement_searches: 6,
+          refinement_blocked: 2,
+          aspiration_profiles_24h: 150,
         },
         label_key: "alert.AL21",
         is_active: true,

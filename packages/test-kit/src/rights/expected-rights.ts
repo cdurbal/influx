@@ -7615,6 +7615,22 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_privacy_definer|column|search.selection_requests.state|SELECT",
   "influx_privacy_definer|table|search.profile_openings|DELETE",
   "influx_privacy_definer|table|search.selection_requests|DELETE",
+  // 0326 (L3F-06, l3f/modele.md §7): CA45, CA46 and the openings in AL21; the owner of the alert reads
+  // the filters of a search (compared, never served), the openings, whether a list gained a creator
+  // and whether a request was made: never a name, a note, a message nor a creator of a list
+  "influx_search_admin_definer|column|search.profile_openings.account_id|SELECT",
+  "influx_search_admin_definer|column|search.profile_openings.created_at|SELECT",
+  "influx_search_admin_definer|column|search.profile_openings.creator_account_id|SELECT",
+  "influx_search_admin_definer|column|search.profile_openings.outcome|SELECT",
+  "influx_search_admin_definer|column|search.search_queries.blocked_by_k_anonymity|SELECT",
+  "influx_search_admin_definer|column|search.search_queries.filters|SELECT",
+  "influx_search_admin_definer|column|search.search_queries.page_reached|SELECT",
+  "influx_search_admin_definer|column|search.selection_requests.advertiser_account_id|SELECT",
+  "influx_search_admin_definer|column|search.selection_requests.created_at|SELECT",
+  "influx_search_admin_definer|column|search.shortlist_items.added_at|SELECT",
+  "influx_search_admin_definer|column|search.shortlist_items.shortlist_id|SELECT",
+  "influx_search_admin_definer|column|search.shortlists.advertiser_account_id|SELECT",
+  "influx_search_admin_definer|column|search.shortlists.id|SELECT",
 ];
 
 /**
