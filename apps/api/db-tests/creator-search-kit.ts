@@ -8,8 +8,10 @@
 // and audience and a refused sector holding markers: what no brand may ever read (RG48). The switch
 // (D38) is opened for the time of a file and closed after it; the storefronts of these files leave
 // the search when it ends (they stay published: the stack is disposable, RG25 reads none of them).
+import { accountIdOf } from "@influx/test-kit/db";
 import type { LightMyRequestResponse } from "fastify";
 import { randomBytes, randomUUID } from "node:crypto";
+import type { ObjectStore } from "../src/platform/storage.ts";
 import { WEB_SECRET } from "../tests/helpers.ts";
 import type {
   CampaignRouteFixtures,
@@ -250,6 +252,125 @@ export function postSearch(
     },
     payload: JSON.stringify(body),
   });
+}
+
+// L3F commit 07: the profile a brand opens and its visuals (creator-profile-route,
+// t14-creator-profile-route, t15-creator-profile-rate) -------------------------------------------------
+
+export const URL_PROFILES = `${URL_SEARCH}/profiles`;
+
+/** A GET of the brand's routes as the web front relays it, from a client address. */
+export function getAsMember(
+  server: Server,
+  member: Member | null,
+  url: string,
+  address = "203.0.113.7",
+): Promise<LightMyRequestResponse> {
+  return server.inject({
+    method: "GET",
+    url,
+    headers: {
+      "x-influx-internal": WEB_SECRET,
+      "x-request-id": randomUUID(),
+      "x-real-ip": address,
+      "sec-fetch-site": "same-origin",
+      ...(member === null
+        ? {}
+        : { cookie: `__Host-influx-session=${member.session}` }),
+    },
+  });
+}
+
+/** GET /v1/creator-search/profiles/:alias. */
+export function getProfile(
+  server: Server,
+  member: Member | null,
+  alias: string,
+  address?: string,
+): Promise<LightMyRequestResponse> {
+  return getAsMember(server, member, `${URL_PROFILES}/${alias}`, address);
+}
+
+/** GET /v1/creator-search/profiles/:alias/visuals/:visualId. */
+export function getVisual(
+  server: Server,
+  member: Member | null,
+  alias: string,
+  visualId: string,
+  address?: string,
+): Promise<LightMyRequestResponse> {
+  return getAsMember(
+    server,
+    member,
+    `${URL_PROFILES}/${alias}/visuals/${visualId}`,
+    address,
+  );
+}
+
+/** A stored visual of a creator: its id, the key of its object (the base's) and its bytes. */
+export type StoredVisual = { id: string; objectKey: string; bytes: Buffer };
+
+/** The agent who decides the visuals of these files (the data set's agent A). */
+const VISUAL_AGENT = accountIdOf("agent", "a");
+
+/**
+ * A visual of `creator` in `state`, COMMITTED by the migration role, 640 x 480, its object written to
+ * `store` under the key the base generated (`approved` and `rejected` are decided by the data set's
+ * agent; a `rejected` one keeps no place, as the base wants). Never `pending`: a committed pending
+ * visual would enter queue 3, which other files count.
+ */
+export async function storedVisual(
+  fx: CampaignRouteFixtures,
+  store: ObjectStore,
+  creator: Member,
+  state: "approved" | "rejected",
+  order: number | null = null,
+): Promise<StoredVisual> {
+  const rejected = state === "rejected";
+  const [row] = await fx.migration<{ id: string; object_key: string }[]>`
+    insert into profiles.portfolio_items
+      (account_id, state, received_bytes, byte_size, width, height, checksum, stored_at,
+       sla_due_at, exif_stripped, decided_by_account_id, decided_at, display_order, caption,
+       rejection_reason_code, retention_due_at)
+    values (${creator.accountId}, ${state}::profiles.portfolio_item_state, 2048, 2048, 640, 480,
+            ${randomUUID().replaceAll("-", "").repeat(2)}, now(), now() + interval '1 day', true,
+            ${VISUAL_AGENT}, now(), ${rejected ? null : order}, ${`L3F 07 ${state} caption`},
+            ${rejected ? "watermark" : null},
+            case when ${rejected}::boolean then now() + interval '30 days' end)
+    returning id::text, object_key`;
+  if (row === undefined) {
+    throw new Error("no visual");
+  }
+  const bytes = randomBytes(96);
+  const written = await store.write(
+    "portfolio",
+    row.object_key,
+    bytes,
+    "image/webp",
+  );
+  if (!written.ok) {
+    throw new Error("the visual's object was not written");
+  }
+  return { id: row.id, objectKey: row.object_key, bytes };
+}
+
+/** The openings of `brand` (search.profile_openings), oldest first; never served. */
+export async function openingsOf(
+  fx: CampaignRouteFixtures,
+  brand: Member,
+): Promise<
+  {
+    outcome: string;
+    creator_account_id: string | null;
+    from_search: boolean;
+  }[]
+> {
+  return fx.migration`
+    select o.outcome, o.creator_account_id::text as creator_account_id,
+           o.search_query_id is not null as from_search
+      from search.profile_openings o
+     where o.account_id = ${brand.accountId}
+     order by o.created_at, o.id`;
 }
 
 /** The journal lines of `brand` (search.search_queries), oldest first; the count is never served. */

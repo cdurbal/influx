@@ -428,6 +428,9 @@ describe("L3E-T8 the entry closed, the cap and the journal (10 RG63, RG66; CA41,
       .map((route) => `${route.method} ${route.url}`)
       .sort();
     expect(searchRoutes).toEqual([
+      // L3F 07: the profile a brand opens and its visuals, neither an export nor a size of page
+      "GET /v1/creator-search/profiles/:alias",
+      "GET /v1/creator-search/profiles/:alias/visuals/:visualId",
       "GET /v1/open-campaigns",
       "GET /v1/open-campaigns/:id",
       "GET /v1/open-campaigns/:id/brand-logo",

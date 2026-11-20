@@ -91,8 +91,8 @@ const referenceCodeSchema = z
   .max(63)
   .regex(/^[a-z0-9]+(_[a-z0-9]+)*$/);
 
-/** A region code, ISO 3166-2 (0201 `reference.regions`). */
-const regionCodeSchema = z
+/** A region code, ISO 3166-2 (0201 `reference.regions`); the profile a brand opens shows it too (L3F). */
+export const regionCodeSchema = z
   .string()
   .max(6)
   .regex(/^[A-Z]{2}-[A-Z0-9]{1,3}$/);

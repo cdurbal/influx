@@ -2014,9 +2014,19 @@ describe("L3E-T9: L3E (commit 09): the brand's creator search joins the sweeps",
   it("T1.2, T1.1: the search route is in the inventory the sweeps walk, and a brand served by it finds no marker in any body or header", async () => {
     const server = app();
     const swept = (await sweptRoutes(server)).map(routeName);
+    // L3F 07: the profile a brand opens and its visuals live under the same prefix (their own
+    // markers and cards with visuals: L3F 09)
     expect(
-      swept.filter((route) => route.split(" ")[1]?.startsWith(URL_SEARCH)),
-    ).toEqual([SEARCH]);
+      swept
+        .filter((route) => route.split(" ")[1]?.startsWith(URL_SEARCH))
+        .sort(),
+    ).toEqual(
+      [
+        SEARCH,
+        `GET ${URL_SEARCH}/profiles/:alias`,
+        `GET ${URL_SEARCH}/profiles/:alias/visuals/:visualId`,
+      ].sort(),
+    );
     const result = await sweep(
       server,
       l3e.sweepBrand,

@@ -487,11 +487,21 @@ export async function readPortfolioImage(
     log.warn({}, "profiles.portfolio.object_missing");
     throw new ApiError("not_found");
   }
-  const bytes = read.value;
+  return portfolioImageOf(read.value, object);
+}
+
+/**
+ * A visual as every route relays it (the creator's own, and the brand's read of an approved one, L3F
+ * modele §3): a WebP, its sides, its bytes in base64, checked by the contract; nothing else.
+ */
+export function portfolioImageOf(
+  bytes: Uint8Array,
+  sides: { width: number; height: number },
+): PortfolioImageResponse {
   return portfolioImageResponseSchema.parse({
     contentType: "image/webp",
-    width: object.width,
-    height: object.height,
+    width: sides.width,
+    height: sides.height,
     byteSize: bytes.length,
     data: Buffer.from(
       bytes.buffer,
