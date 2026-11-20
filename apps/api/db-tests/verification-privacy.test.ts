@@ -944,7 +944,8 @@ describe("L2E-D24: the verification in the erasure (04 §9.1, 08 §8, Q2)", () =
     for (const [marker, tables] of Object.entries(after)) {
       expect(tables, marker).toEqual([]);
     }
-  });
+    // EC-L3F-04-9: a scan of every table of the base, near 60 s locally (59 to 63 s at L3F-04)
+  }, 120_000);
 
   it("writes in the register no verification line, and touches no other account", async () => {
     const outcome = await scenario(async (tx) => {
@@ -1504,7 +1505,8 @@ describe("L2F-D18: the data of L2F in the erasure (04 §9.1, 08 Q2)", () => {
         opening_comment: null,
       },
     ]);
-  });
+    // EC-L3F-04-9: a scan of every table of the base, near 60 s locally (59 to 63 s at L3F-04)
+  }, 120_000);
 });
 
 describe("L2F-D18: the retention of the new texts (08 RG100, modele point 3)", () => {

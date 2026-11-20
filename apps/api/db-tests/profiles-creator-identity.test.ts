@@ -119,6 +119,18 @@ const CREATOR_SEARCH_DOOR = "search.search_creators(jsonb,text,integer,uuid)";
 /** The brand's doors of the anonymous profile and of its visuals (0323, l3f/modele.md §2, §3). */
 const CREATOR_PROFILE_DOOR = "search.open_creator_profile(text)";
 const CREATOR_VISUAL_DOOR = "search.read_creator_visual(text,uuid)";
+/** The brand's doors of its shortlists that reach the engine (0324, l3f/modele.md §5). */
+const SHORTLIST_ENGINE_DOORS = [
+  "search.add_to_shortlist(uuid,text)",
+  "search.create_shortlist(text,uuid)",
+  "search.list_shortlists()",
+  "search.set_shortlist_note(uuid,text,text)",
+  "search.update_shortlist(uuid,text,uuid)",
+] as const;
+/** The door that serves the cards of a shortlist (0324): the engine and the card. */
+const SHORTLIST_READ_DOOR = "search.read_shortlist(uuid)";
+/** The door that removes by alias (0324, EC-L3F-04-4): the storefront alone. */
+const SHORTLIST_REMOVE_DOOR = "search.remove_from_shortlist(uuid,text)";
 
 /** The relations of layer A the engine of the search reaches, and the refused sectors (E6). */
 const ENGINE_RELATIONS = [
@@ -148,7 +160,10 @@ const CARD_RELATIONS = [
  * lines, the exact audience and the history never enter it (checkedExceptions). From 0323
  * (l3f/modele.md §2, §3; EC-L3F-03-8): the door of the profile reaches what the search door reaches
  * (the engine, the card, the region of the storefront); the door of a visual reaches the engine alone
- * (its visibility), its visual being no creator relation.
+ * (its visibility), its visual being no creator relation. From 0324 (l3f/modele.md §5;
+ * EC-L3F-04-8): the doors of the shortlists that check an alias or count a list reach the engine, the
+ * reading of a list the engine and the card, the removal the storefront alone (the alias); the
+ * deletion of a list reaches no creator relation.
  */
 const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions([
   ...CARD_RELATIONS.map((relation) => ({
@@ -163,6 +178,17 @@ const ADVERTISER_EXCEPTIONS: readonly Couple[] = checkedExceptions([
     object: CREATOR_VISUAL_DOOR,
     relation,
   })),
+  ...SHORTLIST_ENGINE_DOORS.flatMap((object) =>
+    ENGINE_RELATIONS.map((relation) => ({ object, relation })),
+  ),
+  ...CARD_RELATIONS.map((relation) => ({
+    object: SHORTLIST_READ_DOOR,
+    relation,
+  })),
+  {
+    object: SHORTLIST_REMOVE_DOOR,
+    relation: "profiles.creator_public_profiles",
+  },
 ]);
 
 /** The reprise of 0217 §9, replayed as written (between its two markers). */

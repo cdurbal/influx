@@ -2205,7 +2205,16 @@ Jamais servie ni exportée, comme les impressions (-7) ; effacée par `0325` ; 1
 `search.shortlists` (`id`, `advertiser_account_id`, `name`, `campaign_id`) et
 `search.shortlist_items` (`shortlist_id`, `creator_account_id`, `added_at`, `note`) : la sélection
 privée de la marque. **Aucune notification au créateur** : l'ajout à une sélection n'est pas un acte
-de mise en relation.
+de mise en relation. *Amendé par L3F-04 (`0324`, `jalons/l3f/modele.md` §5) :* aucun droit membre ;
+huit portes de la marque, **par alias** (créer, renommer ou rattacher, supprimer, ajouter, noter,
+retirer, lister, lire), dont le propriétaire `influx_creator_search_definer` lit et écrit les seules
+listes de l'appelant. Un ajout exige un alias que le moteur liste avec la campagne de la liste (admise,
+sinon aucune) **et déjà servi à l'appelant** (impression ou ouverture) ; idempotent. Bornes
+`selection_limits` : `listsPerAccount` (10) et `itemsPerList` (25, toutes lignes comprises) ; nom de 1 à
+80 caractères sur une ligne, note de 1 à 500. Lecture : les cartes de `creator_layer_a()`, les
+créateurs masqués depuis (E1 à E6) sans trace ni compte, revenus s'ils redeviennent visibles ; une
+campagne refusée depuis garde le rattachement, son secteur ignoré. Aucune ligne de
+`leads.outbox_events`, de `matching.*` ni d'audit.
 
 #### `search.impression_reasons` — l'explication affichée, rejouable et mesurable
 
@@ -2256,7 +2265,10 @@ Clés de `search.search_settings`, fermées par `CHECK` (`10` RG2, RG57, RG63) :
 `is_open_to_advertisers`, `k_anonymity_threshold` (5), `page_size` (12), `max_pages` (5),
 `rate_limits` (30/h, 200/j, 60 profils ouverts/j), `cold_profile_quota` (2 places, 30 jours),
 `critical_mass_thresholds` (30 profils publiés, 5 par thématique),
-`region_display_threshold` (5, lu par `profiles.creator_public_profiles.residence_region_code`).
+`region_display_threshold` (5, lu par `profiles.creator_public_profiles.residence_region_code`),
+`selection_limits` (*`0324`* : 10 sélections par compte, 25 créateurs par sélection, 5 demandes de
+sélection par jour ; bornes 1–100, 1–100, 1–50 ; hypothèse `staging`, à fixer par le fondateur avant
+`production`).
 *`alert_thresholds` retirée par `0316` (`archives/jalons/l3e/modele.md` §9, §10).*
 
 Trois garanties, calquées sur `leads.sync_settings` (§5.8) : l'écriture est réservée à
@@ -6371,6 +6383,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0321 | `search_creator_search_volume_alert` (L3E, AL21, I-9) | Seuils d'AL21 en table (`alert_definitions`, hypothèse `{150, 8000}`, à fixer par le fondateur : L3ES-3), `search.creator_search_volume_alerts()` (`SECURITY DEFINER`, `EXECUTE` à `influx_admin` seul) : compte, cause, nombre et date, sans filtre ni profil ; état dérivé ; propriétaire `influx_search_admin_definer` en lecture seule |
 | 0322 | `search_creator_search_admitted_campaign` (L3F, L3ES-1) | Aide invoker `search.is_admitted_campaign()` (`l3f/modele.md` §1) : campagne d'origine admise si de la marque, non effacée, `pending_review`, `published`, `paused` ou `closed` ; `draft` et `rejected` répondent comme une campagne inconnue (P0002, rien écrit ni décompté) ; moteur `creator_candidates()` (E6 : secteur d'une campagne admise seule) et porte `search_creators()` recréés à signature égale ; `SELECT (status)` sur `campaigns.campaigns` au propriétaire | Oui tant qu'aucune recherche n'est journalisée |
 | 0323 | `search_creator_profile_door` (L3F, signalé I-4) | Table `search.profile_openings` (§5.5 ; ajout seul, RLS forcée, aucun droit membre) ; portes `search.open_creator_profile(alias)` (RG1, interrupteur, seau `profileOpensPerDay`, alias membre du moteur avec la campagne d'origine admise, sinon P0002 `creator` unique ; ouverture journalisée et impression d'origine ouverte une fois dans la transaction qui sert ; carte de `creator_layer_a()` et région) et `search.read_creator_visual(alias, visuel)` (objet d'un visuel approuvé relu par `apps/api`, jamais servi), `EXECUTE` à `influx_advertiser` seul ; aides invoker `displayed_region()` (seuil sur E1 à E4) et `creator_open_retry_after()` ; droits du propriétaire : région, clé et côtés des visuels approuvés, `region_display_threshold`, filtres et campagne de ses recherches, ouverture de leurs impressions | Oui tant qu'aucun profil n'est ouvert |
+| 0324 | `search_brand_shortlists` (L3F, signalé I-4) | Clé `selection_limits` de `search_settings` (neuvième, `CHECK` et zod) ; huit portes des sélections par alias (`create_shortlist`, `update_shortlist`, `delete_shortlist`, `add_to_shortlist`, `set_shortlist_note`, `remove_from_shortlist`, `list_shortlists`, `read_shortlist`), `EXECUTE` à `influx_advertiser` seul, derrière la garde (42501, RG1, interrupteur) ; ajout d'un alias listé par le moteur avec la campagne de la liste et déjà servi à l'appelant, sinon P0002 `creator` unique ; liste d'autrui P0002 `shortlist` ; bornes 54000 ; masqués sans trace ; six aides invoker ; droits du propriétaire sur les seules listes de l'appelant, le créateur de ses ouvertures, `selection_limits` ; rien vers l'outbox, `matching.*` ni l'audit | Oui tant qu'aucune sélection n'est écrite par une porte |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

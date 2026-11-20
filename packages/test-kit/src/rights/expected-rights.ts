@@ -7358,6 +7358,16 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // visual (its object relayed by apps/api), executed by the brand alone
   "influx_advertiser|function|search.open_creator_profile(text)|EXECUTE",
   "influx_advertiser|function|search.read_creator_visual(text,uuid)|EXECUTE",
+  // 0324 (L3F-04, l3f/modele.md §5; EC-L3F-04-8): the eight doors of the shortlists, by alias,
+  // executed by the brand alone
+  "influx_advertiser|function|search.add_to_shortlist(uuid,text)|EXECUTE",
+  "influx_advertiser|function|search.create_shortlist(text,uuid)|EXECUTE",
+  "influx_advertiser|function|search.delete_shortlist(uuid)|EXECUTE",
+  "influx_advertiser|function|search.list_shortlists()|EXECUTE",
+  "influx_advertiser|function|search.read_shortlist(uuid)|EXECUTE",
+  "influx_advertiser|function|search.remove_from_shortlist(uuid,text)|EXECUTE",
+  "influx_advertiser|function|search.set_shortlist_note(uuid,text,text)|EXECUTE",
+  "influx_advertiser|function|search.update_shortlist(uuid,text,uuid)|EXECUTE",
   "influx_advertiser|function|search.search_creators(jsonb,text,integer,uuid)|EXECUTE",
   "influx_advertiser|schema|search|USAGE",
   // 0320 (L3E commit 07, l3e/modele.md §6, §7): tier 2 reads the deliverables and the targeted
@@ -7473,7 +7483,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // read and opened once)
   "influx_creator_search_definer|column|search.profile_openings.account_id|INSERT,SELECT",
   "influx_creator_search_definer|column|search.profile_openings.created_at|SELECT",
-  "influx_creator_search_definer|column|search.profile_openings.creator_account_id|INSERT",
+  // 0324 (L3F-04, modele -5): the creator of its openings read (an alias already served)
+  "influx_creator_search_definer|column|search.profile_openings.creator_account_id|INSERT,SELECT",
   "influx_creator_search_definer|column|search.profile_openings.id|SELECT",
   "influx_creator_search_definer|column|search.profile_openings.outcome|INSERT,SELECT",
   "influx_creator_search_definer|column|search.profile_openings.request_id|INSERT",
@@ -7500,6 +7511,18 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|column|search.search_queries.sort_code|INSERT",
   "influx_creator_search_definer|column|search.search_queries.view_mode|INSERT",
   "influx_creator_search_definer|column|search.search_settings.key|SELECT",
+  // 0324 (L3F-04, l3f/modele.md §5): the caller's own shortlists and their items, by its doors
+  "influx_creator_search_definer|column|search.shortlist_items.added_at|SELECT",
+  "influx_creator_search_definer|column|search.shortlist_items.creator_account_id|INSERT,SELECT",
+  "influx_creator_search_definer|column|search.shortlist_items.note|SELECT,UPDATE",
+  "influx_creator_search_definer|column|search.shortlist_items.shortlist_id|INSERT,SELECT",
+  "influx_creator_search_definer|column|search.shortlists.advertiser_account_id|INSERT,SELECT",
+  "influx_creator_search_definer|column|search.shortlists.campaign_id|INSERT,SELECT,UPDATE",
+  "influx_creator_search_definer|column|search.shortlists.created_at|SELECT",
+  "influx_creator_search_definer|column|search.shortlists.id|SELECT",
+  "influx_creator_search_definer|column|search.shortlists.name|INSERT,SELECT,UPDATE",
+  "influx_creator_search_definer|table|search.shortlist_items|DELETE",
+  "influx_creator_search_definer|table|search.shortlists|DELETE",
   "influx_creator_search_definer|column|search.search_settings.value|SELECT",
   "influx_creator_search_definer|column|verification.badges.account_id|SELECT",
   "influx_creator_search_definer|column|verification.badges.granted_at|SELECT",
@@ -7510,6 +7533,21 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_creator_search_definer|function|influx.current_account_role()|EXECUTE",
   "influx_creator_search_definer|function|profiles.creator_layer_a(uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.check_creator_search_filters(jsonb)|EXECUTE",
+  // 0324 (L3F-04): the eight doors of the shortlists and their six invoker helpers
+  "influx_creator_search_definer|function|search.add_to_shortlist(uuid,text)|EXECUTE",
+  "influx_creator_search_definer|function|search.anonymous_card(uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.check_shortlist_name(text)|EXECUTE",
+  "influx_creator_search_definer|function|search.create_shortlist(text,uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.delete_shortlist(uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.list_shortlists()|EXECUTE",
+  "influx_creator_search_definer|function|search.read_shortlist(uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.remove_from_shortlist(uuid,text)|EXECUTE",
+  "influx_creator_search_definer|function|search.selection_limit(text)|EXECUTE",
+  "influx_creator_search_definer|function|search.set_shortlist_note(uuid,text,text)|EXECUTE",
+  "influx_creator_search_definer|function|search.shortlist_creator(uuid,text,uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.shortlist_gate()|EXECUTE",
+  "influx_creator_search_definer|function|search.shortlist_summaries(uuid,uuid)|EXECUTE",
+  "influx_creator_search_definer|function|search.update_shortlist(uuid,text,uuid)|EXECUTE",
   "influx_creator_search_definer|function|search.creator_candidates(text,uuid,jsonb,uuid)|EXECUTE",
   // 0323 (L3F-03): the bucket of the openings, the region, the doors of the profile and of a visual
   "influx_creator_search_definer|function|search.creator_open_retry_after(uuid)|EXECUTE",
@@ -8132,4 +8170,14 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // two helpers (displayed_region, creator_open_retry_after) are SECURITY INVOKER, same owner
   "search.open_creator_profile(text)": "influx_creator_search_definer",
   "search.read_creator_visual(text,uuid)": "influx_creator_search_definer",
+  // 0324 (L3F, l3f/modele §5): the brand doors of the shortlists; their six helpers are SECURITY
+  // INVOKER, same owner
+  "search.add_to_shortlist(uuid,text)": "influx_creator_search_definer",
+  "search.create_shortlist(text,uuid)": "influx_creator_search_definer",
+  "search.delete_shortlist(uuid)": "influx_creator_search_definer",
+  "search.list_shortlists()": "influx_creator_search_definer",
+  "search.read_shortlist(uuid)": "influx_creator_search_definer",
+  "search.remove_from_shortlist(uuid,text)": "influx_creator_search_definer",
+  "search.set_shortlist_note(uuid,text,text)": "influx_creator_search_definer",
+  "search.update_shortlist(uuid,text,uuid)": "influx_creator_search_definer",
 };

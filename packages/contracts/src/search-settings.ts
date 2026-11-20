@@ -10,7 +10,10 @@ import { z } from "./zod.ts";
 const wholeNumber = (min: number, max: number) =>
   z.number().int().min(min).max(max);
 
-/** The eight keys of search.search_settings (closed by CHECK; no alert_thresholds, modele §9). */
+/**
+ * The nine keys of search.search_settings (closed by CHECK; no alert_thresholds, l3e/modele §9;
+ * selection_limits from 0324, l3f/modele §5).
+ */
 export const SEARCH_SETTING_KEYS = [
   "is_open_to_advertisers",
   "k_anonymity_threshold",
@@ -20,6 +23,7 @@ export const SEARCH_SETTING_KEYS = [
   "cold_profile_quota",
   "critical_mass_thresholds",
   "region_display_threshold",
+  "selection_limits",
 ] as const;
 export type SearchSettingKey = (typeof SEARCH_SETTING_KEYS)[number];
 
@@ -53,6 +57,12 @@ export const searchSettingValueSchemas = {
   }),
   /** 07 RG37, 10 RG15: the region shown from this many published profiles of a (country, region). */
   region_display_threshold: wholeNumber(5, 50),
+  /** 10 RG51, RG61, RG63 (l3f/modele §5): the shortlists of a brand and its requests to the team. */
+  selection_limits: z.strictObject({
+    listsPerAccount: wholeNumber(1, 100),
+    itemsPerList: wholeNumber(1, 100),
+    requestsPerDay: wholeNumber(1, 50),
+  }),
 } as const satisfies Record<SearchSettingKey, z.ZodType>;
 
 /** One key and its value, as an administrator sends it and as apps/api reads it. */
@@ -88,6 +98,10 @@ export const searchSettingSchema = z.discriminatedUnion("key", [
   z.strictObject({
     key: z.literal("region_display_threshold"),
     value: searchSettingValueSchemas.region_display_threshold,
+  }),
+  z.strictObject({
+    key: z.literal("selection_limits"),
+    value: searchSettingValueSchemas.selection_limits,
   }),
 ]);
 export type SearchSetting = z.infer<typeof searchSettingSchema>;

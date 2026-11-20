@@ -582,6 +582,15 @@ interdits reviennent.
 | **Ajouter à ma sélection** | Ajoute le créateur à une **shortlist privée** de la marque (`search.shortlists`), éventuellement rattachée à une campagne | **Aucune notification au créateur**, aucune révélation, aucun engagement |
 | **Demander une mise en relation** | Crée une entrée dans la **file de validation commerciale**, avec les critères de la recherche d'origine | **N'ouvre pas de conversation, ne révèle rien, ne garantit pas une réponse du créateur** |
 
+> **Amendé par L3F-04 (`0324`, `jalons/l3f/modele.md` §5).** « Ajouter à ma sélection » passe par
+> les portes `search.*_shortlist*()`, **par alias** : la marque ne tient jamais l'identifiant d'un
+> créateur. L'ajout exige un alias que le moteur liste avec la campagne de la liste (admise, §1) **et
+> déjà servi à la marque** (impression ou ouverture) ; un alias inconnu, exclu (E1 à E6) ou jamais
+> servi reçoit **la même réponse** (CA49). Sélections bornées en table (`selection_limits` : 10 par
+> compte, 25 créateurs, toutes lignes comprises) ; rattachables à une campagne admise ; un créateur
+> exclu depuis disparaît de la lecture **sans trace ni compte** et revient s'il redevient visible.
+> Aucune notification, aucune ligne d'outbox, aucune mise en relation (CA52, D45).
+
 **RG52** — Le libellé de la seconde action **énonce le processus** : « un commercial INFLUX valide
 votre demande et vous met en relation ». Promettre un contact immédiat, c'est fabriquer la déception
 — et le délai de traitement de cette file est le risque produit de premier rang (**D39**).

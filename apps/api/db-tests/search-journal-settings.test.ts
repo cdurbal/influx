@@ -273,16 +273,34 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
         name: "search.write_facet_setting(text,boolean,integer,text)",
       },
       { role: "influx_admin", name: "search.write_search_setting(text,jsonb)" },
+      // 0324 (L3F-04, EC-L3F-04-8): the brand's eight doors of the shortlists, by alias
+      { role: "influx_advertiser", name: "search.add_to_shortlist(uuid,text)" },
+      { role: "influx_advertiser", name: "search.create_shortlist(text,uuid)" },
+      { role: "influx_advertiser", name: "search.delete_shortlist(uuid)" },
+      { role: "influx_advertiser", name: "search.list_shortlists()" },
       // 0323 (L3F-03, EC-L3F-03-8): the brand's doors of the anonymous profile and of a visual
       { role: "influx_advertiser", name: "search.open_creator_profile(text)" },
       {
         role: "influx_advertiser",
         name: "search.read_creator_visual(text,uuid)",
       },
+      { role: "influx_advertiser", name: "search.read_shortlist(uuid)" },
+      {
+        role: "influx_advertiser",
+        name: "search.remove_from_shortlist(uuid,text)",
+      },
       // 0319 (L3E-06, EC-L3E-06-11): the brand's door of the creator search
       {
         role: "influx_advertiser",
         name: "search.search_creators(jsonb,text,integer,uuid)",
+      },
+      {
+        role: "influx_advertiser",
+        name: "search.set_shortlist_note(uuid,text,text)",
+      },
+      {
+        role: "influx_advertiser",
+        name: "search.update_shortlist(uuid,text,uuid)",
       },
       { role: "influx_creator", name: "search.read_open_campaign(uuid)" },
       {
@@ -324,7 +342,7 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
 });
 
 describe("L3E-T3 the settings as data (fiche invariant 11; 10 RG2, RG11 to RG14)", () => {
-  it("L3E-T3 loads the eight keys with the values of modele §9, the search closed, no alert_thresholds, version 1 as the snapshot of the loaded state", async () => {
+  it("L3E-T3 loads the nine keys with the values of modele §9 (selection_limits from 0324, l3f/modele §5), the search closed, no alert_thresholds, version 1 as the snapshot of the loaded state", async () => {
     const outcome = await scenario(async (tx) => {
       const settings = await tx<{ key: string; value: unknown }[]>`
         select key, value from search.search_settings order by key`;
@@ -353,6 +371,12 @@ describe("L3E-T3 the settings as data (fiche invariant 11; 10 RG2, RG11 to RG14)
       cold_profile_quota: { slots: 2, recentDays: 30 },
       critical_mass_thresholds: { publishedProfiles: 30, perTopic: 5 },
       region_display_threshold: 5,
+      // 0324 (L3F-04, l3f/modele §5): the bounds of the shortlists and of the request
+      selection_limits: {
+        listsPerAccount: 10,
+        itemsPerList: 25,
+        requestsPerDay: 5,
+      },
     });
     expect([...SEARCH_SETTING_KEYS].sort()).toEqual(
       outcome.settings.map((s) => s.key),
@@ -387,6 +411,32 @@ describe("L3E-T3 the settings as data (fiche invariant 11; 10 RG2, RG11 to RG14)
       ["critical_mass_thresholds", { publishedProfiles: 100000, perTopic: 1 }],
       ["region_display_threshold", 4],
       ["region_display_threshold", 5],
+      // 0324 (L3F-04): the bounds of selection_limits
+      [
+        "selection_limits",
+        { listsPerAccount: 10, itemsPerList: 25, requestsPerDay: 5 },
+      ],
+      [
+        "selection_limits",
+        { listsPerAccount: 100, itemsPerList: 1, requestsPerDay: 50 },
+      ],
+      [
+        "selection_limits",
+        { listsPerAccount: 0, itemsPerList: 25, requestsPerDay: 5 },
+      ],
+      [
+        "selection_limits",
+        { listsPerAccount: 10, itemsPerList: 101, requestsPerDay: 5 },
+      ],
+      [
+        "selection_limits",
+        { listsPerAccount: 10, itemsPerList: 25, requestsPerDay: 51 },
+      ],
+      ["selection_limits", { listsPerAccount: 10, itemsPerList: 25 }],
+      [
+        "selection_limits",
+        { listsPerAccount: 10, itemsPerList: 2.5, requestsPerDay: 5 },
+      ],
     ];
     const base = await scenario(async (tx) => {
       const accepted: boolean[] = [];

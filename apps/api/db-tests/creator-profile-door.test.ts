@@ -649,7 +649,8 @@ describe("L3F-T3 the doors, their helpers and the openings in the catalogue (03 
     expect(outcome.owner).toEqual([
       "account_id SI",
       "created_at S",
-      "creator_account_id I",
+      // 0324 (L3F-04, modele -5): the creator of its openings read (an alias already served)
+      "creator_account_id SI",
       "id S",
       "outcome SI",
       "request_id I",

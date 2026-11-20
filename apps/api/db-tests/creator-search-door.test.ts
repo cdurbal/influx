@@ -526,7 +526,25 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
       dynamic: false,
     });
     expect(outcome.functions).toEqual([
+      // 0324 (L3F-04, EC-L3F-04-8): the eight doors of the shortlists, the brand's alone, and their
+      // six invoker helpers
+      {
+        name: "search.add_to_shortlist(uuid,text)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
+      helper("search.anonymous_card(uuid)"),
       helper("search.check_creator_search_filters(jsonb)"),
+      helper("search.check_shortlist_name(text)"),
+      {
+        name: "search.create_shortlist(text,uuid)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
       helper("search.creator_candidates(text,uuid,jsonb,uuid)"),
       // 0323 (L3F-03, EC-L3F-03-8): the bucket of the openings, a seventh invoker helper
       helper("search.creator_open_retry_after(uuid)"),
@@ -535,10 +553,24 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         "search.creator_order(uuid[],jsonb,text,uuid,integer,integer,date)",
       ),
       helper("search.creator_search_retry_after(uuid)"),
+      {
+        name: "search.delete_shortlist(uuid)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
       // 0323 (L3F-03, EC-L3F-03-8): the region shown on a profile, an eighth invoker helper
       helper("search.displayed_region(uuid)"),
       // 0322 (L3F-02, EC-L3F-02-1): the admission of a campaign of origin, a sixth invoker helper
       helper("search.is_admitted_campaign(uuid,uuid)"),
+      {
+        name: "search.list_shortlists()",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
       // 0323 (L3F-03, EC-L3F-03-8): the doors of the profile and of a visual, the brand's alone
       {
         name: "search.open_creator_profile(text)",
@@ -554,9 +586,41 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         callers: ["influx_advertiser"],
         dynamic: false,
       },
+      {
+        name: "search.read_shortlist(uuid)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
+      {
+        name: "search.remove_from_shortlist(uuid,text)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
       helper("search.require_creator_searcher()"),
       {
         name: DOOR_SIGNATURE,
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
+      helper("search.selection_limit(text)"),
+      {
+        name: "search.set_shortlist_note(uuid,text,text)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_advertiser"],
+        dynamic: false,
+      },
+      helper("search.shortlist_creator(uuid,text,uuid)"),
+      helper("search.shortlist_gate()"),
+      helper("search.shortlist_summaries(uuid,uuid)"),
+      {
+        name: "search.update_shortlist(uuid,text,uuid)",
         definer: true,
         config: ['search_path=""'],
         callers: ["influx_advertiser"],
@@ -720,6 +784,9 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
       "search.profile_openings",
       "search.search_impressions",
       "search.search_queries",
+      // 0324 (L3F-04, EC-L3F-04-8): the caller's own shortlists and their items, by its doors
+      "search.shortlist_items",
+      "search.shortlists",
     ]);
     // 0323 (L3F-03, modele §3, -1): the key of an approved visual is read by the door of the visual
     // and relayed by apps/api, never served (L3F-T3)
@@ -773,15 +840,31 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
           ),
         }),
       );
-      return { catalogue, tried };
+      // `order by 1` in an aggregate orders by a constant: the functions sorted here (0324, eleven)
+      return {
+        catalogue: {
+          ...catalogue,
+          functions: [...((catalogue?.functions as string[]) ?? [])].sort(),
+        },
+        tried,
+      };
     });
     expect(outcome.catalogue).toEqual({
       tables: [],
       // 0323 (L3F-03, EC-L3F-03-8): the doors of the profile and of a visual beside the search's
+      // 0324 (L3F-04, EC-L3F-04-8): the eight doors of the shortlists, by alias
       functions: [
+        "search.add_to_shortlist(uuid,text)",
+        "search.create_shortlist(text,uuid)",
+        "search.delete_shortlist(uuid)",
+        "search.list_shortlists()",
         "search.open_creator_profile(text)",
         "search.read_creator_visual(text,uuid)",
+        "search.read_shortlist(uuid)",
+        "search.remove_from_shortlist(uuid,text)",
         DOOR_SIGNATURE,
+        "search.set_shortlist_note(uuid,text,text)",
+        "search.update_shortlist(uuid,text,uuid)",
       ],
     });
     expect(outcome.tried).toEqual({
@@ -1909,10 +1992,19 @@ describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", 
       `${FEATURE_NOT_SUPPORTED} agent_identified`,
     );
     // 0323 (L3F-03, EC-L3F-03-8): the brand's doors of the profile and of a visual, both anonymous
+    // 0324 (L3F-04, EC-L3F-04-8): the brand's eight doors of the shortlists, by alias
     expect(outcome.doors).toEqual([
+      "influx_advertiser search.add_to_shortlist(uuid,text)",
+      "influx_advertiser search.create_shortlist(text,uuid)",
+      "influx_advertiser search.delete_shortlist(uuid)",
+      "influx_advertiser search.list_shortlists()",
       "influx_advertiser search.open_creator_profile(text)",
       "influx_advertiser search.read_creator_visual(text,uuid)",
+      "influx_advertiser search.read_shortlist(uuid)",
+      "influx_advertiser search.remove_from_shortlist(uuid,text)",
       `influx_advertiser ${DOOR_SIGNATURE}`,
+      "influx_advertiser search.set_shortlist_note(uuid,text,text)",
+      "influx_advertiser search.update_shortlist(uuid,text,uuid)",
     ]);
   });
 });
