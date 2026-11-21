@@ -20,6 +20,6 @@
 | U | ux.md | ux | sonnet | high | expert-ux | fait | 0 bloquant · 8 jalon · 7 avant prod · 3 plus tard ; invariants tenus ; sans rendu (revue sur le code) |
 | fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | fait | J1-J8 : focus au compte sans remontage, FR (listes, Clôturée), 2V valeur actuelle puis demandée ; aucune route ni base ; planchers 16, 10, 8 |
 | 14 | 14.md | commit | opus | high | expert-database | fait | 0334 : index (owner_agent_id) non partiel ; les 2 s : GET comptes internes, la vue attend le verrou de session ; POST ≈ 60 ms ; E2 6,4 → 2,2 s ; aucun droit |
-| F | recette.md | fondateur | — | — | fondateur | à faire | 2026-11-21 : < 15 s ×3 ; compatibles : camp. 1 = 1, camp. 2 et 3 = 0 ; file 9 non rapportée ; à élucider |
+| F | recette.md | fondateur | — | — | fondateur | fait | « je valide la recette » (2026-11-21) après semis ; 1re passe < 15 s ×3 ; durées de la rejouée et file 9 non données |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | dernier jalon du lot |
