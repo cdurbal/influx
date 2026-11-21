@@ -1,11 +1,12 @@
-// Queue 9 and the settings of the creator search in the backoffice (docs/mvp/10 RG2, RG61, RG84; 15 RG26 to RG28, C1 to
+// Queue 9 in the backoffice (docs/mvp/10 RG2, RG61, RG84; 15 RG26 to RG28, C1 to
 // C3, AL23; 03 PD1 to PD7; 17b §2, §3.13.c, I13; jalons/l3g, commit 13, L3G-E2), in French only (the backoffice has no
 // English before D36): an agent reads the requests of the brands for a selection by the team, opens one (which takes it
 // in charge), reads its criteria and its message as plain text (a hidden bidirectional control is gone, the frame is
-// `dir="auto"`), then closes it with a reason of the closed list, the note asked for « Autre » alone; and an administrator
-// asks to change the thresholds of the critical mass, which an OTHER administrator confirms on the screen of the dual
-// control. The brand and its request are written by the base (the brand's screens are not under test); the screens'
-// words are the locale files', never copies. The threshold changed is put back afterwards. No amount, tariff or creator.
+// `dir="auto"`), then closes it with a reason of the closed list, the note asked for « Autre » alone. The brand and its
+// request are written by the base (the brand's screens are not under test); the screens' words are the locale files',
+// never copies. The administrator's half of L3G-E2 (the thresholds of the critical mass, asked by an administrator and
+// confirmed by an OTHER one on the screen of the dual control) lives in e2e/backoffice.spec.ts: that serial file is the
+// one that seeds admins, whose peers its degraded dual control deactivates (playwright.config.ts). No amount, tariff or creator.
 import { randomUUID } from "node:crypto";
 import { messages as bo } from "../../backoffice/src/messages/fr";
 import { expectNoAxeViolation } from "./support/axe";
@@ -22,11 +23,8 @@ import { withSql } from "./support/verification-cycle";
 
 const Q = bo.teamSelectionQueue;
 const R = bo.teamSelectionReview;
-const S = bo.searchSettings;
 
-const number = new Intl.NumberFormat("fr-FR");
 const brands: string[] = [];
-let originalThresholds: unknown = null;
 
 test.afterAll(async () => {
   await withSql(async (sql) => {
@@ -34,12 +32,6 @@ test.afterAll(async () => {
       await sql`
         delete from search.selection_requests
          where advertiser_account_id = any(${brands}::uuid[])`;
-    }
-    if (originalThresholds !== null) {
-      await sql`
-        update search.search_settings
-           set value = ${sql.json(originalThresholds as never)}
-         where key = 'critical_mass_thresholds'`;
     }
   });
   await retireInternals();
@@ -140,85 +132,4 @@ test("L3G-E2: an agent opens a request of a brand, reads its criteria and its me
       }),
     )
     .toBe(JSON.stringify({ state: "closed", reason: "duplicate", note: null }));
-});
-
-test("L3G-E2: an administrator asks to change the thresholds of the critical mass and another administrator confirms it on the dual control screen (D84, L3ES-2; 03 PD2)", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  originalThresholds = await withSql(async (sql) => {
-    const [row] = await sql<{ value: unknown }[]>`
-      select value from search.search_settings where key = 'critical_mass_thresholds'`;
-    return row?.value ?? null;
-  });
-  const current = originalThresholds as {
-    publishedProfiles: number;
-    perTopic: number;
-  };
-  const wanted = String(current.publishedProfiles + 1);
-
-  await seedInternal(page, "admin", "Ilan");
-  await page.goto(`${BACKOFFICE_ORIGIN}/reglages/recherche`);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(S.title);
-  // the opening is read, never decided here by a counter (CA60), and the register note is honest
-  await expect(page.locator("[data-search-opening]")).toBeVisible();
-  await expect(page.locator("main")).toContainText(S.historyNote);
-
-  const form = page.getByRole("form", { name: S.mass.thresholdsTitle });
-  await expect(form.getByLabel(S.mass.publishedProfiles)).toHaveValue(
-    String(current.publishedProfiles),
-  );
-  // the same value asks nothing; a reason is demanded
-  await form.getByRole("button", { name: S.submit }).click();
-  await expect(form).toContainText(S.problems.unchanged);
-  await form.getByLabel(S.mass.publishedProfiles).fill(wanted);
-  await form.getByRole("button", { name: S.submit }).click();
-  await expect(form).toContainText(S.problems.reason);
-  await form
-    .getByLabel(S.reasonLabel)
-    .selectOption({ label: S.reasons.founder_decision });
-  await form.getByRole("button", { name: S.submit }).click();
-
-  // The request waits for a peer: the proposed value is said, the requester has no confirmation to give.
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    bo.dualControl.requestTitle,
-  );
-  await expect(
-    page.getByRole("heading", {
-      level: 2,
-      name: bo.dualControl.actions["search.change_setting"],
-    }),
-  ).toBeVisible();
-  await expect(page.getByText(bo.dualControl.awaitPeer)).toBeVisible();
-  const requestUrl = page.url();
-
-  // Another administrator (the session of the page is replaced by his) reads the same recap, the new value in
-  // words, and confirms it.
-  await seedInternal(page, "admin", "Maé");
-  await page.goto(requestUrl);
-  await expect(
-    page.getByText(
-      S.words.thresholds(
-        number.format(current.publishedProfiles + 1),
-        number.format(current.perTopic),
-      ),
-    ),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("listitem").filter({
-      hasText: bo.dualControl.consequences.setting_changed,
-    }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: bo.dualControl.confirm }).click();
-  await expect(
-    page.getByRole("status").filter({ hasText: bo.dualControl.done(false) }),
-  ).toBeVisible();
-
-  // The base holds the new thresholds.
-  const stored = await withSql(async (sql) => {
-    const [row] = await sql<{ value: { publishedProfiles: number } }[]>`
-      select value from search.search_settings where key = 'critical_mass_thresholds'`;
-    return row?.value.publishedProfiles;
-  });
-  expect(stored).toBe(current.publishedProfiles + 1);
 });

@@ -80,13 +80,26 @@ import {
   visibleShadows,
 } from "./support/rendering";
 import { BACKOFFICE_ORIGIN } from "./support/servers";
+import { withSql } from "./support/verification-cycle";
 
 const m = messages;
 
 test.describe.configure({ mode: "serial" });
 test.use({ viewport: { width: 1440, height: 900 } });
 
+/** L3G-E2: the thresholds of the critical mass before the journey that changes them, put back afterwards. */
+let originalThresholds: unknown = null;
+
 test.afterAll(async () => {
+  if (originalThresholds !== null) {
+    const value = originalThresholds;
+    await withSql(
+      (sql) => sql`
+        update search.search_settings
+           set value = ${sql.json(value as never)}
+         where key = 'critical_mass_thresholds'`,
+    );
+  }
   await restoreAdmins();
   await removeQueueLines();
   await withdrawReviewEntries();
@@ -897,6 +910,7 @@ test("TD6.1: one main navigation, no admin entry for an agent, the skip link fir
     m.nav.dashboard,
     m.nav.queues,
     m.nav.accounts,
+    m.nav.creatorSearch,
   ]);
   await expect(nav.getByRole("link", { name: m.nav.admin })).toHaveCount(0);
   await expect(nav.locator("[aria-current=page]")).toHaveText(m.nav.dashboard);
@@ -921,6 +935,7 @@ test("TD6.1: one main navigation, no admin entry for an agent, the skip link fir
     m.nav.accounts,
     m.nav.signups,
     m.nav.memberInvitations,
+    m.nav.creatorSearch,
   ]);
 });
 
@@ -1019,6 +1034,7 @@ test("TD6.2: the rail from lg, the compact list from md, the workstation screen 
       m.nav.accounts,
       m.nav.signups,
       m.nav.memberInvitations,
+      m.nav.creatorSearch,
       m.nav.admin,
     ]);
     const box = await nav.boundingBox();
@@ -1033,7 +1049,7 @@ test("TD6.2: the rail from lg, the compact list from md, the workstation screen 
     await expect(mainNavigation(page)).toHaveCount(1);
     // The entries and the sub-entries of Comptes, every one in the window (its lines: TN7).
     const links = nav.getByRole("link");
-    await expect(links).toHaveCount(6);
+    await expect(links).toHaveCount(7);
     for (const link of await links.all()) {
       await expect(link).toBeInViewport();
     }
@@ -1121,6 +1137,7 @@ test("TN7: the screens of the active entry as sub-entries of the rail, a second 
     m.nav.dualControl,
     m.nav.internalAccounts,
     m.nav.apollo,
+    m.nav.searchSettings,
     m.nav.registrySources,
     m.nav.health,
   ]);
@@ -1888,4 +1905,93 @@ test("TK6.2: no row marked at rest, nor the neighbour of the hovered one", async
     await rowIndicators(page, firstCell(1)),
     "the neighbour of the hovered row",
   ).toEqual([]);
+});
+
+test("L3G-E2: an administrator asks to change the thresholds of the critical mass and another administrator confirms it on the dual control screen (D84, L3ES-2; 03 PD2)", async ({
+  page,
+}) => {
+  const searchSettings = m.searchSettings;
+  const number = new Intl.NumberFormat("fr-FR");
+  originalThresholds = await withSql(async (sql) => {
+    const [row] = await sql<{ value: unknown }[]>`
+      select value from search.search_settings where key = 'critical_mass_thresholds'`;
+    return row?.value ?? null;
+  });
+  const current = originalThresholds as {
+    publishedProfiles: number;
+    perTopic: number;
+  };
+  const wanted = String(current.publishedProfiles + 1);
+
+  // The search settings change under a peer's control or not at all (10 RG2, D38 Q2): the peer who can confirm is
+  // seeded here, never an admin another journey happens to have left active (a request without one is refused).
+  await seedColleague("admin", "Noa");
+  await seedInternal(page, "admin", "Ilan");
+  await page.goto(bo("/reglages/recherche"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    searchSettings.title,
+  );
+  // the opening is read, never decided here by a counter (CA60), and the register note is honest
+  await expect(page.locator("[data-search-opening]")).toBeVisible();
+  await expect(page.locator("main")).toContainText(searchSettings.historyNote);
+
+  const form = page.getByRole("form", {
+    name: searchSettings.mass.thresholdsTitle,
+  });
+  await expect(
+    form.getByLabel(searchSettings.mass.publishedProfiles),
+  ).toHaveValue(String(current.publishedProfiles));
+  // the same value asks nothing; a reason is demanded
+  await form.getByRole("button", { name: searchSettings.submit }).click();
+  await expect(form).toContainText(searchSettings.problems.unchanged);
+  await form.getByLabel(searchSettings.mass.publishedProfiles).fill(wanted);
+  await form.getByRole("button", { name: searchSettings.submit }).click();
+  await expect(form).toContainText(searchSettings.problems.reason);
+  await form
+    .getByLabel(searchSettings.reasonLabel)
+    .selectOption({ label: searchSettings.reasons.founder_decision });
+  await form.getByRole("button", { name: searchSettings.submit }).click();
+
+  // The request waits for a peer: the proposed value is said, the requester has no confirmation to give.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    m.dualControl.requestTitle,
+  );
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: m.dualControl.actions["search.change_setting"],
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(m.dualControl.awaitPeer)).toBeVisible();
+  const requestUrl = page.url();
+
+  // Another administrator (the session of the page is replaced by his) reads the same recap, the new value in
+  // words, and confirms it.
+  await seedInternal(page, "admin", "Maé");
+  await page.goto(requestUrl);
+  await expect(
+    page.getByText(
+      searchSettings.words.thresholds(
+        number.format(current.publishedProfiles + 1),
+        number.format(current.perTopic),
+      ),
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("listitem").filter({
+      hasText: m.dualControl.consequences.setting_changed,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: m.dualControl.confirm }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: m.dualControl.done(false) }),
+  ).toBeVisible();
+
+  // The base holds the new thresholds.
+  const stored = await withSql(async (sql) => {
+    const [row] = await sql<{ value: { publishedProfiles: number } }[]>`
+      select value from search.search_settings where key = 'critical_mass_thresholds'`;
+    return row?.value.publishedProfiles;
+  });
+  expect(stored).toBe(current.publishedProfiles + 1);
 });
