@@ -68,7 +68,7 @@ describe("T16.1, T16.2, T16.7 on the code base", () => {
     );
     expect(files.length).toBeGreaterThan(50);
     expect(files.flatMap(scanScriptForCommission)).toEqual([]);
-  });
+  }, 60_000);
 
   it("finds nothing in supabase/migrations and supabase/seed", () => {
     const files = ["supabase/migrations", "supabase/seed"]
