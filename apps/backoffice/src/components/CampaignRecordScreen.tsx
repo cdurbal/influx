@@ -14,7 +14,12 @@ import { useEffect, useState } from "react";
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES, TITLE_CLASSES } from "./auth-classes";
 import { readCampaignRecord } from "./backoffice-api";
-import { LINK_CLASSES } from "./bo-classes";
+import {
+  BLOCK_TITLE,
+  LINK_CLASSES,
+  SECTION_CLASSES,
+  SMALL_SECONDARY_CLASSES,
+} from "./bo-classes";
 import { accountHref, recordTitle } from "./campaign-record-view";
 import { CampaignRecordActions } from "./CampaignRecordActions";
 import {
@@ -25,6 +30,7 @@ import {
 } from "./CampaignRecordBlocks";
 import { AlertsBlock, BrandBlock, BriefBlock } from "./CampaignReviewBlocks";
 import { ErrorNotice } from "./ErrorNotice";
+import { compatibleHref, isCompatibleOffered } from "./identified-search-view";
 import { formatDateTime } from "./view-model";
 
 const t = messages.campaignRecord;
@@ -33,6 +39,27 @@ type Load =
   | { kind: "loading" }
   | { kind: "ok"; record: CampaignRecordResponse }
   | { kind: "error"; message: string };
+
+/**
+ * « Créateurs compatibles » (10 RG73; 17b §3.3; L3G-12): opens the identified search with the facets drawn from the brief
+ * of this campaign. Only a campaign the base admits to the search is offered (out of draft, not rejected); the
+ * opening journals the proposal. No amount, no box to tick: the proposal itself is Lot 4.
+ */
+function CompatibleCreatorsBlock({ campaignId }: { campaignId: string }) {
+  const c = messages.identifiedSearch.compatible;
+  return (
+    <section aria-label={c.title} className={SECTION_CLASSES}>
+      <h2 className={BLOCK_TITLE}>{c.title}</h2>
+      <p className={HELP_CLASSES}>{c.lead}</p>
+      <Link
+        href={compatibleHref(campaignId)}
+        className={`${SMALL_SECONDARY_CLASSES} self-start`}
+      >
+        {c.open}
+      </Link>
+    </section>
+  );
+}
 
 export function CampaignRecordScreen({ id }: { id: string }) {
   const router = useRouter();
@@ -95,6 +122,9 @@ export function CampaignRecordScreen({ id }: { id: string }) {
       <CycleBlock record={record} />
       <InternalBlock record={record} />
       <RecordCampaignBlock record={record} />
+      {isCompatibleOffered(record.cycle.status) ? (
+        <CompatibleCreatorsBlock campaignId={id} />
+      ) : null}
       <BriefBlock view={{ campaign: record.fields }} />
       <AlertsBlock view={{ alerts: record.alerts }} />
       <HistoryBlock record={record} />

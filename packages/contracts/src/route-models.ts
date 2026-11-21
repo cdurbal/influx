@@ -286,6 +286,7 @@ export const BACKOFFICE_PAGE_MODELS: readonly string[] = [
   "/accueil",
   "/activation",
   "/comptes-internes",
+  "/createurs/recherche",
   "/double-validation",
   "/double-validation/:id",
   "/files/profils-marque",

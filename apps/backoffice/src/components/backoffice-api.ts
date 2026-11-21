@@ -120,6 +120,13 @@ import {
   type RejectCampaignEntryResponse,
 } from "@influx/contracts/campaign-review";
 import {
+  campaignPrefillResponseSchema,
+  identifiedCreatorSearchResponseSchema,
+  type CampaignPrefillResponse,
+  type IdentifiedCreatorSearchBody,
+  type IdentifiedCreatorSearchResponse,
+} from "@influx/contracts/identified-creator-search";
+import {
   creatorEntriesResponseSchema,
   decidedEntryResponseSchema,
   openCreatorEntryResponseSchema,
@@ -1464,5 +1471,33 @@ export function readPortfolioEntryImage(
     "GET",
     `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/image`,
     reviewImageResponseSchema,
+  );
+}
+
+// --- The identified creator search and the prefill of a campaign (10 RG71, RG73, RG78; 17b §3.3; l3g/modele.md §8; L3G-12) ---
+
+/**
+ * One page of the identified view: filters, sort, page, campaign and prefill in the BODY, never in a URL (CA58).
+ * A POST that serves and journals; no size of page exists (RG76), the base holds it.
+ */
+export function searchIdentifiedCreators(
+  body: IdentifiedCreatorSearchBody,
+): Promise<RelayResult<IdentifiedCreatorSearchResponse>> {
+  return callRelay(
+    "POST",
+    "/v1/bo/creator-search",
+    identifiedCreatorSearchResponseSchema,
+    body,
+  );
+}
+
+/** The filters the brief of an admitted campaign proposes, journaled as proposed (RG73, CA56). */
+export function readCampaignPrefill(
+  campaignId: string,
+): Promise<RelayResult<CampaignPrefillResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGNS}/${idSegment(campaignId)}/creator-prefill`,
+    campaignPrefillResponseSchema,
   );
 }

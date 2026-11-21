@@ -46,6 +46,7 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
       "dashboard",
       "queues",
       "accounts",
+      "creatorSearch",
     ]);
     expect(navItemsOf("agent", SEVEN).map((item) => item.key)).not.toContain(
       "admin",
@@ -60,6 +61,7 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
       "dashboard",
       "queues",
       "accounts",
+      "creatorSearch",
       "admin",
     ]);
     expect(navItemsOf("admin", SEVEN).map((item) => item.key)).toEqual(ORDER);
@@ -71,9 +73,10 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
       "/accueil",
       "/files/profils-marque",
       "/inscrits",
+      "/createurs/recherche",
       "/double-validation",
     ]);
-    expect(admin[3]?.sections.map((section) => section.key)).toEqual([
+    expect(admin[4]?.sections.map((section) => section.key)).toEqual([
       "dualControl",
       "internalAccounts",
       "apollo",

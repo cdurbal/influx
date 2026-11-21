@@ -29,6 +29,7 @@ export type SectionKey =
   | "campaignReviewQueue"
   | "signups"
   | "memberInvitations"
+  | "identifiedSearch"
   | "dualControl"
   | "internalAccounts"
   | "apollo"
@@ -106,7 +107,17 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       { key: "memberInvitations", href: "/invitations", adminOnly: false },
     ],
   },
-  { key: "creatorSearch", sections: [] }, // Lot 3
+  {
+    key: "creatorSearch",
+    // the identified search and the compatible creators of a campaign (10 §H; 17b §3.3; L3G-12)
+    sections: [
+      {
+        key: "identifiedSearch",
+        href: "/createurs/recherche",
+        adminOnly: false,
+      },
+    ],
+  },
   { key: "deals", sections: [] }, // Lot 5
   { key: "alerts", sections: [] },
   {

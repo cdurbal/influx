@@ -119,6 +119,7 @@ export const messages = {
     identifierChanges: "Identifiants modifiés",
     accounts: "Comptes",
     creatorSearch: "Créateurs",
+    identifiedSearch: "Recherche de créateurs",
     deals: "Affaires",
     alerts: "Alertes",
     admin: "Administration",
@@ -4243,5 +4244,230 @@ export const messages = {
   servicesLink: {
     label: "État des services",
     hint: "Réservé aux administrateurs.",
+  },
+  /**
+   * The identified creator search (docs/mvp/10 RG16, RG71 to RG73, RG76 to RG78; 17b §3.3, §4.9; jalons/l3g/modele.md
+   * §8; L3G-12): the marker, the facets, the table, its states and what a refusal says. No amount, price nor
+   * tariff exists in it (D48, D78); no sentence tells a motive or an author of a block (RG71).
+   */
+  identifiedSearch: {
+    title: "Recherche de créateurs",
+    frame: {
+      label: "Vue identifiée",
+      mark: "VUE IDENTIFIÉE",
+      lead: "— vous voyez les noms, pseudos, liens et chiffres exacts.",
+      warning:
+        "La marque ne voit rien de tout cela. Vos recherches et consultations sont journalisées.",
+    },
+    origin: {
+      prefilled: (title: string) => `Pré-rempli depuis « ${title} »`,
+      clear: "Vider le pré-remplissage",
+      none: "Aucune campagne sélectionnée — la proposition sera indisponible.",
+      choose: "Choisir une campagne",
+      loading: "Lecture du brief de la campagne…",
+      unknown:
+        "Cette campagne n’existe pas ou n’est pas encore admise à la recherche : la recherche est libre.",
+      failed:
+        "Le brief de la campagne n’a pas pu être lu : la recherche est libre. Rien n’a été journalisé.",
+    },
+    facets: {
+      title: "Facettes",
+      shared: "Facettes de la marque",
+      internal: "Facettes internes",
+      submit: "Rechercher",
+      reset: "Réinitialiser",
+      all: "Toutes",
+      topic: "Thématique",
+      networks: "Réseaux",
+      audienceBands: "Tranche d’audience",
+      audienceCountry: "Pays de l’audience",
+      shareBands: "Part du pays",
+      languages: "Langue",
+      formats: "Formats",
+      badges: "Badges",
+      declaredStatus: "Statut déclaré",
+      profileState: "État du profil",
+      residence: "Pays de résidence",
+      refusedSectors: "Secteurs refusés (au moins un)",
+      note: "Les facettes s’appliquent ensemble ; chaque recherche est journalisée.",
+    },
+    badges: {
+      account_verified: "Compte vérifié",
+      audience_verified: "Audience vérifiée",
+    } as Readonly<Record<string, string>>,
+    badgeToRefresh: "à renouveler",
+    declaredStatuses: {
+      individual: "Particulier",
+      business: "Entreprise",
+    } as Readonly<Record<string, string>>,
+    states: {
+      published: "Publié",
+      draft: "Brouillon",
+      pending_review: "En attente de validation",
+      rejected: "Refusé",
+      suspended: "Suspendu",
+    } as Readonly<Record<string, string>>,
+    unpublished: "Non publié",
+    audienceBands: {
+      nano: "Nano (jusqu’à 9 999)",
+      micro: "Micro (10 000 à 49 999)",
+      mid: "Moyenne (50 000 à 499 999)",
+      macro: "Macro (500 000 à 999 999)",
+      mega: "Méga (1 000 000 et plus)",
+    } as Readonly<Record<string, string>>,
+    shareBands: {
+      ge_80: "80 % et plus",
+      "50_80": "de 50 à 80 %",
+      lt_50: "moins de 50 %",
+    } as Readonly<Record<string, string>>,
+    sorts: {
+      default: "pertinence",
+      audience: "audience",
+      verified_first: "vérifiés d’abord",
+      new_profiles: "profils récents",
+    } as Readonly<Record<string, string>>,
+    sortLabel: "Trier par",
+    results: {
+      label: "Résultats de la recherche",
+      tableLabel: "Tableau des créateurs",
+      pages: "Pagination des résultats",
+      count: (total: number) =>
+        total === 1
+          ? "1 créateur"
+          : `${total.toLocaleString("fr-FR")} créateurs`,
+      sortedBy: (sort: string) => `· trié par ${sort}`,
+      exactNote:
+        "Compte exact : aucun seuil de confidentialité en vue identifiée.",
+      loading: "Recherche en cours…",
+      page: (page: number) => `Page ${page}`,
+      previous: "Page précédente",
+      next: "Page suivante",
+      capReached:
+        "Le plafond de pages est atteint : affinez la recherche pour voir les autres créateurs.",
+      noSelection:
+        "Aucune sélection ici : la sélection multiple arrive avec « Proposer » (Lot 4).",
+    },
+    columns: {
+      creator: "Créateur",
+      audience: "Audience",
+      badges: "Badges",
+      state: "État",
+      owner: "Responsable",
+    },
+    row: {
+      unnamed: "Nom non renseigné",
+      opensOutside: "(ouvre hors d’INFLUX)",
+      noHandle: "Pseudo non renseigné",
+      noBadge: "Aucun badge",
+      noOwner: "Sans responsable",
+      blockedState: "Blocage",
+      blockedPhrase: "Vous ne pouvez pas proposer ce créateur à cette marque.",
+      audienceLine: (followers: string, country: string | null) =>
+        country === null
+          ? `${followers} abonnés`
+          : `${followers} abonnés · ${country}`,
+      noAudience: "Audience non renseignée",
+      networkBadge: (network: string, badge: string) => `${network} : ${badge}`,
+      why: (words: string) => `Proposé parce que : ${words}.`,
+      whyNone: "aucune raison à afficher pour cette recherche",
+      reasonsJoin: " · ",
+      exactValues: "Valeurs exactes",
+      residence: (place: string) => `Résidence : ${place}`,
+      city: (city: string) => `Ville : ${city}`,
+      declared: (status: string) => `Statut déclaré : ${status}`,
+      refusedSectors: (sectors: string) => `Secteurs refusés : ${sectors}`,
+      vigilance: (words: string) => `À noter : ${words}`,
+      networkLine: (
+        network: string,
+        primary: boolean,
+        parts: readonly string[],
+      ) => `${network}${primary ? " (principal)" : ""} — ${parts.join(" · ")}`,
+      noFigures: "aucun chiffre",
+      followers: (count: string) => `${count} abonnés`,
+      posts: (count: string) => `${count} publications sur 30 jours`,
+      comments: (count: string) => `${count} commentaires en moyenne`,
+      engagement: (rate: string) => `engagement ${rate}`,
+      measured: (day: string) => `mesuré le ${day}`,
+      sources: {
+        declared: "chiffres déclarés",
+        agent_observed: "chiffres constatés par un agent",
+      } as Readonly<Record<string, string>>,
+      mainAudience: (country: string, share: string | null) =>
+        share === null
+          ? `Audience principale : ${country}`
+          : `Audience principale : ${country}, ${share}`,
+    },
+    reasons: {
+      topic_match: (topic: string) => `thématique ${topic}`,
+      network_match: (network: string, band: string) =>
+        `réseau ${network}, ${band}`,
+      audience_country_match: (country: string, share: string) =>
+        `audience en ${country} (${share})`,
+      language_match: (language: string) => `langue ${language}`,
+      format_match: (format: string) => `format ${format}`,
+      campaign_format: (network: string, format: string) =>
+        `format de la campagne : ${format} sur ${network}`,
+      campaign_audience_country: (country: string, share: string) =>
+        `audience visée par la campagne : ${country} (${share})`,
+      audience_verified: (network: string) =>
+        `audience vérifiée sur ${network}`,
+      account_verified: (network: string) => `compte vérifié sur ${network}`,
+      figures_fresh: (network: string) => `chiffres récents sur ${network}`,
+      available: (availability: string) => `disponibilité : ${availability}`,
+      primary_topic: (topic: string) => `thématique principale ${topic}`,
+      main_audience: (country: string, share: string) =>
+        `audience principale en ${country} (${share})`,
+    },
+    vigilance: {
+      stale_figures: "chiffres anciens",
+      recent_profile: "profil récent",
+      audience_badge_to_renew: "badge d’audience à renouveler",
+      declared_full: "chiffres déclarés, non vérifiés",
+    } as Readonly<Record<string, string>>,
+    criteria: {
+      label: "Facettes appliquées",
+      remove: (label: string) => `Retirer la facette ${label}`,
+      removeShort: "Retirer",
+      share: (band: string) => `Part du pays : ${band}`,
+      topic: (value: string) => `Thématique : ${value}`,
+      networks: (value: string) => `Réseau : ${value}`,
+      audienceBands: (value: string) => `Audience : ${value}`,
+      audienceCountry: (value: string) => `Pays de l’audience : ${value}`,
+      languages: (value: string) => `Langue : ${value}`,
+      formats: (value: string) => `Format : ${value}`,
+      badges: (value: string) => `Badge : ${value}`,
+      declaredStatus: (value: string) => `Statut déclaré : ${value}`,
+      profileState: (value: string) => `État : ${value}`,
+      residence: (value: string) => `Résidence : ${value}`,
+      refusedSectors: (value: string) => `Refuse : ${value}`,
+    },
+    empty: {
+      title: "Aucun créateur ne correspond.",
+      lead: "Les facettes les plus restrictives, à retirer une par une :",
+      none: "Aucune facette n’est appliquée : aucun créateur n’est encore cherchable.",
+      removeFacet: (label: string) => `${label} · Retirer`,
+    },
+    failures: {
+      unavailable: "La recherche est indisponible.",
+      keptNote: "Les facettes restent saisies.",
+      generic: "Réessayez dans quelques minutes ; rien n’a été modifié.",
+      pageCap:
+        "Le plafond de pages est atteint : retirez une facette ou ajoutez-en une.",
+      filters:
+        "Une facette est fermée ou une liste dépasse ses bornes : relisez les facettes.",
+      campaign: "La campagne n’existe pas ou n’est pas admise à la recherche.",
+      rateLimited: (seconds: number | null) =>
+        seconds === null
+          ? "Trop de recherches à la suite : patientez un instant."
+          : `Trop de recherches à la suite : patientez ${seconds} s.`,
+      setting:
+        "Un réglage de la recherche manque : prévenez un administrateur.",
+      retry: "Relancer la recherche",
+    },
+    compatible: {
+      title: "Créateurs compatibles",
+      lead: "Ouvre la recherche en vue identifiée, pré-remplie depuis le brief de cette campagne ; le pré-remplissage et vos corrections sont journalisés.",
+      open: "Voir les créateurs compatibles",
+    },
   },
 } as const;

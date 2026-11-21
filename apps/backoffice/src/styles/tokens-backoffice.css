@@ -3,8 +3,9 @@
  * rail, the dense table row, its cells and the in-row control. Names carry `-bo-` and nothing else
  * is declared here (G3f); none of them exists in apps/web. They hold lengths, and one effect
  * derived from the brand green (the row line), so there is no new color to compute against the KEO
- * surfaces: the colors of the backoffice (§6.2 to §6.4) are added with the screens that consume them. Cell padding is an alias of the shared scale, which
- * tokens.css declares first.
+ * surfaces: the colors of the backoffice (§6.2 to §6.4) are added with the screens that consume them (the
+ * identified view's two, with L3G-12). Cell padding is an alias of the shared scale, which tokens.css
+ * declares first.
  */
 @theme static {
   /* Dense table row: 36 px (17b §6.1). Never outside a table of the backoffice. */
@@ -29,6 +30,21 @@
    */
   --effect-bo-row-indicator: inset var(--border-width-thick) 0 0
     var(--color-brand-primary);
+
+  /*
+   * The identified view (17b §4.9, §6.2; 20 §11.3, values validated at 17b V1): the fifth hue, with no
+   * other use, never an action, a success or an alert, and never in apps/web. Contrasts computed in 17b §6.2
+   * (the accent on the page 7.24, on the card 6.80, on the soft ground 6.75; the primary text on it 16.93).
+   * The bar is 4 px, a form that survives a cropped capture: the width of the thick border is 2 px, so
+   * the bar has its own length, an alias of the shared scale.
+   */
+  --color-bo-identified-accent: #a78bfa;
+  --color-bo-identified-bg: #17121f;
+  --spacing-bo-identified-bar: var(--spacing-1);
+
+  /* The identified search: the column of the facets, then the results (17b §3.3); one column below `lg`. */
+  --spacing-bo-facets-w: 18rem;
+  --grid-bo-identified: var(--spacing-bo-facets-w) minmax(0, 1fr);
 }
 
 /*
