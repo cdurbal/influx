@@ -27,5 +27,13 @@ Grille `testeur`.
    plafond avec des places masquées (sans nommer le motif) ; l'homonyme « EC-L3G-1 » de D85 s'appelle
    « EC-D85-1 » dans les documents (`21`, la spec) ; ne pas modifier `0327` (migration poussée, jamais
    réécrite) ni `annexe.md` (son EC-L3G-1 est la proposition du Lot 4) : noter l'homonyme en EC.
+9. Recette F, constat du 2026-11-21 (fondateur : camp. 1 = 1 compatible, camp. 2 et 3 = 0, < 15 s) ; diagnostic
+   en lecture seule de `staging` : (b) préremplissage en ET de 5 à 6 facettes dont F3 et F11 qui se recoupent,
+   (a) donnée synthétique qui ne couvre pas les briefs, pas (c) défaut de la porte ; semis de recette décidé
+   (« option A »), recette rejouée. Inscrire au `21` §8, reliquat « avant production », deux points à
+   trancher par `product-owner` (spécification, non codés dans L3G) : (i) préremplissage plus souple, par
+   exemple ne pas poser F3 quand F11 est posée ; (ii) élargissement guidé par les comptes (les trois retraits
+   proposés par `WIDENING_ORDER` ne rendent rien sur les camp. 2 et 3 ; F1, seul retrait utile de la camp. 2,
+   n'est jamais proposé), D11 : le commercial élargit à la main, aucun matching au MVP.
 **Arrêt si :** une case sans preuve ; mesure des 30 s absente ou au-delà de 30 s ; CI rouge ; D38 non
 tranchée.
