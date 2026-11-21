@@ -99,6 +99,8 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/tm10-signup-route.test.ts",
     "db-tests/tm10-terms-in-force.test.ts",
     "db-tests/tm11-drizzle-parity.test.ts",
+    // L3G-11: a new file (about 11 s locally with its kit), in shard 1, T1 growing in shard 2
+    "db-tests/tm12-identified-view.test.ts",
     "db-tests/tm3-backoffice-catalogue.test.ts",
     "db-tests/tm9-ops-health-reads.test.ts",
     "db-tests/verification-agent-opening.test.ts",

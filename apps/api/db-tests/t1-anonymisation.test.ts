@@ -147,6 +147,11 @@ import {
   type StoredVisual,
 } from "./creator-search-kit.ts";
 import { publishedBrand, type PublishedBrand } from "./open-campaigns-kit.ts";
+import {
+  openReviewKit,
+  type Internal,
+  type ReviewKit,
+} from "./campaign-review-kit.ts";
 
 const PROFILE = "/v1/me/creator-profile";
 const NETWORKS = "/v1/me/creator-profile/networks";
@@ -3207,6 +3212,355 @@ describe("L3F-T1: L3F (commit 09): the profile, its visuals and the shortlists j
           handle.value,
         ]),
         request.url,
+      ).toEqual([]);
+    }
+  });
+});
+
+describe("L3G-T11: L3G (commit 11): the identified view, queue 9 and the settings join the sweeps", () => {
+  const BO_SEARCH = "/v1/bo/creator-search";
+  const ENTRIES = "/v1/bo/team-selection/entries";
+  const SETTINGS = "/v1/bo/settings/search";
+  const PREFILL_OF = (id: string) => `/v1/bo/campaigns/${id}/creator-prefill`;
+  const VIEW_ROUTES = [
+    `POST ${BO_SEARCH}`,
+    "POST /v1/bo/campaigns/:id/creator-prefill",
+    `GET ${ENTRIES}`,
+    `POST ${ENTRIES}/search`,
+    `POST ${ENTRIES}/:id/open`,
+    `POST ${ENTRIES}/:id/release`,
+    `POST ${ENTRIES}/:id/extend`,
+    `POST ${ENTRIES}/:id/close`,
+    `GET ${SETTINGS}`,
+  ].sort();
+  /** What the identified view serves an agent of a creator, by design (D46: never the e-mail nor the references). */
+  const SERVED_TO_AN_AGENT = [
+    "handle",
+    "profile URL",
+    "first name",
+    "last name",
+    "city",
+    "account identifier",
+  ];
+  const NEVER_SERVED_TO_AN_AGENT = [
+    "sign-in e-mail",
+    "line identifier",
+    "public_ref",
+  ];
+
+  let kit: ReviewKit;
+  let agent: Internal;
+  let admin: Internal;
+  let requestId: string;
+
+  beforeAll(async () => {
+    kit = await openReviewKit();
+    agent = await kit.newInternal("agent", "Alix");
+    admin = await kit.newInternal("admin", "Dominique");
+    const holder = await kit.newBrand();
+    const [row] = await kit.fx.migration<{ id: string }[]>`
+      insert into search.selection_requests
+        (advertiser_account_id, filters, language, message, sla_due_at, created_at)
+      values (${holder.accountId}, '{}'::jsonb, 'fr', 'T1 L3G message', now() + interval '1 day', now())
+      returning id::text`;
+    requestId = row?.id ?? "";
+  });
+
+  afterAll(async () => {
+    await kit.fx
+      .migration`delete from search.selection_requests where id = ${requestId}`;
+    const actors = [agent.accountId, admin.accountId];
+    await kit.fx.migration.begin(async (tx) => {
+      const queries = tx`
+        select q.id from search.search_queries q where q.account_id = any(${actors}::uuid[])`;
+      await tx`delete from search.impression_reasons where search_query_id in (${queries})`;
+      await tx`delete from search.search_impressions where search_query_id in (${queries})`;
+      await tx`delete from search.search_queries where account_id = any(${actors}::uuid[])`;
+      await tx`delete from search.campaign_prefills where account_id = any(${actors}::uuid[])`;
+    });
+    await kit.close();
+  });
+
+  /** The nine routes, each with real identifiers in its slot (a request, a campaign, a creator) and a valid body. */
+  function viewRequests(): SweepRequest[] {
+    const ids = [
+      requestId,
+      l3b.campaignId,
+      l3e.served.accountId,
+      l3e.served.alias,
+      randomUUID(),
+    ];
+    return [
+      { method: "POST", url: BO_SEARCH, body: { filters: HERE } },
+      {
+        method: "POST",
+        url: BO_SEARCH,
+        body: { filters: HERE, campaignId: l3b.campaignId },
+      },
+      { method: "GET", url: ENTRIES, body: undefined },
+      { method: "POST", url: `${ENTRIES}/search`, body: {} },
+      { method: "GET", url: SETTINGS, body: undefined },
+      ...ids.flatMap((id): SweepRequest[] => [
+        { method: "POST", url: PREFILL_OF(id), body: undefined },
+        { method: "POST", url: `${ENTRIES}/${id}/open`, body: undefined },
+        { method: "POST", url: `${ENTRIES}/${id}/release`, body: undefined },
+        { method: "POST", url: `${ENTRIES}/${id}/extend`, body: undefined },
+        {
+          method: "POST",
+          url: `${ENTRIES}/${id}/close`,
+          body: { reasonCode: "duplicate" },
+        },
+      ]),
+    ];
+  }
+
+  /** The route model of a request of the block: its identifier, whichever slot it fills, becomes `:id`. */
+  function modelOf(request: SweepRequest): string {
+    return `${request.method} ${request.url}`.replace(
+      /\/(?!v1\/|bo\/|campaigns\/entries)[^/]+\/(creator-prefill|open|release|extend|close)$/,
+      "/:id/$1",
+    );
+  }
+
+  /** The markers of the five creators of L3E, and of every other creator and brand of the file, in an answer. */
+  function leaksIn(raw: string): string[] {
+    const plain = raw.toLowerCase();
+    return [
+      ...markersIn(
+        raw,
+        l3e.markers.filter((marker) => marker.value.length >= 6),
+      ),
+      ...l3e.markers
+        .filter(
+          (marker) =>
+            marker.value.length < 6 &&
+            plain.includes(marker.value.toLowerCase()),
+        )
+        .map((marker) => marker.name),
+      ...markersIn(raw, allMarkers()),
+    ];
+  }
+
+  type Walked = {
+    findings: string[];
+    answers: { name: string; status: number; error: object }[];
+  };
+
+  /** The error of an answer without its request identifier (18 T14.4). */
+  function shapeOf(response: LightMyRequestResponse): object {
+    try {
+      const { error } = response.json() as { error?: Record<string, unknown> };
+      const shape = { ...error };
+      delete shape.requestId;
+      return shape;
+    } catch {
+      // a body that is no JSON (the witness appends a marker to it): nothing to compare
+      return {};
+    }
+  }
+
+  /** Every request, as `who` on the web surface (a fresh session each), or `null` for none; no marker in any answer. */
+  async function walkWeb(server: Server, who: Member | null): Promise<Walked> {
+    const walked: Walked = { findings: [], answers: [] };
+    for (const request of viewRequests()) {
+      const response = await call(
+        server,
+        request.method,
+        request.url,
+        who === null ? null : await newSession(who.accountId),
+        request.body,
+      );
+      const name = modelOf(request);
+      walked.answers.push({
+        name,
+        status: response.statusCode,
+        error: shapeOf(response),
+      });
+      for (const leak of leaksIn(
+        `${response.body}\n${JSON.stringify(response.headers)}`,
+      )) {
+        walked.findings.push(`${name} (${response.statusCode}): ${leak}`);
+      }
+    }
+    return walked;
+  }
+
+  async function unknownWeb(server: Server): Promise<object> {
+    const response = await call(
+      server,
+      "GET",
+      "/v1/bo/t1-nothing-here",
+      await newSession(sweepingCreator.accountId),
+    );
+    expect(response.statusCode).toBe(404);
+    return shapeOf(response);
+  }
+
+  /** The pages of the identified search an agent or an administrator is served, whole. */
+  async function identifiedPages(who: Internal): Promise<string> {
+    const raws: string[] = [];
+    let page: number | null = 1;
+    while (page !== null && raws.length < 10) {
+      const response = await kit.bo("POST", BO_SEARCH, who.session, {
+        filters: HERE,
+        page,
+      });
+      expect(response.statusCode, response.body).toBe(200);
+      raws.push(response.body);
+      page = (response.json() as { nextPage: number | null }).nextPage;
+    }
+    return raws.join("\n");
+  }
+
+  it("T1.2: the nine routes of the view, queue 9 and the settings are in the inventory the sweeps walk, each with requests to send", async () => {
+    const server = app();
+    const swept = await sweptRoutes(server);
+    const view = swept
+      .filter(
+        (route) =>
+          route.url.startsWith(BO_SEARCH) ||
+          route.url.endsWith("/creator-prefill") ||
+          route.url.startsWith("/v1/bo/team-selection/") ||
+          route.url.startsWith(SETTINGS),
+      )
+      .map(routeName)
+      .sort();
+    expect(view).toEqual(VIEW_ROUTES);
+    // the sweeps synthesise requests for each of them out of their schemas, never by hand
+    for (const route of swept.filter((found) =>
+      VIEW_ROUTES.includes(routeName(found)),
+    )) {
+      expect(
+        requestsOf(route, [randomUUID()]).length,
+        routeName(route),
+      ).toBeGreaterThan(0);
+    }
+    // and the requests of this block name each of the nine
+    expect([...new Set(viewRequests().map(modelOf))].sort()).toEqual(
+      VIEW_ROUTES,
+    );
+  });
+
+  it("T1.1, T1.6: a brand, a published brand and a creator in session meet, on the nine routes and every identifier in their slot, the answer of a route that does not exist and no marker", async () => {
+    const server = app();
+    const unknown = await unknownWeb(server);
+    for (const who of [sweepingBrand, l3e.sweepBrand, sweepingCreator]) {
+      const walked = await walkWeb(server, who);
+      expect(walked.findings, who.accountId).toEqual([]);
+      expect(walked.answers.length).toBeGreaterThan(VIEW_ROUTES.length);
+      for (const found of walked.answers) {
+        expect(found.status, found.name).toBe(404);
+        expect(found.error, found.name).toEqual(unknown);
+      }
+    }
+  });
+
+  it("L2DT-6: without a session, the web surface answers the same 404 and the backoffice 401, to nobody and to a member, with no marker; a route that leaks is caught (T1-W)", async () => {
+    const server = app();
+    const unknown = await unknownWeb(server);
+    const none = await walkWeb(server, null);
+    expect(none.findings).toEqual([]);
+    for (const found of none.answers) {
+      expect(found.status, found.name).toBe(404);
+      expect(found.error, found.name).toEqual(unknown);
+    }
+    // the backoffice's surface: no session, or a member's, is a 401, whoever the member is
+    const findings: string[] = [];
+    const memberSession = await newSession(sweepingCreator.accountId);
+    for (const session of [null, memberSession, l3e.sweepBrand.session]) {
+      for (const request of viewRequests()) {
+        const response = await kit.bo(
+          request.method === "GET" ? "GET" : "POST",
+          request.url,
+          session,
+          request.body as object | undefined,
+        );
+        // an identifier that is no UUID is refused by the schema, before any session (T14.3 of L2D)
+        expect(response.statusCode, modelOf(request)).toBe(
+          request.url.includes(`/${l3e.served.alias}/`) ? 400 : 401,
+        );
+        findings.push(
+          ...leaksIn(`${response.body}\n${JSON.stringify(response.headers)}`),
+        );
+      }
+    }
+    expect(findings).toEqual([]);
+    // T1-W: a server whose backoffice routes append the handle of a creator is caught, route by route
+    const [handle] = l3e.served.markers;
+    if (handle === undefined) {
+      throw new Error("no marker");
+    }
+    const leaking = app();
+    leaking.addHook("onSend", async (request, _reply, payload) =>
+      typeof payload === "string" &&
+      payload.startsWith("{") &&
+      request.url.startsWith("/v1/bo/")
+        ? `${payload}${handle.value}`
+        : payload,
+    );
+    const caught = (await walkWeb(leaking, sweepingBrand)).findings.map(
+      (finding) => finding.replace(/ \(\d+\): .*$/, ""),
+    );
+    expect([...new Set(caught)].sort()).toEqual(VIEW_ROUTES);
+  });
+
+  it("counter-test, C-1: the agent and the administrator are served the identities (the markers are real) and never the sign-in address nor the references; the base journals them, and no table a brand or a creator can read holds one", async () => {
+    const served = [await identifiedPages(agent), await identifiedPages(admin)];
+    for (const raw of served) {
+      for (const member of l3e.creators) {
+        const present = (names: readonly string[]) =>
+          member.markers
+            .filter((marker) => names.includes(marker.name))
+            .filter((marker) => raw.includes(marker.value))
+            .map((marker) => marker.name)
+            .sort();
+        expect(present(SERVED_TO_AN_AGENT), member.alias).toEqual(
+          [...SERVED_TO_AN_AGENT].sort(),
+        );
+        expect(present(NEVER_SERVED_TO_AN_AGENT), member.alias).toEqual([]);
+      }
+      // the exact figures of the distinctive creator are served to the agent, by design
+      expect(raw).toContain("481729");
+      expect(raw).toContain("6204381");
+    }
+    // the settings and queue 9 carry no marker of a creator either
+    for (const [route, who] of [
+      [SETTINGS, admin],
+      [ENTRIES, agent],
+    ] as const) {
+      const response = await kit.bo("GET", route, who.session);
+      expect(response.statusCode, response.body).toBe(200);
+      expect(leaksIn(response.body)).toEqual([]);
+    }
+    const dump = async (role: string | null): Promise<string> => {
+      const tables = await migration<{ schema: string; name: string }[]>`
+        select n.nspname as schema, c.relname as name
+          from pg_class c join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname in ('search', 'matching') and c.relkind in ('r', 'p', 'v', 'm', 'f')
+           and (${role}::text is null or has_any_column_privilege(${role}::text, c.oid, 'select'))
+         order by 1, 2`;
+      const rows: string[] = [];
+      for (const table of tables) {
+        const lines = await migration<{ line: string }[]>`
+          select to_jsonb(t)::text as line
+            from ${migration(table.schema)}.${migration(table.name)} t`;
+        rows.push(...lines.map((row) => row.line));
+      }
+      return rows.join("\n");
+    };
+    // the instrument: the journal does hold the creators the agent was served, nominatively
+    const every = await dump(null);
+    expect(
+      l3e.creators.filter((member) => every.includes(member.accountId)),
+    ).toHaveLength(l3e.creators.length);
+    for (const role of ["influx_advertiser", "influx_creator"]) {
+      const readable = (await dump(role)).toLowerCase();
+      expect(readable, role).not.toContain(l3e.served.accountId);
+      expect(
+        l3e.markers
+          .filter((marker) => readable.includes(marker.value.toLowerCase()))
+          .map((marker) => marker.name),
+        role,
       ).toEqual([]);
     }
   });

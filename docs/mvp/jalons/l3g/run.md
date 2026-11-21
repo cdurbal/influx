@@ -14,7 +14,7 @@
 | 08b | 08b.md | commit | opus | high | expert-database | fait | 0333 : read_search_settings() (key, value) des dix clés, admin aal2 seul (42501 sinon) ; aucun droit de table ni de colonne, rien écrit |
 | 09 | 09.md | commit | sonnet | high | dev-react-node | fait | 2 routes /v1/bo, agents et admin seuls ; campagne ou prefill inconnus 404 (EC-1) ; page_cap 400 après COMMIT ; réglage absent 503 ; planchers 15 et 7 |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | file 9 : 6 routes, 42501 → 404, 55P03 → 409 claim ; AL22/23/65 ; 2V search.* pair seul (409 no_peer_admin) ; GET réglages admin ; planchers 13 et 9 |
-| 11 | 11.md | commit | sonnet | high | testeur | à faire | |
+| 11 | 11.md | commit | sonnet | high | testeur | fait | tm12-identified-view : 13 portes, 9 routes 404 membre/401, aucun export, T14 ; T1 +4 (inventaire, membres, sans session, contre-test) ; planchers 4 et 36 |
 | 12 | 12.md | commit | sonnet | high | dev-react-node | à faire | |
 | 13 | 13.md | commit | sonnet | high | dev-react-node | à faire | |
 | U | ux.md | ux | sonnet | high | expert-ux | à faire | |

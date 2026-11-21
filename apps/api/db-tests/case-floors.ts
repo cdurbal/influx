@@ -77,7 +77,8 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   // L3G-10 (L3G-T10): the routes of queue 9, T14, TM12.5, AL23, D45; the settings read, the 2V of a key and of a facet, AL65
   "db-tests/team-selection-queue-route.test.ts": 13,
   "db-tests/search-settings-route.test.ts": 9,
-  "db-tests/t1-anonymisation.test.ts": 32,
+  // L3G-11 (L3G-T11): T1 +4, the identified view, queue 9 and the settings in the sweeps (inventory, members, no session, counter-test)
+  "db-tests/t1-anonymisation.test.ts": 36,
   "db-tests/t13-ops-recording.test.ts": 10,
   "db-tests/t14-backoffice-accounts-route.test.ts": 27,
   "db-tests/t14-backoffice-actions-route.test.ts": 37,
@@ -146,6 +147,8 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/tm10-terms-publication.test.ts": 2,
   "db-tests/tm10-terms-route.test.ts": 7,
   "db-tests/tm11-drizzle-parity.test.ts": 5,
+  // L3G-11 (L3G-T11): TM12.5 in base and on the routes, TM12.3, T14 around the identified view
+  "db-tests/tm12-identified-view.test.ts": 4,
   "db-tests/tm3-backoffice-catalogue.test.ts": 37,
   "db-tests/tm9-monitoring-loop.test.ts": 2,
   "db-tests/tm9-ops-health-reads.test.ts": 14,
