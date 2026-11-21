@@ -729,6 +729,8 @@ describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98) an
       ["AL5", "etat", ["agent", "admin"]],
       // 0321 (L3E-10): the volume of the creator search (I-9), a state alert for the admins
       ["AL21", "etat", ["admin"]],
+      // 0330 (L3G-06): AL23, a request of queue 9 past its deadline
+      ["AL23", "etat", ["agent", "admin"]],
       ["AL24", "etat", ["owner_agent", "admin"]],
       ["AL25", "evenement", ["admin"]],
       ["AL26", "etat", ["admin"]],

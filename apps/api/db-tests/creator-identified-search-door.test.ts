@@ -626,9 +626,21 @@ describe("L3G-T4 the door, its owner and its helpers in the catalogue (TM12.5; f
       callers: [],
       dynamic: false,
     });
+    // 0330 (L3G-06, l3g/modele §5): the four doors of queue 9, the agents' alone, and their gate
+    const queueDoor = (name: string) => ({
+      name,
+      definer: true,
+      config: ['search_path=""'],
+      callers: ["influx_admin", "influx_agent"],
+      dynamic: false,
+    });
     expect(outcome.functions).toEqual([
       helper("search.check_identified_search_filters(jsonb)"),
+      queueDoor("search.close_team_selection_request(uuid,text,text)"),
+      queueDoor("search.extend_team_selection_claim(uuid)"),
       helper("search.identified_creator_row(uuid,uuid)"),
+      helper("search.lock_held_team_selection_request(uuid,uuid)"),
+      queueDoor("search.open_team_selection_request(uuid)"),
       // 0329 (L3G-05, l3g/modele §4): the prefill of « Compatible creators », the agents' alone, and
       // the diff of a prefill, executed by nobody
       {
@@ -639,6 +651,7 @@ describe("L3G-T4 the door, its owner and its helpers in the catalogue (TM12.5; f
         dynamic: false,
       },
       helper("search.prefill_diff(jsonb,jsonb)"),
+      queueDoor("search.release_team_selection_request(uuid)"),
       helper("search.require_identified_searcher()"),
       {
         name: DOOR_SIGNATURE,
@@ -792,6 +805,8 @@ describe("L3G-T4 the door, its owner and its helpers in the catalogue (TM12.5; f
       "search.impression_reasons",
       "search.search_impressions",
       "search.search_queries",
+      // 0330 (L3G-06, l3g/modele §5): the claim and the closure of a request of queue 9
+      "search.selection_requests",
     ]);
     expect(outcome.storefronts).toBe("is_searchable");
     expect(outcome.leads).toEqual([]);

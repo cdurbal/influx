@@ -201,7 +201,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
     expect(
       outcome.tables.filter((table) => !table.forced || !table.member_policy),
     ).toEqual([]);
-    expect(outcome.rights).toEqual([]);
+    // 0330 (L3G-06, l3g/modele §5): agent and admin read queue 9, the requests of the brands
+    expect(outcome.rights.map((row) => row.line).sort()).toEqual([
+      "influx_admin search.selection_requests",
+      "influx_agent search.selection_requests",
+    ]);
   });
 
   it("L3E-T3 makes influx_search_admin_definer NOLOGIN NOINHERIT without member, owner of two SECURITY DEFINER writers executable by influx_admin alone; the members and the agent execute nothing of search beyond their doors", async () => {
@@ -263,15 +267,32 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
       },
     ]);
     expect(outcome.executed).toEqual([
+      // 0330 (L3G-06): the four doors of queue 9, executed by the agent and the admin
+      {
+        role: "influx_admin",
+        name: "search.close_team_selection_request(uuid,text,text)",
+      },
       // 0321 (L3E-10): AL21, the volume alert read by the admins, beside the two writers
       {
         role: "influx_admin",
         name: "search.creator_search_volume_alerts()",
       },
+      {
+        role: "influx_admin",
+        name: "search.extend_team_selection_claim(uuid)",
+      },
+      {
+        role: "influx_admin",
+        name: "search.open_team_selection_request(uuid)",
+      },
       // 0329 (L3G-05): the prefill of « Compatible creators », executed by the agent and the admin
       {
         role: "influx_admin",
         name: "search.prefill_campaign_filters(uuid)",
+      },
+      {
+        role: "influx_admin",
+        name: "search.release_team_selection_request(uuid)",
       },
       // 0328 (L3G-04): the identified door of the agents, executed by the agent and the admin
       {
@@ -319,7 +340,23 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
       },
       {
         role: "influx_agent",
+        name: "search.close_team_selection_request(uuid,text,text)",
+      },
+      {
+        role: "influx_agent",
+        name: "search.extend_team_selection_claim(uuid)",
+      },
+      {
+        role: "influx_agent",
+        name: "search.open_team_selection_request(uuid)",
+      },
+      {
+        role: "influx_agent",
         name: "search.prefill_campaign_filters(uuid)",
+      },
+      {
+        role: "influx_agent",
+        name: "search.release_team_selection_request(uuid)",
       },
       {
         role: "influx_agent",

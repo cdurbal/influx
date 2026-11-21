@@ -718,7 +718,9 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
     // influx_campaign_review_definer (0307): the claims of queue 7, from its functions only
     // influx_search_admin_definer (0316): search.settings_changed, from its two writers only
     // influx_creator_search_definer (0325): search.selection_requested, from the brand's request only
+    // influx_agent_search_definer (0330): the claims and closures of queue 9, from its doors only
     expect(appenders.sort()).toEqual([
+      "influx_agent_search_definer",
       "influx_audit_writer",
       "influx_campaign_definer",
       "influx_campaign_review_definer",

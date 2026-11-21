@@ -2341,15 +2341,24 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     expected: {},
   },
   // 0325 (L3F commit 05, l3f/modele.md §6): the brand's requests for a selection by the team. No
-  // right for any execution role: written by search.request_team_selection() only (owner
+  // member right: written by search.request_team_selection() only (owner
   // influx_creator_search_definer), a RESTRICTIVE policy refuses every row to the members.
+  // 0330 (L3G commit 06, l3g/modele.md §5): agent and admin read queue 9 in aal2 (the pattern of
+  // 0307); the claim and the closure go through the doors of influx_agent_search_definer.
   {
     table: "search.selection_requests",
     source:
       "0325 (10 RG61, CA39; l3f/modele §6): one request per deposit, every criterion, the campaign, " +
       "the language and the deadline of queue 9; the message read by agents alone",
     probeColumn: "advertiser_account_id",
-    expected: {},
+    expected: forRoles(INTERNAL, {
+      select: {
+        form: "autorisé",
+        source:
+          "0330 (15 queue 9, RG26; l3g/modele §5): agent and admin read every request in aal2, " +
+          "never write it but through the doors of queue 9",
+      },
+    }),
   },
   // 0329 (L3G commit 05, l3g/modele.md §4): the prefills of « Compatible creators ». No right for any
   // execution role: written by search.prefill_campaign_filters() only (owner
@@ -7819,6 +7828,58 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_agent_search_definer|column|search.search_queries.prefill_id|INSERT",
   "influx_agent_search_definer|function|search.prefill_campaign_filters(uuid)|EXECUTE",
   "influx_agent_search_definer|function|search.prefill_diff(jsonb,jsonb)|EXECUTE",
+  // 0330 (L3G-06, l3g/modele.md §5): queue 9. Agent and admin read every column of the requests in
+  // aal2; influx_agent_search_definer owns the four doors (EXECUTE influx_agent and influx_admin) and
+  // the invoker gate search.lock_held_team_selection_request(); it reads the length of a lock
+  // (claim_expiry_minutes), the claim of a request and the agent holding its brand (15 RG36), writes
+  // the claim and the closure, and the register through audit.append().
+  ...[
+    "id",
+    "advertiser_account_id",
+    "campaign_id",
+    "filters",
+    "language",
+    "message",
+    "state",
+    "sla_due_at",
+    "created_at",
+    "claimed_by_account_id",
+    "claimed_at",
+    "claim_expires_at",
+    "closed_at",
+    "closed_by_account_id",
+    "close_reason_code",
+    "close_note",
+  ].flatMap((column) => [
+    `influx_admin|column|search.selection_requests.${column}|SELECT`,
+    `influx_agent|column|search.selection_requests.${column}|SELECT`,
+  ]),
+  ...[
+    "search.close_team_selection_request(uuid,text,text)",
+    "search.extend_team_selection_claim(uuid)",
+    "search.open_team_selection_request(uuid)",
+    "search.release_team_selection_request(uuid)",
+  ].flatMap((door) => [
+    `influx_admin|function|${door}|EXECUTE`,
+    `influx_agent|function|${door}|EXECUTE`,
+    `influx_agent_search_definer|function|${door}|EXECUTE`,
+  ]),
+  "influx_agent_search_definer|column|backoffice.operational_settings.key|SELECT",
+  "influx_agent_search_definer|column|backoffice.operational_settings.value|SELECT",
+  "influx_agent_search_definer|column|search.selection_requests.advertiser_account_id|SELECT",
+  "influx_agent_search_definer|column|search.selection_requests.claim_expires_at|SELECT,UPDATE",
+  "influx_agent_search_definer|column|search.selection_requests.claimed_at|SELECT,UPDATE",
+  "influx_agent_search_definer|column|search.selection_requests.claimed_by_account_id|SELECT,UPDATE",
+  "influx_agent_search_definer|column|search.selection_requests.close_note|UPDATE",
+  "influx_agent_search_definer|column|search.selection_requests.close_reason_code|UPDATE",
+  "influx_agent_search_definer|column|search.selection_requests.closed_at|UPDATE",
+  "influx_agent_search_definer|column|search.selection_requests.closed_by_account_id|UPDATE",
+  "influx_agent_search_definer|column|search.selection_requests.id|SELECT",
+  "influx_agent_search_definer|column|search.selection_requests.state|SELECT,UPDATE",
+  "influx_agent_search_definer|function|audit.append(text,text,uuid,jsonb)|EXECUTE",
+  "influx_agent_search_definer|function|search.lock_held_team_selection_request(uuid,uuid)|EXECUTE",
+  "influx_agent_search_definer|schema|audit|USAGE",
+  "influx_agent_search_definer|schema|backoffice|USAGE",
 ];
 
 /**
@@ -8445,4 +8506,11 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // 0329 (L3G, l3g/modele §4): the prefill of « Compatible creators »; search.prefill_diff() is
   // SECURITY INVOKER, same owner, executed by nobody else
   "search.prefill_campaign_filters(uuid)": "influx_agent_search_definer",
+  // 0330 (L3G, l3g/modele §5): the four doors of queue 9; their gate
+  // (lock_held_team_selection_request) is SECURITY INVOKER, same owner
+  "search.close_team_selection_request(uuid,text,text)":
+    "influx_agent_search_definer",
+  "search.extend_team_selection_claim(uuid)": "influx_agent_search_definer",
+  "search.open_team_selection_request(uuid)": "influx_agent_search_definer",
+  "search.release_team_selection_request(uuid)": "influx_agent_search_definer",
 };

@@ -127,6 +127,8 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/search-caps-concurrency.test.ts",
     // L3F-04: a new file (about 4 s locally), in shard 2 since L3F-03 went to shard 1
     "db-tests/search-shortlists.test.ts",
+    // L3G-06: a new file (about 2 s locally), in shard 2 since L3G-04 and L3G-05 went to shard 1
+    "db-tests/team-selection-queue.test.ts",
     // L3F-08: a new file (about 3 s locally), in shard 2 so that the two new files share the load
     "db-tests/selection-request-route.test.ts",
     "db-tests/t1-anonymisation.test.ts",

@@ -538,6 +538,14 @@ describe("L3F-T5 the door, its queue and the rights in the catalogue (03 P7; fic
     expect(outcome.owner).toEqual([
       "advertiser_account_id SI",
       "campaign_id I",
+      // 0330 (L3G-06): the claim and the closure of queue 9, never this owner's
+      "claim_expires_at ",
+      "claimed_at ",
+      "claimed_by_account_id ",
+      "close_note ",
+      "close_reason_code ",
+      "closed_at ",
+      "closed_by_account_id ",
       "created_at S",
       "filters I",
       "id S",
@@ -549,6 +557,14 @@ describe("L3F-T5 the door, its queue and the rights in the catalogue (03 P7; fic
     expect(outcome.privacy).toEqual([
       "advertiser_account_id S",
       "campaign_id S",
+      // 0330 (L3G-06): the claim and the closure of queue 9, neither exported nor read by the erasure
+      "claim_expires_at ",
+      "claimed_at ",
+      "claimed_by_account_id ",
+      "close_note ",
+      "close_reason_code ",
+      "closed_at ",
+      "closed_by_account_id ",
       "created_at S",
       "filters S",
       "id S",
@@ -563,7 +579,11 @@ describe("L3F-T5 the door, its queue and the rights in the catalogue (03 P7; fic
       openings: true,
       language: true,
     });
-    expect(outcome.rights).toEqual([]);
+    // 0330 (L3G-06, l3g/modele §5): agent and admin read queue 9; no member, no other role
+    expect([...outcome.rights].sort()).toEqual([
+      "influx_admin",
+      "influx_agent",
+    ]);
     expect(outcome.tried).toEqual({
       read: INSUFFICIENT_PRIVILEGE,
       insert: INSUFFICIENT_PRIVILEGE,

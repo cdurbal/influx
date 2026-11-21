@@ -63,6 +63,8 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/search-selection-requests.test.ts": 12,
   "db-tests/selection-request-route.test.ts": 9,
   "db-tests/search-volume-alert.test.ts": 13,
+  // L3G-06 (L3G-T6): queue 9, the claim, the closure with a reason, AL23, RG36, D45
+  "db-tests/team-selection-queue.test.ts": 14,
   "db-tests/t1-anonymisation.test.ts": 32,
   "db-tests/t13-ops-recording.test.ts": 10,
   "db-tests/t14-backoffice-accounts-route.test.ts": 27,

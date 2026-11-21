@@ -199,6 +199,7 @@ export const shortlistItems = searchSchema.table(
 /**
  * 0325: the brand's requests for a selection by the INFLUX team (l3f/modele.md §6; 10 RG61): every
  * criterion, the campaign, the language, the deadline of queue 9; the message read by agents alone.
+ * 0330 (l3g/modele.md §5): the claim and the closure of queue 9 (reason, agent, date; note iff other).
  */
 export const selectionRequests = searchSchema.table("selection_requests", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -210,6 +211,13 @@ export const selectionRequests = searchSchema.table("selection_requests", {
   state: text("state").notNull().default("open"),
   slaDueAt: timestamptz("sla_due_at").notNull(),
   createdAt: timestamptz("created_at").notNull().defaultNow(),
+  claimedByAccountId: uuid("claimed_by_account_id"),
+  claimedAt: timestamptz("claimed_at"),
+  claimExpiresAt: timestamptz("claim_expires_at"),
+  closedAt: timestamptz("closed_at"),
+  closedByAccountId: uuid("closed_by_account_id"),
+  closeReasonCode: text("close_reason_code"),
+  closeNote: text("close_note"),
 });
 
 /** 0316: the daily counters of critical mass (D38), written by the task of L3G. */
