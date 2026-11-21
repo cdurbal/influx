@@ -47,6 +47,7 @@ import {
   readsOf,
   URL_FEED,
 } from "./open-campaigns-kit.ts";
+import { expectLockTimeoutRefusal } from "./creator-search-kit.ts";
 
 let fx: CampaignRouteFixtures;
 let server: Server;
@@ -595,5 +596,17 @@ describe("L3D-T3 who reads (11 RG13, RG23; 09 RG99)", () => {
     const text = fx.logStreams.map((stream) => stream()).join("\n");
     expect(text.length).toBeGreaterThan(0);
     expect(valuesFoundIn(text, fx.watchedValues)).toEqual([]);
+  });
+});
+
+describe("L3G fix-2 L3GS-1 a lock timeout answers 429 (0327; D85 (1))", () => {
+  it("the lock of the creator's reads of the feed held elsewhere: 429 rate_limited, Retry-After 1, the envelope alone, no server error line", async () => {
+    const { creator } = await scene();
+    await expectLockTimeoutRefusal(
+      fx,
+      `search.creator_campaign_reads:${creator.accountId}`,
+      () => get(URL_FEED, creator),
+    );
+    expect(await readsOf(fx, creator)).toEqual([]);
   });
 });

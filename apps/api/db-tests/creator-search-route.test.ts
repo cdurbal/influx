@@ -26,6 +26,7 @@ import {
 import {
   closeSearch,
   EXACT_FOLLOWERS,
+  expectLockTimeoutRefusal,
   HERE,
   keysOf,
   markersIn,
@@ -457,5 +458,16 @@ describe("L3E-T8 the entry closed, the cap and the journal (10 RG63, RG66; CA41,
     ).toEqual([]);
     const served = await search({ filters: HERE });
     expect(served.headers["cache-control"]).toBe("no-store");
+  });
+});
+
+describe("L3G fix-2 L3GS-1 a lock timeout answers 429 (0327; D85 (1))", () => {
+  it("the lock of the brand's searches held elsewhere: 429 rate_limited, Retry-After 1, the envelope alone, no server error line", async () => {
+    const other = await publishedBrand(fx, server);
+    await expectLockTimeoutRefusal(
+      fx,
+      `search.search_queries:${other.accountId}`,
+      () => postSearch(server, other, { filters: HERE }, "10.66.0.1"),
+    );
   });
 });

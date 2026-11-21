@@ -7,6 +7,7 @@
 // header names a component or a version, and its requestId is in the log lines (T13.5).
 import { afterEach, describe, expect, it } from "vitest";
 import * as z from "zod";
+import { classifyError } from "../src/platform/errors.ts";
 import { buildServer, type ApiServer } from "../src/server.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "./helpers.ts";
 
@@ -18,6 +19,7 @@ const MESSAGES: Readonly<Record<string, string>> = {
   validation_failed: "Validation failed",
   not_found: "Not found",
   payload_too_large: "Payload too large",
+  rate_limited: "Too many requests",
 };
 
 /** Fragments that would betray the code, the base, the network or a version (T13.1 to T13.3). */
@@ -273,5 +275,68 @@ describe("T13: errors of the parsers and of the router, before any handler", () 
       expect(response.statusCode).toBe(404);
       expectNoDetail(response, "not_found");
     }
+  });
+});
+
+describe("L3G fix-2 (L3GS-1, D85 (1)): a lock timeout of the base is a 429, no other 55P03 is", () => {
+  /** What postgres.js raises for a statement cancelled by lock_timeout (0327). */
+  const lockTimeout = () =>
+    Object.assign(new Error("canceling statement due to lock timeout"), {
+      name: "PostgresError",
+      code: "55P03",
+      severity: "ERROR",
+    });
+  /** A 55P03 of another cause: a queue without a live claim (0330), a NOWAIT lock. */
+  const otherLockError = () =>
+    Object.assign(new Error("no live claim"), {
+      name: "PostgresError",
+      code: "55P03",
+    });
+
+  it("classifyError: the lock timeout, bare or under the wrapping of drizzle, asks to come back after 1 s; another 55P03 stays an internal error", () => {
+    expect(classifyError(lockTimeout())).toEqual({
+      code: "rate_limited",
+      retryAfterSeconds: 1,
+    });
+    expect(
+      classifyError(new Error("Failed query", { cause: lockTimeout() })),
+    ).toEqual({ code: "rate_limited", retryAfterSeconds: 1 });
+    expect(classifyError(otherLockError())).toEqual({ code: "internal_error" });
+    expect(
+      classifyError(
+        Object.assign(new Error("canceling statement due to lock timeout"), {
+          code: "57014",
+        }),
+      ),
+    ).toEqual({ code: "internal_error" });
+  });
+
+  it("a route that throws the lock timeout answers 429 rate_limited with Retry-After 1 and logs no server error; another 55P03 stays a 500", async () => {
+    const { api, logs } = server();
+    let thrown: () => Error = lockTimeout;
+    api.get(
+      "/v1/failing",
+      { schema: { response: { 200: okSchema } } },
+      async () => {
+        throw new Error("Failed query", { cause: thrown() });
+      },
+    );
+    const call = () =>
+      api.inject({
+        method: "GET",
+        url: "/v1/failing",
+        headers: { "x-influx-internal": WEB_SECRET },
+      });
+    const refused = await call();
+    expect(refused.statusCode).toBe(429);
+    expect(refused.headers["retry-after"]).toBe("1");
+    expectNoDetail(refused, "rate_limited");
+    expect(logs.text()).not.toContain("request failed");
+    thrown = otherLockError;
+    const fault = await call();
+    expect(fault.statusCode).toBe(500);
+    expect(fault.headers["retry-after"]).toBeUndefined();
+    expectNoDetail(fault, "internal_error");
+    expect(logs.text()).toContain("request failed");
   });
 });

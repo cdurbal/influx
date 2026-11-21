@@ -11,6 +11,7 @@
 import { accountIdOf } from "@influx/test-kit/db";
 import type { LightMyRequestResponse } from "fastify";
 import { randomBytes, randomUUID } from "node:crypto";
+import { expect } from "vitest";
 import type { ObjectStore } from "../src/platform/storage.ts";
 import { WEB_SECRET } from "../tests/helpers.ts";
 import type {
@@ -543,3 +544,63 @@ export const RG48_KEYS = [
   "signedUrl",
   "token",
 ];
+
+// L3G fix-2 (L3GS-1, L3GT-2): a lock timeout of a door answers 429 on every route ------------------------
+
+/**
+ * Runs `fn` while a second connection holds the advisory lock `key` (0327: `search.<door>:<account>`) in
+ * a transaction of its own, open all along (an idle connection would be closed, its lock with it).
+ */
+export async function holdingAccountLock<T>(
+  fx: Pick<CampaignRouteFixtures, "migration">,
+  key: string,
+  fn: () => Promise<T>,
+): Promise<T> {
+  let result: T | undefined;
+  await fx.migration.begin(async (held) => {
+    await held`select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(${key}, 0))`;
+    result = await fn();
+  });
+  return result as T;
+}
+
+/**
+ * The call `send` while `key` is held elsewhere: after about a second of wait (lock_timeout of 0327) the
+ * route answers 429 `rate_limited` with `Retry-After: 1`, the envelope alone (no SQLSTATE, no lock, no
+ * engine word) and no line of a server error in any log stream (a 5xx logs `request failed` and feeds
+ * ops.recordServerError, D60).
+ */
+export async function expectLockTimeoutRefusal(
+  fx: Pick<CampaignRouteFixtures, "migration" | "logStreams">,
+  key: string,
+  send: () => Promise<LightMyRequestResponse>,
+): Promise<void> {
+  const failures = (): number =>
+    fx.logStreams
+      .map((stream) => stream())
+      .join("\n")
+      .split("request failed").length - 1;
+  const before = failures();
+  const started = Date.now();
+  const response = await holdingAccountLock(fx, key, send);
+  expect(Date.now() - started, "waited for the lock").toBeGreaterThanOrEqual(
+    900,
+  );
+  expect(response.statusCode, response.body).toBe(429);
+  expect(response.headers["retry-after"]).toBe("1");
+  const body = response.json() as { error: Record<string, unknown> };
+  expect(Object.keys(body)).toEqual(["error"]);
+  expect(Object.keys(body.error).sort()).toEqual([
+    "code",
+    "message",
+    "requestId",
+  ]);
+  expect(body.error).toMatchObject({
+    code: "rate_limited",
+    message: "Too many requests",
+  });
+  for (const word of ["55p03", "timeout", "canceling", "advisory", "pg_"]) {
+    expect(response.body.toLowerCase(), word).not.toContain(word);
+  }
+  expect(failures(), "no server error line").toBe(before);
+}

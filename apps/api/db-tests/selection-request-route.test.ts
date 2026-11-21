@@ -25,6 +25,7 @@ import {
 } from "./campaign-routes-kit.ts";
 import {
   closeSearch,
+  expectLockTimeoutRefusal,
   forgetSelections,
   HERE,
   keysOf,
@@ -392,5 +393,17 @@ describe("L3F-T8 nothing leaves the brand (10 RG8; CA64; D45, D46)", () => {
       .filter((route) => route.url.includes("selection-request"))
       .map((route) => `${route.method} ${route.url}`);
     expect(routes).toEqual(["POST /v1/me/selection-requests"]);
+  });
+});
+
+describe("L3G fix-2 L3GS-1 a lock timeout answers 429 (0327; D85 (1))", () => {
+  it("the lock of the brand's requests held elsewhere: 429 rate_limited, Retry-After 1, the envelope alone, no server error line, nothing written", async () => {
+    const brand = await newBrand();
+    await expectLockTimeoutRefusal(
+      fx,
+      `search.selection_requests:${brand.accountId}`,
+      () => request(brand, { filters: FILTERS }),
+    );
+    expect(await requestsOf(brand)).toEqual([]);
   });
 });

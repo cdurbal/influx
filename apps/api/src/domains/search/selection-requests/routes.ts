@@ -67,11 +67,8 @@ function doorRefusalOf(
 ): SelectionRequestResponse | Error | null {
   const state = sqlStateOf(error);
   const detail = sqlDetailOf(error);
-  if (state === "55P03") {
-    // lock_timeout on the account's lock (0327): a call waiting more than a second behind another
-    // of the same account is asked to come back, never a fault
-    return new RetryLaterError("rate_limited", 1);
-  }
+  // a lock_timeout on the account's lock (0327, 55P03) is no refusal of the door: classifyError answers
+  // it as a 429 for every route (D85 (1))
   if (state === "42501" && sqlMessageOf(error) === "forbidden") {
     // a missing GRANT is 42501 too, with another message: a fault, never this answer
     return selectionRequestResponseSchema.parse({

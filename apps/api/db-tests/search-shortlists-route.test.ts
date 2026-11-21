@@ -31,6 +31,7 @@ import {
 } from "./campaign-routes-kit.ts";
 import {
   closeSearch,
+  expectLockTimeoutRefusal,
   forgetSelections,
   HERE,
   keysOf,
@@ -902,4 +903,16 @@ describe("L3G-T3 the six writes are bound per client address, before the session
       expect(other.statusCode).toBe(401);
     },
   );
+});
+
+describe("L3G fix-2 L3GS-1 a lock timeout answers 429 (0327; D85 (1))", () => {
+  it("the lock of the brand's lists held elsewhere: a write answers 429 rate_limited, Retry-After 1, the envelope alone, no server error line, nothing written", async () => {
+    const brand = await newBrand();
+    await expectLockTimeoutRefusal(
+      fx,
+      `search.shortlists:${brand.accountId}`,
+      () => send(brand, "POST", URL_SHORTLISTS, { name: "Held" }),
+    );
+    expect(await rowsOf(brand)).toEqual({ n: 0, items: 0 });
+  });
 });

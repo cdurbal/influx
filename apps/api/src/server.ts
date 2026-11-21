@@ -503,6 +503,8 @@ export function buildServer(
     }
     if (error instanceof RetryLaterError) {
       void reply.header("retry-after", String(error.retryAfterSeconds));
+    } else if (classified.retryAfterSeconds !== undefined) {
+      void reply.header("retry-after", String(classified.retryAfterSeconds));
     } else if (statusCode === 429) {
       void reply.header(
         "retry-after",

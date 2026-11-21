@@ -6,7 +6,7 @@
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   // L3G-05 (L3G-T5): the prefill of « Compatible creators », its journal, the link of a search, D78
   "db-tests/campaign-brief-prefill.test.ts": 11,
-  "db-tests/campaign-feed-route.test.ts": 16,
+  "db-tests/campaign-feed-route.test.ts": 17,
   "db-tests/campaign-parity.test.ts": 116,
   "db-tests/campaigns-core.test.ts": 68,
   "db-tests/campaigns-creator-feed.test.ts": 35,
@@ -26,10 +26,10 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/campaign-prefill-route.test.ts": 7,
   "db-tests/creator-profile-parity.test.ts": 24,
   // L3F-07 (L3F-T7): the profile a brand opens and its visuals, T14, T15.2 to T15.5
-  "db-tests/creator-profile-route.test.ts": 13,
+  "db-tests/creator-profile-route.test.ts": 14,
   "db-tests/creator-search-door.test.ts": 34,
   "db-tests/creator-search-order.test.ts": 18,
-  "db-tests/creator-search-route.test.ts": 13,
+  "db-tests/creator-search-route.test.ts": 14,
   "db-tests/leads-campaign-reads.test.ts": 8,
   "db-tests/matching-party-blocks.test.ts": 10,
   "db-tests/ops-schema.test.ts": 12,
@@ -65,12 +65,12 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   // L3G-08b (L3G-T9): the reader of the settings of the admins, (key, value), 0333
   "db-tests/search-settings-reader.test.ts": 7,
   // L3F-08 (L3F-T8): the brand's shortlists and its request for a selection, routes over 0324, 0325
-  "db-tests/search-shortlists-route.test.ts": 22,
+  "db-tests/search-shortlists-route.test.ts": 23,
   "db-tests/search-shortlists.test.ts": 19,
   // L3G-07 (L3G-T7): the daily counters, AL65 and AL22, the readers of the admins
   "db-tests/search-supply-counters.test.ts": 16,
   "db-tests/search-selection-requests.test.ts": 12,
-  "db-tests/selection-request-route.test.ts": 9,
+  "db-tests/selection-request-route.test.ts": 10,
   "db-tests/search-volume-alert.test.ts": 13,
   // L3G-06 (L3G-T6): queue 9, the claim, the closure with a reason, AL23, RG36, D45
   "db-tests/team-selection-queue.test.ts": 14,

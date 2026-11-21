@@ -25,6 +25,7 @@ import {
   closeSearch,
   getProfile,
   getVisual,
+  expectLockTimeoutRefusal,
   HERE,
   keysOf,
   markersIn,
@@ -498,6 +499,18 @@ describe("L3F-T7 the visuals relayed as JSON (10 CA50; D82 (7), EC-L2G-16; fiche
         (await getVisual(server, other, subject.alias, visual.id)).statusCode,
       ).toBe(200);
     }
+    expect(await openingsOf(fx, other)).toEqual([]);
+  });
+});
+
+describe("L3G fix-2 L3GS-1 a lock timeout answers 429 (0327; D85 (1))", () => {
+  it("the lock of the brand's openings held elsewhere: 429 rate_limited, Retry-After 1, the envelope alone, no server error line", async () => {
+    const other = await publishedBrand(fx, server);
+    await expectLockTimeoutRefusal(
+      fx,
+      `search.profile_openings:${other.accountId}`,
+      () => getProfile(server, other, subject.alias, "10.66.0.2"),
+    );
     expect(await openingsOf(fx, other)).toEqual([]);
   });
 });

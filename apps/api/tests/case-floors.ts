@@ -72,7 +72,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/supabase-adapter.test.ts": 38,
   "tests/supabase-guards.test.ts": 9,
   "tests/t11-runtime-files.test.ts": 1,
-  "tests/t13-error-responses.test.ts": 15,
+  "tests/t13-error-responses.test.ts": 17,
   "tests/t6-static.test.ts": 18,
   "tests/tm11-identifying-fields.test.ts": 24,
   "tests/technical-alert-email.test.ts": 25,
