@@ -73,12 +73,16 @@ const WEB_VERIFICATION_PREFIXES = [
  * (handle, link, figures) of the profile he decides, so it is held with the backoffice modules.
  * `campaign-review` (L3C 07) is the contract of queue 7 and of the record of a campaign, served to agents
  * and administrators on /v1/bo/ only: its codes (sector, network, deadlines, claim) are the campaign's own.
+ * `identified-creator-search` (L3G 09) is the contract of the identified view of the agents, served on
+ * /v1/bo/ only (TM12.5: the doors are the agents' and administrators', every member route answers 404):
+ * its rows carry the legal name, the handles and the exact figures by design (10 RG71).
  */
 function isBackofficeModule(name: string): boolean {
   return (
     name.startsWith("backoffice-") ||
     name === "creator-queues" ||
-    name === "campaign-review"
+    name === "campaign-review" ||
+    name === "identified-creator-search"
   );
 }
 

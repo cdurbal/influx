@@ -21,6 +21,9 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/creator-profile-door.test.ts": 22,
   // L3G-04 (L3G-T4): the agents' identified door, TM12.5, T1-R by couple, T14, the journal
   "db-tests/creator-identified-search-door.test.ts": 24,
+  // L3G-09 (L3G-T9): the identified search and the prefill routes of the agents, T14, TM12.3, TM12.5, T15
+  "db-tests/creator-identified-search-route.test.ts": 15,
+  "db-tests/campaign-prefill-route.test.ts": 7,
   "db-tests/creator-profile-parity.test.ts": 24,
   // L3F-07 (L3F-T7): the profile a brand opens and its visuals, T14, T15.2 to T15.5
   "db-tests/creator-profile-route.test.ts": 13,

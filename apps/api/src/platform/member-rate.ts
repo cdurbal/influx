@@ -38,6 +38,9 @@ export const MEMBER_ROUTE_ADDRESS_RATES = {
   "GET /v1/me/shortlists": 60,
   "GET /v1/me/shortlists/:id": 60,
   "POST /v1/me/selection-requests": 10,
+  // L3G 09 (l3g/modele.md §8): the prefill of « Compatible creators » of an agent, a backoffice route
+  // counted here like the others, before the session
+  "POST /v1/bo/campaigns/:id/creator-prefill": 60,
   // L3G 03 (L3FS-3): the six writes of the shortlists, each route counted on its own
   "POST /v1/me/shortlists": SHORTLIST_WRITE_ADDRESS_RATE,
   "PUT /v1/me/shortlists/:id": SHORTLIST_WRITE_ADDRESS_RATE,

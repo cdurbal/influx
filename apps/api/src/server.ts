@@ -34,6 +34,7 @@ import { registerVerificationOpeningRoutes } from "./domains/backoffice/verifica
 import { registerVerificationRegistryRoutes } from "./domains/backoffice/verification-registry-routes.ts";
 import { registerCampaignRoutes } from "./domains/campaigns/routes.ts";
 import { registerCreatorSearchRoutes } from "./domains/search/creator-search/routes.ts";
+import { registerIdentifiedSearchRoutes } from "./domains/search/identified-search/routes.ts";
 import { registerCreatorSearchProfileRoutes } from "./domains/search/creator-search-profile/routes.ts";
 import { registerSelectionRequestRoutes } from "./domains/search/selection-requests/routes.ts";
 import { registerShortlistRoutes } from "./domains/search/shortlists/routes.ts";
@@ -629,6 +630,10 @@ export function buildServer(
     database,
     now: options.identity?.now ?? (() => new Date()),
   });
+
+  // The identified creator search of the agents and the prefill of a campaign's compatible creators
+  // (docs/mvp/10; jalon L3G commit 09), through the doors of the schema search (0328, 0329).
+  registerIdentifiedSearchRoutes(app, { database });
 
   // The anonymous profile a brand opens and its visuals relayed as JSON (docs/mvp/10; jalon L3F commit
   // 07), through the doors of the schema search (0323) and Storage with the secret key of the service.

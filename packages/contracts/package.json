@@ -23,6 +23,7 @@
     "./creator-portfolio": "./src/creator-portfolio.ts",
     "./creator-projection": "./src/creator-projection.ts",
     "./creator-search": "./src/creator-search.ts",
+    "./identified-creator-search": "./src/identified-creator-search.ts",
     "./creator-search-profile": "./src/creator-search-profile.ts",
     "./shortlists": "./src/shortlists.ts",
     "./selection-requests": "./src/selection-requests.ts",

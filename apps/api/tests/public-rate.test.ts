@@ -173,6 +173,9 @@ const SESSION_ROUTES: readonly string[] = [
   "POST /v1/bo/campaigns/:id/pause",
   "POST /v1/bo/campaigns/:id/resume",
   "POST /v1/bo/campaigns/:id/close",
+  // L3G 09: the identified creator search of the agents and the prefill of a campaign
+  "POST /v1/bo/creator-search",
+  "POST /v1/bo/campaigns/:id/creator-prefill",
   // L2G 11: queue 2 (the creator profiles) and queue 3 (the visuals of the portfolios)
   "GET /v1/bo/queues/profiles-creator/entries",
   "POST /v1/bo/queues/profiles-creator/entries/search",

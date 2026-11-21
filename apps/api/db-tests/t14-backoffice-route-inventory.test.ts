@@ -156,6 +156,9 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   "POST /v1/bo/campaigns/:id/pause": { body: { reasonCode: "brand_request" } },
   "POST /v1/bo/campaigns/:id/resume": { body: { reasonCode: "brand_request" } },
   "POST /v1/bo/campaigns/:id/close": { body: { reasonCode: "brand_request" } },
+  // L3G 09: the identified creator search of the agents (0328) and the prefill of a campaign (0329)
+  "POST /v1/bo/creator-search": { body: { filters: {} } },
+  "POST /v1/bo/campaigns/:id/creator-prefill": {},
   "GET /v1/bo/queues/verification-creators/entries": {},
   "POST /v1/bo/queues/verification-creators/entries/search": { body: {} },
   "POST /v1/bo/queues/verification-creators/entries/:id/open": {},
@@ -716,6 +719,8 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
         "POST /v1/bo/campaigns/:id/pause",
         "POST /v1/bo/campaigns/:id/resume",
         "POST /v1/bo/campaigns/:id/close",
+        // L3G 09: a campaign of the caller's own account is a draft: not admitted, an unknown one (0329)
+        "POST /v1/bo/campaigns/:id/creator-prefill",
       ].map((route) => [
         route,
         async () => [
