@@ -17,6 +17,12 @@
 // Codes only: the labels of the screen are the backoffice's (17b, D36).
 import type { ApolloSetting } from "@influx/contracts/backoffice-actions";
 import {
+  SEARCH_FACET_CODES,
+  searchSettingSchema,
+  type SearchFacetCode,
+  type SearchSetting,
+} from "@influx/contracts/search-settings";
+import {
   REVOCATION_REASON_CODES,
   type RevocationReasonCode,
 } from "@influx/contracts/verification";
@@ -43,6 +49,8 @@ import {
   requestDualControl as insertRequest,
   revocationAccountHolder,
   revokeBadge,
+  writeFacetSetting,
+  writeSearchSetting,
   type DualControlActionCode,
   type DualControlMode,
   type DualControlPayload,
@@ -93,6 +101,18 @@ export type DualControlAction =
       accountId: string;
       badgeId: string;
       reasonCode: RevocationReasonCode;
+    }
+  | {
+      /** L3G commit 10 (0332, D84, D38 Q2): one of the ten keys of the search settings. */
+      code: "search.change_setting";
+      setting: SearchSetting;
+    }
+  | {
+      /** L3G commit 10 (0332): the opening and the display order of one facet. */
+      code: "search.change_facet";
+      facetCode: SearchFacetCode;
+      isOpen: boolean;
+      displayOrder: number;
     };
 
 /** The actions a route may REQUEST through backoffice.request_dual_control() (not the withdrawal). */
@@ -123,7 +143,9 @@ const RECAPS: Readonly<
   Record<
     Exclude<
       DualControlActionCode,
-      "privacy.approve_data_request" | "verification.revoke_badge"
+      | "privacy.approve_data_request"
+      | "verification.revoke_badge"
+      | "search.change_setting"
     >,
     DualControlRecap
   >
@@ -154,7 +176,36 @@ const RECAPS: Readonly<
     consequences: ["setting_changed", "skipped_accounts_reevaluated"],
     reversible: true,
   },
+  // 0332: a facet opened, closed or reordered opens a version of the configuration (RG88); set back by another
+  // change, what a search served meanwhile stays served
+  "search.change_facet": {
+    scope: { kind: "setting", count: 1 },
+    consequences: ["facet_changed", "config_version_opened"],
+    reversible: true,
+  },
 };
+
+/**
+ * PD1 of a change of a search setting (0332): the switch of the opening changes what every brand sees at once;
+ * k and the cold quota open a version of the configuration (RG88); the others change a bound read at every
+ * search. All are set back by another change. The key is the action's own, so the recap names what it does.
+ */
+function searchSettingRecap(setting: SearchSetting): DualControlRecap {
+  return {
+    scope: { kind: "setting", count: 1 },
+    consequences: [
+      "setting_changed",
+      ...(setting.key === "is_open_to_advertisers"
+        ? ["search_opening_changed"]
+        : []),
+      ...(setting.key === "k_anonymity_threshold" ||
+      setting.key === "cold_profile_quota"
+        ? ["config_version_opened"]
+        : []),
+    ],
+    reversible: true,
+  };
+}
 
 /**
  * PD1 of a "mes données" request, by type (04 §9.2; 15 RG79, RG80; runbook demandes-rgpd §4, §5):
@@ -210,6 +261,8 @@ async function dualControlTarget(
     case "verification.revoke_badge":
       return badgeRevocationTarget(tx, requestId);
     case "leads.change_apollo_setting":
+    case "search.change_setting":
+    case "search.change_facet":
       return null;
   }
 }
@@ -254,6 +307,8 @@ export function dualControlRecap(
       return DATA_REQUEST_RECAPS[action.requestType];
     case "verification.revoke_badge":
       return revocationRecap(target);
+    case "search.change_setting":
+      return searchSettingRecap(action.setting);
     default:
       return RECAPS[action.code];
   }
@@ -275,6 +330,14 @@ function payloadOf(action: RequestableDualControlAction): DualControlPayload {
       return { account_id: action.accountId, role: action.role };
     case "privacy.approve_data_request":
       return { request_id: action.requestId, request_type: action.requestType };
+    case "search.change_setting":
+      return { key: action.setting.key, value: action.setting.value };
+    case "search.change_facet":
+      return {
+        facet_code: action.facetCode,
+        is_open: action.isOpen,
+        display_order: action.displayOrder,
+      };
   }
 }
 
@@ -329,6 +392,28 @@ function actionOf(
         ? { code, accountId, badgeId, reasonCode: reason }
         : null;
     }
+    case "search.change_setting": {
+      // exactly {key, value} (0332): the shape of its schema, or never trusted
+      const setting = searchSettingSchema.safeParse({
+        key: payload.key,
+        value: payload.value,
+      });
+      return setting.success ? { code, setting: setting.data } : null;
+    }
+    case "search.change_facet": {
+      const {
+        facet_code: facetCode,
+        is_open: isOpen,
+        display_order: displayOrder,
+      } = payload;
+      const facet = SEARCH_FACET_CODES.find((known) => known === facetCode);
+      return facet !== undefined &&
+        typeof isOpen === "boolean" &&
+        typeof displayOrder === "number" &&
+        Number.isInteger(displayOrder)
+        ? { code, facetCode: facet, isOpen, displayOrder }
+        : null;
+    }
     default:
       return null;
   }
@@ -341,7 +426,9 @@ function actionOf(
 function targetAccountOf(action: DualControlAction): string | null {
   return action.code === "identity.invite_admin" ||
     action.code === "leads.change_apollo_setting" ||
-    action.code === "privacy.approve_data_request"
+    action.code === "privacy.approve_data_request" ||
+    action.code === "search.change_setting" ||
+    action.code === "search.change_facet"
     ? null
     : action.accountId;
 }
@@ -498,6 +585,8 @@ export type ConfirmedDualControl = {
   id: string;
   action: DualControlAction;
   reasonCode: string;
+  /** The note of the request: the note of the version a facet change opens (0332). */
+  reasonNote: string | null;
   mode: DualControlMode;
 };
 
@@ -561,6 +650,23 @@ export function dualControlExecutor(): DualControlExecutor<number | null> {
           reasonCode: request.reasonCode,
         });
         return null;
+      case "search.change_setting":
+        // the key, the value and the reason of the confirmed payload; a peer only, the writer refuses the rest
+        await writeSearchSetting(tx, context.sessionId, request.id, {
+          key: action.setting.key,
+          value: action.setting.value,
+          reasonCode: request.reasonCode,
+        });
+        return null;
+      case "search.change_facet":
+        await writeFacetSetting(tx, context.sessionId, request.id, {
+          facetCode: action.facetCode,
+          isOpen: action.isOpen,
+          displayOrder: action.displayOrder,
+          reasonCode: request.reasonCode,
+          note: request.reasonNote,
+        });
+        return null;
     }
   };
 }
@@ -595,6 +701,7 @@ export async function confirmAndExecute<Result>(
     id: view.id,
     action: view.action,
     reasonCode: view.reasonCode,
+    reasonNote: view.reasonNote,
     mode,
   });
   return { mode, result };

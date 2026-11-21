@@ -22,6 +22,7 @@ import {
   type ModeratedFieldCode,
   type RejectionReasonCode,
 } from "./brand-profile.ts";
+import { creatorSearchFiltersSchema } from "./creator-search.ts";
 import { countryCodeSchema } from "./signup.ts";
 
 /** The code of the queue in `backoffice.queues` (0206) and in the register payloads. */
@@ -575,3 +576,214 @@ export const DECISION_CONFLICT_ISSUES = [
   "profile_state",
   "required_field_missing",
 ] as const;
+
+// ---------------------------------------------------------------------------------------------
+// Queue 9, « sélection par l'équipe INFLUX » (`team_selection`): docs/mvp/10 RG61, RG84; 15 RG26 to RG28,
+// RG33, RG34, RG36, C1 to C3, AL23; 17b §2, I13; jalons/l3g/modele.md §5, §8; l3g-fiche invariants 8, 11, 12,
+// 14; 0325, 0330.
+// - The brand's message and the criteria it entered are read by the agents and the administrators alone
+//   (D46): the message is plain text, whose bidirectional controls and control characters the server
+//   neutralizes before serving it (L3FS-7). Nothing here carries an amount, a tariff nor a creator (D48,
+//   D78), and a request of a brand the caller HOLDS is neither listed, counted nor opened (15 RG36).
+// - `team_selection` is not in `queueCodeSchema`: the dashboard of apps/backoffice addresses every code of
+//   that list (QUEUE_ADDRESS); its counters have their own schema, served with its list.
+// ---------------------------------------------------------------------------------------------
+
+export const TEAM_SELECTION_QUEUE = "team_selection";
+
+/** 0330: the six reasons of the closure, the subset of list A (13 RG83) that names no creator. */
+export const TEAM_SELECTION_CLOSE_REASONS = [
+  "off_brief",
+  "motive_insufficient",
+  "contact_details_in_text",
+  "campaign_closed",
+  "duplicate",
+  "other",
+] as const;
+export const teamSelectionCloseReasonSchema = z.enum(
+  TEAM_SELECTION_CLOSE_REASONS,
+);
+export type TeamSelectionCloseReason = z.infer<
+  typeof teamSelectionCloseReasonSchema
+>;
+
+/** The note of a closure `other`: 10 to 500 printable characters, once trimmed (0330). */
+export const TEAM_SELECTION_NOTE_MIN_LENGTH = 10;
+export const TEAM_SELECTION_NOTE_MAX_LENGTH = 500;
+
+/** The filters of 15 RG33 that queue 9 applies: the overdue ones, the holder, the period, the cursor. */
+const teamSelectionFilterShape = {
+  overdue: z.literal("true").optional(),
+  holder: z.union([z.enum(["free", "me"]), z.uuid()]).optional(),
+  from: instantSchema.optional(),
+  to: instantSchema.optional(),
+  cursor: queueCursorSchema.optional(),
+};
+
+export const teamSelectionEntriesQuerySchema = z
+  .strictObject({
+    ...teamSelectionFilterShape,
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(periodIsOrdered, { message: "period_order" });
+export type TeamSelectionEntriesQuery = z.infer<
+  typeof teamSelectionEntriesQuerySchema
+>;
+
+/** POST …/entries/search: the same page and filters in the body (the relay refuses instants in a query). */
+export const teamSelectionEntriesSearchSchema = z
+  .strictObject({
+    ...teamSelectionFilterShape,
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(QUEUE_PAGE_SIZE_MAX)
+      .default(QUEUE_PAGE_SIZE_DEFAULT),
+  })
+  .refine(periodIsOrdered, { message: "period_order" });
+export type TeamSelectionEntriesSearch = z.infer<
+  typeof teamSelectionEntriesSearchSchema
+>;
+export type TeamSelectionEntriesSearchBody = z.input<
+  typeof teamSelectionEntriesSearchSchema
+>;
+
+/** The permanent counters of queue 9 (15 RG28), as the caller sees it (RG36). */
+export const teamSelectionCountersSchema = z.strictObject({
+  queue: z.literal(TEAM_SELECTION_QUEUE),
+  pending: z.number().int().nonnegative(),
+  oldestCreatedAt: instantSchema.nullable(),
+  overdue: z.number().int().nonnegative(),
+  unclaimed: z.number().int().nonnegative(),
+  lastDecidedAt: instantSchema.nullable(),
+  policy: queuePolicySchema,
+});
+export type TeamSelectionCounters = z.infer<typeof teamSelectionCountersSchema>;
+
+/** One line of the list: the brand, the campaign of origin, the deadline and the lock. No message. */
+export const teamSelectionEntryRowSchema = z.strictObject({
+  id: z.uuid(),
+  advertiserAccountId: z.uuid(),
+  brandName: z.string().nullable(),
+  campaignId: z.uuid().nullable(),
+  campaignTitle: z.string().nullable(),
+  /** The language of the brand at the deposit (0325). */
+  language: z.string().regex(/^[a-z]{2}$/),
+  createdAt: instantSchema,
+  /** The deadline frozen at the deposit (04 §5.6); AL23 past it. */
+  slaDueAt: instantSchema,
+  /** 15 RG27 C5: past its deadline; written in clear by the screen, never by colour alone. */
+  overdue: z.boolean(),
+  owner: accountOwnerSchema.nullable(),
+  claim: entryClaimSchema,
+});
+export type TeamSelectionEntryRow = z.infer<typeof teamSelectionEntryRowSchema>;
+
+export const teamSelectionEntriesResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  counters: teamSelectionCountersSchema.nullable(),
+  items: z.array(teamSelectionEntryRowSchema),
+  /** Null at the last page: no infinite scroll (15 RG34, CA18). */
+  nextCursor: queueCursorSchema.nullable(),
+});
+export type TeamSelectionEntriesResponse = z.infer<
+  typeof teamSelectionEntriesResponseSchema
+>;
+
+/**
+ * The request as the agent reads it once he opened it: the criteria the brand entered (the closed entry
+ * of the search, never a rate nor a budget), its message as PLAIN text (bidirectional controls and
+ * control characters removed by the server, L3FS-7), its campaign of origin, and its closure.
+ */
+export const teamSelectionRequestSchema = z.strictObject({
+  id: z.uuid(),
+  advertiserAccountId: z.uuid(),
+  brandName: z.string().nullable(),
+  campaign: z
+    .strictObject({ id: z.uuid(), title: z.string().nullable() })
+    .nullable(),
+  language: z.string().regex(/^[a-z]{2}$/),
+  filters: creatorSearchFiltersSchema,
+  message: z.string().nullable(),
+  state: z.enum(["open", "closed"]),
+  createdAt: instantSchema,
+  slaDueAt: instantSchema,
+  overdue: z.boolean(),
+  closure: z
+    .strictObject({
+      closedAt: instantSchema,
+      closedBy: accountOwnerSchema.nullable(),
+      reasonCode: teamSelectionCloseReasonSchema,
+      note: z.string().nullable(),
+    })
+    .nullable(),
+});
+export type TeamSelectionRequest = z.infer<typeof teamSelectionRequestSchema>;
+
+/**
+ * POST …/entries/:id/open (15 C1, C2): opening is claiming. `claimed` (just taken), `held` (already the
+ * caller's), `read_only` (a colleague's, named), `closed`. The claim is the live one, null when none.
+ */
+export const openTeamSelectionResponseSchema = z.strictObject({
+  asOf: instantSchema,
+  outcome: openOutcomeSchema,
+  holder: accountOwnerSchema.nullable(),
+  claimedAt: instantSchema.nullable(),
+  claimExpiresAt: instantSchema.nullable(),
+  request: teamSelectionRequestSchema,
+});
+export type OpenTeamSelectionResponse = z.infer<
+  typeof openTeamSelectionResponseSchema
+>;
+
+/**
+ * POST …/entries/:id/close (17b I13): a reason of the closed list, never a closure without one; the note
+ * for `other` alone, 10 to 500 characters once trimmed (the database holds the same bounds, 0330).
+ */
+export const closeTeamSelectionRequestSchema = z
+  .strictObject({
+    reasonCode: teamSelectionCloseReasonSchema,
+    note: z
+      .string()
+      .trim()
+      .min(TEAM_SELECTION_NOTE_MIN_LENGTH)
+      .max(TEAM_SELECTION_NOTE_MAX_LENGTH)
+      .refine((note) => !note.includes(String.fromCharCode(0)), {
+        message: "nul_character",
+      })
+      .optional(),
+  })
+  .superRefine((body, context) => {
+    if (body.reasonCode === "other" && body.note === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["note"],
+        message: "note_required",
+      });
+    }
+    if (body.reasonCode !== "other" && body.note !== undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["note"],
+        message: "note_not_allowed",
+      });
+    }
+  });
+export type CloseTeamSelectionRequest = z.infer<
+  typeof closeTeamSelectionRequestSchema
+>;
+
+/** The closure answers with the request to open next (17b §2.6), never opened for the caller here. */
+export const closeTeamSelectionResponseSchema = z.strictObject({
+  closedAt: instantSchema,
+  next: nextEntrySchema,
+});
+export type CloseTeamSelectionResponse = z.infer<
+  typeof closeTeamSelectionResponseSchema
+>;

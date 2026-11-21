@@ -18,6 +18,7 @@ import type {
   QueueDelayRow,
   ReconciliationRow,
 } from "./alerts/repository.ts";
+import type { CriticalMassAlertRow } from "./search-settings/repository.ts";
 import type { ContactDestination } from "./sync-replay/repository.ts";
 
 const DESTINATION: Readonly<Record<ContactDestination, SyncDestination>> = {
@@ -244,6 +245,48 @@ export function creatorSearchVolumeAlerts(
     count: row.count,
     since: row.since,
   }));
+}
+
+/**
+ * AL65 (CA60; 10 RG2; l3g/modele.md §6) and AL22 (15 AL22), for the admins: the critical mass reached or lost
+ * with the search in the other state, the counters stale, the searches of the brand view blocked by k. The base
+ * computes them (search.critical_mass_alerts(), 0331) from its own thresholds; they PROPOSE, nothing here opens
+ * the search (RG2). A count and a date: never an account, a filter nor a creator. It falls by itself (RG64).
+ */
+export function criticalMassAlerts(
+  rows: readonly CriticalMassAlertRow[],
+): Alert[] {
+  return rows.map((row) => ({
+    code: row.code,
+    cause: row.cause,
+    destination: null,
+    setting: null,
+    count: row.observed ?? 0,
+    since: row.since,
+  }));
+}
+
+/**
+ * AL23 (15 §F; l3g/modele.md §5): requests of queue 9 left open past the deadline frozen at their deposit, for
+ * the agents and the admins. The count is the requests past it, the date the oldest deadline; the requests of a
+ * brand the caller holds are not counted (15 RG36). It falls by itself once they are taken and closed (RG64).
+ */
+export function teamSelectionDeadlineAlerts(overdue: {
+  count: number;
+  since: string | null;
+}): Alert[] {
+  return overdue.count > 0
+    ? [
+        {
+          code: "AL23",
+          cause: "selection_past_deadline",
+          destination: null,
+          setting: null,
+          count: overdue.count,
+          since: overdue.since,
+        },
+      ]
+    : [];
 }
 
 /** A number of a threshold, or the starting value of its document when absent. */

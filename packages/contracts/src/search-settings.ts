@@ -177,3 +177,50 @@ export type SearchFacetSetting = z.infer<typeof searchFacetSettingSchema>;
 export const RESULT_COUNT_BANDS = ["5_9", "10_24", "25_49", "50_plus"] as const;
 export const resultCountBandSchema = z.enum(RESULT_COUNT_BANDS);
 export type ResultCountBand = z.infer<typeof resultCountBandSchema>;
+
+/**
+ * The counters of critical mass (04 §5.5; 10 RG2, CA60; l3g/modele.md §6, 0331): what the daily task
+ * counted, for the settings screen of the administrators. `published` is E1, E3, E4 (a published
+ * storefront, an active account, the majority attested); `searchable` adds E2, what a brand would see.
+ * Counts only, never a creator, an account nor a filter.
+ */
+const supplyCountsShape = {
+  published: z.number().int().nonnegative(),
+  searchable: z.number().int().nonnegative(),
+};
+const supplyDimensionValueSchema = z.string().regex(/^[A-Za-z0-9_]{1,64}$/);
+
+export const supplyCountersSchema = z.strictObject({
+  /** The UTC day of the last snapshot, and the instant it was computed. */
+  snapshotOn: z.iso.date(),
+  computedAt: z.iso.datetime(),
+  global: z.strictObject(supplyCountsShape),
+  /** By main topic (code of `reference.topics`). */
+  topics: z.array(
+    z.strictObject({ code: supplyDimensionValueSchema, ...supplyCountsShape }),
+  ),
+  /** By country of the main audience (ISO 3166-1 alpha-2). */
+  countries: z.array(
+    z.strictObject({ code: supplyDimensionValueSchema, ...supplyCountsShape }),
+  ),
+  /** The global count of the 29 days before the snapshot, newest first (the curve of 04 §5.5). */
+  curve: z
+    .array(z.strictObject({ snapshotOn: z.iso.date(), ...supplyCountsShape }))
+    .max(29),
+});
+export type SupplyCounters = z.infer<typeof supplyCountersSchema>;
+
+/**
+ * GET /v1/bo/settings/search (an administrator's; l3g/modele.md §7, §8; 0333): the ten keys as they are
+ * in base, each checked against its schema, and the counters of the last snapshot (null before the first
+ * one). Who changed a key and when stay in the register (`search.settings_changed`), not here
+ * (EC-L3G-08b-1). The alerts of the critical mass are those of GET /v1/bo/alerts (AL22, AL65).
+ */
+export const searchSettingsResponseSchema = z.strictObject({
+  asOf: z.iso.datetime(),
+  settings: z.array(searchSettingSchema).max(SEARCH_SETTING_KEYS.length),
+  counters: supplyCountersSchema.nullable(),
+});
+export type SearchSettingsResponse = z.infer<
+  typeof searchSettingsResponseSchema
+>;

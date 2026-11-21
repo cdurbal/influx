@@ -36,7 +36,10 @@ import {
 } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import { databaseNow } from "./alerts/repository.ts";
-import { pendingDualControlIds } from "./dual-control/repository.ts";
+import {
+  pendingDualControlIds,
+  peerAdminExists,
+} from "./dual-control/repository.ts";
 import {
   cancelDualControl,
   confirmAndExecute,
@@ -78,8 +81,25 @@ function actionOfRequest(
         requestId: body.requestId.toLowerCase(),
         requestType: body.requestType,
       };
+    case "search.change_setting":
+      return { code: body.code, setting: body.setting };
+    case "search.change_facet":
+      return {
+        code: body.code,
+        facetCode: body.facetCode,
+        isOpen: body.isOpen,
+        displayOrder: body.displayOrder,
+      };
   }
 }
+
+/** The two actions on the search configuration (0332): a peer admin only, never the degraded form (D38 Q2). */
+function isSearchConfiguration(code: DualControlRequestBody["code"]): boolean {
+  return code === "search.change_setting" || code === "search.change_facet";
+}
+
+/** 409 on the path `dualControl`: nobody else can confirm, so nothing is requested (L3G 10, fiche invariant 10). */
+const NO_PEER_ADMIN = [{ path: "dualControl", issue: "no_peer_admin" }];
 
 type DualControlMemberTarget = Extract<
   NonNullable<DualControlViewBody["target"]>,
@@ -125,6 +145,31 @@ function viewBody(view: DualControlView): DualControlViewBody {
   };
 }
 
+/** The body field each 22023 DETAIL of the two writers of the search configuration names (0332). */
+const SEARCH_WRITER_FIELD: Readonly<Record<string, [string, string]>> = {
+  key: ["setting.key", "invalid_key"],
+  value: ["setting.value", "invalid_value"],
+  reason: ["reasonCode", "invalid_reason"],
+  facet_code: ["facetCode", "invalid_facet_code"],
+  facet_not_openable: ["isOpen", "facet_not_openable"],
+  is_open: ["isOpen", "invalid_value"],
+  display_order: ["displayOrder", "invalid_value"],
+  note: ["reasonNote", "invalid_note"],
+};
+
+/**
+ * 0332: a value the writer of a setting or of a facet refuses at the confirmation (the key or the facet is
+ * unknown, a value its CHECK refuses, a facet that cannot open): a 400 on the field of the request, the
+ * confirmation rolled back with it, the request left pending. Anything else, unchanged.
+ */
+function searchWriterRefusalOf(error: unknown): unknown {
+  const detail = sqlDetailOf(error);
+  const field = detail === null ? undefined : SEARCH_WRITER_FIELD[detail];
+  return field === undefined
+    ? error
+    : new RequestValidationError([{ path: field[0], issue: field[1] }]);
+}
+
 /**
  * 0231: a withdrawal whose badge no longer holds (the task or a grant ended it since the request) is a
  * 409 on `badge`; the confirmation is rolled back with it, the request stays as it was. 0243 (L2DS-6,
@@ -134,7 +179,11 @@ function viewBody(view: DualControlView): DualControlViewBody {
  * else, unchanged (the deliberate 42501 of the database stays the 403 of runSensitiveAction).
  */
 export function confirmRefusalOf(error: unknown): unknown {
-  if (sqlStateOf(error) !== "55000") {
+  const state = sqlStateOf(error);
+  if (state === "22023") {
+    return searchWriterRefusalOf(error);
+  }
+  if (state !== "55000") {
     return error;
   }
   switch (sqlDetailOf(error)) {
@@ -172,6 +221,14 @@ export function registerDualControlRoutes(
         const view = unlessRefused(
           await withBackofficeSession(database, request, reply, (tx, context) =>
             adminOnly(tx, context, "backoffice.dual_control", async () => {
+              // D38 Q2: the search configuration changes under a peer's control or not at all; without
+              // another admin able to confirm, no request is written (the database refuses it too)
+              if (
+                isSearchConfiguration(body.code) &&
+                !(await peerAdminExists(tx, context.accountId))
+              ) {
+                throw new ApiError("conflict", NO_PEER_ADMIN);
+              }
               const id = await requestDualControl(tx, {
                 action: actionOfRequest(body),
                 reasonCode: body.reasonCode,
@@ -198,6 +255,10 @@ export function registerDualControlRoutes(
             body.code === "privacy.approve_data_request"
           ) {
             throw new ApiError("not_found");
+          }
+          // 0332: the shape is the contract's, so a refusal here is the last peer gone since the check
+          if (isSearchConfiguration(body.code)) {
+            throw new ApiError("conflict", NO_PEER_ADMIN);
           }
           throw new RequestValidationError([
             { path: "setting.value", issue: "refused_value" },

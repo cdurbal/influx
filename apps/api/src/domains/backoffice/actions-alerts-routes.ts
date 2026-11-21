@@ -1,8 +1,9 @@
 // Alerts route of the backoffice v0 (docs/mvp/05 §K RG104, CA62; 15 RG101, RG145; 17b §3.11).
 // Backoffice surface; the aal2 guard of server.ts runs first.
-// - GET /v1/bo/alerts (RG104, CA62): the state alerts AL21 and AL24 to AL27, for their recipients, and for
-//   the admins the "new browser" sign-ins of B-7 (RG145, 0138) and the `admin` roles granted
-//   (J8S-4, RG101, 0142). `Cache-Control: no-store`.
+// - GET /v1/bo/alerts (RG104, CA62): the state alerts AL21 to AL27 and AL65, for their recipients (AL22 and
+//   AL65, the critical mass of the search, for the admins; AL23, the requests of queue 9 past their deadline,
+//   for the agents and the admins: L3G 10), and for the admins the "new browser" sign-ins of B-7 (RG145,
+//   0138) and the `admin` roles granted (J8S-4, RG101, 0142). `Cache-Control: no-store`.
 import {
   ADMIN_ROLE_GRANT_ALERT_DAYS,
   alertsResponseSchema,
@@ -29,15 +30,19 @@ import {
   queuePolicy,
 } from "./alerts/repository.ts";
 import { adminRoleGrants } from "./dual-control/repository.ts";
+import { readCriticalMassAlerts } from "./search-settings/repository.ts";
+import { readOverdueTeamSelection } from "./team-selection-queue/repository.ts";
 import {
   businessCutoff,
   businessHoursOf,
+  criticalMassAlerts,
   delayAlerts,
   configurationAlerts,
   creatorSearchVolumeAlerts,
   destinationAlerts,
   failureAlerts,
   reconciliationAlerts,
+  teamSelectionDeadlineAlerts,
   thresholdCodes,
   thresholdNumber,
 } from "./alerts.ts";
@@ -54,9 +59,18 @@ async function evaluateAlerts(
   const now = await databaseNow(tx);
   const isAdmin = context.role === "admin";
   const definitions = new Map(
-    (await alertDefinitions(tx, ["AL21", "AL24", "AL25", "AL26", "AL27"])).map(
-      (definition) => [definition.code, definition],
-    ),
+    (
+      await alertDefinitions(tx, [
+        "AL21",
+        "AL22",
+        "AL23",
+        "AL24",
+        "AL25",
+        "AL26",
+        "AL27",
+        "AL65",
+      ])
+    ).map((definition) => [definition.code, definition]),
   );
   const visible = (code: string): boolean => {
     const recipients = definitions.get(code)?.recipients ?? [];
@@ -144,6 +158,24 @@ async function evaluateAlerts(
   // reads its own thresholds and answers an account, a cause and a count, never a filter nor a profile.
   if (visible("AL21")) {
     alerts.push(...creatorSearchVolumeAlerts(await creatorSearchVolume(tx)));
+  }
+  // AL23 (0330, l3g/modele.md §5): derived here from the open requests of queue 9 past their frozen deadline,
+  // for the agents and the admins; the brands the caller holds are not counted (15 RG36).
+  if (visible("AL23")) {
+    alerts.push(
+      ...teamSelectionDeadlineAlerts(
+        await readOverdueTeamSelection(tx, context.accountId),
+      ),
+    );
+  }
+  // AL22 and AL65 (0331, l3g/modele.md §6): the critical mass of the search, for the admins. One reader serves
+  // both and answers 42501 to an agent: `visible()` is asked first, and the reader once, for either code.
+  if (visible("AL22") || visible("AL65")) {
+    alerts.push(
+      ...criticalMassAlerts(
+        (await readCriticalMassAlerts(tx)).filter((row) => visible(row.code)),
+      ),
+    );
   }
   // B-7 (05 RG145): the "new browser" sign-ins of the team, for the admins only.
   const signIns = isAdmin

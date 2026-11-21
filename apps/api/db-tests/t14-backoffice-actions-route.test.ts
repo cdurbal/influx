@@ -1306,11 +1306,13 @@ describe("GET /v1/bo/alerts (05 RG104, CA62; 15 §F)", () => {
     expect((await count(adminA)) - adminBefore).toBe(2);
   });
 
-  it("the admin alerts (AL25 to AL27) never reach an agent", async () => {
+  it("the admin alerts (AL25 to AL27, AL22, AL65) never reach an agent: his are AL24 and, since L3G 10, AL23 (queue 9)", async () => {
     const body = (
       await call(app(), "GET", "/v1/bo/alerts", agent.session)
     ).json<Alerts>();
-    expect(body.alerts.every((alert) => alert.code === "AL24")).toBe(true);
+    expect(
+      body.alerts.every((alert) => ["AL23", "AL24"].includes(alert.code)),
+    ).toBe(true);
   });
 
   it("AL27: the gap of the last reconciliation (ops.periodic_runs.counts) is up for the admin", async () => {

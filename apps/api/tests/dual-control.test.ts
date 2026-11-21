@@ -20,6 +20,8 @@ describe("PD1: the recap of each action, before the first gesture", () => {
       "identity.invite_admin",
       "leads.change_apollo_setting",
       "privacy.approve_data_request",
+      "search.change_facet",
+      "search.change_setting",
       "verification.revoke_badge",
     ]);
     for (const recap of [
@@ -52,6 +54,19 @@ describe("PD1: the recap of each action, before the first gesture", () => {
         accountId: ACCOUNT,
         badgeId: ACCOUNT,
         reasonCode: "terms_breach",
+      }),
+      dualControlRecap({
+        code: "search.change_setting",
+        setting: {
+          key: "critical_mass_thresholds",
+          value: { publishedProfiles: 30, perTopic: 5 },
+        },
+      }),
+      dualControlRecap({
+        code: "search.change_facet",
+        facetCode: "F1",
+        isOpen: true,
+        displayOrder: 1,
       }),
     ]) {
       expect(recap.scope.count).toBe(1);

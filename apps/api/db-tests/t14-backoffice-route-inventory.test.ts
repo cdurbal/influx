@@ -159,6 +159,16 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
   // L3G 09: the identified creator search of the agents (0328) and the prefill of a campaign (0329)
   "POST /v1/bo/creator-search": { body: { filters: {} } },
   "POST /v1/bo/campaigns/:id/creator-prefill": {},
+  // L3G 10: queue 9, the requests for a selection by the team (0330), and the search settings (0333)
+  "GET /v1/bo/team-selection/entries": {},
+  "POST /v1/bo/team-selection/entries/search": { body: {} },
+  "POST /v1/bo/team-selection/entries/:id/open": {},
+  "POST /v1/bo/team-selection/entries/:id/release": {},
+  "POST /v1/bo/team-selection/entries/:id/extend": {},
+  "POST /v1/bo/team-selection/entries/:id/close": {
+    body: { reasonCode: "duplicate" },
+  },
+  "GET /v1/bo/settings/search": {},
   "GET /v1/bo/queues/verification-creators/entries": {},
   "POST /v1/bo/queues/verification-creators/entries/search": { body: {} },
   "POST /v1/bo/queues/verification-creators/entries/:id/open": {},
@@ -728,6 +738,20 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
         ],
       ]),
     ),
+    // L3G 10: a request of queue 9 of a brand the caller HOLDS answers like an unknown request, on every
+    // route (15 RG36, EC-L3G-06-2: 0330 answers 42501 to open, extend and close; the route answers a release
+    // the same way when the caller has no claim to give back). The queue is in the list of the others.
+    ...Object.fromEntries(
+      [
+        "POST /v1/bo/team-selection/entries/:id/open",
+        "POST /v1/bo/team-selection/entries/:id/release",
+        "POST /v1/bo/team-selection/entries/:id/extend",
+        "POST /v1/bo/team-selection/entries/:id/close",
+      ].map((route) => [
+        route,
+        async () => [{ who: agent, id: await heldSelectionRequest() }],
+      ]),
+    ),
     // L2E 14: a verification request of the caller's own account is hidden by the database (0221,
     // C(3)): the answer of an unknown request, on every route of both views (an own request of the
     // creator view on the creator routes, of the brand view on the brand routes).
@@ -937,6 +961,55 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
         await tx`delete from profiles.portfolio_items where id = ${itemId}`;
         await tx`delete from profiles.creator_review_entries where id = ${entryId}`;
         await tx`delete from profiles.creator_public_profiles where account_id = ${agent.accountId}`;
+      });
+    }
+  });
+
+  type HeldSelection = { brandId: string; requestId: string };
+  let heldSelection: Promise<HeldSelection> | undefined;
+
+  /**
+   * A request of queue 9 of a brand the agent HOLDS (`owner_agent_id`, L3G 10): the doors never write one
+   * for a brand of the file, so the superuser writes the brand, its profile and the request with the foreign
+   * keys and the triggers out of the way; 0330 refuses its opening to the agent (42501), and this is how it is
+   * tried. Removed with the file.
+   */
+  async function heldSelectionRequest(): Promise<string> {
+    heldSelection ??= (async () => {
+      const brandId = randomUUID();
+      const requestId = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into identity.accounts
+            (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+             is_adult_attested, adult_attested_at, declared_status, owner_agent_id)
+          values (${brandId}, ${randomUUID()}, ${`t14-inv-held-${brandId}@example.test`}, now(), 'FR',
+                  'fr', true, now(), 'business', ${agent.accountId})`;
+        await tx`
+          insert into identity.account_roles (account_id, role) values (${brandId}, 'advertiser')`;
+        await tx`
+          insert into profiles.advertiser_profiles (account_id, legal_name)
+          values (${brandId}, ${`Held ${brandId.slice(0, 8)}`})`;
+        await tx`
+          insert into search.selection_requests
+            (id, advertiser_account_id, filters, language, sla_due_at, created_at)
+          values (${requestId}, ${brandId}, '{}'::jsonb, 'fr', now() + interval '1 day', now())`;
+      });
+      return { brandId, requestId };
+    })();
+    return (await heldSelection).requestId;
+  }
+
+  afterAll(async () => {
+    if (heldSelection !== undefined) {
+      const { brandId, requestId } = await heldSelection;
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`delete from search.selection_requests where id = ${requestId}`;
+        await tx`delete from profiles.advertiser_profiles where account_id = ${brandId}`;
+        await tx`delete from identity.account_roles where account_id = ${brandId}`;
+        await tx`delete from identity.accounts where id = ${brandId}`;
       });
     }
   });

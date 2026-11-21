@@ -5,6 +5,7 @@
 // - actions-replay-routes.ts: lead replays and the lifting of a Brevo suppression;
 // - actions-corrections-routes.ts: corrections of a member account (RG108);
 // - actions-apollo-routes.ts: the Apollo settings read;
+// - search-settings-routes.ts: the search settings and the counters of critical mass read (L3G 10);
 // - actions-dual-control-routes.ts: dual control, requests, views, confirmation, cancellation;
 // - actions-alerts-routes.ts: the state alerts.
 // The guards (admin only and its journaled refusal, CA63) are in action-guards.ts and re-exported
@@ -16,6 +17,7 @@ import { registerApolloSettingsRoutes } from "./actions-apollo-routes.ts";
 import { registerCorrectionRoutes } from "./actions-corrections-routes.ts";
 import { registerDualControlRoutes } from "./actions-dual-control-routes.ts";
 import { registerReplayRoutes } from "./actions-replay-routes.ts";
+import { registerSearchSettingsRoutes } from "./search-settings-routes.ts";
 
 export {
   adminOnly,
@@ -32,6 +34,7 @@ export function registerBackofficeActionRoutes(
   registerReplayRoutes(app, dependencies);
   registerCorrectionRoutes(app, dependencies);
   registerApolloSettingsRoutes(app, dependencies);
+  registerSearchSettingsRoutes(app, dependencies);
   registerDualControlRoutes(app, dependencies);
   registerAlertRoutes(app, dependencies);
 }

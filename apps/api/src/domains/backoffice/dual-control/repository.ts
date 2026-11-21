@@ -8,7 +8,7 @@ import { isForbidden } from "../action-guards.ts";
 import type { StoredApolloSetting } from "../apollo-settings.ts";
 import { ISO_UTC } from "../sql-formats.ts";
 
-/** The closed list of 2V actions (0131, 0132, 0134, 0136 backoffice.canonical_dual_control_payload()). */
+/** The closed list of 2V actions (0131, 0132, 0134, 0136, 0332 backoffice.canonical_dual_control_payload()). */
 export const DUAL_CONTROL_ACTION_CODES = [
   "identity.grant_role",
   "identity.change_member_role",
@@ -17,6 +17,9 @@ export const DUAL_CONTROL_ACTION_CODES = [
   "privacy.approve_data_request",
   // 0231: opened by verification.request_badge_revocation() only (never by request_dual_control)
   "verification.revoke_badge",
+  // 0332 (L3G, D84, D38 Q2): a key of the search settings and a facet, a peer admin only
+  "search.change_setting",
+  "search.change_facet",
 ] as const;
 export type DualControlActionCode = (typeof DUAL_CONTROL_ACTION_CODES)[number];
 
@@ -26,12 +29,14 @@ export type DualControlState =
 /** PD5: how a request was confirmed, as the register line of its action carries it. */
 export type DualControlMode = "peer" | "degraded_single_operator";
 
-/** The canonical payload of 0131, 0132, 0134: identifiers, codes and the confirmed values. */
+/** The canonical payload of 0131, 0132, 0134, 0332: identifiers, codes and the confirmed values. */
 export type DualControlPayload =
   | { account_id: string; role: BusinessRole }
   | { account_id: string; role: "advertiser"; legal_name: string }
   | { invitation_id: string }
   | StoredApolloSetting
+  | { key: string; value: unknown }
+  | { facet_code: string; is_open: boolean; display_order: number }
   | { request_id: string; request_type: "access" | "erasure" };
 
 // --- Writes: the three functions of 0130 / 0131 (EXECUTE for influx_admin only) ------------------
@@ -174,6 +179,50 @@ export async function revokeBadge(
     throw new Error("verification.revoke_badge returned no mode");
   }
   return mode;
+}
+
+/**
+ * 0332 (10 RG2, RG57, RG63): search.write_search_setting(), by the confirmer. It checks R on the session of the
+ * request, consumes the confirmed 2V once for exactly this key, value and reason, and writes the setting (a
+ * version for k and the cold quota). A peer only, never the degraded form (D38 Q2): 42501 otherwise. Returns
+ * the version of the facet configuration in force.
+ */
+export async function writeSearchSetting(
+  tx: Transaction,
+  sessionId: string,
+  requestId: string,
+  call: { key: string; value: unknown; reasonCode: string },
+): Promise<number> {
+  const rows = await tx.execute<{ version: number }>(
+    sql`select search.write_search_setting(${sessionId}::uuid, ${requestId}::uuid, ${call.key},
+                                           ${JSON.stringify(call.value)}::text::jsonb,
+                                           ${call.reasonCode})::int as version`,
+  );
+  return rows[0]?.version ?? 0;
+}
+
+/**
+ * 0332 (10 RG11, RG88): search.write_facet_setting(), by the confirmer; as the setting, a peer only. `note` is
+ * the note of the version the change opens (500 characters at most, the note of the request).
+ */
+export async function writeFacetSetting(
+  tx: Transaction,
+  sessionId: string,
+  requestId: string,
+  call: {
+    facetCode: string;
+    isOpen: boolean;
+    displayOrder: number;
+    reasonCode: string;
+    note: string | null;
+  },
+): Promise<number> {
+  const rows = await tx.execute<{ version: number }>(
+    sql`select search.write_facet_setting(${sessionId}::uuid, ${requestId}::uuid, ${call.facetCode},
+                                          ${call.isOpen}::boolean, ${call.displayOrder}::integer,
+                                          ${call.reasonCode}, ${call.note})::int as version`,
+  );
+  return rows[0]?.version ?? 0;
 }
 
 /** 0132 (EC-J8-17): identity.change_member_role(), creator to advertiser, by the confirmer. */

@@ -13,7 +13,7 @@
 | 08 | 08.md | commit | opus | high | expert-database | fait | 0332 : 2 écrivains consomment une 2V search.* confirmée par un autre admin avec R ; sans pair, ni demande ni mode dégradé (42501) ; kits inchangés |
 | 08b | 08b.md | commit | opus | high | expert-database | fait | 0333 : read_search_settings() (key, value) des dix clés, admin aal2 seul (42501 sinon) ; aucun droit de table ni de colonne, rien écrit |
 | 09 | 09.md | commit | sonnet | high | dev-react-node | fait | 2 routes /v1/bo, agents et admin seuls ; campagne ou prefill inconnus 404 (EC-1) ; page_cap 400 après COMMIT ; réglage absent 503 ; planchers 15 et 7 |
-| 10 | 10.md | commit | sonnet | high | dev-react-node | à faire | |
+| 10 | 10.md | commit | sonnet | high | dev-react-node | fait | file 9 : 6 routes, 42501 → 404, 55P03 → 409 claim ; AL22/23/65 ; 2V search.* pair seul (409 no_peer_admin) ; GET réglages admin ; planchers 13 et 9 |
 | 11 | 11.md | commit | sonnet | high | testeur | à faire | |
 | 12 | 12.md | commit | sonnet | high | dev-react-node | à faire | |
 | 13 | 13.md | commit | sonnet | high | dev-react-node | à faire | |

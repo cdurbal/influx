@@ -53,6 +53,7 @@ import { withBackofficeSession } from "../identity/backoffice-session.ts";
 import type { IdentityApp } from "../identity/routes.ts";
 import { registerCampaignQueueRoutes } from "./campaign-queue-routes.ts";
 import { registerCreatorQueueRoutes } from "./creator-queues-routes.ts";
+import { registerTeamSelectionQueueRoutes } from "./team-selection-queue-routes.ts";
 import { registerBackofficeQueueDecisionRoutes } from "./queues-decision-routes.ts";
 import { registerBackofficeQueueLogoRoutes } from "./queues-logo-routes.ts";
 import {
@@ -243,6 +244,8 @@ export function registerBackofficeQueueRoutes(
   registerCreatorQueueRoutes(app, dependencies);
   // Queue 7 and the record of a campaign (L3C 07): campaign-queue-routes.ts
   registerCampaignQueueRoutes(app, dependencies);
+  // Queue 9, the requests for a selection by the team (L3G 10): team-selection-queue-routes.ts
+  registerTeamSelectionQueueRoutes(app, dependencies);
 
   app.get(
     "/v1/bo/queues/counters",

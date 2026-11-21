@@ -379,6 +379,9 @@ describe("L3G-T9 the campaign of origin and the pair blocked (10 RG71, RG73; 17b
     } finally {
       await kit.fx.migration`
         delete from matching.party_blocks where creator_account_id = ${blocked.accountId}`;
+      // the motive is the file's own: left behind, it fails matching-party-blocks on a whole local run
+      await kit.fx.migration`
+        delete from matching.block_reasons where code = 'lg_nine_block'`;
     }
   });
 });

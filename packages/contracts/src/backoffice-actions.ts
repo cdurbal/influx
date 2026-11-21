@@ -21,6 +21,12 @@ import {
 } from "./backoffice-accounts.ts";
 import { INTERNAL_INVITATION_REASONS } from "./backoffice-invitations.ts";
 import { uiLocaleSchema } from "./auth.ts";
+import {
+  SEARCH_FACET_WAVES,
+  searchFacetCodeSchema,
+  searchSettingSchema,
+  SUSPENDED_FACET_CODES,
+} from "./search-settings.ts";
 import { countryCodeSchema, declaredStatusSchema } from "./signup.ts";
 import { USER_AGENT_SUMMARY_KEY_PATTERN } from "./user-agent.ts";
 import {
@@ -238,6 +244,21 @@ const legalNameSchema = z
 /** 15 RG75 step 6 (J8 commit 8): the execution of an instructed "mes données" request. */
 export const DATA_REQUEST_EXECUTION_REASONS = ["request_instructed"] as const;
 
+/**
+ * The reasons of a change of a search setting or of a facet (0332 search.write_search_setting() and
+ * write_facet_setting(): the same four, l3g/modele.md §7).
+ */
+export const SEARCH_SETTING_REASONS = [
+  "critical_mass_reached",
+  "founder_decision",
+  "abuse_response",
+  "configuration_error",
+] as const;
+
+/** The display order of a facet (RG11), as the CHECK of search.facet_settings holds it. */
+export const SEARCH_FACET_ORDER_MIN = 1;
+export const SEARCH_FACET_ORDER_MAX = 99;
+
 /** The two types of request the minimal execution of J8 covers (21 §J8 point 6). */
 export const EXECUTABLE_DATA_REQUEST_TYPES = ["access", "erasure"] as const;
 
@@ -275,6 +296,41 @@ export const dualControlRequestSchema = z.discriminatedUnion("code", [
     reasonCode: z.enum(DATA_REQUEST_EXECUTION_REASONS),
     reasonNote: commentSchema.optional(),
   }),
+  /**
+   * L3G commit 10 (0332, D84, D38 Q2): one key of search.search_settings, a value of the shape of its
+   * schema (the CHECK of the table decides last). A peer admin confirms it; none, no request (409).
+   */
+  z.strictObject({
+    code: z.literal("search.change_setting"),
+    setting: searchSettingSchema,
+    reasonCode: z.enum(SEARCH_SETTING_REASONS),
+    reasonNote: commentSchema.optional(),
+  }),
+  /**
+   * L3G commit 10 (0332): the opening and the display order of one facet. `reasonNote` is the note of
+   * the version of the configuration the change opens (500 characters at most). An open facet belongs
+   * to the base, and F12 stays closed while D78 holds (`facet_not_openable`).
+   */
+  z
+    .strictObject({
+      code: z.literal("search.change_facet"),
+      facetCode: searchFacetCodeSchema,
+      isOpen: z.boolean(),
+      displayOrder: z
+        .number()
+        .int()
+        .min(SEARCH_FACET_ORDER_MIN)
+        .max(SEARCH_FACET_ORDER_MAX),
+      reasonCode: z.enum(SEARCH_SETTING_REASONS),
+      reasonNote: commentSchema.optional(),
+    })
+    .refine(
+      (facet) =>
+        !facet.isOpen ||
+        (SEARCH_FACET_WAVES[facet.facetCode] === 1 &&
+          !SUSPENDED_FACET_CODES.some((code) => code === facet.facetCode)),
+      { message: "facet_not_openable", path: ["isOpen"] },
+    ),
 ]);
 export type DualControlRequestBody = z.infer<typeof dualControlRequestSchema>;
 
@@ -306,6 +362,18 @@ export const dualControlActionSchema = z.discriminatedUnion("code", [
     code: z.literal("privacy.approve_data_request"),
     requestId: z.uuid(),
     requestType: z.enum(EXECUTABLE_DATA_REQUEST_TYPES),
+  }),
+  /** L3G commit 10 (0332): the payload {key, value} as stored, read as a setting. */
+  z.strictObject({
+    code: z.literal("search.change_setting"),
+    setting: searchSettingSchema,
+  }),
+  /** L3G commit 10 (0332): the payload {facet_code, is_open, display_order} as stored. */
+  z.strictObject({
+    code: z.literal("search.change_facet"),
+    facetCode: searchFacetCodeSchema,
+    isOpen: z.boolean(),
+    displayOrder: z.number().int(),
   }),
   /**
    * L2F commit 13 (0231): the withdrawal of a badge, asked by an agent or an administrator through
@@ -547,7 +615,16 @@ export type SuppressionLiftResponse = z.infer<
 // ---------------------------------------------------------------------------------------------
 
 /** The alerts of RG104 evaluated at J8 (0130 catalogue): all state alerts, derived at each read. */
-export const ALERT_CODES = ["AL21", "AL24", "AL25", "AL26", "AL27"] as const;
+export const ALERT_CODES = [
+  "AL21",
+  "AL22",
+  "AL23",
+  "AL24",
+  "AL25",
+  "AL26",
+  "AL27",
+  "AL65",
+] as const;
 
 /** Why the alert is up, a code for the screen to word (RG66: never the colour alone). */
 export const ALERT_CAUSES = [
@@ -572,6 +649,14 @@ export const ALERT_CAUSES = [
   "open_cap_share_day",
   "refinement",
   "aspiration",
+  // AL65 (0331, l3g/modele.md §6, 10 RG2, CA60): the critical mass of the search, proposed never applied
+  "thresholds_reached",
+  "below_while_open",
+  "counters_stale",
+  // AL22 (0331): too many searches of the brand view blocked by k
+  "k_blocked_share",
+  // AL23 (15 §F; 0330): requests of queue 9 left open past their deadline
+  "selection_past_deadline",
 ] as const;
 
 export const alertSchema = z.strictObject({

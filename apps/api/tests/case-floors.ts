@@ -58,7 +58,7 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/privacy-export-texts.test.ts": 8,
   "tests/probe.test.ts": 9,
   "tests/provider-recording.test.ts": 17,
-  "tests/public-rate.test.ts": 223,
+  "tests/public-rate.test.ts": 230,
   "tests/route-models.test.ts": 2,
   "tests/queue-emails-written-by-influx.test.ts": 10,
   "tests/reconciliation-reads.test.ts": 2,
@@ -76,6 +76,9 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/t6-static.test.ts": 18,
   "tests/tm11-identifying-fields.test.ts": 24,
   "tests/technical-alert-email.test.ts": 25,
+  // L3G-10: the refusals of queue 9, the plain text of a message, AL23, the closure; the counters and AL65, the 2V of the search settings
+  "tests/team-selection-queue.test.ts": 11,
+  "tests/search-settings-reads.test.ts": 8,
   "tests/technical-alerts.test.ts": 27,
   "tests/terms-publication.test.ts": 13,
   "tests/terms-route.test.ts": 21,
