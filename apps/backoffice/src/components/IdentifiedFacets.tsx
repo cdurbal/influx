@@ -4,7 +4,8 @@
 // facets of the brand's search, then the internal ones (G1, G2, G9, G10), one native control each, applied together
 // by « Rechercher » because every search is journaled (a facet does not search on its own). G8 (the agent in charge)
 // is drawn by the table, not offered here: no list of the agents is open to an agent. G3 is Lot 4. The form holds a
-// draft and nothing else: the facets applied are the screen's (the form is remounted when they change). The base
+// draft and nothing else: the facets applied are the screen's (the draft starts again from them when they change,
+// without remounting the form, so that the focus stays where the agent put it). The base
 // refuses a closed facet or a list out of its bounds; this form only offers the lists.
 import { useId, useState } from "react";
 import { messages } from "@/messages/fr";
@@ -133,6 +134,13 @@ export function IdentifiedFacets({
   onReset: () => void;
 }) {
   const [draft, setDraft] = useState<Filters>(applied);
+  // The facets applied changed (a search, a chip taken away, a reset, the brief read): the draft starts from them.
+  const appliedKey = JSON.stringify(applied);
+  const [seenKey, setSeenKey] = useState(appliedKey);
+  if (seenKey !== appliedKey) {
+    setSeenKey(appliedKey);
+    setDraft(applied);
+  }
   const countries = countryOptions().map((country) => ({
     code: country.code,
     label: country.name,

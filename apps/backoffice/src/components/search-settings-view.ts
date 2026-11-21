@@ -71,6 +71,40 @@ export function settingWords(setting: SearchSetting): string {
   }
 }
 
+/**
+ * J8: the value in force and the value requested, each in words. The value in force is the one the settings reader
+ * answers for the key of the request (admin only, like the dual control itself); null when it could not be read, and
+ * the screen then says so rather than showing nothing.
+ */
+export type SettingsList = SearchSettingsResponse["settings"];
+
+export function settingChangeOf(
+  settings: SettingsList | null,
+  requested: SearchSetting,
+): { current: string | null; requested: string } {
+  const found = settings?.find((setting) => setting.key === requested.key);
+  return {
+    current: found === undefined ? null : settingWords(found),
+    requested: settingWords(requested),
+  };
+}
+
+/** J8: a facet of the search by its name, then its code (« Thématique (F1) »); the code alone when it has no name here. */
+export function facetWords(code: string): string {
+  const names = messages.identifiedSearch.facets;
+  const known: Readonly<Record<string, string>> = {
+    F1: names.topic,
+    F3: names.networks,
+    F4: names.audienceBands,
+    F6: names.audienceCountry,
+    F8: names.languages,
+    F11: names.formats,
+    F17: names.badges,
+  };
+  const name = known[code];
+  return name === undefined ? code : `${name} (${code})`;
+}
+
 type SettingValues = { [S in SearchSetting as S["key"]]: S["value"] };
 
 /** The value of a key as the reader answered it, or null when it is absent. */

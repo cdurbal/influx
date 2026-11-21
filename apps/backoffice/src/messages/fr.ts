@@ -1103,6 +1103,10 @@ export const messages = {
       invitation: "Invitation concernée",
       request: "Demande concernée",
       setting: "Nouvelle valeur",
+      /** J8 (L3G-fix-1): the value in force, read as the settings screen reads it, before the value requested. */
+      currentSetting: "Valeur actuelle",
+      requestedSetting: "Valeur demandée",
+      currentUnknown: "non lue : vérifiez-la sur l’écran des réglages",
       legalName: "Raison sociale",
       role: "Rôle",
       /** PD1 (J8S-2): a member account by role, country and sign-up, never by its address. */
@@ -4299,8 +4303,10 @@ export const messages = {
     origin: {
       prefilled: (title: string) => `Pré-rempli depuis « ${title} »`,
       clear: "Vider le pré-remplissage",
+      cleared: (title: string) =>
+        `Pré-remplissage vidé. Campagne liée : « ${title} »`,
       none: "Aucune campagne sélectionnée — la proposition sera indisponible.",
-      choose: "Choisir une campagne",
+      choose: "Trouver une campagne par sa marque",
       loading: "Lecture du brief de la campagne…",
       unknown:
         "Cette campagne n’existe pas ou n’est pas encore admise à la recherche : la recherche est libre.",
@@ -4336,6 +4342,80 @@ export const messages = {
     declaredStatuses: {
       individual: "Particulier",
       business: "Entreprise",
+    } as Readonly<Record<string, string>>,
+    /** J5 (L3G-fix-1): the reference lists in words; a code the table does not know falls back on `humanCode`. */
+    topics: {
+      beauty: "Beauté",
+      fashion: "Mode",
+      food: "Cuisine et gastronomie",
+      travel: "Voyage",
+      sport_fitness: "Sport et fitness",
+      wellness: "Bien-être",
+      family: "Famille",
+      home: "Maison",
+      gaming: "Jeux vidéo",
+      tech: "Technologie",
+      entertainment: "Divertissement",
+      music: "Musique",
+      culture: "Culture",
+      education: "Éducation",
+      business_finance: "Business et finance",
+      automotive: "Automobile",
+      pets: "Animaux",
+    } as Readonly<Record<string, string>>,
+    formats: {
+      instagram_post: "Publication Instagram",
+      instagram_carousel: "Carrousel Instagram",
+      instagram_reel: "Reel Instagram",
+      instagram_story: "Story Instagram",
+      instagram_live: "Live Instagram",
+      tiktok_video: "Vidéo TikTok",
+      tiktok_carousel: "Carrousel TikTok",
+      tiktok_live: "Live TikTok",
+      youtube_video: "Vidéo YouTube",
+      youtube_integration: "Intégration YouTube",
+      youtube_short: "Short YouTube",
+      youtube_live: "Live YouTube",
+      facebook_post: "Publication Facebook",
+      facebook_reel: "Reel Facebook",
+      facebook_story: "Story Facebook",
+      linkedin_post: "Publication LinkedIn",
+      x_post: "Publication X",
+      threads_post: "Publication Threads",
+      snapchat_story: "Story Snapchat",
+      snapchat_spotlight: "Spotlight Snapchat",
+      twitch_live: "Live Twitch",
+      pinterest_pin: "Épingle Pinterest",
+      ugc_video: "Vidéo UGC",
+      ugc_photo: "Photo UGC",
+    } as Readonly<Record<string, string>>,
+    sectors: {
+      alcohol: "Alcool",
+      gambling: "Jeux d’argent",
+      cbd: "CBD",
+      finance: "Finance",
+      health: "Santé",
+      crypto: "Cryptomonnaies",
+      adult: "Contenu pour adultes",
+      beauty_personal_care: "Beauté et soins personnels",
+      fashion_accessories: "Mode et accessoires",
+      food_beverages: "Alimentation et boissons",
+      restaurants_hospitality: "Restauration et hôtellerie",
+      travel_tourism: "Voyage et tourisme",
+      sports_leisure: "Sports et loisirs",
+      home_garden: "Maison et jardin",
+      consumer_electronics: "Électronique grand public",
+      software_telecom: "Logiciels et télécoms",
+      video_games: "Jeux vidéo",
+      automotive_mobility: "Automobile et mobilité",
+      media_entertainment: "Médias et divertissement",
+      education_training: "Éducation et formation",
+      baby_kids: "Bébé et enfants",
+      pet_care: "Animaux",
+      retail_ecommerce: "Commerce et e-commerce",
+      real_estate: "Immobilier",
+      business_services: "Services aux entreprises",
+      nonprofit_public: "Associations et secteur public",
     } as Readonly<Record<string, string>>,
     states: {
       published: "Publié",
@@ -4382,7 +4462,7 @@ export const messages = {
       capReached:
         "Le plafond de pages est atteint : affinez la recherche pour voir les autres créateurs.",
       noSelection:
-        "Aucune sélection ici : la sélection multiple arrive avec « Proposer » (Lot 4).",
+        "Aucune sélection ici : la sélection multiple n’est pas encore disponible.",
     },
     columns: {
       creator: "Créateur",
@@ -4482,6 +4562,8 @@ export const messages = {
       title: "Aucun créateur ne correspond.",
       lead: "Les facettes les plus restrictives, à retirer une par une :",
       none: "Aucune facette n’est appliquée : aucun créateur n’est encore cherchable.",
+      removeApplied:
+        "Retirez une des facettes appliquées ci-dessus pour élargir la recherche.",
       removeFacet: (label: string) => `${label} · Retirer`,
     },
     failures: {
@@ -4561,7 +4643,7 @@ export const messages = {
       "Texte brut, tel que la marque l’a écrit : aucun lien ni aucune mise en forme n’est interprété.",
     closed: {
       line: (at: string, name: string | null, reason: string) =>
-        `Close le ${at}${name === null ? "" : ` par ${name}`} — motif : ${reason}.`,
+        `Clôturée le ${at}${name === null ? "" : ` par ${name}`} — motif : ${reason}.`,
       note: "Commentaire de la clôture :",
     },
     decision: {
@@ -4578,12 +4660,21 @@ export const messages = {
         duplicate: "Doublon d’une demande existante",
         other: "Autre (commentaire obligatoire)",
       } as Readonly<Record<string, string>>,
+      /** J6 (L3G-fix-1): the reason as a short phrase inside a sentence, without the instruction of the form. */
+      reasonsShort: {
+        off_brief: "Hors du brief de la marque",
+        motive_insufficient: "Motif insuffisant",
+        contact_details_in_text: "Coordonnées dans le message",
+        campaign_closed: "Campagne close",
+        duplicate: "Doublon d’une demande existante",
+        other: "Autre",
+      } as Readonly<Record<string, string>>,
       noteLabel: (min: number, max: number) =>
         `Commentaire (${min} à ${max} caractères, obligatoire pour « Autre »)`,
       noteHelp:
         "Visible des seuls agents INFLUX : jamais de la marque. Il n’existe que pour le motif « Autre ».",
       noProposal:
-        "« Proposer à une campagne » arrive avec la mise en relation (lot 4). D’ici là, une demande traitée hors de l’outil se clôt avec « Autre » et un commentaire.",
+        "« Proposer à une campagne » n’est pas encore disponible. D’ici là, une demande traitée hors de l’outil se clôt avec « Autre » et un commentaire.",
       confirm: "Clore la demande",
       busy: "Clôture…",
       reasonRequired: "Choisissez le motif de la clôture.",
@@ -4614,7 +4705,7 @@ export const messages = {
     loading: "Lecture des réglages…",
     error: "Les réglages de la recherche n’ont pas pu être chargés.",
     historyNote:
-      "L’auteur et la date des derniers changements sont inscrits au registre : cet écran ne les affiche pas.",
+      "L’auteur et la date du dernier changement ne sont pas lus ici ; une demande en cours montre son demandeur à la double validation.",
     opening: {
       title: "Ouverture de la recherche aux marques",
       open: "Ouverte : les marques cherchent des créateurs.",

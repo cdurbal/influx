@@ -13,6 +13,7 @@ import {
   DEGRADED_JUSTIFICATION_MIN,
   type DualControlViewBody,
 } from "@influx/contracts/backoffice-actions";
+import type { SearchSetting } from "@influx/contracts/search-settings";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, type ReactNode } from "react";
@@ -30,6 +31,7 @@ import {
   readDualControl,
   readDualControls,
   readInternalAccounts,
+  readSearchSettings,
 } from "./backoffice-api";
 import {
   DD_CLASSES,
@@ -49,7 +51,11 @@ import {
   TH_CLASSES,
 } from "./bo-classes";
 import { DenseTableRegion } from "./DenseTableRegion";
-import { settingWords } from "./search-settings-view";
+import {
+  facetWords,
+  settingChangeOf,
+  type SettingsList,
+} from "./search-settings-view";
 import { useAction } from "./use-action";
 import {
   apolloSettingWords,
@@ -213,20 +219,50 @@ function ActionTarget({ view }: { view: DualControlViewBody }) {
     case "verification.revoke_badge":
       return <TargetField view={view} label={t.target.badge} />;
     case "search.change_setting":
-      return (
-        <Field label={t.target.setting}>{settingWords(action.setting)}</Field>
-      );
+      return <SettingChange setting={action.setting} />;
     case "search.change_facet":
       return (
         <Field label={t.target.facet}>
           {t.target.facetLine(
-            action.facetCode,
+            facetWords(action.facetCode),
             action.isOpen,
             action.displayOrder,
           )}
         </Field>
       );
   }
+}
+
+/** J8: the value in force before the value requested, read as the settings screen reads it (admin only). */
+function SettingChange({ setting }: { setting: SearchSetting }) {
+  const [settings, setSettings] = useState<SettingsList | null | "reading">(
+    "reading",
+  );
+  useEffect(() => {
+    let active = true;
+    void readSearchSettings().then((result) => {
+      if (active) {
+        setSettings(result.kind === "ok" ? result.data.settings : null);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const change = settingChangeOf(
+    settings === "reading" ? null : settings,
+    setting,
+  );
+  return (
+    <>
+      <Field label={t.target.currentSetting}>
+        {settings === "reading"
+          ? messages.common.loading
+          : (change.current ?? t.target.currentUnknown)}
+      </Field>
+      <Field label={t.target.requestedSetting}>{change.requested}</Field>
+    </>
+  );
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {

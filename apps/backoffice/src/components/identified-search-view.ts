@@ -34,8 +34,11 @@ import { countryName, formatDay } from "./view-model";
 const t = messages.identifiedSearch;
 
 export const IDENTIFIED_SEARCH_HREF = "/createurs/recherche";
-/** Where a commercial picks a campaign: the campaigns are reached by their queue and their record (17b §1.2). */
-export const CAMPAIGN_CHOICE_HREF = "/files/campagnes";
+/**
+ * Where a commercial picks a campaign (J4): by its brand. A campaign record is reached from the account of its brand
+ * (17b §1.2), whereas the queue of campaigns only opens entries, and opening one takes it in charge.
+ */
+export const CAMPAIGN_CHOICE_HREF = "/inscrits";
 
 // --- Addresses -----------------------------------------------------------------------------------------
 
@@ -62,7 +65,7 @@ export function campaignOfAddress(value: string | null): string | null {
 
 export type Choice = { code: string; label: string };
 
-/** The topics of reference.topics (0201). Words: the code in clear, as the other screens of the front do. */
+/** The topics of reference.topics (0201). Words: the table of the messages (J5), the code in clear as a fallback. */
 export const TOPIC_CODES: readonly string[] = [
   "beauty",
   "fashion",
@@ -192,6 +195,26 @@ export function languageWords(code: string): string {
   }
 }
 
+/** A code of a reference list in French: the table of the messages, then the code in clear (J5). */
+function wordsOf(
+  table: Readonly<Record<string, string>>,
+  code: string,
+): string {
+  return table[code] ?? humanCode(code);
+}
+
+export function topicWords(code: string): string {
+  return wordsOf(t.topics, code);
+}
+
+export function formatWords(code: string): string {
+  return wordsOf(t.formats, code);
+}
+
+export function sectorWords(code: string): string {
+  return wordsOf(t.sectors, code);
+}
+
 function badgeWords(code: string): string {
   return t.badges[code] ?? humanCode(code);
 }
@@ -244,7 +267,7 @@ export const LIST_FACETS: Readonly<Record<ListFacet, ListFacetSpec>> = {
   F11: {
     label: t.facets.formats,
     codes: FORMAT_CODES,
-    words: humanCode,
+    words: formatWords,
     chip: CHIPS.formats,
     max: 20,
   },
@@ -272,7 +295,7 @@ export const LIST_FACETS: Readonly<Record<ListFacet, ListFacetSpec>> = {
   G10: {
     label: t.facets.refusedSectors,
     codes: SECTOR_CODES,
-    words: humanCode,
+    words: sectorWords,
     chip: CHIPS.refusedSectors,
     max: 20,
   },
@@ -284,7 +307,7 @@ export function choicesOf(facet: ListFacet): Choice[] {
 }
 
 export function topicChoices(): Choice[] {
-  return TOPIC_CODES.map((code) => ({ code, label: humanCode(code) }));
+  return TOPIC_CODES.map((code) => ({ code, label: topicWords(code) }));
 }
 
 export function shareChoices(): Choice[] {
@@ -398,7 +421,7 @@ export function criteriaOf(filters: Filters): Criterion[] {
       id: "F1",
       facet: "F1",
       value: null,
-      text: CHIPS.topic(humanCode(filters.F1)),
+      text: CHIPS.topic(topicWords(filters.F1)),
     });
   }
   if (filters.F6 !== undefined) {
@@ -475,6 +498,32 @@ export function wideningOf(
 
 export function isEmptyFilters(filters: Filters): boolean {
   return Object.keys(filters).length === 0;
+}
+
+/**
+ * What to tell when no creator answers (J1): the facets to widen with when the field names some, else the facets
+ * applied to take away (the internal ones G1, G2, G9 and G10 have no widening), else that none is applied at all.
+ */
+export type EmptyHint = "widen" | "removeApplied" | "none";
+
+export function emptyHintOf(filters: Filters): EmptyHint {
+  if (wideningOf(filters).length > 0) {
+    return "widen";
+  }
+  return isEmptyFilters(filters) ? "none" : "removeApplied";
+}
+
+/**
+ * The line under the title once the facets come from a campaign (J3): where they come from, or that they were
+ * emptied while the link stays (the correction is journaled against the proposal, CA56).
+ */
+export function prefillLineOf(
+  title: string,
+  cleared: boolean,
+): { text: string; canClear: boolean } {
+  return cleared
+    ? { text: t.origin.cleared(title), canClear: false }
+    : { text: t.origin.prefilled(title), canClear: true };
 }
 
 // --- What a search sends ----------------------------------------------------------------------------------
@@ -579,7 +628,7 @@ function reasonWords(reason: CreatorSearchReason): string {
   const network = (code: string | undefined) => networkWords(code ?? null);
   switch (reason.code) {
     case "topic_match":
-      return r.topic_match(humanCode(p.topic ?? ""));
+      return r.topic_match(topicWords(p.topic ?? ""));
     case "network_match":
       return r.network_match(
         network(p.network),
@@ -593,9 +642,9 @@ function reasonWords(reason: CreatorSearchReason): string {
     case "language_match":
       return r.language_match(languageWords(p.language ?? ""));
     case "format_match":
-      return r.format_match(humanCode(p.format ?? ""));
+      return r.format_match(formatWords(p.format ?? ""));
     case "campaign_format":
-      return r.campaign_format(network(p.network), humanCode(p.format ?? ""));
+      return r.campaign_format(network(p.network), formatWords(p.format ?? ""));
     case "campaign_audience_country":
       return r.campaign_audience_country(
         countryName(p.country ?? ""),
@@ -610,7 +659,7 @@ function reasonWords(reason: CreatorSearchReason): string {
     case "available":
       return r.available(humanCode(p.availability ?? ""));
     case "primary_topic":
-      return r.primary_topic(humanCode(p.topic ?? ""));
+      return r.primary_topic(topicWords(p.topic ?? ""));
     case "main_audience":
       return r.main_audience(
         countryName(p.country ?? ""),
@@ -714,7 +763,7 @@ export function rowViewOf(row: IdentifiedCreatorRow): RowView {
         ]),
     ...(row.refusedSectors.length === 0
       ? []
-      : [t.row.refusedSectors(row.refusedSectors.map(humanCode).join(", "))]),
+      : [t.row.refusedSectors(row.refusedSectors.map(sectorWords).join(", "))]),
   ];
   return {
     key: row.accountId,

@@ -282,7 +282,7 @@ test("L3G-E1: the compatible creators of a campaign open the search with the fac
     S.origin.prefilled(campaign.title),
   );
   const chips = page.getByRole("list", { name: S.criteria.label });
-  await expect(chips).toContainText(S.criteria.topic("Beauty"));
+  await expect(chips).toContainText(S.criteria.topic("Beauté"));
   await expect(chips).toContainText(S.criteria.networks("Instagram"));
   await expect(chips).toContainText(S.criteria.audienceCountry(COUNTRY_NAME));
   await expect(chips).toContainText(S.criteria.languages("français"));
@@ -299,7 +299,7 @@ test("L3G-E1: the compatible creators of a campaign open the search with the fac
     })
     .click();
   await expect(chips).not.toContainText(S.criteria.languages("français"));
-  await expect(chips).toContainText(S.criteria.topic("Beauty"));
+  await expect(chips).toContainText(S.criteria.topic("Beauté"));
   await expect(results.locator("[data-result-count]")).toHaveAttribute(
     "data-result-count",
     "2",

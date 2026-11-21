@@ -14,8 +14,10 @@ import { activePlaceOf, navItemsOf } from "../src/components/bo-nav";
 import {
   anonymityRequest,
   countersViewOf,
+  facetWords,
   openingRequest,
   requestRefusal,
+  settingChangeOf,
   settingWords,
   thresholdsRequest,
 } from "../src/components/search-settings-view";
@@ -199,5 +201,35 @@ describe("L3G-T12: the alerts of the search and of queue 9 have their words", ()
       entry: "admin",
       section: "searchSettings",
     });
+  });
+});
+
+describe("L3G-fix-1: the dual control says the value in force before the value requested (J8)", () => {
+  it("J8: the current value comes from the settings read, is null when unread, and a facet is named before its code", () => {
+    const settings = [
+      { key: "k_anonymity_threshold", value: 8 },
+      { key: "is_open_to_advertisers", value: false },
+    ] as never;
+    const change = settingChangeOf(settings, {
+      key: "k_anonymity_threshold",
+      value: 12,
+    });
+    expect(change.current).toBe(t.words.k("8"));
+    expect(change.requested).toBe(t.words.k("12"));
+    expect(
+      settingChangeOf(null, { key: "k_anonymity_threshold", value: 12 })
+        .current,
+    ).toBeNull();
+    expect(
+      settingChangeOf([] as never, { key: "k_anonymity_threshold", value: 12 })
+        .current,
+    ).toBeNull();
+    expect(facetWords("F1")).toBe(
+      `${messages.identifiedSearch.facets.topic} (F1)`,
+    );
+    expect(facetWords("F11")).toBe(
+      `${messages.identifiedSearch.facets.formats} (F11)`,
+    );
+    expect(facetWords("F2")).toBe("F2");
   });
 });

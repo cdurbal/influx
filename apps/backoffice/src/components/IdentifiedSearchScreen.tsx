@@ -11,7 +11,7 @@
 import type { CreatorSearchSort } from "@influx/contracts/creator-search";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES, TITLE_CLASSES } from "./auth-classes";
 import {
@@ -30,6 +30,7 @@ import {
   failureWords,
   filtersOfPrefill,
   FIRST_QUERY,
+  prefillLineOf,
   withoutCriterion,
   type Criterion,
   type Filters,
@@ -71,6 +72,10 @@ function IdentifiedSearch({ wanted }: { wanted: string | null }) {
     wanted === null ? FIRST_QUERY : null,
   );
   const [settled, setSettled] = useState<Settled | null>(null);
+  // « Vider le pré-remplissage » was pressed: the link to the campaign stays, the facets are gone (J3).
+  const [prefillCleared, setPrefillCleared] = useState(false);
+  // A change the agent made asks for the focus on the count once its answer is drawn (J2, WCAG 2.4.3).
+  const focusRequest = useRef(false);
 
   // The brief of the campaign of the address: read once, proposed filters become the first search.
   useEffect(() => {
@@ -154,19 +159,32 @@ function IdentifiedSearch({ wanted }: { wanted: string | null }) {
       : settled.load;
   const current = query ?? FIRST_QUERY;
 
-  const apply = (next: Partial<SearchQuery>) =>
-    setQuery({ ...current, ...next });
+  const run = (next: SearchQuery) => {
+    focusRequest.current = true;
+    setQuery(next);
+  };
+  const takeFocusRequest = useCallback(() => {
+    const wanted = focusRequest.current;
+    focusRequest.current = false;
+    return wanted;
+  }, []);
+  const apply = (next: Partial<SearchQuery>) => run({ ...current, ...next });
   const applyFilters = (filters: Filters) => apply({ filters, page: 1 });
-  const clearPrefill = () => setQuery({ ...current, filters: {}, page: 1 });
+  const clearPrefill = () => {
+    setPrefillCleared(true);
+    run({ ...current, filters: {}, page: 1 });
+  };
 
   return (
     <BoIdentifiedFrame>
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
-      <OriginLine state={originState} onClear={clearPrefill} />
+      <OriginLine
+        state={originState}
+        cleared={prefillCleared}
+        onClear={clearPrefill}
+      />
       <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-(--grid-bo-identified)">
         <IdentifiedFacets
-          // remounted when the facets applied change: the draft starts from them
-          key={JSON.stringify(current.filters)}
           applied={current.filters}
           onApply={applyFilters}
           onReset={() => applyFilters({})}
@@ -180,7 +198,8 @@ function IdentifiedSearch({ wanted }: { wanted: string | null }) {
           }
           onSort={(sort: CreatorSearchSort) => apply({ sort, page: 1 })}
           onPage={(page: number) => apply({ page })}
-          onRetry={() => setQuery({ ...current })}
+          onRetry={() => run({ ...current })}
+          takeFocusRequest={takeFocusRequest}
         />
       </div>
     </BoIdentifiedFrame>
@@ -190,9 +209,11 @@ function IdentifiedSearch({ wanted }: { wanted: string | null }) {
 /** The line under the title: the campaign the facets come from, or the words that say there is none (17b §3.3). */
 function OriginLine({
   state,
+  cleared,
   onClear,
 }: {
   state: OriginState;
+  cleared: boolean;
   onClear: () => void;
 }) {
   const o = t.origin;
@@ -204,15 +225,17 @@ function OriginLine({
     );
   }
   if (state.kind === "drawn") {
+    const line = prefillLineOf(state.origin.title, cleared);
     return (
       <div
         data-prefill-line
         className="flex flex-wrap items-center gap-3 text-sm text-text-primary"
       >
-        <p>{o.prefilled(state.origin.title)}</p>
+        <p>{line.text}</p>
         <button
           type="button"
           onClick={onClear}
+          disabled={!line.canClear}
           className={SMALL_SECONDARY_CLASSES}
         >
           {o.clear}

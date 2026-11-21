@@ -8,6 +8,7 @@
 // tariff (D78). A row blocked with the brand of the campaign says its sentence and nothing else: never the motive nor
 // the author (RG71). It only draws: the rules are the database's.
 import type { IdentifiedCreatorSearchResponse } from "@influx/contracts/identified-creator-search";
+import { useEffect, useRef } from "react";
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES } from "./auth-classes";
 import {
@@ -25,6 +26,7 @@ import { ErrorNotice } from "./ErrorNotice";
 import { BanIcon, ExternalLinkIcon, TriangleAlertIcon } from "./icons";
 import {
   criteriaOf,
+  emptyHintOf,
   sortOf,
   sortOptions,
   wideningOf,
@@ -218,6 +220,7 @@ export function IdentifiedResults({
   onSort,
   onPage,
   onRetry,
+  takeFocusRequest,
 }: {
   filters: Filters;
   sort: CreatorSearchSort;
@@ -226,6 +229,8 @@ export function IdentifiedResults({
   onSort: (sort: CreatorSearchSort) => void;
   onPage: (page: number) => void;
   onRetry: () => void;
+  /** True once when the agent's last gesture asks the focus to move to the count of the answer (J2). */
+  takeFocusRequest: () => boolean;
 }) {
   return (
     <section
@@ -266,6 +271,7 @@ export function IdentifiedResults({
           onRemove={onRemove}
           onSort={onSort}
           onPage={onPage}
+          takeFocusRequest={takeFocusRequest}
         />
       ) : null}
     </section>
@@ -279,6 +285,7 @@ function Page({
   onRemove,
   onSort,
   onPage,
+  takeFocusRequest,
 }: {
   response: IdentifiedCreatorSearchResponse;
   filters: Filters;
@@ -286,14 +293,28 @@ function Page({
   onRemove: (criterion: Criterion) => void;
   onSort: (sort: CreatorSearchSort) => void;
   onPage: (page: number) => void;
+  takeFocusRequest: () => boolean;
 }) {
   const views = response.rows.map(rowViewOf);
   const widening = wideningOf(filters);
+  const hint = emptyHintOf(filters);
+  const countRef = useRef<HTMLHeadingElement>(null);
+  // The page is drawn once per answer: the focus comes to its count after a gesture, never on the first search.
+  useEffect(() => {
+    if (takeFocusRequest()) {
+      countRef.current?.focus();
+    }
+  }, [takeFocusRequest]);
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-col">
-          <h2 className={BLOCK_TITLE} data-result-count={response.total}>
+          <h2
+            ref={countRef}
+            tabIndex={-1}
+            className={BLOCK_TITLE}
+            data-result-count={response.total}
+          >
             {t.results.count(response.total)}
             <span className="ml-2 font-regular text-text-secondary">
               {t.results.sortedBy(t.sorts[sort] ?? sort)}
@@ -319,8 +340,10 @@ function Page({
       {views.length === 0 ? (
         <div className="flex flex-col gap-2" data-empty-results>
           <p className="font-semibold text-text-primary">{t.empty.title}</p>
-          {widening.length === 0 ? (
+          {hint === "none" ? (
             <p className={HELP_CLASSES}>{t.empty.none}</p>
+          ) : hint === "removeApplied" ? (
+            <p className={HELP_CLASSES}>{t.empty.removeApplied}</p>
           ) : (
             <>
               <p className={HELP_CLASSES}>{t.empty.lead}</p>

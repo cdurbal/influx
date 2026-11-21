@@ -253,3 +253,25 @@ describe("L3G-T12: the rail holds queue 9 for an agent and an admin", () => {
     });
   });
 });
+
+describe("L3G-fix-1: the microcopy of the queue 9 (J6)", () => {
+  it("J6: a closed request reads « Clôturée », « Autre » is short in a sentence, every reason has its short form", () => {
+    for (const code of Object.keys(r.decision.reasons)) {
+      expect(r.decision.reasonsShort[code], code).toBeDefined();
+    }
+    const view = teamSelectionViewOf(opening());
+    expect(closedLines(view, "other")).toEqual([
+      "Demande de Maison Aurore close : autre.",
+    ]);
+    const words = closureWords({
+      closedAt: NOW,
+      closedBy: null,
+      reasonCode: "other",
+      note: null,
+    });
+    expect(words.line).toMatch(/^Clôturée le .+ — motif : Autre.$/);
+    expect(words.line).not.toContain("obligatoire");
+    expect(JSON.stringify(messages.identifiedSearch)).not.toMatch(/Lot d/);
+    expect(JSON.stringify(r.decision.noProposal)).not.toMatch(/lot d/i);
+  });
+});

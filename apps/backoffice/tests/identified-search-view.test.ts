@@ -26,10 +26,18 @@ import {
   campaignOfAddress,
   compatibleHref,
   criteriaOf,
+  emptyHintOf,
   failureWords,
+  FORMAT_CODES,
   filtersOfPrefill,
   FIRST_QUERY,
   isCompatibleOffered,
+  prefillLineOf,
+  SECTOR_CODES,
+  TOPIC_CODES,
+  topicWords,
+  formatWords,
+  sectorWords,
   LIST_FACETS,
   rowViewOf,
   safeProfileUrl,
@@ -174,7 +182,7 @@ describe("L3G-T12: the filters a click changes and the chips that take one away 
       "G2:draft",
     ]);
     expect(criteria.map((criterion) => criterion.text)).toEqual([
-      "Thématique : Beauty",
+      "Thématique : Beauté",
       "Pays de l’audience : France",
       "Part du pays : 80 % et plus",
       "Réseau : Instagram",
@@ -288,7 +296,7 @@ describe("L3G-T12: a row in words (RG71, RG77, D46, D78)", () => {
     expect(view.state).toBe("Publié");
     expect(view.unpublished).toBe(false);
     expect(view.badges).toEqual(["Instagram : Audience vérifiée"]);
-    expect(view.why).toBe("thématique Beauty");
+    expect(view.why).toBe("thématique Beauté");
     const exact = view.exact.join("\n");
     expect(exact).toMatch(/84\s210 abonnés/);
     expect(exact).toContain("12 publications sur 30 jours");
@@ -374,5 +382,52 @@ describe("L3G-T12: what a refusal means (RG76; modele §8)", () => {
       f.generic,
     );
     expect(failureWords(undefined, undefined, undefined)).toBe(f.generic);
+  });
+});
+
+describe("L3G-fix-1: the findings J1, J3 and J5 of the review", () => {
+  it("J1: facets applied without a widening are told to be taken away, never « no facet applied »", () => {
+    expect(emptyHintOf({})).toBe("none");
+    expect(emptyHintOf({ G9: { country: "JP" } })).toBe("removeApplied");
+    expect(emptyHintOf({ G1: ["individual"], G10: ["cbd"] })).toBe(
+      "removeApplied",
+    );
+    expect(emptyHintOf({ F1: "beauty", G9: { country: "JP" } })).toBe("widen");
+  });
+
+  it("J3: a prefill emptied says so, keeps the campaign in the sentence and no longer offers to empty", () => {
+    const drawn = prefillLineOf("Lancement été", false);
+    expect(drawn).toEqual({
+      text: t.origin.prefilled("Lancement été"),
+      canClear: true,
+    });
+    const cleared = prefillLineOf("Lancement été", true);
+    expect(cleared.canClear).toBe(false);
+    expect(cleared.text).toBe(
+      "Pré-remplissage vidé. Campagne liée : « Lancement été »",
+    );
+  });
+
+  it("J5: the French tables cover every code of the topics, the formats and the sectors, with no raw code", () => {
+    for (const code of TOPIC_CODES) {
+      expect(t.topics[code], code).toBeDefined();
+      expect(topicWords(code)).toBe(t.topics[code]);
+    }
+    for (const code of FORMAT_CODES) {
+      expect(t.formats[code], code).toBeDefined();
+      expect(formatWords(code)).toBe(t.formats[code]);
+    }
+    for (const code of SECTOR_CODES) {
+      expect(t.sectors[code], code).toBeDefined();
+      expect(sectorWords(code)).toBe(t.sectors[code]);
+    }
+    expect(topicWords("sport_fitness")).toBe("Sport et fitness");
+    expect(formatWords("tiktok_carousel")).toBe("Carrousel TikTok");
+    expect(sectorWords("cbd")).toBe("CBD");
+    // a code the table does not know still reads, in clear
+    expect(topicWords("new_topic")).toBe("New topic");
+    expect(criteriaOf({ F1: "sport_fitness" })[0]?.text).toBe(
+      t.criteria.topic("Sport et fitness"),
+    );
   });
 });

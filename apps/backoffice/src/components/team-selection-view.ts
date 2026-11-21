@@ -174,6 +174,11 @@ export function closeCheck(
   return { ok: true, body: { reasonCode, note: trimmed } };
 }
 
+/** J6: the reason inside a sentence, from the short table (the full label of « Autre » asks for a comment). */
+export function reasonShort(code: string): string {
+  return r.decision.reasonsShort[code] ?? code;
+}
+
 /** The confirmation that stays above the next request (17b §2.6): what was closed, and why. */
 export function closedLines(
   view: TeamSelectionView,
@@ -185,7 +190,7 @@ export function closedLines(
       brandName === null || brandName.trim() === ""
         ? t.unknownBrand
         : plainText(brandName),
-      (r.decision.reasons[reasonCode] ?? reasonCode).toLowerCase(),
+      reasonShort(reasonCode).toLowerCase(),
     ),
   ];
 }
@@ -198,7 +203,7 @@ export function closureWords(
     line: r.closed.line(
       formatDateTime(closure.closedAt),
       closure.closedBy?.displayName ?? null,
-      r.decision.reasons[closure.reasonCode] ?? closure.reasonCode,
+      reasonShort(closure.reasonCode),
     ),
     note: closure.note === null ? null : plainText(closure.note),
   };

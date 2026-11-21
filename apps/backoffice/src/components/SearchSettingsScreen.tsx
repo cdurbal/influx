@@ -215,6 +215,7 @@ function OpeningSection({ settings }: { settings: Settings }) {
         {isOpen ? t.opening.open : t.opening.closed}
       </p>
       <p className={HELP_CLASSES}>{t.opening.help}</p>
+      <p className={HELP_CLASSES}>{t.historyNote}</p>
       <ReasonSelect
         id={ids.reason}
         value={reason}
@@ -466,7 +467,6 @@ function OthersSection({ settings }: { settings: Settings }) {
           );
         })}
       </dl>
-      <p className={HELP_CLASSES}>{t.historyNote}</p>
     </section>
   );
 }
@@ -556,6 +556,7 @@ export function SearchSettingsScreen() {
     <>
       <h1 className={TITLE_CLASSES}>{t.title}</h1>
       <p className={LEAD_CLASSES}>{t.lead}</p>
+      <p className={HELP_CLASSES}>{t.historyNote}</p>
       {error !== null ? (
         <ErrorNotice>{error}</ErrorNotice>
       ) : loaded === null ? (
