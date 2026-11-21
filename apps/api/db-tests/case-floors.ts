@@ -62,6 +62,8 @@ export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
   "db-tests/search-journal-settings.test.ts": 16,
   // L3G-08 (L3G-T8): the two writers of the settings under a peer's 2V, D38 Q2 (a peer only)
   "db-tests/search-settings-dual-control.test.ts": 9,
+  // L3G-08b (L3G-T9): the reader of the settings of the admins, (key, value), 0333
+  "db-tests/search-settings-reader.test.ts": 7,
   // L3F-08 (L3F-T8): the brand's shortlists and its request for a selection, routes over 0324, 0325
   "db-tests/search-shortlists-route.test.ts": 22,
   "db-tests/search-shortlists.test.ts": 19,

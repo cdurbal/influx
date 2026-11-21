@@ -112,7 +112,7 @@
 | 2625 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
 | 2636 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
 
-## 03-matrice-des-droits-et-rls.md (~66k tokens)
+## 03-matrice-des-droits-et-rls.md (~67k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -166,27 +166,27 @@
 | 404 | 65 | ↳ 4.1 `influx` — fonctions de contexte |  |
 | 469 | 99 | ↳ 4.2 `reference` — les listes fermées partagées | RG18–RG115 |
 | 568 | 237 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
-| 805 | 4712 | 5. Le schéma, domaine par domaine | RG2–RG163 |
+| 805 | 4716 | 5. Le schéma, domaine par domaine | RG2–RG163 |
 | 807 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
 | 1255 | 281 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG86 |
 | 1536 | 167 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
 | 1703 | 417 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG103 |
-| 2120 | 306 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG101 |
-| 2426 | 929 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
-| 3355 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
-| 4354 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
-| 4719 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
-| 5100 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
-| 5494 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
-| 5517 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
-| 5724 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
-| 6006 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 6044 | 130 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
-| 6174 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6339 | 198 | 11. Plan de migrations | RG1–RG163 |
-| 6537 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6714 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6750 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 2120 | 310 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG101 |
+| 2430 | 929 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
+| 3359 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
+| 4358 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
+| 4723 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
+| 5104 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
+| 5498 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
+| 5521 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
+| 5728 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
+| 6010 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
+| 6048 | 130 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
+| 6178 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6343 | 199 | 11. Plan de migrations | RG1–RG163 |
+| 6542 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6719 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6755 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 

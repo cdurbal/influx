@@ -358,6 +358,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
         role: "influx_admin",
         name: "search.prefill_campaign_filters(uuid)",
       },
+      // 0333 (L3G-08b): the settings, (key, value), read by the admins
+      {
+        role: "influx_admin",
+        name: "search.read_search_settings()",
+      },
       // 0331 (L3G-07): the counters of critical mass, read by the admins
       {
         role: "influx_admin",

@@ -7922,6 +7922,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // above) consume a peer's 2V through the wrapper of 0231, now executed by their owner too (no right
   // of it on backoffice.dual_control_requests)
   "influx_search_admin_definer|function|backoffice.consume_dual_control_for(uuid,uuid,text,jsonb,text)|EXECUTE",
+  // 0333 (L3G-08b, l3g/modele.md §7): the reader of the settings of the admins, (key, value) of the
+  // ten keys; no right of table nor of column widened (EC-L3G-08b-1: who and when stay in audit.*)
+  "influx_admin|function|search.read_search_settings()|EXECUTE",
+  "influx_search_admin_definer|function|search.read_search_settings()|EXECUTE",
 ];
 
 /**
@@ -8562,4 +8566,6 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "ops.compute_supply_counters(uuid,smallint)": "influx_maintenance_definer",
   "search.critical_mass_alerts()": "influx_search_admin_definer",
   "search.read_supply_counters()": "influx_search_admin_definer",
+  // 0333 (L3G, l3g/modele §7): the reader of the settings of the admins
+  "search.read_search_settings()": "influx_search_admin_definer",
 };

@@ -40,6 +40,8 @@ export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
     "db-tests/search-supply-counters.test.ts",
     // L3G-08: a new file (a few seconds locally), in shard 1, still the shorter one at the last measure
     "db-tests/search-settings-dual-control.test.ts",
+    // L3G-08b: a new file (about 2 s locally), in shard 1, still the shorter one at the last measure
+    "db-tests/search-settings-reader.test.ts",
     // L3F-07: three new files (about 14, 8 and 10 s locally), in the shorter shard in CI (4:32 + 3 s
     // against 5:07 at 65d99b7)
     "db-tests/creator-profile-route.test.ts",
