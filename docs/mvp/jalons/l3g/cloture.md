@@ -35,5 +35,14 @@ Grille `testeur`.
    exemple ne pas poser F3 quand F11 est posée ; (ii) élargissement guidé par les comptes (les trois retraits
    proposés par `WIDENING_ORDER` ne rendent rien sur les camp. 2 et 3 ; F1, seul retrait utile de la camp. 2,
    n'est jamais proposé), D11 : le commercial élargit à la main, aucun matching au MVP.
+10. Revue du 2026-11-21 (`annexe.md` § Revue) : (a) L3GT-3 : à la case des 30 s (`18` l. 1575), citer mot pour mot
+   « je valide la recette » du fondateur ; ne pas écrire « trois durées » ; dire que la rejouée porte sur des
+   campagnes fictives semées (option A) et que les durées de la rejouée ne sont pas données, ou les obtenir ;
+   (b) L3GT-17 : `0327` à `0334` partout (critère de fin de l'annexe, point 2, `21` §7 l. 133) et l'EN 1 280 de la
+   ligne E1 devient FR 1 440 et FR 1 280 (D36) ; (c) L3GT-9 : le lecteur de 08b s'appelle « L3G-T8b » dans les
+   documents, sans renommer un fichier de test ; (d) L3GT-10 : rafraîchir l'en-tête de `shards.ts` ; (e) attestation
+   I-4 : la ligne de `annexe.md` § Revue, plus le SHA de `fix-2` ; (f) reliquat « avant production » de `21` §8 :
+   L3GS-2, L3GS-3, L3GT-4, L3GT-5, L3GT-7 et les trois décisions de `product-owner` ; (g) au fondateur : lancer
+   `git check-ignore -v .operator-secrets/x` et effacer le mot de passe et le lien de `staging` après usage.
 **Arrêt si :** une case sans preuve ; mesure des 30 s absente ou au-delà de 30 s ; CI rouge ; D38 non
 tranchée.

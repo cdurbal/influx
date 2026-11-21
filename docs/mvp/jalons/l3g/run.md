@@ -21,5 +21,7 @@
 | fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | fait | J1-J8 : focus au compte sans remontage, FR (listes, Clôturée), 2V valeur actuelle puis demandée ; aucune route ni base ; planchers 16, 10, 8 |
 | 14 | 14.md | commit | opus | high | expert-database | fait | 0334 : index (owner_agent_id) non partiel ; les 2 s : GET comptes internes, la vue attend le verrou de session ; POST ≈ 60 ms ; E2 6,4 → 2,2 s ; aucun droit |
 | F | recette.md | fondateur | — | — | fondateur | fait | « je valide la recette » (2026-11-21) après semis ; 1re passe < 15 s ×3 ; durées de la rejouée et file 9 non données |
-| R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
+| R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | 0 bloquant · jalon : T1 T2 T3 S1 · avant prod : 6 · plus tard : 14 (`annexe.md` § Revue) |
+| fix-2 | fix-2.md | fix | sonnet | high | dev-react-node | à valider | L3GS-1 + L3GT-2 : 55P03 délai de verrou → 429 sur toutes les portes de recherche |
+| fix-3 | fix-3.md | fix | sonnet | medium | testeur | à valider | L3GT-1 : l'e2e supprime le motif `lg_search_block` |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | dernier jalon du lot |

@@ -74,3 +74,76 @@ ses créateurs (pays d'audience et thématique propres) ou balaie les siens (`st
    Brevo, comme les profils fictifs du 2026-11-14) ? *Recommandé : oui.*
 
 ## Revue
+Revue de fin de jalon du 2026-11-21, plage `6c05803..0fc5eef` (CI verte sur `0fc5eef`) : `testeur` (L3GT) et
+`expert-cybersecurite` (L3GS). **0 bloquant.** Sur `main` et `staging` rien ne bloque ; `production` : autorisée
+sous conditions (L3GS-2, L3GS-3, attestation I-4, D24/D33/D34/D63).
+
+### À corriger dans le jalon (→ `fix-2`, `fix-3`, `cloture.md`)
+- **L3GS-1** (`expert-cybersecurite`, `fix-2`) : D85 (1) appliqué en partie. `0327` met `lock_timeout` 1 s sur sept
+  portes à verrou par compte, mais la traduction 55P03 → 429 `rate_limited` `Retry-After: 1` n'existe que dans
+  `search/shortlists/routes.ts:91` et `search/selection-requests/routes.ts:70`. Elle manque dans `classifyError`
+  (`platform/errors.ts:126`) et dans `creator-search/routes.ts:70-87`, `creator-search-profile/routes.ts:66-81`,
+  `open-campaigns/routes.ts:59-70`. Scénario : deux recherches simultanées d'une marque ou deux ouvertures de profil,
+  la seconde attend plus de 1 s, 500 `internal_error`, `ops.recordServerError` appelé (D60) ; aucune fuite, mais un
+  membre peut provoquer des 500 à volonté. Correctif : dans `classifyError`, traduire une 55P03 portant le message de
+  délai de verrou de PostgreSQL en `RetryLaterError("rate_limited", 1)` (les 55P03 `no_live_claim` des files sont
+  traduites avant) ; un test d'intégration par route avec une seconde connexion qui tient le verrou. 1 à 2 h.
+- **L3GT-2** (`testeur`, `fix-2`) : la même traduction HTTP n'a aucun test de route (le volet SQL l'est,
+  `search-shortlists.test.ts` l. 1303). Correctif : deux cas dans `search-shortlists-route.test.ts` et
+  `selection-request-route.test.ts` (gabarit de l. 1303), en plus des trois routes de L3GS-1.
+- **L3GT-1** (`testeur`, `fix-3`) : `apps/web/e2e/backoffice-identified-search.spec.ts` l. 218-220 insère le motif
+  `lg_search_block` dans `matching.block_reasons`, l'`afterAll` (l. 42-63) supprime `party_blocks` mais pas ce
+  motif ; L3E-T4 (`matching-party-blocks.test.ts` l. 787-808) lit toute la table et attend `["dataset_probe"]` : il
+  échoue sur toute base locale où l'e2e est passé (la CI, à piles séparées, ne le voit pas). Même fuite que
+  `lg_nine_block`, déjà corrigée. Correctif : `delete from matching.block_reasons where code = 'lg_search_block'`
+  après la suppression de `party_blocks`.
+- **L3GT-3** (`testeur`, `cloture.md` point 10, pas de `fix`) : preuve des 30 s. La note de F dit « 1re passe < 15 s
+  ×3 ; durées de la rejouée et file 9 non données » ; 2 campagnes sur 3 ne rendaient aucun créateur à la première
+  passe, et la rejouée porte sur des campagnes de marques fictives semées (option A). Ne pas écrire « trois durées » :
+  citer mot pour mot « je valide la recette » (2026-11-21), demander au fondateur les trois durées de la rejouée ou
+  inscrire l'écart en reliquat « avant production ».
+
+### Avant production (une ligne chacun)
+- **L3GS-2** `POST /v1/bo/creator-search` sans débit (`platform/member-rate.ts:41-43`, seul le préremplissage y est), et AL21 ne
+  compte que la vue marque (`0328` l. 48-50) : une session agent volée peut aspirer la base cherchable en
+  découpant les filtres ; seul le journal nominatif en garde la trace. → 60/min par adresse et par compte, et
+  seuils d'AL21 des comptes internes (Lot 5) avant l'ouverture.
+- **L3GS-3** nom légal, ville, `@` et pseudonyme ne passent pas par `plainText` (`identified-search-view.ts:756`,
+  `771-781`) ; les contraintes de `0217` laissent passer les contrôles bidi U+202A–202E et U+2066–2069 (pas de XSS,
+  React échappe). → `plainText` sur ces champs, refus des bidi à l'écriture (contrats et CHECK), tous écrans backoffice.
+- **L3GT-4** prise de la file 9 non prouvée à deux connexions committées (`team-selection-queue.test.ts` l. 384
+  séquentiel) ; conception saine (`FOR UPDATE` puis `UPDATE` conditionnel, `0330` l. 297-336). → un cas dans
+  `search-caps-concurrency.test.ts` : deux `open_team_selection_request` simultanés, un seul `claimed`.
+- **L3GT-5** `verification-backoffice.spec.ts` l. 497 et `verification-revocation.spec.ts` l. 146 créent des admins hors du
+  fichier sérialisé alors que `onlyAdmin` (`support/backoffice.ts` l. 138-151) désactive les autres ; commentaire
+  de `playwright.config.ts` l. 56-60 faux. → déplacer ces parcours dans `backoffice.spec.ts` ou borner `onlyAdmin`.
+- **L3GT-6** aucune borne de débit ni alerte sur les recherches identifiées d'un agent (= L3GS-2), à garder pour AL21 du Lot 5.
+- **L3GT-7** la liaison TS `computeSupplyCounters` (`maintenance/repository.ts`) n'est exercée contre la base par aucun
+  test ; la ligne du jour lue sur `staging` sert de preuve (à garder au `cloture.md`).
+- Décisions de spécification (`product-owner`, `cloture.md` points 8 et 9) : règle D85 « masqué non retirable »
+  (= L3GS-7), préremplissage plus souple, élargissement guidé par les comptes.
+
+### Plus tard (une ligne chacun)
+- **L3GS-4** le filtre des demandes d'une marque tenue n'est qu'en route (`team-selection-queue/repository.ts:131-133`) ;
+  la politique `0330:162-165` laisse un agent lire en base toutes les demandes (aal2) ; une demande close d'une
+  marque tenue s'ouvre. → exclusion dans la politique, via une aide en lecture seule.
+- **L3GS-5** lecture des réglages par un agent : 403 sans trace au registre (`record_refused_action`, pas de code) → Lot 5 (CA63).
+- **L3GS-6** `consume_dual_control_for()` accepte les actions de ses deux propriétaires (`0332:345-353`), non exploitable → contrôle de catalogue.
+- **L3GS-7** règle D85 : signal d'une liste au plafond avec des places masquées → `product-owner` (`cloture.md` point 8).
+- **L3GT-8** liste `DOORS` de `tm12-identified-view.test.ts` en dur (`toHaveLength(13)`, l. 261) alors que l'en-tête promet un inventaire.
+- **L3GT-9** « L3G-T9 » désigne deux fichiers : renommer `search-settings-reader.test.ts` en « L3G-T8b » (l. 1, 66-67 ; `case-floors.ts` l. 65).
+- **L3GT-10** équilibre des éclats base (écart de 12 s au dernier passage, 30 s franchis une fois à `5900fc2`) ; rafraîchir l'en-tête de `shards.ts`.
+- **L3GT-11** planchers transférés (2→1, 55→56) : soldé, rien n'a disparu. **L3GT-12** mesure de `0334` : soldée (6,4 → 2,2 s) ; ajouter un cas de base sur la présence de `accounts_owner_agent_any_idx`.
+- **L3GT-13** `team-selection-queue.test.ts` l. 645 (AL23) recalcule le prédicat en SQL : circulaire, reformuler ou supprimer.
+- **L3GT-14** `plain-text.ts` l. 19-31 laisse U+2028, U+2029, U+200B à U+200D, U+2060, U+FEFF et les balises : épingler par un cas, signaler à `expert-cybersecurite`.
+- **L3GT-15** bornes de 900 à 5 000 ms sur le verrou (`creator-profile-door.test.ts` l. 1527-1528, `search-shortlists.test.ts` l. 1338) : marge faible.
+- **L3GT-16** processus : une entrée de rail change `backoffice.spec.ts` (palier supérieur de D76 pour toute modification de `bo-nav.ts`).
+- **L3GT-17** documents : `annexe.md` annonce « EN 1 280 » (livré FR 1 440 et 1 280, D36) ; `cloture.md`, le critère de fin et `21` §7 l. 133 doivent dire `0327` à `0334`.
+- Non couvert, explicite : double consommation concurrente d'une 2V de réglage ; demande de la file 9 d'une marque suspendue ou effacée ; EN du backoffice (D36) ; bascule de minuit UTC du calcul quotidien ; focus (J2) par e2e seulement.
+
+### Attestation I-4 (à commiter à la clôture, une fois `fix-2` livré)
+Neuf SHA vérifiés par `expert-cybersecurite` (lignes 01, 04 à 08, 08b, 10, 14) :
+`security-reviewed: 2026-11-21 covers 768d4cc5ec52 35c474eed79a 5acb9a79055d 0c48fa23a101 781dd1cff5cb 18c20f74be54 72bfbc87d1cd 1457e28a68c5 2b5cd3252366`
+Le correctif de L3GS-1 (`fix-2`, qui touche la gestion d'erreurs de l'API) ajoute son SHA à cette ligne.
+`.operator-secrets/` : règle d'exclusion présente (`.gitignore:55`), aucun fichier jamais suivi ; `git check-ignore -v
+.operator-secrets/x` à lancer par le fondateur (refusé au sous-agent et à l'orchestrateur) ; effacer le mot de passe et le lien après usage.
