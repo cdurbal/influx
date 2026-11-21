@@ -287,18 +287,26 @@ describe("L3E-T10 AL21 in the catalogue and in the function (15 AL21; modele §1
     expect(outcome.outside).toEqual([]);
   });
 
-  it("L3E-T10 counts the accounts of the agents and of the admins as the brands' (RG50)", async () => {
+  // 0328 (L3G-04, l3g/modele §1, EC-L3G-5, EC-L3G-04-8): AL21 counts the brand view alone; the
+  // identified view of the agents and the admins waits for its own thresholds (Lot 5, RG50)
+  it("L3E-T10 counts the brand view alone: the identified searches of an agent raise nothing, the same lines of a brand raise AL21 (EC-L3G-5)", async () => {
     const rows = await scenario(async (tx) => {
       await clear(tx, agentA);
+      await clear(tx, brandA);
       await configure(tx, { distinct: 1 });
       await journal(tx, agentA, {
         actorRole: "agent",
         creators: [creatorA, creatorB],
       });
-      return alertsOf(tx, agentA);
+      await journal(tx, brandA, { creators: [creatorA, creatorB] });
+      return {
+        agent: await alertsOf(tx, agentA),
+        brand: await alertsOf(tx, brandA),
+      };
     });
-    expect(rows).toMatchObject([
-      { subject_account_id: agentA, cause: "distinct_profiles_served" },
+    expect(rows.agent).toEqual([]);
+    expect(rows.brand).toMatchObject([
+      { subject_account_id: brandA, cause: "distinct_profiles_served" },
     ]);
   });
 

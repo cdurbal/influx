@@ -6,7 +6,7 @@
 | 03 | 03.md | commit | sonnet | medium | dev-react-node | fait | 30 écritures/min par adresse sur 6 routes, 429 avant session ; 55P03 devient 429 rate_limited Retry-After 1 ; plancher 22 |
 | D38 | annexe.md | fondateur | — | — | fondateur | fait | « oui aux 4 questions » (2026-11-20) : Q2 de l'annexe, ouverture globale, seuils 30 et 5 en table, alerte seule, admin + pair, interrupteur fermé |
 | A | A.md | arbitrage | opus | xhigh | architecte | fait | modele.md : propriétaire agent neuf, E5 affichée, E6 gardée ; prefill_diff ; file 9 à 6 motifs de la liste A ; AL65 neuf ; réglages en 2V, pair seul |
-| 04 | 04.md | commit | opus | xhigh | expert-database | à faire | |
+| 04 | 04.md | commit | opus | xhigh | expert-database | fait | 0328 : porte agent, admin seuls ; moteur 2e requête sous son propriétaire, ni G ni couche I au propriétaire marque ; nombre exact, journal nominatif |
 | 05 | 05.md | commit | opus | high | expert-database | à faire | |
 | 06 | 06.md | commit | opus | high | expert-database | à faire | |
 | 07 | 07.md | commit | opus | high | expert-database | à faire | |

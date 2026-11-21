@@ -268,6 +268,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
         role: "influx_admin",
         name: "search.creator_search_volume_alerts()",
       },
+      // 0328 (L3G-04): the identified door of the agents, executed by the agent and the admin
+      {
+        role: "influx_admin",
+        name: "search.search_creators_identified(jsonb,text,integer,uuid,uuid)",
+      },
       {
         role: "influx_admin",
         name: "search.write_facet_setting(text,boolean,integer,text)",
@@ -306,6 +311,10 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
       {
         role: "influx_advertiser",
         name: "search.update_shortlist(uuid,text,uuid)",
+      },
+      {
+        role: "influx_agent",
+        name: "search.search_creators_identified(jsonb,text,integer,uuid,uuid)",
       },
       { role: "influx_creator", name: "search.read_open_campaign(uuid)" },
       {
@@ -347,7 +356,7 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
 });
 
 describe("L3E-T3 the settings as data (fiche invariant 11; 10 RG2, RG11 to RG14)", () => {
-  it("L3E-T3 loads the nine keys with the values of modele §9 (selection_limits from 0324, l3f/modele §5), the search closed, no alert_thresholds, version 1 as the snapshot of the loaded state", async () => {
+  it("L3E-T3 loads the ten keys with the values of modele §9 (selection_limits from 0324, l3f/modele §5; identified_view from 0328, l3g/modele §1), the search closed, no alert_thresholds, version 1 as the snapshot of the loaded state", async () => {
     const outcome = await scenario(async (tx) => {
       const settings = await tx<{ key: string; value: unknown }[]>`
         select key, value from search.search_settings order by key`;
@@ -382,6 +391,8 @@ describe("L3E-T3 the settings as data (fiche invariant 11; 10 RG2, RG11 to RG14)
         itemsPerList: 25,
         requestsPerDay: 5,
       },
+      // 0328 (L3G-04, l3g/modele §1, EC-L3G-04-9): the pages of the agents' identified view
+      identified_view: { pageSize: 20, maxPages: 10 },
     });
     expect([...SEARCH_SETTING_KEYS].sort()).toEqual(
       outcome.settings.map((s) => s.key),
@@ -442,6 +453,16 @@ describe("L3E-T3 the settings as data (fiche invariant 11; 10 RG2, RG11 to RG14)
         "selection_limits",
         { listsPerAccount: 10, itemsPerList: 2.5, requestsPerDay: 5 },
       ],
+      // 0328 (L3G-04, EC-L3G-04-9): the bounds of identified_view
+      ["identified_view", { pageSize: 20, maxPages: 10 }],
+      ["identified_view", { pageSize: 10, maxPages: 1 }],
+      ["identified_view", { pageSize: 50, maxPages: 20 }],
+      ["identified_view", { pageSize: 9, maxPages: 10 }],
+      ["identified_view", { pageSize: 20, maxPages: 21 }],
+      ["identified_view", { pageSize: 20, maxPages: 0 }],
+      ["identified_view", { pageSize: 20 }],
+      ["identified_view", { pageSize: 20, maxPages: 10, extra: 1 }],
+      ["identified_view", { pageSize: 20.5, maxPages: 10 }],
     ];
     const base = await scenario(async (tx) => {
       const accepted: boolean[] = [];

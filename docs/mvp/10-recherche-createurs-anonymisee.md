@@ -760,6 +760,13 @@ elles seules :
 | **Blocage entre parties** | Profil absent (E5) | **Affiché avec un avertissement bloquant** : le commercial doit savoir **pourquoi** il ne peut pas proposer ce créateur |
 | **Sélection** | Shortlist privée | **Sélection multiple (≤ 20)** → **« Proposer à une campagne »** |
 
+> **Écrit par `0328` (L3G, `jalons/l3g/modele.md` §1 à §3).** Porte `search.search_creators_identified()`
+> (agent et admin seuls), seconde requête du même moteur : E1 levée (G2 filtre l'état), E2 à E4
+> gardées, E5 affichée (`blocked`, jamais le motif), E6 pour la marque de la campagne (aucune sans
+> campagne), mêmes facettes du socle (F3, F4, F17 sur une ligne listée : un profil jamais publié n'y
+> répond pas, EC-L3G-04-2), même ordre ; nombre exact, sans k ni interrupteur. Tarif exact : aucun au
+> pilote (D78). Sélection multiple et « Proposer » : Lot 4. G3 à G7 : Lot 4 (EC-L3G-2).
+
 **RG72** — La vue commerciale dispose en plus des **facettes G1 à G10** (RG16). Aucune de ces facettes
 n'a de contrepartie côté marque, dans aucune circonstance.
 

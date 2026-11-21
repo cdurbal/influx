@@ -37,7 +37,6 @@ type Parameter = postgres.ParameterOrJSON<never> | null | undefined;
 const INSUFFICIENT_PRIVILEGE = "42501";
 const INVALID_PARAMETER = "22023";
 const NO_DATA_FOUND = "P0002";
-const FEATURE_NOT_SUPPORTED = "0A000";
 
 const agentA = accountIdOf("agent", "a");
 
@@ -518,13 +517,16 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
       members: 0,
       memberships: 0,
     });
-    const helper = (name: string) => ({
+    const helper = (name: string, callers: string[] = []) => ({
       name,
       definer: false,
       config: ['search_path=""'],
-      callers: [],
+      callers,
       dynamic: false,
     });
+    // 0328 (L3G-04, EC-L3G-04-3): one engine (RG4): the engine, the order, the closed entry of the
+    // base and the admission run for the agents' identified door, under the rights of its owner
+    const AGENT_DOOR_OWNER = ["influx_agent_search_definer"];
     expect(outcome.functions).toEqual([
       // 0324 (L3F-04, EC-L3F-04-8): the eight doors of the shortlists, the brand's alone, and their
       // six invoker helpers
@@ -536,7 +538,7 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         dynamic: false,
       },
       helper("search.anonymous_card(uuid)"),
-      helper("search.check_creator_search_filters(jsonb)"),
+      helper("search.check_creator_search_filters(jsonb)", AGENT_DOOR_OWNER),
       helper("search.check_shortlist_name(text)"),
       {
         name: "search.create_shortlist(text,uuid)",
@@ -545,12 +547,16 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         callers: ["influx_advertiser"],
         dynamic: false,
       },
-      helper("search.creator_candidates(text,uuid,jsonb,uuid)"),
+      helper(
+        "search.creator_candidates(text,uuid,jsonb,uuid)",
+        AGENT_DOOR_OWNER,
+      ),
       // 0323 (L3F-03, EC-L3F-03-8): the bucket of the openings, a seventh invoker helper
       helper("search.creator_open_retry_after(uuid)"),
       // 0320 (L3E-07, EC-L3E-07-8): the explainable order, a fifth invoker helper
       helper(
         "search.creator_order(uuid[],jsonb,text,uuid,integer,integer,date)",
+        AGENT_DOOR_OWNER,
       ),
       helper("search.creator_search_retry_after(uuid)"),
       {
@@ -563,7 +569,7 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
       // 0323 (L3F-03, EC-L3F-03-8): the region shown on a profile, an eighth invoker helper
       helper("search.displayed_region(uuid)"),
       // 0322 (L3F-02, EC-L3F-02-1): the admission of a campaign of origin, a sixth invoker helper
-      helper("search.is_admitted_campaign(uuid,uuid)"),
+      helper("search.is_admitted_campaign(uuid,uuid)", AGENT_DOOR_OWNER),
       {
         name: "search.list_shortlists()",
         definer: true,
@@ -767,8 +773,13 @@ describe("L3E-T6 the door, its owner and its helpers in the catalogue (03 P7; fi
         "travel_scope",
       ].map((name) => `profiles.creator_public_profiles.${name}`),
     ]);
-    // three readers, three policies: the creator's feed (0317), this door, the erasure (0318)
+    // four readers, four policies: the agents' identified door (0328, the pair shown, never its motive),
+    // the creator's feed (0317), this door, the erasure (0318)
     expect(outcome.policies).toEqual([
+      expect.objectContaining({
+        policyname: "party_blocks_agent_search_definer_select",
+        roles: ["influx_agent_search_definer"],
+      }),
       expect.objectContaining({
         policyname: "party_blocks_campaign_feed_definer_select",
         roles: ["influx_campaign_feed_definer"],
@@ -1978,7 +1989,9 @@ describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", 
     expect(/score|rank|md5/.test(outcome.raw)).toBe(false);
   });
 
-  it("L3E-T6 TM12.5: the engine refuses the identified view (0A000) and no member nor agent holds a door to it", async () => {
+  // 0328 (L3G-04, EC-L3G-04-3): the identified view runs under the owner of the agents' door alone;
+  // the brand's owner gets 42501 (0A000 until 0327), the agent and the admin hold that door
+  it("L3E-T6 TM12.5: the engine refuses the identified view to the brand's owner (42501) and no member holds a door to it, the agent the identified door alone", async () => {
     const outcome = await scenario(async (tx) => {
       const brand = await newBrand(tx);
       await tx.unsafe(`set local role ${OWNER}`);
@@ -2005,7 +2018,7 @@ describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", 
       };
     });
     expect(outcome.identified).toBe(
-      `${FEATURE_NOT_SUPPORTED} agent_identified`,
+      `${INSUFFICIENT_PRIVILEGE} agent_identified`,
     );
     // 0323 (L3F-03, EC-L3F-03-8): the brand's doors of the profile and of a visual, both anonymous
     // 0324 (L3F-04, EC-L3F-04-8): the brand's eight doors of the shortlists, by alias
@@ -2023,6 +2036,8 @@ describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", 
       `influx_advertiser ${DOOR_SIGNATURE}`,
       "influx_advertiser search.set_shortlist_note(uuid,text,text)",
       "influx_advertiser search.update_shortlist(uuid,text,uuid)",
+      // 0328 (L3G-04): the agents' identified door, its own owner (TM12.5)
+      "influx_agent search.search_creators_identified(jsonb,text,integer,uuid,uuid)",
     ]);
   });
 });

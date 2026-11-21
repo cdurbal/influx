@@ -11,8 +11,8 @@ const wholeNumber = (min: number, max: number) =>
   z.number().int().min(min).max(max);
 
 /**
- * The nine keys of search.search_settings (closed by CHECK; no alert_thresholds, l3e/modele §9;
- * selection_limits from 0324, l3f/modele §5).
+ * The ten keys of search.search_settings (closed by CHECK; no alert_thresholds, l3e/modele §9;
+ * selection_limits from 0324, l3f/modele §5; identified_view from 0328, l3g/modele §1).
  */
 export const SEARCH_SETTING_KEYS = [
   "is_open_to_advertisers",
@@ -24,6 +24,7 @@ export const SEARCH_SETTING_KEYS = [
   "critical_mass_thresholds",
   "region_display_threshold",
   "selection_limits",
+  "identified_view",
 ] as const;
 export type SearchSettingKey = (typeof SEARCH_SETTING_KEYS)[number];
 
@@ -62,6 +63,11 @@ export const searchSettingValueSchemas = {
     listsPerAccount: wholeNumber(1, 100),
     itemsPerList: wholeNumber(1, 100),
     requestsPerDay: wholeNumber(1, 50),
+  }),
+  /** 10 RG71, RG76 (l3g/modele §1): the pages of the agents' identified view, capped in base. */
+  identified_view: z.strictObject({
+    pageSize: wholeNumber(10, 50),
+    maxPages: wholeNumber(1, 20),
   }),
 } as const satisfies Record<SearchSettingKey, z.ZodType>;
 
@@ -102,6 +108,10 @@ export const searchSettingSchema = z.discriminatedUnion("key", [
   z.strictObject({
     key: z.literal("selection_limits"),
     value: searchSettingValueSchemas.selection_limits,
+  }),
+  z.strictObject({
+    key: z.literal("identified_view"),
+    value: searchSettingValueSchemas.identified_view,
   }),
 ]);
 export type SearchSetting = z.infer<typeof searchSettingSchema>;

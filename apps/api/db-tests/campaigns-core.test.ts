@@ -864,6 +864,9 @@ describe("L3B-T3 the creator and INFLUX hold nothing on campaigns.* at L3B (D78,
       "influx_admin",
       "influx_advertiser",
       "influx_agent",
+      // 0328 (L3G-04, EC-L3G-04-3): the owner of the agents' identified creator search door (the
+      // admitted campaigns of every brand: the anchor, E6, tier 2)
+      "influx_agent_search_definer",
       "influx_campaign_definer",
       // 0314 (L3D commit 02): the owner of the creator's doors (eight live columns of a published
       // campaign, its current snapshot); influx_creator still nothing (TM5.6)

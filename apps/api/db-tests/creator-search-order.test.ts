@@ -453,11 +453,13 @@ describe("L3E-T7 the order helper and the rights of 0320 (03 P7; fiche invariant
         version,
       };
     });
+    // 0328 (L3G-04, EC-L3G-04-3): one order (RG4) for the agents' identified door too, run under the
+    // rights of its owner; no member executes it
     expect(outcome.fn).toEqual({
       owner: OWNER,
       definer: false,
       config: ['search_path=""'],
-      callers: [],
+      callers: ["influx_agent_search_definer"],
     });
     expect(outcome.columns).toEqual([
       "campaigns.campaign_audience_countries.campaign_id S",
