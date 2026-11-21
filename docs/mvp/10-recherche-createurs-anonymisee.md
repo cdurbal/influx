@@ -763,7 +763,7 @@ elles seules :
 | **Blocage entre parties** | Profil absent (E5) | **Affiché avec un avertissement bloquant** : le commercial doit savoir **pourquoi** il ne peut pas proposer ce créateur |
 | **Sélection** | Shortlist privée | **Sélection multiple (≤ 20)** → **« Proposer à une campagne »** |
 
-> **Écrit par `0328` (L3G, `jalons/l3g/modele.md` §1 à §3).** Porte `search.search_creators_identified()`
+> **Écrit par `0328` (L3G, `archives/jalons/l3g/modele.md` §1 à §3).** Porte `search.search_creators_identified()`
 > (agent et admin seuls), seconde requête du même moteur : E1 levée (G2 filtre l'état), E2 à E4
 > gardées, E5 affichée (`blocked`, jamais le motif), E6 pour la marque de la campagne (aucune sans
 > campagne), mêmes facettes du socle (F3, F4, F17 sur une ligne listée : un profil jamais publié n'y
@@ -782,7 +782,7 @@ droits d'usage et exclusivité attendus. Le commercial **corrige librement** le 
 > donnée d'apprentissage disponible avant D11.** Il est journalisé à ce titre : filtres proposés,
 > filtres retenus, filtres retirés.
 
-> **Écrit par `0329` (L3G, `jalons/l3g/modele.md` §4).** `search.prefill_campaign_filters(campagne)`
+> **Écrit par `0329` (L3G, `archives/jalons/l3g/modele.md` §4).** `search.prefill_campaign_filters(campagne)`
 > (agent et admin seuls ; campagne admise de toute marque, sinon P0002 `campaign`) : F1 thématique du
 > rang 1, F3 et F11 réseaux et formats des livrables, F4 tranches visées, F6 `{country}` pays du rang
 > 1, F8 langues ; facette fermée omise ; **jamais** la fourchette tarifaire (D78), les droits d'usage

@@ -1,5 +1,5 @@
 # Jalon L3D — Le créateur parcourt le fil des campagnes ouvertes et lit une fiche sans montant
-> Source : `jalons/lot3-plan.md` l. 34 (validé le 2026-11-13) · 2026-11-18 · Statut : validé par le fondateur le 2026-11-18 (« oui aux 3 questions » : Q1 à Q3 de l'annexe comme recommandé) · Annexe : `l3d/annexe.md`
+> Source : `archives/jalons/lot3-plan.md` l. 34 (validé le 2026-11-13) · 2026-11-18 · Statut : validé par le fondateur le 2026-11-18 (« oui aux 3 questions » : Q1 à Q3 de l'annexe comme recommandé) · Annexe : `l3d/annexe.md`
 
 ## Objectif et périmètre
 Tout créateur authentifié (profil en tout état sauf suspendu : RG13, RG23, `09` RG99) ouvre

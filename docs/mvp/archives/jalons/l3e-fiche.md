@@ -1,5 +1,5 @@
 # Jalon L3E — L'API de recherche anonymisée des créateurs
-> Source : `jalons/lot3-plan.md` l. 35 (validé le 2026-11-13) · 2026-11-19 · Statut : validé par le fondateur le 2026-11-19 (« oui aux 3 questions » : Q1 à Q3 de l'annexe comme recommandé) · Annexe : `l3e/annexe.md`
+> Source : `archives/jalons/lot3-plan.md` l. 35 (validé le 2026-11-13) · 2026-11-19 · Statut : validé par le fondateur le 2026-11-19 (« oui aux 3 questions » : Q1 à Q3 de l'annexe comme recommandé) · Annexe : `l3e/annexe.md`
 
 ## Objectif et périmètre
 Une marque au profil publié interroge l'API de recherche de créateurs en vue anonymisée (`10` §A à

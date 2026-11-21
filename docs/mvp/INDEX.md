@@ -6,9 +6,6 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
->
-> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/l3g-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -608,7 +605,7 @@
 | 2170 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
 | 2252 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
 
-## 18-plan-de-test-mvp.md (~63k tokens)
+## 18-plan-de-test-mvp.md (~64k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -669,7 +666,7 @@
 | 860 | 57 | ↳ 11.8 Gabarits et composants |  |
 | 917 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~18k tokens)
+## 21-plan-de-developpement.md (~19k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -681,4 +678,4 @@
 | 93 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 117 | 9 | 6. Configuration des services externes |  |
 | 126 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 143 | 128 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 143 | 132 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |

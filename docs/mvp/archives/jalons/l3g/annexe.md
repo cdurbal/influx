@@ -18,7 +18,7 @@ déclaré dans `shards.ts`, dans l'éclat le plus court.
 | L3G-T10 | intégration | `team-selection-queue-route.test.ts`, `search-settings-route.test.ts` | 409 de prise, alertes listées, réglage en double validation, T14 | 8 ; 6 | 10 |
 | L3G-T11 | base + intégration | `tm12-identified-view.test.ts`, `t1-anonymisation.test.ts` | TM12.5 sur chaque porte et route neuve ; T1 des routes membres inchangé ; TM12.3 | 4 ; +4 | 11 |
 | L3G-T12 | unitaire | vues de la recherche identifiée, de la file 9, des réglages ; `bo-nav` | états, libellés, marqueur, entrées du rail | ≥ 8 | 12, 13 |
-| L3G-E1 | e2e | `e2e/backoffice-identified-search.spec.ts` | marqueur et identités ; brouillon et blocage ; pré-remplissage puis facette retirée ; axe FR 1 440, EN 1 280 | 3, ≤ 9 s | 12 |
+| L3G-E1 | e2e | `e2e/backoffice-identified-search.spec.ts` | marqueur et identités ; brouillon et blocage ; pré-remplissage puis facette retirée ; axe FR 1 440 et FR 1 280 (D36) | 3, ≤ 9 s | 12 |
 | L3G-E2 | e2e | `e2e/backoffice-team-selection.spec.ts` | prise et clôture d'une demande ; réglage proposé puis confirmé par un pair | 2, ≤ 6 s | 13 |
 
 **Budgets.** e2e : ≤ 15 s pour le jalon (`lot3-plan.md` l. 59), mesurés en CI par spec, médiane locale
@@ -28,18 +28,18 @@ arrête le jalon (arbitrage `integrateur` : troisième éclat base). **Base part
 ses créateurs (pays d'audience et thématique propres) ou balaie les siens (`stale-fixtures.ts`).
 
 ## Critère de fin
-- [ ] Vue identifiée : identités, brouillons étiquetés, blocage avec avertissement, compte exact (CA55 ; sélection multiple au Lot 4, Q3) — L3G-T4, T9, E1.
-- [ ] Pré-remplissage depuis une campagne, corrections journalisées (CA56) — L3G-T5, E1.
-- [ ] Recherches et consultations identifiées journalisées nominativement (CA58) — L3G-T4, T11.
-- [ ] TM12.5 en base et en route ; interrupteur fermé sans effet sur la vue identifiée (CA61) — L3G-T4, T11.
-- [ ] Compteurs quotidiens, alerte de masse critique sans ouverture (CA60), AL22 — L3G-T7 ; ligne du jour lue sur `staging`.
-- [ ] File 9 : prise, clôture motivée, AL23 — L3G-T6, T10, E2.
-- [ ] Réglages sous contrôle d'un pair, L3ES-2 soldé — L3G-T8, T10, E2.
-- [ ] Reliquat (Q1) : L3FS-1 à -3, L3FT-1 — lignes 01 à 03.
-- [ ] `0327` à `0332` sur `staging`, interrupteur faux — « Migrate staging » vert, lecture SQL.
-- [ ] D38 tranchée le 2026-11-20 (`18` l. 1574, Q2) — ligne D38 ; reportée dans `decisions*.md` et `CLAUDE.md` §9 à la clôture.
-- [ ] 30 s sur trois campagnes de `staging` (`18` l. 1575) — ligne F, trois durées dans `run.md`.
-- [ ] T1, T2, T14, TM12 verts ; job base ≤ 8 min ; e2e ≤ 15 s ; `pnpm check` puis `pnpm test:e2e` verts ; revue attestée (I-4).
+- [x] Vue identifiée : identités, brouillons étiquetés, blocage avec avertissement, compte exact (CA55 ; sélection multiple au Lot 4, Q3) — L3G-T4 (`35c474e`), T9 (`f7e5bf7`), E1 (`c358a68`) ; lignes 04, 09 et 12 de `run.md`.
+- [x] Pré-remplissage depuis une campagne, corrections journalisées (CA56) — L3G-T5 (`5acb9a7`), E1 (`c358a68`) ; réserve : un ET de 5 à 6 facettes trop strict sur les briefs de recette, décision `product-owner` au reliquat (`21` §8, L3G-PO).
+- [x] Recherches et consultations identifiées journalisées nominativement (CA58) — L3G-T4 (`35c474e`), T11 (`a137862`).
+- [x] TM12.5 en base et en route ; interrupteur fermé sans effet sur la vue identifiée (CA61) — L3G-T4 (`35c474e`), T11 (`a137862`) ; `18` §10 l. TM12.5 cochée.
+- [x] Compteurs quotidiens, alerte de masse critique sans ouverture (CA60), AL22 — L3G-T7 (`781dd1c`) ; ligne du jour (2026-11-21) de `search.supply_counters` lue sur `staging` le 2026-11-21 (D70, lecture seule).
+- [x] File 9 : prise, clôture motivée, AL23 — L3G-T6 (`0c48fa2`), T10 (`1457e28`), E2 (`45f0ae8`, `8f3eb81`).
+- [x] Réglages sous contrôle d'un pair, L3ES-2 soldé — L3G-T8 (`18c20f7`), T10 (`1457e28`), E2 (`45f0ae8`).
+- [x] Reliquat (Q1) : L3FS-1 à -3, L3FT-1 — lignes 01 à 03 (`768d4cc`, `db16393`, `ada8c8d`) ; L3GS-1 (55P03 → 429 sur chaque porte) par `fix-2` (`31d87a6`).
+- [x] `0327` à `0334` sur `staging`, interrupteur faux — « Migrate staging » vert (run 44955936546, `a747548`) ; lecture SQL de `staging` du 2026-11-21 : dernière migration `0334`, `is_open_to_advertisers` = faux (mis à jour le 2026-11-20 à 16:07 UTC).
+- [x] D38 tranchée le 2026-11-20 (`18` l. 1574, Q2) — ligne D38 ; reportée dans `decisions.md`, `decisions-detail.md` et `CLAUDE.md` §9 à la clôture.
+- [x] 30 s sur trois campagnes de `staging` (`18` l. 1575) — ligne F : première passe du fondateur < 15 s sur trois campagnes (1, 0 et 0 créateur compatible), recette rejouée après semis (option A) et validée : « je valide la recette » (2026-11-21) ; durées de la rejouée non données (réserve L3GT-3, `18` l. 1575).
+- [x] T1, T2, T14, TM12 verts ; job base ≤ 8 min (6:24 au plus, CI 44955936546) ; e2e ≤ 15 s (E1 7,3 s et E2 4,1 s, 11,4 s sur les quatre cas des deux fichiers dédiés ; le second cas de E2, dans `backoffice.spec.ts`, non isolé) ; `pnpm check` (22 min 35 s, suite base de 150 fichiers et 3 943 cas comprise) puis `pnpm test:e2e` (296 cas, 6,7 min) verts le 2026-11-21 ; revue attestée (I-4) par le commit de clôture, `security-reviewed: 2026-11-21 covers …` (§ Revue).
 
 ## Écarts, décisions ouvertes, risques
 - **EC-L3G-1** : CA57, RG74 (« Proposer », une mise en relation par destinataire) créent `matching.introductions`
@@ -141,9 +141,9 @@ sous conditions (L3GS-2, L3GS-3, attestation I-4, D24/D33/D34/D63).
 - **L3GT-17** documents : `annexe.md` annonce « EN 1 280 » (livré FR 1 440 et 1 280, D36) ; `cloture.md`, le critère de fin et `21` §7 l. 133 doivent dire `0327` à `0334`.
 - Non couvert, explicite : double consommation concurrente d'une 2V de réglage ; demande de la file 9 d'une marque suspendue ou effacée ; EN du backoffice (D36) ; bascule de minuit UTC du calcul quotidien ; focus (J2) par e2e seulement.
 
-### Attestation I-4 (à commiter à la clôture, une fois `fix-2` livré)
-Neuf SHA vérifiés par `expert-cybersecurite` (lignes 01, 04 à 08, 08b, 10, 14) :
-`security-reviewed: 2026-11-21 covers 768d4cc5ec52 35c474eed79a 5acb9a79055d 0c48fa23a101 781dd1cff5cb 18c20f74be54 72bfbc87d1cd 1457e28a68c5 2b5cd3252366`
+### Attestation I-4 (commitée à la clôture, commit `cloture` de `run.md`, `fix-2` livré)
+Dix SHA : neuf vérifiés par `expert-cybersecurite` (lignes 01, 04 à 08, 08b, 10, 14), plus celui de `fix-2` (L3GS-1, `31d87a6a9d55`) :
+`security-reviewed: 2026-11-21 covers 768d4cc5ec52 35c474eed79a 5acb9a79055d 0c48fa23a101 781dd1cff5cb 18c20f74be54 72bfbc87d1cd 1457e28a68c5 2b5cd3252366 31d87a6a9d55`
 Le correctif de L3GS-1 (`fix-2`, qui touche la gestion d'erreurs de l'API) ajoute son SHA à cette ligne.
 `.operator-secrets/` : règle d'exclusion présente (`.gitignore:55`), aucun fichier jamais suivi ; `git check-ignore -v
 .operator-secrets/x` à lancer par le fondateur (refusé au sous-agent et à l'orchestrateur) ; effacer le mot de passe et le lien après usage.

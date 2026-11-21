@@ -1,5 +1,5 @@
 # Jalon L3C — Le commercial valide la campagne ; publiée, elle vit ses états
-> Source : `jalons/lot3-plan.md` l. 33 (validé le 2026-11-13) · 2026-11-14 · Statut : validé par le fondateur le 2026-11-14 (« oui à toutes les questions » : Q1 à Q3 comme recommandé) · Annexe : `l3c/annexe.md`
+> Source : `archives/jalons/lot3-plan.md` l. 33 (validé le 2026-11-13) · 2026-11-14 · Statut : validé par le fondateur le 2026-11-14 (« oui à toutes les questions » : Q1 à Q3 comme recommandé) · Annexe : `l3c/annexe.md`
 > **Amendée le 2026-11-16 par D84** (recette F) : aucune double validation obligatoire ; secteur sensible publié par une seule personne, second avis facultatif ; lignes X4, X5.
 
 ## Objectif et périmètre

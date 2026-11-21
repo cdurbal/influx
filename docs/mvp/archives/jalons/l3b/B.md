@@ -1,6 +1,6 @@
 # L3B-B — arbitrage : grille `reference.price_bands` (`l3b/tranches.md`)
 Grille `expert-paiement-facturation`. Aucun code. Méthode tranchée le 2026-11-13
-(`jalons/lot3-plan.md` l. 17 et question 2) : grille proposée ici, validée par le fondateur en F1.
+(`archives/jalons/lot3-plan.md` l. 17 et question 2) : grille proposée ici, validée par le fondateur en F1.
 **Lire :** fiche, invariants 1, 2, 6 ; `09` l. 1-6, 334-341 (RG29, RG30), 478-504 (bandeau D78),
 556-577 (RG62 à RG64) ; `04` l. 493-560 ; `supabase/migrations/0201_reference_taxonomies.sql`
 l. 299-360 ; `0003_reference_core.sql` l. 51-70 ; `18` l. 759-795 (T16) ; `decisions-detail.md`

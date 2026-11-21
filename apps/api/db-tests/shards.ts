@@ -8,13 +8,17 @@
 // new test file is added here, in the shorter shard, and in `case-floors.ts`; otherwise the control
 // job fails (a file in no shard, in two shards, or that no longer exists).
 //
-// Balance, by file duration (JSON report of a full local run, 2026-11-19, 129 files, 761.5 s of file
-// time in all, L3F-01): shard 1 380.7 s, shard 2 380.8 s. The slowest files, verification-privacy
-// (114.0 s), t1-anonymisation (98.7 s), t9-evidence-unreachable (51.5 s), t8-backoffice-sign-in
-// (42.0 s), profiles-portfolio-privacy (40.4 s) and t2-rls-matrix (32.6 s), were dealt out largest
-// first to the lighter shard, as were all the others. Each shard adds its own stack start-up in CI.
+// Balance: the by-file split below dates from a full local run of 2026-11-19 (129 files, 761.5 s of
+// file time in all, L3F-01: shard 1 380.7 s, shard 2 380.8 s); the files added since (L3F-03 to
+// L3G-11) were each dealt to the shorter shard in CI, not re-measured as a whole. Last CI measure
+// (run 44955936546 on a747548, end of L3G): job 1/2 5:14, job 2/2 6:24 (stack start-up included),
+// a 70 s gap and 6:24 against the 7:30 limit; the L3F close had 6:34 and 5:34. The slowest files,
+// verification-privacy (114.0 s), t1-anonymisation (98.7 s), t9-evidence-unreachable (51.5 s),
+// t8-backoffice-sign-in (42.0 s), profiles-portfolio-privacy (40.4 s) and t2-rls-matrix (32.6 s),
+// were dealt out largest first to the lighter shard, as were all the others.
 // Rule (EC-L3F-3): re-balance, from a new full local run, when one shard nears 7 min 30 s in CI
-// (L3A invariant 3) or when the CI durations of the two shards differ by more than 30 s.
+// (L3A invariant 3) or when the CI durations of the two shards differ by more than 30 s (L3GT-10:
+// the second condition holds at the end of L3G, the re-balance is listed in the 21 section 8 backlog).
 export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
   "1": [
     "db-tests/campaign-feed-route.test.ts",

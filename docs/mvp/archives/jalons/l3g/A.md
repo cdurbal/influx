@@ -2,7 +2,7 @@
 Grilles `expert-database`, `expert-matching`, `product-owner`. Skills : `matching-spec`, `backoffice-ops`
 (tranches utiles seules). D38 tranchée (annexe, Q2) ; sélection multiple au Lot 4 (Q3).
 **Lire :** fiche ; Lectures, ligne A ; `archives/jalons/l3f/modele.md` (gabarit).
-**Livrer :** `docs/mvp/jalons/l3g/modele.md`, 10 Ko au plus, *M.* = motif, `-n` = `EC-L3G-A-n` ; prime sur
+**Livrer :** `docs/mvp/archives/jalons/l3g/modele.md`, 10 Ko au plus, *M.* = motif, `-n` = `EC-L3G-A-n` ; prime sur
 `03`, `04`, `10`, `15`, `17b` pour tout nom :
 1. Porte identifiée (04) : propriétaire neuf, signature, `EXECUTE`, contrôles dans l'ordre, page (20) et
    plafond, champs servis (pseudo, `@`, lien, nom, ville, chiffres exacts ; ni e-mail ni téléphone, D46),

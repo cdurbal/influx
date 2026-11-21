@@ -1,5 +1,5 @@
 # Jalon L3F — La marque cherche, ouvre un profil anonyme et construit ses sélections
-> Source : `jalons/lot3-plan.md` l. 36 (validé le 2026-11-13) · 2026-11-19 · Statut : validé par le fondateur le 2026-11-19 (« oui aux 2 questions » : Q1 et Q2 de l'annexe comme recommandé) · Annexe : `l3f/annexe.md`
+> Source : `archives/jalons/lot3-plan.md` l. 36 (validé le 2026-11-13) · 2026-11-19 · Statut : validé par le fondateur le 2026-11-19 (« oui aux 2 questions » : Q1 et Q2 de l'annexe comme recommandé) · Annexe : `l3f/annexe.md`
 
 ## Objectif et périmètre
 Une marque au profil publié utilise M4 (`17` §4.4) sur l'API de L3E : facettes ouvertes du socle (7, F12

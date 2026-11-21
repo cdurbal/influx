@@ -1,5 +1,5 @@
 # Jalon L3A — Reliquat avant le Lot 3, skills allégés, job base en deux éclats
-> Source : `jalons/lot3-plan.md` l. 31 (validé le 2026-11-13) · 2026-11-13 · Statut : à valider · Annexe : `l3a/annexe.md`
+> Source : `archives/jalons/lot3-plan.md` l. 31 (validé le 2026-11-13) · 2026-11-13 · Statut : à valider · Annexe : `l3a/annexe.md`
 
 ## Objectif et périmètre
 Solder ce que `21` §8 fait échoir « avant le Lot 3 » : L2D-E2E (job base, `fix-5a` choix A), L2CS-6,

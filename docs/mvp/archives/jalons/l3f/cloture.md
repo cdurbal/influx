@@ -16,7 +16,7 @@ Grille `testeur`. Aucun code applicatif. **Préalable :** toutes les lignes `fix
    `chore(security): attest the end-of-L3F review`, corps `security-reviewed: <date>` puis
    `security-reviewed: <date> covers <SHA complets>` fournis par l'annexe § Revue.
 7. `git mv docs/mvp/jalons/l3f-fiche.md docs/mvp/jalons/l3f docs/mvp/archives/jalons/` ; renvois mis à
-   jour (`21` §8, `jalons/lot3-plan.md`). Pas le dernier jalon du lot : `lot3-plan.md` reste.
+   jour (`21` §8, `archives/jalons/lot3-plan.md`). Pas le dernier jalon du lot : `lot3-plan.md` reste.
 **Prouver :** `node packages/test-kit/scripts/check-security-review.ts <commit d'ouverture>^ HEAD` ok ;
 CI verte sur le dernier push (`gh run watch <id> --exit-status`), « Migrate staging » compris.
 **Arrêt si :** une case du critère de fin n'a pas de preuve ; une ligne `fix` n'est pas `fait` ;

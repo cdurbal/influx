@@ -1,5 +1,5 @@
 # Jalon L3G — Le commercial trouve en vue identifiée les créateurs compatibles d'une campagne ; le Lot 3 est prêt à livrer
-> Source : `jalons/lot3-plan.md` l. 37 (validé le 2026-11-13) · 2026-11-20 · Statut : ouvert (validé le 2026-11-20) · Annexe : `l3g/annexe.md`
+> Source : `archives/jalons/lot3-plan.md` l. 37 (validé le 2026-11-13) · 2026-11-20 · Statut : ouvert (validé le 2026-11-20) · Annexe : `l3g/annexe.md`
 
 ## Objectif et périmètre
 Un agent INFLUX (commercial, admin) cherche en vue identifiée (`10` §H, `17b` §3.3) sur le moteur unique

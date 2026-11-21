@@ -12,8 +12,8 @@ Grille `testeur`.
    s'ils le sont ; `21` §7 l. 133 (migrations du lot) ; D38 dans `decisions.md`, `decisions-detail.md`
    (`Grep "^## D38 "`) et `CLAUDE.md` §9 ; `CLAUDE.md` §10 : Lot 3 ✅ et sa date.
 5. Attestation `security-reviewed: <date> covers <sha>…` de l'annexe § Revue, si la revue est soldée.
-6. Dernier jalon du lot : `l3g-fiche.md`, `l3g/` et `jalons/lot3-plan.md` déplacés dans
-   `archives/jalons/` ; références mises à jour (`Grep "jalons/l3g\|jalons/lot3-plan"` dans `docs/`,
+6. Dernier jalon du lot : `l3g-fiche.md`, `l3g/` et `archives/jalons/lot3-plan.md` déplacés dans
+   `archives/jalons/` ; références mises à jour (`Grep "archives/jalons/l3g\|archives/jalons/lot3-plan"` dans `docs/`,
    `CLAUDE.md`, `.claude/`).
 7. A6 de `ux-constats.md`, tranché le 2026-11-21 (« oui aux deux ») : **confirmé, emplacement prévu**
    (`tokens-backoffice.css`, `02` §21.3 point 6, D73, valeurs validées `17b` V1) ; l'inscrire au `21` §8

@@ -378,9 +378,9 @@
 
 **Arbitre** : `chef-de-projet` + Fondateur
 
-**Statut** : Ouverte
+**Statut** : **Tranchée le 2026-11-20** (fondateur, « oui aux 4 questions » de l'annexe de L3G, question 2) : ouverture **globale** (pas par thématique) ; seuils de départ **30 profils publiés** et **5 par thématique principale**, tenus en table (`search.search_settings`, clé `critical_mass_thresholds`) ; leur atteinte lève une alerte (AL65, `0331`), jamais l'ouverture ; l'ouverture (`is_open_to_advertisers`) reste la décision d'un admin sous contrôle d'un pair (D84, `0332`) ; interrupteur fermé sur `staging` et en production d'ici là. Réalisée au L3G ; lu sur `staging` le 2026-11-21 (interrupteur faux)
 
-**Échéance** : Lot 3
+**Échéance** : —
 
 ## D39 — SLA de la file de validation
 
@@ -872,10 +872,10 @@
 
 **Arbitre** : `architecte`, sur délégation du fondateur ; réalisation par `expert-database` et `dev-react-node`, relecture `expert-cybersecurite` et `testeur`
 
-**Statut** : **Tranchée le 2026-11-20** ; réalisée en tête de L3G (lignes 00a à 00c, `jalons/lot3-plan.md`), pas au Lot 6
+**Statut** : **Tranchée le 2026-11-20** ; réalisée en tête de L3G (lignes 00a à 00c, `archives/jalons/lot3-plan.md`), pas au Lot 6
 
 **Énoncé** : (1) toute porte SQL qui prend un verrou consultatif par compte porte un `lock_timeout` court au niveau de la fonction (`1s`) et l'erreur 55P03 renvoie 429 `rate_limited` (`Retry-After: 1`, gestionnaire d'erreurs commun de `src/platform/`) ; (2) le travail coûteux (moteur) se fait hors verrou, avec relecture et recompte sous verrou (relance si la campagne a changé) ; (3) toute écriture membre a un débit par adresse dans `member-rate.ts`
 
-**Conséquences** : `0327` (00b) applique (1) et (2) à `0314`, `0319`, `0323`, `0324`, `0325`, et règle L3FS-1 (moteur et recherche d'impression lancés même alias introuvable) et L3FS-2 (retrait par `shortlist_creator()`, `itemsPerList` compte toutes les lignes) ; 00c applique (3) aux six routes d'écriture des sélections, pool de 10 inchangé ; 00a prouve les plafonds par deux connexions committées (`search-door-concurrency.test.ts`). Contrainte pour L3FS-5 (moteur « un seul créateur ») : un alias inconnu passe par le même chemin (identifiant de remplacement résolu), test dédié, sinon l'oracle de temps revient. Risque accepté : la suppression d'un compte créateur libère une place de sélection par cascade. Écart EC-L3G-1 (masqué non retirable) à valider par `product-owner`
+**Conséquences** : `0327` (00b) applique (1) et (2) à `0314`, `0319`, `0323`, `0324`, `0325`, et règle L3FS-1 (moteur et recherche d'impression lancés même alias introuvable) et L3FS-2 (retrait par `shortlist_creator()`, `itemsPerList` compte toutes les lignes) ; 00c applique (3) aux six routes d'écriture des sélections, pool de 10 inchangé ; 00a prouve les plafonds par deux connexions committées (`search-door-concurrency.test.ts`). Contrainte pour L3FS-5 (moteur « un seul créateur ») : un alias inconnu passe par le même chemin (identifiant de remplacement résolu), test dédié, sinon l'oracle de temps revient. Risque accepté : la suppression d'un compte créateur libère une place de sélection par cascade. Écart EC-D85-1 (masqué non retirable) à valider par `product-owner`
 
 **Échéance** : avant `production` : SHA de 00a à 00c et revue groupée `expert-cybersecurite` et `testeur` de fin de L3G (attestation I-4)

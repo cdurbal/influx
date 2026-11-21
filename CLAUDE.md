@@ -235,12 +235,13 @@ est hors MVP).
 - **Ouvertes, porte de `production`** : D24 créateurs particuliers et fiscalité · D33 périmètre
   Apollo (veto RGPD, juriste) · D34 libellés du badge (juriste) · D63 consentement obligatoire
   (juriste).
-- **Ouvertes, par échéance** : D38 masse critique (Lot 3) · D30 coordonnées dans la messagerie
+- **Ouvertes, par échéance** : D30 coordonnées dans la messagerie
   (Lot 4) · D35 saisie libre d'e-mails, D36 langue du backoffice (Lot 5) · plus tard : D14, D21,
   D29, DZ-1, 2, 4 à 7 · technique : gestion d'état côté front (aucune librairie sans besoin réel).
 - **V2 (A1)** : D7, D9, D10, D19, D20, D22, D23, D26, D27 — **D7/D23 se réactivent au premier euro
   encaissé, D20 au premier litige.**
-- **Tranchées qui cadrent le travail courant** : D25 (société en Angleterre ; identité en
+- **Tranchées qui cadrent le travail courant** : D38 (masse critique : ouverture globale, seuils
+  30 et 5 en table, alerte seule, interrupteur fermé, 2026-11-20) · D25 (société en Angleterre ; identité en
   marqueurs dans `apps/api/legal/`) · D70 · D71 (`production` n'avance que par
   `git merge --no-ff main`) · D73 à D75 · D76 · D77 · D78 (étendue au Lot 3) · D79 · D83 · D84
   (aucune double validation obligatoire en métier ; administration et sécurité sous contrôle
@@ -249,8 +250,9 @@ est hors MVP).
 ## 10. Lots du MVP
 
 0 Socle ✅ · 1 Inscription et leads ✅ (`staging` ; production préparée, non ouverte) · extras DS,
-SN, RK ✅ · 2 Profils et badge ✅ (2026-11-13, réserves au §8 de `21`) · **3 Campagnes et
-recherche anonymisée** · 4 Mise en relation et messagerie · 5 Backoffice, pipeline, e-mails ·
+SN, RK ✅ · 2 Profils et badge ✅ (2026-11-13, réserves au §8 de `21`) · 3 Campagnes et
+recherche anonymisée ✅ (2026-11-21, réserves au §8 de `21`) ·
+**4 Mise en relation et messagerie** · 5 Backoffice, pipeline, e-mails ·
 6 Recette, audit, ouverture · 6bis rattrapage du mode normal.
 
 ## 11. Glossaire

@@ -1,5 +1,5 @@
 # Jalon L3B — La marque rédige sa campagne et la soumet
-> Source : `jalons/lot3-plan.md` l. 32 (validé le 2026-11-13) · 2026-11-13 · Statut : validé par le fondateur le 2026-11-13 (« ok pour toutes les questions ») · Annexe : `l3b/annexe.md`
+> Source : `archives/jalons/lot3-plan.md` l. 32 (validé le 2026-11-13) · 2026-11-13 · Statut : validé par le fondateur le 2026-11-13 (« ok pour toutes les questions ») · Annexe : `l3b/annexe.md`
 
 ## Objectif et périmètre
 Une marque au profil publié crée une campagne (`09` blocs 1 à 7, bloc 8 côté marque), la rédige en

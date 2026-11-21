@@ -33,7 +33,7 @@ Grille `testeur`. Aucun code applicatif. **Préalable :** `fix-1` et `fix-2` à 
    couvert comme `e886b37`). Sans marqueur requis : `9c149d1`, `99bf9f2` (skills) ; `7866415`,
    `7a9b916`, `51994ac`, `b3a3363`, constats de la revue (documentation).
 6. `git mv docs/mvp/jalons/l3a-fiche.md docs/mvp/jalons/l3a docs/mvp/archives/jalons/` ; renvois mis
-   à jour (`21` §8, `jalons/lot3-plan.md`). Pas le dernier jalon du lot : `lot3-plan.md` reste.
+   à jour (`21` §8, `archives/jalons/lot3-plan.md`). Pas le dernier jalon du lot : `lot3-plan.md` reste.
 **Prouver :** `node packages/test-kit/scripts/check-security-review.ts bf5303f HEAD` ok ; CI verte
 sur le dernier push (`gh run watch <id> --exit-status`), « Migrate staging » compris.
 **Arrêt si :** une case du critère de fin n'a pas de preuve ; `fix-1` ou `fix-2` n'est pas `fait` ;
