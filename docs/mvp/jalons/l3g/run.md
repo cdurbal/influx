@@ -17,7 +17,8 @@
 | 11 | 11.md | commit | sonnet | high | testeur | fait | tm12-identified-view : 13 portes, 9 routes 404 membre/401, aucun export, T14 ; T1 +4 (inventaire, membres, sans session, contre-test) ; planchers 4 et 36 |
 | 12 | 12.md | commit | sonnet | high | dev-react-node | fait | rail Créateurs, BoIdentifiedFrame (barre 4 px), blocage en phrase seule, aucune case ni tarif ; FR seul (D36) ; 13 unitaires, E1 x3 ≤ 2,9 s ; planchers 13 et 3 |
 | 13 | 13.md | commit | sonnet | high | dev-react-node | fait | file 9 : prise, clôture motivée (note ssi Autre), message dir=auto sans bidi ; réglages en 2V, no_peer_admin dit ; AL22/23/65 libellées ; E2 cas 2 ≈ 6,5 s |
-| U | ux.md | ux | sonnet | high | expert-ux | à faire | |
+| U | ux.md | ux | sonnet | high | expert-ux | fait | 0 bloquant · 8 jalon · 7 avant prod · 3 plus tard ; invariants tenus ; sans rendu (revue sur le code) |
+| fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | à valider | J1 à J8 de `ux-constats.md` |
 | 14 | 14.md | commit | opus | high | expert-database | à faire | latence 2V (≈ 2,5 s par appel), ajoutée le 2026-11-21 : « option 2 en une ligne de fin de jalon » ; E2 ≈ 6,5 s accepté pour 13 |
 | F | recette.md | fondateur | — | — | fondateur | à faire | 30 s sur trois campagnes de `staging` ; Q4 : oui, semis si moins de trois |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
