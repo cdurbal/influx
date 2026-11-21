@@ -247,7 +247,7 @@ export function ClaimedEntryFrame<
             </span>
           </button>
         ) : null}
-        {mode === "readOnly" && me.role === "admin" ? (
+        {mode === "readOnly" && me.role === "admin" && entry.canForce ? (
           <button
             type="button"
             aria-expanded={panel === "force"}

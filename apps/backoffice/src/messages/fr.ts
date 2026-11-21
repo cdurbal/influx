@@ -113,6 +113,7 @@ export const messages = {
     creatorReviewQueue: "Profils créateur à valider",
     portfolioQueue: "Visuels de portfolio à modérer",
     campaignReviewQueue: "Campagnes à valider",
+    teamSelectionQueue: "Sélections par l’équipe",
     verificationCreators: "Vérifications créateurs",
     verificationBrands: "Vérifications marques",
     verificationDisputes: "Contestations",
@@ -128,6 +129,7 @@ export const messages = {
     memberInvitations: "Invitations",
     dualControl: "Double validation",
     apollo: "Réglages Apollo",
+    searchSettings: "Réglages de la recherche",
     registrySources: "Sources de registre",
     internalAccounts: "Comptes internes",
     health: "Santé technique",
@@ -142,6 +144,7 @@ export const messages = {
     verification_brands: "Vérifications des marques",
     verification_disputes: "Contestations de badge",
     identity_change_review: "Identifiants modifiés à contrôler",
+    team_selection: "Sélections par l’équipe INFLUX",
   },
   /** 17b §1.4 and §1.7: the head band, the rail, and the screen of a window too small. */
   shell: {
@@ -413,6 +416,19 @@ export const messages = {
         `Affinage probable : ${count} recherches successives d’un compte ne variant que d’un filtre, dont plusieurs sous le seuil d’anonymat. Appelez la marque avant toute mesure.`,
       aspiration: (_destination: string, count: number) =>
         `Aspiration probable : ${count} profil${count > 1 ? "s" : ""} distinct${count > 1 ? "s" : ""} ouvert${count > 1 ? "s" : ""} en 24 heures par des comptes sans ajout à une sélection ni demande, dont celui-ci. Appelez la marque avant toute mesure.`,
+      // AL65 (0331, CA60): the critical mass of the search is proposed, never applied; the count is the profiles
+      thresholds_reached: (_destination: string, count: number) =>
+        `Masse critique atteinte : ${count} profil${count > 1 ? "s" : ""} publié${count > 1 ? "s" : ""} et visible${count > 1 ? "s" : ""}. La recherche des marques reste fermée : l’ouvrir est une décision humaine, par un changement des réglages de la recherche confirmé par un autre administrateur.`,
+      below_while_open: (_destination: string, count: number) =>
+        `La recherche des marques est ouverte, mais les profils publiés et visibles (${count}) sont repassés sous le seuil de masse critique. Rien ne se ferme seul : décidez, dans les réglages de la recherche.`,
+      counters_stale: (_destination: string, count: number) =>
+        `Les compteurs de masse critique n’ont pas été recalculés depuis ${count} heure${count > 1 ? "s" : ""} ou plus, ou jamais. Les chiffres affichés sont ceux du dernier calcul réussi.`,
+      // AL22 (0331): the count is the share, in basis points, of the searches of the brand view blocked by k
+      k_blocked_share: (_destination: string, count: number) =>
+        `Recherches des marques bloquées par le seuil d’anonymat : ${Math.round(count / 100)} % des recherches de première page sur 7 jours. Le seuil est peut-être trop haut, ou l’offre encore trop faible.`,
+      // AL23 (0330): the requests of queue 9 left open past their deadline
+      selection_past_deadline: (_destination: string, count: number) =>
+        `${count} demande${count > 1 ? "s" : ""} de sélection par l’équipe INFLUX hors délai : prenez-${count > 1 ? "les" : "la"} en charge ou clôturez-${count > 1 ? "les" : "la"} avec un motif.`,
     } as Readonly<
       Record<
         string,
@@ -421,6 +437,9 @@ export const messages = {
     >,
     /** AL21: the account concerned, opened from its alert. */
     openAccount: "Ouvrir le compte",
+    /** AL23: the queue of the requests; AL22 and AL65: the settings of the search, an administrator's. */
+    openTeamSelection: "Ouvrir la file",
+    openSearchSettings: "Ouvrir les réglages de la recherche",
     line: (code: string, text: string, since: string | null) =>
       `Alerte ${code} — ${text}${since === null ? "" : ` (depuis le ${since})`}`,
     newBrowser: {
@@ -1021,6 +1040,8 @@ export const messages = {
       "privacy.approve_data_request":
         "Approuver l’exécution d’une demande « mes données »",
       "verification.revoke_badge": "Retirer un badge de vérification",
+      "search.change_setting": "Changer un réglage de la recherche",
+      "search.change_facet": "Changer une facette de la recherche",
     } as Readonly<Record<string, string>>,
     reasons: {
       member_request: "Demande du membre",
@@ -1040,6 +1061,9 @@ export const messages = {
       influx_error: "Badge accordé par erreur par INFLUX",
       company_dissolved: "Société radiée du registre public",
       domain_transferred: "Domaine du site passé à un autre titulaire",
+      /** L3G-10 (0332): the reasons of a change of a setting or of a facet of the search. */
+      critical_mass_reached: "Masse critique atteinte",
+      abuse_response: "Réponse à un abus",
     } as Readonly<Record<string, string>>,
     consequences: {
       role_granted: "le rôle est attribué",
@@ -1067,6 +1091,12 @@ export const messages = {
         "la ligne publique du profil est recalculée, sans le badge",
       member_may_appeal:
         "le créateur peut contester le retrait dans le délai prévu",
+      /** L3G-10 (0332): what a change of the search says before the first gesture. */
+      search_opening_changed:
+        "toutes les marques voient aussitôt la recherche s’ouvrir ou se fermer",
+      config_version_opened:
+        "une version de la configuration de la recherche est ouverte, avec son auteur et sa date",
+      facet_changed: "la facette s’ouvre, se ferme ou change d’ordre",
     } as Readonly<Record<string, string>>,
     target: {
       account: "Compte concerné",
@@ -1082,6 +1112,10 @@ export const messages = {
       invited: (email: string, role: string, date: string) =>
         `${email} · rôle proposé : ${role} · invitation du ${date}`,
       newBrand: "Nouvelle raison sociale",
+      /** L3G-13 (0332): the facet a change reaches, in words. */
+      facet: "Facette concernée",
+      facetLine: (code: string, open: boolean, order: number) =>
+        `${code} · ${open ? "ouverte aux marques" : "fermée aux marques"} · ordre d’affichage ${order}`,
       /** L2F-18 (PD1): the badge a withdrawal reaches, by level, network and state, never by an identifier. */
       badge: "Badge concerné",
       badgeLine: (level: string, network: string | null, state: string) =>
@@ -1127,6 +1161,9 @@ export const messages = {
     cancelled: "Demande abandonnée : rien n’a été exécuté.",
     unknownPerson: "un membre de l’équipe",
     error: "La demande n’a pas pu être chargée.",
+    /** 409 `no_peer_admin` (L3G-10): the search settings are never confirmed alone (D84, D38 Q2). */
+    noPeerAdmin:
+      "Aucun autre administrateur actif ne peut confirmer ce changement : la demande n’est pas enregistrée. Un réglage de la recherche ne se confirme jamais seul.",
   },
   internalAccounts: {
     title: "Comptes internes",
@@ -4468,6 +4505,213 @@ export const messages = {
       title: "Créateurs compatibles",
       lead: "Ouvre la recherche en vue identifiée, pré-remplie depuis le brief de cette campagne ; le pré-remplissage et vos corrections sont journalisés.",
       open: "Voir les créateurs compatibles",
+    },
+  },
+  /**
+   * L3G-13 (10 RG61, RG84; 15 RG26 to RG28, RG36, C1 to C3, AL23; 17b §2, I13; l3g/modele.md §5, §8; l3g-fiche
+   * invariants 8, 11, 12, 13): queue 9, the requests of a brand for a selection by the team. The list shows the
+   * brand, the campaign of origin, the language, the deadline and the lock: neither the message nor the criteria
+   * (the opening, logged, serves them). No amount, no tariff, no creator: the request is read, then closed with a
+   * reason of the closed list; « Proposer » comes with the introductions (Lot 4).
+   */
+  teamSelectionQueue: {
+    lead: "Une marque a demandé que l’équipe lui sélectionne des créateurs : prenez la demande en charge, lisez ses critères et son message, puis clôturez-la avec un motif. La liste ne montre ni le message ni les critères : l’écran de la demande les montre à la personne qui l’a prise en charge. La marque n’est pas prévenue de la clôture.",
+    tableLabel: "Demandes de sélection par l’équipe INFLUX",
+    columns: {
+      state: "État",
+      due: "Échéance",
+      brand: "Marque",
+      campaign: "Campagne d’origine",
+      language: "Langue",
+      owner: "Responsable",
+      holder: "Verrou",
+    },
+    unknownBrand: "Marque sans nom",
+    noCampaign: "Aucune campagne",
+    untitledCampaign: "Campagne sans titre",
+    emptyLine: "Aucune demande de sélection en attente.",
+    openEntryOf: (brand: string) =>
+      `Ouvrir la demande de sélection de ${brand}`,
+  },
+  teamSelectionReview: {
+    title: (brand: string | null) =>
+      `Demande de sélection — ${brand ?? "marque sans nom"}`,
+    subtitle: (campaign: string | null, language: string, createdAt: string) =>
+      `${campaign === null ? "Sans campagne d’origine" : `Campagne « ${campaign} »`} · langue de la marque : ${language} · déposée le ${createdAt}`,
+    sections: {
+      request: "Demande de la marque",
+      criteria: "Critères saisis par la marque",
+      message: "Message de la marque",
+      closure: "Clôture",
+    },
+    brand: "Marque",
+    createdAt: "Déposée le",
+    deadline: "Échéance",
+    openBrand: "Ouvrir la fiche de la marque",
+    campaign: "Campagne d’origine",
+    noCampaign: "Aucune : la marque a demandé depuis sa recherche.",
+    untitledCampaign: "Campagne sans titre",
+    searchCompatible: "Voir les créateurs compatibles",
+    searchFree: "Ouvrir la recherche de créateurs",
+    criteriaNone: "La marque n’a retenu aucun critère.",
+    criteriaHelp:
+      "Les critères sont ceux de la recherche de la marque, sous forme de codes : ils ne portent aucun chiffre.",
+    messageNone: "La marque n’a pas écrit de message.",
+    messageHelp:
+      "Texte brut, tel que la marque l’a écrit : aucun lien ni aucune mise en forme n’est interprété.",
+    closed: {
+      line: (at: string, name: string | null, reason: string) =>
+        `Close le ${at}${name === null ? "" : ` par ${name}`} — motif : ${reason}.`,
+      note: "Commentaire de la clôture :",
+    },
+    decision: {
+      open: "Clore la demande",
+      panelTitle: "Clore la demande de sélection",
+      panelLead:
+        "Choisissez le motif de la clôture. La marque n’est pas prévenue : son e-mail viendra avec les courriels du backoffice. Aucune mise en relation n’est créée.",
+      reasonLegend: "Motif de la clôture",
+      reasons: {
+        off_brief: "Hors du brief de la marque",
+        motive_insufficient: "Motif insuffisant",
+        contact_details_in_text: "Coordonnées dans le message",
+        campaign_closed: "Campagne close",
+        duplicate: "Doublon d’une demande existante",
+        other: "Autre (commentaire obligatoire)",
+      } as Readonly<Record<string, string>>,
+      noteLabel: (min: number, max: number) =>
+        `Commentaire (${min} à ${max} caractères, obligatoire pour « Autre »)`,
+      noteHelp:
+        "Visible des seuls agents INFLUX : jamais de la marque. Il n’existe que pour le motif « Autre ».",
+      noProposal:
+        "« Proposer à une campagne » arrive avec la mise en relation (lot 4). D’ici là, une demande traitée hors de l’outil se clôt avec « Autre » et un commentaire.",
+      confirm: "Clore la demande",
+      busy: "Clôture…",
+      reasonRequired: "Choisissez le motif de la clôture.",
+      noteRequired: (min: number, max: number) =>
+        `Écrivez un commentaire de ${min} à ${max} caractères pour le motif « Autre ».`,
+      reasonInvalid:
+        "Le motif choisi n’est pas dans la liste : rien n’a été enregistré.",
+      noteInvalid:
+        "Le commentaire est refusé (trop court, trop long ou non permis pour ce motif) : rien n’a été enregistré.",
+      closedNotice: (brand: string, reason: string) =>
+        `Demande de ${brand} close : ${reason}.`,
+    },
+    shortcuts: {
+      keys: "‹r› ouvre la clôture · ‹l› rend la main · ‹?› raccourcis",
+      close: "ouvrir la clôture : elle ne se confirme jamais d’un raccourci",
+    },
+  },
+  /**
+   * L3G-13 (10 RG2, RG57; l3g/modele.md §6, §7; l3g-fiche invariants 9, 10, 12): the settings of the creator
+   * search, admin only. The switch, the thresholds of the critical mass and k are changed here, each one as a
+   * REQUEST of the dual control that another administrator confirms (D84, D38 Q2: never alone); the rest is read.
+   * Who changed a key and when are in the register, not in the reader (EC-L3G-08b-1): the screen says so.
+   * The counters are counts, never a creator. No amount, no tariff.
+   */
+  searchSettings: {
+    title: "Réglages de la recherche",
+    lead: "Les valeurs ci-dessous sont celles de la base, lues à chaque recherche. Chaque changement se demande avec un motif, puis se confirme sur l’écran de la double validation par un autre administrateur : sans autre administrateur actif, aucune demande n’est enregistrée.",
+    loading: "Lecture des réglages…",
+    error: "Les réglages de la recherche n’ont pas pu être chargés.",
+    historyNote:
+      "L’auteur et la date des derniers changements sont inscrits au registre : cet écran ne les affiche pas.",
+    opening: {
+      title: "Ouverture de la recherche aux marques",
+      open: "Ouverte : les marques cherchent des créateurs.",
+      closed:
+        "Fermée : aucune marque ne reçoit de liste. La vue identifiée des commerciaux n’en dépend pas.",
+      help: "L’ouverture est une décision humaine : ni les compteurs ni une alerte ne l’actionnent.",
+      askOpen: "Demander l’ouverture",
+      askClose: "Demander la fermeture",
+    },
+    mass: {
+      title: "Masse critique",
+      snapshot: (day: string, at: string) =>
+        `Compteurs du ${day} (jour UTC), calculés le ${at}.`,
+      noSnapshot:
+        "Aucun compteur n’a encore été calculé : le premier calcul a lieu après minuit UTC.",
+      global: (published: string, searchable: string) =>
+        `Ensemble : ${published} profils publiés, dont ${searchable} visibles par une marque.`,
+      topicsTitle: "Par thématique principale",
+      countriesTitle: "Par pays de l’audience principale",
+      curveTitle: "Les 29 jours précédents (ensemble)",
+      columns: {
+        topic: "Thématique",
+        country: "Pays",
+        day: "Jour",
+        published: "Publiés",
+        searchable: "Visibles",
+      },
+      empty: "Aucune ligne.",
+      thresholdsTitle: "Seuils de masse critique",
+      thresholdsHelp:
+        "Quand l’ensemble et une thématique atteignent leurs seuils, une alerte propose l’ouverture : elle ne l’applique jamais.",
+      publishedProfiles: "Profils publiés et visibles, ensemble",
+      perTopic: "Profils visibles dans une thématique principale",
+    },
+    anonymity: {
+      title: "Seuil d’anonymat",
+      label: "Nombre minimal de créateurs servis (k)",
+      help: "Entre 5 et 50 : sous ce nombre, aucune liste n’est servie à une marque.",
+    },
+    alerts: {
+      title: "Alertes de la recherche",
+      none: "Aucune alerte de la recherche ouverte.",
+      error: "Les alertes de la recherche n’ont pas pu être chargées.",
+    },
+    others: {
+      title: "Autres réglages",
+      help: "En lecture seule dans cette version : les bornes de pages, de débit et de sélections ne se changent pas ici.",
+    },
+    keys: {
+      is_open_to_advertisers: "Ouverture aux marques",
+      k_anonymity_threshold: "Seuil d’anonymat",
+      page_size: "Taille de page",
+      max_pages: "Nombre de pages",
+      rate_limits: "Débit par compte",
+      cold_profile_quota: "Profils récents en première page",
+      critical_mass_thresholds: "Seuils de masse critique",
+      region_display_threshold: "Affichage de la région",
+      selection_limits: "Sélections d’une marque",
+      identified_view: "Vue identifiée des commerciaux",
+    } as Readonly<Record<string, string>>,
+    words: {
+      isOpen: (open: boolean) =>
+        open
+          ? "Recherche des marques : ouverte"
+          : "Recherche des marques : fermée",
+      k: (value: string) => `Seuil d’anonymat : ${value} créateurs`,
+      pageSize: (value: string) => `Taille de page : ${value}`,
+      maxPages: (value: string) => `Pages au plus : ${value}`,
+      rateLimits: (hour: string, day: string, opens: string) =>
+        `Débit par compte : ${hour} par heure, ${day} par jour, ${opens} ouvertures de profil par jour`,
+      coldQuota: (slots: string, days: string) =>
+        `Profils récents en première page : ${slots} places, pour les créateurs publiés depuis ${days} jours`,
+      thresholds: (published: string, topic: string) =>
+        `Masse critique : ${published} profils au total, ${topic} dans une thématique principale`,
+      region: (value: string) => `Région affichée dès ${value} profils publiés`,
+      selection: (lists: string, items: string, requests: string) =>
+        `Sélections d’une marque : ${lists} listes, ${items} créateurs par liste, ${requests} demandes à l’équipe par jour`,
+      identified: (page: string, pages: string) =>
+        `Vue identifiée : ${page} par page, ${pages} pages au plus`,
+    },
+    reasonLabel: "Motif",
+    reasonPlaceholder: "Choisissez un motif",
+    reasons: {
+      critical_mass_reached: "Masse critique atteinte",
+      founder_decision: "Décision du fondateur",
+      abuse_response: "Réponse à un abus",
+      configuration_error: "Erreur de configuration",
+    },
+    submit: "Demander ce changement",
+    problems: {
+      reason: "Choisissez un motif pour ce changement.",
+      whole: "Écrivez un nombre entier, sans signe ni décimale.",
+      range: (min: number, max: number) =>
+        `La valeur doit être comprise entre ${min} et ${max}.`,
+      refused:
+        "La valeur est refusée : rien n’a été demandé. Vérifiez la saisie.",
+      unchanged: "La valeur est déjà celle de la base : rien à demander.",
     },
   },
 } as const;

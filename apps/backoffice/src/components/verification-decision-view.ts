@@ -324,7 +324,9 @@ export type FieldName =
   | "reexamine"
   // queue 7 (L3C-08): the opinion of the first examination, the commercial responsible
   | "opinion"
-  | "owner";
+  | "owner"
+  // queue 9 (L3G-13): the note of a closure « Autre »
+  | "note";
 
 /** D83 A-bis: how the agent proves the domain, when the base offers the login address; a choice, not typed work. */
 export type DomainProof = "login" | "code";

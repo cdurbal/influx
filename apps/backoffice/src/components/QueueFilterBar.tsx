@@ -68,11 +68,14 @@ export function QueueFilterBar({
   onChange,
   onReset,
   withAlert = true,
+  withOwner = true,
 }: {
   filters: QueueFilters;
   own: readonly OwnFilter[];
   /** Queues 5 and 6 carry no alert (08 RG63 names none for them): the filter is not offered there. */
   withAlert?: boolean;
+  /** Queue 9 has no responsible commercial in its filters (15 RG33 as that queue applies it). */
+  withOwner?: boolean;
   onChange: (key: string, value: string | null) => void;
   onReset: () => void;
 }) {
@@ -104,13 +107,15 @@ export function QueueFilterBar({
           value={filters.holder}
           onChange={(value) => onChange("holder", value)}
         />
-        <FilterSelect
-          filterKey="owner"
-          label={t.owner}
-          options={[{ value: "none", label: t.ownerOptions.none }]}
-          value={filters.owner}
-          onChange={(value) => onChange("owner", value)}
-        />
+        {withOwner ? (
+          <FilterSelect
+            filterKey="owner"
+            label={t.owner}
+            options={[{ value: "none", label: t.ownerOptions.none }]}
+            value={filters.owner}
+            onChange={(value) => onChange("owner", value)}
+          />
+        ) : null}
         {withAlert ? (
           <FilterSelect
             filterKey="alert"

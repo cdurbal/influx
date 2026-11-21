@@ -135,6 +135,8 @@ export type QueueTemplateProps<
   splitOverdue?: OverdueSplit;
   /** Queues 5 and 6 carry no alert: the filter is neither offered nor sent (default: offered). */
   withAlertFilter?: boolean;
+  /** Queue 9 has no commercial responsible to filter by (its search body has no `owner`): not offered, not sent. */
+  withOwnerFilter?: boolean;
 };
 
 type Load<Value> =
@@ -192,18 +194,21 @@ export function QueueTemplate<
     emptyLine,
     splitOverdue,
     withAlertFilter = true,
+    withOwnerFilter = true,
   } = props;
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
   const filters = useMemo(() => {
     const found = filtersOf((name) => search.get(name), ownFilters);
-    return withAlertFilter
-      ? found
-      : Object.fromEntries(
-          Object.entries(found).filter(([key]) => key !== "alert"),
-        );
-  }, [search, ownFilters, withAlertFilter]);
+    return Object.fromEntries(
+      Object.entries(found).filter(
+        ([key]) =>
+          !(key === "alert" && !withAlertFilter) &&
+          !(key === "owner" && !withOwnerFilter),
+      ),
+    );
+  }, [search, ownFilters, withAlertFilter, withOwnerFilter]);
   const paging = useMemo(() => pagingOf((name) => search.get(name)), [search]);
   // 05 RG97: a period that ends before it starts is said, never sent.
   const period = useMemo(
@@ -487,6 +492,7 @@ export function QueueTemplate<
         filters={filters}
         own={ownFilters}
         withAlert={withAlertFilter}
+        withOwner={withOwnerFilter}
         onChange={change}
         onReset={() => go({})}
       />

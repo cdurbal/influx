@@ -49,7 +49,8 @@ export type ClaimedApi<View extends ClaimedView> = {
   open: (id: string) => Promise<RelayResult<View>>;
   release: (id: string) => Promise<RelayResult<ReleaseEntryResponse>>;
   extend: (id: string) => Promise<RelayResult<ExtendEntryResponse>>;
-  forceRelease: (
+  /** Absent on a queue whose claim nobody lifts (queue 9: no forced release, l3g/modele.md §5). */
+  forceRelease?: (
     id: string,
     body: ForceReleaseRequest,
   ) => Promise<RelayResult<ForceReleaseResponse>>;
@@ -73,10 +74,13 @@ export type ClaimedScreen<View extends ClaimedView> =
 export type ClaimedPanel<Decision extends string> =
   Decision | "release" | "force" | "help" | null;
 
-/** `positive` and `negative` are the panels ‹v› and ‹r› open: they never decide (RG114, RG115). */
+/**
+ * `positive` and `negative` are the panels ‹v› and ‹r› open: they never decide (RG114, RG115). A queue with
+ * one decision only (queue 9: the closure) gives `null` to the key it has no panel for.
+ */
 export type ClaimedKeys<Decision extends string> = {
-  positive: Decision;
-  negative: Decision;
+  positive: Decision | null;
+  negative: Decision | null;
 };
 
 export function useClaimedEntry<
@@ -303,6 +307,10 @@ export function useClaimedEntry<
 
   const forceRelease = useCallback(
     (view: View) => {
+      const lift = api.forceRelease;
+      if (lift === undefined) {
+        return;
+      }
       if (forceReason === null) {
         setProblem({ field: null, text: messages.queueReview.force.required });
         return;
@@ -310,7 +318,7 @@ export function useClaimedEntry<
       void perform(
         "force",
         view,
-        () => api.forceRelease(view.entry.id, { reasonCode: forceReason }),
+        () => lift(view.entry.id, { reasonCode: forceReason }),
         async (data) => {
           setPanel(null);
           setForceReason(null);
@@ -394,8 +402,11 @@ export function useClaimedEntry<
         if (shortcut === "release") {
           askRelease(readyView);
         } else {
-          setProblem(null);
-          setPanel(shortcut === "publish" ? keys.positive : keys.negative);
+          const target = shortcut === "publish" ? keys.positive : keys.negative;
+          if (target !== null) {
+            setProblem(null);
+            setPanel(target);
+          }
         }
       }
     }
@@ -413,6 +424,7 @@ export function useClaimedEntry<
     problem,
     setProblem,
     busy,
+    canForce: api.forceRelease !== undefined,
     forceReason,
     setForceReason,
     chain,

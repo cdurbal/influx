@@ -27,12 +27,14 @@ export type SectionKey =
   | "verificationDisputes"
   | "identifierChanges"
   | "campaignReviewQueue"
+  | "teamSelectionQueue"
   | "signups"
   | "memberInvitations"
   | "identifiedSearch"
   | "dualControl"
   | "internalAccounts"
   | "apollo"
+  | "searchSettings"
   | "registrySources"
   | "health";
 
@@ -98,6 +100,13 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
         href: "/files/campagnes",
         adminOnly: false,
       },
+      // queue 9, the requests for a selection by the team (10 RG61; 15 RG26; 17b §1.7; L3G-13). The rail has no
+      // groups yet: the queue closes the list, where the dashboard of Lot 5 will bring « Faire se rencontrer »
+      {
+        key: "teamSelectionQueue",
+        href: "/files/selections-equipe",
+        adminOnly: false,
+      },
     ],
   },
   {
@@ -126,6 +135,8 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       { key: "dualControl", href: "/double-validation", adminOnly: true },
       { key: "internalAccounts", href: "/comptes-internes", adminOnly: true },
       { key: "apollo", href: "/reglages/apollo", adminOnly: true },
+      // the settings of the creator search, read and requested by an administrator (10 RG2; L3G-13)
+      { key: "searchSettings", href: "/reglages/recherche", adminOnly: true },
       // read by an agent through the brand decision screen (06 RG52), written by an administrator (RG101)
       {
         key: "registrySources",

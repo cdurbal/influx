@@ -28,6 +28,7 @@ import {
   SECTION_TITLE,
   TABULAR_CLASSES,
 } from "./bo-classes";
+import { alertLink, alertText } from "./alert-words";
 import { useTeamNames } from "./DualControlScreens";
 import { QueueSummary } from "./QueueSummary";
 import { accountHref } from "./campaign-record-view";
@@ -117,30 +118,18 @@ function Alerts({ data }: { data: AlertsResponse }) {
   return (
     <ul className="flex flex-col gap-2">
       {data.alerts.map((alert) => {
-        const destination =
-          alert.destination === null
-            ? ""
-            : messages.destinations[alert.destination];
-        const words = t.cause[alert.cause];
+        const link = alertLink(alert);
         return (
           <li
             key={`${alert.code}-${alert.cause}-${alert.destination ?? ""}-${alert.setting ?? ""}-${alert.accountId ?? ""}`}
             className={WARNING_CLASSES}
           >
-            {t.line(
-              alert.code,
-              words === undefined
-                ? alert.cause
-                : words(
-                    destination,
-                    alert.count,
-                    alert.setting === null
-                      ? undefined
-                      : messages.syncSetting[alert.setting],
-                  ),
-              alert.since === null ? null : formatDateTime(alert.since),
-            )}{" "}
-            {alert.code === "AL25" ? <ServicesLink /> : null}
+            {alertText(alert)} {alert.code === "AL25" ? <ServicesLink /> : null}
+            {link === null ? null : (
+              <Link href={link.href} className={LINK_CLASSES}>
+                {link.label}
+              </Link>
+            )}
             {alert.accountId === undefined ? null : (
               <Link
                 href={accountHref(alert.accountId)}

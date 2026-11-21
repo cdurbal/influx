@@ -69,15 +69,20 @@ import {
   type OpsTrafficWindow,
 } from "@influx/contracts/backoffice-ops";
 import {
+  closeTeamSelectionResponseSchema,
   entriesResponseSchema,
   entryLogoResponseSchema,
   extendEntryResponseSchema,
   forceReleaseResponseSchema,
   openEntryResponseSchema,
+  openTeamSelectionResponseSchema,
   publishEntryResponseSchema,
   queueCountersResponseSchema,
   rejectEntryResponseSchema,
   releaseEntryResponseSchema,
+  teamSelectionEntriesResponseSchema,
+  type CloseTeamSelectionRequest,
+  type CloseTeamSelectionResponse,
   type EntriesResponse,
   type EntriesSearchBody,
   type EntryLogoResponse,
@@ -85,12 +90,15 @@ import {
   type ForceReleaseRequest,
   type ForceReleaseResponse,
   type OpenEntryResponse,
+  type OpenTeamSelectionResponse,
   type PublishEntryRequest,
   type PublishEntryResponse,
   type QueueCountersResponse,
   type RejectEntryRequest,
   type RejectEntryResponse,
   type ReleaseEntryResponse,
+  type TeamSelectionEntriesResponse,
+  type TeamSelectionEntriesSearchBody,
 } from "@influx/contracts/backoffice-queues";
 import {
   campaignEntriesResponseSchema,
@@ -126,6 +134,10 @@ import {
   type IdentifiedCreatorSearchBody,
   type IdentifiedCreatorSearchResponse,
 } from "@influx/contracts/identified-creator-search";
+import {
+  searchSettingsResponseSchema,
+  type SearchSettingsResponse,
+} from "@influx/contracts/search-settings";
 import {
   creatorEntriesResponseSchema,
   decidedEntryResponseSchema,
@@ -1499,5 +1511,78 @@ export function readCampaignPrefill(
     "POST",
     `${CAMPAIGNS}/${idSegment(campaignId)}/creator-prefill`,
     campaignPrefillResponseSchema,
+  );
+}
+
+// --- Queue 9, the requests for a selection by the team (10 RG61; 15 C1 to C3, AL23; 17b I13; l3g/modele.md §5, §8; L3G-13) ---
+
+const TEAM_SELECTION_ENTRIES = "/v1/bo/team-selection/entries";
+
+/** One page: the filters, the period and the cursor in the BODY, as the other queues; the counters ride on the answer. */
+export function searchTeamSelectionEntries(
+  body: TeamSelectionEntriesSearchBody,
+): Promise<RelayResult<TeamSelectionEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/search`,
+    teamSelectionEntriesResponseSchema,
+    body,
+  );
+}
+
+/** Opening is claiming (15 C1): the request, its criteria and its message as plain text, and the claim. */
+export function openTeamSelectionEntry(
+  id: string,
+): Promise<RelayResult<OpenTeamSelectionResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/${idSegment(id)}/open`,
+    openTeamSelectionResponseSchema,
+  );
+}
+
+export function releaseTeamSelectionEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendTeamSelectionEntryClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+/** The closure by a reason of the closed list (17b I13); the answer carries the request to open next (§2.6). */
+export function closeTeamSelectionEntry(
+  id: string,
+  body: CloseTeamSelectionRequest,
+): Promise<RelayResult<CloseTeamSelectionResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/${idSegment(id)}/close`,
+    closeTeamSelectionResponseSchema,
+    body,
+  );
+}
+
+// --- The settings of the creator search, admin only (10 RG2; l3g/modele.md §7, §8; 0333; L3G-13) ---
+
+/** The ten keys as the base holds them and the counters of the last snapshot; a change goes through the dual control. */
+export function readSearchSettings(): Promise<
+  RelayResult<SearchSettingsResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/settings/search",
+    searchSettingsResponseSchema,
   );
 }

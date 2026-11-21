@@ -49,6 +49,7 @@ import {
   TH_CLASSES,
 } from "./bo-classes";
 import { DenseTableRegion } from "./DenseTableRegion";
+import { settingWords } from "./search-settings-view";
 import { useAction } from "./use-action";
 import {
   apolloSettingWords,
@@ -211,6 +212,20 @@ function ActionTarget({ view }: { view: DualControlViewBody }) {
       );
     case "verification.revoke_badge":
       return <TargetField view={view} label={t.target.badge} />;
+    case "search.change_setting":
+      return (
+        <Field label={t.target.setting}>{settingWords(action.setting)}</Field>
+      );
+    case "search.change_facet":
+      return (
+        <Field label={t.target.facet}>
+          {t.target.facetLine(
+            action.facetCode,
+            action.isOpen,
+            action.displayOrder,
+          )}
+        </Field>
+      );
   }
 }
 

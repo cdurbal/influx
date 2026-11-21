@@ -228,10 +228,16 @@ const ISSUE_TEXT: Readonly<Record<string, string>> = {
  * The queues that share the screens: 5 (contests of a decision), 6 (identifier changed) and, since L2G-15,
  * 2 (the creator profiles to validate: a publication, or a refusal with a typed reason) and, since L2G-16,
  * 3 (one visual of a portfolio: an approval, or a refusal with a reason of the grid of 07 RG79) and, since
- * L3C-08, 7 (a campaign: a publication, the opinion of an enhanced review's first examination, or a refusal).
+ * L3C-08, 7 (a campaign: a publication, the opinion of an enhanced review's first examination, or a refusal)
+ * and, since L3G-13, 9 (a request for a selection by the team: its closure with a reason of the closed list).
  */
 export type ClaimedQueue =
-  "dispute" | "identifier" | "creator" | "portfolio" | "campaign";
+  | "dispute"
+  | "identifier"
+  | "creator"
+  | "portfolio"
+  | "campaign"
+  | "teamSelection";
 
 /**
  * What a refused call of these queues means: a lost claim, a stale version or a closed entry read the
@@ -270,6 +276,23 @@ export function claimedRefusalOf(
           kind: "text",
           text: messages.campaignReview.decision.ownerInvalid,
           field: "owner",
+        };
+      }
+    }
+    if (queue === "teamSelection" && result.code === "validation_failed") {
+      // the database refused a value of the closure of queue 9 (22023 on the reason or the note, 0330)
+      if (issues.includes("invalid_reason")) {
+        return {
+          kind: "text",
+          text: messages.teamSelectionReview.decision.reasonInvalid,
+          field: "reason",
+        };
+      }
+      if (issues.includes("invalid_note")) {
+        return {
+          kind: "text",
+          text: messages.teamSelectionReview.decision.noteInvalid,
+          field: "note",
         };
       }
     }
