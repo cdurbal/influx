@@ -10,7 +10,7 @@ import { STORAGE_BUCKETS, type StorageBucket } from "../../platform/storage.ts";
  * The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8; ops_retention:
  * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09; verification_expiry: 0223, L2E commit 07;
  * badge_lifecycle: 0230, L2F commit 05; campaign_closure: 0309, L3C commit 04, its runner L3C
- * commit 06).
+ * commit 06; supply_counters: 0331, L3G commit 07).
  */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
@@ -22,6 +22,7 @@ export const PERIODIC_TASKS = [
   "verification_expiry",
   "badge_lifecycle",
   "campaign_closure",
+  "supply_counters",
 ] as const;
 export type PeriodicTask = (typeof PERIODIC_TASKS)[number];
 
@@ -292,6 +293,21 @@ export async function closeEndedCampaigns(
 ): Promise<number> {
   const rows = await tx.execute<{ count: number }>(
     sql`select ops.close_ended_campaigns(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * 0331 (10 RG2, D38; l3g/modele.md §6): the rows of the UTC day of search.supply_counters replaced
+ * (global, topic, country; published and searchable), never search_settings; the rows written. Only
+ * inside the open supply_counters run of this attempt (55000 otherwise).
+ */
+export async function computeSupplyCounters(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.compute_supply_counters(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
   );
   return Number(rows[0]?.count ?? 0);
 }

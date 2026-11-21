@@ -1348,6 +1348,7 @@ export const messages = {
           verification_expiry: "Expiration des codes de vérification",
           badge_lifecycle: "Péremption des badges",
           campaign_closure: "Clôture automatique des campagnes",
+          supply_counters: "Compteurs de masse critique",
         },
         outcomes: {
           succeeded: "réussie",

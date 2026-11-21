@@ -7880,6 +7880,43 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_agent_search_definer|function|search.lock_held_team_selection_request(uuid,uuid)|EXECUTE",
   "influx_agent_search_definer|schema|audit|USAGE",
   "influx_agent_search_definer|schema|backoffice|USAGE",
+  // 0331 (L3G-07, l3g/modele.md §6): the daily counters of critical mass. influx_maintenance_definer
+  // owns ops.compute_supply_counters() (EXECUTE influx_worker): it reads the published storefronts
+  // (layer A) and the attestation of their account, replaces the rows of the UTC day; never layer I
+  // nor search_settings. influx_search_admin_definer owns the two readers of the admins
+  // (search.critical_mass_alerts(), search.read_supply_counters(); EXECUTE influx_admin) and reads
+  // the counters.
+  "influx_admin|function|search.critical_mass_alerts()|EXECUTE",
+  "influx_admin|function|search.read_supply_counters()|EXECUTE",
+  "influx_worker|function|ops.compute_supply_counters(uuid,smallint)|EXECUTE",
+  "influx_maintenance_definer|column|identity.accounts.is_adult_attested|SELECT",
+  "influx_maintenance_definer|column|profiles.creator_public_profiles.account_id|SELECT",
+  "influx_maintenance_definer|column|profiles.creator_public_profiles.is_searchable|SELECT",
+  "influx_maintenance_definer|column|profiles.creator_public_profiles.main_audience_country|SELECT",
+  "influx_maintenance_definer|column|profiles.creator_public_profiles.primary_topic_code|SELECT",
+  "influx_maintenance_definer|column|profiles.creator_public_profiles.status|SELECT",
+  "influx_maintenance_definer|column|search.supply_counters.computed_at|INSERT",
+  "influx_maintenance_definer|column|search.supply_counters.dimension|INSERT",
+  "influx_maintenance_definer|column|search.supply_counters.dimension_value|INSERT",
+  "influx_maintenance_definer|column|search.supply_counters.published_profiles_count|INSERT",
+  "influx_maintenance_definer|column|search.supply_counters.searchable_profiles_count|INSERT",
+  "influx_maintenance_definer|column|search.supply_counters.snapshot_on|INSERT,SELECT",
+  "influx_maintenance_definer|function|ops.compute_supply_counters(uuid,smallint)|EXECUTE",
+  "influx_maintenance_definer|schema|search|USAGE",
+  "influx_maintenance_definer|table|search.supply_counters|DELETE",
+  ...[
+    "snapshot_on",
+    "dimension",
+    "dimension_value",
+    "published_profiles_count",
+    "searchable_profiles_count",
+    "computed_at",
+  ].map(
+    (column) =>
+      `influx_search_admin_definer|column|search.supply_counters.${column}|SELECT`,
+  ),
+  "influx_search_admin_definer|function|search.critical_mass_alerts()|EXECUTE",
+  "influx_search_admin_definer|function|search.read_supply_counters()|EXECUTE",
 ];
 
 /**
@@ -8513,4 +8550,9 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "search.extend_team_selection_claim(uuid)": "influx_agent_search_definer",
   "search.open_team_selection_request(uuid)": "influx_agent_search_definer",
   "search.release_team_selection_request(uuid)": "influx_agent_search_definer",
+  // 0331 (L3G, l3g/modele §6): the daily counters of critical mass (the worker) and the two readers
+  // of the admins (AL65, AL22 and the counters)
+  "ops.compute_supply_counters(uuid,smallint)": "influx_maintenance_definer",
+  "search.critical_mass_alerts()": "influx_search_admin_definer",
+  "search.read_supply_counters()": "influx_search_admin_definer",
 };

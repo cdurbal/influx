@@ -1841,6 +1841,8 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       // 0309 (L3C commit 04): E-4, the automatic closure of the ended campaigns (09 RG9)
       "ops.close_ended_campaigns(uuid,smallint)",
       "ops.complete_storage_purges(uuid,smallint,uuid[])",
+      // 0331 (L3G commit 07): E-4, the daily counters of critical mass (10 RG2, D38)
+      "ops.compute_supply_counters(uuid,smallint)",
       // 0223 (L2E commit 07): E-4, the expiry of the draft verification requests
       "ops.expire_verification_requests(uuid,smallint)",
       "ops.filter_auth_orphans(uuid,smallint,uuid[])",

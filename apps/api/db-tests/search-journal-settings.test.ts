@@ -277,6 +277,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
         role: "influx_admin",
         name: "search.creator_search_volume_alerts()",
       },
+      // 0331 (L3G-07): AL65 and AL22, the critical mass read by the admins
+      {
+        role: "influx_admin",
+        name: "search.critical_mass_alerts()",
+      },
       {
         role: "influx_admin",
         name: "search.extend_team_selection_claim(uuid)",
@@ -289,6 +294,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
       {
         role: "influx_admin",
         name: "search.prefill_campaign_filters(uuid)",
+      },
+      // 0331 (L3G-07): the counters of critical mass, read by the admins
+      {
+        role: "influx_admin",
+        name: "search.read_supply_counters()",
       },
       {
         role: "influx_admin",

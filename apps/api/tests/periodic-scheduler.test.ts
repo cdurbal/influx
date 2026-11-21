@@ -29,6 +29,7 @@ import {
   createOpsRetention,
   createBadgeLifecycle,
   createCampaignClosure,
+  createSupplyCounters,
   createVerificationExpiry,
   BADGE_LIFECYCLE_BATCH,
   CAMPAIGN_CLOSURE_BATCH,
@@ -113,6 +114,9 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
       return 0;
     },
     async closeEndedCampaigns() {
+      return 0;
+    },
+    async computeSupplyCounters() {
       return 0;
     },
   };
@@ -1078,5 +1082,92 @@ describe("L3C-T6: campaign_closure (0309; 09 RG9; L3C commit 06)", () => {
       outcome: "succeeded",
       counts: { closed: 2 },
     });
+  });
+});
+
+describe("L3G-T7: supply_counters (0331; 10 RG2, CA60, D38; L3G commit 07)", () => {
+  it("is a daily task keyed by UTC day, due from 00:00 UTC, and in the list of the health screen", () => {
+    expect(periodKeyOf("supply_counters", AT_0259)).toBe("2026-10-13");
+    expect(periodKeyOf("supply_counters", AT_0300)).toBe("2026-10-13");
+    expect(
+      isDue("supply_counters", Date.parse("2026-10-13T00:00:00.000Z"), 3),
+    ).toBe(true);
+    expect(OPS_PERIODIC_TASKS).toContain("supply_counters");
+  });
+
+  it("is claimed once per period, computes the day in one call and counts the rows written", async () => {
+    const { store, claims, finishes } = memoryStore();
+    const computed: PeriodicRun[] = [];
+    store.computeSupplyCounters = async (run) => {
+      computed.push(run);
+      return 14;
+    };
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: { supply_counters: createSupplyCounters(store) },
+      logger: silentLogger().logger,
+      now: () => AT_0259,
+    });
+    await scheduler.tick(signal());
+    await scheduler.tick(signal());
+    expect(claims).toEqual([
+      { task: "supply_counters", periodKey: "2026-10-13" },
+    ]);
+    expect(computed).toEqual([{ runId: "run-1", attempt: 1 }]);
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["succeeded", { rows: 14 }],
+    ]);
+  });
+
+  it("a failure of the database closes the run failed (the day before stays in base), and the next day runs again", async () => {
+    let now = AT_0300;
+    const { store, finishes } = memoryStore();
+    let fail = true;
+    store.computeSupplyCounters = async () => {
+      if (fail) {
+        throw new Error("boom");
+      }
+      return 3;
+    };
+    const { logger, lines } = silentLogger();
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: { supply_counters: createSupplyCounters(store) },
+      logger,
+      now: () => now,
+    });
+    await scheduler.tick(signal());
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["failed", {}],
+    ]);
+    expect(
+      lines.some((line) => line.message === "maintenance.periodic.failed"),
+    ).toBe(true);
+    now += 24 * 3_600_000;
+    fail = false;
+    await scheduler.tick(signal());
+    expect(finishes.at(-1)).toMatchObject({
+      outcome: "succeeded",
+      counts: { rows: 3 },
+    });
+  });
+
+  it("stops before computing when asked, leaving the run open for another instance", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.computeSupplyCounters = async () => {
+      calls += 1;
+      return 1;
+    };
+    const stop = new AbortController();
+    stop.abort();
+    await expect(
+      createSupplyCounters(store)(
+        { runId: "run-1", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+    expect(calls).toBe(0);
   });
 });

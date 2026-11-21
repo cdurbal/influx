@@ -75,6 +75,7 @@ import {
   createPeriodicStore,
   createBadgeLifecycle,
   createCampaignClosure,
+  createSupplyCounters,
   createVerificationExpiry,
   type PeriodicLogger,
   type PeriodicScheduler,
@@ -163,7 +164,8 @@ function connectorsOf(
  * the purge of Storage (0205, D80) with the secret key of the project; a task without its key is
  * never claimed. The 30-day purge, the purge of the
  * exports (J8 commit 8), the retention of ops (J9 commit 8), the expiry of the verification
- * codes (L2E commit 07) and the closure of the ended campaigns (L3C commit 06) need neither.
+ * codes (L2E commit 07), the closure of the ended campaigns (L3C commit 06) and the counters of
+ * critical mass (L3G commit 07) need neither.
  */
 function periodicSchedulerOf(
   config: WorkerConfig,
@@ -185,6 +187,8 @@ function periodicSchedulerOf(
     badge_lifecycle: createBadgeLifecycle(store),
     // 0309: the campaigns whose period ended campaign_auto_close_days ago (09 RG9)
     campaign_closure: createCampaignClosure(store),
+    // 0331: the counters of critical mass of the day, which propose the opening (10 RG2, D38)
+    supply_counters: createSupplyCounters(store),
   };
   if (config.brevoTransport.apiKey !== null) {
     runners.brevo_reconciliation = createBrevoReconciliation({

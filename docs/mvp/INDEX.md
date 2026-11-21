@@ -166,27 +166,27 @@
 | 404 | 65 | ↳ 4.1 `influx` — fonctions de contexte |  |
 | 469 | 99 | ↳ 4.2 `reference` — les listes fermées partagées | RG18–RG115 |
 | 568 | 237 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
-| 805 | 4694 | 5. Le schéma, domaine par domaine | RG2–RG163 |
+| 805 | 4706 | 5. Le schéma, domaine par domaine | RG2–RG163 |
 | 807 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
 | 1255 | 281 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG86 |
 | 1536 | 167 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
 | 1703 | 417 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG103 |
-| 2120 | 288 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG101 |
-| 2408 | 929 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
-| 3337 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
-| 4336 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
-| 4701 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
-| 5082 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
-| 5476 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
-| 5499 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
-| 5706 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
-| 5988 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 6026 | 130 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
-| 6156 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6321 | 196 | 11. Plan de migrations | RG1–RG163 |
-| 6517 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6694 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6730 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 2120 | 300 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG101 |
+| 2420 | 929 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
+| 3349 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
+| 4348 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
+| 4713 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
+| 5094 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
+| 5488 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
+| 5511 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
+| 5718 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
+| 6000 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
+| 6038 | 130 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
+| 6168 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6333 | 197 | 11. Plan de migrations | RG1–RG163 |
+| 6530 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6707 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6743 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 
@@ -331,23 +331,23 @@
 | 56 | 23 | Besoin |  |
 | 79 | 17 | Acteurs | RG105 |
 | 96 | 54 | User stories |  |
-| 150 | 783 | Règles de gestion | RG1–RG117 |
-| 152 | 49 | ↳ A — Périmètre, ouverture de la recherche et principes | RG1–RG105 |
-| 201 | 152 | ↳ B — Les facettes | RG6–RG117 |
-| 353 | 59 | ↳ C — Exclusions automatiques | RG3–RG84 |
-| 412 | 100 | ↳ D — Tri par défaut, explication et cas froid | RG14–RG73 |
-| 512 | 110 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
-| 622 | 54 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG52–RG78 |
-| 676 | 73 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
-| 749 | 61 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
-| 810 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
-| 846 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
-| 897 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
-| 933 | 115 | Cas limites | RG1–RG92 |
-| 1048 | 281 | Critères d'acceptation | RG12–RG117 |
-| 1329 | 62 | Impacts | RG2–RG89 |
-| 1391 | 19 | Hors périmètre | RG6–RG105 |
-| 1410 | 26 | Questions ouvertes | RG1–RG86 |
+| 150 | 786 | Règles de gestion | RG1–RG117 |
+| 152 | 52 | ↳ A — Périmètre, ouverture de la recherche et principes | RG1–RG105 |
+| 204 | 152 | ↳ B — Les facettes | RG6–RG117 |
+| 356 | 59 | ↳ C — Exclusions automatiques | RG3–RG84 |
+| 415 | 100 | ↳ D — Tri par défaut, explication et cas froid | RG14–RG73 |
+| 515 | 110 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
+| 625 | 54 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG52–RG78 |
+| 679 | 73 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
+| 752 | 61 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
+| 813 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
+| 849 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
+| 900 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
+| 936 | 115 | Cas limites | RG1–RG92 |
+| 1051 | 281 | Critères d'acceptation | RG12–RG117 |
+| 1332 | 62 | Impacts | RG2–RG89 |
+| 1394 | 19 | Hors périmètre | RG6–RG105 |
+| 1413 | 26 | Questions ouvertes | RG1–RG86 |
 
 ## 11-recherche-campagnes-et-candidature.md (~30k tokens)
 
@@ -459,42 +459,42 @@
 | 1299 | 24 | Ce qui change en V2 |  |
 | 1323 | 55 | Additif du 2026-09-24 — Suivi de livraison (D52) et relations préexistantes (D53) | RG2–RG112 |
 
-## 15-backoffice-files-et-supervision.md (~43k tokens)
+## 15-backoffice-files-et-supervision.md (~44k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
 | 29 | 21 | Besoin |  |
 | 50 | 16 | Acteurs |  |
 | 66 | 49 | User stories |  |
-| 115 | 879 | Règles de gestion | RG1–RG161 |
+| 115 | 880 | Règles de gestion | RG1–RG161 |
 | 117 | 71 | ↳ A — Portée, principes et vocabulaire | RG1–RG13 |
 | 188 | 68 | ↳ B — Le tableau de bord | RG5–RG108 |
 | 256 | 114 | ↳ C — Le catalogue unique des files | RG6–RG104 |
 | 370 | 71 | ↳ D — La fiche de compte | RG38–RG108 |
 | 441 | 78 | ↳ E — Suspension, réactivation, réattribution | RG26–RG95 |
-| 519 | 83 | ↳ F — Le catalogue central des alertes | RG8–RG161 |
-| 602 | 112 | ↳ G — Les demandes relatives aux données personnelles | RG57–RG160 |
-| 714 | 49 | ↳ H — Les actions de masse | RG2–RG102 |
-| 763 | 40 | ↳ I — Les exports | RG81–RG106 |
-| 803 | 66 | ↳ J — La gestion des comptes internes | RG60–RG108 |
-| 869 | 41 | ↳ K — Ce qu'un rôle interne ne peut jamais faire | RG7–RG111 |
-| 910 | 84 | ↳ L — Densité, accessibilité et langue | RG11–RG124 |
-| 994 | 44 | Cas limites | RG4–RG116 |
-| 1038 | 304 | Critères d'acceptation | RG16–RG109 |
-| 1040 | 33 | ↳ Tableau de bord | RG16–RG18 |
-| 1073 | 43 | ↳ Catalogue et règles communes des files | RG29 |
-| 1116 | 35 | ↳ Fiche de compte | RG48 |
-| 1151 | 39 | ↳ Suspension, réactivation, réattribution |  |
-| 1190 | 24 | ↳ Alertes |  |
-| 1214 | 41 | ↳ Demandes relatives aux données personnelles | RG81 |
-| 1255 | 33 | ↳ Actions de masse et exports |  |
-| 1288 | 22 | ↳ Comptes internes | RG107 |
-| 1310 | 32 | ↳ Interdits, densité et accessibilité | RG43–RG109 |
-| 1342 | 102 | Impacts | RG8–RG125 |
-| 1444 | 21 | Hors périmètre | RG10–RG100 |
-| 1465 | 29 | Questions ouvertes | RG19–RG111 |
-| 1494 | 162 | Additif du document 16 (2026-09-19) | RG9–RG131 |
-| 1656 | 46 | Additif du J9 (2026-10-21) — alertes techniques de D60 | RG46–RG165 |
+| 519 | 84 | ↳ F — Le catalogue central des alertes | RG2–RG161 |
+| 603 | 112 | ↳ G — Les demandes relatives aux données personnelles | RG57–RG160 |
+| 715 | 49 | ↳ H — Les actions de masse | RG2–RG102 |
+| 764 | 40 | ↳ I — Les exports | RG81–RG106 |
+| 804 | 66 | ↳ J — La gestion des comptes internes | RG60–RG108 |
+| 870 | 41 | ↳ K — Ce qu'un rôle interne ne peut jamais faire | RG7–RG111 |
+| 911 | 84 | ↳ L — Densité, accessibilité et langue | RG11–RG124 |
+| 995 | 44 | Cas limites | RG4–RG116 |
+| 1039 | 304 | Critères d'acceptation | RG16–RG109 |
+| 1041 | 33 | ↳ Tableau de bord | RG16–RG18 |
+| 1074 | 43 | ↳ Catalogue et règles communes des files | RG29 |
+| 1117 | 35 | ↳ Fiche de compte | RG48 |
+| 1152 | 39 | ↳ Suspension, réactivation, réattribution |  |
+| 1191 | 24 | ↳ Alertes |  |
+| 1215 | 41 | ↳ Demandes relatives aux données personnelles | RG81 |
+| 1256 | 33 | ↳ Actions de masse et exports |  |
+| 1289 | 22 | ↳ Comptes internes | RG107 |
+| 1311 | 32 | ↳ Interdits, densité et accessibilité | RG43–RG109 |
+| 1343 | 102 | Impacts | RG8–RG125 |
+| 1445 | 21 | Hors périmètre | RG10–RG100 |
+| 1466 | 29 | Questions ouvertes | RG19–RG111 |
+| 1495 | 162 | Additif du document 16 (2026-09-19) | RG9–RG131 |
+| 1657 | 46 | Additif du J9 (2026-10-21) — alertes techniques de D60 | RG46–RG165 |
 
 ## 16-backoffice-emails-brevo.md (~54k tokens)
 

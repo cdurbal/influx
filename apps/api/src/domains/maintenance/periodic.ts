@@ -19,6 +19,8 @@
 //                          event, no agent), then the retention of the findings (0230, L2F commit 12)
 //   campaign_closure       daily: the campaigns whose period ended campaign_auto_close_days ago are
 //                          closed by the system (09 RG9; 0309, L3C commit 06)
+//   supply_counters        daily: the counters of critical mass of the UTC day, replaced (10 RG2,
+//                          D38; 0331, L3G commit 07); they propose the opening, never flip it
 //
 // A task without its key in this process (no Brevo key, no GoTrue key) is never claimed. A task
 // that fails closes its run `failed` with the counts reached and a closed code in pino (D60): the
@@ -38,6 +40,7 @@ import {
   CAMPAIGN_CLOSURE_BATCH,
   claimPeriodicRun,
   closeEndedCampaigns,
+  computeSupplyCounters,
   filterAuthOrphans,
   finishPeriodicRun,
   gotrueRealignmentCandidates,
@@ -148,6 +151,8 @@ export type PeriodicStore = {
   purgeVerificationFindings(run: PeriodicRun): Promise<number>;
   /** 0309: one call of ops.close_ended_campaigns() (at most CAMPAIGN_CLOSURE_BATCH campaigns); the count. */
   closeEndedCampaigns(run: PeriodicRun): Promise<number>;
+  /** 0331: one call of ops.compute_supply_counters(), the day replaced; the rows written. */
+  computeSupplyCounters(run: PeriodicRun): Promise<number>;
 };
 
 export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
@@ -296,6 +301,13 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
       elevated(async (tx) => {
         const count = await closeEndedCampaigns(tx, run);
         return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    // the rows of the day are always rewritten (at least the global one): an effect on the run
+    computeSupplyCounters: (run) =>
+      elevated(async (tx) => {
+        const count = await computeSupplyCounters(tx, run);
+        return { value: count, auditSubject: run.runId };
       }),
   };
 }
@@ -616,5 +628,18 @@ export function createCampaignClosure(
         return;
       }
     }
+  };
+}
+
+/**
+ * 0331 (10 RG2, CA60, D38; l3g/modele.md §6): the counters of critical mass of the UTC day, in one
+ * transaction (the rows of the day replaced, a replay idempotent). A failure leaves the day before
+ * in place, and AL65 (counters_stale) says so. The day is the database's: nothing here reads a clock,
+ * nothing here touches the opening of the search.
+ */
+export function createSupplyCounters(store: PeriodicStore): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    checkNotStopped(signal);
+    counts.rows = await store.computeSupplyCounters(run);
   };
 }

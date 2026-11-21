@@ -163,7 +163,10 @@ l'ouvre qu'à un demandeur qualifié.
 créateur publiés et visibles, et nombre de profils par thématique principale — et **propose**
 l'ouverture lorsque les seuils paramétrés sont atteints (valeurs de départ : **30 profils publiés et
 5 par thématique**). **L'ouverture reste une décision humaine** : l'atteinte des seuils déclenche une
-alerte au backoffice, jamais l'activation.
+alerte au backoffice, jamais l'activation. *`0331` (L3G-07) : tâche quotidienne `supply_counters` (compteurs
+global, par thématique principale et par pays d'audience, publiés et cherchables, dans
+`search.supply_counters`) ; l'alerte est AL65 (`15` RG68), lue sur les compteurs cherchables
+(EC-L3G-07-1) ; la tâche n'écrit jamais `is_open_to_advertisers`.*
 
 **RG3** — Tant que la recherche est fermée, ou pour une thématique dont le compteur est sous le seuil
 paramétré, l'écran marque reste accessible mais **n'affiche aucune liste** : il présente les

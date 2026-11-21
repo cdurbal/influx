@@ -52,7 +52,8 @@ export const UNIT_CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/new-device-email.test.ts": 6,
   "tests/ops-health.test.ts": 14,
   "tests/ops-scrub.test.ts": 40,
-  "tests/periodic-scheduler.test.ts": 43,
+  // L3G-07 (L3G-T7): supply_counters, its period, its claim, its failure and its stop
+  "tests/periodic-scheduler.test.ts": 47,
   "tests/postgres-unsafe.test.ts": 12,
   "tests/privacy-export-texts.test.ts": 8,
   "tests/probe.test.ts": 9,
