@@ -21,6 +21,15 @@ import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
 import { searchColumns } from "../src/db/schema/introspection.ts";
 import {
+  approvedChange,
+  asAdminOf,
+  FACET_ACTION,
+  SETTING_ACTION,
+  SETTING_REASON,
+  WRITE_FACET,
+  WRITE_SETTING,
+} from "./search-settings-kit.ts";
+import {
   actAsInternal,
   actAsMember,
   localSuperuser,
@@ -94,23 +103,76 @@ function scenario<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   return inRolledBackTransaction(localSuperuser(), fn);
 }
 
+/** Admin A, the executor of the 2V (0332), bound to `session` when given. */
 function asAdmin<T>(
   tx: Tx,
   fn: () => Promise<T>,
   aal: "aal1" | "aal2" = "aal2",
+  session?: string,
 ): Promise<T> {
-  return actAsInternal(
+  return asAdminOf(tx, adminA, fn, {
+    aal,
+    ...(session === undefined ? {} : { session }),
+  });
+}
+
+/**
+ * 0332 (L3G-08, l3g/modele §7): admin A writes `key` = `value` under a 2V requested by admin B and
+ * confirmed by admin A, the writer called by admin A with the session of the confirmation.
+ */
+async function peerSetting<T = Record<string, unknown>>(
+  tx: Tx,
+  key: string,
+  value: unknown,
+): Promise<Outcome<T>> {
+  const { request, session } = await approvedChange(tx, SETTING_ACTION, {
+    key,
+    value,
+  });
+  return asAdmin(
     tx,
-    "influx_admin",
-    { accountId: adminA, role: "admin", aal },
-    fn,
+    () =>
+      run<T>(tx, WRITE_SETTING, [
+        session,
+        request,
+        key,
+        JSON.stringify(value),
+        SETTING_REASON,
+      ]),
+    "aal2",
+    session,
   );
 }
 
-const WRITE_SETTING =
-  "select search.write_search_setting($1::text, $2::text::jsonb)::int as version";
-const WRITE_FACET =
-  "select search.write_facet_setting($1::text, $2::boolean, $3::integer, $4::text)::int as version";
+/** 0332: admin A opens, closes or orders facet `code` under a peer's 2V, `note` outside the 2V. */
+async function peerFacet<T = Record<string, unknown>>(
+  tx: Tx,
+  code: string,
+  isOpen: boolean,
+  displayOrder: number,
+  note: string | null,
+): Promise<Outcome<T>> {
+  const { request, session } = await approvedChange(tx, FACET_ACTION, {
+    facet_code: code,
+    is_open: isOpen,
+    display_order: displayOrder,
+  });
+  return asAdmin(
+    tx,
+    () =>
+      run<T>(tx, WRITE_FACET, [
+        session,
+        request,
+        code,
+        isOpen,
+        displayOrder,
+        SETTING_REASON,
+        note,
+      ]),
+    "aal2",
+    session,
+  );
+}
 
 type Line = {
   seq: string;
@@ -231,8 +293,8 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
                       where a.privilege_type = 'EXECUTE' and a.grantee <> p.proowner
                       order by 1) as callers
           from pg_catalog.pg_proc p
-         where p.oid in ('search.write_search_setting(text, jsonb)'::regprocedure,
-                         'search.write_facet_setting(text, boolean, integer, text)'::regprocedure)
+         where p.oid in ('search.write_search_setting(uuid, uuid, text, jsonb, text)'::regprocedure,
+                         'search.write_facet_setting(uuid, uuid, text, boolean, integer, text, text)'::regprocedure)
          order by 1`;
       const executed = await tx<{ role: string; name: string }[]>`
         select r as role, p.oid::regprocedure::text as name
@@ -250,16 +312,17 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
       rolsuper: false,
       members: 0,
     });
+    // 0332 (L3G-08, l3g/modele §7): the signatures of 0316 replaced by the writers under a peer's 2V
     expect(outcome.writers).toEqual([
       {
-        name: "search.write_facet_setting(text,boolean,integer,text)",
+        name: "search.write_facet_setting(uuid,uuid,text,boolean,integer,text,text)",
         owner: "influx_search_admin_definer",
         definer: true,
         config: ['search_path=""'],
         callers: ["influx_admin"],
       },
       {
-        name: "search.write_search_setting(text,jsonb)",
+        name: "search.write_search_setting(uuid,uuid,text,jsonb,text)",
         owner: "influx_search_admin_definer",
         definer: true,
         config: ['search_path=""'],
@@ -309,11 +372,15 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
         role: "influx_admin",
         name: "search.search_creators_identified(jsonb,text,integer,uuid,uuid)",
       },
+      // 0332 (L3G-08): the two writers under a peer's 2V, new signatures
       {
         role: "influx_admin",
-        name: "search.write_facet_setting(text,boolean,integer,text)",
+        name: "search.write_facet_setting(uuid,uuid,text,boolean,integer,text,text)",
       },
-      { role: "influx_admin", name: "search.write_search_setting(text,jsonb)" },
+      {
+        role: "influx_admin",
+        name: "search.write_search_setting(uuid,uuid,text,jsonb,text)",
+      },
       // 0324 (L3F-04, EC-L3F-04-8): the brand's eight doors of the shortlists, by alias
       { role: "influx_advertiser", name: "search.add_to_shortlist(uuid,text)" },
       { role: "influx_advertiser", name: "search.create_shortlist(text,uuid)" },
@@ -602,18 +669,16 @@ describe("L3E-T3 the writers of an administrator (fiche invariant 11; 10 RG11, R
     const outcome = await scenario(async (tx) => {
       const since = await lastSeq(tx);
       const before = await latestVersion(tx);
-      const open = await asAdmin(tx, () =>
-        run<{ version: number }>(tx, WRITE_SETTING, [
-          "is_open_to_advertisers",
-          "true",
-        ]),
+      const open = await peerSetting<{ version: number }>(
+        tx,
+        "is_open_to_advertisers",
+        true,
       );
       const afterOpen = await latestVersion(tx);
-      const k = await asAdmin(tx, () =>
-        run<{ version: number }>(tx, WRITE_SETTING, [
-          "k_anonymity_threshold",
-          "7",
-        ]),
+      const k = await peerSetting<{ version: number }>(
+        tx,
+        "k_anonymity_threshold",
+        7,
       );
       const [row] = await tx<{ value: unknown; author: string }[]>`
         select value, updated_by_account_id::text as author
@@ -673,31 +738,57 @@ describe("L3E-T3 the writers of an administrator (fiche invariant 11; 10 RG11, R
   it("L3E-T3 writes nothing for an unchanged value, refuses an unknown key and a refused shape (22023), and refuses the agent, the brand and an admin in aal1 (42501)", async () => {
     const outcome = await scenario(async (tx) => {
       const since = await lastSeq(tx);
-      const unchanged = await asAdmin(tx, () =>
-        run(tx, WRITE_SETTING, ["page_size", "12"]),
-      );
+      const unchanged = await peerSetting(tx, "page_size", 12);
+      // 0332: the row of the key is checked before the 2V (EC-L3G-08-1), the shape by the CHECK after
       const unknown = await asAdmin(tx, () =>
-        run(tx, WRITE_SETTING, ["alert_thresholds", "{}"]),
+        run(tx, WRITE_SETTING, [
+          randomUUID(),
+          randomUUID(),
+          "alert_thresholds",
+          "{}",
+          SETTING_REASON,
+        ]),
       );
-      const shape = await asAdmin(tx, () =>
-        run(tx, WRITE_SETTING, ["k_anonymity_threshold", "4"]),
-      );
+      const shape = await peerSetting(tx, "k_anonymity_threshold", 4);
       const aal1 = await asAdmin(
         tx,
-        () => run(tx, WRITE_SETTING, ["page_size", "10"]),
+        () =>
+          run(tx, WRITE_SETTING, [
+            randomUUID(),
+            randomUUID(),
+            "page_size",
+            "10",
+            SETTING_REASON,
+          ]),
         "aal1",
       );
       const agent = await actAsInternal(
         tx,
         "influx_agent",
         { accountId: agentA, role: "agent", aal: "aal2" },
-        () => run(tx, WRITE_SETTING, ["page_size", "10"]),
+        () =>
+          run(tx, WRITE_SETTING, [
+            randomUUID(),
+            randomUUID(),
+            "page_size",
+            "10",
+            SETTING_REASON,
+          ]),
       );
       const brand = await actAsMember(
         tx,
         "influx_advertiser",
         { accountId: brandA, role: "advertiser", aal: "aal1" },
-        () => run(tx, WRITE_FACET, ["F17", false, 8, null]),
+        () =>
+          run(tx, WRITE_FACET, [
+            randomUUID(),
+            randomUUID(),
+            "F17",
+            false,
+            8,
+            SETTING_REASON,
+            null,
+          ]),
       );
       const [row] = await tx<{ author: string | null }[]>`
         select updated_by_account_id::text as author
@@ -729,28 +820,40 @@ describe("L3E-T3 the writers of an administrator (fiche invariant 11; 10 RG11, R
     const outcome = await scenario(async (tx) => {
       const since = await lastSeq(tx);
       const before = await latestVersion(tx);
-      const close = await asAdmin(tx, () =>
-        run<{ version: number }>(tx, WRITE_FACET, [
-          "F17",
-          false,
-          8,
-          "  pilot check  ",
-        ]),
+      const close = await peerFacet<{ version: number }>(
+        tx,
+        "F17",
+        false,
+        8,
+        "  pilot check  ",
       );
-      const reorder = await asAdmin(tx, () =>
-        run<{ version: number }>(tx, WRITE_FACET, ["F17", false, 3, null]),
+      const reorder = await peerFacet<{ version: number }>(
+        tx,
+        "F17",
+        false,
+        3,
+        null,
       );
-      const unchanged = await asAdmin(tx, () =>
-        run<{ version: number }>(tx, WRITE_FACET, ["F17", false, 3, "again"]),
+      const unchanged = await peerFacet<{ version: number }>(
+        tx,
+        "F17",
+        false,
+        3,
+        "again",
       );
-      const secondWave = await asAdmin(tx, () =>
-        run(tx, WRITE_FACET, ["F2", true, 9, null]),
-      );
-      const price = await asAdmin(tx, () =>
-        run(tx, WRITE_FACET, ["F12", true, 7, null]),
-      );
+      const secondWave = await peerFacet(tx, "F2", true, 9, null);
+      const price = await peerFacet(tx, "F12", true, 7, null);
+      // 0332: the row of the facet is checked before the 2V (EC-L3G-08-1)
       const unknown = await asAdmin(tx, () =>
-        run(tx, WRITE_FACET, ["F21", false, 9, null]),
+        run(tx, WRITE_FACET, [
+          randomUUID(),
+          randomUUID(),
+          "F21",
+          false,
+          9,
+          SETTING_REASON,
+          null,
+        ]),
       );
       const versions = await tx<
         { version: number; note: string | null; f17: unknown; author: string }[]
@@ -809,6 +912,7 @@ describe("L3E-T3 the writers of an administrator (fiche invariant 11; 10 RG11, R
       price: { code: INVALID_PARAMETER, detail: "facet_not_openable" },
       unknown: { code: INVALID_PARAMETER, detail: "facet_code" },
     });
+    // 0332 (L3G-08): each line names its 2V and the peer mode
     expect(outcome.lines.map((line) => line.payload)).toEqual([
       {
         table: "facet_settings",
@@ -816,6 +920,8 @@ describe("L3E-T3 the writers of an administrator (fiche invariant 11; 10 RG11, R
         before: { is_open: true, display_order: 8 },
         after: { is_open: false, display_order: 8 },
         facet_config_version: first,
+        dual_control_request_id: expect.any(String),
+        dual_control: "peer",
       },
       {
         table: "facet_settings",
@@ -823,6 +929,8 @@ describe("L3E-T3 the writers of an administrator (fiche invariant 11; 10 RG11, R
         before: { is_open: false, display_order: 8 },
         after: { is_open: false, display_order: 3 },
         facet_config_version: second,
+        dual_control_request_id: expect.any(String),
+        dual_control: "peer",
       },
     ]);
     expect(outcome.lines.every((line) => line.chained)).toBe(true);

@@ -126,7 +126,7 @@ mettre en scène une approbation de soi-même.
 | **PD1** | **Récapitulatif intégral** | Portée exacte, nombre d'éléments concernés, conséquences, réversibilité annoncée **avant** le premier geste |
 | **PD2** | **Confirmation différée** | La confirmation a lieu **dans un second temps**, sur un écran distinct, atteignable par une action séparée — jamais dans le même enchaînement de clics. Délai minimal technique : **60 secondes** entre la demande et la confirmation possible. Ce n'est pas une friction gratuite : c'est le seul mécanisme qui protège contre le geste réflexe |
 | **PD3** | **Re-authentification** | La confirmation exige une **saisie de second facteur fraîche** (TOTP, fenêtre de validité 5 minutes). Elle protège contre le poste laissé déverrouillé, qui est le scénario réaliste d'un backoffice utilisé huit heures par jour |
-| **PD4** | **Traçage nominatif à deux horodatages** | `requested_by`, `requested_at`, `confirmed_by`, `confirmed_at`, motif typé, motif libre facultatif. Les deux horodatages sont conservés même s'ils portent le même nom |
+| **PD4** | **Traçage nominatif à deux horodatages** | `requested_by`, `requested_at`, `confirmed_by`, `confirmed_at`, motif typé, motif libre facultatif. Les deux horodatages sont conservés même s'ils portent le même nom. *Exception (`0332`, D38 Q2) : les réglages de la recherche (`search.change_setting`, `search.change_facet`) n'ont **aucun** mode dégradé ; sans second admin, aucune demande ne s'ouvre* |
 | **PD5** | **Marquage explicite** | La ligne de journal porte `dual_control: 'degraded_single_operator'`. Une revue ultérieure doit pouvoir isoler en une requête toutes les actions passées sans contrôle par les pairs |
 | **PD6** | **Revue hebdomadaire** | La liste des actions confirmées en mode dégradé est présentée au tableau de bord du backoffice, semaine par semaine. Non lue, elle ne sert à rien ; c'est une discipline d'équipe, pas un contrôle technique |
 | **PD7** | **Bascule automatique** | Dès qu'un second compte `admin` existe et est actif, la règle cible s'applique **sans changement de code** : le mode dégradé est une branche conditionnée par « nombre d'admins actifs distincts du demandeur ≥ 1 » |
@@ -334,7 +334,7 @@ create policy creator_identity_read_after_reveal
 | Recherche de campagnes | — | ✔ C(39) | ✔ | ✔ | — |
 | Journal des lectures du fil et des fiches de campagne | **⛔** | — | — *(Lot 5)* | — *(Lot 5)* | ✔ (E-5) |
 | Shortlist | ✔ *(ses listes, par alias : huit portes de `0324`)* C(40) C(42) | — | L · J | L · J | — |
-| Réglages de la recherche, facettes, versions | — | — | — | ✔ · J C(40) | — |
+| Réglages de la recherche, facettes, versions | — | — | — | ✔ · J · 2V C(40) *(`0332` : `search.change_setting`, `search.change_facet` confirmées par un **autre** admin, exécutées par lui avec R ; **pair seul**, jamais le mode dégradé, D38 Q2, D84)* | — |
 
 - **C(17)** — **L'export de l'annuaire est interdit à tout le monde, y compris aux administrateurs**
   (`00-cadrage` §6.1 et §8 ; skill `backoffice-ops`, règle 44). L'interdiction porte aussi sur les

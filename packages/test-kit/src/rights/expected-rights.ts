@@ -7273,9 +7273,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   // 0316 (L3E commit 03, l3e/modele.md §9): influx_search_admin_definer owns the two writers of an
   // administrator (EXECUTE influx_admin only, who reaches the schema for them and nothing else in it);
   // it reads its caller (account, roles, agent profile: its own rows), reads and updates the settings
-  // and the facets, inserts a version, executes audit.append() and the snapshot of a version.
-  "influx_admin|function|search.write_facet_setting(text,boolean,integer,text)|EXECUTE",
-  "influx_admin|function|search.write_search_setting(text,jsonb)|EXECUTE",
+  // and the facets, inserts a version, executes audit.append() and the snapshot of a version. 0332
+  // (L3G-08): the two writers recreated with the signatures of a peer's 2V.
+  "influx_admin|function|search.write_facet_setting(uuid,uuid,text,boolean,integer,text,text)|EXECUTE",
+  "influx_admin|function|search.write_search_setting(uuid,uuid,text,jsonb,text)|EXECUTE",
   // 0321 (L3E commit 10, l3e/modele.md §10): AL21, the volume alert derived from the journal; the
   // owner of the writers reads the journal (no creator but through a count), the AL21 row of the
   // catalogue and the caps; the admin executes the function (an active admin in aal2 inside)
@@ -7319,8 +7320,8 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_search_admin_definer|function|influx.has_aal2()|EXECUTE",
   "influx_search_admin_definer|function|search.facet_config_snapshot()|EXECUTE",
   "influx_search_admin_definer|function|search.require_search_admin()|EXECUTE",
-  "influx_search_admin_definer|function|search.write_facet_setting(text,boolean,integer,text)|EXECUTE",
-  "influx_search_admin_definer|function|search.write_search_setting(text,jsonb)|EXECUTE",
+  "influx_search_admin_definer|function|search.write_facet_setting(uuid,uuid,text,boolean,integer,text,text)|EXECUTE",
+  "influx_search_admin_definer|function|search.write_search_setting(uuid,uuid,text,jsonb,text)|EXECUTE",
   "influx_search_admin_definer|schema|audit|USAGE",
   "influx_search_admin_definer|schema|identity|USAGE",
   "influx_search_admin_definer|schema|influx|USAGE",
@@ -7917,6 +7918,10 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   ),
   "influx_search_admin_definer|function|search.critical_mass_alerts()|EXECUTE",
   "influx_search_admin_definer|function|search.read_supply_counters()|EXECUTE",
+  // 0332 (L3G-08, l3g/modele.md §7; D84, D38 Q2): the two writers of the settings (new signatures
+  // above) consume a peer's 2V through the wrapper of 0231, now executed by their owner too (no right
+  // of it on backoffice.dual_control_requests)
+  "influx_search_admin_definer|function|backoffice.consume_dual_control_for(uuid,uuid,text,jsonb,text)|EXECUTE",
 ];
 
 /**
@@ -8510,10 +8515,12 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   "search.read_open_campaign_brand_logo(uuid)": "influx_campaign_feed_definer",
   // 0316 (L3E commit 03): the two writers of an administrator; require_search_admin() is SECURITY
   // INVOKER, same owner; the snapshot, the band, the checks and the guard are the migration role's.
-  "search.write_search_setting(text,jsonb)": "influx_search_admin_definer",
+  // 0332 (L3G-08): recreated with the signatures of a peer's 2V.
+  "search.write_search_setting(uuid,uuid,text,jsonb,text)":
+    "influx_search_admin_definer",
   // 0321 (L3E commit 10): the AL21 volume alert, read by the admins
   "search.creator_search_volume_alerts()": "influx_search_admin_definer",
-  "search.write_facet_setting(text,boolean,integer,text)":
+  "search.write_facet_setting(uuid,uuid,text,boolean,integer,text,text)":
     "influx_search_admin_definer",
   // 0319 (L3E, l3e/modele §1): the brand door of the creator search
   "search.search_creators(jsonb,text,integer,uuid)":
