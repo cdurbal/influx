@@ -23,5 +23,5 @@
 | F | recette.md | fondateur | — | — | fondateur | fait | « je valide la recette » (2026-11-21) après semis ; 1re passe < 15 s ×3 ; durées de la rejouée et file 9 non données |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | 0 bloquant · jalon : T1 T2 T3 S1 · avant prod : 6 · plus tard : 14 (`annexe.md` § Revue) |
 | fix-2 | fix-2.md | fix | sonnet | high | dev-react-node | fait | classifyError : 55P03 de délai de verrou → 429 Retry-After 1 pour les 5 portes, doublons locaux ôtés, autres 55P03 inchangées ; planchers +5 base, +2 unité |
-| fix-3 | fix-3.md | fix | sonnet | medium | testeur | à faire | L3GT-1 : l'e2e supprime le motif `lg_search_block` ; validé par le fondateur (2026-11-21), sans réserve |
+| fix-3 | fix-3.md | fix | sonnet | medium | testeur | fait | L3GT-1 : l'afterAll de l'e2e supprime `lg_search_block` après party_blocks ; L3E-T4 verte sans nettoyage manuel ; aucun plancher touché |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | dernier jalon du lot |

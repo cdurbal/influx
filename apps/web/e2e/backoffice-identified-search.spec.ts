@@ -56,6 +56,10 @@ test.afterAll(async () => {
       await sql`
         delete from matching.party_blocks where advertiser_account_id = any(${brands}::uuid[])`;
     }
+    // The reason this file inserts goes too, even when a test failed: left behind, it fails
+    // matching-party-blocks (L3E-T4, which expects the seeded reasons only) on a whole local run.
+    await sql`
+      delete from matching.block_reasons where code = 'lg_search_block'`;
   });
   await removeOwnCampaigns();
   await retireSearchCreators();
