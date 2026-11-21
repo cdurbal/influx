@@ -104,6 +104,20 @@ export const searchQueries = searchSchema.table("search_queries", {
     .default(false),
   requestId: text("request_id"),
   createdAt: timestamptz("created_at").notNull().defaultNow(),
+  // 0329: the prefill of « Compatible creators » an identified search starts from
+  prefillId: uuid("prefill_id"),
+});
+
+/**
+ * 0329: one line per prefill of « Compatible creators » proposed to an agent (l3g/modele.md §4; 10
+ * RG73, CA56): the codes drawn from the brief of an admitted campaign, append-only.
+ */
+export const campaignPrefills = searchSchema.table("campaign_prefills", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  accountId: uuid("account_id").notNull(),
+  campaignId: uuid("campaign_id").notNull(),
+  proposed: jsonb("proposed").notNull(),
+  createdAt: timestamptz("created_at").notNull().defaultNow(),
 });
 
 /** 0316: one line per creator served, with its rank (10 RG66, CA48). */

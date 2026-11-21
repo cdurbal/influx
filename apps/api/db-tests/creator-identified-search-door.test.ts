@@ -39,7 +39,6 @@ type Parameter = postgres.ParameterOrJSON<never> | null | undefined;
 const INSUFFICIENT_PRIVILEGE = "42501";
 const INVALID_PARAMETER = "22023";
 const NO_DATA_FOUND = "P0002";
-const FEATURE_NOT_SUPPORTED = "0A000";
 
 const agentA = accountIdOf("agent", "a");
 const adminA = accountIdOf("admin", "a");
@@ -590,7 +589,7 @@ function recordFragment(): string {
 // the cases ---------------------------------------------------------------------------------------
 
 describe("L3G-T4 the door, its owner and its helpers in the catalogue (TM12.5; fiche invariants 2, 3)", () => {
-  it("L3G-T4 makes influx_agent_search_definer NOLOGIN NOINHERIT without member, owner of ONE SECURITY DEFINER door executable by influx_agent and influx_admin alone and three invoker helpers executed by nobody, empty search_path, no dynamic statement", async () => {
+  it("L3G-T4 makes influx_agent_search_definer NOLOGIN NOINHERIT without member, owner of the identified door and of the prefill door (0329), executable by influx_agent and influx_admin alone, and of invoker helpers executed by nobody, empty search_path, no dynamic statement", async () => {
     const outcome = await scenario(async (tx) => {
       const [role] = await tx<Row[]>`
         select rolcanlogin, rolinherit, rolbypassrls, rolsuper,
@@ -630,6 +629,16 @@ describe("L3G-T4 the door, its owner and its helpers in the catalogue (TM12.5; f
     expect(outcome.functions).toEqual([
       helper("search.check_identified_search_filters(jsonb)"),
       helper("search.identified_creator_row(uuid,uuid)"),
+      // 0329 (L3G-05, l3g/modele §4): the prefill of « Compatible creators », the agents' alone, and
+      // the diff of a prefill, executed by nobody
+      {
+        name: "search.prefill_campaign_filters(uuid)",
+        definer: true,
+        config: ['search_path=""'],
+        callers: ["influx_admin", "influx_agent"],
+        dynamic: false,
+      },
+      helper("search.prefill_diff(jsonb,jsonb)"),
       helper("search.require_identified_searcher()"),
       {
         name: DOOR_SIGNATURE,
@@ -778,6 +787,8 @@ describe("L3G-T4 the door, its owner and its helpers in the catalogue (TM12.5; f
       "legal_last_name",
     ]);
     expect(outcome.writes).toEqual([
+      // 0329 (L3G-05, l3g/modele §4): its own prefills, inserted by the prefill door
+      "search.campaign_prefills",
       "search.impression_reasons",
       "search.search_impressions",
       "search.search_queries",
@@ -970,10 +981,17 @@ describe("L3G-T4 the caller and the contract (fiche invariants 2, 14; T14)", () 
     );
   });
 
-  it("L3G-T4 answers 0A000 prefill to a prefill until 0329, after the campaign, and writes nothing", async () => {
+  // 0329 (L3G-05, l3g/modele §4): the 0A000 of 0328 became the check of the prefill (L3G-T5 holds the
+  // rest of it)
+  it("L3G-T4 answers P0002 prefill to an unknown prefill, after the campaign, and writes nothing", async () => {
     const outcome = await scenario(async (tx) => {
       await newCreator(tx);
-      const prefilled = await identified(tx, HERE, { prefill: randomUUID() });
+      const brand = await newBrand(tx);
+      const campaign = await newCampaign(tx, brand, "food_beverages");
+      const prefilled = await identified(tx, HERE, {
+        campaign,
+        prefill: randomUUID(),
+      });
       const unknownFirst = await identified(tx, HERE, {
         campaign: randomUUID(),
         prefill: randomUUID(),
@@ -986,7 +1004,7 @@ describe("L3G-T4 the caller and the contract (fiche invariants 2, 14; T14)", () 
       };
     });
     expect(outcome).toEqual({
-      prefilled: `${FEATURE_NOT_SUPPORTED} prefill`,
+      prefilled: `${NO_DATA_FOUND} prefill`,
       unknownFirst: `${NO_DATA_FOUND} campaign`,
       lines: 0,
     });

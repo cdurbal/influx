@@ -7,7 +7,7 @@
 | D38 | annexe.md | fondateur | — | — | fondateur | fait | « oui aux 4 questions » (2026-11-20) : Q2 de l'annexe, ouverture globale, seuils 30 et 5 en table, alerte seule, admin + pair, interrupteur fermé |
 | A | A.md | arbitrage | opus | xhigh | architecte | fait | modele.md : propriétaire agent neuf, E5 affichée, E6 gardée ; prefill_diff ; file 9 à 6 motifs de la liste A ; AL65 neuf ; réglages en 2V, pair seul |
 | 04 | 04.md | commit | opus | xhigh | expert-database | fait | 0328 : porte agent, admin seuls ; moteur 2e requête sous son propriétaire, ni G ni couche I au propriétaire marque ; nombre exact, journal nominatif |
-| 05 | 05.md | commit | opus | high | expert-database | à faire | |
+| 05 | 05.md | commit | opus | high | expert-database | fait | 0329 : F1, F3, F4, F6 pays, F8, F11 du brief admis, codes seuls ; proposé journalisé, prefill_id appelant < 24 h ; prefill_diff ; ni tranche ni budget |
 | 06 | 06.md | commit | opus | high | expert-database | à faire | |
 | 07 | 07.md | commit | opus | high | expert-database | à faire | |
 | 08 | 08.md | commit | opus | high | expert-database | à faire | |

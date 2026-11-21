@@ -4,6 +4,8 @@
 // the run. Raise a floor when a file gains cases. LOWERING a floor is done in a commit whose
 // message says which cases disappear and why (18 §3 rule 2).
 export const DB_CASE_FLOORS: Readonly<Record<string, number>> = {
+  // L3G-05 (L3G-T5): the prefill of « Compatible creators », its journal, the link of a search, D78
+  "db-tests/campaign-brief-prefill.test.ts": 11,
   "db-tests/campaign-feed-route.test.ts": 16,
   "db-tests/campaign-parity.test.ts": 116,
   "db-tests/campaigns-core.test.ts": 68,

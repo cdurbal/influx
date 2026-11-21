@@ -2193,6 +2193,28 @@ garde-fou anti-aspiration et **le jeu de données qui permettra de régler D11**
 > est le seul au Lot 3, mais le jour où un second tri apparaît, les recherches passées restent
 > lisibles.
 
+*Amendé par L3G-05 (`0329`, `jalons/l3g/modele.md` §4).* `prefill_id` (→
+`search.campaign_prefills`, nul permis) : le pré-remplissage « Créateurs compatibles » dont part une
+recherche identifiée ; **nul hors `agent_identified` et sans campagne** (CHECK
+`search_queries_prefill_identified`). Écrit par la porte identifiée, appel servi ou `page_cap` ;
+« Vider » (filtres vidés) garde le lien.
+
+#### `search.campaign_prefills` — le pré-remplissage depuis le brief (L3G, `0329`)
+
+*Les filtres proposés à un agent depuis le brief d'une campagne admise* (`jalons/l3g/modele.md` §4 ;
+`10` RG73, CA56). `id uuid` PK, `account_id` (l'agent ou l'administrateur appelant), `campaign_id`
+(→ `campaigns.campaigns`), `proposed jsonb` (la forme de `p_filters`, **codes seuls** : clés F1, F3,
+F4, F6 `{country}`, F8, F11 par CHECK ; jamais F12, F17, G, une tranche ni un budget, D78),
+`created_at`. Écrite par la seule porte `search.prefill_campaign_filters(campagne)` (propriétaire
+`influx_agent_search_definer`, `EXECUTE` à `influx_agent` et `influx_admin` seuls) : F1 la thématique
+du rang 1, F3 et F11 réseaux et formats des livrables, F4 tranches d'audience visées, F6 le pays
+d'audience du rang 1, F8 les langues (20 au plus) ; facette fermée ou champ vide omis. Retenus,
+retirés et ajoutés ne sont pas stockés : `search.prefill_diff(proposed, filtres)` (IMMUTABLE, sans
+droit) les lit depuis les recherches qui citent la ligne (`search_queries.prefill_id`). Index
+`(account_id, created_at desc)`. **Ajout seul** (`guard_search_journal_write()` de `0316`), RLS
+forcée, politique restrictive, **aucun droit membre ni d'exécution** ; ni exportée ni effacée (codes
+seuls, auteur interne) ; 12 mois (§9, purge au Lot 6).
+
 #### `search.search_impressions`
 
 `search_query_id`, `creator_account_id`, `rank smallint not null`, `was_opened boolean not null
@@ -6419,6 +6441,7 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0326 | `search_abuse_alerts` (L3F, AL21, signalé I-4) | Causes d'AL21 ajoutées (`l3f/modele.md` §7) : `refinement` (CA45 : 6 dernières recherches neuves, une facette d'écart par paire, 2 sous k), `aspiration` (CA46 : créateurs ouverts distincts des comptes sans ajout ni demande sur 24 h, ensemble, au seuil 150 ; une ligne par compte), `open_cap_share_day` ; ouvertures comptées dans `distinct_profiles_served` et `rate_limited` ; trois seuils ajoutés à `alert_definitions` sans écraser ; `creator_search_volume_alerts()` recréée à signature égale ; propriétaire `influx_search_admin_definer` en lecture seule (filtres comparés jamais servis, ouvertures, date d'ajout d'une sélection, date d'une demande ; ni nom, note, message ni créateur listé) | Oui (alerte dérivée, rien à migrer) |
 | 0327 | `search_doors_hide_an_exclusion` (L3G, L3FS-1 à L3FS-3, D85, signalé I-4) | Portes recréées à signature, propriétaire et `EXECUTE` égaux : `open_creator_profile()` et `read_creator_visual()` lancent le moteur (et la recherche de l'impression d'origine) que l'alias désigne une vitrine ou non (remplaçant qui ne désigne personne) ; `remove_from_shortlist()` retire par `shortlist_creator()`, un masqué reste (EC-L3G-1), réponse `removed` inchangée ; tout verrou consultatif par compte de `search` (`campaign_read_retry_after`, `creator_search_retry_after`, `creator_open_retry_after`, six écritures des sélections, `request_team_selection`) attendu 1 s au plus (`lock_timeout` posé pour le seul verrou, 55P03) ; moteur avant le verrou dans le profil (seau lu d'abord sans verrou, recompté sous lui), `add_to_shortlist`, `set_shortlist_note`, `remove_from_shortlist` (liste relue sous le verrou, moteur relancé si la campagne a changé) | Oui |
 | 0328 | `search_identified_creator_search_door` (L3G, signalé I-4) | Rôle `influx_agent_search_definer` (P7) ; porte `search.search_creators_identified(p_filters, p_sort, p_page, p_campaign_id, p_prefill_id)`, `EXECUTE` à `influx_agent` et `influx_admin` seuls (`influx_advertiser`, `influx_creator` : 42501) : appelant agent ou admin actif en `aal2` (42501), tri, page 1 à 50, filtres du socle et G1, G2, G8, G9, G10 (22023), campagne admise de toute marque (P0002 `campaign`), pré-remplissage 0A000 jusqu'à `0329`, `page_cap` au-delà de `identified_view.maxPages` ; moteur `creator_candidates()` recréé à signature égale avec la seconde requête `agent_identified` (E1 levée, E2 à E4, E5 affichée, E6 pour la marque de la campagne), ordre `creator_order()` tel quel ; ni interrupteur, ni k, ni seau, ni verrou ; réponse `{state, total (exact), page, nextPage, capReached, rows}` (identités, états, résidence, responsable, secteurs refusés, blocage sans motif, lignes de réseau aux chiffres exacts de la fiche, part exacte de l'audience ; jamais coordonnée, adresse, tarif ni budget) ; journal nominatif (ligne, impressions, raisons), jamais `creator_exposures` ; clé `identified_view` ; AL21 recréée à signature égale, vue marque seule (EC-L3G-5) | Oui tant qu'aucune recherche identifiée n'est journalisée |
+| 0329 | `search_campaign_brief_prefill` (L3G, signalé I-4) | Table `search.campaign_prefills` (§5.5 ; RLS forcée, aucun droit membre ni d'exécution, ajout seul, codes seuls par CHECK) ; `search_queries.prefill_id` (nul hors vue identifiée et sans campagne) ; porte `search.prefill_campaign_filters(p_campaign_id)`, `EXECUTE` à `influx_agent` et `influx_admin` seuls : appelant de la vue identifiée (42501), campagne admise de toute marque (P0002 `campaign`), F1, F3, F4, F6 `{country}`, F8, F11 tirées du brief (facette fermée omise ; jamais F17, droits, exclusivité, âges, tranche ni budget), entrée fermée du socle, ligne proposée ; réponse `{prefillId, campaign: {id, title}, filters}` ; `search.prefill_diff()` (IMMUTABLE, sans droit) ; porte identifiée recréée à signature égale : le 0A000 devient P0002 `prefill` (de l'appelant, de la campagne, moins de 24 h), `prefill_id` journalisé ; propriétaire agent : titre, rangs des pays, thématiques, tranches et langues des campagnes admises | Oui tant qu'aucun pré-remplissage n'est proposé |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |

@@ -268,6 +268,11 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
         role: "influx_admin",
         name: "search.creator_search_volume_alerts()",
       },
+      // 0329 (L3G-05): the prefill of « Compatible creators », executed by the agent and the admin
+      {
+        role: "influx_admin",
+        name: "search.prefill_campaign_filters(uuid)",
+      },
       // 0328 (L3G-04): the identified door of the agents, executed by the agent and the admin
       {
         role: "influx_admin",
@@ -311,6 +316,10 @@ describe("L3E-T3 the rights of the new objects (T2; fiche invariants 1, 15)", ()
       {
         role: "influx_advertiser",
         name: "search.update_shortlist(uuid,text,uuid)",
+      },
+      {
+        role: "influx_agent",
+        name: "search.prefill_campaign_filters(uuid)",
       },
       {
         role: "influx_agent",
@@ -1120,7 +1129,7 @@ describe("L3E-T3 TM11: the Drizzle declaration of search.ts has the columns of t
       ),
     );
     // creator_campaign_reads (0314), the eleven tables of 0316, profile_openings (0323) and
-    // selection_requests (0325)
-    expect(Object.keys(declared)).toHaveLength(14);
+    // selection_requests (0325), campaign_prefills (0329)
+    expect(Object.keys(declared)).toHaveLength(15);
   });
 });

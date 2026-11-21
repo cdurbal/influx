@@ -692,6 +692,15 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
        where not exists (select 1 from search.selection_requests
                           where advertiser_account_id = ${accountIdOf("advertiser", "a")}
                             and created_at = '2026-01-01T00:00:00Z')`;
+    // 0329 (L3G): one inert prefill of agent A on the draft campaign of advertiser A, at the same
+    // fixed past instant (beyond the 24 h of the door; append-only: inserted once)
+    await tx`
+      insert into search.campaign_prefills (account_id, campaign_id, proposed, created_at)
+      select ${accountIdOf("agent", "a")}, ${CAMPAIGN_IDS.a}, '{"F1": "fashion"}'::jsonb,
+             '2026-01-01T00:00:00Z'
+       where not exists (select 1 from search.campaign_prefills
+                          where account_id = ${accountIdOf("agent", "a")}
+                            and created_at = '2026-01-01T00:00:00Z')`;
     // 0317 (L3E): one reason and one lifted block of the pair (advertiser B, creator B)
     await tx`
       insert into matching.block_reasons (code, label_key, available_to_side)

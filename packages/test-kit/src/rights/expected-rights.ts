@@ -2351,6 +2351,17 @@ export const TABLE_RIGHTS: readonly TableRights[] = [
     probeColumn: "advertiser_account_id",
     expected: {},
   },
+  // 0329 (L3G commit 05, l3g/modele.md §4): the prefills of « Compatible creators ». No right for any
+  // execution role: written by search.prefill_campaign_filters() only (owner
+  // influx_agent_search_definer), a RESTRICTIVE policy refuses every row to the members.
+  {
+    table: "search.campaign_prefills",
+    source:
+      "0329 (10 RG73, CA56; l3g/modele §4): one line per prefill proposed to an agent, the codes " +
+      "drawn from the brief of an admitted campaign, append-only, neither exported nor erased",
+    probeColumn: "campaign_id",
+    expected: {},
+  },
   // 0317 (L3E commit 04, l3e/modele.md §9): the block between parties, without any gesture at Lot 3.
   // No right for any execution role, member, agent nor admin (fiche invariant 1): a RESTRICTIVE
   // policy refuses every row to the members; the owner of the creator's doors reads the pair and
@@ -7784,6 +7795,30 @@ export const EXPECTED_PRIVILEGES: readonly string[] = [
   "influx_agent|function|search.search_creators_identified(jsonb,text,integer,uuid,uuid)|EXECUTE",
   "influx_agent|schema|search|USAGE",
   "influx_search_admin_definer|column|search.search_queries.view_mode|SELECT",
+  // 0329 (L3G-05, l3g/modele.md §4): influx_agent_search_definer owns the prefill of « Compatible
+  // creators », search.prefill_campaign_filters() (EXECUTE influx_agent and influx_admin), and
+  // search.prefill_diff() (invoker, no right); it reads the title of an admitted campaign, the rank of
+  // its audience countries, its topics, audience bands and languages; it inserts and reads back its own
+  // prefills and writes the link of a search to its prefill (prefill_id).
+  "influx_admin|function|search.prefill_campaign_filters(uuid)|EXECUTE",
+  "influx_agent|function|search.prefill_campaign_filters(uuid)|EXECUTE",
+  "influx_agent_search_definer|column|campaigns.campaign_audience_bands.audience_band_code|SELECT",
+  "influx_agent_search_definer|column|campaigns.campaign_audience_bands.campaign_id|SELECT",
+  "influx_agent_search_definer|column|campaigns.campaign_audience_countries.slot|SELECT",
+  "influx_agent_search_definer|column|campaigns.campaign_audience_languages.campaign_id|SELECT",
+  "influx_agent_search_definer|column|campaigns.campaign_audience_languages.language_code|SELECT",
+  "influx_agent_search_definer|column|campaigns.campaign_topics.campaign_id|SELECT",
+  "influx_agent_search_definer|column|campaigns.campaign_topics.slot|SELECT",
+  "influx_agent_search_definer|column|campaigns.campaign_topics.topic_code|SELECT",
+  "influx_agent_search_definer|column|campaigns.campaigns.title|SELECT",
+  "influx_agent_search_definer|column|search.campaign_prefills.account_id|INSERT,SELECT",
+  "influx_agent_search_definer|column|search.campaign_prefills.campaign_id|INSERT,SELECT",
+  "influx_agent_search_definer|column|search.campaign_prefills.created_at|SELECT",
+  "influx_agent_search_definer|column|search.campaign_prefills.id|SELECT",
+  "influx_agent_search_definer|column|search.campaign_prefills.proposed|INSERT,SELECT",
+  "influx_agent_search_definer|column|search.search_queries.prefill_id|INSERT",
+  "influx_agent_search_definer|function|search.prefill_campaign_filters(uuid)|EXECUTE",
+  "influx_agent_search_definer|function|search.prefill_diff(jsonb,jsonb)|EXECUTE",
 ];
 
 /**
@@ -8407,4 +8442,7 @@ export const SECURITY_DEFINER_FUNCTIONS: Readonly<Record<string, string>> = {
   // SECURITY INVOKER, same owner
   "search.search_creators_identified(jsonb,text,integer,uuid,uuid)":
     "influx_agent_search_definer",
+  // 0329 (L3G, l3g/modele §4): the prefill of « Compatible creators »; search.prefill_diff() is
+  // SECURITY INVOKER, same owner, executed by nobody else
+  "search.prefill_campaign_filters(uuid)": "influx_agent_search_definer",
 };

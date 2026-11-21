@@ -779,6 +779,14 @@ droits d'usage et exclusivité attendus. Le commercial **corrige librement** le 
 > donnée d'apprentissage disponible avant D11.** Il est journalisé à ce titre : filtres proposés,
 > filtres retenus, filtres retirés.
 
+> **Écrit par `0329` (L3G, `jalons/l3g/modele.md` §4).** `search.prefill_campaign_filters(campagne)`
+> (agent et admin seuls ; campagne admise de toute marque, sinon P0002 `campaign`) : F1 thématique du
+> rang 1, F3 et F11 réseaux et formats des livrables, F4 tranches visées, F6 `{country}` pays du rang
+> 1, F8 langues ; facette fermée omise ; **jamais** la fourchette tarifaire (D78), les droits d'usage
+> ni l'exclusivité (aucune facette du socle ne les porte), F17 ni les âges. Le proposé s'écrit dans
+> `search.campaign_prefills` ; la recherche identifiée qui en part le cite (`prefill_id`, moins de
+> 24 h, de l'appelant et de la campagne) ; retenus, retirés et ajoutés : `search.prefill_diff()`.
+
 **RG74** — Depuis la sélection multiple, le commercial **écrit un motif** (obligatoire, ≥ 10
 caractères, document `04` §5.6 `origin_reason`) et ouvre **autant de mises en relation que de
 destinataires**, **chacune tracée séparément**. **Objectif de conception : trois clics.** Si l'outil

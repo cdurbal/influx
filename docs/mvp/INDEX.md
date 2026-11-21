@@ -119,42 +119,42 @@
 | 51 | 27 | 0. Ce qu'il faut retenir si l'on ne lit qu'une page |  |
 | 78 | 74 | 1. Les cinq rôles |  |
 | 152 | 24 | 2. Conventions de lecture de la matrice |  |
-| 176 | 596 | 3. La matrice des droits | RG1–RG146 |
+| 176 | 603 | 3. La matrice des droits | RG1–RG146 |
 | 178 | 55 | ↳ 3.1 Domaine `identity` — comptes, rôles, CGU, sessions | RG5 |
 | 233 | 85 | ↳ 3.2 Domaine `profiles` — profils marque, profils créateur, pièces de vérification, badge | RG77–RG78 |
-| 318 | 133 | ↳ 3.3 Domaine `campaigns` et `search` | RG1–RG101 |
-| 451 | 215 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
-| 666 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
-| 742 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
-| 772 | 455 | 4. Les principes de Row Level Security | RG4–RG165 |
-| 777 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
-| 792 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
-| 845 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
-| 867 | 16 | ↳ P4 — Toute condition d'accès est **positive** et échoue en refus |  |
-| 883 | 34 | ↳ P5 — L'anonymisation est une séparation d'objets, doublée d'une absence de droit |  |
-| 917 | 22 | ↳ P6 — Aucune table métier dans le schéma `public` |  |
-| 939 | 199 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG4–RG165 |
-| 1138 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
-| 1190 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
-| 1201 | 26 | ↳ P10 — Les politiques du Storage |  |
-| 1227 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1367 | 422 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
-| 1369 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
-| 1452 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
-| 1487 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1507 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1583 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1657 | 25 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1682 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1709 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1746 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1789 | 32 | 7. L'isolement du backoffice |  |
-| 1821 | 39 | 8. Les tests de sécurité exigés |  |
-| 1860 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1922 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1963 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 318 | 140 | ↳ 3.3 Domaine `campaigns` et `search` | RG1–RG101 |
+| 458 | 215 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
+| 673 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
+| 749 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
+| 779 | 455 | 4. Les principes de Row Level Security | RG4–RG165 |
+| 784 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
+| 799 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
+| 852 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
+| 874 | 16 | ↳ P4 — Toute condition d'accès est **positive** et échoue en refus |  |
+| 890 | 34 | ↳ P5 — L'anonymisation est une séparation d'objets, doublée d'une absence de droit |  |
+| 924 | 22 | ↳ P6 — Aucune table métier dans le schéma `public` |  |
+| 946 | 199 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG4–RG165 |
+| 1145 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
+| 1197 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
+| 1208 | 26 | ↳ P10 — Les politiques du Storage |  |
+| 1234 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
+| 1374 | 422 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
+| 1376 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
+| 1459 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
+| 1494 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
+| 1514 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1590 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1664 | 25 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1689 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1716 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1753 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1796 | 32 | 7. L'isolement du backoffice |  |
+| 1828 | 39 | 8. Les tests de sécurité exigés |  |
+| 1867 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1929 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1970 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
-## 04-modele-de-donnees-mvp.md (~159k tokens)
+## 04-modele-de-donnees-mvp.md (~160k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -166,27 +166,27 @@
 | 404 | 65 | ↳ 4.1 `influx` — fonctions de contexte |  |
 | 469 | 99 | ↳ 4.2 `reference` — les listes fermées partagées | RG18–RG115 |
 | 568 | 237 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
-| 805 | 4659 | 5. Le schéma, domaine par domaine | RG2–RG163 |
+| 805 | 4681 | 5. Le schéma, domaine par domaine | RG2–RG163 |
 | 807 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
 | 1255 | 281 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG86 |
 | 1536 | 167 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
 | 1703 | 417 | ↳ 5.4 `campaigns` — campagnes et blocs (Lot 3) | RG3–RG103 |
-| 2120 | 253 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG101 |
-| 2373 | 929 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
-| 3302 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
-| 4301 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
-| 4666 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
-| 5047 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
-| 5441 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
-| 5464 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
-| 5671 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
-| 5953 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 5991 | 130 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
-| 6121 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6286 | 194 | 11. Plan de migrations | RG1–RG163 |
-| 6480 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6657 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6693 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 2120 | 275 | ↳ 5.5 `search` — journal de recherche et sélections (Lot 3) | RG2–RG101 |
+| 2395 | 929 | ↳ 5.6 `matching` — l'objet pivot (Lot 4) | RG28–RG119 |
+| 3324 | 999 | ↳ 5.7 `messaging` — la conversation à trois (Lot 4) | RG13–RG146 |
+| 4323 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
+| 4688 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
+| 5069 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
+| 5463 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
+| 5486 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
+| 5693 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
+| 5975 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
+| 6013 | 130 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
+| 6143 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6308 | 195 | 11. Plan de migrations | RG1–RG163 |
+| 6503 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6680 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6716 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 
@@ -331,7 +331,7 @@
 | 56 | 23 | Besoin |  |
 | 79 | 17 | Acteurs | RG105 |
 | 96 | 54 | User stories |  |
-| 150 | 775 | Règles de gestion | RG1–RG117 |
+| 150 | 783 | Règles de gestion | RG1–RG117 |
 | 152 | 49 | ↳ A — Périmètre, ouverture de la recherche et principes | RG1–RG105 |
 | 201 | 152 | ↳ B — Les facettes | RG6–RG117 |
 | 353 | 59 | ↳ C — Exclusions automatiques | RG3–RG84 |
@@ -339,15 +339,15 @@
 | 512 | 110 | ↳ E — La carte anonyme et les deux actions | RG15–RG113 |
 | 622 | 54 | ↳ F — Seuil de k-anonymat et porte de sortie commerciale | RG52–RG78 |
 | 676 | 73 | ↳ G — Garde-fous anti-ré-identification et anti-aspiration | RG6–RG79 |
-| 749 | 53 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
-| 802 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
-| 838 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
-| 889 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
-| 925 | 115 | Cas limites | RG1–RG92 |
-| 1040 | 281 | Critères d'acceptation | RG12–RG117 |
-| 1321 | 62 | Impacts | RG2–RG89 |
-| 1383 | 19 | Hors périmètre | RG6–RG105 |
-| 1402 | 26 | Questions ouvertes | RG1–RG86 |
+| 749 | 61 | ↳ H — La vue commerciale identifiée | RG16–RG78 |
+| 810 | 36 | ↳ I — La règle d'implémentation, écrite noir sur blanc | RG22–RG82 |
+| 846 | 51 | ↳ J — Intervention humaine, mesure et évolution | RG11–RG88 |
+| 897 | 36 | ↳ K — Messages affichés (français et anglais) | RG41–RG89 |
+| 933 | 115 | Cas limites | RG1–RG92 |
+| 1048 | 281 | Critères d'acceptation | RG12–RG117 |
+| 1329 | 62 | Impacts | RG2–RG89 |
+| 1391 | 19 | Hors périmètre | RG6–RG105 |
+| 1410 | 26 | Questions ouvertes | RG1–RG86 |
 
 ## 11-recherche-campagnes-et-candidature.md (~30k tokens)
 

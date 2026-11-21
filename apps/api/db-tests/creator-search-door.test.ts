@@ -2036,6 +2036,8 @@ describe("L3E-T6 the order and the identified view (10 RG4, RG5; D11; TM12.5)", 
       `influx_advertiser ${DOOR_SIGNATURE}`,
       "influx_advertiser search.set_shortlist_note(uuid,text,text)",
       "influx_advertiser search.update_shortlist(uuid,text,uuid)",
+      // 0329 (L3G-05): the agents' prefill of « Compatible creators », the same owner (TM12.5)
+      "influx_agent search.prefill_campaign_filters(uuid)",
       // 0328 (L3G-04): the agents' identified door, its own owner (TM12.5)
       "influx_agent search.search_creators_identified(jsonb,text,integer,uuid,uuid)",
     ]);
