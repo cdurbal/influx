@@ -101,7 +101,7 @@ Parcours détaillés : `00`, `17` et `17b`.
   bas à cinq entrées et page-menu par rubrique (membres), vue D58 (backoffice). Ni pilules de
   section ni onglets de rubrique en tête de contenu.
 - **Toute couleur et tout espacement passent par les tokens** (`packages/ui/src/styles/tokens.css`,
-  bloc `[data-theme="keo"]` ; skill `design-system-influx`). Rien en dur, rien recopié de
+  bloc `[data-theme="keo"]`, et `apps/backoffice/src/styles/tokens-backoffice.css` pour les jetons `-bo-` ; skill `design-system-influx`). Rien en dur, rien recopié de
   `design-proposals/`.
 - Landing : carte métallisée premium, **un seul effet spectaculaire par écran** (D59).
 - Principes : compréhension en 10 s ; deux portes d'entrée distinctes ; inscription minimale ;

@@ -314,4 +314,4 @@ nouveau lien d'activation de 72 h. `--password-only` quand l'authentificateur es
 Secrets écrits une fois dans `.operator-secrets/`. Refuse la production, une base sans
 marqueur, un membre, un compte inactif ou « bris de glace ». Un échec en cours de route se
 termine en relançant la même commande. Aucune ligne d'audit (le rôle de migration n'exécute pas
-`audit.append`) : journaliser l'intervention dans le registre d'incidents, comme au §11.
+`audit.append`) : journaliser l'intervention dans le registre d'incidents (`runbooks/incidents.md`), comme au §11.
