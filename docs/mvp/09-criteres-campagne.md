@@ -1027,6 +1027,11 @@ pays ni l'interlocuteur déjà portés par le profil.
 une campagne, *alors* l'action est refusée **côté serveur** avec le message
 `campaign.publish.profileRequired`.
 
+**CA2-bis** *(D86, 2026-11-22)* — *Étant donné* une marque dont le profil n'est pas publié, *quand*
+elle crée une campagne, *alors* le brouillon est créé et enregistré normalement, et l'écran indique
+qu'elle pourra le faire valider une fois son profil publié, avec le lien vers les informations
+manquantes du profil.
+
 **CA3** — *Étant donné* une campagne à laquelle il manque les droits d'usage et la période de
 publication, *quand* la marque la soumet, *alors* le message nomme **les deux** champs manquants et la
 campagne reste en `brouillon`.

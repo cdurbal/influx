@@ -316,10 +316,10 @@
 | 792 | 41 | ↳ J — Ce qu'un créateur voit d'une campagne | RG7–RG102 |
 | 833 | 70 | ↳ K — Leads, messages, états d'écran et accessibilité | RG103–RG110 |
 | 903 | 115 | Cas limites | RG4–RG108 |
-| 1018 | 290 | Critères d'acceptation | RG104–RG109 |
-| 1308 | 112 | Impacts | RG6–RG105 |
-| 1420 | 24 | Hors périmètre | RG22–RG82 |
-| 1444 | 21 | Questions ouvertes | RG6–RG84 |
+| 1018 | 295 | Critères d'acceptation | RG104–RG109 |
+| 1313 | 112 | Impacts | RG6–RG105 |
+| 1425 | 24 | Hors périmètre | RG22–RG82 |
+| 1449 | 21 | Questions ouvertes | RG6–RG84 |
 
 ## 10-recherche-createurs-anonymisee.md (~33k tokens)
 

@@ -879,3 +879,17 @@
 **Conséquences** : `0327` (00b) applique (1) et (2) à `0314`, `0319`, `0323`, `0324`, `0325`, et règle L3FS-1 (moteur et recherche d'impression lancés même alias introuvable) et L3FS-2 (retrait par `shortlist_creator()`, `itemsPerList` compte toutes les lignes) ; 00c applique (3) aux six routes d'écriture des sélections, pool de 10 inchangé ; 00a prouve les plafonds par deux connexions committées (`search-door-concurrency.test.ts`). Contrainte pour L3FS-5 (moteur « un seul créateur ») : un alias inconnu passe par le même chemin (identifiant de remplacement résolu), test dédié, sinon l'oracle de temps revient. Risque accepté : la suppression d'un compte créateur libère une place de sélection par cascade. Écart EC-D85-1 (masqué non retirable) à valider par `product-owner`
 
 **Échéance** : avant `production` : SHA de 00a à 00c et revue groupée `expert-cybersecurite` et `testeur` de fin de L3G (attestation I-4)
+
+## D86 — Brouillon de campagne avant la publication du profil de marque
+
+**Sujet** : la marque neuve ne pouvait pas créer de brouillon de campagne tant que son profil n'était pas publié (bouton « Créer une campagne » masqué par le front), alors que seul l'envoi en validation l'exige (CA2) ; prérequis découvert au clic, contraire au principe « pas de prérequis secondaire sur le chemin du but » (`docs/audit-ux-ui/01-AUDIT-UX-UI.md` U59, `docs/good-practice-ux/01.md` §4.2)
+
+**Arbitre** : fondateur
+
+**Statut** : **Tranchée le 2026-11-22**, non réalisée
+
+**Énoncé** : (1) une marque crée, complète et enregistre un brouillon de campagne quel que soit l'état de son profil ; (2) la soumission reste refusée côté serveur tant que le profil n'est pas publié (CA2 inchangé, `profile_not_published`) ; (3) l'écran le dit au bon moment : « Vous pourrez faire valider cette campagne une fois votre profil publié », avec le lien vers les informations manquantes du profil et le délai d'examen de la file
+
+**Conséquences** : `09` gagne CA2-bis ; front : `CampaignListScreen` (bouton de création non conditionné), message propre à la liste au lieu de `submit.profileRequired` ; l'aperçu garde son avertissement de profil non publié ; aucune migration attendue (l'API ne conditionne que la soumission, `0305`), à confirmer par un test base de création avec un profil en brouillon ; specs `brand-campaign*.spec.ts` à adapter
+
+**Échéance** : avec la phase 1 du plan UX (`docs/audit-ux-ui/05-PLAN-DE-REFACTORING.md`, B7), après validation du plan par le fondateur
