@@ -136,6 +136,29 @@
 >   - informations sur un seul écran en deux groupes, « Vous » et « Vos engagements » (C12), puis
 >     la question facultative ; erreurs effacées à la saisie, un résumé des manques en liens ;
 >   - plus d'écran « compte créé » : arrivée directe sur l'accueil de première visite (écran 1).
+> - Écran 12, « Mes campagnes » (marque, U13, U64, U59) : **validé** (2026-11-24).
+>   Choix :
+>   - des lignes regroupées par action : « À faire » (à corriger avec le motif du commercial et
+>     « Corriger », brouillons avec leurs manques), « En cours » (validation, publiée, en pause),
+>     « Terminées » repliées ;
+>   - chaque ligne est un lien ; « Créer une campagne » est la seule action verte ; « Voir ce que
+>     voit un créateur » passe dans la fiche de la campagne ;
+>   - marque neuve : brouillon possible avant la publication du profil (D86), notice et état vide ;
+>   - pas de nombre de candidatures avant le Lot 4 ; fiche de campagne côté marque non prototypée.
+> - Écran 13, recherche identifiée (backoffice, U06, U42) : **validé** (2026-11-24). Choix :
+>   - cadre de vue identifiée sur toute la zone de travail (barre, chapeau écrit, symbole ▮,
+>     `17b` §3.3, §4.9) ;
+>   - exactement la forme de la recherche marque (écran 2, demande du fondateur) : ligne de
+>     filtres, « Liée à » et « Tri », grille de cartes photo ; filtres internes à la suite (état du
+>     profil, responsable) et, dans le dialogue, dans un encadré « jamais côté marque » (G1, G2,
+>     G8 à G10 ; G3 à G7 au Lot 4) ;
+>   - la carte ajoute nom réel ▮ en lien vers la fiche du compte (écran 6, U06), `@handle`, état et
+>     responsable, chiffres exacts, « Ce que voit la marque » puis « Valeurs exactes » (RG77) ;
+>     paire bloquée par photo atténuée et sa seule phrase ; ni export ni défilement infini ;
+>   - état cible du Lot 4 à part : case ronde à la place du cœur (20 au plus, page affichée),
+>     « Proposer à la campagne »,
+>     profils non publiés écartés et nommés, motif obligatoire (RG74) ; pas de version téléphone
+>     (D58).
 
 ## 1. Où sont les prototypes
 
@@ -157,8 +180,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion). Non prototypé : « Mes campagnes » côté marque (liste déjà montrée dans les
-accueils).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice).
 
 ## 3. Formulaire complexe (écran 3)
 
