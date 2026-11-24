@@ -77,6 +77,21 @@
 >
 >   À arbitrer : l'ordre des blocs face à `15` RG41 (`product-owner`) ; les appels non servis par
 >   `apps/api` (campagnes d'un compte, entrées à traiter, activité lisible) avec l'`architecte`.
+> - Écran 7, formulaire de campagne (marque) : **validé** (2026-11-24). Choix :
+>   - option A : l'assistant de l'écran 3, sur les cinq étapes actuelles ;
+>   - les champs obligatoires d'abord, le reste replié ; un badge « Public » par étape ; le budget
+>     et la référence interne dans un encadré interne (D78) ;
+>   - une seule action principale, « Continuer : <étape suivante> » ; le libellé final est
+>     « Envoyer à INFLUX pour validation » ;
+>   - « Vérifier et envoyer » : la carte du fil, le récapitulatif et un seul résumé des manques ;
+>   - dates au format de la langue, ordre contrôlé ;
+>   - le brouillon se prépare avant la publication du profil (D86).
+>
+>   Écarts au code, pour le `product-owner` :
+>   - droits d'usage, exclusivité et délai de validation sont obligatoires (RG4), donc visibles
+>     tout de suite à l'étape 2 ;
+>   - le produit envoyé passe de l'étape 1 à l'étape 4 ;
+>   - « Soumettre » n'est plus visible en permanence (RG4, C6).
 
 ## 1. Où sont les prototypes
 
