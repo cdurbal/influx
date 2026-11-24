@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Fiche campagne</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Trois zones (option B) dès 1 280 px ; une colonne en dessous (option A) : le principal, puis les propriétés. */
+  .f-grid { display: flex; flex-direction: column; gap: var(--spacing-6); }
+  @media (width >= 1280px) { .f-grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--spacing-bo-panel-w); gap: var(--spacing-8); align-items: start; } }
+  .f-main { display: flex; flex-direction: column; }
+  .f-main > .fsect:last-child { padding-bottom: 0; }
+  .fsect { display: flex; flex-direction: column; gap: var(--spacing-3); padding: var(--spacing-5) 0; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .fsect:first-child { border-top: 0; padding-top: 0; }
+  .fsect h2 { display: flex; align-items: center; gap: var(--spacing-2); font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--font-weight-bold); }
+  .fsect h2 .n { color: var(--color-text-tertiary); font-weight: var(--font-weight-semibold); }
+  .fsect__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .f-head { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .f-id { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--spacing-3) var(--spacing-6); }
+  .f-who { display: flex; align-items: flex-start; gap: var(--spacing-4); min-width: 0; }
+  .f-who .logo-plate { width: 3.5rem; height: 3.5rem; font-size: var(--text-sm); }
+  .f-who .t-page { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); }
+  .f-who .alias { font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); color: var(--color-text-secondary); font-size: var(--text-sm); }
+  .journal { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .journal--idv { color: var(--color-bo-identified-accent); font-family: var(--font-display); font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: var(--tracking-overline); border-left: var(--spacing-bo-identified-bar) solid var(--color-bo-identified-accent); padding-left: var(--spacing-2); }
+  .h-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2) var(--spacing-3); }
+  /* À traiter : lignes cliquables vers l'entrée de file */
+  .todo-rows > li { min-height: auto; }
+  .todo-rows .r-title { font-size: var(--text-sm); }
+  .todo-rows .r-sub { font-size: var(--text-xs); color: var(--color-text-secondary); display: flex; flex-wrap: wrap; gap: var(--spacing-1) var(--spacing-3); }
+  .allclear { display: flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .allclear .i { color: var(--color-feedback-success-icon); }
+  /* Profil : état sur une ligne, décisions en phrases */
+  .facts { display: flex; flex-wrap: wrap; gap: var(--spacing-2) var(--spacing-6); font-size: var(--text-sm); }
+  .facts div { display: flex; flex-direction: column; gap: 0.125rem; }
+  .facts dt { font-size: var(--text-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-semibold); }
+  .facts dd { font-weight: var(--font-weight-semibold); }
+  .lines { display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--text-sm); }
+  .lines li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: var(--spacing-3); }
+  .lines time { color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+  .lines .who { font-weight: var(--font-weight-semibold); }
+  .tbl-wrap { overflow-x: auto; border-radius: var(--radius-md); border: var(--border-width-thin) solid var(--color-border-subtle); }
+  .tbl td.wrap { white-space: normal; }
+  /* Brouillon de campagne : le formulaire s'ouvre dans la section, jamais en fenêtre */
+  #draft .row { align-items: flex-end; }
+  /* Activité : groupée par jour, consultations regroupées */
+  .day { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .day + .day { margin-top: var(--spacing-3); }
+  .day .overline { color: var(--color-text-tertiary); }
+  .reads { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .reads summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: var(--spacing-1); }
+  .reads summary::-webkit-details-marker { display: none; }
+  /* Portfolio du créateur, au format 4:3 */
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--spacing-2); }
+  .thumbs .visual { aspect-ratio: 4 / 3; }
+  .thumbs .visual::after { left: 44%; top: 26%; width: 12%; height: 48%; }
+  .thumbs figure { display: flex; flex-direction: column; gap: var(--spacing-1); }
+  .thumbs figcaption { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  /* Colonne des propriétés : une seule surface, qui défile avec la page (ni barre de défilement propre, ni collante) */
+  .f-side { display: flex; flex-direction: column; gap: var(--spacing-5); }
+  @media (width >= 1280px) { .f-side { border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); padding: var(--spacing-5); } }
+  @media (width < 1280px) { .f-side { border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-5); } }
+  .pgroup { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .pgroup + .pgroup { border-top: var(--border-width-thin) solid var(--color-border-subtle); padding-top: var(--spacing-4); }
+  .pgroup h2 { display: flex; align-items: center; gap: var(--spacing-1); font-family: var(--font-display); font-size: var(--text-sm); font-weight: var(--font-weight-bold); }
+  .f-side .props { --size-property-label: 7.5rem; font-size: var(--text-xs); gap: var(--spacing-2) var(--spacing-3); }
+  .f-side .props dd { display: flex; flex-direction: column; gap: 0.125rem; }
+  .f-side .props .sub { color: var(--color-text-tertiary); }
+  .sync { display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--text-xs); }
+  .sync li { display: grid; grid-template-columns: 4rem minmax(0, 1fr); gap: var(--spacing-2); align-items: start; }
+  .sync b { font-family: var(--font-display); }
+  .sync .st { display: inline-flex; align-items: center; gap: var(--spacing-1); font-weight: var(--font-weight-semibold); }
+  .sync .st .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .sync .ok { color: var(--color-feedback-success-text); }
+  .sync .ko { color: var(--color-feedback-warning-text); }
+  .sync .sub { color: var(--color-text-tertiary); }
+  /* Gestes rares : repliés */
+  .rare { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .rare details { border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .rare summary { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2); min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+  .rare summary::-webkit-details-marker { display: none; }
+  .rare summary .i { transition: rotate var(--duration-fast) var(--ease-standard); color: var(--color-text-tertiary); }
+  .rare details[open] summary .i { rotate: 180deg; }
+  .rare .body { display: flex; flex-direction: column; gap: var(--spacing-3); padding: 0 0 var(--spacing-4); }
+  .rare .field { gap: var(--spacing-1); }
+  .rare .control, .rare .select { min-height: var(--size-bo-control); font-size: var(--text-sm); }
+  .idv .props { --size-property-label: 6rem; }
+  .cprops { --size-property-label: 11rem; font-size: var(--text-sm); }
+  .f-who .t-page .badge { font-family: var(--font-base); }
+</style>
+</head>
+<body class="bo" data-default="ouverte">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État <select id="demo-state"><option value="ouverte">Ouverte</option><option value="validation">En validation</option><option value="pause">En pause</option><option value="close">Close</option><option value="corriger">Ouverte : corriger un champ</option></select></label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="bo-frame">
+  <div class="bo-band"><div class="bo-env"><span><b>LOCAL</b> — development — envois : redirigés vers les adresses internes</span><span>Camille D. · Commercial</span></div></div>
+  <aside class="bo-rail" aria-label="Navigation du backoffice">
+    <div class="bo-rail__head">INFLUX<span>Backoffice</span></div>
+    <nav class="bo-nav" aria-label="Rubriques">
+      <a href="proto-bo-accueil.html"><svg class="i"><use href="#i-layout-grid"/></svg>Tableau de bord</a>
+      <a href="proto-bo-listes.html#file"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <a class="is-ancestor" href="proto-bo-listes.html#inscrits"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a class="sub is-current" aria-current="page" href="proto-bo-listes.html#inscrits">Inscrits</a>
+      <a class="sub" href="#">Invitations</a>
+      <a class="sub" href="#">Synchronisation</a>
+      <a href="proto-bo-recherche.html"><svg class="i"><use href="#i-search"/></svg>Créateurs</a>
+      <a href="#"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
+    </nav>
+    <div class="bo-rail__foot stack g2"><button class="btn btn--secondary" type="button"><svg class="i i--sm"><use href="#i-log-out"/></svg>Se déconnecter</button></div>
+  </aside>
+
+  <main class="bo-main" id="contenu">
+    <!-- ZONE 1 · EN-TÊTE : quelle campagne, de quelle marque, dans quel état ? -->
+    <header class="f-head" data-h="1">
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="proto-bo-listes.html#inscrits">Inscrits</a><svg class="i"><use href="#i-chevron-right"/></svg><a href="proto-bo-fiche-compte.html">Terre &amp; Thé</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Lancement infusion glacée</span></nav>
+      <div class="f-id">
+        <div class="f-who">
+          <span class="logo-plate" aria-hidden="true">T&amp;T</span>
+          <div class="stack g2">
+            <h1 class="t-page" tabindex="-1">Lancement infusion glacée
+              <span class="badge badge--success" data-when="ouverte corriger"><svg class="i"><use href="#i-circle-check"/></svg>Ouverte</span>
+              <span class="badge badge--info" data-when="validation"><svg class="i"><use href="#i-hourglass"/></svg>En validation</span>
+              <span class="badge badge--warning" data-when="pause"><svg class="i"><use href="#i-clock"/></svg>En pause</span>
+              <span class="badge" data-when="close">Close</span></h1>
+            <p class="meta"><a class="link" href="proto-bo-fiche-compte.html">Terre &amp; Thé</a><span>· <span class="tab">CMP-2026-0412</span></span><span>· lancement de produit</span><span>· en français</span><span>· responsable : Julien</span></p>
+          </div>
+        </div>
+        <div class="h-actions">
+          <a class="btn btn--primary" href="proto-bo-recherche.html#prerempli" data-unless="close"><svg class="i i--sm"><use href="#i-search"/></svg>Créateurs compatibles</a>
+          <a class="go sm" href="proto-campagnes-createur.html#fiche" target="_blank" rel="noopener">Voir ce que voit un créateur <svg class="i i--sm"><use href="#i-external-link"/></svg></a>
+        </div>
+      </div>
+      <p class="journal"><svg class="i i--sm"><use href="#i-eye"/></svg>Consultation enregistrée à votre nom, à 09 h 52.</p>
+    </header>
+
+    <div class="f-grid">
+      <!-- ZONE 2 · COLONNE PRINCIPALE : où en est-elle, que dit-elle ? -->
+      <div class="f-main" data-h="2">
+
+        <section class="fsect" aria-labelledby="h-todo">
+          <h2 id="h-todo">À traiter <span class="n" data-when="validation">1</span></h2>
+          <ul class="rows todo-rows" data-when="validation">
+            <li><div class="r-main"><a class="r-title cover" href="proto-bo-decision.html">Campagne à valider</a><span class="r-sub"><span>Campagnes à valider</span><span>· soumise le 23/11 à 16 h 20</span><span>· échéance le 24/11 à 16 h 20</span><span>· libre</span></span></div><span class="r-end"><svg class="i i--sm"><use href="#i-chevron-right"/></svg></span></li>
+          </ul>
+          <p class="allclear" data-when="ouverte corriger"><svg class="i i--sm"><use href="#i-circle-check"/></svg>Rien à traiter : la campagne est ouverte aux créateurs, candidatures jusqu'au 15/01/2027.</p>
+          <p class="allclear" data-when="pause"><svg class="i i--sm" style="color: var(--color-feedback-warning-icon)"><use href="#i-clock"/></svg>En pause depuis le 24/11 à 09 h 10, à la demande de la marque : aucune candidature n'est acceptée ; les échanges déjà ouverts ne sont pas touchés.</p>
+          <p class="allclear" data-when="close"><svg class="i i--sm"><use href="#i-circle-check"/></svg>Close le 24/11 : elle ne se rouvre pas. Aucune donnée n'est effacée.</p>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-offer">
+          <div class="fsect__bar"><h2 id="h-offer">L'offre</h2><span class="xs c3">version 2 lue des créateurs</span></div>
+          <dl class="props cprops">
+            <dt>Titre</dt><dd>Lancement infusion glacée</dd>
+            <dt>Résumé public</dt><dd>Nous cherchons des créatrices et créateurs lifestyle pour présenter notre nouvelle infusion glacée, en Reels et en stories, au printemps.</dd>
+            <dt>Brief</dt><dd class="clamp2">Notre infusion glacée se boit sans sucre ajouté. Nous attendons des contenus lumineux, tournés en extérieur, qui montrent la bouteille en situation réelle, au marché, au parc ou en terrasse.</dd>
+            <dt>Produit</dt><dd>Infusion glacée bio, 3 parfums · alimentation et boissons</dd>
+          </dl>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-work">
+          <h2 id="h-work">Le travail attendu</h2>
+          <dl class="props cprops">
+            <dt>Livrables</dt><dd>Instagram : 1 Reel, 3 stories</dd>
+            <dt>Droits d'usage</dt><dd>Republication sur les réseaux de la marque · 6 mois · pays de la campagne</dd>
+            <dt>Exclusivité</dt><dd>Non</dd>
+            <dt>Délai de relecture</dt><dd>3 jours ouvrés</dd>
+          </dl>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-who">
+          <h2 id="h-who">Pour qui</h2>
+          <dl class="props cprops">
+            <dt>Pays de l'audience</dt><dd>Belgique, France</dd>
+            <dt>Langues</dt><dd>Français</dd>
+            <dt>Thèmes</dt><dd>Lifestyle, alimentation</dd>
+            <dt>Tranches d'audience</dt><dd>Micro, intermédiaire</dd>
+          </dl>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-cal">
+          <h2 id="h-cal">Calendrier</h2>
+          <dl class="props cprops">
+            <dt>Candidatures jusqu'au</dt><dd class="tab">15/01/2027</dd>
+            <dt>Contenu à remettre le</dt><dd class="tab">20/02/2027</dd>
+            <dt>Publication</dt><dd class="tab">du 01/03/2027 au 31/03/2027</dd>
+            <dt>Plafond de candidatures</dt><dd class="c2">aucun</dd>
+          </dl>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-hist">
+          <div class="fsect__bar"><h2 id="h-hist">Historique des décisions et des interventions</h2></div>
+          <p class="xs c2">Du plus récent au plus ancien. Les commentaires internes et les avis ne sont pas repris ici.</p>
+          <ul class="lines" id="hist">
+            <li data-when="close"><time>24/11 · 10 h 02</time><span><span class="who">Camille D.</span> a clos la campagne — motif : demande de la marque.</span></li>
+            <li data-when="pause"><time>24/11 · 09 h 10</time><span><span class="who">Camille D.</span> a mis la campagne en pause — motif : demande de la marque.</span></li>
+            <li data-unless="validation"><time>21/11 · 11 h 30</time><span><span class="who">Julien</span> a corrigé un champ — Délai de relecture : 48 heures, puis 3 jours ouvrés — motif : erreur de saisie signalée par la marque.</span></li>
+            <li data-unless="validation"><time>20/11 · 09 h 30</time><span><span class="who">Julien</span> a publié la campagne.</span></li>
+            <li><time>19/11 · 17 h 02</time><span><span class="who">La marque</span> a soumis la campagne : en attente de décision.</span></li>
+            <li><time>18/11 · 15 h 40</time><span><span class="who">Julien</span> a créé la campagne pour la marque.</span></li>
+          </ul>
+        </section>
+      </div>
+
+      <!-- ZONE 3 · PROPRIÉTÉS : cycle, bloc interne, gestes -->
+      <aside class="f-side" aria-label="Propriétés de la campagne" data-h="3">
+        <section class="pgroup" aria-labelledby="h-cyc">
+          <h2 id="h-cyc">État et cycle de vie</h2>
+          <dl class="props">
+            <dt>État</dt><dd><span data-when="ouverte corriger">Ouverte</span><span data-when="validation">En validation</span><span data-when="pause">En pause</span><span data-when="close">Close</span></dd>
+            <dt>Créée le</dt><dd class="tab">18/11/2026</dd>
+            <dt>Soumise le</dt><dd class="tab">19/11/2026</dd>
+            <dt>Première publication</dt><dd><span class="tab" data-unless="validation">20/11/2026</span><span class="sub" data-when="validation">pas encore</span></dd>
+            <dt data-when="pause">En pause depuis</dt><dd data-when="pause"><span class="tab">24/11 · 09 h 10</span><span class="sub">demandée par la marque</span></dd>
+            <dt data-when="close">Close le</dt><dd data-when="close" class="tab">24/11/2026</dd>
+            <dt>Version lue des créateurs</dt><dd><span data-unless="validation">version 2</span><span class="sub" data-when="validation">aucune pour l'instant</span></dd>
+            <dt>Responsable</dt><dd>Julien</dd>
+          </dl>
+        </section>
+
+        <section class="pgroup" aria-labelledby="h-int">
+          <h2 id="h-int"><svg class="i i--sm"><use href="#i-eye-off"/></svg>Bloc interne</h2>
+          <p class="xs c2">Jamais lu d'un créateur, jamais publié. La marque voit ce qu'elle a saisi.</p>
+          <dl class="props">
+            <dt>Contrepartie</dt><dd>Rémunération et produit</dd>
+            <dt>Budget par créateur</dt><dd><span>tranche 500 à 1 500</span><span class="sub">EUR</span></dd>
+            <dt>Créateurs recherchés</dt><dd class="tab">4</dd>
+            <dt>Budget total</dt><dd><span>non communiqué</span><span class="sub">aucune somme lue, enregistrée ni calculée ici</span></dd>
+            <dt>Référence de la marque</dt><dd class="tab">PO-2026-118</dd>
+          </dl>
+        </section>
+
+        <div class="pgroup">
+          <p class="overline">Gestes</p>
+          <div class="rare">
+            <details id="d-fix" data-unless="close validation">
+              <summary>Corriger un champ<svg class="i i--sm"><use href="#i-chevron-down"/></svg></summary>
+              <div class="body">
+                <p class="xs c2">Un seul champ à la fois, avec un motif. La correction est enregistrée à votre nom et figure à l'historique.</p>
+                <div class="field"><label class="label xs" for="fx-f">Champ</label><select class="control select" id="fx-f"><option value="">Choisir…</option><option>Titre</option><option>Résumé public</option><option>Brief</option><option>Candidatures jusqu'au</option><option>Délai de relecture</option></select></div>
+                <div class="field"><label class="label xs" for="fx-v">Nouvelle valeur</label><input class="control" id="fx-v" type="text"></div>
+                <div class="field"><label class="label xs" for="fx-why">Motif</label><select class="control select" id="fx-why"><option value="">Choisir…</option><option>Demande de la marque</option><option>Erreur de saisie</option><option>Contenu non conforme</option></select></div>
+                <p class="fmsg fmsg--error" id="fx-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span id="fx-err-t"></span></p>
+                <div class="actions"><button class="btn btn--secondary" type="button" id="fx-ok">Enregistrer la correction</button></div>
+              </div>
+            </details>
+            <details data-when="ouverte corriger">
+              <summary>Mettre en pause<svg class="i i--sm"><use href="#i-chevron-down"/></svg></summary>
+              <div class="body"><p class="xs c2">Plus aucune candidature n'est acceptée ; les échanges déjà ouverts ne sont pas touchés. La reprise se fait sans nouvelle validation.</p>
+                <div class="field"><label class="label xs" for="pz-why">Motif</label><select class="control select" id="pz-why"><option>Demande de la marque</option><option>Contenu à revoir</option></select></div>
+                <div class="actions"><a class="btn btn--secondary" href="#pause">Mettre en pause</a></div></div>
+            </details>
+            <details data-when="pause">
+              <summary>Reprendre<svg class="i i--sm"><use href="#i-chevron-down"/></svg></summary>
+              <div class="body"><p class="xs c2">La campagne accepte de nouveau les candidatures, sans nouvelle validation.</p><div class="actions"><a class="btn btn--secondary" href="#ouverte">Reprendre la campagne</a></div></div>
+            </details>
+            <details data-when="ouverte corriger pause">
+              <summary>Clore la campagne<svg class="i i--sm"><use href="#i-chevron-down"/></svg></summary>
+              <div class="body"><p class="xs">Clore est définitif : la campagne ne pourra plus être rouverte, la marque pourra seulement en créer une nouvelle. Aucune donnée n'est effacée et les échanges déjà ouverts ne sont pas touchés.</p>
+                <label class="choice xs"><input type="checkbox" id="cl-ok">Je confirme la clôture définitive</label>
+                <div class="actions"><button class="btn btn--danger" type="button" id="cl-go" disabled>Clore définitivement</button></div></div>
+            </details>
+          </div>
+          <p class="xs c2" data-when="validation">La campagne se décide dans sa file : publication ou refus depuis l'entrée « Campagne à valider ».</p>
+          <p class="xs c2" data-when="close">Aucun geste sur une campagne close.</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$;
+  $("#fx-ok").addEventListener("click", function () {
+    var t = $("#fx-err-t"), e = $("#fx-err");
+    if (!$("#fx-f").value) { t.textContent = "Choisissez le champ à corriger."; e.hidden = false; $("#fx-f").focus(); P.announce(t.textContent); return; }
+    if (!$("#fx-v").value.trim()) { t.textContent = "Saisissez la nouvelle valeur."; e.hidden = false; $("#fx-v").focus(); P.announce(t.textContent); return; }
+    if (!$("#fx-why").value) { t.textContent = "Choisissez un motif."; e.hidden = false; $("#fx-why").focus(); P.announce(t.textContent); return; }
+    e.hidden = true;
+    var li = document.createElement("li"); li.innerHTML = "<time>Aujourd'hui · " + P.time() + '</time><span><span class="who">Vous</span> avez corrigé un champ — </span>';
+    li.lastChild.append($("#fx-f").value + " — motif : " + $("#fx-why").value.toLowerCase() + ".");
+    $("#hist").prepend(li); P.flash(li, true);
+    P.announce("Correction enregistrée, ajoutée à l'historique.");
+    $("#fx-v").value = ""; $("#fx-f").selectedIndex = 0; $("#fx-why").selectedIndex = 0;
+  });
+  ["#fx-f", "#fx-v", "#fx-why"].forEach(function (id) { $(id).addEventListener("input", function () { $("#fx-err").hidden = true; }); });
+  $("#cl-ok").addEventListener("change", function () { $("#cl-go").disabled = !this.checked; });
+  $("#cl-go").addEventListener("click", function () { location.hash = "close"; P.announce("Campagne close, définitivement."); });
+  document.addEventListener("proto:state", function (e) {
+    $("#d-fix").open = e.detail.st === "corriger";
+    $("#cl-ok").checked = false; $("#cl-go").disabled = true;
+    if (e.detail.st === "corriger") setTimeout(function () { $("#d-fix").scrollIntoView({ block: "center" }); }, 0);
+  });
+});
+</script>
+</body>
+</html>

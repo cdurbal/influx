@@ -190,6 +190,16 @@
 >     `expert-conformite-rgpd`), rôle et statut, pays et langue ; « À traiter » : rejeu par lot ;
 >   - demi-écran : défilement horizontal, première colonne fixe ; les huit autres files prennent
 >     le même gabarit.
+> - Écran 17, fiche campagne (backoffice, U06, U37) : **validé** (2026-11-24). Choix :
+>   - gabarit de la fiche de compte (écran 6) : en-tête d'identité, colonne principale, colonne de
+>     propriétés dès 1 280 px ;
+>   - contenu dans l'ordre du formulaire de l'écran 7 (offre, travail attendu, pour qui,
+>     calendrier), version lue des créateurs, historique des décisions et des interventions ;
+>   - propriétés : cycle de vie, bloc interne sans aucune somme (D78), gestes repliés (corriger un
+>     champ avec motif, pause ou reprise, clôture définitive confirmée) ;
+>   - accès ajoutés depuis la fiche du compte (liste « Campagnes » et « À traiter ») ; « Créateurs
+>     compatibles » ouvre la recherche identifiée pré-remplie (`10` RG73) ; état « brouillon » non
+>     prototypé.
 
 ## 1. Où sont les prototypes
 
@@ -211,7 +221,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice).
 
 ## 3. Formulaire complexe (écran 3)
 
