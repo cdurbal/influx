@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Tableau de bord du backoffice</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  .bo-sect { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .bo-sect + .bo-sect { border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-5); }
+  .bo-sect h2 { font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--font-weight-bold); }
+  .urgent { display: grid; gap: var(--spacing-5); }
+  @media (width >= 1280px) { .urgent { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-8); } }
+  .mini { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .mini li { position: relative; display: flex; align-items: center; gap: var(--spacing-3); min-height: var(--spacing-bo-row-h); padding: var(--spacing-1) var(--spacing-2); border-bottom: var(--border-width-thin) solid var(--color-border-subtle); transition: background-color var(--duration-fast) var(--ease-standard); }
+  .mini li:hover { background: var(--color-surface-raised); box-shadow: var(--effect-bo-row-indicator); }
+  .mini .grow a { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); text-decoration: none; }
+  .mini .grow a::after { content: ""; position: absolute; inset: 0; }
+  .mini .grow a:hover { text-decoration: underline; }
+  .alerts li { align-items: flex-start; padding-block: var(--spacing-2); }
+  .alerts .code { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-secondary); min-width: 3.25rem; padding-top: 0.125rem; }
+  .alerts .i-warn { color: var(--color-feedback-warning-icon); margin-top: 0.125rem; }
+  .alerts details summary { cursor: pointer; color: var(--color-text-primary); font-weight: var(--font-weight-semibold); list-style: none; display: inline-flex; align-items: center; gap: var(--spacing-1); }
+  .alerts details summary::-webkit-details-marker { display: none; }
+  .alerts details summary .i { transition: rotate var(--duration-base) var(--ease-standard); }
+  .alerts details[open] summary .i { rotate: 90deg; }
+  .alerts details[open] > ul { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .alerts details ul { display: flex; flex-wrap: wrap; gap: var(--spacing-1) var(--spacing-4); padding: var(--spacing-2) 0 0; }
+  .today { display: grid; gap: var(--spacing-5); }
+  @media (width >= 1280px) { .today { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-8); } }
+  .tbl-wrap { overflow-x: auto; }
+</style>
+</head>
+<body class="bo" data-default="matin">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État <select id="demo-state"><option value="matin">Début de journée</option><option value="calme">Rien d'urgent</option></select></label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span>Essayez <span class="kbd">?</span> et <span class="kbd">g</span> puis <span class="kbd">f</span></span>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="bo-frame">
+  <div class="bo-band">
+    <div class="bo-env"><span><b>LOCAL</b> — development — envois : redirigés vers les adresses internes</span><span>Camille D. · Commercial</span></div>
+  </div>
+  <aside class="bo-rail" aria-label="Navigation du backoffice">
+    <div class="bo-rail__head">INFLUX<span>Backoffice</span></div>
+    <nav class="bo-nav" aria-label="Rubriques" data-h="5">
+      <a class="is-current" aria-current="page" href="#"><svg class="i"><use href="#i-layout-grid"/></svg>Tableau de bord</a>
+      <a class="is-ancestor" href="#"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n" id="rail-total">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <span class="overline grp">Profils et visuels</span>
+      <a class="sub" href="#">Profils marque<span class="n" data-q="pm">6</span></a>
+      <a class="sub" href="#">Profils créateur<span class="n">5</span></a>
+      <a class="sub" href="#">Visuels de portfolio<span class="n">12</span></a>
+      <span class="overline grp">Vérifications</span>
+      <a class="sub" href="#">Vérifications créateurs<span class="n">7</span></a>
+      <a class="sub" href="#">Vérifications marques<span class="n">3</span></a>
+      <a class="sub" href="#">Contestations<span class="n">4</span></a>
+      <a class="sub" href="#">Identifiants modifiés<span class="n ok"><svg class="i i--sm"><use href="#i-check"/></svg><span class="sr-only">vide</span></span></a>
+      <span class="overline grp">Campagnes et sélections</span>
+      <a class="sub" href="#">Campagnes<span class="n">3</span></a>
+      <a class="sub" href="#">Sélections par l'équipe<span class="n">1</span></a>
+      <a href="#"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a href="#"><svg class="i"><use href="#i-search"/></svg>Créateurs</a>
+      <a href="#"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
+    </nav>
+    <div class="bo-rail__foot stack g2"><button class="btn btn--text" type="button" data-dialog="keys"><span class="kbd">?</span>Raccourcis</button><button class="btn btn--secondary" type="button"><svg class="i i--sm"><use href="#i-log-out"/></svg>Se déconnecter</button></div>
+  </aside>
+
+  <main class="bo-main" id="contenu">
+    <header class="row between g3">
+      <h1 class="t-page" tabindex="-1">Tableau de bord</h1>
+      <p class="row g3 c2">Arrêté à <span class="tab" id="stamp">09 h 41</span><button class="btn btn--secondary" type="button" id="refresh"><svg class="i i--sm"><use href="#i-refresh-cw"/></svg>Actualiser</button></p>
+    </header>
+
+    <section class="bo-sect" aria-labelledby="h-now" data-h="1">
+      <h2 id="h-now">À traiter maintenant</h2>
+      <div class="urgent" data-when="matin">
+        <div class="stack g2">
+          <p class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>4 entrées hors délai</p>
+          <ul class="mini">
+            <li><span class="grow"><a href="proto-bo-decision.html">Terre &amp; Thé</a> <span class="c2">· Profils marque</span></span><span class="late tab">depuis 49 min</span></li>
+            <li><span class="grow"><a href="#">Profil 7K3MQA · Instagram</a> <span class="c2">· Vérifications créateurs</span></span><span class="late tab">depuis 1 h 12</span></li>
+            <li><span class="grow"><a href="#">Maison Kintsugi</a> <span class="c2">· Vérifications marques</span></span><span class="late tab">depuis 2 h 05</span></li>
+            <li><span class="grow"><a href="#">Atelier Sève · « Routine éclat d'hiver »</a> <span class="c2">· Sélections par l'équipe</span></span><span class="late tab">depuis 1 j</span></li>
+          </ul>
+        </div>
+        <div class="stack g2">
+          <p class="c2">Mes prises en charge (2)</p>
+          <ul class="mini">
+            <li><span class="grow"><a href="#">Vélo Urbain Bruxelles</a> <span class="c2">· Profils marque</span></span><span class="c2 tab">prise à 09 h 28</span></li>
+            <li><span class="grow"><a href="#">Profil 6PRGS4 · TikTok</a> <span class="c2">· Vérifications créateurs</span></span><span class="c2 tab">prise à 09 h 12</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="row g2 c2" data-when="calme"><svg class="i i--sm" style="color: var(--color-feedback-success-icon)"><use href="#i-circle-check"/></svg>Aucune entrée hors délai, aucune prise en charge en cours.</p>
+    </section>
+
+    <section class="bo-sect" aria-labelledby="h-files" data-h="2">
+      <div class="row between g3"><h2 id="h-files">Files</h2><span class="sm c2">Délai de décision : 8 h ouvrées</span></div>
+      <div class="tbl-wrap"><table class="tbl" id="files">
+        <thead><tr><th scope="col">File</th><th scope="col" class="num">En attente</th><th scope="col" class="num">Plus ancienne</th><th scope="col" class="num">Hors délai</th><th scope="col" class="num">Sans preneur</th></tr></thead>
+        <tbody>
+          <tr><td><a class="id" href="#">Profils marque à valider</a></td><td class="num" data-q="pm">6</td><td class="num">9 h 55</td><td class="num"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>1</span></td><td class="num" data-q="pm-free">5</td></tr>
+          <tr><td><a class="id" href="#">Profils créateur à valider</a></td><td class="num">5</td><td class="num">6 h 10</td><td class="num c3">0</td><td class="num">4</td></tr>
+          <tr><td><a class="id" href="#">Visuels de portfolio à modérer</a></td><td class="num">12</td><td class="num">3 h 02</td><td class="num c3">0</td><td class="num">12</td></tr>
+          <tr><td><a class="id" href="#">Vérifications créateurs</a></td><td class="num">7</td><td class="num">9 h 39</td><td class="num"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>1</span></td><td class="num">6</td></tr>
+          <tr><td><a class="id" href="#">Vérifications marques</a></td><td class="num">3</td><td class="num">9 h 39</td><td class="num"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>1</span></td><td class="num">3</td></tr>
+          <tr><td><a class="id" href="#">Contestations de badge</a></td><td class="num">4</td><td class="num">9 h 58</td><td class="num c3">0</td><td class="num">4</td></tr>
+          <tr><td><a class="id" href="#">Identifiants modifiés</a></td><td class="num" colspan="4"><span class="ok"><svg class="i i--sm"><use href="#i-check"/></svg>vide</span></td></tr>
+          <tr><td><a class="id" href="#">Campagnes à valider</a></td><td class="num">3</td><td class="num">5 h 20</td><td class="num c3">0</td><td class="num">2</td></tr>
+          <tr><td><a class="id" href="#">Sélections par l'équipe</a></td><td class="num">1</td><td class="num">1 j 2 h</td><td class="num"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>1</span></td><td class="num">1</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="bo-sect" aria-labelledby="h-al" data-h="3">
+      <h2 id="h-al">Alertes · 18, en 7 groupes</h2>
+      <ul class="mini alerts">
+        <li><svg class="i i--sm i-warn"><use href="#i-triangle-alert"/></svg><span class="code">AL21</span><div class="grow stack g1"><span>Recherche de créateurs : 12 refus pour débit dépassé (recherche ou ouverture de profil) en 24 heures.</span>
+          <details><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Voir les 12 comptes</summary><ul class="sm"><li><a class="link" href="#">Atelier Sève</a></li><li><a class="link" href="#">Maison 14271d48</a></li><li><a class="link" href="#">Kintsugi Studio</a></li><li><a class="link" href="#">Terre &amp; Thé</a></li><li class="c2">et 8 autres</li></ul></details></div><span class="c2 tab nowrap">depuis 23 h 47</span></li>
+        <li><svg class="i i--sm i-warn"><use href="#i-triangle-alert"/></svg><span class="code">AL26</span><span class="grow">File Brevo en retard : 50 envois hors délai sur 24 heures. <a class="link" href="#">État des services</a></span><span class="c2 tab nowrap">depuis 23 h 43</span></li>
+        <li><svg class="i i--sm i-warn"><use href="#i-triangle-alert"/></svg><span class="code">AL27</span><span class="grow">Le dernier rapprochement Brevo a trouvé 4 désinscriptions non reçues par le webhook.</span><span class="c2 tab nowrap">depuis 23 h 43</span></li>
+        <li><svg class="i i--sm i-warn"><use href="#i-triangle-alert"/></svg><span class="code">AL23</span><span class="grow">1 demande de sélection par l'équipe INFLUX hors délai : prenez-la en charge ou clôturez-la avec un motif. <a class="link" href="#">Ouvrir la file</a></span><span class="c2 tab nowrap">depuis 1 j</span></li>
+        <li><svg class="i i--sm i-warn"><use href="#i-triangle-alert"/></svg><span class="code">AL22</span><span class="grow">Recherches des marques bloquées par le seuil d'anonymat : 44 % des recherches de première page sur 7 jours. <a class="link" href="#">Réglages de la recherche</a></span><span class="c2 tab nowrap">depuis 23 h 38</span></li>
+        <li><svg class="i i--sm i-warn"><use href="#i-triangle-alert"/></svg><span class="code">AL65</span><span class="grow">Les compteurs de masse critique ne sont plus recalculés : les chiffres affichés sont ceux du dernier calcul réussi. <a class="link" href="#">Réglages de la recherche</a></span><span class="c2 tab nowrap">depuis le 01/01</span></li>
+        <li><svg class="i i--sm i-warn"><use href="#i-lock"/></svg><span class="code">SÉCU</span><span class="grow">Connexion de Camille depuis un nouveau navigateur (Chrome sur Windows). <a class="link" href="#">Ce n'était pas moi</a></span><span class="c2 tab nowrap">21/11 23 h 43</span></li>
+      </ul>
+    </section>
+
+    <section class="bo-sect" aria-labelledby="h-day" data-h="4">
+      <h2 id="h-day">Aujourd'hui · 22/11/2026, jour UTC</h2>
+      <div class="today">
+        <dl class="props"><dt>Inscrits</dt><dd class="tab">28 · 8 marques, 20 créateurs</dd><dt>Principaux pays</dt><dd class="tab">Belgique 13 · France 13 · Suisse 1 · Luxembourg 1</dd></dl>
+        <dl class="props"><dt>Brevo en moins d'1 h</dt><dd class="tab"><span class="late"><svg class="i i--sm"><use href="#i-triangle-alert"/></svg>0 % (0 sur 2)</span></dd><dt>Apollo en moins de 24 h</dt><dd class="tab"><span class="late"><svg class="i i--sm"><use href="#i-triangle-alert"/></svg>0 % (0 sur 2)</span></dd><dt>Échecs à traiter</dt><dd class="tab">Brevo 0 · Apollo 0 · <a class="link" href="#">Voir les échecs</a></dd></dl>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog class="dlg" id="keys" aria-labelledby="keys-t">
+  <div class="stack g4">
+    <div class="row between"><h2 class="t-section" id="keys-t">Raccourcis</h2><button class="btn btn--text" type="button" data-close aria-label="Fermer"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <dl class="props" style="--size-property-label: 7rem">
+      <dt><span class="kbd">g</span> <span class="kbd">t</span></dt><dd>Tableau de bord</dd>
+      <dt><span class="kbd">g</span> <span class="kbd">f</span></dt><dd>Files</dd>
+      <dt><span class="kbd">g</span> <span class="kbd">c</span></dt><dd>Comptes</dd>
+      <dt><span class="kbd">j</span> <span class="kbd">k</span></dt><dd>Ligne suivante, précédente</dd>
+      <dt><span class="kbd">Entrée</span></dt><dd>Ouvrir (prend en charge)</dd>
+      <dt><span class="kbd">?</span></dt><dd>Cette aide</dd>
+    </dl>
+    <button class="btn btn--secondary" type="button" data-close autofocus>Fermer</button>
+  </div>
+</dialog>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.getElementById("refresh").addEventListener("click", function () {
+    var s = document.getElementById("stamp"); s.textContent = P.time(); P.flash(s, true);
+    P.$$('[data-q="pm"]').forEach(function (c) { c.textContent = "7"; P.flash(c, true); });
+    var f = P.$('[data-q="pm-free"]'); f.textContent = "6"; P.flash(f, true);
+    var t = document.getElementById("rail-total"); t.textContent = "42"; P.flash(t, true);
+    P.announce("Tableau de bord actualisé à " + P.time() + " : une nouvelle entrée dans Profils marque à valider.");
+  });
+  var g = false, gt;
+  var names = { t: "Tableau de bord", f: "Files", c: "Comptes" };
+  document.addEventListener("keydown", function (e) {
+    if (e.target.closest("input, textarea, select, dialog") || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "?") { e.preventDefault(); P.openDialog("keys"); return; }
+    if (g && names[e.key]) { g = false; P.announce("Aller à : " + names[e.key] + " (simulé dans le prototype)."); return; }
+    if (e.key === "g") { g = true; clearTimeout(gt); gt = setTimeout(function () { g = false; }, 1200); }
+  });
+});
+</script>
+</body>
+</html>

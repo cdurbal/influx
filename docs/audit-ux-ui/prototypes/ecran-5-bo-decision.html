@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 5 · Décision d'une entrée</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html" aria-current="page">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 5 sur 5 · Commercial · suppression des cartes imbriquées</p>
+    <h1 class="d-h1">Décision d'une entrée de file</h1>
+    <p class="d-lead">Le geste que le commercial répète toute la journée, illustré ici sur la file « Profils marque à valider ». Aujourd'hui : bandeaux, cartes de dossier empilées, libellés à plus de 500 px de leur valeur, décision tout en bas. La proposition : le dossier à gauche, une colonne de décision collante à droite, un seul cadre partagé par les neuf files.</p>
+    <div class="d-ids"><span class="u u--imp">U36</span><span class="u u--imp">U37</span><span class="u u--imp">U35</span><span class="u u--imp">U44</span><span class="u u--crit">U06 critique</span><span class="u u--imp">U42</span><span class="u">U57</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <span class="d-hint"><svg class="i i--sm" style="vertical-align: -0.2em"><use href="#i-monitor"/></svg> Poste de travail, 1 440 px.</span>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="decision" data-cap="b03-decision-profil-marque.jpg" aria-pressed="true">Entrée prise en charge</button>
+        <button type="button" data-st="modification" data-cap="b03-decision-profil-marque.jpg" aria-pressed="false">Modification d'un profil publié</button>
+        <button type="button" data-st="refus" data-cap="b03-decision-profil-marque.jpg" aria-pressed="false">Refus : choix du motif</button>
+        <button type="button" data-st="publie" data-cap="b03-decision-profil-marque.jpg" aria-pressed="false">Décision enregistrée</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden></div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-bo-decision.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-bo-decision.html" title="Prototype de la décision" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran : <span class="kbd">V</span> (récapitulatif de publication), <span class="kbd">R</span> (motifs ; « Refuser » sans motif affiche l'erreur), <span class="kbd">Échap</span> (annule sans perdre le commentaire), « Rendre la main » après avoir écrit un commentaire.</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Problèmes relevés</h2>
+    <ul class="d-list">
+      <li><b>Défilement incessant entre lecture et décision</b> (U36) : en-tête, deux à six bandeaux, quatre à six cartes de dossier, puis la décision en bas ; libellés et valeurs répartis en deux moitiés, « Pays » à plus de 500 px de « Belgique ». Le cadre de décision existe en trois copies qui divergent déjà.</li>
+      <li><b>Cartes dans des cartes</b> (U37) : douze composants du backoffice posent une section dans une section de même apparence, jusqu'à trois niveaux ; la confirmation d'identité est un formulaire en carte dans un formulaire.</li>
+      <li><b>Verrous fantômes</b> (U35) : « Retour à la file » est un simple lien, l'entrée reste verrouillée 30 minutes au nom du commercial.</li>
+      <li><b>Impasses</b> (U06, critique) : une décision ne mène pas à la fiche du compte. Ni fil d'Ariane, ni raccourci de retour (U44).</li>
+      <li><b>Donnée sensible peu signalée</b> (U42) : les coordonnées de l'interlocuteur n'ont pas le cadre de vue identifiée.</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Composition cible</h2>
+    <p>Dès 1 024 px, deux colonnes. <b>Le dossier</b> occupe la page sans cadre : sections titrées, séparées par un filet, propriétés avec le libellé dans une colonne de 13 rem et la valeur juste à côté. <b>La décision</b> est la seule surface de l'écran : une carte de 22 rem (<code>--spacing-bo-panel-w</code>, nom déjà donné par <code>17b</code> §1.7), collante sous la bande. Les confirmations (publication, motif de refus, rendre la main) s'ouvrent dans cette carte, en bloc intérieur, jamais en fenêtre modale.</p>
+    <div class="d-wrap"><table class="d-table"><thead><tr><th>Niveau</th><th>Aujourd'hui</th><th>Proposition</th></tr></thead><tbody>
+      <tr><td>1</td><td>Carte « La marque », carte « Ce qui a été écrit », carte « Alertes », carte « Interlocuteur », carte de décision</td><td>Page : sections du dossier sans cadre ; une carte, la décision</td></tr>
+      <tr><td>2</td><td>Panneau de motif en carte dans la carte de décision</td><td>Bloc intérieur <code>surface-raised</code>, sans bordure</td></tr>
+      <tr><td>3</td><td>Confirmation d'identité en carte dans le panneau (retrait de badge)</td><td>Dialogue natif hors du formulaire (F4)</td></tr>
+    </tbody></table></div>
+    <p>Sous 1 024 px (fenêtre en demi-écran), une seule colonne : la décision vient après le dossier, précédée d'un lien « Aller à la décision ».</p>
+    <h3>Le résumé de la marque (version 2, après vos retours du 24 novembre)</h3>
+    <p>La liste de 21 caractéristiques au même poids est remplacée par un résumé organisé autour de la décision :</p>
+    <ol class="d-list" style="list-style: decimal">
+      <li><b>À contrôler</b> : nom commercial, logo, présentation et secteur principal. Ce sont les quatre éléments visés par les motifs de refus. Chacun est mis en face des motifs qu'il peut appeler, formulés en questions et jamais en verdict. Les rapprochements utiles sont posés côte à côte : le secteur avec les thèmes recherchés et la présentation. La présentation donne sa longueur et la langue du compte comme repères, sans détection automatique.</li>
+      <li><b>Ce qu'elle recherche</b> puis <b>Entreprise et conditions</b> : des listes de propriétés groupées ; les champs vides réunis sur une seule ligne « Non renseignés ».</li>
+      <li><b>Compte</b>, marqué « interne », sur une ligne en dernier.</li>
+      <li><b>Modification d'un profil publié</b> : les champs changés portent un badge « Modifié » et leur ancienne valeur barrée.</li>
+      <li><b>« Voir la page publique (version soumise) »</b> dans l'en-tête de « À contrôler », ouvert dans un nouvel onglet pour ne perdre ni la décision ni le commentaire. La page de détail de la marque reste à concevoir.</li>
+    </ol>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>Hiérarchie de l'information</h2>
+    <ol class="d-hier">
+      <li><span><b>En-tête</b> : fil d'Ariane, nom de la marque, origine, échéance, « Hors délai depuis 49 min » dit une seule fois, prise en charge ; « Rendre la main » et « Fiche du compte ▮ » à droite, toujours au même endroit.</span></li>
+      <li><span><b>Dossier</b> : ce qu'il faut savoir d'abord (alertes, ce qui a changé), puis les quatre points à contrôler, ce que la marque recherche, l'entreprise et ses conditions, le compte (interne), l'interlocuteur en vue identifiée, l'historique replié.</span></li>
+      <li><span><b>Décision</b> : commentaire interne, « Valider » (seule pilule verte), « Refuser avec motif », rappel des raccourcis.</span></li>
+    </ol>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">4</span>Interactions</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Élément</th><th>Déclencheur</th><th>Réponse</th><th>Propriétés et durée</th></tr></thead>
+      <tbody>
+        <tr><td>Valider</td><td>Clic ou <span class="kbd">V</span></td><td>Récapitulatif dans la colonne (« Le profil de Terre &amp; Thé sera publié… »), focus sur « Confirmer la publication »</td><td>Bloc intérieur : <code>opacity</code> et <code>translate</code> −4 px, 200 ms</td></tr>
+        <tr><td>Refuser avec motif</td><td>Clic ou <span class="kbd">R</span></td><td>Liste fermée des motifs, aperçu du message envoyé à la marque ; « Refuser » sans motif affiche l'erreur sous la liste et rend le focus au premier motif</td><td>Même entrée ; message d'erreur sans boîte</td></tr>
+        <tr><td>Annuler</td><td><span class="kbd">Échap</span> ou bouton</td><td>Retour à l'état de repos, commentaire conservé</td><td>Aucune animation de sortie</td></tr>
+        <tr><td>Rendre la main</td><td>Clic ou <span class="kbd">L</span></td><td>Sans brouillon : rend la main et revient à la file. Avec un commentaire : confirmation dans la colonne</td><td>Bloc intérieur, 200 ms</td></tr>
+        <tr><td>Décision enregistrée</td><td>Confirmation</td><td>Notice de succès, « Entrée suivante : Vélo Urbain Bruxelles » focalisée, annonce vocale</td><td>Sur la file, la ligne suivante recevra un fond qui s'estompe (320 ms)</td></tr>
+        <tr><td>Colonne de décision</td><td>Défilement du dossier</td><td>Reste visible</td><td><code>position: sticky</code>, aucune animation</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">5</span>Changements de composants</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Aujourd'hui</th><th>Proposition</th><th>Primitive</th></tr></thead>
+      <tbody>
+        <tr><td>Trois copies du cadre de décision</td><td>Un cadre partagé par les neuf files</td><td>Cadre de décision (E1)</td></tr>
+        <tr><td><code>SECTION_CLASSES</code> : une carte par bloc de dossier</td><td>Sections sur la page, filet entre elles</td><td>Section (backoffice)</td></tr>
+        <tr><td>Grille 50/50 libellé / valeur</td><td>Libellé sur 13 rem, valeur à côté</td><td>PropertyList (nouvelle)</td></tr>
+        <tr><td>Panneaux ouverts en carte dans la carte</td><td>Bloc intérieur sans bordure</td><td>InnerPanel (nouveau)</td></tr>
+        <tr><td>Lien « Retour à la file » qui garde le verrou</td><td>« Rendre la main », confirmation si un brouillon existe</td><td>E2</td></tr>
+        <tr><td>Aucun lien vers la fiche</td><td>« Fiche du compte ▮ », le symbole annonçant une lecture enregistrée</td><td>F2</td></tr>
+        <tr><td>Coordonnées dans une carte ordinaire</td><td>Cadre de vue identifiée (barre de 4 px, chapeau)</td><td><code>BoIdentifiedFrame</code> existant (F5)</td></tr>
+        <tr><td>Liens de retour en texte</td><td>Fil d'Ariane</td><td>E5</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">6</span>Pourquoi ces choix</h2>
+    <ul class="d-list">
+      <li><b>Un panneau de contexte à côté du dossier</b>, et la présence pour éviter qu'un dossier soit traité deux fois : c'est le modèle de la boîte de réception d'Intercom. Il servira aussi la conversation à trois du Lot 4.</li>
+      <li><b>Décider sans quitter la file</b> : disposition liste et détail d'Airtable pour passer des enregistrements en revue. La fenêtre en demi-écran n'a pas la largeur d'une vraie liste à gauche ; d'où la colonne de décision et « Entrée suivante ».</li>
+      <li><b>La modale est réservée aux messages courts et aux confirmations</b> (HubSpot) ; INFLUX va plus loin pour la décision de file, qui reste dans sa colonne (<code>04</code> §9).</li>
+      <li><b>Une section imbriquée ne dessine pas sa carte</b> (Polaris, Section) ; <b>trois niveaux de surface au plus</b> (Atlassian, Elevation).</li>
+      <li><b>Traiter une file au clavier</b>, accepter ou refuser avec motif (Linear, Triage).</li>
+    </ul>
+    <div class="d-refs"><span class="overline">Sources réellement consultées</span>
+      <a href="https://www.intercom.com/help/en/articles/6258745-the-help-desk-explained" target="_blank" rel="noopener">Intercom, The Help Desk explained</a> · <a href="https://support.airtable.com/docs/interface-layout-record-review" target="_blank" rel="noopener">Airtable, Record review</a>
+      <a href="https://developers.hubspot.com/docs/platform/component-design-guidelines" target="_blank" rel="noopener">HubSpot, Component design guidelines</a>
+      <a href="https://shopify.dev/docs/api/app-home/polaris-web-components/layout-and-structure/section" target="_blank" rel="noopener">Shopify Polaris, Section</a> · <a href="https://atlassian.design/foundations/elevation" target="_blank" rel="noopener">Atlassian, Elevation</a> · <a href="https://linear.app/docs/triage" target="_blank" rel="noopener">Linear, Triage</a></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">7</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>L'ordre du dossier et la colonne de décision s'écartent de l'ordre ① → ⑤ de <code>17b</code> §2.5 : arbitrage <code>product-owner</code> (décision 0.6).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Le récapitulatif de publication dans la colonne plutôt qu'en fenêtre.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>« Entrée suivante » proposée après chaque décision (la plus ancienne non verrouillée de la même file).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La largeur de 22 rem de la colonne de décision (<code>04</code> §1, avis <code>expert-ux</code>).</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-4-bo-tableau-de-bord.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 4 · Tableau de bord BO</a><a class="go" href="interactions.html">Micro-interactions <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

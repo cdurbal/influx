@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Accueils</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  .home-grid { display: grid; gap: var(--spacing-6); }
+  @media (width >= 1280px) { .home-grid { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--spacing-8); align-items: start; } }
+  @media (width < 1280px) { .home-grid { max-width: var(--container-narrow); } }
+  .rows--camp > li { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t c" "m c"; }
+  .rows--camp .r-title { grid-area: t; }
+  .rows--camp .r-meta { grid-area: m; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .rows--camp .r-chev { grid-area: c; color: var(--color-text-secondary); }
+  @media (width >= 768px) { .rows--camp > li { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "t m c"; } }
+  .rows--feed > li { grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; }
+  .deadline { display: inline-flex; align-items: center; gap: var(--spacing-2); color: var(--color-text-primary); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+  .todo-act-note { font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .profile-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2) var(--spacing-3); }
+</style>
+</head>
+<body data-default="marque-neuve">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <option value="marque-neuve">Marque · première visite</option>
+      <option value="marque">Marque · active</option>
+      <option value="createur-neuf">Créateur · première visite</option>
+      <option value="createur">Créateur · actif</option>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head">
+      <a class="m-brand" href="#contenu">INFLUX</a>
+      <span class="role role--brand" data-when="marque-neuve marque">Espace marque</span>
+      <span class="role role--creator" data-when="createur-neuf createur">Espace créateur</span>
+      <button class="btn btn--secondary lg-hide" type="button">English</button>
+    </header>
+    <nav class="m-nav" aria-label="Navigation principale">
+      <ul class="m-nav__list">
+        <li class="m-nav__cell"><a class="m-nav__link is-current" aria-current="page" href="#contenu"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+        <li class="m-nav__cell"><a class="m-nav__link" href="#contenu"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a></li>
+        <li class="m-nav__cell" data-when="marque-neuve marque"><a class="m-nav__link" href="#contenu"><svg class="i"><use href="#i-users"/></svg><span>Créateurs</span></a></li>
+        <li class="m-nav__cell"><a class="m-nav__link" href="#contenu"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a></li>
+      </ul>
+    </nav>
+    <div class="m-state">
+      <b data-when="marque-neuve">Profil : Brouillon</b><span class="c2" data-when="marque-neuve">10 informations manquantes</span>
+      <b data-when="createur-neuf">Profil : En cours de saisie</b><span class="c2" data-when="createur-neuf">16 informations manquantes</span>
+      <a class="go sm" href="#contenu" data-when="marque-neuve createur-neuf">Compléter mon profil <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+      <b data-when="marque createur">Profil : Publié</b>
+    </div>
+    <footer class="m-foot">
+      <button class="btn btn--secondary" type="button">English</button>
+      <p class="sm c2">Connecté avec <span data-when="marque-neuve marque">claire.morel@example.test</span><span data-when="createur-neuf createur">lea.dumont@example.test</span></p>
+      <button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button>
+    </footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page">
+
+      <!-- ===================== MARQUE · PREMIÈRE VISITE ===================== -->
+      <div class="page-stack narrow" data-when="marque-neuve">
+        <header class="page-head"><h1 class="t-page" tabindex="-1">Accueil</h1></header>
+        <section class="sect" data-h="1" aria-labelledby="mn-w">
+          <div class="sect__head">
+            <h2 class="t-section" id="mn-w">Bienvenue sur INFLUX</h2>
+            <p class="measure c2">Trouvez des créateurs crédibles pour vos campagnes : vous les découvrez sous forme de profils anonymes, et votre commercial INFLUX organise la mise en relation.</p>
+          </div>
+        </section>
+        <section class="card" data-h="2" aria-labelledby="mn-bd">
+          <div class="stack g3">
+            <div class="sect__bar"><h2 class="t-card" id="mn-bd">Bien démarrer</h2><span class="sm c2 tab"><b class="fig">1</b> sur 5</span></div>
+            <div class="bar" aria-hidden="true"><span style="width: 20%"></span></div>
+          </div>
+          <ol class="todo">
+            <li class="is-done"><svg class="t-ico i"><use href="#i-circle-check"/></svg>
+              <div class="t-body"><span class="t-label">Créer votre compte</span><span class="sm c2">Fait</span></div></li>
+            <li><svg class="t-ico i"><use href="#i-circle"/></svg>
+              <div class="t-body"><span class="t-label">Compléter votre profil de marque</span><span class="sm c2">10 informations : secteur principal, taille d'entreprise, marchés visés et 7 autres.</span></div>
+              <div class="t-act"><a class="btn btn--primary" href="#contenu">Compléter mon profil</a></div></li>
+            <li class="is-locked"><svg class="t-ico i"><use href="#i-lock"/></svg>
+              <div class="t-body"><span class="t-label">Faire valider votre profil</span><span class="sm c2">Après le profil complet. Examen par l'équipe INFLUX sous 8 heures ouvrées.</span></div></li>
+            <li><svg class="t-ico i"><use href="#i-circle"/></svg>
+              <div class="t-body"><span class="t-label">Préparer votre première campagne</span><span class="sm c2">Possible dès maintenant. Le brouillon s'enregistre au fur et à mesure ; il part en validation une fois votre profil publié.</span></div>
+              <div class="t-act"><a class="go" href="#contenu">Créer un brouillon <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></li>
+            <li class="is-locked"><svg class="t-ico i"><use href="#i-lock"/></svg>
+              <div class="t-body"><span class="t-label">Rechercher des créateurs</span><span class="sm c2">Après la validation de votre profil.</span></div></li>
+          </ol>
+        </section>
+      </div>
+
+      <!-- ===================== MARQUE · ACTIVE ===================== -->
+      <div class="page-stack" data-when="marque">
+        <header class="page-head"><h1 class="t-page" tabindex="-1">Accueil</h1></header>
+        <section class="stack g3 narrow" data-h="1" aria-labelledby="ma-todo">
+          <h2 class="overline" id="ma-todo">À traiter</h2>
+          <div class="notice notice--warning" style="align-items: center; flex-wrap: wrap;">
+            <svg class="i"><use href="#i-triangle-alert"/></svg>
+            <p class="grow" style="min-width: 14rem"><b>« Coffret de fêtes » est à corriger.</b> Votre brief ne permet pas à un créateur de comprendre le livrable attendu.</p>
+            <a class="btn btn--primary" href="#contenu">Corriger</a>
+          </div>
+        </section>
+        <div class="home-grid">
+          <section class="sect" data-h="2" aria-labelledby="ma-camp">
+            <div class="sect__bar"><h2 class="t-section" id="ma-camp">Mes campagnes</h2>
+              <a class="btn btn--secondary" href="#contenu"><svg class="i"><use href="#i-plus"/></svg>Créer une campagne</a></div>
+            <ul class="rows rows--camp">
+              <li><a class="r-title cover" href="#contenu">Coffret de fêtes</a><span class="r-meta"><span class="badge badge--warning"><svg class="i"><use href="#i-triangle-alert"/></svg>À corriger</span><span>Modifiée le 22 nov.</span></span><svg class="i r-chev"><use href="#i-chevron-right"/></svg></li>
+              <li><a class="r-title cover" href="#contenu">Routine éclat d'hiver</a><span class="r-meta"><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Publiée</span><span>Modifiée le 22 nov.</span></span><svg class="i r-chev"><use href="#i-chevron-right"/></svg></li>
+              <li><a class="r-title cover" href="#contenu">Baume lèvres SPF 30</a><span class="r-meta"><span class="badge badge--info"><svg class="i"><use href="#i-hourglass"/></svg>En cours de validation</span><span>Modifiée le 21 nov.</span></span><svg class="i r-chev"><use href="#i-chevron-right"/></svg></li>
+            </ul>
+            <a class="go" href="#contenu">Voir les 5 campagnes <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+          </section>
+          <div class="page-stack">
+            <section class="sect" data-h="3" aria-labelledby="ma-find">
+              <div class="sect__head"><h2 class="t-section" id="ma-find">Trouver des créateurs</h2>
+                <p class="sm c2">Recherche par critères, sur des profils anonymes.</p></div>
+              <div class="actions"><a class="btn btn--secondary" href="#contenu"><svg class="i"><use href="#i-search"/></svg>Rechercher</a><a class="link sm" href="#contenu">Demander une sélection</a></div>
+              <div class="stack g2">
+                <h3 class="overline">Mes sélections</h3>
+                <ul class="rows">
+                  <li><span class="r-main"><a class="r-title cover" href="#contenu">Sélection hiver</a><span class="sm c2">4 créateurs · rattachée à « Routine éclat d'hiver »</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+                  <li><span class="r-main"><a class="r-title cover" href="#contenu">Ma sélection</a><span class="sm c2">2 créateurs</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+                </ul>
+              </div>
+            </section>
+            <section class="sect rule" style="padding-top: var(--spacing-5)" data-h="4" aria-labelledby="ma-prof">
+              <h2 class="t-card" id="ma-prof">Mon profil de marque</h2>
+              <div class="profile-line"><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Publié</span><span class="badge badge--verified"><svg class="i"><use href="#i-badge-check"/></svg>Marque vérifiée</span></div>
+              <a class="go" href="#contenu">Modifier mon profil <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================== CRÉATEUR · PREMIÈRE VISITE ===================== -->
+      <div class="page-stack narrow" data-when="createur-neuf">
+        <header class="page-head"><h1 class="t-page" tabindex="-1">Accueil</h1></header>
+        <section class="sect" data-h="1" aria-labelledby="cn-w">
+          <div class="sect__head">
+            <h2 class="t-section" id="cn-w">Bienvenue sur INFLUX</h2>
+            <p class="measure c2">Découvrez les campagnes des marques ; votre commercial INFLUX vous propose à celles qui vous correspondent.</p>
+          </div>
+        </section>
+        <section class="card" data-h="2" aria-labelledby="cn-bd">
+          <div class="stack g3">
+            <div class="sect__bar"><h2 class="t-card" id="cn-bd">Bien démarrer</h2><span class="sm c2 tab"><b class="fig">1</b> sur 5</span></div>
+            <div class="bar" aria-hidden="true"><span style="width: 20%"></span></div>
+          </div>
+          <ol class="todo">
+            <li class="is-done"><svg class="t-ico i"><use href="#i-circle-check"/></svg>
+              <div class="t-body"><span class="t-label">Créer votre compte</span><span class="sm c2">Fait</span></div></li>
+            <li><svg class="t-ico i"><use href="#i-circle"/></svg>
+              <div class="t-body"><span class="t-label">Compléter votre profil</span><span class="sm c2">Complété à 1 %. Il reste 16 informations :</span>
+                <span class="chips-inline"><a class="link" href="#contenu">Présentation (2)</a><a class="link" href="#contenu">Ligne éditoriale (2)</a><a class="link" href="#contenu">Réseaux sociaux (6)</a><a class="link" href="#contenu">Audience (2)</a><a class="link" href="#contenu">Mon offre (2)</a><a class="link" href="#contenu">Portfolio (1)</a><a class="link" href="#contenu">Confiance (1)</a></span></div>
+              <div class="t-act"><a class="btn btn--primary" href="#contenu">Compléter mon profil</a></div></li>
+            <li><svg class="t-ico i"><use href="#i-circle"/></svg>
+              <div class="t-body"><span class="t-label">Voir votre profil comme une marque le voit</span><span class="sm c2">Les marques lisent votre alias, Profil 6PRGS4, et des tranches : jamais votre nom.</span></div>
+              <div class="t-act"><a class="go" href="#contenu">Ouvrir l'aperçu <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></li>
+            <li class="is-locked"><svg class="t-ico i"><use href="#i-lock"/></svg>
+              <div class="t-body"><span class="t-label">Publier votre profil</span><span class="sm c2">Quand les 16 informations sont renseignées. Relu par un commercial INFLUX sous 1 jour ouvré.</span></div></li>
+            <li><svg class="t-ico i"><use href="#i-circle"/></svg>
+              <div class="t-body"><span class="t-label">Parcourir les campagnes ouvertes</span><span class="sm c2">Elles sont consultables dès maintenant, sans attendre la publication de votre profil.</span></div>
+              <div class="t-act"><a class="go" href="#contenu">Voir les campagnes <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></li>
+          </ol>
+        </section>
+        <section class="sect" data-h="3" aria-labelledby="cn-feed">
+          <div class="sect__bar"><h2 class="t-section" id="cn-feed">Dernières campagnes ouvertes</h2></div>
+          <ul class="rows rows--feed">
+            <li><span class="logo-plate" aria-hidden="true">AS</span><span class="r-main"><span class="sm c2">Atelier Sève</span><a class="r-title cover" href="#contenu">Routine éclat d'hiver</a><span class="deadline"><svg class="i i--sm"><use href="#i-clock"/></svg>Candidatures avant le 28 mars</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+            <li><span class="logo-plate" aria-hidden="true">T&amp;T</span><span class="r-main"><span class="sm c2">Terre &amp; Thé</span><a class="r-title cover" href="#contenu">Infusions du matin</a><span class="deadline"><svg class="i i--sm"><use href="#i-clock"/></svg>Candidatures avant le 12 avril</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+          </ul>
+          <a class="go" href="#contenu">Voir toutes les campagnes <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+        </section>
+      </div>
+
+      <!-- ===================== CRÉATEUR · ACTIF ===================== -->
+      <div class="page-stack" data-when="createur">
+        <header class="page-head">
+          <h1 class="t-page" tabindex="-1">Accueil</h1>
+          <p class="measure c2">Les campagnes ouvertes sont déjà consultables. Un profil complet aide votre commercial INFLUX à vous proposer aux marques.</p>
+        </header>
+        <section class="stack g2 narrow" data-h="1" aria-labelledby="ca-todo">
+          <h2 class="overline" id="ca-todo">À faire</h2>
+          <ul class="rows">
+            <li><span class="r-main"><a class="r-title cover" href="#contenu">Faites vérifier votre compte TikTok</a><span class="sm c2">Le badge « Compte vérifié » s'affiche sur votre profil anonyme.</span></span><span class="go">Vérifier <svg class="i i--sm"><use href="#i-chevron-right"/></svg></span></li>
+            <li><span class="r-main"><a class="r-title cover" href="#contenu">Vos chiffres Instagram datent du 22 août</a><span class="sm c2">Tant qu'ils ne sont pas mis à jour, les marques voient un point de vigilance.</span></span><span class="go">Mettre à jour <svg class="i i--sm"><use href="#i-chevron-right"/></svg></span></li>
+          </ul>
+        </section>
+        <div class="home-grid">
+          <section class="sect" data-h="2" aria-labelledby="ca-feed">
+            <div class="sect__bar"><h2 class="t-section" id="ca-feed">Dernières campagnes ouvertes</h2>
+              <a class="btn btn--secondary" href="#contenu">Voir toutes les campagnes</a></div>
+            <ul class="rows rows--feed">
+              <li><span class="logo-plate" aria-hidden="true">AS</span><span class="r-main"><span class="row g2 sm c2">Atelier Sève <span class="badge badge--verified"><svg class="i"><use href="#i-badge-check"/></svg>Marque vérifiée</span></span><a class="r-title cover" href="#contenu">Routine éclat d'hiver</a><span class="deadline"><svg class="i i--sm"><use href="#i-clock"/></svg>Candidatures avant le 28 mars</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+              <li><span class="logo-plate" aria-hidden="true">T&amp;T</span><span class="r-main"><span class="sm c2">Terre &amp; Thé</span><a class="r-title cover" href="#contenu">Infusions du matin</a><span class="deadline"><svg class="i i--sm"><use href="#i-clock"/></svg>Candidatures avant le 12 avril</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+              <li><span class="logo-plate" aria-hidden="true">VUB</span><span class="r-main"><span class="sm c2">Vélo Urbain Bruxelles</span><a class="r-title cover" href="#contenu">Trajets du quotidien</a><span class="deadline"><svg class="i i--sm"><use href="#i-clock"/></svg>Candidatures avant le 30 avril</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+            </ul>
+          </section>
+          <section class="sect" data-h="3" aria-labelledby="ca-prof">
+            <h2 class="t-section" id="ca-prof">Mon profil</h2>
+            <div class="stack g3">
+              <div class="profile-line"><span class="fig">Profil 93JMS4</span><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Publié</span></div>
+              <div class="stack g2"><div class="sect__bar sm"><span class="c2">Complétude du profil</span><span class="fig">99 %</span></div><div class="bar" aria-hidden="true"><span style="width: 99%"></span></div></div>
+            </div>
+            <div class="stack">
+              <a class="go" href="#contenu">Voir mon profil <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+              <a class="go" href="#contenu"><svg class="i i--sm"><use href="#i-eye"/></svg>Ce que voit une marque</a>
+            </div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

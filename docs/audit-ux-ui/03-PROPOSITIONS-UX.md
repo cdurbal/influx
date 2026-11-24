@@ -174,7 +174,7 @@ pas encore. Ils sont tous construits à partir des tokens actuels.
 |---|---|---|
 | Inscription (porte → e-mail → code → détails) | **Garder le multi-étapes court actuel** ; alléger les écrans 1 et 2 (C11) | 4 à 6 champs utiles, déjà découpés ; le profil se complète ensuite |
 | Profil marque (21 champs + logo) | **Collecte progressive**, accordéon à toutes les largeurs dès qu'un bloc est complet | Les blocs sont indépendants, la complétude est visible |
-| Profil créateur (40 à 70 champs selon les réseaux) | **Collecte progressive + accordéon sur mobile** (C3), action de publication collante (C1) | 7 blocs indépendants, usage sur téléphone |
+| Profil créateur (40 à 70 champs selon les réseaux) | ~~Collecte progressive + accordéon sur mobile (C3)~~ **Révisé le 2026-11-23 (fondateur, `07`) : assistant en 5 étapes, vérification, puis liste de tâches après publication** | Étapes par sujet, progression, reprise ; indispensable d'abord |
 | Campagne (environ 40 champs, 8 conditionnels) | **Multi-étapes à navigation libre**, déjà juste : corriger la barre mobile (C6) et la lecture après publication (D8) | Dépendances entre champs, brouillon permanent |
 | Compte, contestation, préférences | **Formulaire classique**, garder | 1 à 3 champs |
 

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 2 bis · Profil anonyme</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html" aria-current="page">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 2 bis · Annonceur · vue détaillée d'un créateur</p>
+    <h1 class="d-h1">Profil anonyme</h1>
+    <p class="d-lead">La page qu'ouvre une marque en cliquant une carte de la recherche, sur le modèle de la fiche d'une annonce Airbnb : un titre, une mosaïque de visuels, les chiffres clés dans un encadré, les raisons de la proposition, puis le détail ; à droite, un encadré collant qui remplace la réservation par « Ma sélection ».</p>
+    <div class="d-ids"><span class="u u--imp">U10</span><span class="u u--imp">U12</span><span class="u u--imp">U09</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Ordinateur 1 440 px</button><button class="d-toggle" type="button" data-mode="phone" aria-pressed="false"><svg class="i i--sm"><use href="#i-smartphone"/></svg>Téléphone 390 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="profil" data-cap="m04-recherche-createurs.jpg" aria-pressed="true">Profil</button>
+        <button type="button" data-st="ajoute" data-cap="m04-recherche-createurs.jpg" aria-pressed="false">Déjà dans ma sélection</button>
+        <button type="button" data-st="galerie" data-cap="m04-recherche-createurs.jpg" aria-pressed="false">Galerie</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>L'audit n'a pas capturé le profil anonyme. À gauche en mode ordinateur : la carte de résultat actuelle, qui reprend les mêmes informations empilées.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-profil-anonyme.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-profil-anonyme.html" title="Prototype du profil anonyme" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">L'audit n'a pas de capture de cet écran : à gauche, la carte de résultat actuelle (m04), qui affiche les mêmes informations en pile. Dans le prototype de la recherche, cliquer l'alias d'une carte ouvre désormais cette page.</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>De la fiche Airbnb au profil anonyme</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Fiche Airbnb</th><th>Profil anonyme INFLUX</th><th>Pourquoi</th></tr></thead>
+      <tbody>
+        <tr><td>Titre de l'annonce, « Enregistrer »</td><td>Titre court du créateur, alias et icône bleue de vérification ; « Ajouter à ma sélection » avec le cœur</td><td>Le titre court est ce que le créateur écrit pour les marques</td></tr>
+        <tr><td>Mosaïque de photos, « Afficher toutes les photos »</td><td>Mosaïque du portfolio en 4:3 (un grand visuel, quatre petits), « Afficher les 6 visuels » ouvre la galerie avec les légendes</td><td>Les visuels sont la meilleure preuve du travail</td></tr>
+        <tr><td>Type de logement, ville, capacités</td><td>Thématique, région de résidence, langues, nombre de réseaux, expérience</td><td>Région seulement, jamais la ville : anonymat (D45)</td></tr>
+        <tr><td>Encadré « Coup de cœur · note · commentaires »</td><td>Encadré des chiffres clés du réseau principal : audience vérifiée, abonnés, rythme, commentaires (D61)</td><td>Pas de note ni de score (D11)</td></tr>
+        <tr><td>Hôte, Superhôte</td><td>Alias, ancienneté sur INFLUX, date des chiffres</td><td>Aucun visage, aucun nom</td></tr>
+        <tr><td>Trois points forts avec icônes</td><td>« Proposé car » : les raisons écrites, avec icônes, et « ce n'est pas un score »</td><td>La preuve qui distingue INFLUX</td></tr>
+        <tr><td>Description, « Lire la suite »</td><td>Bio sur quatre lignes, « Lire la suite »</td><td>—</td></tr>
+        <tr><td>Équipements, carte, avis</td><td>Réseaux (tranches et badges), audience (tranches à l'échelle), ligne éditoriale et offre</td><td>Les marques voient des tranches avant la mise en relation</td></tr>
+        <tr><td>Encadré collant : prix, dates, « Réserver »</td><td>Encadré collant « Ma sélection privée » : choix de la sélection, « Ajouter à ma sélection », coûts négociés avec le commercial, demande de sélection</td><td>Aucun montant (D78) ; la mise en relation passe par le commercial (D45)</td></tr>
+        <tr><td>« L'hôte offre une réduction »</td><td>« Disponible sous 2 semaines »</td><td>Information utile à la marque, déclarée par le créateur</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Hiérarchie de l'information</h2>
+    <ol class="d-hier">
+      <li><span><b>Titre</b>, alias, mention de l'anonymat, « Ajouter à ma sélection ».</span></li>
+      <li><span><b>Visuels du portfolio.</b></span></li>
+      <li><span><b>Résumé et chiffres clés</b> du réseau principal.</span></li>
+      <li><span><b>Proposé car.</b></span></li>
+      <li><span><b>Détail</b> : bio, réseaux, audience, ligne éditoriale et offre.</span></li>
+      <li><span><b>Ma sélection</b> : encadré collant sur ordinateur, barre collante sur téléphone.</span></li>
+    </ol>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>Interactions</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Élément</th><th>Déclencheur</th><th>Réponse</th><th>Propriétés et durée</th><th>Téléphone</th></tr></thead>
+      <tbody>
+        <tr><td>Ajouter à ma sélection</td><td>Cœur du titre, bouton de l'encadré ou de la barre</td><td>Tous passent à l'état « ajouté » ; l'encadré confirme « Dans « Ma sélection » · 3 créateurs » ; annonce vocale</td><td>Cœur rempli 120 ms, confirmation en fondu 200 ms</td><td>Bouton « Ajouter » de la barre collante</td></tr>
+        <tr><td>Visuels</td><td>Clic sur un visuel ou « Afficher les 6 visuels »</td><td>Galerie plein écran avec légendes ; Échap ou « ‹ » referme et rend le focus</td><td>Ouverture 200 ms, fermeture 120 ms ; assombrissement au survol 120 ms</td><td>Carrousel au doigt en tête de page, compteur « 1 / 6 »</td></tr>
+        <tr><td>Lire la suite</td><td>Clic</td><td>Bio complète ; « Réduire »</td><td>Aucune animation de hauteur</td><td>Identique</td></tr>
+        <tr><td>Audience par réseau</td><td>Onglets segmentés</td><td>Change les tranches affichées</td><td>Couleurs 120 ms</td><td>Identique</td></tr>
+        <tr><td>Encadré « Ma sélection »</td><td>Défilement</td><td>Reste visible</td><td><code>position: sticky</code></td><td>Barre collante au-dessus de la navigation</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">4</span>Points de vigilance</h2>
+    <ul class="d-list">
+      <li><b>Anonymat</b> : ni pseudo, ni lien, ni chiffre exact, ni ville ; les visuels sont ceux déjà approuvés et publics.</li>
+      <li><b>Ouvrir un profil est compté</b> (limite d'ouvertures existante) : la page ne doit pas se recharger quand on change d'onglet d'audience ou de visuel.</li>
+      <li><b>La galerie plein écran</b> est une vue de lecture : elle s'écarte de <code>04</code> §9 au même titre que le dialogue « Filtres ».</li>
+      <li><b>Lot 4</b> : quand la mise en relation existera, son action prendra place dans l'encadré collant, sous « Ajouter à ma sélection ».</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">5</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La page dans son ensemble.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>L'encadré des chiffres clés (réseau principal) à la place de la note Airbnb.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les barres de tranches pour l'audience.</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-2-recherche.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 2 · Recherche</a><a class="go" href="ecran-3-profil-createur.html">Écran 3 · Profil créateur <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

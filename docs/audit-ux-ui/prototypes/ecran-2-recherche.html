@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 2 · Recherche de créateurs</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html" aria-current="page">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 2 sur 5 · Annonceur · version 2, après vos retours du 23 novembre</p>
+    <h1 class="d-h1">Recherche de créateurs</h1>
+    <p class="d-lead">La colonne de filtres disparaît au profit d'une ligne de filtres, comme sur Airbnb. Les résultats deviennent une grille de cartes où la photo domine : on fait défiler le portfolio dans la carte, des badges se posent sur la photo, un cœur remplace « Ajouter à ma sélection ».</p>
+    <div class="d-ids"><span class="u u--imp">U10</span><span class="u u--imp">U11</span><span class="u u--imp">U12</span><span class="u u--imp">U64</span><span class="u u--imp">U18</span><span class="u u--imp">U20</span><span class="u">U55</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Ordinateur 1 440 px</button><button class="d-toggle" type="button" data-mode="phone" aria-pressed="false"><svg class="i i--sm"><use href="#i-smartphone"/></svg>Téléphone 390 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="resultats" data-cap="m04-recherche-createurs.jpg" aria-pressed="true">Résultats</button>
+        <button type="button" data-st="chargement" data-cap="m04-recherche-createurs.jpg" aria-pressed="false">Chargement</button>
+        <button type="button" data-st="vide" data-cap="m04-recherche-createurs.jpg" aria-pressed="false">Recherche trop précise</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>L'audit n'a pas capturé cet écran sur téléphone. Mesure relevée : 32 624 px de haut.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-recherche.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-recherche.html" title="Prototype de la recherche de créateurs" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran : survolez une photo et utilisez les flèches (au doigt sur téléphone), cliquez un cœur (compteur et annonce), ouvrez « Filtres », activez « Audience vérifiée ».</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Vos retours</h2>
+    <ul class="d-list">
+      <li>La colonne de filtres s'ajoute à la colonne de navigation : deux colonnes côte à côte.</li>
+      <li>Les photos sont trop petites ; le mini-tableau des réseaux prend trop de place ; le bouton « Ajouter à ma sélection » est trop gros.</li>
+      <li>Retenu : pas de carte géographique, une ligne d'audience à la place du prix, « Proposé car » gardé sur une ligne discrète.</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Composition</h2>
+    <ol class="d-list" style="list-style: decimal">
+      <li><b>Ligne de filtres</b> sous le titre : « Filtres » avec le nombre de critères actifs, puis les critères actifs (retirables) et des filtres rapides en pastilles ; elle défile horizontalement sur téléphone.</li>
+      <li><b>Bandeau du résultat</b> : tranche (« environ 10 à 24 profils »), campagne liée et tri en listes compactes, « Ce n'est pas un score », compteur de « Ma sélection privée ».</li>
+      <li><b>Grille de cartes</b> : 3 par ligne à 1 440 px, 1 par ligne sur téléphone. La photo occupe la majeure partie de la carte, au format paysage 4:3 des résultats de recherche Airbnb.</li>
+      <li><b>Sous la photo</b>, quatre lignes : alias et icône bleue de vérification ; titre court ; thématiques et pays ; réseau principal et tranche d'abonnés. Puis « Proposé car » en une ligne discrète.</li>
+    </ol>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>Hiérarchie de l'information</h2>
+    <ol class="d-hier">
+      <li><span><b>Titre</b> et demande de sélection à l'équipe INFLUX.</span></li>
+      <li><span><b>Ligne de filtres.</b></span></li>
+      <li><span><b>Contexte du résultat</b> et compteur de sélection.</span></li>
+      <li><span><b>Les cartes</b> : photo et badge, puis identité anonyme, audience, raison.</span></li>
+      <li><span><b>Ma sélection</b> sur téléphone : barre collante.</span></li>
+    </ol>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">4</span>Interactions</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Élément</th><th>Déclencheur</th><th>Réponse</th><th>Propriétés et durée</th><th>Téléphone</th></tr></thead>
+      <tbody>
+        <tr><td>Portfolio dans la carte</td><td>Flèches au survol, glisser, points</td><td>Visuel suivant ou précédent, le point actif s'allonge</td><td>Défilement avec ancrage (<code>scroll-snap</code>) ; flèches en fondu 120 ms ; instantané sous mouvement réduit</td><td>Glisser au doigt, pas de flèches</td></tr>
+        <tr><td>Cœur</td><td>Clic</td><td>Cœur rempli de blanc, bref rebond, compteur éclairé, annonce « Profil 93JMS4 ajouté à « Ma sélection » (4 créateurs) »</td><td><code>scale</code> 1,2 sur 200 ms, remplissage 120 ms, fond du compteur 320 ms</td><td>Cible de 44 px ; compteur de la barre collante</td></tr>
+        <tr><td>Filtres</td><td>Pastille « Filtres » ou un filtre à liste</td><td>Dialogue de tous les critères, « Tout effacer », « Voir les résultats »</td><td>Ouverture 200 ms, fermeture 120 ms</td><td>Plein écran</td></tr>
+        <tr><td>Filtre rapide</td><td>Clic</td><td>La pastille passe à l'état actif (fond, contour clair)</td><td>Couleurs, 120 ms</td><td>Identique</td></tr>
+        <tr><td>Carte</td><td>Clic hors photo</td><td>Ouvre le profil anonyme (lien étiré sur l'alias)</td><td>Focus visible sur toute la carte</td><td>Identique</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">5</span>Changements de composants</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Aujourd'hui</th><th>Proposition</th></tr></thead>
+      <tbody>
+        <tr><td>Colonne de filtres de 17 rem</td><td>Ligne de pastilles et dialogue « Filtres »</td></tr>
+        <tr><td>Carte de 1 400 px, petit visuel</td><td>Carte photo au format 4:3, sans cadre, coins arrondis de 16 px</td></tr>
+        <tr><td>Un visuel fixe</td><td>Carrousel des visuels du portfolio</td></tr>
+        <tr><td>Blocs réseau, métriques empilées</td><td>Une ligne : réseau principal et tranche d'abonnés ; le détail reste sur le profil anonyme</td></tr>
+        <tr><td>Badges dans le texte</td><td>Un badge sur la photo (« Audience vérifiée », « Disponible sous 2 semaines », « Nouveau profil ») ; l'icône bleue à côté de l'alias</td></tr>
+        <tr><td>Bouton « Ajouter à ma sélection »</td><td>Cœur sur la photo, avec nom accessible et annonce</td></tr>
+        <tr><td>« Proposé car » en bloc</td><td>Une ligne discrète, coupée si trop longue</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">6</span>Points de vigilance</h2>
+    <ul class="d-list">
+      <li><b>Anonymat</b> : les visuels du portfolio sont déjà publics avant toute mise en relation ; aucun visage n'est imposé, la règle actuelle s'applique.</li>
+      <li><b>Le dialogue « Filtres »</b> est une exception validée à <code>04</code> §9 : ensemble de réglages appliqués d'un coup, avec validation explicite.</li>
+      <li><b>Le cœur</b> se remplit de blanc : le vert reste réservé à l'action principale de la vue.</li>
+      <li><b>« Proposé car » coupé à une ligne</b> : le texte complet reste lu par les lecteurs d'écran et affiché sur le profil anonyme.</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">7</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La version 2 dans son ensemble.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les filtres rapides proposés dans la ligne (lesquels garder visibles).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les trois badges possibles sur la photo, un seul à la fois.</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-1-accueils.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 1 · Accueils</a><a class="go" href="ecran-2b-profil-anonyme.html">Écran 2 bis · Profil anonyme <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

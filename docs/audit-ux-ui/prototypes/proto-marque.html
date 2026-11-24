@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Page publique de la marque</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  .pa { display: flex; flex-direction: column; gap: var(--spacing-5); }
+  .preview { display: flex; align-items: flex-start; gap: var(--spacing-3); border-radius: var(--radius-md); border: var(--border-width-thin) dashed var(--color-feedback-info-border); background: var(--color-feedback-info-bg); padding: var(--spacing-3) var(--spacing-4); font-size: var(--text-sm); }
+  .preview .i { color: var(--color-feedback-info-icon); margin-top: 0.125rem; }
+  /* En-tête de marque : à la place de la mosaïque, le logo sur sa pastille claire et l'identité */
+  .hero { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--spacing-6); align-items: center; border-radius: var(--radius-card); background: var(--background-image-halo-ambient), var(--color-surface-card); border: var(--border-width-thin) solid var(--color-border-default); padding: var(--spacing-6); }
+  .hero .logo-plate { width: 7.5rem; height: 7.5rem; border-radius: var(--radius-card); font-size: var(--text-heading-3); }
+  .hero__id { display: flex; flex-direction: column; gap: var(--spacing-2); min-width: 0; }
+  .hero__id h1 { font-family: var(--font-display); font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.25rem); font-weight: var(--font-weight-extrabold); letter-spacing: var(--tracking-heading); line-height: var(--leading-tight); }
+  .hero__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2) var(--spacing-3); color: var(--color-text-secondary); }
+  @media (width < 640px) { .hero { grid-template-columns: 1fr; padding: var(--spacing-5); gap: var(--spacing-4); } .hero .logo-plate { width: 4.5rem; height: 4.5rem; font-size: var(--text-md); } }
+  .pa-grid { display: flex; flex-direction: column; gap: var(--spacing-6); }
+  @media (width >= 1024px) { .pa-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(19rem, 4fr); gap: var(--spacing-9); align-items: start; } }
+  .pa-main { display: flex; flex-direction: column; min-width: 0; }
+  .pa-main > section { display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--spacing-6) 0; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .pa-main > section:first-child { border-top: 0; padding-top: 0; }
+  .keyfig { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); padding: var(--spacing-4) var(--spacing-2); }
+  .keyfig > div { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-1); padding: 0 var(--spacing-3); text-align: center; }
+  .keyfig > div + div { border-left: var(--border-width-thin) solid var(--color-border-default); }
+  .keyfig b { font-family: var(--font-display); font-size: var(--text-lead); font-weight: var(--font-weight-extrabold); line-height: var(--leading-tight); }
+  .keyfig small { font-size: var(--text-xs); color: var(--color-text-secondary); }
+  .keyfig .ver { color: var(--color-verified-text); }
+  .keyfig .ver .i { width: 1.75rem; height: 1.75rem; }
+  @media (width < 640px) { .keyfig { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--spacing-4); } .keyfig > div:nth-child(3) { border-left: 0; } }
+  .reasons { display: flex; flex-direction: column; gap: var(--spacing-5); }
+  .reasons li { display: grid; grid-template-columns: var(--size-icon-lg) minmax(0, 1fr); gap: var(--spacing-4); }
+  .reasons .i { width: var(--size-icon-lg); height: var(--size-icon-lg); color: var(--color-text-secondary); }
+  .reasons b { display: block; font-weight: var(--font-weight-semibold); }
+  .bio { max-width: var(--size-measure); }
+  .bio.is-clamped { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+  .chip { display: inline-flex; align-items: center; min-height: 2rem; border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); padding: 0 var(--spacing-3); font-size: var(--text-sm); }
+  .two { display: grid; gap: var(--spacing-5); }
+  @media (width >= 640px) { .two { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .camps > li { grid-template-columns: minmax(0, 1fr) auto; }
+  .deadline { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+  .aside { display: flex; flex-direction: column; gap: var(--spacing-4); }
+  @media (width >= 1024px) { .aside { position: sticky; top: var(--spacing-6); } }
+  .box { display: flex; flex-direction: column; gap: var(--spacing-4); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); box-shadow: var(--shadow-md); padding: var(--spacing-5); }
+  .box .btn--primary { width: 100%; }
+  .box .fig-big { font-family: var(--font-display); font-size: var(--text-heading-3); font-weight: var(--font-weight-extrabold); }
+  @media (width < 1024px) { .box { display: none; } }
+  .mbar { display: none; }
+  @media (width < 1024px) {
+    .mbar { position: fixed; left: 0; right: 0; bottom: var(--size-nav-bottom-height); z-index: var(--z-raised); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-3); padding: var(--spacing-2) var(--spacing-page-gutter); background: var(--color-surface-page); border-top: var(--border-width-thin) solid var(--color-border-default); }
+    .m-main { padding-bottom: calc(var(--size-nav-bottom-height) + 4.25rem); }
+  }
+</style>
+</head>
+<body data-default="createur">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État <select id="demo-state"><option value="createur">Vue d'un créateur</option><option value="soumise">Version soumise (ouverte depuis le backoffice)</option></select></label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head"><a class="m-brand" href="#contenu">INFLUX</a><span class="role role--creator">Espace créateur</span><button class="btn btn--secondary lg-hide" type="button">English</button></header>
+    <nav class="m-nav" aria-label="Navigation principale"><ul class="m-nav__list">
+      <li class="m-nav__cell"><a class="m-nav__link" href="#contenu"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link is-current" aria-current="page" href="#contenu"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="#contenu"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a></li>
+    </ul></nav>
+    <div class="m-state"><b>Profil : Publié</b></div>
+    <footer class="m-foot"><button class="btn btn--secondary" type="button">English</button><p class="sm c2">Connecté avec lea.dumont@example.test</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button></footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page pa">
+      <p class="preview" data-when="soumise"><svg class="i"><use href="#i-eye"/></svg><span><b>Version soumise, non publiée.</b> Aperçu ouvert depuis le backoffice : c'est ce que les créateurs verront si le profil est publié.</span></p>
+      <a class="go sm c2" href="#contenu" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Campagne « Infusions du matin »</a>
+
+      <header class="hero" data-h="1">
+        <span class="logo-plate" role="img" aria-label="Logo de Terre &amp; Thé">T&amp;T</span>
+        <div class="hero__id">
+          <h1 tabindex="-1">Terre &amp; Thé</h1>
+          <p class="hero__meta"><span class="badge badge--verified"><svg class="i"><use href="#i-badge-check"/></svg>Marque vérifiée</span><span>Alimentation et boissons · Belgique</span></p>
+          <p class="c2">Thés et infusions bio, cultivés en Belgique, pour les moments calmes de la journée.</p>
+        </div>
+      </header>
+
+      <div class="pa-grid">
+        <div class="pa-main">
+          <section aria-labelledby="h-sum" data-h="2">
+            <h2 class="sr-only" id="h-sum">En bref</h2>
+            <div class="keyfig" aria-label="La marque en bref">
+              <div class="ver"><svg class="i"><use href="#i-badge-check"/></svg><small>Marque vérifiée<br>par INFLUX</small></div>
+              <div><b>2</b><small>campagnes ouvertes</small></div>
+              <div><b>11–50</b><small>personnes</small></div>
+              <div><b>2025</b><small>sur INFLUX depuis</small></div>
+            </div>
+          </section>
+
+          <section aria-labelledby="h-why" data-h="3">
+            <h2 class="sr-only" id="h-why">Ce qui vous concerne</h2>
+            <ul class="reasons">
+              <li><svg class="i"><use href="#i-utensils"/></svg><div><b>Elle recherche votre thématique : Cuisine et gastronomie</b><span class="sm c2">Parmi les thèmes qu'elle recherche.</span></div></li>
+              <li><svg class="i"><use href="#i-map-pin"/></svg><div><b>Elle vise une audience en Belgique</b><span class="sm c2">Le pays principal de votre audience.</span></div></li>
+              <li><svg class="i"><use href="#i-shield-check"/></svg><div><b>Marque vérifiée</b><span class="sm c2">INFLUX a constaté son immatriculation et son site.</span></div></li>
+            </ul>
+            <p class="row g2 xs c2"><svg class="i i--sm"><use href="#i-info"/></svg>Ces points comparent la marque à votre profil ; ce n'est pas un score.</p>
+          </section>
+
+          <section aria-labelledby="h-bio">
+            <h2 class="t-section" id="h-bio">Présentation</h2>
+            <p class="bio is-clamped" id="bio">Terre &amp; Thé cultive et assemble des thés et des infusions biologiques en Belgique depuis 2019. Nous travaillons avec de petites exploitations, nous emballons sans plastique et nous racontons d'où viennent nos feuilles. Nous cherchons des créateurs qui aiment cuisiner de saison, prendre le temps, et parler de ce qu'ils consomment avec sincérité. Nos campagnes mêlent recettes, rituels du matin et visites de nos jardins.</p>
+            <button class="btn btn--secondary" type="button" id="more" aria-expanded="false" aria-controls="bio" style="align-self: flex-start">Lire la suite</button>
+          </section>
+
+          <section aria-labelledby="h-camp" data-h="4">
+            <h2 class="t-section" id="h-camp">Campagnes ouvertes</h2>
+            <ul class="rows camps">
+              <li><span class="r-main"><a class="r-title cover" href="#contenu">Infusions du matin</a><span class="deadline"><svg class="i i--sm"><use href="#i-clock"/></svg>Candidatures avant le 12 avril</span><span class="sm c2">Instagram · Reel · Belgique, France</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+              <li><span class="r-main"><a class="r-title cover" href="#contenu">Coffret de Noël</a><span class="deadline"><svg class="i i--sm"><use href="#i-clock"/></svg>Candidatures avant le 30 novembre</span><span class="sm c2">TikTok · Vidéo courte · Belgique</span></span><svg class="i c2"><use href="#i-chevron-right"/></svg></li>
+            </ul>
+          </section>
+
+          <section aria-labelledby="h-look">
+            <h2 class="t-section" id="h-look">Ce qu'elle recherche</h2>
+            <div class="two">
+              <div class="stack g2"><h3 class="t-card">Thématiques</h3><div class="chips"><span class="chip">Cuisine et gastronomie</span><span class="chip">Bien-être et santé</span><span class="chip">Écologie</span></div></div>
+              <div class="stack g2"><h3 class="t-card">Réseaux et formats</h3><div class="chips"><span class="chip">Instagram · Reel</span><span class="chip">Instagram · Story</span><span class="chip">TikTok · Vidéo courte</span></div></div>
+              <div class="stack g2"><h3 class="t-card">Audience visée</h3><div class="chips"><span class="chip">Belgique</span><span class="chip">France</span></div></div>
+              <div class="stack g2"><h3 class="t-card">Langues de travail</h3><div class="chips"><span class="chip">Français</span><span class="chip">Néerlandais</span></div></div>
+            </div>
+          </section>
+
+          <section aria-labelledby="h-cond">
+            <h2 class="t-section" id="h-cond">Façon de travailler</h2>
+            <dl class="props" style="--size-property-label: 12rem"><dt>Rythme de collaboration</dt><dd>Campagnes saisonnières, 3 à 4 par an</dd><dt>Droits d'usage</dt><dd>Republication sur ses réseaux</dd><dt>Exclusivité</dt><dd>Aucune demandée</dd><dt>Contreparties non monétaires</dt><dd>Produits offerts, visite des jardins</dd><dt data-when="soumise">Site web</dt><dd data-when="soumise">terre-et-the.example <span class="layer layer--internal" style="margin-left: var(--spacing-2)"><svg class="i"><use href="#i-eye-off"/></svg>visible des agents INFLUX seulement</span></dd></dl>
+            <p class="sm c2">Les conditions financières se négocient avec votre commercial INFLUX, qui organise la mise en relation.</p>
+          </section>
+        </div>
+
+        <aside class="aside" aria-label="Campagnes de la marque" data-h="5">
+          <div class="box">
+            <div class="stack g1"><span class="fig-big">2 campagnes ouvertes</span><p class="sm c2">La plus proche : candidatures avant le 30 novembre.</p></div>
+            <a class="btn btn--primary" href="#h-camp">Voir ses campagnes</a>
+            <div class="rule"></div>
+            <p class="sm c2">Vous ne contactez pas la marque directement : votre commercial INFLUX vous propose aux campagnes qui vous correspondent.</p>
+            <a class="go sm" href="#contenu" style="min-height: auto"><svg class="i i--sm"><use href="#i-user-round"/></svg>Compléter mon profil</a>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="mbar" data-h="5"><div class="stack"><span class="t-block">2 campagnes ouvertes</span><span class="xs c2">La plus proche : avant le 30 novembre</span></div><a class="btn btn--primary" href="#h-camp" style="min-height: 2.5rem; padding-block: 0">Voir</a></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var more = P.$("#more"), bio = P.$("#bio");
+  more.addEventListener("click", function () { var open = bio.classList.toggle("is-clamped") === false; more.textContent = open ? "Réduire" : "Lire la suite"; more.setAttribute("aria-expanded", String(open)); });
+});
+</script>
+</body>
+</html>
