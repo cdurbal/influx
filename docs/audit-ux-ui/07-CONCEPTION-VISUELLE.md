@@ -126,6 +126,16 @@
 >   - « Envoyer à INFLUX pour validation » ; après la publication, « Mon profil de marque » en
 >     liste de tâches, dont le badge « Marque vérifiée » à demander (écran de demande non
 >     prototypé, D34).
+> - Écran 11, inscription et connexion (marque, créateur, U47, U48, U62, U25, U26, U63) :
+>   **validé** (2026-11-24). Choix :
+>   - colonne étroite, un sujet par écran ; le rôle dit une fois (« Inscription marque ·
+>     Changer ») ; « Étape n sur 3 » seulement à l'inscription ;
+>   - code en quatre blocs : destinataire, phrase de correspondance au-dessus (RG48), six cases sur
+>     un seul champ, « Continuer mon inscription » ou « Me connecter » ; l'aide « Je ne reçois pas
+>     le code » dépliée dans la page ;
+>   - informations sur un seul écran en deux groupes, « Vous » et « Vos engagements » (C12), puis
+>     la question facultative ; erreurs effacées à la saisie, un résumé des manques en liens ;
+>   - plus d'écran « compte créé » : arrivée directe sur l'accueil de première visite (écran 1).
 
 ## 1. Où sont les prototypes
 
@@ -147,7 +157,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque). Non prototypé : « Mes campagnes » côté marque (liste déjà montrée dans les
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion). Non prototypé : « Mes campagnes » côté marque (liste déjà montrée dans les
 accueils).
 
 ## 3. Formulaire complexe (écran 3)
