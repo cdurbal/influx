@@ -179,6 +179,17 @@
 >     et leur date, pourcentages exacts ; jamais l'e-mail ni le téléphone) ;
 >   - boutons de la marque inactifs, avec une phrase qui le dit ; barre collante de la marque
 >     retirée sur téléphone ; « Proposé car » donné comme un exemple, car il dépend de la recherche.
+> - Écran 16, listes des files et des inscrits (backoffice, U38, U39, U56) : **validé**
+>   (2026-11-24). Choix :
+>   - le tableau de l'écran 4 (demande du fondateur) : lien étiré sur la première colonne, une
+>     ligne par entrée, chiffres à droite, total au pied, raccourcis `j`, `k`, `Entrée` ;
+>   - résumé de la file en une ligne ; filtres dans la ligne de pastilles des écrans 2 et 13
+>     (« Hors délai seuls » à bascule) ; colonnes voisines regroupées (origine et champ modifié) ;
+>   - inscrits : vues en onglets gris avec leur nombre, recherche par adresse dans la ligne de
+>     filtres, première colonne nom ou alias et adresse masquée (F3, avis `product-owner` et
+>     `expert-conformite-rgpd`), rôle et statut, pays et langue ; « À traiter » : rejeu par lot ;
+>   - demi-écran : défilement horizontal, première colonne fixe ; les huit autres files prennent
+>     le même gabarit.
 
 ## 1. Où sont les prototypes
 
@@ -200,7 +211,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits).
 
 ## 3. Formulaire complexe (écran 3)
 

@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Files et inscrits</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Le tableau de l'écran 4 (17b §6.1) : lien étiré sur la première colonne, une ligne par entrée, chiffres à droite. */
+  .lhead { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .lsum { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-4); font-size: var(--text-sm); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+  .lsum b { color: var(--color-text-primary); }
+  .fbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2); }
+  .fbar__sep { flex-shrink: 0; width: var(--border-width-thin); height: 1.5rem; background: var(--color-border-default); margin: 0 var(--spacing-1); }
+  .pill { flex-shrink: 0; display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: 2.25rem; border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-page); padding: 0 var(--spacing-3); font-size: var(--text-sm); white-space: nowrap; color: var(--color-text-primary); transition: border-color var(--duration-fast) var(--ease-standard); }
+  .pill:hover { border-color: var(--color-border-hover); }
+  .pill .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .pill[aria-pressed="true"], .pill.is-active { border-color: var(--color-text-primary); background: var(--color-surface-active); font-weight: var(--font-weight-semibold); }
+  .pill .x { display: inline-flex; margin-right: calc(-1 * var(--spacing-2)); padding: var(--spacing-1); border-radius: var(--radius-pill); color: var(--color-text-secondary); }
+  .search { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: 2.25rem; border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); padding: 0 var(--spacing-3); }
+  .search input { border: 0; background: transparent; color: var(--color-text-primary); font-size: var(--text-sm); width: 15rem; outline: none; }
+  .search:focus-within { outline: var(--focus-ring-width) solid var(--color-focus-ring); outline-offset: var(--focus-ring-offset); }
+  .search .i { width: var(--size-icon-sm); height: var(--size-icon-sm); color: var(--color-text-secondary); }
+  .tbl-wrap { overflow-x: auto; }
+  .tbl .mute { color: var(--color-text-tertiary); }
+  .tbl .flagc { display: inline-flex; align-items: center; gap: var(--spacing-1); }
+  .tbl .lock { display: inline-flex; align-items: center; gap: var(--spacing-1); }
+  .tbl .lock .i, .tbl .flagc .i, .tbl .sync .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .tbl .al { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: var(--spacing-1); margin-left: var(--spacing-2); color: var(--color-feedback-warning-text); font-size: var(--text-xs); font-weight: var(--font-weight-semibold); }
+  .tbl .al .i { width: 0.875rem; height: 0.875rem; }
+  .tbl .mail { margin-left: var(--spacing-2); color: var(--color-text-secondary); font-size: var(--text-xs); }
+  /* En demi-écran, l'adresse masquée passe sous le nom : la ligne garde ses colonnes. */
+  /* L'adresse masquée passe sous le nom tant que la ligne ne la loge pas ; l'alerte aussi en demi-écran. */
+  @media (width < 1536px) { .tbl .mail { display: block; margin-left: 0; } #ti td { padding-block: var(--spacing-1); } }
+  @media (width < 1280px) {
+    .tbl .al { display: flex; margin-left: 0; }
+    /* Demi-écran : le tableau défile, la première colonne reste en place. */
+    .tbl th:first-child, .tbl td:first-child { position: sticky; left: 0; z-index: 1; background: var(--color-surface-page); }
+    .tbl thead th:first-child { background: var(--color-surface-hover); }
+    #ti th.sel + th, #ti td.sel + td { position: sticky; left: 2.5rem; z-index: 1; background: var(--color-surface-page); }
+  }
+  .tbl .sync { display: inline-flex; align-items: center; gap: var(--spacing-1); }
+  .tbl .sync--fail { color: var(--color-feedback-error-text); font-weight: var(--font-weight-semibold); }
+  .tbl .sync--wait { color: var(--color-text-secondary); }
+  .tbl .sel { width: 2.5rem; }
+  .tbl .sel input { position: relative; z-index: 1; width: var(--size-checkbox); height: var(--size-checkbox); accent-color: var(--color-action-primary-bg); }
+  .lfoot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-3); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .batch { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-3); border-radius: var(--radius-md); background: var(--color-surface-raised); padding: var(--spacing-2) var(--spacing-4); font-size: var(--text-sm); }
+  .views { display: inline-flex; align-self: flex-start; gap: var(--spacing-1); border-radius: var(--radius-pill); background: var(--color-surface-raised); padding: var(--spacing-1); }
+  .views a { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: 2rem; border-radius: var(--radius-pill); padding: 0 var(--spacing-3); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); text-decoration: none; }
+  .views a[aria-current="true"] { background: var(--color-surface-active); color: var(--color-text-primary); }
+  .views .n { font-variant-numeric: tabular-nums; color: var(--color-text-tertiary); }
+</style>
+</head>
+<body class="bo" data-default="file">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <optgroup label="Une file (Profils marque à valider)"><option value="file">Six entrées</option><option value="file-retard">« Hors délai » seul</option><option value="file-vide">File vide</option></optgroup>
+      <optgroup label="Inscrits"><option value="inscrits">Tous</option><option value="inscrits-traiter">À traiter, échecs sélectionnés</option><option value="inscrits-recherche">Recherche par adresse</option></optgroup>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span>Essayez <span class="kbd">j</span> <span class="kbd">k</span> puis <span class="kbd">Entrée</span></span>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="bo-frame">
+  <div class="bo-band"><div class="bo-env"><span><b>LOCAL</b> — development — envois : redirigés vers les adresses internes</span><span>Camille D. · Commercial</span></div></div>
+  <aside class="bo-rail" aria-label="Navigation du backoffice">
+    <div class="bo-rail__head">INFLUX<span>Backoffice</span></div>
+    <nav class="bo-nav" aria-label="Rubriques">
+      <a href="proto-bo-accueil.html"><svg class="i"><use href="#i-layout-grid"/></svg>Tableau de bord</a>
+      <a class="is-ancestor" href="#file" data-when="file file-retard file-vide"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <a href="#file" data-unless="file file-retard file-vide"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <span class="overline grp" data-when="file file-retard file-vide">Profils et visuels</span>
+      <a class="sub is-current" aria-current="page" href="#file" data-when="file file-retard file-vide">Profils marque<span class="n" id="rail-pm">6</span></a>
+      <a class="sub" href="#file" data-when="file file-retard file-vide">Profils créateur<span class="n">5</span></a>
+      <a class="sub" href="#file" data-when="file file-retard file-vide">Visuels de portfolio<span class="n">12</span></a>
+      <span class="overline grp" data-when="file file-retard file-vide">Vérifications</span>
+      <a class="sub" href="#file" data-when="file file-retard file-vide">Vérifications créateurs<span class="n">7</span></a>
+      <a class="sub" href="#file" data-when="file file-retard file-vide">Vérifications marques<span class="n">3</span></a>
+      <a class="sub" href="#file" data-when="file file-retard file-vide">Contestations<span class="n">4</span></a>
+      <a class="sub" href="#file" data-when="file file-retard file-vide">Identifiants modifiés<span class="n ok"><svg class="i i--sm"><use href="#i-check"/></svg><span class="sr-only">vide</span></span></a>
+      <span class="overline grp" data-when="file file-retard file-vide">Campagnes et sélections</span>
+      <a class="sub" href="#file" data-when="file file-retard file-vide">Campagnes<span class="n">3</span></a>
+      <a class="sub" href="#file" data-when="file file-retard file-vide">Sélections par l'équipe<span class="n">1</span></a>
+      <a class="is-ancestor" href="#inscrits" data-when="inscrits inscrits-traiter inscrits-recherche"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a href="#inscrits" data-unless="inscrits inscrits-traiter inscrits-recherche"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a class="sub is-current" aria-current="page" href="#inscrits" data-when="inscrits inscrits-traiter inscrits-recherche">Inscrits</a>
+      <a class="sub" href="#inscrits" data-when="inscrits inscrits-traiter inscrits-recherche">Invitations</a>
+      <a class="sub" href="#inscrits" data-when="inscrits inscrits-traiter inscrits-recherche">Synchronisation</a>
+      <a href="proto-bo-recherche.html"><svg class="i"><use href="#i-search"/></svg>Créateurs</a>
+      <a href="#"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
+    </nav>
+    <div class="bo-rail__foot stack g2"><button class="btn btn--text" type="button" data-dialog="keys"><span class="kbd">?</span>Raccourcis</button><button class="btn btn--secondary" type="button"><svg class="i i--sm"><use href="#i-log-out"/></svg>Se déconnecter</button></div>
+  </aside>
+
+  <main class="bo-main" id="contenu">
+
+    <!-- ===================== UNE FILE ===================== -->
+    <header class="lhead" data-when="file file-retard file-vide" data-h="1">
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="#file">Files</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Profils marque à valider</span></nav>
+      <h1 class="t-page" tabindex="-1">Profils marque à valider</h1>
+      <p class="c2">Première soumission, ou modification d'un champ d'un profil publié : prenez l'entrée en charge, lisez-la, puis publiez ou refusez.</p>
+      <p class="lsum" data-unless="file-vide"><span><b>6</b> en attente</span><span>plus ancienne <b>9 h 55</b></span><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>1 hors délai</span><span><b>5</b> sans preneur</span><span>· délai de décision 8 h ouvrées, prise en charge 4 h ouvrées</span></p>
+    </header>
+
+    <div class="fbar" role="group" aria-label="Filtres de la file" data-when="file file-retard" data-h="2">
+      <button class="pill" type="button" id="late-only" aria-pressed="false"><svg class="i"><use href="#i-flag"/></svg>Hors délai seuls</button>
+      <span class="fbar__sep" aria-hidden="true"></span>
+      <button class="pill" type="button">Verrou : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button">Responsable : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button">Alerte : toutes<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button">Origine : toutes<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button">Pays : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button"><svg class="i"><use href="#i-calendar"/></svg>Période de dépôt<svg class="i"><use href="#i-chevron-down"/></svg></button>
+    </div>
+
+    <section class="stack g3" data-when="file file-retard" data-h="3" aria-labelledby="f-count">
+      <p class="sm c2" id="f-count"><span data-when="file">6 entrées</span><span data-when="file-retard">1 entrée sur 6, filtre « Hors délai seuls »</span> · triées par échéance, la plus proche d'abord</p>
+      <div class="tbl-wrap"><table class="tbl" id="tq">
+        <thead><tr><th scope="col">Marque</th><th scope="col">Échéance</th><th scope="col">Origine</th><th scope="col">Pays</th><th scope="col" class="num">Complétude</th><th scope="col">Responsable</th><th scope="col">Verrou</th></tr></thead>
+        <tbody>
+          <tr><td><a class="id" href="proto-bo-decision.html">Terre &amp; Thé</a></td><td><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>hors délai · 49 min</span></td><td>Première soumission</td><td>Belgique</td><td class="num">80 %</td><td>Julien M.</td><td class="mute">libre</td></tr>
+          <tr data-unless="file-retard"><td><a class="id" href="proto-bo-decision.html">Vélo Urbain Bruxelles</a></td><td>dans 2 h 56</td><td>Première soumission</td><td>Belgique</td><td class="num">80 %</td><td>Julien M.</td><td><span class="lock"><svg class="i"><use href="#i-lock"/></svg>Sofia R. · 09 h 28</span></td></tr>
+          <tr data-unless="file-retard"><td><a class="id" href="proto-bo-decision.html">Kintsugi Studio</a></td><td>dans 6 h 56</td><td>Modification <span class="mute">· présentation</span></td><td>France</td><td class="num">80 %</td><td>Julien M.</td><td class="mute">libre</td></tr>
+          <tr data-unless="file-retard"><td><a class="id" href="proto-bo-decision.html">Maison Azur</a></td><td>dans 32 h 18</td><td>Modification <span class="mute">· présentation</span></td><td>France</td><td class="num">82 %</td><td class="mute">aucun</td><td class="mute">libre</td></tr>
+          <tr data-unless="file-retard"><td><a class="id" href="proto-bo-decision.html">Atelier Lumen</a></td><td>dans 32 h 18</td><td>Modification <span class="mute">· présentation</span></td><td>France</td><td class="num">82 %</td><td class="mute">aucun</td><td class="mute">libre</td></tr>
+          <tr data-unless="file-retard"><td><a class="id" href="proto-bo-decision.html">Maison Céleste</a><span class="al"><svg class="i"><use href="#i-triangle-alert"/></svg>marque semblable publiée</span></td><td>dans 32 h 18</td><td>Première soumission</td><td>France</td><td class="num">67 %</td><td class="mute">aucun</td><td class="mute">libre</td></tr>
+        </tbody></table></div>
+      <div class="lfoot"><span><span data-when="file">1 à 6 sur 6</span><span data-when="file-retard">1 sur 1</span> · raison sociale non demandée pour ces entrées · une première soumission porte sur tout le profil</span><span><span class="kbd">j</span> <span class="kbd">k</span> ligne suivante, précédente · <span class="kbd">Entrée</span> ouvrir (prend en charge)</span></div>
+    </section>
+
+    <div class="empty-state" data-when="file-vide" data-h="2">
+      <svg class="i"><use href="#i-circle-check"/></svg>
+      <h2 class="t-section">Aucune entrée à traiter.</h2>
+      <p class="c2">La file est vide depuis 10 h 12. Les nouvelles soumissions s'y rangent par échéance.</p>
+      <a class="go sm" href="proto-bo-accueil.html">Revenir au tableau de bord <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+    </div>
+
+    <!-- ===================== INSCRITS ===================== -->
+    <header class="lhead" data-when="inscrits inscrits-traiter inscrits-recherche" data-h="1">
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="#inscrits">Comptes</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Inscrits</span></nav>
+      <h1 class="t-page" tabindex="-1">Inscrits</h1>
+      <p class="c2">Membres inscrits et état de leur synchronisation. L'ouverture d'une fiche est enregistrée à votre nom ; la liste ne s'exporte pas, quel que soit le rôle.</p>
+    </header>
+
+    <nav class="views" aria-label="Vues" data-when="inscrits inscrits-traiter inscrits-recherche" data-h="2">
+      <a href="#inscrits" data-v="inscrits">Tous <span class="n">28</span></a>
+      <a href="#inscrits-traiter" data-v="inscrits-traiter">À traiter <span class="n">3</span></a>
+      <a href="#inscrits" data-v="normaux">Cas normaux <span class="n">25</span></a>
+    </nav>
+
+    <div class="fbar" role="group" aria-label="Filtres des inscrits" data-when="inscrits inscrits-traiter inscrits-recherche" data-h="2">
+      <label class="search"><svg class="i"><use href="#i-search"/></svg><span class="sr-only">Rechercher par adresse</span><input id="q" type="search" placeholder="Rechercher par adresse e-mail" autocomplete="off"></label>
+      <span class="fbar__sep" aria-hidden="true"></span>
+      <button class="pill" type="button">Rôle : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button">Pays : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button">Langue : toutes<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button">Statut déclaré : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button">Consentement : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
+      <button class="pill" type="button"><svg class="i"><use href="#i-calendar"/></svg>Période d'inscription<svg class="i"><use href="#i-chevron-down"/></svg></button>
+    </div>
+    <p class="xs c2" data-when="inscrits inscrits-traiter inscrits-recherche">Une adresse complète : recherche exacte, non enregistrée. Un fragment de 3 caractères au moins : recherche partielle, enregistrée à votre nom (20 par quart d'heure). Le terme n'apparaît jamais dans l'adresse de la page.</p>
+
+    <section class="stack g3" data-when="inscrits inscrits-traiter inscrits-recherche" data-h="3" aria-labelledby="i-count">
+      <div class="batch" data-when="inscrits-traiter" role="region" aria-label="Sélection">
+        <span id="sel-n">2 envois en échec sélectionnés · 200 au plus par lot</span>
+        <button class="btn btn--secondary" type="button" id="replay" style="min-height: 2.25rem; padding-block: 0"><svg class="i i--sm"><use href="#i-refresh-cw"/></svg>Rejouer la synchronisation (2)</button>
+      </div>
+      <p class="sm c2" id="i-count"><span data-when="inscrits">28 inscrits · les plus récents d'abord</span><span data-when="inscrits-traiter">3 inscrits à traiter : un envoi Brevo ou Apollo en échec</span><span data-when="inscrits-recherche">1 inscrit pour « claire.morel@example.test » · recherche exacte, non enregistrée</span></p>
+      <div class="tbl-wrap"><table class="tbl" id="ti">
+        <thead><tr><th scope="col" class="sel" data-when="inscrits-traiter"><span class="sr-only">Sélection</span></th><th scope="col">Inscrit</th><th scope="col">Rôle</th><th scope="col">Pays, langue</th><th scope="col">Consentement</th><th scope="col">Brevo</th><th scope="col">Apollo</th><th scope="col">Responsable</th><th scope="col" class="num">Inscription</th></tr></thead>
+        <tbody>
+          <tr data-unless="inscrits-traiter"><td><a class="id" href="proto-bo-fiche-compte.html">Maison Azur</a><span class="mail">c***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>France <span class="mute">· français</span></td><td>accordé</td><td><span class="sync sync--wait"><svg class="i"><use href="#i-hourglass"/></svg>en file</span></td><td><span class="sync sync--wait"><svg class="i"><use href="#i-hourglass"/></svg>en file</span></td><td class="mute">aucun</td><td class="num">24/11/2026</td></tr>
+          <tr data-when="inscrits inscrits-traiter"><td class="sel" data-when="inscrits-traiter"><input type="checkbox" checked aria-label="Sélectionner Profil 93JMS4"></td><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 93JMS4</a><span class="mail">l***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>Belgique <span class="mute">· français</span></td><td>accordé</td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td><span class="sync">synchronisé</span></td><td>Julien M.</td><td class="num">23/11/2026</td></tr>
+          <tr data-when="inscrits inscrits-traiter"><td class="sel" data-when="inscrits-traiter"><input type="checkbox" checked aria-label="Sélectionner Vélo Urbain Bruxelles"></td><td><a class="id" href="proto-bo-fiche-compte.html">Vélo Urbain Bruxelles</a><span class="mail">h***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>Belgique <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td>Julien M.</td><td class="num">23/11/2026</td></tr>
+          <tr data-when="inscrits inscrits-traiter"><td class="sel" data-when="inscrits-traiter"><input type="checkbox" aria-label="Sélectionner Profil 6C2RTM"></td><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 6C2RTM</a><span class="mail">m***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>France <span class="mute">· français</span></td><td class="mute">—</td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td class="mute">non tenté</td><td>Julien M.</td><td class="num">22/11/2026</td></tr>
+          <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 7K3MQA</a><span class="mail">s***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>France <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync">synchronisé</span></td><td>Julien M.</td><td class="num">22/11/2026</td></tr>
+          <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html">Kintsugi Studio</a><span class="mail">a***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>France <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td class="mute">exclu par pays</td><td>Julien M.</td><td class="num">22/11/2026</td></tr>
+          <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 4FD8LZ</a><span class="mail">j***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>Belgique <span class="mute">· néerlandais</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync">synchronisé</span></td><td class="mute">aucun</td><td class="num">21/11/2026</td></tr>
+          <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html">Terre &amp; Thé</a><span class="mail">n***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>Belgique <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync">synchronisé</span></td><td>Julien M.</td><td class="num">21/11/2026</td></tr>
+        </tbody></table></div>
+      <div class="lfoot"><span><span data-when="inscrits">1 à 20 sur 28</span><span data-when="inscrits-traiter">1 à 3 sur 3</span><span data-when="inscrits-recherche">1 sur 1</span></span><span class="row g3"><span><span class="kbd">j</span> <span class="kbd">k</span> ligne · <span class="kbd">Entrée</span> ouvrir la fiche</span><button class="btn btn--secondary" type="button" data-when="inscrits" style="min-height: 2.25rem; padding-block: 0">Page suivante <svg class="i i--sm"><use href="#i-chevron-right"/></svg></button></span></div>
+    </section>
+  </main>
+</div>
+
+<dialog class="dlg" id="keys" aria-labelledby="keys-t">
+  <div class="stack g4">
+    <div class="row between"><h2 class="t-section" id="keys-t">Raccourcis</h2><button class="btn btn--text" type="button" data-close aria-label="Fermer"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <dl class="props" style="--size-property-label: 7rem">
+      <dt><span class="kbd">j</span> <span class="kbd">k</span></dt><dd>Ligne suivante, précédente</dd>
+      <dt><span class="kbd">Entrée</span></dt><dd>Ouvrir l'entrée (la prend en charge) ou la fiche</dd>
+      <dt><span class="kbd">?</span></dt><dd>Cette aide</dd>
+    </dl>
+    <button class="btn btn--secondary" type="button" data-close autofocus>Fermer</button>
+  </div>
+</dialog>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  // « Hors délai seuls » : un bouton à bascule, appliqué sur-le-champ.
+  $("#late-only").addEventListener("click", function () { location.hash = document.body.getAttribute("data-state") === "file-retard" ? "file" : "file-retard"; });
+  // Recherche : une adresse complète ramène l'inscrit ; le terme ne va jamais dans l'adresse de la page.
+  $("#q").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if ($("#q").value.trim()) { location.hash = "inscrits-recherche"; P.announce("1 inscrit trouvé. Recherche exacte, non enregistrée."); } } });
+  // Sélection des échecs (vue « À traiter ») : le lot et son plafond se mettent à jour.
+  document.addEventListener("change", function (e) {
+    if (!e.target.closest("#ti .sel")) return;
+    var n = $$("#ti tbody .sel input:checked").length;
+    $("#sel-n").textContent = n + (n > 1 ? " envois en échec sélectionnés" : " envoi en échec sélectionné") + " · 200 au plus par lot";
+    $("#replay").innerHTML = '<svg class="i i--sm"><use href="#i-refresh-cw"/></svg>Rejouer la synchronisation (' + n + ")"; $("#replay").disabled = !n;
+  });
+  $("#replay").addEventListener("click", function () { P.announce("Synchronisation relancée pour la sélection : résultat dans quelques instants (simulé)."); });
+  // Clavier : j / k déplacent le focus de ligne, Entrée ouvre (17b §6.1).
+  document.addEventListener("keydown", function (e) {
+    if (e.target.closest("input, textarea, select, dialog") || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "?") { e.preventDefault(); P.openDialog("keys"); return; }
+    if (e.key !== "j" && e.key !== "k") return;
+    var links = $$(".tbl tbody tr:not([hidden]) .id").filter(function (a) { return a.offsetParent; });
+    if (!links.length) return;
+    var i = links.indexOf(document.activeElement);
+    i = e.key === "j" ? Math.min(links.length - 1, i + 1) : Math.max(0, i - 1);
+    links[i].focus();
+  });
+  document.addEventListener("proto:state", function (e) {
+    var st = e.detail.st;
+    $("#late-only").setAttribute("aria-pressed", String(st === "file-retard"));
+    $$(".views a").forEach(function (a) { var v = a.getAttribute("data-v"); if (v === st || (v === "inscrits" && st === "inscrits-recherche")) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
+    $("#q").value = st === "inscrits-recherche" ? "claire.morel@example.test" : "";
+    if (st === "inscrits-recherche") $$("#ti tbody tr").forEach(function (r, i) { r.hidden = i !== 0; });
+  });
+});
+</script>
+</body>
+</html>

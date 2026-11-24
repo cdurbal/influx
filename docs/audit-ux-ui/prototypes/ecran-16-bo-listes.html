@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 16 · Files et inscrits</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html" aria-current="page">16 · Files et inscrits</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 16 · Backoffice</p>
+    <h1 class="d-h1">Listes des files et des inscrits</h1>
+    <p class="d-lead">Les neuf files et la liste des inscrits suivent le tableau de l'écran 4 : la ligne entière ouvre l'entrée (lien étiré sur la première colonne), une ligne par entrée, chiffres à droite, total affiché. Le résumé de la file tient en une ligne ; les filtres passent dans la ligne de pastilles des écrans 2 et 13. La première colonne des inscrits permet enfin de reconnaître un compte : nom de la marque ou alias, adresse masquée.</p>
+    <div class="d-ids"><span class="u">U38</span><span class="u">U39</span><span class="u">U56</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Poste 1 440 px</button><button class="d-toggle" type="button" data-mode="narrow" aria-pressed="false"><svg class="i i--sm"><use href="#i-monitor"/></svg>Demi-écran 1 180 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="file" data-cap="b02-file-profils-marque.jpg" aria-pressed="true">File · six entrées</button>
+        <button type="button" data-st="file-retard" data-cap="" aria-pressed="false">File · hors délai seuls</button>
+        <button type="button" data-st="file-vide" data-cap="" aria-pressed="false">File vide</button>
+        <button type="button" data-st="inscrits" data-cap="b04-inscrits.jpg" aria-pressed="false">Inscrits · tous</button>
+        <button type="button" data-st="inscrits-traiter" data-cap="" aria-pressed="false">Inscrits · à traiter</button>
+        <button type="button" data-st="inscrits-recherche" data-cap="" aria-pressed="false">Inscrits · recherche</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>Pas de capture de cet état dans l'audit.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-bo-listes.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-bo-listes.html" title="Prototype des listes du backoffice" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran : <span class="kbd">j</span> <span class="kbd">k</span> puis <span class="kbd">Entrée</span>, un clic n'importe où sur une ligne, « Hors délai seuls », les vues des inscrits, une adresse complète dans la recherche, puis cocher ou décocher les échecs à rejouer.</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Problèmes relevés</h2>
+    <ul class="d-list">
+      <li><b>Seul « Ouvrir », en dernière colonne, ouvre l'entrée</b>, et les cellules passent à la ligne : rangées de 75 à 95 px au lieu de 36, chiffres à gauche, pagination sans total (U38).</li>
+      <li><b>Les inscrits n'ont aucune colonne qui permette de reconnaître un compte</b> ; trouver un compte oblige à ouvrir des fiches, chacune journalisée (U39).</li>
+      <li><b>Les filtres occupent une carte permanente</b> : listes de 28 px et dates de 48 px sur la même ligne, trois lignes d'aide (U39, U56).</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Composition cible</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Bloc</th><th>Contenu</th></tr></thead>
+      <tbody>
+        <tr><td>Une file</td><td>Fil d'Ariane, titre, phrase, puis le résumé en une ligne (en attente, plus ancienne, hors délai, sans preneur, délais). Pastilles : « Hors délai seuls » à bascule, verrou, responsable, alerte, origine, pays, période</td></tr>
+        <tr><td>Tableau d'une file</td><td>Marque (lien étiré, alerte en clair à côté), échéance (« hors délai · 49 min » avec drapeau), origine (et champ modifié), pays, complétude à droite, responsable, verrou ; pied : « 1 à 6 sur 6 » et raccourcis. « Raison sociale non demandée » passe au pied quand c'est vrai pour toutes les entrées</td></tr>
+        <tr><td>Inscrits</td><td>Vues « Tous », « À traiter », « Cas normaux » en onglets gris avec leur nombre ; recherche par adresse dans la ligne de pastilles, avec sa règle en une ligne ; rôle, pays, langue, statut, consentement, période</td></tr>
+        <tr><td>Tableau des inscrits</td><td>Inscrit (nom de la marque ou alias, adresse masquée <code>c***@domaine</code>), rôle et statut, pays et langue, consentement, Brevo, Apollo (un mot et une icône), responsable, date à droite ; « À traiter » : cases des échecs et « Rejouer la synchronisation (n) », 200 au plus par lot</td></tr>
+        <tr><td>Demi-écran</td><td>Le tableau défile horizontalement, la première colonne reste en place ; l'alerte et l'adresse masquée passent sous le nom</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les deux listes, sur poste et en demi-écran. La file prototypée est « Profils marque à valider » ; les huit autres prennent le même gabarit avec leurs colonnes.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Le nom ou l'alias et l'adresse masquée en première colonne des inscrits (proposition F3) : l'API doit les servir ; avis du <code>product-owner</code> et de l'<code>expert-conformite-rgpd</code> requis.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Sur poste, la ligne d'un inscrit tient sur deux niveaux (nom, puis adresse masquée) ; elle ne tient sur un seul qu'à partir de 1 536 px.</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-15-apercu.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 15 · Aperçu créateur</a><a class="go" href="interactions.html">Micro-interactions <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>
