@@ -225,6 +225,18 @@
 >     (U33) ; « Confirmer ce code » (U63) ;
 >   - gestes définitifs repliés (fermer toutes les sessions, supprimer le compte avec le mot
 >     SUPPRIMER puis un code) ; textes repris d'`account.json`.
+> - Écran 21, invitations, synchronisation, administration (backoffice, U37, U41, U57) :
+>   **validé** (2026-11-24). Choix :
+>   - gabarits déjà validés : tableau de l'écran 16, formulaires ouverts dans la page (écran 6),
+>     ligne de pastilles ;
+>   - invitations de membres : formulaire dans la page, lien affiché une seule fois avec
+>     « Copier » ; synchronisation : « À traiter » et « Cas normaux » en vues, rejeu par lot avec
+>     compte rendu, aucun rejeu sur un cas normal (`17b` §3.11) ;
+>   - comptes internes avec le compte de secours affiché, désactivation qui nomme ce qui reste ;
+>     double validation sur écran distinct, forme affaiblie écrite et 60 s comptées (§3.13) ;
+>   - réglages Apollo dont chaque changement devient une demande de double validation ; santé
+>     technique en lecture seule (§3.15) ;
+>   - à trancher : la place de « Synchronisation » (Comptes, ou les files comme dans `17b`).
 
 ## 1. Où sont les prototypes
 
@@ -246,7 +258,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice), 18 (fiche campagne côté marque), 19 (backoffice sur téléphone), 20 (Mon compte).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice), 18 (fiche campagne côté marque), 19 (backoffice sur téléphone), 20 (Mon compte), 21 (invitations, synchronisation, administration).
 
 ## 3. Formulaire complexe (écran 3)
 
