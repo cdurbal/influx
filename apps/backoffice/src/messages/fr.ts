@@ -51,6 +51,19 @@ export const messages = {
     step: (current: number) => `Étape ${current} sur 3`,
     step1Title: "Confirmez votre identité",
     step1Submit: "Continuer",
+    // The acceptance of a team invitation (15 RG99, J8 commit 7): the account is created here.
+    invitationTitle: "Créez votre compte",
+    invitationEmailHelp: "L’adresse à laquelle votre invitation a été émise.",
+    firstNameLabel: "Prénom",
+    firstNameHelp: "Affiché à vos collègues de l’équipe INFLUX.",
+    countryLabel: "Pays",
+    countryPlaceholder: "Choisissez un pays",
+    languageLabel: "Langue",
+    newPasswordLabel: "Choisissez un mot de passe",
+    toExisting:
+      "Vous avez déjà un mot de passe INFLUX ? Confirmez votre identité",
+    toInvitation:
+      "Première activation après une invitation ? Créez votre compte",
     errorGeneric:
       "Activation impossible. Vérifiez votre adresse et votre mot de passe, puis réessayez. Si le problème persiste, contactez un administrateur INFLUX.",
     invitationInvalid:
@@ -71,6 +84,22 @@ export const messages = {
       "Un nouveau code QR a été créé. Supprimez de votre application l’entrée INFLUX ajoutée auparavant, puis scannez celui-ci.",
     restartStep1: "Revenir à l’étape 1 et créer un nouveau code QR",
     busy: "Activation…",
+  },
+  // 17b §3.14.d: the choice of a password (B-1), one message per refusal.
+  password: {
+    rules:
+      "12 caractères au moins, sans autre contrainte : une phrase de plusieurs mots convient très bien.",
+    errors: {
+      too_short: "Choisissez un mot de passe d’au moins 12 caractères.",
+      too_long:
+        "Ce mot de passe est trop long : 72 octets au plus (un caractère accentué ou un emoji en compte plusieurs).",
+      compromised:
+        "Ce mot de passe figure dans des fuites de données connues. Choisissez-en un autre.",
+      context:
+        "Le mot de passe ne doit contenir ni la première partie de votre adresse e-mail, ni le mot « influx ».",
+      check_unavailable:
+        "Nous ne pouvons pas vérifier ce mot de passe pour le moment. Réessayez dans quelques minutes.",
+    },
   },
   recoveryCodes: {
     title: "Vos 10 codes de secours",

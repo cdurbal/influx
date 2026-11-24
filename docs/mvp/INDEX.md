@@ -583,7 +583,7 @@
 | 220 | 44 | ↳ 1.6 Tableau de bord, par rôle | RG12–RG32 |
 | 264 | 101 | ↳ 1.7 Gabarit de page : rail à gauche, bande de tête, vue téléphone *(D73, 2026-10-28)* |  |
 | 365 | 190 | 2. Anatomie standard d'une file | RG7–RG130 |
-| 555 | 1270 | 3. Écrans clés en détail | RG2–RG165 |
+| 555 | 1291 | 3. Écrans clés en détail | RG2–RG165 |
 | 557 | 123 | ↳ 3.1 Décision sur une demande de contact ou une candidature | RG32–RG115 |
 | 680 | 136 | ↳ 3.2 La proposition INFLUX — l'écran le plus important du backoffice | RG52–RG116 |
 | 816 | 94 | ↳ 3.3 La recherche de créateurs en vue identifiée | RG2–RG119 |
@@ -597,13 +597,13 @@
 | 1465 | 38 | ↳ 3.11 Supervision des leads et adresses injoignables | RG23–RG106 |
 | 1503 | 48 | ↳ 3.12 Demandes relatives aux données personnelles | RG75–RG95 |
 | 1551 | 97 | ↳ 3.13 Comptes internes, compte de secours, double validation | RG9–RG118 |
-| 1648 | 153 | ↳ 3.14 Connexion, activation du second facteur et codes de secours *(J3, 2026-09-27)* |  |
-| 1801 | 24 | ↳ 3.15 Santé technique *(additif du J9, 2026-10-27, EC-J9-5)* | RG68–RG165 |
-| 1825 | 195 | 4. Composants transverses | RG4–RG129 |
-| 2020 | 46 | 5. Vérification du chronométrage | RG27–RG73 |
-| 2066 | 104 | 6. Extensions de tokens proposées | RG64–RG120 |
-| 2170 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
-| 2252 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
+| 1648 | 174 | ↳ 3.14 Connexion, activation du second facteur et codes de secours *(J3, 2026-09-27)* |  |
+| 1822 | 24 | ↳ 3.15 Santé technique *(additif du J9, 2026-10-27, EC-J9-5)* | RG68–RG165 |
+| 1846 | 195 | 4. Composants transverses | RG4–RG129 |
+| 2041 | 46 | 5. Vérification du chronométrage | RG27–RG73 |
+| 2087 | 104 | 6. Extensions de tokens proposées | RG64–RG120 |
+| 2191 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
+| 2273 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
 
 ## 18-plan-de-test-mvp.md (~64k tokens)
 

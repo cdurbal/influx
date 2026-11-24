@@ -6,6 +6,14 @@
 // the address bar. The password is asked again at step 2 (17b §3.14 rule 3). The QR code is the
 // SVG text of apps/api shown through a blob: URL, without any change to the CSP (rule 5). The ten
 // recovery codes are shown once, never stored in the browser.
+// The same link serves a team invitation (15 RG99, J8 commit 7: no account yet, step 1 creates it
+// with a chosen password, /invitation/accept) and an account that already has a password (the
+// bootstrap scripts, /enroll). The link does not say which: the invitation is shown first, the
+// other form one click away.
+import { UI_LOCALES, type UiLocale } from "@influx/contracts/auth";
+import type { BackofficeInvitationAcceptResponse } from "@influx/contracts/backoffice-auth";
+import type { CountryCode } from "@influx/contracts/countries";
+import type { RelayResult } from "@influx/web-platform/relay-client";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -31,8 +39,13 @@ import {
   SECONDARY_BUTTON_CLASSES,
   TEXT_BUTTON_CLASSES,
 } from "./auth-classes";
+import { COUNTRY_OPTIONS } from "./account-opening-view";
 import { AuthHeader } from "./AuthHeader";
-import { confirmEnrollment, startEnrollment } from "./backoffice-auth";
+import {
+  acceptInvitation,
+  confirmEnrollment,
+  startEnrollment,
+} from "./backoffice-auth";
 import { ErrorNotice } from "./ErrorNotice";
 
 const t = messages.enroll;
@@ -48,6 +61,9 @@ type Step =
   | { kind: "identity" }
   | { kind: "factor"; factor: Factor }
   | { kind: "codes"; codes: readonly string[] };
+
+/** Step 1: create the account of an invitation, or confirm an account that has a password. */
+type IdentityMode = "invitation" | "existing";
 
 /** The token of the activation link, read once per page load (undefined: not read yet). */
 let linkTokenRead: string | null | undefined;
@@ -65,6 +81,12 @@ function neverChanges(): () => void {
   return () => undefined;
 }
 
+/** The ids a field is described by, absent ones left out (undefined when none). */
+function describedBy(...ids: readonly (string | null)[]): string | undefined {
+  const present = ids.filter((id): id is string => id !== null);
+  return present.length === 0 ? undefined : present.join(" ");
+}
+
 /** The secret by groups of four, easier to type (17b §3.14.b). */
 function grouped(secret: string): string {
   return secret.match(/.{1,4}/g)?.join(" ") ?? secret;
@@ -80,10 +102,17 @@ export function Activation() {
     password: useId(),
     code: useId(),
     error: useId(),
+    firstName: useId(),
+    country: useId(),
+    language: useId(),
   };
   // undefined while the page is not hydrated yet; null when the link carries no valid token.
   const token = useSyncExternalStore(neverChanges, linkToken, () => undefined);
   const [step, setStep] = useState<Step>({ kind: "identity" });
+  const [mode, setMode] = useState<IdentityMode>("invitation");
+  const [firstName, setFirstName] = useState("");
+  const [countryCode, setCountryCode] = useState<CountryCode | "">("");
+  const [language, setLanguage] = useState<UiLocale>("fr");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
@@ -131,14 +160,29 @@ export function Activation() {
       return;
     }
     // Form checks only, in the browser, without any call (17b §3.14.a).
-    if (email.trim() === "" || password === "") {
+    const invited = mode === "invitation";
+    if (
+      email.trim() === "" ||
+      password === "" ||
+      (invited && (firstName.trim() === "" || countryCode === ""))
+    ) {
       setFailure(messages.form.required);
       return;
     }
     setBusy(true);
     setFailure(null);
     try {
-      const result = await startEnrollment(email.trim(), password, token);
+      const result: RelayResult<BackofficeInvitationAcceptResponse> =
+        invited && countryCode !== ""
+          ? await acceptInvitation({
+              invitationToken: token,
+              email: email.trim(),
+              password,
+              firstName: firstName.trim(),
+              countryCode,
+              preferredLanguage: language,
+            })
+          : await startEnrollment(email.trim(), password, token);
       if (result.kind === "ok" && result.data.outcome === "factor_created") {
         const blob = new Blob([result.data.qrCodeSvg], {
           type: "image/svg+xml",
@@ -159,6 +203,12 @@ export function Activation() {
         result.data.outcome === "invitation_invalid"
       ) {
         setFailure(t.invitationInvalid);
+      } else if (
+        result.kind === "ok" &&
+        result.data.outcome === "password_refused"
+      ) {
+        // 17b §3.14.d: the chosen password says why it is refused, nothing about the account.
+        setFailure(messages.password.errors[result.data.reason]);
       } else if (
         result.kind === "ok" &&
         result.data.outcome === "unavailable"
@@ -387,45 +437,137 @@ export function Activation() {
       {token === undefined ? null : token === null ? (
         <ErrorNotice>{t.invitationInvalid}</ErrorNotice>
       ) : (
-        <form noValidate onSubmit={confirmIdentity} className={CARD_CLASSES}>
-          <h2 className={CARD_TITLE}>{t.step1Title}</h2>
-          <label htmlFor={ids.email} className={LABEL_CLASSES}>
-            {messages.login.emailLabel}
-          </label>
-          <input
-            id={ids.email}
-            type="email"
-            inputMode="email"
-            autoComplete="username"
-            spellCheck={false}
-            required
-            value={email}
-            aria-describedby={failure === null ? undefined : ids.error}
-            onChange={(event) => setEmail(event.target.value)}
-            className={inputClasses(false)}
-          />
-          <label htmlFor={ids.password} className={LABEL_CLASSES}>
-            {messages.login.passwordLabel}
-          </label>
-          <input
-            id={ids.password}
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            aria-describedby={failure === null ? undefined : ids.error}
-            onChange={(event) => setPassword(event.target.value)}
-            className={inputClasses(false)}
-          />
-          {failureBlock}
+        <>
+          <form noValidate onSubmit={confirmIdentity} className={CARD_CLASSES}>
+            <h2 className={CARD_TITLE}>
+              {mode === "invitation" ? t.invitationTitle : t.step1Title}
+            </h2>
+            <label htmlFor={ids.email} className={LABEL_CLASSES}>
+              {messages.login.emailLabel}
+            </label>
+            {mode === "invitation" ? (
+              <p id={`${ids.email}-help`} className={HELP_CLASSES}>
+                {t.invitationEmailHelp}
+              </p>
+            ) : null}
+            <input
+              id={ids.email}
+              type="email"
+              inputMode="email"
+              autoComplete="username"
+              spellCheck={false}
+              required
+              value={email}
+              aria-describedby={describedBy(
+                mode === "invitation" ? `${ids.email}-help` : null,
+                failure === null ? null : ids.error,
+              )}
+              onChange={(event) => setEmail(event.target.value)}
+              className={inputClasses(false)}
+            />
+            {mode === "invitation" ? (
+              <>
+                <label htmlFor={ids.firstName} className={LABEL_CLASSES}>
+                  {t.firstNameLabel}
+                </label>
+                <p id={`${ids.firstName}-help`} className={HELP_CLASSES}>
+                  {t.firstNameHelp}
+                </p>
+                <input
+                  id={ids.firstName}
+                  type="text"
+                  autoComplete="given-name"
+                  maxLength={80}
+                  required
+                  value={firstName}
+                  aria-describedby={`${ids.firstName}-help`}
+                  onChange={(event) => setFirstName(event.target.value)}
+                  className={inputClasses(false)}
+                />
+                <label htmlFor={ids.country} className={LABEL_CLASSES}>
+                  {t.countryLabel}
+                </label>
+                <select
+                  id={ids.country}
+                  required
+                  value={countryCode}
+                  onChange={(event) =>
+                    setCountryCode(event.target.value as CountryCode | "")
+                  }
+                  className={inputClasses(false)}
+                >
+                  <option value="">{t.countryPlaceholder}</option>
+                  {COUNTRY_OPTIONS.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {option.name}
+                    </option>
+                  ))}
+                </select>
+                <label htmlFor={ids.language} className={LABEL_CLASSES}>
+                  {t.languageLabel}
+                </label>
+                <select
+                  id={ids.language}
+                  value={language}
+                  onChange={(event) =>
+                    setLanguage(event.target.value as UiLocale)
+                  }
+                  className={inputClasses(false)}
+                >
+                  {UI_LOCALES.map((locale) => (
+                    <option key={locale} value={locale}>
+                      {messages.languages[locale]}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : null}
+            <label htmlFor={ids.password} className={LABEL_CLASSES}>
+              {mode === "invitation"
+                ? t.newPasswordLabel
+                : messages.login.passwordLabel}
+            </label>
+            {mode === "invitation" ? (
+              <p id={`${ids.password}-rules`} className={HELP_CLASSES}>
+                {messages.password.rules}
+              </p>
+            ) : null}
+            <input
+              id={ids.password}
+              type="password"
+              autoComplete={
+                mode === "invitation" ? "new-password" : "current-password"
+              }
+              required
+              value={password}
+              aria-describedby={describedBy(
+                mode === "invitation" ? `${ids.password}-rules` : null,
+                failure === null ? null : ids.error,
+              )}
+              onChange={(event) => setPassword(event.target.value)}
+              className={inputClasses(false)}
+            />
+            {failureBlock}
+            <button
+              type="submit"
+              aria-disabled={busy || undefined}
+              className={PRIMARY_BUTTON_CLASSES}
+            >
+              {busy ? t.busy : t.step1Submit}
+            </button>
+          </form>
           <button
-            type="submit"
-            aria-disabled={busy || undefined}
-            className={PRIMARY_BUTTON_CLASSES}
+            type="button"
+            onClick={() => {
+              setFailure(null);
+              setPassword("");
+              setMode(mode === "invitation" ? "existing" : "invitation");
+            }}
+            className={TEXT_BUTTON_CLASSES}
           >
-            {busy ? t.busy : t.step1Submit}
+            {mode === "invitation" ? t.toExisting : t.toInvitation}
           </button>
-        </form>
+        </>
       )}
     </main>
   );

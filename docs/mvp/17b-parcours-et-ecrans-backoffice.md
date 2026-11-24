@@ -1757,6 +1757,27 @@ ne saisit jamais le jeton d'activation** (G-1 point 2) ; son mode de transmissio
 | Clé manuelle | Affichée par groupes de quatre caractères, sélectionnable ; jamais dans le titre de la page ni dans son adresse |
 | Échec unique | `bo.auth.enroll.errors.generic` à l'étape 1, quelle que soit la cause (adresse, mot de passe, compte déjà activé, plafond) ; seul un jeton d'activation invalide a son message propre, qui ne dit rien des identifiants |
 
+**Invitation d'équipe (additif du 2026-11-24, correctif : l'API `POST /v1/bo/auth/invitation/accept`
+du J8 commit 7 avait été livrée sans écran).** Le lien est le même pour une invitation (aucun
+compte encore) et pour un compte qui a déjà un mot de passe (scripts d'amorçage) ; rien ne les
+distingue. L'étape 1 s'ouvre donc sur la création du compte, l'autre formulaire à un clic. Champs :
+adresse invitée, prénom (1 à 80 caractères), pays (liste par nom), langue (`fr`, `en`), mot de passe
+choisi (`bo.auth.password.rules`, refus par `bo.auth.password.errors.*` de §3.14.d). Les étapes 2 et 3
+sont inchangées.
+
+| Clé | Libellé |
+|---|---|
+| `bo.auth.enroll.invitation.title` | Créez votre compte |
+| `bo.auth.enroll.invitation.emailHelp` | L'adresse à laquelle votre invitation a été émise. |
+| `bo.auth.enroll.invitation.firstName` | Prénom |
+| `bo.auth.enroll.invitation.firstNameHelp` | Affiché à vos collègues de l'équipe INFLUX. |
+| `bo.auth.enroll.invitation.country` | Pays |
+| `bo.auth.enroll.invitation.countryPlaceholder` | Choisissez un pays |
+| `bo.auth.enroll.invitation.language` | Langue |
+| `bo.auth.enroll.invitation.newPassword` | Choisissez un mot de passe |
+| `bo.auth.enroll.invitation.toExisting` | Vous avez déjà un mot de passe INFLUX ? Confirmez votre identité |
+| `bo.auth.enroll.invitation.toInvitation` | Première activation après une invitation ? Créez votre compte |
+
 #### 3.14.c Les codes de secours — affichés une seule fois
 
 | Clé | Libellé |
