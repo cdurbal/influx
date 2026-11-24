@@ -187,7 +187,8 @@
 >     (« Hors délai seuls » à bascule) ; colonnes voisines regroupées (origine et champ modifié) ;
 >   - inscrits : vues en onglets gris avec leur nombre, recherche par adresse dans la ligne de
 >     filtres, première colonne nom ou alias et adresse masquée (F3, avis `product-owner` et
->     `expert-conformite-rgpd`), rôle et statut, pays et langue ; « À traiter » : rejeu par lot ;
+>     `expert-conformite-rgpd`), rôle et statut, pays et langue ; les échecs de synchronisation
+>     renvoient à leur file (décision du 2026-11-24, écran 21) ;
 >   - demi-écran : défilement horizontal, première colonne fixe ; les huit autres files prennent
 >     le même gabarit.
 > - Écran 17, fiche campagne (backoffice, U06, U37) : **validé** (2026-11-24). Choix :
@@ -236,7 +237,11 @@
 >     double validation sur écran distinct, forme affaiblie écrite et 60 s comptées (§3.13) ;
 >   - réglages Apollo dont chaque changement devient une demande de double validation ; santé
 >     technique en lecture seule (§3.15) ;
->   - à trancher : la place de « Synchronisation » (Comptes, ou les files comme dans `17b`).
+>   - tranché par le fondateur le 2026-11-24 : les échecs de synchronisation et la double
+>     validation sont des files, comme dans `17b` §1.3 (groupes « Faire fonctionner la machine »
+>     et « Obligations et contrôles ») ; rail des écrans 4, 6, 16, 17 et 21 mis à jour, total des
+>     files compris ; la liste des inscrits (écran 16) perd sa vue « À traiter » et son rejeu, au
+>     profit d'un lien vers la file.
 
 ## 1. Où sont les prototypes
 

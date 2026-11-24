@@ -53,7 +53,7 @@
     <div class="bo-rail__head">INFLUX<span>Backoffice</span></div>
     <nav class="bo-nav" aria-label="Rubriques" data-h="5">
       <a class="is-current" aria-current="page" href="#"><svg class="i"><use href="#i-layout-grid"/></svg>Tableau de bord</a>
-      <a class="is-ancestor" href="#"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n" id="rail-total">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <a class="is-ancestor" href="#"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n" id="rail-total">46</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
       <span class="overline grp">Profils et visuels</span>
       <a class="sub" href="#">Profils marque<span class="n" data-q="pm">6</span></a>
       <a class="sub" href="#">Profils créateur<span class="n">5</span></a>
@@ -66,6 +66,10 @@
       <span class="overline grp">Campagnes et sélections</span>
       <a class="sub" href="#">Campagnes<span class="n">3</span></a>
       <a class="sub" href="#">Sélections par l'équipe<span class="n">1</span></a>
+      <span class="overline grp">Fonctionnement</span>
+      <a class="sub" href="proto-bo-admin.html#synchro">Échecs de synchronisation<span class="n">3</span></a>
+      <span class="overline grp">Obligations et contrôles</span>
+      <a class="sub" href="proto-bo-admin.html#dv-liste">Actions à valider<span class="n">2</span></a>
       <a href="#"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
       <a href="#"><svg class="i"><use href="#i-search"/></svg>Créateurs</a>
       <a href="#"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
@@ -116,6 +120,8 @@
           <tr><td><a class="id" href="#">Identifiants modifiés</a></td><td class="num" colspan="4"><span class="ok"><svg class="i i--sm"><use href="#i-check"/></svg>vide</span></td></tr>
           <tr><td><a class="id" href="#">Campagnes à valider</a></td><td class="num">3</td><td class="num">5 h 20</td><td class="num c3">0</td><td class="num">2</td></tr>
           <tr><td><a class="id" href="#">Sélections par l'équipe</a></td><td class="num">1</td><td class="num">1 j 2 h</td><td class="num"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>1</span></td><td class="num">1</td></tr>
+          <tr><td><a class="id" href="proto-bo-admin.html#synchro">Échecs de synchronisation</a></td><td class="num">3</td><td class="num">1 j 2 h</td><td class="num c3">0</td><td class="num c3">—</td></tr>
+          <tr><td><a class="id" href="proto-bo-admin.html#dv-liste">Actions en attente de validation</a></td><td class="num">2</td><td class="num">1 h 19</td><td class="num c3">0</td><td class="num c3">—</td></tr>
         </tbody>
       </table></div>
     </section>
@@ -165,7 +171,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var s = document.getElementById("stamp"); s.textContent = P.time(); P.flash(s, true);
     P.$$('[data-q="pm"]').forEach(function (c) { c.textContent = "7"; P.flash(c, true); });
     var f = P.$('[data-q="pm-free"]'); f.textContent = "6"; P.flash(f, true);
-    var t = document.getElementById("rail-total"); t.textContent = "42"; P.flash(t, true);
+    var t = document.getElementById("rail-total"); t.textContent = "47"; P.flash(t, true);
     P.announce("Tableau de bord actualisé à " + P.time() + " : une nouvelle entrée dans Profils marque à valider.");
   });
   var g = false, gt;

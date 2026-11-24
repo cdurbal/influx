@@ -86,8 +86,9 @@
   <b>Prototype</b><span>pas un écran de production</span>
   <label>État
     <select id="demo-state">
-      <optgroup label="Comptes"><option value="invitations">Invitations</option><option value="invitation-creee">Invitation créée : le lien</option><option value="synchro">Échecs de synchronisation</option><option value="synchro-normaux">Synchronisation : cas normaux</option></optgroup>
-      <optgroup label="Administration"><option value="comptes">Comptes internes</option><option value="desactiver">Désactiver : refus nommé</option><option value="dv-liste">Double validation : la liste</option><option value="dv">Double validation : par un pair</option><option value="dv-degrade">Double validation : contrôle affaibli</option><option value="apollo">Réglages Apollo</option><option value="sante">Santé technique</option></optgroup>
+      <optgroup label="Files"><option value="synchro">Échecs de synchronisation</option><option value="synchro-normaux">Synchronisation : cas normaux</option><option value="dv-liste">Actions en attente de validation</option><option value="dv">Une action : par un pair</option><option value="dv-degrade">Une action : contrôle affaibli</option></optgroup>
+      <optgroup label="Comptes"><option value="invitations">Invitations</option><option value="invitation-creee">Invitation créée : le lien</option></optgroup>
+      <optgroup label="Administration"><option value="comptes">Comptes internes</option><option value="desactiver">Désactiver : refus nommé</option><option value="apollo">Réglages Apollo</option><option value="sante">Santé technique</option></optgroup>
     </select>
   </label>
   <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
@@ -101,14 +102,27 @@
     <div class="bo-rail__head">INFLUX<span>Backoffice</span></div>
     <nav class="bo-nav" aria-label="Rubriques">
       <a href="proto-bo-accueil.html"><svg class="i"><use href="#i-layout-grid"/></svg>Tableau de bord</a>
-      <a href="proto-bo-listes.html#file"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
-      <a href="proto-bo-listes.html#inscrits" data-anc="invitations invitation-creee synchro synchro-normaux"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a href="proto-bo-listes.html#file" data-anc="synchro synchro-normaux dv-liste dv dv-degrade"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">46</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <span class="overline grp" data-g="f">Profils et visuels</span>
+      <a class="sub" href="proto-bo-listes.html#file" data-g="f">Profils marque<span class="n">6</span></a>
+      <a class="sub" href="proto-bo-listes.html#file" data-g="f">Profils créateur<span class="n">5</span></a>
+      <a class="sub" href="proto-bo-listes.html#file" data-g="f">Visuels de portfolio<span class="n">12</span></a>
+      <span class="overline grp" data-g="f">Vérifications</span>
+      <a class="sub" href="proto-bo-listes.html#file" data-g="f">Vérifications créateurs<span class="n">7</span></a>
+      <a class="sub" href="proto-bo-listes.html#file" data-g="f">Vérifications marques<span class="n">3</span></a>
+      <a class="sub" href="proto-bo-listes.html#file" data-g="f">Contestations<span class="n">4</span></a>
+      <span class="overline grp" data-g="f">Campagnes et sélections</span>
+      <a class="sub" href="proto-bo-listes.html#file" data-g="f">Campagnes<span class="n">3</span></a>
+      <a class="sub" href="proto-bo-listes.html#file" data-g="f">Sélections par l'équipe<span class="n">1</span></a>
+      <span class="overline grp" data-g="f">Fonctionnement</span>
+      <a class="sub" href="#synchro" data-g="f" data-cur="synchro synchro-normaux">Échecs de synchronisation<span class="n">3</span></a>
+      <span class="overline grp" data-g="f">Obligations et contrôles</span>
+      <a class="sub" href="#dv-liste" data-g="f" data-cur="dv-liste dv dv-degrade">Actions à valider<span class="n">2</span></a>
+      <a href="proto-bo-listes.html#inscrits" data-anc="invitations invitation-creee"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
       <a class="sub" href="proto-bo-listes.html#inscrits" data-g="c">Inscrits</a>
       <a class="sub" href="#invitations" data-g="c" data-cur="invitations invitation-creee">Invitations</a>
-      <a class="sub" href="#synchro" data-g="c" data-cur="synchro synchro-normaux">Synchronisation<span class="n">3</span></a>
       <a href="proto-bo-recherche.html"><svg class="i"><use href="#i-search"/></svg>Créateurs</a>
-      <a href="#comptes" data-anc="comptes desactiver dv-liste dv dv-degrade apollo sante"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
-      <a class="sub" href="#dv-liste" data-g="a" data-cur="dv-liste dv dv-degrade">Double validation<span class="n">2</span></a>
+      <a href="#comptes" data-anc="comptes desactiver apollo sante"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
       <a class="sub" href="#comptes" data-g="a" data-cur="comptes desactiver">Comptes internes</a>
       <a class="sub" href="#apollo" data-g="a" data-cur="apollo">Réglages Apollo</a>
       <a class="sub" href="#sante" data-g="a" data-cur="sante">Santé technique</a>
@@ -156,7 +170,7 @@
 
     <!-- ===================== SYNCHRONISATION ===================== -->
     <header class="lhead" data-when="synchro synchro-normaux" data-h="1">
-      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="proto-bo-listes.html#inscrits">Comptes</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Synchronisation</span></nav>
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="proto-bo-listes.html#file">Files</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Échecs de synchronisation</span></nav>
       <h1 class="t-page" tabindex="-1">Échecs de synchronisation</h1>
       <p class="lsum"><span><b>3</b> à traiter</span><span>plus ancien <b>1 j 2 h</b></span><span>· aucun verrou : le rejeu est sans doublon</span></p>
     </header>
@@ -215,8 +229,8 @@
 
     <!-- ===================== DOUBLE VALIDATION ===================== -->
     <header class="lhead" data-when="dv-liste" data-h="1">
-      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="#comptes">Administration</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Double validation</span></nav>
-      <h1 class="t-page" tabindex="-1">Double validation</h1>
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="proto-bo-listes.html#file">Files</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Actions en attente de validation</span></nav>
+      <h1 class="t-page" tabindex="-1">Actions en attente de validation</h1>
       <p class="c2">Actions en attente d'une seconde validation. Une demande expire au bout de 24 heures : rien n'est alors exécuté.</p>
     </header>
     <section class="stack g3" data-when="dv-liste" data-h="2" aria-label="Actions en attente">
@@ -229,7 +243,7 @@
     </section>
 
     <div class="dvp" data-when="dv dv-degrade">
-      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="#dv-liste">Double validation</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Action en attente</span></nav>
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="proto-bo-listes.html#file">Files</a><svg class="i"><use href="#i-chevron-right"/></svg><a href="#dv-liste">Actions en attente de validation</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Une action</span></nav>
       <h1 class="t-page" tabindex="-1" data-h="1">Action en attente de seconde validation</h1>
       <p class="lsum" data-when="dv"><span>Demandée par <b>Julien M.</b> le 24/11 à 10 h 22</span><span>· expire le 25/11 à 10 h 22 (dans 23 h)</span></p>
       <p class="lsum" data-when="dv-degrade"><span>Demandée par <b>vous</b> le 24/11 à 09 h 40</span><span>· expire le 25/11 à 09 h 40 (dans 22 h)</span></p>
@@ -345,7 +359,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("proto:state", function (e) {
     var st = e.detail.st;
     $$("[data-anc]").forEach(function (a) { a.classList.toggle("is-ancestor", a.getAttribute("data-anc").split(" ").indexOf(st) !== -1); });
-    var g = /^(invitations|invitation-creee|synchro|synchro-normaux)$/.test(st) ? "c" : "a";
+    var g = /^(invitations|invitation-creee)$/.test(st) ? "c" : /^(synchro|synchro-normaux|dv-liste|dv|dv-degrade)$/.test(st) ? "f" : "a";
     $$("[data-g]").forEach(function (a) { a.hidden = a.getAttribute("data-g") !== g; var on = (a.getAttribute("data-cur") || "").split(" ").indexOf(st) !== -1; a.classList.toggle("is-current", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     $$(".views a").forEach(function (a) { if (a.getAttribute("data-v") === st) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
     form.hidden = true; open.setAttribute("aria-expanded", "false"); $("#iv-err").hidden = true; $("#iv-mail").value = "";

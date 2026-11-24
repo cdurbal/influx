@@ -62,7 +62,7 @@
   <label>État
     <select id="demo-state">
       <optgroup label="Une file (Profils marque à valider)"><option value="file">Six entrées</option><option value="file-retard">« Hors délai » seul</option><option value="file-vide">File vide</option></optgroup>
-      <optgroup label="Inscrits"><option value="inscrits">Tous</option><option value="inscrits-traiter">À traiter, échecs sélectionnés</option><option value="inscrits-recherche">Recherche par adresse</option></optgroup>
+      <optgroup label="Inscrits"><option value="inscrits">Tous</option><option value="inscrits-recherche">Recherche par adresse</option></optgroup>
     </select>
   </label>
   <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
@@ -77,8 +77,8 @@
     <div class="bo-rail__head">INFLUX<span>Backoffice</span></div>
     <nav class="bo-nav" aria-label="Rubriques">
       <a href="proto-bo-accueil.html"><svg class="i"><use href="#i-layout-grid"/></svg>Tableau de bord</a>
-      <a class="is-ancestor" href="#file" data-when="file file-retard file-vide"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
-      <a href="#file" data-unless="file file-retard file-vide"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <a class="is-ancestor" href="#file" data-when="file file-retard file-vide"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">46</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <a href="#file" data-unless="file file-retard file-vide"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">46</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
       <span class="overline grp" data-when="file file-retard file-vide">Profils et visuels</span>
       <a class="sub is-current" aria-current="page" href="#file" data-when="file file-retard file-vide">Profils marque<span class="n" id="rail-pm">6</span></a>
       <a class="sub" href="#file" data-when="file file-retard file-vide">Profils créateur<span class="n">5</span></a>
@@ -91,11 +91,14 @@
       <span class="overline grp" data-when="file file-retard file-vide">Campagnes et sélections</span>
       <a class="sub" href="#file" data-when="file file-retard file-vide">Campagnes<span class="n">3</span></a>
       <a class="sub" href="#file" data-when="file file-retard file-vide">Sélections par l'équipe<span class="n">1</span></a>
-      <a class="is-ancestor" href="#inscrits" data-when="inscrits inscrits-traiter inscrits-recherche"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
-      <a href="#inscrits" data-unless="inscrits inscrits-traiter inscrits-recherche"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
-      <a class="sub is-current" aria-current="page" href="#inscrits" data-when="inscrits inscrits-traiter inscrits-recherche">Inscrits</a>
-      <a class="sub" href="#inscrits" data-when="inscrits inscrits-traiter inscrits-recherche">Invitations</a>
-      <a class="sub" href="#inscrits" data-when="inscrits inscrits-traiter inscrits-recherche">Synchronisation</a>
+      <span class="overline grp" data-when="file file-retard file-vide">Fonctionnement</span>
+      <a class="sub" href="proto-bo-admin.html#synchro" data-when="file file-retard file-vide">Échecs de synchronisation<span class="n">3</span></a>
+      <span class="overline grp" data-when="file file-retard file-vide">Obligations et contrôles</span>
+      <a class="sub" href="proto-bo-admin.html#dv-liste" data-when="file file-retard file-vide">Actions à valider<span class="n">2</span></a>
+      <a class="is-ancestor" href="#inscrits" data-when="inscrits inscrits-recherche"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a href="#inscrits" data-unless="inscrits inscrits-recherche"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a class="sub is-current" aria-current="page" href="#inscrits" data-when="inscrits inscrits-recherche">Inscrits</a>
+      <a class="sub" href="#inscrits" data-when="inscrits inscrits-recherche">Invitations</a>
       <a href="proto-bo-recherche.html"><svg class="i"><use href="#i-search"/></svg>Créateurs</a>
       <a href="#"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
     </nav>
@@ -146,19 +149,15 @@
     </div>
 
     <!-- ===================== INSCRITS ===================== -->
-    <header class="lhead" data-when="inscrits inscrits-traiter inscrits-recherche" data-h="1">
+    <header class="lhead" data-when="inscrits inscrits-recherche" data-h="1">
       <nav class="crumbs" aria-label="Fil d'Ariane"><a href="#inscrits">Comptes</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Inscrits</span></nav>
       <h1 class="t-page" tabindex="-1">Inscrits</h1>
       <p class="c2">Membres inscrits et état de leur synchronisation. L'ouverture d'une fiche est enregistrée à votre nom ; la liste ne s'exporte pas, quel que soit le rôle.</p>
     </header>
 
-    <nav class="views" aria-label="Vues" data-when="inscrits inscrits-traiter inscrits-recherche" data-h="2">
-      <a href="#inscrits" data-v="inscrits">Tous <span class="n">28</span></a>
-      <a href="#inscrits-traiter" data-v="inscrits-traiter">À traiter <span class="n">3</span></a>
-      <a href="#inscrits" data-v="normaux">Cas normaux <span class="n">25</span></a>
-    </nav>
+    <p class="row g2 sm" data-when="inscrits inscrits-recherche" data-h="2"><svg class="i i--sm" style="color: var(--color-feedback-error-text)"><use href="#i-circle-alert"/></svg><span>3 échecs de synchronisation à traiter.</span><a class="link" href="proto-bo-admin.html#synchro">Ouvrir la file</a></p>
 
-    <div class="fbar" role="group" aria-label="Filtres des inscrits" data-when="inscrits inscrits-traiter inscrits-recherche" data-h="2">
+    <div class="fbar" role="group" aria-label="Filtres des inscrits" data-when="inscrits inscrits-recherche" data-h="2">
       <label class="search"><svg class="i"><use href="#i-search"/></svg><span class="sr-only">Rechercher par adresse</span><input id="q" type="search" placeholder="Rechercher par adresse e-mail" autocomplete="off"></label>
       <span class="fbar__sep" aria-hidden="true"></span>
       <button class="pill" type="button">Rôle : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
@@ -168,27 +167,23 @@
       <button class="pill" type="button">Consentement : tous<svg class="i"><use href="#i-chevron-down"/></svg></button>
       <button class="pill" type="button"><svg class="i"><use href="#i-calendar"/></svg>Période d'inscription<svg class="i"><use href="#i-chevron-down"/></svg></button>
     </div>
-    <p class="xs c2" data-when="inscrits inscrits-traiter inscrits-recherche">Une adresse complète : recherche exacte, non enregistrée. Un fragment de 3 caractères au moins : recherche partielle, enregistrée à votre nom (20 par quart d'heure). Le terme n'apparaît jamais dans l'adresse de la page.</p>
+    <p class="xs c2" data-when="inscrits inscrits-recherche">Une adresse complète : recherche exacte, non enregistrée. Un fragment de 3 caractères au moins : recherche partielle, enregistrée à votre nom (20 par quart d'heure). Le terme n'apparaît jamais dans l'adresse de la page.</p>
 
-    <section class="stack g3" data-when="inscrits inscrits-traiter inscrits-recherche" data-h="3" aria-labelledby="i-count">
-      <div class="batch" data-when="inscrits-traiter" role="region" aria-label="Sélection">
-        <span id="sel-n">2 envois en échec sélectionnés · 200 au plus par lot</span>
-        <button class="btn btn--secondary" type="button" id="replay" style="min-height: 2.25rem; padding-block: 0"><svg class="i i--sm"><use href="#i-refresh-cw"/></svg>Rejouer la synchronisation (2)</button>
-      </div>
-      <p class="sm c2" id="i-count"><span data-when="inscrits">28 inscrits · les plus récents d'abord</span><span data-when="inscrits-traiter">3 inscrits à traiter : un envoi Brevo ou Apollo en échec</span><span data-when="inscrits-recherche">1 inscrit pour « claire.morel@example.test » · recherche exacte, non enregistrée</span></p>
+    <section class="stack g3" data-when="inscrits inscrits-recherche" data-h="3" aria-labelledby="i-count">
+      <p class="sm c2" id="i-count"><span data-when="inscrits">28 inscrits · les plus récents d'abord</span><span data-when="inscrits-recherche">1 inscrit pour « claire.morel@example.test » · recherche exacte, non enregistrée</span></p>
       <div class="tbl-wrap"><table class="tbl" id="ti">
-        <thead><tr><th scope="col" class="sel" data-when="inscrits-traiter"><span class="sr-only">Sélection</span></th><th scope="col">Inscrit</th><th scope="col">Rôle</th><th scope="col">Pays, langue</th><th scope="col">Consentement</th><th scope="col">Brevo</th><th scope="col">Apollo</th><th scope="col">Responsable</th><th scope="col" class="num">Inscription</th></tr></thead>
+        <thead><tr><th scope="col">Inscrit</th><th scope="col">Rôle</th><th scope="col">Pays, langue</th><th scope="col">Consentement</th><th scope="col">Brevo</th><th scope="col">Apollo</th><th scope="col">Responsable</th><th scope="col" class="num">Inscription</th></tr></thead>
         <tbody>
-          <tr data-unless="inscrits-traiter"><td><a class="id" href="proto-bo-fiche-compte.html">Maison Azur</a><span class="mail">c***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>France <span class="mute">· français</span></td><td>accordé</td><td><span class="sync sync--wait"><svg class="i"><use href="#i-hourglass"/></svg>en file</span></td><td><span class="sync sync--wait"><svg class="i"><use href="#i-hourglass"/></svg>en file</span></td><td class="mute">aucun</td><td class="num">24/11/2026</td></tr>
-          <tr data-when="inscrits inscrits-traiter"><td class="sel" data-when="inscrits-traiter"><input type="checkbox" checked aria-label="Sélectionner Profil 93JMS4"></td><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 93JMS4</a><span class="mail">l***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>Belgique <span class="mute">· français</span></td><td>accordé</td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td><span class="sync">synchronisé</span></td><td>Julien M.</td><td class="num">23/11/2026</td></tr>
-          <tr data-when="inscrits inscrits-traiter"><td class="sel" data-when="inscrits-traiter"><input type="checkbox" checked aria-label="Sélectionner Vélo Urbain Bruxelles"></td><td><a class="id" href="proto-bo-fiche-compte.html">Vélo Urbain Bruxelles</a><span class="mail">h***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>Belgique <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td>Julien M.</td><td class="num">23/11/2026</td></tr>
-          <tr data-when="inscrits inscrits-traiter"><td class="sel" data-when="inscrits-traiter"><input type="checkbox" aria-label="Sélectionner Profil 6C2RTM"></td><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 6C2RTM</a><span class="mail">m***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>France <span class="mute">· français</span></td><td class="mute">—</td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td class="mute">non tenté</td><td>Julien M.</td><td class="num">22/11/2026</td></tr>
+          <tr><td><a class="id" href="proto-bo-fiche-compte.html">Maison Azur</a><span class="mail">c***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>France <span class="mute">· français</span></td><td>accordé</td><td><span class="sync sync--wait"><svg class="i"><use href="#i-hourglass"/></svg>en file</span></td><td><span class="sync sync--wait"><svg class="i"><use href="#i-hourglass"/></svg>en file</span></td><td class="mute">aucun</td><td class="num">24/11/2026</td></tr>
+          <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 93JMS4</a><span class="mail">l***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>Belgique <span class="mute">· français</span></td><td>accordé</td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td><span class="sync">synchronisé</span></td><td>Julien M.</td><td class="num">23/11/2026</td></tr>
+          <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html">Vélo Urbain Bruxelles</a><span class="mail">h***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>Belgique <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td>Julien M.</td><td class="num">23/11/2026</td></tr>
+          <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 6C2RTM</a><span class="mail">m***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>France <span class="mute">· français</span></td><td class="mute">—</td><td><span class="sync sync--fail"><svg class="i"><use href="#i-circle-alert"/></svg>échec</span></td><td class="mute">non tenté</td><td>Julien M.</td><td class="num">22/11/2026</td></tr>
           <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 7K3MQA</a><span class="mail">s***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>France <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync">synchronisé</span></td><td>Julien M.</td><td class="num">22/11/2026</td></tr>
           <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html">Kintsugi Studio</a><span class="mail">a***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>France <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td class="mute">exclu par pays</td><td>Julien M.</td><td class="num">22/11/2026</td></tr>
           <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html#createur">Profil 4FD8LZ</a><span class="mail">j***@example.test</span></td><td>Créateur <span class="mute">· particulier</span></td><td>Belgique <span class="mute">· néerlandais</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync">synchronisé</span></td><td class="mute">aucun</td><td class="num">21/11/2026</td></tr>
           <tr data-when="inscrits"><td><a class="id" href="proto-bo-fiche-compte.html">Terre &amp; Thé</a><span class="mail">n***@example.test</span></td><td>Marque <span class="mute">· professionnel</span></td><td>Belgique <span class="mute">· français</span></td><td>accordé</td><td><span class="sync">synchronisé</span></td><td><span class="sync">synchronisé</span></td><td>Julien M.</td><td class="num">21/11/2026</td></tr>
         </tbody></table></div>
-      <div class="lfoot"><span><span data-when="inscrits">1 à 20 sur 28</span><span data-when="inscrits-traiter">1 à 3 sur 3</span><span data-when="inscrits-recherche">1 sur 1</span></span><span class="row g3"><span><span class="kbd">j</span> <span class="kbd">k</span> ligne · <span class="kbd">Entrée</span> ouvrir la fiche</span><button class="btn btn--secondary" type="button" data-when="inscrits" style="min-height: 2.25rem; padding-block: 0">Page suivante <svg class="i i--sm"><use href="#i-chevron-right"/></svg></button></span></div>
+      <div class="lfoot"><span><span data-when="inscrits">1 à 20 sur 28</span><span data-when="inscrits-recherche">1 sur 1</span></span><span class="row g3"><span><span class="kbd">j</span> <span class="kbd">k</span> ligne · <span class="kbd">Entrée</span> ouvrir la fiche</span><button class="btn btn--secondary" type="button" data-when="inscrits" style="min-height: 2.25rem; padding-block: 0">Page suivante <svg class="i i--sm"><use href="#i-chevron-right"/></svg></button></span></div>
     </section>
   </main>
 </div>
@@ -212,14 +207,6 @@ document.addEventListener("DOMContentLoaded", function () {
   $("#late-only").addEventListener("click", function () { location.hash = document.body.getAttribute("data-state") === "file-retard" ? "file" : "file-retard"; });
   // Recherche : une adresse complète ramène l'inscrit ; le terme ne va jamais dans l'adresse de la page.
   $("#q").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if ($("#q").value.trim()) { location.hash = "inscrits-recherche"; P.announce("1 inscrit trouvé. Recherche exacte, non enregistrée."); } } });
-  // Sélection des échecs (vue « À traiter ») : le lot et son plafond se mettent à jour.
-  document.addEventListener("change", function (e) {
-    if (!e.target.closest("#ti .sel")) return;
-    var n = $$("#ti tbody .sel input:checked").length;
-    $("#sel-n").textContent = n + (n > 1 ? " envois en échec sélectionnés" : " envoi en échec sélectionné") + " · 200 au plus par lot";
-    $("#replay").innerHTML = '<svg class="i i--sm"><use href="#i-refresh-cw"/></svg>Rejouer la synchronisation (' + n + ")"; $("#replay").disabled = !n;
-  });
-  $("#replay").addEventListener("click", function () { P.announce("Synchronisation relancée pour la sélection : résultat dans quelques instants (simulé)."); });
   // Clavier : j / k déplacent le focus de ligne, Entrée ouvre (17b §6.1).
   document.addEventListener("keydown", function (e) {
     if (e.target.closest("input, textarea, select, dialog") || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -234,7 +221,6 @@ document.addEventListener("DOMContentLoaded", function () {
   document.addEventListener("proto:state", function (e) {
     var st = e.detail.st;
     $("#late-only").setAttribute("aria-pressed", String(st === "file-retard"));
-    $$(".views a").forEach(function (a) { var v = a.getAttribute("data-v"); if (v === st || (v === "inscrits" && st === "inscrits-recherche")) a.setAttribute("aria-current", "true"); else a.removeAttribute("aria-current"); });
     $("#q").value = st === "inscrits-recherche" ? "claire.morel@example.test" : "";
     if (st === "inscrits-recherche") $$("#ti tbody tr").forEach(function (r, i) { r.hidden = i !== 0; });
   });

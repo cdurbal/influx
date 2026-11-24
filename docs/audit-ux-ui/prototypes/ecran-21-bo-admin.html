@@ -20,7 +20,7 @@
   <div class="d-intro">
     <p class="overline">Écran 21 · Backoffice</p>
     <h1 class="d-h1">Invitations, synchronisation, administration</h1>
-    <p class="d-lead">Les pages d'entretien du backoffice, sur les gabarits déjà validés : le tableau de l'écran 16, les formulaires ouverts dans la page de l'écran 6, la ligne de pastilles. Comptes : les invitations de membres et les échecs de synchronisation. Administration : la double validation (par un pair, ou sous contrôle affaibli), les comptes internes avec le compte de secours, les réglages Apollo et la santé technique, d'après <code>17b</code> §3.11, §3.13 et §3.15.</p>
+    <p class="d-lead">Les pages d'entretien du backoffice, sur les gabarits déjà validés : le tableau de l'écran 16, les formulaires ouverts dans la page de l'écran 6, la ligne de pastilles. Files : les échecs de synchronisation et les actions en attente de validation (par un pair, ou sous contrôle affaibli), rangés comme le prévoit <code>17b</code> §1.3. Comptes : les invitations de membres. Administration : les comptes internes avec le compte de secours, les réglages Apollo et la santé technique, d'après <code>17b</code> §3.11, §3.13 et §3.15.</p>
     <div class="d-ids"><span class="u">U37</span><span class="u">U41</span><span class="u">U57</span></div>
   </div>
 
@@ -64,9 +64,9 @@
       <thead><tr><th>Page</th><th>Contenu</th></tr></thead>
       <tbody>
         <tr><td>Invitations</td><td>« Inviter un membre » ouvre le formulaire dans la page (adresse, rôle proposé, langue) ; le lien s'affiche une seule fois, avec « Copier » ; liste au gabarit de l'écran 16, adresses masquées, révoquer ou réinviter</td></tr>
-        <tr><td>Synchronisation</td><td>« À traiter » et « Cas normaux » en vues, jamais additionnées ; cause en français courant ; sélection et rejeu par lot de 200 au plus, compte rendu nommé ; aucun bouton de rejeu sur un cas normal</td></tr>
+        <tr><td>Échecs de synchronisation (file)</td><td>« À traiter » et « Cas normaux » en vues, jamais additionnées ; cause en français courant ; sélection et rejeu par lot de 200 au plus, compte rendu nommé ; aucun bouton de rejeu sur un cas normal</td></tr>
         <tr><td>Comptes internes</td><td>Encadré permanent du compte de secours, ligne « bris de glace » dans la liste ; « Désactiver… » refuse en nommant ce qui reste et propose le transfert de portefeuille</td></tr>
-        <tr><td>Double validation</td><td>Liste des actions en attente et « votre geste » ; écran distinct : demandeur, échéance, action, motif, message au membre, conséquences, réversibilité, second facteur ; forme affaiblie : « CONTRÔLE AFFAIBLI » écrit et 60 secondes comptées et annoncées</td></tr>
+        <tr><td>Actions en attente de validation (file)</td><td>Liste des actions en attente et « votre geste » ; écran distinct : demandeur, échéance, action, motif, message au membre, conséquences, réversibilité, second facteur ; forme affaiblie : « CONTRÔLE AFFAIBLI » écrit et 60 secondes comptées et annoncées</td></tr>
         <tr><td>Réglages Apollo</td><td>Périmètre, pays exclus, base légale ; chaque changement replié, avec un motif, devient une demande de double validation</td></tr>
         <tr><td>Santé technique</td><td>Lecture seule : disponibilité par cible (24 h, 7 j, 30 j), worker et tâches, alertes, groupes d'erreurs ; aucune personne</td></tr>
       </tbody></table></div>
@@ -75,7 +75,7 @@
   <section class="d-sec"><h2><span class="n">3</span>À valider par vous</h2>
     <ul class="d-ask">
       <li><svg class="i"><use href="#i-circle"/></svg><span>Les pages, sur poste et en demi-écran (la liste des comptes internes y défile, première colonne fixe).</span></li>
-      <li><svg class="i"><use href="#i-circle"/></svg><span>« Synchronisation » est rangée sous Comptes, comme dans les écrans 6 et 16 ; <code>17b</code> §3.11 la place dans les files (« Faire fonctionner la machine »). À trancher.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Tranché le 2026-11-24 : les échecs de synchronisation (groupe « Fonctionnement ») et la double validation (groupe « Obligations et contrôles ») sont des files, comme dans <code>17b</code> §1.3. La liste des inscrits n'a plus son propre rejeu.</span></li>
       <li><svg class="i"><use href="#i-circle"/></svg><span>Les réglages « recherche » et « sources du registre », qui existent en production, ne sont pas prototypés : ils prendraient le gabarit des réglages Apollo.</span></li>
     </ul>
   </section>

@@ -32,7 +32,6 @@
         <button type="button" data-st="file-retard" data-cap="" aria-pressed="false">File · hors délai seuls</button>
         <button type="button" data-st="file-vide" data-cap="" aria-pressed="false">File vide</button>
         <button type="button" data-st="inscrits" data-cap="b04-inscrits.jpg" aria-pressed="false">Inscrits · tous</button>
-        <button type="button" data-st="inscrits-traiter" data-cap="" aria-pressed="false">Inscrits · à traiter</button>
         <button type="button" data-st="inscrits-recherche" data-cap="" aria-pressed="false">Inscrits · recherche</button>
       </div>
       <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
@@ -43,7 +42,7 @@
       <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-bo-listes.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
         <div class="d-screen d-frame"><iframe data-src="proto-bo-listes.html" title="Prototype des listes du backoffice" loading="lazy"></iframe></div></figure>
     </div>
-    <p class="d-hint">À essayer en plein écran : <span class="kbd">j</span> <span class="kbd">k</span> puis <span class="kbd">Entrée</span>, un clic n'importe où sur une ligne, « Hors délai seuls », les vues des inscrits, une adresse complète dans la recherche, puis cocher ou décocher les échecs à rejouer.</p>
+    <p class="d-hint">À essayer en plein écran : <span class="kbd">j</span> <span class="kbd">k</span> puis <span class="kbd">Entrée</span>, un clic n'importe où sur une ligne, « Hors délai seuls », les vues des inscrits, une adresse complète dans la recherche, puis « Ouvrir la file » des échecs de synchronisation.</p>
   </section>
 
   <section class="d-sec"><h2><span class="n">1</span>Problèmes relevés</h2>
@@ -60,8 +59,8 @@
       <tbody>
         <tr><td>Une file</td><td>Fil d'Ariane, titre, phrase, puis le résumé en une ligne (en attente, plus ancienne, hors délai, sans preneur, délais). Pastilles : « Hors délai seuls » à bascule, verrou, responsable, alerte, origine, pays, période</td></tr>
         <tr><td>Tableau d'une file</td><td>Marque (lien étiré, alerte en clair à côté), échéance (« hors délai · 49 min » avec drapeau), origine (et champ modifié), pays, complétude à droite, responsable, verrou ; pied : « 1 à 6 sur 6 » et raccourcis. « Raison sociale non demandée » passe au pied quand c'est vrai pour toutes les entrées</td></tr>
-        <tr><td>Inscrits</td><td>Vues « Tous », « À traiter », « Cas normaux » en onglets gris avec leur nombre ; recherche par adresse dans la ligne de pastilles, avec sa règle en une ligne ; rôle, pays, langue, statut, consentement, période</td></tr>
-        <tr><td>Tableau des inscrits</td><td>Inscrit (nom de la marque ou alias, adresse masquée <code>c***@domaine</code>), rôle et statut, pays et langue, consentement, Brevo, Apollo (un mot et une icône), responsable, date à droite ; « À traiter » : cases des échecs et « Rejouer la synchronisation (n) », 200 au plus par lot</td></tr>
+        <tr><td>Inscrits</td><td>Les échecs de synchronisation en une ligne, avec « Ouvrir la file » (décision du 2026-11-24 : ils vivent dans les files) ; recherche par adresse dans la ligne de pastilles, avec sa règle en une ligne ; rôle, pays, langue, statut, consentement, période</td></tr>
+        <tr><td>Tableau des inscrits</td><td>Inscrit (nom de la marque ou alias, adresse masquée <code>c***@domaine</code>), rôle et statut, pays et langue, consentement, Brevo, Apollo (un mot et une icône), responsable, date à droite</td></tr>
         <tr><td>Demi-écran</td><td>Le tableau défile horizontalement, la première colonne reste en place ; l'alerte et l'adresse masquée passent sous le nom</td></tr>
       </tbody></table></div>
   </section>
