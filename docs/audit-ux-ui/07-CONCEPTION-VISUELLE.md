@@ -159,6 +159,17 @@
 >     « Proposer à la campagne »,
 >     profils non publiés écartés et nommés, motif obligatoire (RG74) ; pas de version téléphone
 >     (D58).
+> - Écran 14, vérifications créateur (créateur, U28, U22) : **validé** (2026-11-24). Choix :
+>   - une page « Mes vérifications » en sous-menu de « Compte » : bandeau de ce qui demande une
+>     action, puis par réseau la propriété et l'audience, chacune avec son état, sa suite et son
+>     action ; dans le profil, le cadre « Vérification » devient une ligne d'état et un lien ;
+>   - propriété en deux écrans : ce que le badge affirme au-dessus du code, puis la confirmation ;
+>   - audience sur une page : condition, capture attendue par réseau, visible et à masquer, un
+>     fichier par ligne (un échec ne coûte pas les autres), puis examen, refus ou octroi ;
+>   - contestation sur sa page (`08` RG77) : décision et motif, délai, raison fermée, explication,
+>     aucune pièce jointe, puis suivi et issue ; un seul niveau de boîte (C8) ;
+>   - à vérifier avant le texte définitif : les consignes exactes de chaque réseau pour coller le
+>     code.
 
 ## 1. Où sont les prototypes
 
@@ -180,7 +191,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur).
 
 ## 3. Formulaire complexe (écran 3)
 

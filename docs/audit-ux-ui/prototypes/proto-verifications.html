@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Vérifications créateur</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Une colonne étroite, un niveau de boîte au plus (C8, U28) : sections séparées par des filets. */
+  .vp { display: flex; flex-direction: column; gap: var(--spacing-6); width: 100%; max-width: var(--container-narrow); }
+  .vp-head { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .vp-head .t-page { font-size: var(--text-title-section); }
+  .vp-meta { font-size: var(--text-sm); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; }
+  .sec { display: flex; flex-direction: column; gap: var(--spacing-3); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-5); }
+  .sec > h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-1) var(--spacing-3); font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--font-weight-bold); }
+  .sec > h2 .h { font-family: var(--font-base); font-size: var(--text-sm); font-weight: var(--font-weight-regular); color: var(--color-text-secondary); }
+  /* Mes vérifications : deux lignes par réseau */
+  .vrow { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--spacing-2) var(--spacing-4); padding: var(--spacing-3) 0; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .vrow:first-of-type { border-top: 0; }
+  .vrow > .k { font-size: var(--text-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); padding-top: 0.125rem; }
+  .vrow > .v { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-2); min-width: 0; font-size: var(--text-sm); }
+  .vrow .why { color: var(--color-text-secondary); }
+  .vrow .acts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2) var(--spacing-4); }
+  @media (width < 480px) { .vrow { grid-template-columns: minmax(0, 1fr); } }
+  .attn { display: flex; flex-direction: column; gap: var(--spacing-1); }
+  .attn a { font-weight: var(--font-weight-semibold); }
+  /* Ce que le badge affirme */
+  .aff { display: grid; gap: var(--spacing-4); }
+  @media (width >= 640px) { .aff { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .aff h3 { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-sm); margin-bottom: var(--spacing-2); }
+  .aff ul { display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .aff li { display: grid; grid-template-columns: var(--size-icon-sm) minmax(0, 1fr); gap: var(--spacing-2); }
+  .aff li .i { width: var(--size-icon-sm); height: var(--size-icon-sm); margin-top: 0.1875rem; }
+  .aff .yes .i { color: var(--color-verified-text); }
+  .aff .no .i { color: var(--color-text-tertiary); }
+  /* Le code */
+  .code { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-3); border-radius: var(--radius-md); background: var(--color-surface-raised); padding: var(--spacing-4); }
+  .code b { font-family: var(--font-display); font-size: var(--text-title-section); letter-spacing: 0.06em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .steps { display: flex; flex-direction: column; gap: var(--spacing-2); padding-left: var(--spacing-5); list-style: decimal; font-size: var(--text-sm); }
+  /* Dépôt : un fichier par ligne */
+  .files { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .files li { display: grid; grid-template-columns: var(--size-icon-md) minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-1) var(--spacing-3); padding: var(--spacing-3) 0; border-bottom: var(--border-width-thin) solid var(--color-border-subtle); font-size: var(--text-sm); }
+  .files li > .i { color: var(--color-text-secondary); }
+  .files .nm { min-width: 0; overflow-wrap: anywhere; font-weight: var(--font-weight-semibold); }
+  .files .st { font-size: var(--text-xs); color: var(--color-text-secondary); }
+  .files li.bad > .i, .files li.bad .st { color: var(--color-feedback-error-text); }
+  .files li.bad .st { font-weight: var(--font-weight-semibold); }
+  .files li.is-in { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .chk { display: grid; gap: var(--spacing-4); }
+  @media (width >= 640px) { .chk { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .chk h3 { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-sm); margin-bottom: var(--spacing-2); }
+  .chk ul { display: flex; flex-direction: column; gap: var(--spacing-1); font-size: var(--text-sm); }
+  .chk li { display: flex; gap: var(--spacing-2); }
+  .chk li .i { width: var(--size-icon-sm); height: var(--size-icon-sm); margin-top: 0.1875rem; flex-shrink: 0; }
+  .figs { --size-property-label: 12rem; }
+  .figs dd small { display: block; color: var(--color-text-secondary); font-size: var(--text-xs); }
+  /* Contestation */
+  .reasons { display: flex; flex-direction: column; }
+  .reasons .choice { padding: var(--spacing-2) 0; }
+  details.fold > summary { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary .i { width: var(--size-icon-sm); height: var(--size-icon-sm); color: var(--color-text-secondary); transition: rotate var(--duration-base) var(--ease-standard); }
+  details.fold[open] > summary .i { rotate: 90deg; }
+  details.fold[open] > :not(summary) { animation: rise-in var(--duration-base) var(--ease-standard); }
+</style>
+</head>
+<body data-default="hub">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <optgroup label="Mes vérifications"><option value="hub">États mêlés</option><option value="hub-vide">Aucune vérification</option></optgroup>
+      <optgroup label="Propriété"><option value="propriete">Le code</option><option value="propriete-envoyee">Demande envoyée</option></optgroup>
+      <optgroup label="Audience"><option value="audience">Dépôt, un fichier en échec</option><option value="audience-examen">En examen</option><option value="audience-refusee">Refusée</option><option value="audience-accordee">Accordée</option></optgroup>
+      <optgroup label="Contestation"><option value="contestation">Formulaire</option><option value="contestation-envoyee">Envoyée</option><option value="contestation-maintenue">Issue : maintenue</option><option value="contestation-infirmee">Issue : infirmée</option></optgroup>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head"><a class="m-brand" href="#contenu">INFLUX</a><span class="role role--creator">Espace créateur</span><button class="btn btn--secondary lg-hide" type="button">English</button></header>
+    <nav class="m-nav" aria-label="Navigation principale"><ul class="m-nav__list">
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-accueils.html#createur"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-campagnes-createur.html"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link is-ancestor" href="#hub"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a>
+        <div class="m-sub"><a href="proto-profil.html#profil">Mon profil</a><a class="is-current" aria-current="page" href="#hub">Mes vérifications</a><a href="#contenu">Mes informations</a><a href="#contenu">Mes préférences</a><a href="#contenu">Mes données</a></div></li>
+    </ul></nav>
+    <div class="m-state"><b>Profil : Publié</b></div>
+    <footer class="m-foot"><button class="btn btn--secondary" type="button">English</button><p class="sm c2">Connecté avec lea.dumont@example.test</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button></footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page">
+
+      <!-- ===================== MES VÉRIFICATIONS ===================== -->
+      <div class="vp" data-when="hub hub-vide">
+        <header class="vp-head" data-h="1">
+          <h1 class="t-page" tabindex="-1">Mes vérifications</h1>
+          <p class="c2">Un badge dit ce qu'un agent INFLUX a constaté lui-même, sur pièce, à une date donnée. Il s'affiche à côté du réseau concerné.</p>
+        </header>
+        <div class="notice notice--warning" data-when="hub" data-h="2"><svg class="i"><use href="#i-triangle-alert"/></svg><div class="attn"><p><b>2 vérifications demandent votre attention</b></p><a class="link" href="#v-ig">Instagram : audience à rafraîchir avant le 22 déc. 2026</a><a class="link" href="#v-tt">TikTok : demande refusée, contestable jusqu'au 23 déc. 2026</a></div></div>
+
+        <section class="sec" id="v-ig" aria-labelledby="h-ig" data-h="2"><h2 id="h-ig">Instagram <span class="h">@lea.cuisine</span></h2>
+          <div class="vrow"><span class="k">Propriété</span><div class="v">
+            <span class="badge badge--verified" data-when="hub"><svg class="i"><use href="#i-badge-check"/></svg>Compte vérifié · le 22 nov. 2026</span>
+            <span class="why" data-when="hub">INFLUX a constaté que ce compte appartient au créateur inscrit.</span>
+            <span class="why" data-when="hub-vide">Pas encore vérifié. Un agent INFLUX constate que ce compte vous appartient en lisant un code sur votre profil public.</span>
+            <a class="btn btn--secondary" href="#propriete" data-when="hub-vide">Faire vérifier ce compte</a></div></div>
+          <div class="vrow"><span class="k">Audience</span><div class="v">
+            <span class="badge badge--warning" data-when="hub"><svg class="i"><use href="#i-clock"/></svg>À rafraîchir</span>
+            <span class="why" data-when="hub">Audience vérifiée le 24 août 2026. Elle reste affichée avec sa date jusqu'au 22 déc. 2026 ; déposez une capture récente pour la conserver. La preuve de propriété n'est pas redemandée.</span>
+            <a class="btn btn--primary" href="#audience" data-when="hub">Rafraîchir mon audience</a>
+            <span class="why" data-when="hub-vide">L'audience se vérifie une fois la propriété du compte constatée sur ce réseau.</span></div></div>
+        </section>
+
+        <section class="sec" id="v-tt" aria-labelledby="h-tt" data-when="hub" data-h="2"><h2 id="h-tt">TikTok <span class="h">@lea.cuisine</span></h2>
+          <div class="vrow"><span class="k">Propriété</span><div class="v">
+            <span class="badge badge--error"><svg class="i"><use href="#i-circle-alert"/></svg>Demande refusée le 23 nov. 2026</span>
+            <span>Le code de vérification n'a pas été trouvé sur votre profil.</span>
+            <span class="why">Vous pouvez recommencer la preuve de propriété : un nouveau code vous sera donné.</span>
+            <div class="acts"><a class="btn btn--secondary" href="#propriete">Redemander la vérification</a><a class="link sm" href="#contestation">Contester cette décision</a><span class="xs c2">jusqu'au 23 déc. 2026</span></div></div></div>
+          <div class="vrow"><span class="k">Audience</span><div class="v"><span class="why">L'audience se vérifie une fois la propriété du compte constatée sur ce réseau.</span></div></div>
+        </section>
+
+        <section class="sec" aria-labelledby="h-yt" data-when="hub" data-h="2"><h2 id="h-yt">YouTube <span class="h">pseudo et lien à renseigner</span></h2>
+          <div class="vrow"><span class="k">Propriété</span><div class="v"><span class="why">Renseignez d'abord le pseudo et le lien de ce compte : sans eux, l'agent ne sait pas où chercher le code.</span><a class="link sm" href="proto-profil.html#modif-3">Renseigner le pseudo et le lien</a></div></div>
+        </section>
+
+        <p class="xs c2" data-h="3">Ce qu'une marque lit à côté d'un badge : « Ce badge indique qu'un chiffre a été constaté sur pièce par INFLUX à la date affichée. Il ne garantit ni l'authenticité des abonnés, ni les résultats d'une collaboration. »</p>
+      </div>
+
+      <!-- ===================== PROPRIÉTÉ ===================== -->
+      <div class="vp" data-when="propriete propriete-envoyee">
+        <header class="vp-head" data-h="1">
+          <a class="go sm c2" href="#hub" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mes vérifications</a>
+          <h1 class="t-page" tabindex="-1">Faire vérifier mon compte TikTok</h1>
+          <p class="vp-meta"><span data-when="propriete">Étape 1 sur 2 · Copier le code</span><span data-when="propriete-envoyee">Étape 2 sur 2 · Confirmation</span></p>
+        </header>
+
+        <div class="notice notice--success" data-when="propriete-envoyee" data-h="2"><svg class="i"><use href="#i-circle-check"/></svg><p>Votre demande est envoyée. Un agent INFLUX va lire le code sur votre profil public ; nous répondons sous 1 jour ouvré.</p></div>
+
+        <section class="aff" aria-label="Ce que le badge affirme" data-when="propriete" data-h="2">
+          <div class="yes"><h3>Ce que le badge « Compte vérifié » affirme</h3><ul>
+            <li><svg class="i"><use href="#i-check"/></svg><span>Que ce compte appartient au créateur inscrit.</span></li>
+            <li><svg class="i"><use href="#i-check"/></svg><span>Constaté sur pièce : l'agent lit le code sur votre profil public.</span></li>
+            <li><svg class="i"><use href="#i-check"/></svg><span>Par un agent INFLUX nommé ; son nom reste interne.</span></li>
+            <li><svg class="i"><use href="#i-check"/></svg><span>À une date, affichée à côté du badge.</span></li></ul></div>
+          <div class="no"><h3>Ce qu'il n'affirme pas</h3><ul>
+            <li><svg class="i"><use href="#i-x"/></svg><span>L'authenticité de vos abonnés.</span></li>
+            <li><svg class="i"><use href="#i-x"/></svg><span>Que votre audience restera stable.</span></li></ul></div>
+        </section>
+
+        <section class="sec" aria-labelledby="h-code" data-h="2"><h2 id="h-code">Votre code</h2>
+          <div class="code"><b id="code">INFLUX-7KQ4M2XP</b><button class="btn btn--secondary" type="button" id="copy" data-when="propriete"><span id="copy-t">Copier</span></button></div>
+          <p class="sm c2">Ce code est valable jusqu'au 1er déc. 2026.</p>
+          <ol class="steps" data-when="propriete"><li>Ouvrez votre profil TikTok et modifiez sa biographie.</li><li>Collez le code, puis enregistrez.</li><li>Revenez ici et envoyez votre demande.</li></ol>
+          <p class="sm" data-when="propriete">Nous le constatons nous-mêmes en ligne. Vous pourrez le retirer dès que le constat est enregistré.</p>
+          <p class="sm" data-when="propriete-envoyee">Gardez le code dans votre biographie jusqu'à notre réponse : vous pourrez le retirer dès que le constat est enregistré.</p>
+        </section>
+
+        <div class="notice notice--info" data-h="2"><svg class="i"><use href="#i-shield-check"/></svg><p>INFLUX ne vous demandera jamais votre mot de passe, ni un accès à votre compte, ni un code reçu par message.</p></div>
+        <details class="sec fold" data-when="propriete" data-h="3"><summary><svg class="i"><use href="#i-chevron-right"/></svg>Ce qui ne suffit pas, et le compte privé</summary>
+          <ul class="stack g2 sm c2" ><li>Une capture d'écran de votre biographie, un message privé ou une attestation ne prouvent pas la propriété : l'agent lit le code lui-même.</li><li>Votre compte doit être consultable sans être connecté. S'il est privé, rendez-le public le temps du constat, ou renoncez à la vérification de ce réseau.</li></ul></details>
+
+        <div class="actions" data-when="propriete" data-h="2"><a class="btn btn--primary" href="#propriete-envoyee">J'ai collé le code : envoyer ma demande</a></div>
+        <div class="actions" data-when="propriete-envoyee"><a class="btn btn--secondary" href="#hub">Revenir à mes vérifications</a></div>
+      </div>
+
+      <!-- ===================== AUDIENCE ===================== -->
+      <div class="vp" data-when="audience audience-examen audience-refusee audience-accordee">
+        <header class="vp-head" data-h="1">
+          <a class="go sm c2" href="#hub" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mes vérifications</a>
+          <h1 class="t-page" tabindex="-1">Faire vérifier mon audience Instagram</h1>
+          <p class="row g2"><span class="badge badge--verified"><svg class="i"><use href="#i-badge-check"/></svg>Compte vérifié sur Instagram le 22 nov. 2026</span><span class="xs c2">condition remplie</span></p>
+        </header>
+
+        <div class="notice notice--info" data-when="audience-examen" data-h="2"><svg class="i"><use href="#i-hourglass"/></svg><p>Votre demande est en cours d'examen. Nous répondons sous 1 jour ouvré.</p></div>
+        <div class="notice notice--warning" data-when="audience-refusee" data-h="2"><svg class="i"><use href="#i-circle-alert"/></svg><div class="stack g2"><p><b>Demande refusée le 24 nov. 2026.</b> La période affichée sur votre capture se termine il y a plus de 30 jours.</p><p>Vous pourrez déposer une nouvelle pièce, puis redemander la vérification.</p><div class="row g3" style="flex-wrap: wrap"><a class="btn btn--secondary" href="#audience">Redéposer une capture</a><a class="link sm" href="#contestation">Contester cette décision</a><span class="xs">jusqu'au 24 déc. 2026</span></div></div></div>
+
+        <section class="stack g3" data-when="audience-accordee" data-h="2">
+          <span class="badge badge--verified"><svg class="i"><use href="#i-badge-check"/></svg>Audience vérifiée — Instagram, le 24 nov. 2026</span>
+          <p class="sm c2">Chiffres constatés par INFLUX sur le tableau de bord Instagram, période du 26 oct. au 23 nov. 2026. INFLUX ne se prononce pas sur l'authenticité des abonnés.</p>
+          <dl class="props figs">
+            <dt>Abonnés</dt><dd>47 900<small>Déclaré par vous : 48 200</small></dd>
+            <dt>Publications, 30 derniers jours</dt><dd>14<small>Constaté sur votre profil public le 24 nov. 2026</small></dd>
+            <dt>Commentaires moyens</dt><dd>58<small>Déclaré par vous : 62</small></dd>
+            <dt>Pays principal</dt><dd>France, 62 %</dd></dl>
+          <p class="sm">Valable jusqu'au 22 févr. 2027. Nous vous prévenons 15 jours avant, par e-mail et ici.</p>
+        </section>
+
+        <details class="sec fold" data-when="audience" data-h="3"><summary><svg class="i"><use href="#i-chevron-right"/></svg>Ce que le badge « Audience vérifiée » affirme</summary>
+          <p class="sm c2">Que des chiffres précis ont été constatés par un agent INFLUX sur les statistiques officielles d'Instagram, pour une période donnée. Il ne garantit ni l'authenticité des abonnés, ni que l'audience restera stable, et se périme au bout de 90 jours.</p></details>
+
+        <section class="sec" aria-labelledby="h-piece" data-when="audience" data-h="2"><h2 id="h-piece">La capture attendue</h2>
+          <p class="sm">Les statistiques de votre compte professionnel Instagram (« Insights »). Une capture issue d'un outil tiers ou d'une agence ne peut pas être retenue.</p>
+          <div class="chk">
+            <div><h3>Ce qui doit être visible</h3><ul><li><svg class="i"><use href="#i-check"/></svg>le nom de votre compte</li><li><svg class="i"><use href="#i-check"/></svg>la période affichée</li><li><svg class="i"><use href="#i-check"/></svg>le nombre d'abonnés</li><li><svg class="i"><use href="#i-check"/></svg>la couverture et les pays principaux, si possible</li></ul></div>
+            <div><h3>Ce qu'il faut masquer</h3><ul><li><svg class="i"><use href="#i-eye-off"/></svg>tout ce qui concerne d'autres personnes : noms, photos, messages</li></ul>
+              <p class="xs c2" style="margin-top: var(--spacing-2)">Votre capture doit couvrir une période se terminant il y a moins de 30 jours.</p></div>
+          </div>
+        </section>
+
+        <section class="sec" aria-labelledby="h-files" data-when="audience audience-examen" data-h="2"><h2 id="h-files">Vos captures</h2>
+          <p class="xs c2" data-when="audience">PNG, JPEG ou WebP · 8 Mo par fichier · 6 fichiers au plus. Les informations cachées du fichier (lieu, appareil) sont retirées au dépôt.</p>
+          <ul class="files" id="files">
+            <li><svg class="i"><use href="#i-image"/></svg><span class="stack g1"><span class="nm">insights-abonnes.png</span><span class="st">Déposé</span></span><button class="link sm" type="button" data-rm data-when="audience">Retirer</button></li>
+            <li><svg class="i"><use href="#i-image"/></svg><span class="stack g1"><span class="nm">insights-pays.jpg</span><span class="st">Déposé</span></span><button class="link sm" type="button" data-rm data-when="audience">Retirer</button></li>
+            <li class="bad" data-when="audience"><svg class="i"><use href="#i-circle-alert"/></svg><span class="stack g1"><span class="nm">rapport-agence.pdf</span><span class="st">Format non accepté : PNG, JPEG ou WebP seulement. Vos autres captures sont conservées.</span></span><button class="link sm" type="button" data-rm>Retirer</button></li>
+          </ul>
+          <div class="actions" data-when="audience"><button class="btn btn--secondary" type="button" id="add"><svg class="i"><use href="#i-plus"/></svg>Ajouter une capture</button></div>
+        </section>
+
+        <div class="actions" data-when="audience" data-h="2"><button class="btn btn--primary" type="button" id="send-aud">Envoyer ma demande</button></div>
+        <p class="fmsg fmsg--error" id="aud-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Retirez le fichier refusé avant d'envoyer votre demande.</span></p>
+      </div>
+
+      <!-- ===================== CONTESTATION ===================== -->
+      <div class="vp" data-when="contestation contestation-envoyee contestation-maintenue contestation-infirmee">
+        <header class="vp-head" data-h="1">
+          <a class="go sm c2" href="#hub" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mes vérifications</a>
+          <h1 class="t-page" tabindex="-1">Contester une décision</h1>
+        </header>
+        <section class="stack g2" data-h="2">
+          <p>Votre demande de vérification « Compte vérifié » sur TikTok a été refusée le 23 nov. 2026.</p>
+          <p class="sm c2">Motif : le code de vérification n'a pas été trouvé sur votre profil.</p>
+          <p class="sm" data-when="contestation"><b>Vous pouvez la contester jusqu'au 23 déc. 2026.</b></p>
+        </section>
+
+        <form class="sec" novalidate onsubmit="return false" data-when="contestation" data-h="2" id="f-ct">
+          <fieldset class="field" id="ct-r"><legend class="label" style="margin-bottom: var(--spacing-1)">Pourquoi contestez-vous cette décision ?</legend>
+            <div class="reasons">
+              <label class="choice"><input type="radio" name="r" value="misread">Ma pièce ou mon profil a été mal lu</label>
+              <label class="choice"><input type="radio" name="r" value="evidence_valid">Ma pièce respectait les consignes</label>
+              <label class="choice"><input type="radio" name="r" value="reason_wrong">Le motif ne correspond pas à ma situation</label>
+              <label class="choice"><input type="radio" name="r" value="other">Autre raison (à préciser)</label></div>
+            <p class="fmsg fmsg--error" id="r-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Choisissez la raison de votre contestation.</span></p></fieldset>
+          <div class="field"><div class="field__top"><label class="label" for="ct-t">Votre explication <span class="req" id="t-req">(obligatoire pour « Autre raison »)</span></label><p class="help">N'indiquez ni adresse e-mail, ni lien, ni numéro de téléphone : tout se passe dans INFLUX.</p></div>
+            <textarea class="control" id="ct-t" rows="5" maxlength="1000"></textarea><span class="count" id="ct-c">0 / 1 000 caractères</span>
+            <p class="fmsg fmsg--error" id="t-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Expliquez votre contestation avec vos propres mots.</span></p></div>
+          <p class="sm c2"><svg class="i i--sm" style="vertical-align: -0.2em"><use href="#i-info"/></svg> Les pièces jointes ne sont pas acceptées ici. Pour apporter un nouveau justificatif, déposez une nouvelle demande de vérification.</p>
+          <div class="actions"><button class="btn btn--primary" type="button" id="ct-send">Envoyer ma contestation</button><a class="btn btn--text" href="#hub">Annuler</a></div>
+          <p class="xs c2">Votre contestation est réexaminée par une autre personne que celle qui a décidé, ou, tant que l'équipe ne compte qu'une personne, après un délai de réflexion de 24 heures au moins.</p>
+        </form>
+
+        <section class="sec" data-when="contestation-envoyee contestation-maintenue contestation-infirmee" data-h="2">
+          <div class="notice notice--success" data-when="contestation-envoyee"><svg class="i"><use href="#i-circle-check"/></svg><p>Nous avons bien reçu votre contestation concernant le badge « Compte vérifié ». Nous la réexaminons et vous écrivons dès qu'elle est tranchée.</p></div>
+          <p class="sm c2"><span data-when="contestation-envoyee">Contestation envoyée le 24 nov. 2026. Elle est en cours d'examen.</span><span data-when="contestation-maintenue contestation-infirmee">Contestation tranchée le 25 nov. 2026.</span></p>
+          <dl class="props"><dt>Votre raison</dt><dd>Ma pièce ou mon profil a été mal lu</dd><dt>Votre explication</dt><dd>Le code était bien dans ma biographie le 23 novembre ; mon profil était public ce jour-là.</dd></dl>
+        </section>
+        <section class="stack g3" data-when="contestation-maintenue contestation-infirmee" data-h="2" aria-labelledby="h-out">
+          <h2 class="t-card" id="h-out">Issue de votre contestation</h2>
+          <div class="notice notice--warning" data-when="contestation-maintenue"><svg class="i"><use href="#i-info"/></svg><div class="stack g2"><p>Après réexamen, la décision est maintenue pour son motif initial : le code de vérification n'a pas été trouvé sur votre profil.</p><a class="go sm" href="#propriete" style="min-height: auto">Redemander la vérification <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--success" data-when="contestation-infirmee"><svg class="i"><use href="#i-circle-check"/></svg><p>Après réexamen, INFLUX revient sur sa décision et vous présente ses excuses : votre badge « Compte vérifié » est accordé à la date du 25 nov. 2026.</p></div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  // Code : « Copier » dit ce qui s'est passé.
+  $("#copy").addEventListener("click", function () {
+    try { navigator.clipboard && navigator.clipboard.writeText($("#code").textContent); } catch (e) {}
+    $("#copy-t").textContent = "Copié"; P.announce("Code copié."); setTimeout(function () { $("#copy-t").textContent = "Copier"; }, 2000);
+  });
+  // Dépôt : un fichier en échec ne coûte jamais les autres.
+  function addFile(name) {
+    var li = document.createElement("li"); li.className = "is-in";
+    li.innerHTML = '<svg class="i"><use href="#i-image"/></svg><span class="stack g1"><span class="nm"></span><span class="st">Déposé</span></span><button class="link sm" type="button" data-rm>Retirer</button>';
+    li.querySelector(".nm").textContent = name; $("#files").appendChild(li); P.announce(name + " déposé.");
+  }
+  $("#add").addEventListener("click", function () { addFile("insights-couverture.png"); });
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-rm]"); if (!b) return;
+    var li = b.closest("li"), n = li.querySelector(".nm").textContent; li.remove(); P.announce(n + " retiré."); $("#aud-err").hidden = true;
+  });
+  $("#send-aud").addEventListener("click", function () {
+    var bad = $("#files li.bad:not([hidden])");
+    if (bad) { $("#aud-err").hidden = false; P.announce("Retirez le fichier refusé avant d'envoyer votre demande."); bad.querySelector("[data-rm]").focus(); return; }
+    location.hash = "audience-examen";
+  });
+  // Contestation : texte obligatoire pour « Autre raison » ; erreurs effacées à la saisie.
+  var ta = $("#ct-t");
+  function needText() { var r = $('input[name="r"]:checked'); return r && r.value === "other"; }
+  $$('input[name="r"]').forEach(function (r) { r.addEventListener("change", function () {
+    $("#r-err").hidden = true; $("#t-req").textContent = needText() ? "(obligatoire)" : "(facultative pour cette raison)"; if (!needText()) $("#t-err").hidden = true;
+  }); });
+  ta.addEventListener("input", function () { $("#ct-c").textContent = ta.value.length.toLocaleString("fr-FR") + " / 1 000 caractères"; if (ta.value.trim()) { $("#t-err").hidden = true; ta.removeAttribute("aria-invalid"); } });
+  $("#ct-send").addEventListener("click", function () {
+    if (!$('input[name="r"]:checked')) { $("#r-err").hidden = false; $('input[name="r"]').focus(); P.announce("Choisissez la raison de votre contestation."); return; }
+    if (needText() && !ta.value.trim()) { $("#t-err").hidden = false; ta.setAttribute("aria-invalid", "true"); ta.focus(); P.announce("Expliquez votre contestation avec vos propres mots."); return; }
+    location.hash = "contestation-envoyee";
+  });
+  document.addEventListener("proto:state", function () {
+    $("#aud-err").hidden = true; $("#r-err").hidden = true; $("#t-err").hidden = true;
+    $$('input[name="r"]').forEach(function (r) { r.checked = false; }); ta.value = ""; $("#ct-c").textContent = "0 / 1 000 caractères";
+    window.scrollTo(0, 0);
+  });
+});
+</script>
+</body>
+</html>
