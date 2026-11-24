@@ -170,6 +170,15 @@
 >     aucune pièce jointe, puis suivi et issue ; un seul niveau de boîte (C8) ;
 >   - à vérifier avant le texte définitif : les consignes exactes de chaque réseau pour coller le
 >     code.
+> - Écran 15, aperçu « Ce que voit une marque » (créateur, U34) : **validé** (2026-11-24).
+>   Choix :
+>   - la page de l'écran 2 bis reprise telle quelle dans l'espace créateur, dans un cadre
+>     « Aperçu » (demande du fondateur) ;
+>   - deux onglets segmentés de la charte, jamais verts : « Avant la mise en relation » (alias,
+>     tranches) et « Après la mise en relation » (pseudos, liens, chiffres exacts avec leur source
+>     et leur date, pourcentages exacts ; jamais l'e-mail ni le téléphone) ;
+>   - boutons de la marque inactifs, avec une phrase qui le dit ; barre collante de la marque
+>     retirée sur téléphone ; « Proposé car » donné comme un exemple, car il dépend de la recherche.
 
 ## 1. Où sont les prototypes
 
@@ -191,7 +200,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »).
 
 ## 3. Formulaire complexe (écran 3)
 
