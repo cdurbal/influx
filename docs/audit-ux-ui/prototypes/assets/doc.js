@@ -17,7 +17,8 @@
       var frame = c.querySelector(".d-frame"), ifr = frame.querySelector("iframe");
       var shot = c.querySelector(".d-shot"), img = shot.querySelector("img"), none = c.querySelector(".d-none");
       var open = c.querySelector("[data-open]"), capLabel = c.querySelector("[data-cap-label]");
-      var base = ifr.getAttribute("data-src"), mode = "desktop", hier = false;
+      var base = ifr.getAttribute("data-src"), pressed = c.querySelector("[data-mode][aria-pressed='true']"), mode = pressed ? pressed.getAttribute("data-mode") : "desktop", hier = false;
+      c.setAttribute("data-mode", mode);
       var current = function () { return c.querySelector("[data-st][aria-pressed='true']"); };
       function hash() { return "#" + current().getAttribute("data-st") + (hier ? "--h" : ""); }
       function fit() {

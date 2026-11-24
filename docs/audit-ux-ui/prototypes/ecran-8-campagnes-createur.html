@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 8 · Fil et fiche de campagne</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html" aria-current="page">8 · Campagnes créateur</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 8 · Créateur</p>
+    <h1 class="d-h1">Fil et fiche de campagne</h1>
+    <p class="d-lead">Le fil devient une grille de cartes compactes, avec une ligne de filtres comme la recherche (écran 2). La fiche reprend la page de la marque (écran 5 bis) : l'essentiel d'abord, le brief à une largeur lisible et un encadré collant. Tant que la candidature n'existe pas (Lot 4), l'encadré n'a pas de bouton qui ne mène nulle part. Choix du 2026-11-24 : fil A, encadré (b), « Ce qui vous concerne » sur la fiche seule.</p>
+    <div class="d-ids"><span class="u u--imp">U14</span><span class="u u--imp">U15</span><span class="u">U46</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="false"><svg class="i i--sm"><use href="#i-monitor"/></svg>Ordinateur 1 440 px</button><button class="d-toggle" type="button" data-mode="phone" aria-pressed="true"><svg class="i i--sm"><use href="#i-smartphone"/></svg>Téléphone 390 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="fil" data-cap="" data-cap-m="m10-fil-createur-mobile.jpg" aria-pressed="true">Fil</button>
+        <button type="button" data-st="vide" data-cap="" aria-pressed="false">Fil vide</button>
+        <button type="button" data-st="fiche" data-cap="" aria-pressed="false">Fiche</button>
+        <button type="button" data-st="fiche-lot4" data-cap="" aria-pressed="false">Fiche, cible du Lot 4</button>
+        <button type="button" data-st="fiche-close" data-cap="" aria-pressed="false">Candidatures closes</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>Pas de capture de cet état dans l'audit.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-campagnes-createur.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-campagnes-createur.html" title="Prototype du fil et de la fiche de campagne" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran : les filtres « Produit envoyé » et « Ma thématique », le tri, une carte (elle ouvre la fiche), « Lire la suite » dans la fiche.</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Problèmes relevés</h2>
+    <ul class="d-list">
+      <li><b>Un mur de pilules vertes</b> (U14) : chaque carte porte « Voir la campagne » en plus de son titre-lien ; une carte remplit l'écran du téléphone.</li>
+      <li><b>L'échéance se lit en dernier</b>, alors que c'est le premier critère d'un créateur ; le badge « Marque vérifiée » s'étale sur trois lignes.</li>
+      <li><b>La fiche</b> (U15, U46) : brief de plus de 120 caractères par ligne, marque en dernier sur téléphone, jusqu'à quatre bandeaux, et aucune suite proposée.</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Composition cible</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Zone</th><th>Contenu</th></tr></thead>
+      <tbody>
+        <tr><td>Fil · en-tête</td><td>Titre, nombre de campagnes, tri (date limite proche par défaut) ; ligne de filtres : ma thématique, mes réseaux, pays, produit envoyé</td></tr>
+        <tr><td>Fil · carte</td><td>Toute la carte est cliquable, sans bouton : marque et icône bleue « vérifiée », titre, échéance en délai (en couleur d'alerte sous 3 jours), contenus demandés, pays et thématique. Trois ou quatre cartes par écran de téléphone</td></tr>
+        <tr><td>Fiche · en-tête</td><td>Marque juste au-dessus du titre ; un seul bandeau, « Candidatures closes », quand c'est le cas</td></tr>
+        <tr><td>Fiche · principal</td><td>L'essentiel (candidatures, publication, contenus, contrepartie sans montant), ce qui vous concerne (des faits, jamais une note), le brief à 40 rem avec « Lire la suite », ce qui est attendu, droits et conditions, la marque avec un lien vers sa page</td></tr>
+        <tr><td>Fiche · encadré collant</td><td>Délai restant. Avant le Lot 4 : une phrase sur le rôle du commercial et « Voir mon profil ». Cible du Lot 4 : « Candidater ». Barre collante sur téléphone</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La page dans son ensemble, sur téléphone et sur ordinateur.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les filtres du fil demandent des paramètres que l'API n'accepte pas encore : arbitrage de l'<code>architecte</code>.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>« Ce qui vous concerne » compare la campagne au profil du créateur : à confirmer avec <code>expert-matching</code>, comme sur l'écran 5 bis.</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-7-campagne.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 7 · Formulaire de campagne</a><a class="go" href="interactions.html">Micro-interactions <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

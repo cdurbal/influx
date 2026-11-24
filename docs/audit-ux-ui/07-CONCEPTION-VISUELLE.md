@@ -92,6 +92,18 @@
 >     tout de suite à l'étape 2 ;
 >   - le produit envoyé passe de l'étape 1 à l'étape 4 ;
 >   - « Soumettre » n'est plus visible en permanence (RG4, C6).
+> - Écran 8, fil et fiche de campagne (créateur, U14, U15, U46) : **validé** (2026-11-24).
+>   Choix :
+>   - fil en option A : une grille de cartes compactes, entièrement cliquables et sans bouton ;
+>     l'échéance en délai, en deuxième ligne ; une ligne de filtres comme l'écran 2 ;
+>   - fiche sur le modèle de l'écran 5 bis : l'essentiel, « Ce qui vous concerne » (sur la fiche
+>     seule), le brief à 40 rem, ce qui est attendu, droits et conditions, la marque ;
+>   - encadré collant sans bouton « Candidater » avant le Lot 4 (option b) : le délai restant, le
+>     rôle du commercial et « Voir mon profil » ; l'état cible du Lot 4 est montré à part ;
+>   - aucun montant (D78).
+>
+>   À arbitrer : les filtres du fil, non acceptés par l'API (`architecte`) ; « Ce qui vous
+>   concerne » (`expert-matching`).
 
 ## 1. Où sont les prototypes
 
