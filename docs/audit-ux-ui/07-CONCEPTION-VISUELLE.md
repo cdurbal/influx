@@ -115,6 +115,17 @@
 >     déjà prévu par `10` RG61.1 à RG61.6 ;
 >   - une sélection préparée par l'équipe, rangée dans la même liste avec le badge « Proposée par
 >     INFLUX », n'existe pas dans la spécification : état cible, à spécifier (`product-owner`).
+> - Écran 10, profil de marque (marque, U22, U23, U29, U03, U63, U59) : **validé** (2026-11-24).
+>   Choix :
+>   - assistant des écrans 3 et 7 en trois étapes (votre marque, ce que vous cherchez, votre
+>     interlocuteur), puis « Vérifier et envoyer » avec l'aperçu de la page marque (écran 5 bis) ;
+>   - un badge « Public » par étape ; l'interlocuteur dans l'encadré interne (D46) ; le site web
+>     marqué « visible des agents INFLUX seulement » ;
+>   - formats groupés par réseau coché (C5), listes triées dans la langue, « Choisir puis
+>     ajouter » (C2) ; logo recommandé, sans bloquer l'envoi ;
+>   - « Envoyer à INFLUX pour validation » ; après la publication, « Mon profil de marque » en
+>     liste de tâches, dont le badge « Marque vérifiée » à demander (écran de demande non
+>     prototypé, D34).
 
 ## 1. Où sont les prototypes
 
@@ -136,7 +147,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections). Non prototypé : « Mes campagnes » côté marque (liste déjà montrée dans les
+9 (sélections), 10 (profil de marque). Non prototypé : « Mes campagnes » côté marque (liste déjà montrée dans les
 accueils).
 
 ## 3. Formulaire complexe (écran 3)
