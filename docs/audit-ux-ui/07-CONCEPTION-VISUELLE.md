@@ -104,6 +104,17 @@
 >
 >   À arbitrer : les filtres du fil, non acceptés par l'API (`architecte`) ; « Ce qui vous
 >   concerne » (`expert-matching`).
+> - Écran 9, sélections (marque, U17, U64) : **validé** (2026-11-24). Choix :
+>   - « Mes sélections » en lignes (vignettes, nom, campagne, nombre, date) ; création dans la
+>     page, à la demande ;
+>   - « Ma sélection » en option C : les cartes photo de l'écran 2 par défaut, un tableau de
+>     comparaison (chiffres D61) ; cartes seules sur téléphone ;
+>   - le nom et la campagne se modifient sur place ; la note privée est sous chaque carte ; la
+>     suppression est repliée en bas de page ;
+>   - « Et ensuite ? » : demander une sélection à l'équipe INFLUX avec cette sélection jointe,
+>     déjà prévu par `10` RG61.1 à RG61.6 ;
+>   - une sélection préparée par l'équipe, rangée dans la même liste avec le badge « Proposée par
+>     INFLUX », n'existe pas dans la spécification : état cible, à spécifier (`product-owner`).
 
 ## 1. Où sont les prototypes
 
@@ -124,9 +135,9 @@
 | 5 | Décision d'une entrée de file | Commercial | U36, U37, U35, U06 (critique) | Geste le plus répété ; cadre repris par les files du Lot 5 |
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
-de compte, U07). Écartés de cette passe : formulaire de
-campagne (dépend de RG4), « Mes campagnes » et fil créateur (listes prototypées dans les
-accueils), sélections (reprennent la carte de l'écran 2).
+de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
+9 (sélections). Non prototypé : « Mes campagnes » côté marque (liste déjà montrée dans les
+accueils).
 
 ## 3. Formulaire complexe (écran 3)
 
