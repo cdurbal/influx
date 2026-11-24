@@ -137,7 +137,11 @@ du secret de leur front. `worker` : sa propre `BREVO_API_KEY` et `APOLLO_API_KEY
 `api` et `worker` (adresses d'astreinte de `staging`, séparées par des virgules, EC-J9-7 : les
 alertes y partent vraiment) ; sur `worker`, les cibles de la sonde : `INFLUX_PUBLIC_SITE_URL` et
 `INFLUX_PUBLIC_BACKOFFICE_URL` (mêmes valeurs que sur `api`), `INFLUX_API_INTERNAL_URL`
-(`http://api.railway.internal:3100`, comme sur les fronts).
+(`http://api.railway.internal:3100`, comme sur les fronts). Sur `api` et `worker`,
+`INFLUX_PUBLIC_SITE_URL=https://web-staging-6c2e.up.railway.app` et
+`INFLUX_PUBLIC_BACKOFFICE_URL=https://backoffice-staging-8c73.up.railway.app` : `api` en fabrique
+les liens d'invitation (équipe et membres). **Jamais un domaine de `production`** (incident du
+2026-11-24, `incidents.md`).
 
 - Secrets de 32 octets : `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`,
   **une valeur différente pour chacun**, sinon `api` refuse de démarrer.
