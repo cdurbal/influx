@@ -200,6 +200,13 @@
 >   - accès ajoutés depuis la fiche du compte (liste « Campagnes » et « À traiter ») ; « Créateurs
 >     compatibles » ouvre la recherche identifiée pré-remplie (`10` RG73) ; état « brouillon » non
 >     prototypé.
+> - Écran 18, fiche campagne côté marque (marque, U19, U15) : **validé** (2026-11-24). Choix :
+>   - une page de lecture, celle du créateur (écran 8), à la place du formulaire grisé ;
+>   - en plus : l'état et sa phrase, le motif et « Corriger ma campagne » pour une campagne à
+>     corriger, le budget dans l'encadré interne (D78), l'historique, le commercial nommé ;
+>   - gestes de la marque repliés dans l'encadré : pause ou reprise, clôture définitive confirmée ;
+>     modifier une campagne publiée n'est pas proposé (règle à fixer par le `product-owner`) ;
+>   - chaque ligne de « Mes campagnes » (écran 12) ouvre cette fiche.
 
 ## 1. Où sont les prototypes
 
@@ -221,7 +228,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice), 18 (fiche campagne côté marque).
 
 ## 3. Formulaire complexe (écran 3)
 
