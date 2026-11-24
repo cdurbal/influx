@@ -64,6 +64,19 @@
 >   Ouverte depuis l'écran 5, elle affiche la version soumise sous un bandeau. **Site web : retiré
 >   de la vue des créateurs** (il permettrait un contact hors plateforme) ; les agents INFLUX
 >   voient toutes les informations, site compris.
+> - Écran 6, fiche de compte (backoffice, U07, U06, U42) : **validé** (2026-11-24). Choix :
+>   - option B, en trois zones : un en-tête d'identité, une colonne principale (à traiter,
+>     profil, campagnes ou réseaux, badges, activité en phrases) et une colonne de propriétés
+>     de 22 rem, avec les gestes rares repliés ; elle défile avec la page, sans barre de défilement
+>     propre ni position collante (demande du fondateur, 2026-11-24) ;
+>   - sous 1 280 px, la page passe sur une colonne (option A) ;
+>   - les onglets (option C) sont écartés ;
+>   - actions de l'en-tête : « Lancer la vérification », « Créer un brouillon de campagne » (marque)
+>     et le lien vers la page publique ;
+>   - pour un créateur, le nom légal figure dans l'en-tête, marqué ▮, avec l'alias public.
+>
+>   À arbitrer : l'ordre des blocs face à `15` RG41 (`product-owner`) ; les appels non servis par
+>   `apps/api` (campagnes d'un compte, entrées à traiter, activité lisible) avec l'`architecte`.
 
 ## 1. Où sont les prototypes
 
@@ -83,7 +96,8 @@
 | 4 | Tableau de bord du backoffice | Commercial, admin | U05 (critique), U40, U38 | Première page de la journée ; aucune vue des 9 files |
 | 5 | Décision d'une entrée de file | Commercial | U36, U37, U35, U06 (critique) | Geste le plus répété ; cadre repris par les files du Lot 5 |
 
-Écartés de cette passe : fiche de compte (U07, dépend de RG41 et d'un appel API), formulaire de
+Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
+de compte, U07). Écartés de cette passe : formulaire de
 campagne (dépend de RG4), « Mes campagnes » et fil créateur (listes prototypées dans les
 accueils), sélections (reprennent la carte de l'écran 2).
 

@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Fiche de compte</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Trois zones (option B) dès 1 280 px ; une colonne en dessous (option A) : le principal, puis les propriétés. */
+  .f-grid { display: flex; flex-direction: column; gap: var(--spacing-6); }
+  @media (width >= 1280px) { .f-grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--spacing-bo-panel-w); gap: var(--spacing-8); align-items: start; } }
+  .f-main { display: flex; flex-direction: column; }
+  .f-main > .fsect:last-child { padding-bottom: 0; }
+  .fsect { display: flex; flex-direction: column; gap: var(--spacing-3); padding: var(--spacing-5) 0; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .fsect:first-child { border-top: 0; padding-top: 0; }
+  .fsect h2 { display: flex; align-items: center; gap: var(--spacing-2); font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--font-weight-bold); }
+  .fsect h2 .n { color: var(--color-text-tertiary); font-weight: var(--font-weight-semibold); }
+  .fsect__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .f-head { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .f-id { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--spacing-3) var(--spacing-6); }
+  .f-who { display: flex; align-items: flex-start; gap: var(--spacing-4); min-width: 0; }
+  .f-who .logo-plate { width: 3.5rem; height: 3.5rem; font-size: var(--text-sm); }
+  .f-who .t-page { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); }
+  .f-who .alias { font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); color: var(--color-text-secondary); font-size: var(--text-sm); }
+  .journal { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .journal--idv { color: var(--color-bo-identified-accent); font-family: var(--font-display); font-weight: var(--font-weight-bold); text-transform: uppercase; letter-spacing: var(--tracking-overline); border-left: var(--spacing-bo-identified-bar) solid var(--color-bo-identified-accent); padding-left: var(--spacing-2); }
+  .h-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2) var(--spacing-3); }
+  /* À traiter : lignes cliquables vers l'entrée de file */
+  .todo-rows > li { min-height: auto; }
+  .todo-rows .r-title { font-size: var(--text-sm); }
+  .todo-rows .r-sub { font-size: var(--text-xs); color: var(--color-text-secondary); display: flex; flex-wrap: wrap; gap: var(--spacing-1) var(--spacing-3); }
+  .allclear { display: flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .allclear .i { color: var(--color-feedback-success-icon); }
+  /* Profil : état sur une ligne, décisions en phrases */
+  .facts { display: flex; flex-wrap: wrap; gap: var(--spacing-2) var(--spacing-6); font-size: var(--text-sm); }
+  .facts div { display: flex; flex-direction: column; gap: 0.125rem; }
+  .facts dt { font-size: var(--text-xs); color: var(--color-text-tertiary); font-weight: var(--font-weight-semibold); }
+  .facts dd { font-weight: var(--font-weight-semibold); }
+  .lines { display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--text-sm); }
+  .lines li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: var(--spacing-3); }
+  .lines time { color: var(--color-text-tertiary); font-variant-numeric: tabular-nums; }
+  .lines .who { font-weight: var(--font-weight-semibold); }
+  .tbl-wrap { overflow-x: auto; border-radius: var(--radius-md); border: var(--border-width-thin) solid var(--color-border-subtle); }
+  .tbl td.wrap { white-space: normal; }
+  /* Brouillon de campagne : le formulaire s'ouvre dans la section, jamais en fenêtre */
+  #draft .row { align-items: flex-end; }
+  /* Activité : groupée par jour, consultations regroupées */
+  .day { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .day + .day { margin-top: var(--spacing-3); }
+  .day .overline { color: var(--color-text-tertiary); }
+  .reads { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .reads summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: var(--spacing-1); }
+  .reads summary::-webkit-details-marker { display: none; }
+  /* Portfolio du créateur, au format 4:3 */
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: var(--spacing-2); }
+  .thumbs .visual { aspect-ratio: 4 / 3; }
+  .thumbs .visual::after { left: 44%; top: 26%; width: 12%; height: 48%; }
+  .thumbs figure { display: flex; flex-direction: column; gap: var(--spacing-1); }
+  .thumbs figcaption { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  /* Colonne des propriétés : une seule surface, qui défile avec la page (ni barre de défilement propre, ni collante) */
+  .f-side { display: flex; flex-direction: column; gap: var(--spacing-5); }
+  @media (width >= 1280px) { .f-side { border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); padding: var(--spacing-5); } }
+  @media (width < 1280px) { .f-side { border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-5); } }
+  .pgroup { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .pgroup + .pgroup { border-top: var(--border-width-thin) solid var(--color-border-subtle); padding-top: var(--spacing-4); }
+  .pgroup h2 { display: flex; align-items: center; gap: var(--spacing-1); font-family: var(--font-display); font-size: var(--text-sm); font-weight: var(--font-weight-bold); }
+  .f-side .props { --size-property-label: 7.5rem; font-size: var(--text-xs); gap: var(--spacing-2) var(--spacing-3); }
+  .f-side .props dd { display: flex; flex-direction: column; gap: 0.125rem; }
+  .f-side .props .sub { color: var(--color-text-tertiary); }
+  .sync { display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--text-xs); }
+  .sync li { display: grid; grid-template-columns: 4rem minmax(0, 1fr); gap: var(--spacing-2); align-items: start; }
+  .sync b { font-family: var(--font-display); }
+  .sync .st { display: inline-flex; align-items: center; gap: var(--spacing-1); font-weight: var(--font-weight-semibold); }
+  .sync .st .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .sync .ok { color: var(--color-feedback-success-text); }
+  .sync .ko { color: var(--color-feedback-warning-text); }
+  .sync .sub { color: var(--color-text-tertiary); }
+  /* Gestes rares : repliés */
+  .rare { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .rare details { border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .rare summary { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2); min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+  .rare summary::-webkit-details-marker { display: none; }
+  .rare summary .i { transition: rotate var(--duration-fast) var(--ease-standard); color: var(--color-text-tertiary); }
+  .rare details[open] summary .i { rotate: 180deg; }
+  .rare .body { display: flex; flex-direction: column; gap: var(--spacing-3); padding: 0 0 var(--spacing-4); }
+  .rare .field { gap: var(--spacing-1); }
+  .rare .control, .rare .select { min-height: var(--size-bo-control); font-size: var(--text-sm); }
+  .idv .props { --size-property-label: 6rem; }
+</style>
+</head>
+<body class="bo" data-default="marque">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État <select id="demo-state"><option value="marque">Fiche d'une marque</option><option value="createur">Fiche d'une créatrice</option><option value="corriger">Marque : corriger un champ</option><option value="calme">Marque : rien à traiter</option></select></label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="bo-frame">
+  <div class="bo-band"><div class="bo-env"><span><b>LOCAL</b> — development — envois : redirigés vers les adresses internes</span><span>Camille D. · Commercial</span></div></div>
+  <aside class="bo-rail" aria-label="Navigation du backoffice">
+    <div class="bo-rail__head">INFLUX<span>Backoffice</span></div>
+    <nav class="bo-nav" aria-label="Rubriques">
+      <a href="proto-bo-accueil.html"><svg class="i"><use href="#i-layout-grid"/></svg>Tableau de bord</a>
+      <a href="proto-bo-decision.html"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">41</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <a class="is-ancestor" href="#"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a class="sub is-current" aria-current="page" href="#">Inscrits</a>
+      <a class="sub" href="#">Invitations</a>
+      <a class="sub" href="#">Synchronisation</a>
+      <a href="#"><svg class="i"><use href="#i-search"/></svg>Créateurs</a>
+      <a href="#"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
+    </nav>
+    <div class="bo-rail__foot stack g2"><button class="btn btn--secondary" type="button"><svg class="i i--sm"><use href="#i-log-out"/></svg>Se déconnecter</button></div>
+  </aside>
+
+  <main class="bo-main" id="contenu">
+    <!-- ZONE 1 · EN-TÊTE D'IDENTITÉ : à qui ai-je affaire ? -->
+    <header class="f-head" data-h="1">
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="#">Comptes</a><svg class="i"><use href="#i-chevron-right"/></svg><a href="#">Inscrits</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page" data-unless="createur">Terre &amp; Thé</span><span aria-current="page" data-when="createur">Léa Vandamme</span></nav>
+      <div class="f-id">
+        <div class="f-who">
+          <span class="logo-plate" aria-hidden="true" data-unless="createur">T&amp;T</span>
+          <div class="stack g2">
+            <h1 class="t-page" tabindex="-1" data-unless="createur">Terre &amp; Thé <span class="role role--brand">Marque</span><span class="badge badge--success">Compte actif</span></h1>
+            <h1 class="t-page" tabindex="-1" data-when="createur"><span>Léa Vandamme<span class="mark" aria-label="nom légal, visible des seuls rôles internes"></span></span><span class="role role--creator">Créatrice</span><span class="badge badge--success">Compte actif</span></h1>
+            <p class="alias" data-when="createur">Alias public : <b>Profil 93JMS4</b> · Cuisine et gastronomie</p>
+            <p class="meta" data-unless="createur"><span>Belgique</span><span>· compte en français</span><span>· inscrite le 18/11/2026</span><span>· dernière activité le 22/11 à 00 h 53</span><span>· responsable : Julien</span></p>
+            <p class="meta" data-when="createur"><span>Belgique</span><span>· compte en français</span><span>· inscrite le 12/11/2026</span><span>· dernière activité aujourd'hui à 08 h 15</span><span>· responsable : Camille D. (vous)</span></p>
+          </div>
+        </div>
+        <div class="h-actions">
+          <button class="btn btn--primary" type="button" id="b-verify">Lancer la vérification</button>
+          <button class="btn btn--secondary" type="button" id="b-draft" data-unless="createur" aria-controls="draft" aria-expanded="false"><svg class="i i--sm"><use href="#i-plus"/></svg>Créer un brouillon de campagne</button>
+          <a class="go sm" href="proto-marque.html#soumise" target="_blank" rel="noopener" data-unless="createur">Voir la page publique <svg class="i i--sm"><use href="#i-external-link"/></svg></a>
+          <a class="go sm" href="proto-profil-anonyme.html" target="_blank" rel="noopener" data-when="createur">Voir le profil anonyme <svg class="i i--sm"><use href="#i-external-link"/></svg></a>
+        </div>
+      </div>
+      <p class="journal" data-unless="createur"><svg class="i i--sm"><use href="#i-eye"/></svg>Consultation enregistrée à votre nom, à 09 h 52.</p>
+      <p class="journal journal--idv" data-when="createur"><svg class="i i--sm"><use href="#i-eye"/></svg>Vue identifiée · nom légal et chiffres exacts · consultation enregistrée à 09 h 52</p>
+    </header>
+
+    <div class="f-grid">
+      <!-- ZONE 2 · COLONNE PRINCIPALE : que dois-je faire, où en est ce compte ? -->
+      <div class="f-main" data-h="2">
+
+        <section class="fsect" aria-labelledby="h-todo">
+          <h2 id="h-todo">À traiter <span class="n" data-unless="calme">2</span></h2>
+          <ul class="rows todo-rows" data-unless="calme createur">
+            <li><div class="r-main"><a class="r-title cover" href="proto-bo-decision.html#modification">Modification du profil à valider</a><span class="r-sub"><span>Profils marque</span><span>· déposée le 22/11 à 00 h 53</span><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>Hors délai</span><span>· prise en charge par Camille D.</span></span></div><span class="r-end"><svg class="i i--sm"><use href="#i-chevron-right"/></svg></span></li>
+            <li><div class="r-main"><a class="r-title cover" href="#">Campagne « Collection printemps 2027 » à valider</a><span class="r-sub"><span>Campagnes</span><span>· déposée le 23/11 à 16 h 20</span><span>· échéance le 24/11 à 16 h 20</span><span>· libre</span></span></div><span class="r-end"><svg class="i i--sm"><use href="#i-chevron-right"/></svg></span></li>
+          </ul>
+          <ul class="rows todo-rows" data-when="createur">
+            <li><div class="r-main"><a class="r-title cover" href="#">Vérification d'audience YouTube</a><span class="r-sub"><span>Vérifications créateurs</span><span>· demandée le 23/11 à 18 h 02</span><span>· échéance le 24/11 à 18 h 02</span><span>· libre</span></span></div><span class="r-end"><svg class="i i--sm"><use href="#i-chevron-right"/></svg></span></li>
+            <li><div class="r-main"><a class="r-title cover" href="#">1 visuel de portfolio à valider</a><span class="r-sub"><span>Visuels de portfolio</span><span>· déposé aujourd'hui à 08 h 15</span><span>· libre</span></span></div><span class="r-end"><svg class="i i--sm"><use href="#i-chevron-right"/></svg></span></li>
+          </ul>
+          <p class="allclear" data-when="calme"><svg class="i i--sm"><use href="#i-circle-check"/></svg>Rien à traiter pour ce compte : aucune entrée de file ouverte, aucun badge à renouveler dans les 30 jours.</p>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-prof">
+          <div class="fsect__bar"><h2 id="h-prof">Profil</h2>
+            <a class="go sm" href="proto-marque.html#soumise" target="_blank" rel="noopener" style="min-height: auto" data-unless="createur">Page publique <svg class="i i--sm"><use href="#i-external-link"/></svg></a></div>
+          <dl class="facts" data-unless="createur">
+            <div><dt>État</dt><dd data-unless="calme">Publié · modification en attente</dd><dd data-when="calme">Publié</dd></div>
+            <div><dt>Complétude</dt><dd class="tab">80 %</dd></div>
+            <div><dt>Modifié depuis la validation</dt><dd data-unless="calme">présentation, secteur principal</dd><dd data-when="calme">aucun champ</dd></div>
+          </dl>
+          <dl class="facts" data-when="createur">
+            <div><dt>État</dt><dd>Publié</dd></div>
+            <div><dt>Complétude</dt><dd><span class="badge badge--success">Complet</span></dd></div>
+            <div><dt>Modifié depuis la validation</dt><dd>aucun champ</dd></div>
+            <div><dt>Tarifs</dt><dd class="c2" style="font-weight: inherit">aucun : négociés avec le commercial</dd></div>
+          </dl>
+          <p class="overline" style="margin-top: var(--spacing-2)">Décisions</p>
+          <ul class="lines" data-unless="createur">
+            <li><time>19/11 · 10 h 12</time><span><span class="who">Julien</span> a publié le profil.</span></li>
+            <li><time>18/11 · 15 h 40</time><span><span class="who">Julien</span> a refusé le profil : présentation trop courte ou incompréhensible.</span></li>
+          </ul>
+          <ul class="lines" data-when="createur">
+            <li><time>13/11 · 11 h 05</time><span><span class="who">Camille D.</span> a publié le profil.</span></li>
+          </ul>
+        </section>
+
+        <!-- Créatrice : réseaux et chiffres exacts, dans le cadre de vue identifiée (U42) -->
+        <section class="fsect" aria-labelledby="h-net" data-when="createur">
+          <h2 id="h-net">Réseaux et audience<span class="mark" aria-label="chiffres exacts, visibles des seuls rôles internes"></span></h2>
+          <div class="idv">
+            <p class="idv__hat"><svg class="i i--sm"><use href="#i-eye"/></svg>Vue identifiée · chiffres exacts, jamais une tranche</p>
+            <div class="tbl-wrap"><table class="tbl">
+              <thead><tr><th scope="col">Réseau</th><th scope="col" class="num">Abonnés</th><th scope="col" class="num">Publ. 30 j</th><th scope="col" class="num">Comm. moy.</th><th scope="col" class="num">Engag.</th><th scope="col">Mesure</th></tr></thead>
+              <tbody>
+                <tr><td class="wrap"><b>Instagram</b> <svg class="i i--sm" role="img" aria-label="réseau principal" style="color: var(--color-network-primary); vertical-align: -0.15em"><use href="#i-star"/></svg><br><span class="xs c2">@lea.cuisine.saison</span></td><td class="num">23 412</td><td class="num">14</td><td class="num">87</td><td class="num">4,1 %</td><td class="wrap">22/11<br><span class="xs" style="color: var(--color-verified-text)">constatés</span></td></tr>
+                <tr><td class="wrap"><b>YouTube</b><br><span class="xs c2">Léa en cuisine</span></td><td class="num">12 870</td><td class="num">5</td><td class="num">31</td><td class="num">2,6 %</td><td class="wrap">20/11<br><span class="xs c2">déclarés</span></td></tr>
+                <tr><td class="wrap"><b>TikTok</b><br><span class="xs c2">@lea.saison</span></td><td class="num">6 204</td><td class="num">9</td><td class="num">22</td><td class="num">3,3 %</td><td class="wrap">20/11<br><span class="xs c2">déclarés</span></td></tr>
+              </tbody></table></div>
+            <p class="xs c2">Audience : Belgique 30 à 50 %, France 20 à 30 %. Chaque chiffre porte sa date et sa source.</p>
+          </div>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-port" data-when="createur">
+          <h2 id="h-port">Portfolio <span class="n">6 visuels · 1 en attente</span></h2>
+          <div class="thumbs">
+            <figure><div class="visual" role="img" aria-label="Buddha bowl d'automne" style="--v1: var(--color-data-1); --v2: var(--color-data-3)"></div><figcaption>Publié</figcaption></figure>
+            <figure><div class="visual" role="img" aria-label="Soupe potimarron" style="--v1: var(--color-data-3); --v2: var(--color-role-creator)"></div><figcaption>Publié</figcaption></figure>
+            <figure><div class="visual" role="img" aria-label="Tarte fine aux pommes" style="--v1: var(--color-data-2); --v2: var(--color-data-3)"></div><figcaption>Publié</figcaption></figure>
+            <figure><div class="visual" role="img" aria-label="Gratin de courge" style="--v1: var(--color-role-creator); --v2: var(--color-data-2)"></div><figcaption>En attente de validation</figcaption></figure>
+          </div>
+          <a class="go sm" href="#" style="min-height: auto">Voir les 6 visuels <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+        </section>
+
+        <!-- Marque : la liste des campagnes, et le brouillon ouvert à la demande (D86) -->
+        <section class="fsect" aria-labelledby="h-camp" data-unless="createur">
+          <div class="fsect__bar"><h2 id="h-camp">Campagnes <span class="n" id="camp-n">3</span></h2>
+            <button class="btn btn--text" type="button" id="b-draft2" aria-controls="draft" aria-expanded="false"><svg class="i i--sm"><use href="#i-plus"/></svg>Créer un brouillon</button></div>
+          <div class="inner is-entering" id="draft" hidden>
+            <p class="t-block">Nouveau brouillon de campagne</p>
+            <p class="xs c2">Créé au nom de Terre &amp; Thé, qui le complétera et le soumettra. Possible avant la publication de son profil (D86).</p>
+            <div class="row g3">
+              <div class="field grow"><label class="label sm" for="d-title">Titre de la campagne</label><input class="control" id="d-title" type="text" maxlength="120" autocomplete="off"></div>
+              <div class="field"><label class="label sm" for="d-lang">Langue</label><select class="control select" id="d-lang"><option>français</option><option>anglais</option></select></div>
+            </div>
+            <p class="fmsg fmsg--error" id="d-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Saisissez un titre de 3 à 120 caractères.</span></p>
+            <div class="actions"><button class="btn btn--primary" type="button" id="d-ok">Créer le brouillon</button><button class="btn btn--text" type="button" id="d-cancel">Annuler</button></div>
+          </div>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th scope="col">Campagne</th><th scope="col">État</th><th scope="col">Langue</th><th scope="col">Modifiée le</th></tr></thead>
+            <tbody id="camp-rows">
+              <tr><td><a class="id" href="#">Collection printemps 2027</a></td><td><span class="badge badge--warning">En validation</span></td><td>français</td><td class="tab">23/11 · 16 h 20</td></tr>
+              <tr><td><a class="id" href="#">Lancement infusion glacée</a></td><td><span class="badge badge--success">Ouverte</span></td><td>français</td><td class="tab">20/11 · 09 h 30</td></tr>
+              <tr><td><a class="id" href="#">Coffret de fin d'année</a></td><td><span class="badge">Brouillon</span></td><td>anglais</td><td class="tab">19/11 · 17 h 02</td></tr>
+            </tbody></table></div>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-badge">
+          <h2 id="h-badge">Badges</h2>
+          <div class="tbl-wrap"><table class="tbl">
+            <thead><tr><th scope="col">Badge</th><th scope="col">État</th><th scope="col">Attribué</th><th scope="col">Échéance</th></tr></thead>
+            <tbody data-unless="createur">
+              <tr><td><span class="row g1"><svg class="i i--sm" style="color: var(--color-verified-text)"><use href="#i-badge-check"/></svg>Marque vérifiée</span></td><td><span class="badge badge--success">Valide</span></td><td class="wrap">16/11 par Julien</td><td class="tab">14/02/2027</td></tr>
+            </tbody>
+            <tbody data-when="createur">
+              <tr><td>Compte vérifié · Instagram</td><td><span class="badge badge--success">Valide</span></td><td class="wrap">13/11 par Camille D.</td><td class="tab">—</td></tr>
+              <tr><td>Audience vérifiée · Instagram</td><td><span class="badge badge--success">Valide</span></td><td class="wrap">22/11 par Camille D.</td><td class="tab">20/02/2027</td></tr>
+              <tr><td>Compte vérifié · YouTube</td><td><span class="badge badge--success">Valide</span></td><td class="wrap">13/11 par Camille D.</td><td class="tab">—</td></tr>
+              <tr><td>Audience vérifiée · YouTube</td><td><span class="badge badge--warning">Demandée</span></td><td class="wrap">—</td><td class="tab">—</td></tr>
+            </tbody></table></div>
+        </section>
+
+        <section class="fsect" aria-labelledby="h-act">
+          <div class="fsect__bar"><h2 id="h-act">Activité</h2><a class="go sm" href="#" style="min-height: auto">Tout l'historique <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+          <div data-unless="createur">
+            <div class="day"><p class="overline">Aujourd'hui</p><ul class="lines" id="act-today">
+              <li><time>09 h 41</time><span><span class="who">Camille D.</span> a pris en charge la modification du profil.</span></li></ul></div>
+            <div class="day"><p class="overline">23 novembre</p><ul class="lines">
+              <li><time>16 h 20</time><span><span class="who">La marque</span> a soumis la campagne « Collection printemps 2027 ».</span></li></ul></div>
+            <div class="day"><p class="overline">22 novembre</p><ul class="lines">
+              <li><time>00 h 53</time><span><span class="who">La marque</span> a modifié sa présentation et son secteur principal, puis a soumis son profil.</span></li>
+              <li><time>00 h 54</time><span>Contact mis à jour dans Brevo. Échec de l'envoi vers Apollo.</span></li></ul></div>
+            <div class="day"><p class="overline">19 novembre</p><ul class="lines">
+              <li><time>10 h 12</time><span><span class="who">Julien</span> a publié le profil.</span></li></ul></div>
+          </div>
+          <div data-when="createur">
+            <div class="day"><p class="overline">Aujourd'hui</p><ul class="lines">
+              <li><time>08 h 15</time><span><span class="who">La créatrice</span> a ajouté un visuel au portfolio.</span></li></ul></div>
+            <div class="day"><p class="overline">23 novembre</p><ul class="lines">
+              <li><time>18 h 02</time><span><span class="who">La créatrice</span> a demandé la vérification de l'audience YouTube.</span></li></ul></div>
+            <div class="day"><p class="overline">22 novembre</p><ul class="lines">
+              <li><time>14 h 30</time><span><span class="who">Camille D.</span> a constaté les chiffres Instagram et attribué « Audience vérifiée ».</span></li></ul></div>
+          </div>
+          <details class="reads"><summary><svg class="i i--sm"><use href="#i-eye"/></svg>Consultations de la fiche : 12 cette semaine, par 3 agents</summary>
+            <ul class="lines" style="padding-top: var(--spacing-2)"><li><time>Aujourd'hui</time><span>Vous (2), Julien (1)</span></li><li><time>23 novembre</time><span>Julien (4), Sami R. (2)</span></li><li><time>22 novembre</time><span>Julien (3)</span></li></ul></details>
+        </section>
+      </div>
+
+      <!-- ZONE 3 · PROPRIÉTÉS : comment le joindre, est-il synchronisé ? -->
+      <aside class="f-side" aria-label="Propriétés du compte" data-h="3">
+        <section class="pgroup" aria-labelledby="h-acc">
+          <h2 id="h-acc">Compte</h2>
+          <dl class="props" data-unless="createur">
+            <dt>Adresse e-mail</dt><dd><span>contact@terre-et-the.example</span><span class="sub">délivrable</span></dd>
+            <dt>Raison sociale</dt><dd>Terre et Thé SRL</dd>
+            <dt>Consentement</dt><dd><span>accordé le 18/11/2026</span><span class="sub">à l'inscription</span></dd>
+            <dt>Source</dt><dd><span>inscription directe</span><span class="sub">UTM : linkedin / social / lancement-be</span></dd>
+            <dt>Responsable</dt><dd><span>Julien</span><span class="sub">depuis le 18/11/2026</span></dd>
+          </dl>
+          <dl class="props" data-when="createur">
+            <dt>Adresse e-mail</dt><dd><span>lea.vandamme@example.be</span><span class="sub">délivrable</span></dd>
+            <dt>Statut déclaré</dt><dd>indépendante</dd>
+            <dt>Consentement</dt><dd><span>accordé le 12/11/2026</span><span class="sub">à l'inscription</span></dd>
+            <dt>Source</dt><dd><span>invitation d'un commercial</span><span class="sub">Camille D., le 10/11/2026</span></dd>
+            <dt>Responsable</dt><dd><span>Camille D. (vous)</span><span class="sub">depuis le 12/11/2026</span></dd>
+          </dl>
+        </section>
+
+        <section class="pgroup" aria-labelledby="h-sync">
+          <h2 id="h-sync">Synchronisation</h2>
+          <ul class="sync">
+            <li><b>Brevo</b><span class="stack"><span class="st ok"><svg class="i"><use href="#i-circle-check"/></svg>À jour</span><span class="sub">22/11 à 00 h 54</span></span></li>
+            <li id="apollo" data-unless="createur"><b>Apollo</b><span class="stack g1"><span class="st ko" id="ap-st"><svg class="i"><use href="#i-triangle-alert"/></svg>Échec : délai dépassé</span><span class="sub" id="ap-sub">Nouvelle tentative prévue à 10 h 54</span><button class="btn btn--text" type="button" id="ap-retry" style="align-self: flex-start; min-height: auto; padding: 0"><svg class="i i--sm"><use href="#i-refresh-cw"/></svg>Rejouer maintenant</button></span></li>
+            <li data-when="createur"><b>Apollo</b><span class="stack"><span class="st ok"><svg class="i"><use href="#i-circle-check"/></svg>À jour</span><span class="sub">12/11 à 10 h 03</span></span></li>
+          </ul>
+        </section>
+
+        <section class="pgroup" aria-labelledby="h-contact" data-unless="createur">
+          <h2 id="h-contact">Interlocuteur<span class="mark" aria-label="donnée identifiée"></span></h2>
+          <div class="idv">
+            <p class="idv__hat"><svg class="i i--sm"><use href="#i-eye"/></svg>Vue identifiée</p>
+            <dl class="props"><dt>Prénom</dt><dd>Inès</dd><dt>Fonction</dt><dd>Marketing</dd><dt>E-mail</dt><dd>ines@terre-et-the.example</dd><dt>Téléphone</dt><dd class="tab">+32 2 555 01 23</dd></dl>
+            <p class="xs c2">Jamais montrés à un créateur (D46) : seuls le prénom et la fonction le sont, à la mise en relation.</p>
+          </div>
+        </section>
+
+        <div class="pgroup">
+          <p class="overline">Gestes rares</p>
+          <div class="rare">
+            <details id="d-fix">
+              <summary>Corriger statut, pays ou langue<svg class="i i--sm"><use href="#i-chevron-down"/></svg></summary>
+              <div class="body">
+                <p class="xs c2">Avec un motif. La correction est enregistrée et transmise à Brevo et Apollo.</p>
+                <div class="field"><label class="label xs" for="fx-country">Pays</label><select class="control select" id="fx-country"><option selected>Belgique</option><option>France</option><option>Luxembourg</option></select></div>
+                <div class="field"><label class="label xs" for="fx-lang">Langue du compte</label><select class="control select" id="fx-lang"><option selected>français</option><option>anglais</option></select></div>
+                <div class="field"><label class="label xs" for="fx-why">Motif</label><select class="control select" id="fx-why"><option value="">Choisir…</option><option>Demande du membre</option><option>Erreur à l'inscription</option><option>Contrôle d'un document</option><option>Qualité des données</option></select></div>
+                <p class="fmsg fmsg--error" id="fx-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span id="fx-err-t"></span></p>
+                <div class="actions"><button class="btn btn--secondary" type="button" id="fx-ok">Enregistrer la correction</button></div>
+              </div>
+            </details>
+            <details>
+              <summary>Données personnelles<svg class="i i--sm"><use href="#i-chevron-down"/></svg></summary>
+              <div class="body"><p class="xs">Demandes « mes données » : aucune.</p><p class="xs">Désinscription Brevo : aucune à lever.</p></div>
+            </details>
+            <details data-when="createur">
+              <summary>Changer le rôle : créateur vers marque<svg class="i i--sm"><use href="#i-chevron-down"/></svg></summary>
+              <div class="body"><p class="xs c2">Irréversible. Contrôle par un autre administrateur (D84).</p><button class="btn btn--secondary" type="button" disabled>Réservé aux administrateurs</button></div>
+            </details>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var draft = $("#draft"), openers = [$("#b-draft"), $("#b-draft2")];
+  function setDraft(open) {
+    draft.hidden = !open;
+    openers.forEach(function (b) { b.setAttribute("aria-expanded", String(open)); });
+    if (open) { draft.classList.remove("is-entering"); void draft.offsetWidth; draft.classList.add("is-entering"); draft.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); $("#d-title").focus(); }
+  }
+  openers.forEach(function (b) { b.addEventListener("click", function () { setDraft(draft.hidden); }); });
+  $("#d-cancel").addEventListener("click", function () { setDraft(false); $("#b-draft2").focus(); });
+  $("#d-ok").addEventListener("click", function () {
+    var t = $("#d-title").value.trim();
+    if (t.length < 3) { $("#d-err").hidden = false; $("#d-title").setAttribute("aria-invalid", "true"); $("#d-title").focus(); P.announce("Saisissez un titre de 3 à 120 caractères."); return; }
+    $("#d-err").hidden = true; $("#d-title").removeAttribute("aria-invalid");
+    var tr = document.createElement("tr");
+    tr.innerHTML = '<td><a class="id" href="#"></a></td><td><span class="badge">Brouillon</span></td><td></td><td class="tab">aujourd\'hui · ' + P.time() + '</td>';
+    tr.querySelector(".id").textContent = t; tr.children[2].textContent = $("#d-lang").value;
+    $("#camp-rows").prepend(tr); $("#camp-n").textContent = String($("#camp-rows").children.length);
+    $("#d-title").value = ""; setDraft(false); P.flash(tr, true);
+    var li = document.createElement("li"); li.innerHTML = '<time>' + P.time() + '</time><span><span class="who">Vous</span> avez créé le brouillon « </span>';
+    li.lastChild.append(t + " ».");
+    $("#act-today").prepend(li);
+    P.announce("Brouillon « " + t + " » créé. La marque le verra dans ses campagnes.");
+    tr.querySelector(".id").focus();
+  });
+  $("#b-verify").addEventListener("click", function () { P.announce("Ouverture de la vérification (simulé)."); });
+  $("#ap-retry").addEventListener("click", function () {
+    var b = this; b.disabled = true; $("#ap-st").innerHTML = '<svg class="i"><use href="#i-refresh-cw"/></svg>Envoi en cours…'; $("#ap-st").className = "st";
+    setTimeout(function () {
+      $("#ap-st").innerHTML = '<svg class="i"><use href="#i-circle-check"/></svg>À jour'; $("#ap-st").className = "st ok";
+      $("#ap-sub").textContent = "aujourd'hui à " + P.time(); b.hidden = true; P.flash($("#apollo"));
+      P.announce("Contact envoyé à Apollo.");
+    }, 900);
+  });
+  $("#fx-ok").addEventListener("click", function () {
+    var err = $("#fx-err"), t = $("#fx-err-t");
+    var changed = $("#fx-country").selectedIndex !== 0 || $("#fx-lang").selectedIndex !== 0;
+    if (!changed) { t.textContent = "Aucune valeur n'a changé : rien n'a été enregistré."; err.hidden = false; P.announce(t.textContent); return; }
+    if (!$("#fx-why").value) { t.textContent = "Choisissez un motif."; err.hidden = false; $("#fx-why").focus(); P.announce(t.textContent); return; }
+    err.hidden = true;
+    var n = document.createElement("p"); n.className = "notice notice--success"; n.innerHTML = '<svg class="i"><use href="#i-circle-check"/></svg><span>Correction enregistrée, transmise à Brevo et Apollo.</span>';
+    this.parentNode.replaceWith(n); P.announce("Correction enregistrée, transmise à Brevo et Apollo.");
+  });
+  document.addEventListener("proto:state", function (e) {
+    $("#d-fix").open = e.detail.st === "corriger";
+    if (e.detail.st === "corriger") setTimeout(function () { $("#d-fix").scrollIntoView({ block: "center" }); }, 0);
+  });
+});
+</script>
+</body>
+</html>

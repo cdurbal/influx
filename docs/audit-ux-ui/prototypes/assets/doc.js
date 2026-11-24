@@ -6,7 +6,7 @@
  */
 (function () {
   "use strict";
-  var SIZES = { desktop: [1440, 900], phone: [390, 844] };
+  var SIZES = { desktop: [1440, 900], narrow: [1180, 860], phone: [390, 844] };
   function setCapture(img, name) {
     img.onerror = function () { if (!img.getAttribute("data-retried")) { img.setAttribute("data-retried", "1"); img.src = "../captures/" + name; } };
     img.removeAttribute("data-retried");
