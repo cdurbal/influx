@@ -216,6 +216,15 @@
 >     motif fermé, entrée suivante) et « Conversations » (lire et répondre, sans pièce jointe) ;
 >   - à confirmer : la liste des files traitées sur téléphone et les conditions de session
 >     (`architecte`, `expert-cybersecurite`) ; la conversation reste une esquisse (D30, D47).
+> - Écran 20, Mon compte (marque, créateur, U33, U51, U63) : **validé** (2026-11-24). Choix :
+>   - une page par sujet (informations, préférences, sessions, données), colonne étroite, sections
+>     séparées par des filets ; page-menu « Mon compte » sur téléphone (D74) ;
+>   - « Mes informations » enregistrée au fil de la saisie ; raison sociale ici, nom public dans le
+>     profil de marque (à arbitrer par le `product-owner` si c'est le même champ) ;
+>   - changement d'adresse en trois étapes visibles, la nouvelle adresse contrôlée avant tout code
+>     (U33) ; « Confirmer ce code » (U63) ;
+>   - gestes définitifs repliés (fermer toutes les sessions, supprimer le compte avec le mot
+>     SUPPRIMER puis un code) ; textes repris d'`account.json`.
 
 ## 1. Où sont les prototypes
 
@@ -237,7 +246,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice), 18 (fiche campagne côté marque), 19 (backoffice sur téléphone).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice), 18 (fiche campagne côté marque), 19 (backoffice sur téléphone), 20 (Mon compte).
 
 ## 3. Formulaire complexe (écran 3)
 
