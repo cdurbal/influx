@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Backoffice sur téléphone</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Vue téléphone du backoffice (D58) : deux gestes seulement. Sur un poste, le prototype se montre dans une colonne de téléphone. */
+  .ph-shell { min-height: 100dvh; display: flex; flex-direction: column; width: 100%; max-width: 30rem; margin: 0 auto; background: var(--color-surface-page); border-inline: var(--border-width-thin) solid var(--color-border-subtle); }
+  .ph-band { position: sticky; top: 0; z-index: var(--z-header); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-2); padding: var(--spacing-2) var(--spacing-page-gutter); background: var(--color-feedback-warning-bg); color: var(--color-feedback-warning-text); font-size: var(--text-xs); border-bottom: var(--border-width-thin) solid var(--color-feedback-warning-border); }
+  .ph-band b { font-family: var(--font-display); letter-spacing: var(--tracking-overline); }
+  .ph-main { flex: 1; display: flex; flex-direction: column; gap: var(--spacing-5); padding: var(--spacing-5) var(--spacing-page-gutter) calc(var(--size-nav-bottom-height) + var(--spacing-6)); }
+  .ph-main.no-nav { padding-bottom: var(--spacing-6); }
+  .ph-h1 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .ph-nav { position: fixed; bottom: 0; left: 50%; translate: -50% 0; z-index: var(--z-raised); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; max-width: 30rem; height: var(--size-nav-bottom-height); background: var(--color-surface-page); border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .ph-nav a { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-1); font-size: var(--text-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); text-decoration: none; }
+  .ph-nav a[aria-current="page"] { color: var(--color-text-primary); background: var(--color-nav-item-active-bg); }
+  .ph-nav a[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 20%; right: 20%; height: var(--border-width-thick); background: var(--color-nav-item-active-indicator); }
+  .ph-nav .n { position: absolute; top: var(--spacing-2); left: calc(50% + 0.75rem); min-width: 1.25rem; border-radius: var(--radius-pill); background: var(--color-counter-bg); color: var(--color-counter-text); font-size: var(--text-xs); text-align: center; padding: 0 var(--spacing-1); }
+  .ph-sub { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  /* Listes : grandes cibles tactiles, une entrée par ligne */
+  .tlist { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .tlist li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-1) var(--spacing-3); min-height: calc(var(--size-touch-target) + var(--spacing-4)); padding: var(--spacing-3) 0; border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .tlist a.cover { font-weight: var(--font-weight-semibold); text-decoration: none; color: var(--color-text-primary); }
+  .tlist a.cover::after { content: ""; position: absolute; inset: 0; }
+  .tlist .sub { grid-column: 1; display: flex; flex-wrap: wrap; gap: var(--spacing-1) var(--spacing-2); font-size: var(--text-xs); color: var(--color-text-secondary); }
+  .tlist .chev { grid-column: 2; grid-row: 1 / span 2; width: var(--size-icon-sm); height: var(--size-icon-sm); color: var(--color-text-tertiary); }
+  .grp-t { font-family: var(--font-display); font-size: var(--text-sm); font-weight: var(--font-weight-bold); color: var(--color-text-secondary); }
+  .unread { display: inline-flex; width: 0.5rem; height: 0.5rem; border-radius: var(--radius-round); background: var(--color-brand-primary); }
+  /* Entrée */
+  .ctl { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .ctl li { display: grid; grid-template-columns: var(--size-icon-md) minmax(0, 1fr); gap: var(--spacing-3); font-size: var(--text-sm); }
+  .ctl li .i { color: var(--color-text-secondary); margin-top: 0.125rem; }
+  .ctl b { display: block; }
+  .pres { border-radius: var(--radius-md); background: var(--color-surface-raised); padding: var(--spacing-3) var(--spacing-4); font-size: var(--text-sm); line-height: var(--leading-body); }
+  .actbar { position: fixed; bottom: var(--size-nav-bottom-height); left: 50%; translate: -50% 0; z-index: var(--z-raised); display: flex; gap: var(--spacing-2); width: 100%; max-width: 30rem; padding: var(--spacing-2) var(--spacing-page-gutter); background: var(--color-surface-page); border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .actbar .btn { flex: 1; justify-content: center; }
+  .has-actbar { padding-bottom: calc(var(--size-nav-bottom-height) + 5rem) !important; }
+  .refuse { display: flex; flex-direction: column; gap: var(--spacing-3); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-4); }
+  .refuse.is-in { animation: rise-in var(--duration-base) var(--ease-standard); }
+  /* Conversation */
+  .thread { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .msg { display: flex; flex-direction: column; gap: var(--spacing-1); max-width: 85%; }
+  .msg .who { font-size: var(--text-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
+  .msg p { border-radius: var(--radius-md); background: var(--color-surface-raised); padding: var(--spacing-2) var(--spacing-3); font-size: var(--text-sm); }
+  .msg.me { align-self: flex-end; align-items: flex-end; }
+  .msg.me p { background: var(--color-surface-active); }
+  .sys { align-self: center; font-size: var(--text-xs); color: var(--color-text-tertiary); text-align: center; max-width: 90%; }
+  .composer { display: flex; flex-direction: column; gap: var(--spacing-2); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-3); }
+  .composer .row { align-items: flex-end; }
+  .composer textarea { flex: 1; min-height: var(--size-touch-target); }
+  .parts { display: flex; flex-wrap: wrap; gap: var(--spacing-1) var(--spacing-3); font-size: var(--text-xs); color: var(--color-text-secondary); }
+  .parts .role { font-size: var(--text-xs); }
+</style>
+</head>
+<body class="bo" data-default="provisoire">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <optgroup label="Aujourd'hui, jusqu'au Lot 4"><option value="provisoire">Règle provisoire : aucun contenu métier</option></optgroup>
+      <optgroup label="Cible du Lot 4 · geste 1, la file"><option value="files">Entrées à traiter</option><option value="entree">Une entrée, libre</option><option value="prise">Prise en charge</option><option value="refuser">Refuser, motif à choisir</option><option value="decide">Décision enregistrée</option></optgroup>
+      <optgroup label="Cible du Lot 4 · geste 2, la conversation"><option value="convs">Conversations</option><option value="conv">Une conversation</option></optgroup>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="ph-shell">
+  <div class="ph-band"><span><b>LOCAL</b> · INFLUX Backoffice</span><span>Camille D. · commercial</span></div>
+
+  <!-- ===================== AUJOURD'HUI : la règle provisoire, sans rien monter derrière ===================== -->
+  <main class="ph-main no-nav" data-when="provisoire" data-h="1">
+    <h1 class="ph-h1" tabindex="-1">Le backoffice se consulte sur un poste de travail</h1>
+    <p class="c2">Cet écran demande au moins 768 px de large. Sur téléphone, vos conversations et la file de validation seront disponibles à leur mise en service.</p>
+    <p class="xs c3">Aucune page n'est ouverte derrière ce message : rien n'est pris en charge, aucune lecture n'est enregistrée (U43).</p>
+    <button class="btn btn--secondary" type="button" style="align-self: flex-start"><svg class="i i--sm"><use href="#i-log-out"/></svg>Se déconnecter</button>
+  </main>
+
+  <!-- ===================== GESTE 1 : LA FILE ===================== -->
+  <main class="ph-main" data-when="files" data-h="1">
+    <div class="stack g1"><h1 class="ph-h1" tabindex="-1">À traiter</h1><p class="ph-sub"><span>8 entrées</span><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>2 hors délai</span></p></div>
+    <p class="xs c2">Sur téléphone : prendre en charge, publier ou refuser. Tout le reste se fait sur un poste.</p>
+    <section class="stack g2" aria-labelledby="g1"><h2 class="grp-t" id="g1">Profils marque · 3</h2>
+      <ul class="tlist">
+        <li><a class="cover" href="#entree">Terre &amp; Thé</a><span class="sub"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>hors délai · 49 min</span><span>· première soumission</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+        <li><a class="cover" href="#entree">Kintsugi Studio</a><span class="sub"><span>dans 6 h 56</span><span>· modification · présentation</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+        <li><a class="cover" href="#entree">Vélo Urbain Bruxelles</a><span class="sub"><span>dans 2 h 56</span><span>· <svg class="i i--sm" style="vertical-align: -0.2em"><use href="#i-lock"/></svg> Sofia R. · 09 h 28</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+      </ul></section>
+    <section class="stack g2" aria-labelledby="g2"><h2 class="grp-t" id="g2">Profils créateur · 3</h2>
+      <ul class="tlist">
+        <li><a class="cover" href="#entree">Profil 6C2RTM</a><span class="sub"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>hors délai · 12 min</span><span>· première soumission</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+        <li><a class="cover" href="#entree">Profil 7K3MQA</a><span class="sub"><span>dans 4 h 10</span><span>· modification · bio</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+        <li><a class="cover" href="#entree">Profil 4FD8LZ</a><span class="sub"><span>dans 7 h 02</span><span>· première soumission</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+      </ul></section>
+    <section class="stack g2" aria-labelledby="g3"><h2 class="grp-t" id="g3">Campagnes · 2</h2>
+      <ul class="tlist">
+        <li><a class="cover" href="#entree">Collection printemps 2027</a><span class="sub"><span>dans 6 h 20</span><span>· Terre &amp; Thé</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+        <li><a class="cover" href="#entree">Baume lèvres SPF 30</a><span class="sub"><span>dans 7 h 40</span><span>· Maison Azur</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+      </ul></section>
+    <p class="xs c3">Vérifications, visuels, contestations, identifiants modifiés et sélections par l'équipe : sur un poste.</p>
+  </main>
+
+  <main class="ph-main has-actbar" data-when="entree prise refuser" data-h="1">
+    <a class="go sm c2" href="#files" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>À traiter</a>
+    <div class="stack g2">
+      <p class="ph-sub"><span>Profil marque · première soumission</span></p>
+      <h1 class="ph-h1" tabindex="-1">Terre &amp; Thé</h1>
+      <p class="ph-sub"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>hors délai depuis 49 min</span><span>· Belgique</span><span>· complétude 80 %</span></p>
+      <p class="badge badge--info" data-when="prise refuser"><svg class="i"><use href="#i-lock"/></svg>Prise en charge par vous, jusqu'à 10 h 22</p>
+    </div>
+    <section class="stack g3" aria-labelledby="h-ctl">
+      <h2 class="t-card" id="h-ctl">À contrôler</h2>
+      <ul class="ctl">
+        <li><svg class="i"><use href="#i-image"/></svg><span><b>Logo</b><span class="c2">présent, lisible sur la pastille claire</span></span></li>
+        <li><svg class="i"><use href="#i-pen-line"/></svg><span><b>Nom</b><span class="c2">Terre &amp; Thé · raison sociale non demandée</span></span></li>
+        <li><svg class="i"><use href="#i-list-checks"/></svg><span><b>Secteur</b><span class="c2">Alimentation et boissons · thèmes recherchés : cuisine, bien-être</span></span></li>
+      </ul>
+      <p class="label">Présentation <span class="xs c2">· 412 caractères, en français</span></p>
+      <p class="pres">Terre &amp; Thé sélectionne des thés et infusions bio auprès de petits producteurs, et les assemble à Bruxelles. Nous cherchons des créateurs qui aiment cuisiner avec le thé et le montrer simplement.</p>
+      <a class="go sm" href="proto-bo-decision.html" style="min-height: auto">Dossier complet : sur un poste <svg class="i i--sm"><use href="#i-monitor"/></svg></a>
+    </section>
+    <section class="refuse" id="refuse" data-when="refuser" aria-labelledby="h-ref">
+      <h2 class="t-card" id="h-ref" tabindex="-1">Refuser le profil</h2>
+      <fieldset class="stack g1"><legend class="label" style="margin-bottom: var(--spacing-1)">Motif</legend>
+        <label class="choice"><input type="radio" name="m">Présentation trop courte ou incompréhensible</label>
+        <label class="choice"><input type="radio" name="m">Logo absent ou illisible</label>
+        <label class="choice"><input type="radio" name="m">Coordonnées ou lien dans la présentation</label>
+        <label class="choice"><input type="radio" name="m">Le nom ne correspond pas à une marque</label></fieldset>
+      <p class="fmsg fmsg--error" id="m-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Choisissez un motif.</span></p>
+      <p class="xs c2">La marque reçoit ce motif par e-mail, avec la marche à suivre.</p>
+    </section>
+  </main>
+  <div class="actbar" data-when="entree"><a class="btn btn--primary" href="#prise">Prendre en charge</a></div>
+  <div class="actbar" data-when="prise"><a class="btn btn--secondary" href="#refuser">Refuser…</a><button class="btn btn--primary" type="button" id="pub">Publier</button></div>
+  <div class="actbar" data-when="refuser"><a class="btn btn--text" href="#prise">Annuler</a><button class="btn btn--danger" type="button" id="ref-go">Refuser avec ce motif</button></div>
+
+  <main class="ph-main" data-when="decide" data-h="1">
+    <div class="notice notice--success"><svg class="i"><use href="#i-circle-check"/></svg><p><b>Terre &amp; Thé : profil publié.</b> La marque est prévenue par e-mail. L'entrée quitte la file.</p></div>
+    <a class="btn btn--primary" href="#entree" style="align-self: stretch; justify-content: center">Entrée suivante : Profil 6C2RTM</a>
+    <a class="go sm" href="#files" style="min-height: auto">Revenir à la liste <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+  </main>
+
+  <!-- ===================== GESTE 2 : LA CONVERSATION ===================== -->
+  <main class="ph-main" data-when="convs" data-h="1">
+    <div class="stack g1"><h1 class="ph-h1" tabindex="-1">Conversations</h1><p class="ph-sub"><span>celles dont vous êtes participant</span><span>· 2 non lues</span></p></div>
+    <ul class="tlist">
+      <li><a class="cover" href="#conv">Terre &amp; Thé · Léa D.</a><span class="sub"><span class="unread" aria-label="non lue"></span><span>Collection printemps 2027</span><span>· il y a 12 min</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+      <li><a class="cover" href="#conv">Maison Azur · Hugo L.</a><span class="sub"><span class="unread" aria-label="non lue"></span><span>Baume lèvres SPF 30</span><span>· il y a 1 h</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+      <li><a class="cover" href="#conv">Atelier Lumen · Nora K.</a><span class="sub"><span>Lancement automne</span><span>· hier</span></span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+    </ul>
+    <p class="xs c3">La notification ne montre jamais le texte du message.</p>
+  </main>
+
+  <main class="ph-main" data-when="conv" data-h="1">
+    <a class="go sm c2" href="#convs" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Conversations</a>
+    <div class="stack g2">
+      <h1 class="ph-h1" tabindex="-1">Terre &amp; Thé · Léa D.</h1>
+      <p class="parts"><span>Collection printemps 2027</span><span>· participants : la marque, la créatrice, vous (INFLUX)</span></p>
+    </div>
+    <div class="thread">
+      <p class="sys">Mise en relation acceptée par les deux parties le 24/11 · identités révélées</p>
+      <div class="msg"><span class="who">Inès · Terre &amp; Thé</span><p>Bonjour Léa, ravie ! Pourriez-vous nous proposer une idée de Reel autour du thé glacé maison ?</p></div>
+      <div class="msg"><span class="who">Léa D. · créatrice</span><p>Avec plaisir : une recette de thé glacé à la pêche, tournée au marché du dimanche.</p></div>
+      <div class="msg me"><span class="who">Vous · INFLUX</span><p>Parfait. Je vous propose de caler les dates et les conditions ici, ensemble.</p></div>
+      <div class="msg"><span class="who">Inès · Terre &amp; Thé</span><p>Très bien. Livraison possible avant le 20 février ?</p></div>
+    </div>
+    <form class="composer" onsubmit="return false">
+      <label class="sr-only" for="txt">Votre message</label>
+      <div class="row g2"><textarea class="control" id="txt" rows="2" placeholder="Écrire un message"></textarea><button class="btn btn--primary" type="button" id="send" aria-label="Envoyer"><svg class="i"><use href="#i-arrow-right"/></svg></button></div>
+      <p class="xs c2">Pas de pièce jointe. Tout se passe dans INFLUX : aucune coordonnée ne s'échange ici.</p>
+    </form>
+  </main>
+
+  <nav class="ph-nav" aria-label="Rubriques" data-unless="provisoire">
+    <a href="#files" id="nav-f"><svg class="i"><use href="#i-inbox"/></svg>À traiter<span class="n">8</span></a>
+    <a href="#convs" id="nav-c"><svg class="i"><use href="#i-message-square"/></svg>Conversations<span class="n">2</span></a>
+  </nav>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  $("#pub").addEventListener("click", function () { location.hash = "decide"; P.announce("Profil publié. La marque est prévenue par e-mail."); });
+  $("#ref-go").addEventListener("click", function () {
+    if (!$('input[name="m"]:checked')) { $("#m-err").hidden = false; $('input[name="m"]').focus(); P.announce("Choisissez un motif."); return; }
+    location.hash = "files"; P.announce("Profil refusé. La marque reçoit le motif par e-mail.");
+  });
+  $$('input[name="m"]').forEach(function (r) { r.addEventListener("change", function () { $("#m-err").hidden = true; }); });
+  $("#send").addEventListener("click", function () {
+    var t = $("#txt"); if (!t.value.trim()) { t.focus(); return; }
+    var d = document.createElement("div"); d.className = "msg me is-entering"; d.innerHTML = '<span class="who">Vous · INFLUX</span><p></p>'; d.querySelector("p").textContent = t.value;
+    $(".thread").appendChild(d); t.value = ""; P.announce("Message envoyé.");
+  });
+  document.addEventListener("proto:state", function (e) {
+    var st = e.detail.st, f = ["files", "entree", "prise", "refuser", "decide"].indexOf(st) !== -1, c = st === "convs" || st === "conv";
+    $("#nav-f").toggleAttribute("aria-current", f); if (f) $("#nav-f").setAttribute("aria-current", "page");
+    $("#nav-c").toggleAttribute("aria-current", c); if (c) $("#nav-c").setAttribute("aria-current", "page");
+    $("#m-err").hidden = true; $$('input[name="m"]').forEach(function (r) { r.checked = false; });
+    window.scrollTo(0, 0);
+    if (st === "refuser") setTimeout(function () { $("#refuse").scrollIntoView({ block: "start" }); $("#h-ref").focus({ preventScroll: true }); }, 0);
+  });
+});
+</script>
+</body>
+</html>

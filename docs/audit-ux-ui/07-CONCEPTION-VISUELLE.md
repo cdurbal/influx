@@ -207,6 +207,15 @@
 >   - gestes de la marque repliés dans l'encadré : pause ou reprise, clôture définitive confirmée ;
 >     modifier une campagne publiée n'est pas proposé (règle à fixer par le `product-owner`) ;
 >   - chaque ligne de « Mes campagnes » (écran 12) ouvre cette fiche.
+> - Écran 19, backoffice sur téléphone (backoffice, U43) : **validé** (2026-11-24). Choix :
+>   - aujourd'hui, la règle provisoire de `17b` (aucun contenu métier sous 768 px de large ou
+>     500 px de haut), sans aucune page montée derrière le message : ni prise en charge ni lecture
+>     enregistrée (U43) ;
+>   - au Lot 4, les deux gestes de D58 dans une barre du bas à deux rubriques : « À traiter »
+>     (profils marque, profils créateur, campagnes : prendre en charge, publier, refuser avec un
+>     motif fermé, entrée suivante) et « Conversations » (lire et répondre, sans pièce jointe) ;
+>   - à confirmer : la liste des files traitées sur téléphone et les conditions de session
+>     (`architecte`, `expert-cybersecurite`) ; la conversation reste une esquisse (D30, D47).
 
 ## 1. Où sont les prototypes
 
@@ -228,7 +237,7 @@
 
 Ajoutés à la demande du fondateur : 2 bis (profil anonyme), 5 bis (page de la marque), 6 (fiche
 de compte, U07), 7 (formulaire de campagne), 8 (fil et fiche de campagne côté créateur),
-9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice), 18 (fiche campagne côté marque).
+9 (sélections), 10 (profil de marque), 11 (inscription et connexion), 12 (« Mes campagnes » côté marque), 13 (recherche identifiée, backoffice), 14 (vérifications créateur), 15 (aperçu « Ce que voit une marque »), 16 (listes des files et des inscrits), 17 (fiche campagne, backoffice), 18 (fiche campagne côté marque), 19 (backoffice sur téléphone).
 
 ## 3. Formulaire complexe (écran 3)
 
