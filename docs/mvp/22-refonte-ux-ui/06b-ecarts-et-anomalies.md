@@ -161,6 +161,10 @@ Un écart à une maquette n'existe qu'inscrit ici, avec l'accord du fondateur.
 | 2026-11-25 | 21 : rejeu, confirmation, invitations internes | Motif, aperçu, mot de passe et code ; formulaire interne ajouté | RG101, B-5, D84 | Fondateur, D87 (RU-41) |
 | 2026-11-25 | 6 : vignettes du portfolio | Au geste seulement | D82, L2G | Fondateur, D87 (RU-42) |
 | 2026-11-25 | 15 : aperçu | Décor annoncé, aucune donnée reconstituée | `07` RG104 | Fondateur, D87 (RU-43) |
+| 2026-11-25 | C17 (notices) | Trois tons seulement : « alerte » rendu en warning, « neutre » en info (EC-RUA-06-1) | Pas de ton d'erreur ni de couleur nouvelle (D6) | Fondateur, D88 (RU-27, F1) |
+| 2026-11-25 | U46 : notice sous un badge d'état durable | Notice posée sous le badge, malgré « jamais pour un état durable » (EC-RUA-06-2, F2) | Fiches de domaine, `06a` RU-27 | Fondateur, D88 (RU-27, F1) |
+| 2026-11-25 | C08 : filtre actif | « Réinitialiser » et non « Effacer » (EC-RUA-06-3, F8) | Fiche et `17b` §4.2 | Fondateur, D88 (RU-27, F1) |
+| 2026-11-25 | Backoffice à 375 px : F7, F8 | Aucun rendu à cette largeur (EC-RUA-06-4) | Sous 768 px aucune page montée (RU-20) | Fondateur, D88 (RU-27, F1) |
 | 2026-11-25 | 2b, 15 : avatar | Disque `surface-active` uni, initiales `text-primary` ; ni dégradé `data-1` ni pastille chiffrée | `20` §11.3 (`data-*` : graphiques seuls), `17` §7.1 | `expert-ux`, D88 (RU-07, RUA-A) ; confirmation du fondateur à la validation de l'écran (`05` §8) |
 | 2026-11-25 | 2, 13 : points de carrousel inactifs | `text-secondary`, l'actif en `text-primary` et plus large (opacité de la maquette retirée) | Contraste AA, `20` §11.8 (désactivé sans opacité) | Fondateur, D87 (RU-09) ; détail `expert-ux`, D88 |
 | 2026-11-25 | 13 : photo d'une carte bloquée | Rendue entière, non assombrie ; l'état est dit par `.blk` et la case ronde (contour `text-disabled`) | Contraste AA, `20` §11.8 (désactivé sans opacité) | Fondateur, D87 (RU-09) ; détail `expert-ux`, D88 |

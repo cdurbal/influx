@@ -16,9 +16,8 @@ source des valeurs dans le code**) et `tokens-backoffice.css` (`17b` §6) ; `CLA
 contrastes, typographie, ce qu'on ne prend pas de la maquette, test du logo, composants), §3
 (références de comportement par surface), §4, §7 (apartés) ; `17` §2.2 et §2.3, `17b` §1.7 (gabarits).
 `docs/landing-page/03-tokens-provisoires.md` ne justifie que la **vitrine**.
-`design-proposals/keo-emerald.css` : valeurs brutes de la maquette, **jamais importé tel quel** (noms
-par apparence, fonds `rgba`, valeurs écartées, `20` §11.6). Ce fichier donne les règles ; le détail est
-dans `references/`, à lire à la demande.
+`design-proposals/keo-emerald.css` : valeurs brutes de la maquette, **jamais importé tel quel** (`20` §11.6).
+Ce fichier donne les règles ; le détail est dans `references/`, à lire à la demande.
 
 ## Références (à lire quand)
 
@@ -27,6 +26,7 @@ dans `references/`, à lire à la demande.
 | `references/identite-et-tokens.md` | Nommer, valoriser ou ajouter un token ; teinte, contraste, police, logo, e-mail ; tableau d'identité par registre |
 | `references/gabarits-et-navigation.md` | Choisir le gabarit d'un écran, toucher à la navigation, aux sous-menus ou aux effets de survol |
 | `references/procedure-ecran.md` | Début de conception d'un écran (étapes, états) ; fin de travail (format de sortie, montants au backoffice) |
+| `references/tokens-lot3bis.md` | Token des maquettes (D88), seuils 640 et 1 536, `--animate-*`, tailles de titre, chevron, onglets, planche d'états (RU-27) |
 
 ## Règle absolue
 
@@ -45,7 +45,10 @@ par un token. Un composant contenant une valeur littérale est refusé en revue.
 - **Valeurs figées** (D6, D73) : toute autre valeur de couleur est proposée, justifiée (contraste
   calculé) et validée par le fondateur ; un simple alias relève d'`expert-ux`.
 - **Nommer par rôle**, jamais par apparence, registre ou maquette ; mêmes noms dans les trois
-  registres, valeur selon le registre.
+  registres, valeur selon le registre. Valeur de maquette = token de même valeur (D88) :
+  `references/tokens-lot3bis.md`. Seuils 640 et 1 536 px, titres en trois paliers fixes (ni `clamp(`
+  ni `vw`), `--animate-*` sans `transition: all`. Onglets segmentés jamais pour une rubrique (RU-10).
+  États non dessinés : les huit familles de la planche valent (RU-27, F1).
 
 ## Emprunter des comportements, jamais des styles
 

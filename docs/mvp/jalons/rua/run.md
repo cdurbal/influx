@@ -11,8 +11,8 @@
 | 04 | 04.md | commit | sonnet | high | testeur | fait | 147 états = 134 créables + 13 NON_RECETTABLE (5 entrées) ; chargeurs sans SQL ni route propres ; e-mails example.test ; e2e T7 écrit, non lancé (pas de Supabase) |
 | 05 | 05.md | commit | sonnet | high | dev-react-node | fait | board = page.board.tsx sous pageExtensions (dev+flag), G8+artefact verts, axe 0 en local ; EC-RUA-05-1 : ci.yml e2e build pose le drapeau ; e2e non lancé |
 | 06 | 06.md | commit | sonnet | high | expert-ux | fait | 21 questions en 8 familles, aucun composant ni couleur nouvelle ; C17 sans ton erreur (warning), U46 et C08 « Effacer » en écarts ; BO sans rendu à 375 |
-| F1 | F1.md | fondateur | — | — | fondateur | à faire | |
-| 07 | 07.md | commit | sonnet | medium | expert-ux | à faire | |
+| F1 | F1.md | fondateur | — | — | fondateur | fait | « oui à toutes les questions » (2026-11-25) : les 8 familles de la planche, RU-27 tranchée |
+| 07 | 07.md | commit | sonnet | medium | expert-ux | fait | SKILL.md 10 064 o, references/tokens-lot3bis.md ; RU-27 tranchée (06a, D88, 06b §7 : 4 écarts) par F1 « oui à toutes les questions » ; aucune famille ouverte |
 | U | ux.md | ux | sonnet | high | expert-ux | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
