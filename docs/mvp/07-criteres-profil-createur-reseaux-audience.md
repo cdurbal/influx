@@ -178,6 +178,8 @@ tableau central de RG16 sont renseignés, **portfolio compris** (au moins 3 él�
 bouton reste visible en permanence, avec la liste nominative de ce qui manque — jamais désactivé
 sans explication.
 
+*Amendé à la clôture de L2G : la liste nominative est calculée par la base (`submit_own_creator_profile()`, codes des manquants) ; « déposés » = visuels `pending` ou `approved`, un refusé ne compte pas ; la complétude compte les dépôts, jamais les approbations (RG88), et 100 % est atteignable.*
+
 **RG5** — **Aucun profil créateur ne devient visible d'une marque sans décision humaine.** La
 publication est prononcée par un rôle `agent` ou `admin`, jamais par un automatisme, jamais par
 expiration d'un délai. Un profil dont le portfolio n'a **aucun** visuel approuvé peut être publié,
@@ -207,6 +209,8 @@ en relation ouvertes, et le message affiché au créateur énonce sans détour l
 
 Un profil ne devient jamais invisible parce que son auteur a corrigé une faute de frappe ou mis ses
 chiffres à jour.
+
+*Amendé à la clôture de L2G (`0243`) : en base, un profil `published` gèle titre, bio, légende approuvée et, hors « Compte vérifié », handle et URL ; une modification entre en file 2 en révision (`kind = revision`), la version validée restant servie (CA48) ; handle et URL d'un compte « vérifié » relèvent de la file 6 seule ; le reste est immédiat (CA49) ; un profil `suspended` est gelé.*
 
 **RG10** — Un profil `refusé` porte **un motif typé** choisi dans la liste fermée de RG96, reste
 intégralement modifiable et peut être resoumis sans délai. **Aucun refus muet, aucun dossier laissé
@@ -261,7 +265,7 @@ d'apposer un badge ou de publier ; *Oblig.* = obligatoire pour pouvoir publier l
 | Photo ou avatar du créateur | **—** | **Champ inexistant** (`matching-spec` A3) | — | — |
 | Pseudonyme / nom d'usage | **I** | Texte, ≤ 60 caractères | — | Non |
 | Nom et prénom légaux | **N** | Texte | Demandés au premier badge | Non |
-| Date de naissance | **N** | Date | Contrôle de majorité (D15) | Non (**Q3**) |
+| Date de naissance | **N** | Date | Contrôle de majorité (D15) | Non — *non collectée au MVP : attestation 18+ seule, date demandée seulement en cas de doute à la vérification (Q3 tranchée)* |
 | Téléphone, e-mail de contact, adresse postale | **N** | Texte | — | Non |
 
 #### Bloc 2 — Ligne éditoriale et situation
@@ -274,7 +278,7 @@ d'apposer un badge ou de publier ; *Oblig.* = obligatoire pour pouvoir publier l
 | Langues de publication | **A** | Liste fermée `reference.languages`, ≥ 1 | — | **Oui** |
 | Pays de résidence | **A** | Liste fermée `reference.countries` (repris du Lot 1) | — | **Oui** |
 | Région de résidence | **A** conditionnelle (RG37) | Liste fermée, niveau administratif 1 | — | Non |
-| Ville de résidence | **I** | Liste fermée ou texte contrôlé | — | Non |
+| Ville de résidence | **N** *(Q2 tranchée : jamais révélée)* | Liste fermée ou texte contrôlé | — | Non |
 | Adresse postale complète | **N** | Texte | — | Non |
 | Déplacements possibles | **A** | Liste fermée : non · dans mon pays · international | — | Non |
 | Statut déclaré (particulier / professionnel) | **N** | Liste fermée (repris du Lot 1) | — | Déjà collecté |
@@ -286,10 +290,10 @@ d'apposer un badge ou de publier ; *Oblig.* = obligatoire pour pouvoir publier l
 | Réseau | **A** | Liste fermée `reference.networks` | — | **Oui** (≥ 1 ligne) |
 | Compte principal | **A** | Booléen, **exactement une ligne à vrai** | — | **Oui** |
 | Handle / identifiant `@` | **I** | Texte **modéré**, ≤ 100 caractères | — | **Oui** |
-| URL du profil | **I** | URL `https://`, domaine du réseau déclaré | — | **Oui** |
-| **Abonnés** — *métrique prioritaire n° 1 : taille de la communauté* (RG113) | **A** tranche · **I** valeur exacte | Tranche `reference.audience_bands` (nano, micro, mid, macro, méga) / entier ≥ 0 | Capture du tableau de bord natif < 30 j pour le badge « Audience vérifiée » | **Oui** |
-| **Publications des 30 derniers jours** — *métrique prioritaire n° 2 : rythme de publication* (RG114) | **A** rythme · **I** valeur exacte | Entier ≥ 0 ; le système en dérive le **rythme**, liste fermée `reference.publication_frequencies` : quotidien · plusieurs fois par semaine · hebdomadaire · deux fois par mois · mensuel ou moins | Constat de l'agent sur le profil public pour le badge « Audience vérifiée » (`08` RG38bis) | **Oui** |
-| **Commentaires moyens par publication** — *métrique prioritaire n° 3* (RG115) | **A** tranche · **I** valeur exacte | Tranche `reference.comment_bands` / entier ≥ 0 | Idem | **Oui** |
+| URL du profil | **I** | URL `https://`, domaine propre au réseau déclaré (liste des domaines par réseau fixée à L2D ; domaine libre pour un réseau hors liste) | — | **Oui** |
+| **Abonnés** — *métrique prioritaire n° 1 : taille de la communauté* (RG113) | **A** tranche · **I** valeur exacte | Tranche `reference.audience_bands` (nano, micro, mid, macro, méga) / entier ≥ 0 | Capture du tableau de bord natif < 30 j pour le badge « Audience vérifiée » | **Oui, sur le compte principal** ; non sur les autres lignes (Q15) |
+| **Publications des 30 derniers jours** — *métrique prioritaire n° 2 : rythme de publication* (RG114) | **A** rythme · **I** valeur exacte | Entier ≥ 0 ; le système en dérive le **rythme**, liste fermée `reference.publication_frequencies` : quotidien · plusieurs fois par semaine · hebdomadaire · deux fois par mois · mensuel ou moins | Constat de l'agent sur le profil public pour le badge « Audience vérifiée » (`08` RG38bis) | Non (Q15) |
+| **Commentaires moyens par publication** — *métrique prioritaire n° 3* (RG115) | **A** tranche · **I** valeur exacte | Tranche `reference.comment_bands` / entier ≥ 0 | Idem | Non (Q15) |
 | Taux d'engagement — *indicateur secondaire* (D61) | **A** tranche **seulement si vérifié** · **I** valeur exacte | Tranche / pourcentage à 2 décimales | Capture du tableau de bord natif — **sans preuve, rien n'est affiché en couche A** (RG48) | Non |
 | Portée moyenne par publication — *indicateur secondaire* (D61) | **A** tranche · **I** valeur exacte | Tranche / entier ≥ 0 | Capture du tableau de bord natif | Non |
 | Source des chiffres | **A** | Liste fermée : déclaré par le créateur · constaté par INFLUX | — | Automatique |
@@ -314,10 +318,10 @@ d'apposer un badge ou de publier ; *Oblig.* = obligatoire pour pouvoir publier l
 | Champ | Couche | Format | Preuve exigée | Oblig. |
 |---|---|---|---|---|
 | Formats proposés | **A** | Liste fermée `reference.formats`, ≥ 1 | — | **Oui** |
-| Tarif indicatif par format et par réseau | **A** tranche · **N** valeur exacte | Tranche `reference.price_bands` + devise `reference.currencies` | — | **Oui** (≥ 1 ligne) |
+| Tarif indicatif par format et par réseau | **A** tranche · **N** valeur exacte | Tranche `reference.price_bands` + devise `reference.currencies` | — | Non — *aucun tarif saisi au pilote (D78) ; `creator_rate_cards` et `creator_public_rates` non créées au L2D (EC-L2D-2)* |
 | **Net créateur estimé** | **Créateur et INFLUX uniquement** (RG70) | Tranche dérivée du référentiel, avec devise | — | Automatique |
 | Délai de livraison habituel | **A** | Liste fermée : < 7 jours · 7-14 jours · 15-30 jours · > 30 jours | — | Non |
-| Droits d'usage **inclus** | **A** | Liste fermée `reference.usage_rights`, multi-choix | — | Non |
+| Droits d'usage **inclus** | **A** | Liste fermée `reference.usage_rights`, multi-choix (`none` non cochable : aucune case cochée le dit) | — | Non |
 | Droits d'usage **en option** | **A** | Liste fermée, multi-choix | — | Non |
 | Exclusivité sectorielle acceptée | **A** | Tranche : non · ≤ 1 mois · ≤ 3 mois · négociable | — | Non |
 | Contrepartie non monétaire acceptée | **A** | Booléen | — | Non |
@@ -437,13 +441,16 @@ référentiel que les langues de travail d'une marque (facette F8). Elles sont d
 publier en anglais.
 
 **RG36** — Le **pays de résidence** est repris du Lot 1, affiché en couche A, et constitue la facette
-F20. La **ville** est en couche **I**. L'**adresse postale** est en couche **N** et n'est jamais
+F20. La **ville** est en couche **N**, jamais révélée (**Q2** tranchée le 2026-11-01). L'**adresse postale** est en couche **N** et n'est jamais
 révélée.
 
 **RG37** — La **région de résidence** (niveau administratif 1) est affichée en couche A **seulement
 si au moins 5 profils publiés partagent le même couple (pays, région)**. En dessous de ce seuil, le
 pays seul est affiché, **sans message ni compteur**. Le seuil est le même que celui du k-anonymat de
-la recherche (`matching-spec` A5) et vit en paramètre (**Q11**).
+la recherche (`matching-spec` A5) et vit en paramètre (**Q11**). *(Amendé par L3F-03, `0323`,
+`archives/jalons/l3f/modele.md` §4 : affichée sur le profil ouvert par une marque, jamais sur la carte ; le
+seuil `region_display_threshold` se compte sur les vitrines publiées, cherchables, de compte actif
+et majeur, `10` RG15.)*
 
 **RG38** — **Ni la ville, ni la région ne sont des facettes de recherche au MVP**
 (`matching-spec` A11, facettes écartées). Elles sont affichées, jamais filtrables : un filtre par
@@ -541,8 +548,9 @@ priorité, et toujours dans cet ordre :
 | 2 | **Rythme de publication** | Nombre de publications des 30 derniers jours (RG114) | Rythme (liste fermée) |
 | 3 | **Commentaires moyens par publication** | Moyenne sur les 12 dernières publications (RG115) | Tranche de commentaires |
 
-Ces trois chiffres sont **obligatoires sur chaque ligne de réseau** pour publier le profil (RG4,
-**Q15**). Ils sont **affichés en tête de chaque ligne de réseau, dans cet ordre**, partout où la
+Seul le **nombre d'abonnés du compte principal** est obligatoire pour publier le profil ; le rythme,
+les commentaires et les chiffres des autres lignes sont facultatifs (RG4, **Q15** tranchée par le
+fondateur le 2026-11-01). Ils sont **affichés en tête de chaque ligne de réseau, dans cet ordre**, partout où la
 ligne apparaît : carte anonyme, fiche, fiche après révélation, prévisualisation du créateur (RG104),
 fiche interne et file de vérification du backoffice. Le **taux d'engagement** et la **portée
 moyenne** restent collectés, facultatifs, comme **indicateurs secondaires** : ils s'affichent
@@ -650,6 +658,13 @@ de son intérêt. Ce traitement différencié est assumé et expliqué (**Q6**).
 
 ### G — Bloc 5 : offre, tarifs indicatifs et net créateur estimé
 
+> **⚠️ Régime du pilote, premier temps (D78, arbitrage du fondateur du 2026-11-01) : aucun tarif
+> annoncé.** Les coûts se négocient avec le commercial. Le créateur ne saisit **aucun tarif** et le
+> profil n'en affiche aucun : **RG64 (montant), RG65, RG66 et RG68 à RG72 sont suspendues**, comme le
+> bloc D48 ci-dessous. L'offre se réduit aux couples (réseau, format), aux droits d'usage (RG73), à la
+> disponibilité (RG74), aux secteurs refusés (RG75) et à la contrepartie non monétaire (RG76). Aucun
+> tarif n'entre dans la complétude ni dans les conditions de publication (RG4, §I).
+
 > **⚠️ Régime du pilote (D48, arbitrage du fondateur du 2026-09-24) : aucun taux ni aucun net
 > estimé affiché.** Pendant le pilote, **RG68, RG69 (lignes « Commission INFLUX (35 %) » et « Net
 > créateur estimé »), RG71 et RG72 sont suspendues** : le profil n'affiche que le **tarif
@@ -730,7 +745,7 @@ profil absent, aucun message, aucun emplacement grisé, aucun décompte.
 
 **RG76** — Un créateur peut déclarer **accepter une contrepartie non monétaire** (booléen). Ce champ
 ouvre le bas de marché et les jeunes marques ; il n'autorise **aucun** parcours sans tarif : un
-profil publié comporte toujours au moins une ligne de tarif indicatif (RG4).
+profil publié comporte toujours au moins une ligne d'offre (RG4). *Amendé à la clôture de L2D (D78, EC-L2D-2) : au pilote aucun tarif n'est saisi ni exigé ; la ligne d'offre est un format (`profiles.creator_formats`), jamais un montant.*
 
 ### H — Bloc 6 : portfolio
 
@@ -751,7 +766,7 @@ modération du portfolio est **la fuite d'anonymisation la plus probable de tout
 | 3 | Interface d'application visible (bandeau de profil, avatar, fil de commentaires) | Présente |
 | 4 | Texte incrusté mentionnant le compte ou une marque partenaire | Présent sans autorisation (RG83) |
 | 5 | Enseigne, plaque d'immatriculation, numéro de rue, lieu reconnaissable | Présent |
-| 6 | Visage permettant de retrouver le compte par recherche d'image | Présent (**Q8**) |
+| 6 | Visage permettant de retrouver le compte par recherche d'image | **Autorisé** (**Q8** tranchée le 2026-11-01), créateur prévenu du risque au dépôt ; refus seulement si le visuel porte **en plus** un élément des contrôles 1 à 5 ou 7 |
 | 7 | Capture d'écran de statistiques | **Interdite en couche A** : elle porte le pseudo |
 | 8 | Métadonnées EXIF | **Supprimées systématiquement au dépôt**, avant modération |
 | 9 | Contenu illicite, violent, sexuel ou contraire aux CGU | Présent |
@@ -796,7 +811,7 @@ facette exposée).
 | Ligne éditoriale | Thématique principale 5 · thématiques secondaires 2 · ton 2 · langues 3 · pays 1 · déplacements 1 | **14** |
 | Réseaux | 1re ligne complète (réseau, handle, URL, **les trois métriques prioritaires** — abonnés, publications des 30 derniers jours, commentaires moyens —, date) 16 · 2e ligne complète 5 · portée moyenne 1 *(pondération révisée le 2026-09-25, D61 : le rythme et les commentaires, désormais obligatoires, entrent dans la « ligne complète »)* | **22** |
 | Audience | Pays principal et sa part 10 · autres pays 3 · tranches d'âge 4 · genre 3 | **20** |
-| Offre | 1re ligne de tarif 8 · 2e ligne 3 · formats 3 · droits d'usage 2 · exclusivité 1 · disponibilité 2 | **19** |
+| Offre | 1re ligne d'offre 8 · 2e ligne 3 *(D78, EC-L2D-4 : les 11 points vont aux lignes d'offre, même poids ; aucun tarif)* · formats 3 · droits d'usage 2 · exclusivité 1 · disponibilité 2 | **19** |
 | Portfolio | 3 éléments déposés 6 · 5 éléments ou plus 2 | **8** |
 | Confiance | Demande de badge « Compte vérifié » **déposée** 2 | **2** |
 
@@ -922,6 +937,8 @@ protection du modèle économique autant qu'une protection du créateur.
 marque »**, en deux onglets : avant et après la mise en relation. Elle affiche **exactement** ce que
 l'API sert, jamais une reconstitution approximative.
 
+*Amendé à la clôture de L2G : la réponse est celle de `public-projection.ts`, constructeur unique de la couche A (visuels `approved` seuls), que la recherche du Lot 3 appelle telle quelle ; l'onglet « après » y ajoute la couche I propre au créateur ; un onglet « après » qui n'ajoute rien se dit par un avis plutôt que par une carte identique.*
+
 **RG105** — Un créateur n'est **jamais notifié** lorsqu'une marque consulte son profil anonymisé, ne
 voit **jamais** qui l'a consulté, et ne voit **jamais** une demande de mise en relation qui n'a pas
 été validée (`03` C(18)). Seule une mise en relation validée produit une notification, au Lot 4.
@@ -999,7 +1016,7 @@ et espacements passent par les tokens (`design-system-influx`).
 | Aucun visuel de portfolio approuvé après modération | Le profil reste publié, la carte s'affiche **sans image** (RG84), le créateur est notifié du refus avec son motif |
 | Taux d'engagement saisi mais jamais vérifié | **Absent de la couche A** (RG48) ; le créateur voit le message `creatorProfile.engagement.unverified` |
 | Répartition d'audience non renseignée | Publication possible ; le profil n'apparaît pas dans les recherches filtrant sur un pays, et le message de complétude le dit (RG90) |
-| Un réseau déclaré sans chiffres | Refus de la ligne à la saisie : les abonnés sont obligatoires par ligne (RG41, tableau central) |
+| Un réseau déclaré sans chiffres | Ligne enregistrée en brouillon, chiffres nuls admis (Q15, EC-L2D-6) ; à la demande de publication (L2G), seuls les abonnés du compte principal et la date des chiffres sont obligatoires (RG56) |
 | Une thématique a été retirée du référentiel | Le profil reste publié avec sa valeur, une alerte de cohérence remonte au backoffice, le créateur est invité à choisir une thématique active |
 | La marque consulte un profil repassé en validation | Elle voit la **dernière version validée** (RG9), jamais un profil vide |
 | Moins de 5 profils publiés dans la région déclarée | Le pays seul s'affiche, **sans message ni compteur** (RG37) |
@@ -1375,8 +1392,9 @@ l'anglais, *alors* la version anglaise s'affiche, sans aucun texte français ré
 ### Métriques prioritaires (D61, additif du 2026-09-25)
 
 **CA68** — *Étant donné* une ligne de réseau sans nombre de publications des 30 derniers jours ou sans
-commentaires moyens, *quand* le créateur demande la publication, *alors* elle est refusée et la liste
-nominative de ce qui manque nomme le réseau et le chiffre manquant (RG4, RG113).
+commentaires moyens, *quand* le créateur demande la publication, *alors* elle est acceptée : sous Q15
+seuls les abonnés du compte principal et la date des chiffres sont obligatoires (RG4, RG113), la métrique
+non déclarée reste nulle et n'est pas servie sous forme de tranche. *(Amendé à la clôture de L2D.)*
 
 **CA69** — *Étant donné* un créateur qui saisit 14 publications sur 30 jours, *quand* une marque
 consulte la carte anonyme, *alors* elle lit **« plusieurs fois par semaine »**, et la valeur 14
@@ -1534,21 +1552,21 @@ chaque modification étant journalisée.
 
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
-| **Q1** | **Le tarif indicatif est-il bien exprimé en coût total pour l'annonceur** (commission incluse), et le net estimé à 65 % ? L'alternative (le créateur déclare son net) rendrait les tranches incomparables avec le budget d'une marque | **Oui, coût total annonceur ; net estimé = 65 %** (RG65, RG68) | **Fondateur** + `expert-paiement-facturation` | **Avant le Lot 2** |
-| **Q2** | **La ville de résidence est-elle révélée** après l'ouverture de la mise en relation, ou reste-t-elle interne ? Le modèle de données la place aujourd'hui en couche N | **Révélée** (RG36) ; **valeur d'attente conservatrice si la question n'est pas tranchée : maintien en couche N** | `expert-conformite-rgpd` (**veto**) + Fondateur | Lot 2 |
-| **Q3** | **Faut-il conserver la date de naissance**, ou seulement l'attestation de majorité et sa date ? | Attestation seule au MVP ; date de naissance demandée uniquement si un doute est levé lors d'une vérification | `expert-conformite-rgpd` (**veto**) | Lot 2 |
+| **Q1** | ✅ ***Tranchée le 2026-11-01 (D78) : dans un premier temps, aucun tarif annoncé ; les coûts se négocient avec le commercial (§G).*** **Le tarif indicatif est-il bien exprimé en coût total pour l'annonceur** (commission incluse), et le net estimé à 65 % ? L'alternative (le créateur déclare son net) rendrait les tranches incomparables avec le budget d'une marque | **Oui, coût total annonceur ; net estimé = 65 %** (RG65, RG68) | **Fondateur** + `expert-paiement-facturation` | **Avant le Lot 2** |
+| **Q2** | ✅ ***Tranchée le 2026-11-01 (fondateur) : ville en couche N, jamais révélée (RG36).*** **La ville de résidence est-elle révélée** après l'ouverture de la mise en relation, ou reste-t-elle interne ? Le modèle de données la place aujourd'hui en couche N | **Révélée** (RG36) ; **valeur d'attente conservatrice si la question n'est pas tranchée : maintien en couche N** | `expert-conformite-rgpd` (**veto**) + Fondateur | Lot 2 |
+| **Q3** | ✅ ***Tranchée le 2026-11-01 (fondateur) : attestation seule ; date de naissance demandée seulement en cas de doute à la vérification.*** **Faut-il conserver la date de naissance**, ou seulement l'attestation de majorité et sa date ? | Attestation seule au MVP ; date de naissance demandée uniquement si un doute est levé lors d'une vérification | `expert-conformite-rgpd` (**veto**) | Lot 2 |
 | **Q4** | **Le seuil d'affichage de la région (5 profils) est-il suffisant** au démarrage, où le catalogue est petit ? | Seuil 5, aligné sur le k-anonymat de la recherche, **en paramètre** (RG37) | `expert-matching` + `expert-conformite-rgpd` | Lot 3 |
-| **Q5** | **Données de tiers dans les captures de statistiques** : base légale, instructions de cadrage, durée de conservation des pièces | Compartiment privé, accès journalisés, purge à échéance écrite | `expert-conformite-rgpd` (**veto**) | Lot 2 |
+| **Q5** | ✅ ***Tranchée le 2026-11-01 (fondateur) : pièces supprimées 45 jours après la décision, chiffres et empreinte conservés 3 ans (`08` RG86, `03` R-5) ; revue `expert-conformite-rgpd` au Lot 6.*** **Données de tiers dans les captures de statistiques** : base légale, instructions de cadrage, durée de conservation des pièces | Compartiment privé, accès journalisés, purge à échéance écrite | `expert-conformite-rgpd` (**veto**) | Lot 2 |
 | **Q6** | **Traitement différencié engagement / audience** : l'engagement non vérifié est masqué (RG48), la répartition d'audience non vérifiée reste affichée (RG63), **et les commentaires moyens non vérifiés aussi (RG117, D61)**. Est-ce le bon arbitrage ? | **Oui**, l'engagement est l'indicateur le plus manipulé ; l'audience est l'information la plus utile ; les commentaires sont un décompte contrôlable publication par publication et une métrique prioritaire | `expert-matching` + `product-owner` | Lot 3 |
 | **Q7** | **Bornes nettes stockées dans le référentiel des tranches** plutôt que calculées : est-ce acceptable techniquement et comptablement ? Que se passe-t-il si un taux dérogatoire existe un jour ? | **Oui**, bornes en référentiel versionné (RG72) ; un taux dérogatoire produira une version de référentiel, jamais un calcul en ligne | `expert-paiement-facturation` + `architecte` | Lot 2 |
-| **Q8** | **Un visage est-il acceptable dans un visuel de portfolio ?** L'interdire ampute gravement les thématiques mode, beauté et lifestyle ; l'autoriser ouvre la recherche d'image inversée | **Autorisé par défaut**, avec information explicite du créateur sur le risque au moment du dépôt ; refus si le visuel comporte **en plus** un élément de la grille RG79 | Fondateur + `expert-conformite-rgpd` + `expert-ux` | **Avant le Lot 3** |
-| **Q9** | **Durée de conservation d'un visuel retiré ou refusé**, et des fichiers d'origine | Purge à échéance écrite, alignée sur les pièces de vérification | `expert-conformite-rgpd` (**veto**) | Lot 2 |
+| **Q8** | ✅ ***Tranchée le 2026-11-01 (fondateur) : visage autorisé, créateur prévenu du risque au dépôt ; refus s'il s'ajoute un autre élément de RG79. L'anonymat freine le contournement sans l'empêcher : la clause de non-contournement prend le relais.*** **Un visage est-il acceptable dans un visuel de portfolio ?** L'interdire ampute gravement les thématiques mode, beauté et lifestyle ; l'autoriser ouvre la recherche d'image inversée | **Autorisé par défaut**, avec information explicite du créateur sur le risque au moment du dépôt ; refus si le visuel comporte **en plus** un élément de la grille RG79 | Fondateur + `expert-conformite-rgpd` + `expert-ux` | **Avant le Lot 3** |
+| **Q9** | ✅ ***Tranchée le 2026-11-01 (fondateur) : fichier d'un visuel refusé ou retiré supprimé à 30 jours ; la décision de modération est conservée.*** **Durée de conservation d'un visuel retiré ou refusé**, et des fichiers d'origine | Purge à échéance écrite, alignée sur les pièces de vérification | `expert-conformite-rgpd` (**veto**) | Lot 2 |
 | **Q10** | **Information des personnes** : le créateur doit savoir qu'il figure dans un annuaire anonymisé, quel champ appartient à quelle couche, que les recherches sont journalisées et comment se retirer (`matching-spec` A12) | Rédaction à produire pour la politique de confidentialité et l'aide en ligne | `expert-conformite-rgpd` (**veto**) + `expert-ux` | Lot 2 |
-| **Q11** | **Valeurs de paramétrage** : délai cible de validation (1 j ouvré), expiration d'une prise en charge (30 min), durée du code de propriété, péremption des chiffres (90 j), seuil de région (5), plafonds de vraisemblance par réseau | Valeurs de départ ci-contre, **en table** | `chef-de-projet` + Fondateur (cohérence avec **D39**) | Lot 2 |
+| **Q11** | ✅ ***Tranchée le 2026-11-01 (fondateur) : valeurs de départ ci-contre, en table ; plafonds de vraisemblance par réseau à renseigner en table.*** **Valeurs de paramétrage** : délai cible de validation (1 j ouvré), expiration d'une prise en charge (30 min), durée du code de propriété, péremption des chiffres (90 j), seuil de région (5), plafonds de vraisemblance par réseau | Valeurs de départ ci-contre, **en table** | `chef-de-projet` + Fondateur (cohérence avec **D39**) | Lot 2 |
 | **Q12** | **Libellés juridiques exacts des badges « Compte vérifié » et « Audience vérifiée »**, en français et en anglais, relus avant tout affichage (rattaché à **D34**) | Substance fixée par RG51 à RG53 ; rédaction à produire | `expert-conformite-rgpd` + juriste | Lot 2 |
 | **Q13** | **Une troisième action « ne plus me proposer ce profil »** côté annonceur serait un excellent signal négatif pour D11, mais expose une préférence et complique la carte (`matching-spec` A6) | **Non retenue au MVP** | `product-owner` + `expert-matching` | Lot 3 |
-| **Q14** | **Le minimum de 3 éléments de portfolio est-il bloquant pour publier ?** Il élève la qualité du catalogue mais peut arrêter des créateurs légitimes (photographes de produits, voix off, comptes anonymes) | **Oui, bloquant** (RG4, RG77) ; à réexaminer si le taux de publication décroche | `chef-de-projet` + `expert-ux` | Lot 2 |
-| **Q15** | **Les trois métriques prioritaires sont-elles bloquantes sur chaque ligne de réseau, ou seulement sur le compte principal ?** Les exiger partout garantit une carte homogène ; les limiter au compte principal allège la saisie d'un créateur présent sur quatre réseaux | **Chaque ligne** (RG113) ; à réexaminer si le taux de publication décroche | **Fondateur** + `chef-de-projet` | Avant le Lot 2 |
-| **Q16** | **Définitions et bornes des métriques prioritaires** : fenêtre de 30 jours pour le rythme, 12 dernières publications pour les commentaires, exclusion des stories, des directs et des jeux-concours (RG114, RG115) ; bornes des rythmes et de `reference.comment_bands` ; calibration **par réseau** (un commentaire YouTube ne vaut pas un commentaire TikTok) ; sort des créateurs qui publient surtout en stories | Valeurs de départ de RG114 et RG115, **référentiel global**, en table ; calibration par réseau possible sans changement de schéma | `expert-matching` + `product-owner` | **Avant le Lot 2** |
-| **Q17** | **Constat du rythme et des commentaires sur le profil public** (RG118, `08` RG38bis) : c'est une observation publique, pas une capture du tableau de bord natif (`08` RG31). Est-ce une preuve suffisante pour un chiffre marqué « constaté » ? Et le temps ajouté à chaque vérification (compter 12 publications) est-il tenable pour l'équipe ? | **Oui**, constat sur le profil public, **obligatoire** pour accorder « Audience vérifiée » ; durée mesurée (indicateur ci-dessus) | `product-owner` + `chef-de-projet` | Lot 2 |
-| **Q18** | **Durée de conservation de l'historique des métriques prioritaires** (RG119), et son sort à la suppression du compte | Conservé tant que le compte existe, supprimé avec lui ; aucune donnée de tiers | `expert-conformite-rgpd` (**veto**) | Lot 2 |
+| **Q14** | ✅ ***Tranchée le 2026-11-01 (fondateur) : oui, 3 éléments déposés au minimum.*** **Le minimum de 3 éléments de portfolio est-il bloquant pour publier ?** Il élève la qualité du catalogue mais peut arrêter des créateurs légitimes (photographes de produits, voix off, comptes anonymes) | **Oui, bloquant** (RG4, RG77) ; à réexaminer si le taux de publication décroche | `chef-de-projet` + `expert-ux` | Lot 2 |
+| **Q15** | ✅ ***Tranchée le 2026-11-01 (fondateur, D61) : seuls les abonnés du compte principal sont obligatoires ; rythme, commentaires et autres lignes facultatifs (RG113).*** **Les trois métriques prioritaires sont-elles bloquantes sur chaque ligne de réseau, ou seulement sur le compte principal ?** Les exiger partout garantit une carte homogène ; les limiter au compte principal allège la saisie d'un créateur présent sur quatre réseaux | **Chaque ligne** (RG113) ; à réexaminer si le taux de publication décroche | **Fondateur** + `chef-de-projet` | Avant le Lot 2 |
+| **Q16** | ✅ ***Tranchée le 2026-11-01 (fondateur) : valeurs de départ de RG114 et RG115, référentiel global ; calibration par réseau plus tard, sans changement de schéma.*** **Définitions et bornes des métriques prioritaires** : fenêtre de 30 jours pour le rythme, 12 dernières publications pour les commentaires, exclusion des stories, des directs et des jeux-concours (RG114, RG115) ; bornes des rythmes et de `reference.comment_bands` ; calibration **par réseau** (un commentaire YouTube ne vaut pas un commentaire TikTok) ; sort des créateurs qui publient surtout en stories | Valeurs de départ de RG114 et RG115, **référentiel global**, en table ; calibration par réseau possible sans changement de schéma | `expert-matching` + `product-owner` | **Avant le Lot 2** |
+| **Q17** | ✅ ***Tranchée le 2026-11-01 (fondateur) : oui, les trois chiffres sont constatés pour « Audience vérifiée » pendant le pilote, durée mesurée ; repli sur les seuls abonnés à réexaminer si la charge est trop lourde.*** **Constat du rythme et des commentaires sur le profil public** (RG118, `08` RG38bis) : c'est une observation publique, pas une capture du tableau de bord natif (`08` RG31). Est-ce une preuve suffisante pour un chiffre marqué « constaté » ? Et le temps ajouté à chaque vérification (compter 12 publications) est-il tenable pour l'équipe ? | **Oui**, constat sur le profil public, **obligatoire** pour accorder « Audience vérifiée » ; durée mesurée (indicateur ci-dessus) | `product-owner` + `chef-de-projet` | Lot 2 |
+| **Q18** | ✅ ***Tranchée le 2026-11-01 (fondateur) : conservé tant que le compte existe, supprimé avec lui.*** **Durée de conservation de l'historique des métriques prioritaires** (RG119), et son sort à la suppression du compte | Conservé tant que le compte existe, supprimé avec lui ; aucune donnée de tiers | `expert-conformite-rgpd` (**veto**) | Lot 2 |

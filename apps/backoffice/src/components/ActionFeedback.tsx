@@ -3,8 +3,11 @@
 // The answer of a gesture (docs/mvp/17b §2.8, §3.14.d): the refusal in words, or the confirmation
 // of identity R (password + TOTP, never a recovery code, B-5) before the same call is sent again.
 // The password lives in this form's state only and is cleared after every attempt.
+// Not a <form>: this block is shown INSIDE the gesture's own form (an invitation, a setting), and a
+// nested form is invalid HTML — React never sees its submit and the browser reloads the page, losing
+// the gesture. A plain group, its button and Enter in its fields never submit the outer form.
 import Link from "next/link";
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type KeyboardEvent } from "react";
 import { messages } from "@/messages/fr";
 import {
   HELP_CLASSES,
@@ -40,8 +43,15 @@ function ReauthForm({
     "generic" | "recoverySession" | "revoked" | null
   >(null);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  /** Enter in a field confirms here, never the implicit submission of the outer form. */
+  function onEnter(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter" && !event.nativeEvent.isComposing) {
+      event.preventDefault();
+      void submit();
+    }
+  }
+
+  async function submit() {
     if (busy || password === "" || !TOTP_SHAPE.test(code.trim())) {
       setFailure("generic");
       return;
@@ -70,12 +80,7 @@ function ReauthForm({
   }
 
   return (
-    <form
-      noValidate
-      onSubmit={submit}
-      aria-labelledby={ids.title}
-      className={SECTION_CLASSES}
-    >
+    <div role="group" aria-labelledby={ids.title} className={SECTION_CLASSES}>
       <h2 id={ids.title} className={SECTION_TITLE}>
         {messages.reauth.title}
       </h2>
@@ -90,6 +95,7 @@ function ReauthForm({
           autoComplete="current-password"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
+          onKeyDown={onEnter}
           className={inputClasses(false)}
         />
       </div>
@@ -105,6 +111,7 @@ function ReauthForm({
           maxLength={6}
           value={code}
           onChange={(event) => setCode(event.target.value)}
+          onKeyDown={onEnter}
           className={inputClasses(false)}
         />
       </div>
@@ -118,7 +125,8 @@ function ReauthForm({
       ) : (
         <div className="flex flex-wrap gap-3">
           <button
-            type="submit"
+            type="button"
+            onClick={() => void submit()}
             aria-disabled={busy || undefined}
             className={SMALL_PRIMARY_CLASSES}
           >
@@ -133,7 +141,7 @@ function ReauthForm({
           </button>
         </div>
       )}
-    </form>
+    </div>
   );
 }
 

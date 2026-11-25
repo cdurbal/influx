@@ -1,0 +1,196 @@
+// The two shards of the database tests in CI (L3A-04, L2GT-1): the one place that says which test
+// file runs in which shard. Read by `scripts/run-tests.ts db --shard=<n>` (what each CI job runs) and
+// by `scripts/check-db-shards.ts` (the control job that checks the union of the shard reports
+// against the floors of `case-floors.ts`). The shards exist in CI only: locally,
+// `pnpm --filter @influx/api test:db` runs every file, as before.
+//
+// Every file of the Vitest project `db` (`db-tests/**/*.test.ts`) appears in exactly one shard: a
+// new test file is added here, in the shorter shard, and in `case-floors.ts`; otherwise the control
+// job fails (a file in no shard, in two shards, or that no longer exists).
+//
+// Balance: the by-file split below dates from a full local run of 2026-11-19 (129 files, 761.5 s of
+// file time in all, L3F-01: shard 1 380.7 s, shard 2 380.8 s); the files added since (L3F-03 to
+// L3G-11) were each dealt to the shorter shard in CI, not re-measured as a whole. Last CI measure
+// (run 44955936546 on a747548, end of L3G): job 1/2 5:14, job 2/2 6:24 (stack start-up included),
+// a 70 s gap and 6:24 against the 7:30 limit; the L3F close had 6:34 and 5:34. The slowest files,
+// verification-privacy (114.0 s), t1-anonymisation (98.7 s), t9-evidence-unreachable (51.5 s),
+// t8-backoffice-sign-in (42.0 s), profiles-portfolio-privacy (40.4 s) and t2-rls-matrix (32.6 s),
+// were dealt out largest first to the lighter shard, as were all the others.
+// Rule (EC-L3F-3): re-balance, from a new full local run, when one shard nears 7 min 30 s in CI
+// (L3A invariant 3) or when the CI durations of the two shards differ by more than 30 s (L3GT-10:
+// the second condition holds at the end of L3G, the re-balance is listed in the 21 section 8 backlog).
+export const DB_SHARDS: Readonly<Record<string, readonly string[]>> = {
+  "1": [
+    "db-tests/campaign-feed-route.test.ts",
+    "db-tests/campaign-parity.test.ts",
+    "db-tests/campaign-review-route.test.ts",
+    "db-tests/campaigns-core.test.ts",
+    "db-tests/campaigns-review-queue.test.ts",
+    // L3F-03: a new file, in the shorter shard in CI (4:07 against 4:57 at 6ae8c94)
+    "db-tests/creator-profile-door.test.ts",
+    // L3G-04: a new file (about 3 s locally), in the shorter shard in CI (5:08 against 5:54 at ada8c8d)
+    "db-tests/creator-identified-search-door.test.ts",
+    // L3G-05: a new file (a few seconds locally), in shard 1, the shorter one at the last measure
+    "db-tests/campaign-brief-prefill.test.ts",
+    "db-tests/creator-search-order.test.ts",
+    "db-tests/creator-search-route.test.ts",
+    "db-tests/matching-party-blocks.test.ts",
+    "db-tests/ops-schema.test.ts",
+    // L3F-05: a new file (about 3 s locally), in the shorter shard in CI (4:48 against 5:11 at b0bf605)
+    "db-tests/search-selection-requests.test.ts",
+    // L3F-06: a new file (about 3 s locally), in the shorter shard in CI (4:32 against 5:07 at 65d99b7)
+    "db-tests/search-abuse-alerts.test.ts",
+    // L3G-07: a new file (about 7 s locally), in shard 1, still the shorter one at the last measure
+    "db-tests/search-supply-counters.test.ts",
+    // L3G-08: a new file (a few seconds locally), in shard 1, still the shorter one at the last measure
+    "db-tests/search-settings-dual-control.test.ts",
+    // L3G-08b: a new file (about 2 s locally), in shard 1, still the shorter one at the last measure
+    "db-tests/search-settings-reader.test.ts",
+    // L3G-10: two new files (about 4 s locally each), in shard 1, 09 having put its two files in shard 2
+    "db-tests/team-selection-queue-route.test.ts",
+    "db-tests/search-settings-route.test.ts",
+    // L3F-07: three new files (about 14, 8 and 10 s locally), in the shorter shard in CI (4:32 + 3 s
+    // against 5:07 at 65d99b7)
+    "db-tests/creator-profile-route.test.ts",
+    "db-tests/t14-creator-profile-route.test.ts",
+    "db-tests/t15-creator-profile-rate.test.ts",
+    // L3F-08: a new file (about 6 s locally), in shard 1, the shorter one at the last measure
+    "db-tests/search-shortlists-route.test.ts",
+    "db-tests/profiles-brand-review.test.ts",
+    "db-tests/profiles-brand-submission.test.ts",
+    "db-tests/profiles-creator-bands.test.ts",
+    "db-tests/profiles-creator-preview-route.test.ts",
+    "db-tests/profiles-creator-public.test.ts",
+    "db-tests/profiles-creator-route.test.ts",
+    "db-tests/profiles-creator-submission-route.test.ts",
+    "db-tests/profiles-creator-submission.test.ts",
+    "db-tests/profiles-portfolio-route.test.ts",
+    "db-tests/profiles-portfolio.test.ts",
+    "db-tests/reference-labels.test.ts",
+    "db-tests/search-volume-alert.test.ts",
+    "db-tests/t14-backoffice-queue-route.test.ts",
+    "db-tests/t14-campaign-review-route.test.ts",
+    "db-tests/t14-verification-badges-route.test.ts",
+    "db-tests/t14-verification-opening-route.test.ts",
+    "db-tests/t14-verification-queue-route.test.ts",
+    "db-tests/t15-creator-search-rate.test.ts",
+    "db-tests/t16-commission.test.ts",
+    "db-tests/t2-rls-matrix.test.ts",
+    "db-tests/t3-audit-chain.test.ts",
+    "db-tests/t8-account-actions.test.ts",
+    "db-tests/t8-backoffice-sign-in.test.ts",
+    "db-tests/t8-demo-accounts.test.ts",
+    "db-tests/t8-dual-control-service.test.ts",
+    "db-tests/t8-gotrue-findings.test.ts",
+    "db-tests/t8-internal-bootstrap.test.ts",
+    "db-tests/t8-invitations.test.ts",
+    "db-tests/t8-mfa-throttle-journal.test.ts",
+    "db-tests/t8-request-code.test.ts",
+    "db-tests/t8-session-writes.test.ts",
+    "db-tests/t8-verify-code.test.ts",
+    "db-tests/tm1-apollo-settings-parity.test.ts",
+    "db-tests/tm1-brevo-inbound-worker.test.ts",
+    "db-tests/tm1-brevo-inbound.test.ts",
+    "db-tests/tm1-configuration-failures.test.ts",
+    "db-tests/tm1-data-requests-route.test.ts",
+    "db-tests/tm1-email-change-route.test.ts",
+    "db-tests/tm1-member-account-route.test.ts",
+    "db-tests/tm1-member-consent.test.ts",
+    "db-tests/tm1-outbox-claim.test.ts",
+    "db-tests/tm1-periodic-tasks.test.ts",
+    "db-tests/tm1-privacy-execution.test.ts",
+    "db-tests/tm1-storage-purge.test.ts",
+    "db-tests/tm10-signup-route.test.ts",
+    "db-tests/tm10-terms-in-force.test.ts",
+    "db-tests/tm11-drizzle-parity.test.ts",
+    // L3G-11: a new file (about 11 s locally with its kit), in shard 1, T1 growing in shard 2
+    "db-tests/tm12-identified-view.test.ts",
+    "db-tests/tm3-backoffice-catalogue.test.ts",
+    "db-tests/tm9-ops-health-reads.test.ts",
+    "db-tests/verification-agent-opening.test.ts",
+    "db-tests/verification-bands.test.ts",
+    "db-tests/verification-core.test.ts",
+    "db-tests/verification-domain-parity.test.ts",
+    "db-tests/verification-privacy.test.ts",
+    "db-tests/verification-revocation.test.ts",
+    "db-tests/verification-route.test.ts",
+  ],
+  "2": [
+    "db-tests/campaigns-creator-feed.test.ts",
+    "db-tests/campaigns-creator-view-route.test.ts",
+    "db-tests/campaigns-lifecycle.test.ts",
+    "db-tests/campaigns-publication.test.ts",
+    "db-tests/campaigns-route.test.ts",
+    "db-tests/campaigns-submission.test.ts",
+    "db-tests/creator-profile-parity.test.ts",
+    "db-tests/creator-search-door.test.ts",
+    "db-tests/leads-campaign-reads.test.ts",
+    "db-tests/profiles-brand-decision.test.ts",
+    "db-tests/profiles-brand-logo-route.test.ts",
+    "db-tests/profiles-brand-logo.test.ts",
+    "db-tests/profiles-brand-route.test.ts",
+    "db-tests/profiles-brand.test.ts",
+    "db-tests/profiles-creator-decisions.test.ts",
+    "db-tests/profiles-creator-identity.test.ts",
+    "db-tests/profiles-creator-networks.test.ts",
+    "db-tests/profiles-creator-privacy.test.ts",
+    "db-tests/profiles-portfolio-privacy.test.ts",
+    "db-tests/reference-taxonomies.test.ts",
+    "db-tests/search-journal-settings.test.ts",
+    // L3G-02: a new file (about 3 s of cases, committed fixtures), in shard 2, the shorter one in CI
+    // (5:34 against 6:34 at d3940fb)
+    "db-tests/search-caps-concurrency.test.ts",
+    // L3F-04: a new file (about 4 s locally), in shard 2 since L3F-03 went to shard 1
+    "db-tests/search-shortlists.test.ts",
+    // L3G-09: two new files (about 3 s locally each), in shard 2, the shorter one at the last measure
+    "db-tests/creator-identified-search-route.test.ts",
+    "db-tests/campaign-prefill-route.test.ts",
+    // L3G-06: a new file (about 2 s locally), in shard 2 since L3G-04 and L3G-05 went to shard 1
+    "db-tests/team-selection-queue.test.ts",
+    // L3F-08: a new file (about 3 s locally), in shard 2 so that the two new files share the load
+    "db-tests/selection-request-route.test.ts",
+    "db-tests/t1-anonymisation.test.ts",
+    "db-tests/t13-ops-recording.test.ts",
+    "db-tests/t14-backoffice-accounts-route.test.ts",
+    "db-tests/t14-backoffice-actions-route.test.ts",
+    "db-tests/t14-backoffice-invitations-route.test.ts",
+    "db-tests/t14-backoffice-ops-route.test.ts",
+    "db-tests/t14-backoffice-route-inventory.test.ts",
+    "db-tests/t14-campaign-feed-route.test.ts",
+    "db-tests/t14-campaigns-route.test.ts",
+    "db-tests/t14-creator-queue-route.test.ts",
+    "db-tests/t14-creator-search-route.test.ts",
+    "db-tests/t15-campaign-feed-rate.test.ts",
+    "db-tests/t3-elevated-audit.test.ts",
+    "db-tests/t4-roles.test.ts",
+    "db-tests/t8-auth-settings.test.ts",
+    "db-tests/t8-backoffice-screen-reads.test.ts",
+    "db-tests/t8-data-requests-and-reports.test.ts",
+    "db-tests/t8-dual-control.test.ts",
+    "db-tests/t8-new-browser-signal.test.ts",
+    "db-tests/t8-privacy-execution.test.ts",
+    "db-tests/t8-reauth-email-change.test.ts",
+    "db-tests/t9-evidence-unreachable.test.ts",
+    "db-tests/tm1-apollo-connector.test.ts",
+    "db-tests/tm1-brevo-connector.test.ts",
+    "db-tests/tm1-brevo-ids-from-environment.test.ts",
+    "db-tests/tm1-brevo-webhook-route.test.ts",
+    "db-tests/tm1-periodic-runs.test.ts",
+    "db-tests/tm1-sync-settings-guard-journal.test.ts",
+    "db-tests/tm1-worker-loop.test.ts",
+    "db-tests/tm10-signup-provisioning.test.ts",
+    "db-tests/tm10-terms-publication.test.ts",
+    "db-tests/tm10-terms-route.test.ts",
+    "db-tests/tm9-monitoring-loop.test.ts",
+    "db-tests/tm9-ops-monitoring.test.ts",
+    "db-tests/verification-brand-route.test.ts",
+    "db-tests/verification-decisions.test.ts",
+    "db-tests/verification-disputes.test.ts",
+    "db-tests/verification-evidence-route.test.ts",
+    "db-tests/verification-evidence.test.ts",
+    "db-tests/verification-identifier-changes.test.ts",
+    "db-tests/verification-lifecycle.test.ts",
+    "db-tests/verification-registry-sources.test.ts",
+    "db-tests/verification-requests.test.ts",
+  ],
+};

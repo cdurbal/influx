@@ -1,10 +1,11 @@
 "use client";
 
-// Minimal home of a member space (docs/mvp/05 RG71; 17 §2.4, §2.5, §3.7), inside the member shell
+// Home of a member space (docs/mvp/05 RG71; 17 §2.4, §2.5, §3.7), inside the member shell
 // (src/components/member/MemberShell.tsx), which reads the session, sends a member without one to
 // sign-in and a member of the other role to their own space, and shows the blocking terms screen
-// first (17 §6.7). The home announces what comes next (the profile, Lot 2) and how INFLUX works,
-// without any figure (05 RG9); "mon compte" is one link away, and signing out ends on the shell's
+// first (17 §6.7). A brand has its own home (BrandHome, Lot 2: the state of its profile, commit 13);
+// the creator's leads with the card of its profile (CreatorHomeCard, L2D commit 15), then says how
+// INFLUX works, without any figure (05 RG9); "mon compte" is one link away, and signing out ends on the shell's
 // "signed out" page.
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { Notice } from "@/components/member/ui/Notice";
@@ -12,6 +13,8 @@ import { PageHeader } from "@/components/member/ui/PageHeader";
 import type { SignupDoor } from "@influx/contracts/auth";
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState } from "react";
+import { BrandHome } from "@/components/brand-profile/BrandHome";
+import { CreatorHomeCard } from "@/components/creator-profile/CreatorHomeCard";
 import { useMember } from "@/components/member/member-context";
 import { Link } from "@/i18n/navigation";
 import {
@@ -19,7 +22,7 @@ import {
   LEAD_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   SPACE_SCREEN_CLASSES,
-  TEXT_BUTTON_CLASSES,
+  TEXT_LINK_CLASSES,
 } from "./auth-classes";
 import { memberPageHref } from "@/lib/member-paths";
 
@@ -28,6 +31,10 @@ const HOME_STEPS = ["one", "two", "three"] as const;
 
 /** `space`: the role whose space this page is (the shell has checked it is the member's). */
 export function MemberHome({ space }: { space: SignupDoor }) {
+  return space === "advertiser" ? <BrandHome /> : <CreatorHome />;
+}
+
+function CreatorHome() {
   const t = useTranslations("auth");
   const tAccount = useTranslations("account");
   const locale = useLocale();
@@ -49,15 +56,16 @@ export function MemberHome({ space }: { space: SignupDoor }) {
 
   return (
     <div className={SPACE_SCREEN_CLASSES}>
-      <PageHeader title={t(`home.${space}.title`)} />
-      <p className={LEAD_CLASSES}>{t(`home.${space}.lead`)}</p>
+      <PageHeader title={t("home.creator.title")} />
+      <p className={LEAD_CLASSES}>{t("home.creator.lead")}</p>
+      <CreatorHomeCard />
       <section aria-labelledby={stepsTitleId} className={CARD_CLASSES}>
         <h2 id={stepsTitleId} className={CARD_TITLE}>
           {t("home.howItWorks")}
         </h2>
         <ol className="flex list-decimal flex-col gap-2 pl-5 text-md text-text-secondary">
           {HOME_STEPS.map((step) => (
-            <li key={step}>{t(`home.${space}.steps.${step}`)}</li>
+            <li key={step}>{t(`home.creator.steps.${step}`)}</li>
           ))}
         </ol>
       </section>
@@ -67,7 +75,7 @@ export function MemberHome({ space }: { space: SignupDoor }) {
         </Notice>
         <Link
           href={memberPageHref("accountHub", locale)}
-          className={TEXT_BUTTON_CLASSES}
+          className={TEXT_LINK_CLASSES}
         >
           {tAccount("homeLink")}
         </Link>

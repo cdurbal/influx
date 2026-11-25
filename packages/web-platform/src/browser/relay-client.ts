@@ -43,18 +43,36 @@ export type ResponseSchema<Value> = {
  * `failed`: anything else — network, time-out, error envelope, unexpected shape. The screen
  * shows its service message; nothing is retried here. When the answer was an error envelope
  * (02 §9.2), `code` is its code and `issues` the rules its details name (never a value): the
- * screen picks its message from them, as a translation key, never by showing them.
+ * screen picks its message from them, as a translation key, never by showing them. A refusal that
+ * says how long to wait (a request asked again too soon, L2E 18) carries it in `retryAfterSeconds`.
  */
 export type RelayResult<Value> =
   | { kind: "ok"; data: Value }
   | { kind: "unauthenticated" }
-  | { kind: "failed"; code?: string; issues?: readonly string[] };
+  | {
+      kind: "failed";
+      code?: string;
+      issues?: readonly string[];
+      /** The delay the API asked to wait (`Retry-After`, whole seconds), when it named one. */
+      retryAfterSeconds?: number;
+    };
 
 /** The methods of the relay (03 PP-3); GET and DELETE carry no body. */
 export type RelayMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
 /** A code or an issue of the error envelope: snake_case words only, else ignored. */
 const ERROR_WORD_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
+
+/** `Retry-After` as apps/api writes it: whole seconds, never a date; anything else is no delay. */
+const RETRY_AFTER_PATTERN = /^\d{1,9}$/;
+
+function retryAfterOf(response: Response): { retryAfterSeconds?: number } {
+  const header = response.headers.get("retry-after")?.trim();
+  if (header === undefined || !RETRY_AFTER_PATTERN.test(header)) {
+    return {};
+  }
+  return { retryAfterSeconds: Number(header) };
+}
 
 /** The code and the issues of an error envelope; nothing when the body is not one. */
 function errorOf(payload: unknown): { code?: string; issues?: string[] } {
@@ -83,6 +101,13 @@ function errorOf(payload: unknown): { code?: string; issues?: string[] } {
   return { code, issues };
 }
 
+/**
+ * The body of a call: a JSON object (sent as `application/json`) or a `Blob`, the raw bytes of a
+ * file (the logo, D80), sent as is as `application/octet-stream`: neither the declared type nor
+ * the name of the file ever leaves the browser.
+ */
+export type RelayBody = Record<string, unknown> | Blob;
+
 /** Bound of one call, as the relay bounds its own (03 PP-9). */
 const CALL_TIMEOUT_MS = 15_000;
 
@@ -90,7 +115,7 @@ export async function callRelay<Value>(
   method: RelayMethod,
   path: string,
   schema: ResponseSchema<Value>,
-  body?: Record<string, unknown>,
+  body?: RelayBody,
   query?: Readonly<Record<string, string>>,
 ): Promise<RelayResult<Value>> {
   if (!API_PATH_PATTERN.test(path)) {
@@ -100,13 +125,20 @@ export async function callRelay<Value>(
     throw new Error("relay body on a method without one");
   }
   const search = searchOf(query);
+  const raw = body instanceof Blob;
   let response: Response;
   try {
     response = await fetch(`${RELAY_PREFIX}${path}${search}`, {
       method,
       headers:
-        body === undefined ? undefined : { "content-type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
+        body === undefined
+          ? undefined
+          : {
+              "content-type": raw
+                ? "application/octet-stream"
+                : "application/json",
+            },
+      body: body === undefined ? undefined : raw ? body : JSON.stringify(body),
       credentials: "same-origin",
       cache: "no-store",
       redirect: "error",
@@ -126,7 +158,7 @@ export async function callRelay<Value>(
     return { kind: "failed" };
   }
   if (response.status !== 200) {
-    return { kind: "failed", ...errorOf(payload) };
+    return { kind: "failed", ...errorOf(payload), ...retryAfterOf(response) };
   }
   const parsed = schema.safeParse(payload);
   return parsed.success

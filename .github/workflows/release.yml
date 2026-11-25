@@ -1,0 +1,93 @@
+# Frozen release publication (D71 amended 2026-11-25, docs/mvp/runbooks/production.md §6):
+# triggered when an annotated SemVer tag `vMAJOR.MINOR.PATCH` is pushed to GitHub.
+# Verifies that the tagged commit belongs to `main` and passes the blocking I-4 security review
+# marker check since the anchor, then publishes the GitHub Release listing the SQL migrations and
+# commits of the version. Never deploys and never migrates a database: promoting the release to
+# production goes through the `release/vX.Y.Z → production` pull request and `ci.yml`.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish-release:
+    name: Verify frozen tag and publish GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Require a strict SemVer tag on main
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! printf '%s\n' "$TAG" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "::error::Tag $TAG is not a strict SemVer tag vMAJOR.MINOR.PATCH."
+            exit 1
+          fi
+          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main +refs/heads/production:refs/remotes/origin/production
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+            echo "::error::Tag $TAG ($GITHUB_SHA) is not an ancestor of origin/main: refusing to publish."
+            exit 1
+          fi
+
+      - name: Security review markers (I-4)
+        env:
+          I4_ANCHOR: 56b8046083f809ac82399e994f0415d12afc2188
+        run: |
+          base="$(git rev-parse refs/remotes/origin/production)"
+          node packages/test-kit/scripts/check-security-review.ts "$base" "$GITHUB_SHA" "$I4_ANCHOR"
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prev="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | grep -Fxv "$TAG" | head -n 1 || true)"
+          if [ -n "$prev" ]; then
+            base="$prev"
+          else
+            base="$(git rev-parse refs/remotes/origin/production)"
+          fi
+          notes="$RUNNER_TEMP/release-notes.md"
+          {
+            printf '## Frozen release `%s`\n\n' "$TAG"
+            printf -- '- **Commit (`main`):** `%s`\n' "$GITHUB_SHA"
+            printf -- '- **Base:** `%s`\n' "$base"
+            printf -- '- **Promotion:** open or merge PR `release/%s → production` (merge commit, `--no-ff`)\n\n' "$TAG"
+            printf '### Database migrations\n\n'
+            migrations="$(git diff --name-only --diff-filter=A "$base..$GITHUB_SHA" -- supabase/migrations/ | sort)"
+            if [ -n "$migrations" ]; then
+              printf '%s\n' "$migrations" | sed 's/^/- `/' | sed 's/$/`/'
+            else
+              printf -- '- None\n'
+            fi
+            printf '\n### Commits\n\n'
+            git log --no-merges --format='- `%h` %s' "$base..$GITHUB_SHA"
+          } > "$notes"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file "$notes"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "$TAG" --notes-file "$notes"
+          fi

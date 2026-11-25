@@ -1,0 +1,376 @@
+{
+  "publish": {
+    "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to submit your profile: {fields}."
+  },
+  "layer": {
+    "public": "Visible to all creators.",
+    "revealed": "Visible only after an introduction is opened.",
+    "internal": "Visible only to the INFLUX team."
+  },
+  "status": {
+    "pending": "Your profile is being reviewed by the INFLUX team.",
+    "pendingWithPublished": "Your changes are being reviewed. Your profile remains visible in its previous version.",
+    "rejected": "Your profile was not published: {reason}",
+    "revisionRefused": "Your changes were not published: {reason} Your profile remains visible in its previous version."
+  },
+  "website": {
+    "normalized": "We kept the domain {domain}. A contact page belongs in the \"your contact\" section."
+  },
+  "budget": {
+    "notice": "Indicative budget per collaboration, for information only — it is not a commitment."
+  },
+  "contact": {
+    "revealNotice": "Conversations continue inside INFLUX, with your contact and the INFLUX account manager. These details let you identify who you are talking to."
+  },
+  "badge": {
+    "label": "Brand verified on {date} — domain and company registration checked.",
+    "toRefresh": "Brand verified on {date} — verification needs refreshing."
+  },
+  "errors": {
+    "contactInPublicText": "Your text contains what looks like direct contact details. Please remove them: conversations with creators take place in INFLUX."
+  },
+  "search": {
+    "blockedUntilPublished": "Publish your profile to search for creators."
+  },
+  "field": {
+    "required": "required",
+    "limit": "Up to {max}",
+    "count": "{count} of {max}",
+    "limitReached": "Limit reached: untick a choice to pick another.",
+    "characters": "{count, number} / {max, number} characters",
+    "yes": "Yes",
+    "no": "No",
+    "choose": "Choose…",
+    "add": "Add a country…",
+    "remove": "Remove {label}",
+    "selected": "Your choices",
+    "addOne": "Add a sector…",
+    "limitFree": "Several choices possible.",
+    "chosen": "{count, plural, =0 {No choice yet} one {# choice} other {# choices}}"
+  },
+  "completeness": {
+    "label": "Profile completeness",
+    "value": "{score, number}%"
+  },
+  "reference": {
+    "topic": {
+      "beauty": "Beauty",
+      "fashion": "Fashion",
+      "food": "Food and cooking",
+      "travel": "Travel",
+      "sport_fitness": "Sport and fitness",
+      "wellness": "Wellness and health",
+      "family": "Family and parenting",
+      "home": "Home, garden and DIY",
+      "gaming": "Gaming",
+      "tech": "Tech",
+      "entertainment": "Comedy and entertainment",
+      "music": "Music",
+      "culture": "Film, TV, books and arts",
+      "education": "Education and learning",
+      "business_finance": "Business and personal finance",
+      "automotive": "Cars and motorbikes",
+      "pets": "Pets"
+    },
+    "network": {
+      "instagram": "Instagram",
+      "tiktok": "TikTok",
+      "youtube": "YouTube",
+      "facebook": "Facebook",
+      "linkedin": "LinkedIn",
+      "x": "X",
+      "snapchat": "Snapchat",
+      "twitch": "Twitch",
+      "pinterest": "Pinterest",
+      "threads": "Threads"
+    },
+    "format": {
+      "instagram_post": "Instagram post",
+      "instagram_carousel": "Instagram carousel",
+      "instagram_reel": "Instagram Reel",
+      "instagram_story": "Instagram Story",
+      "instagram_live": "Instagram Live",
+      "tiktok_video": "TikTok video",
+      "tiktok_carousel": "TikTok photo carousel",
+      "tiktok_live": "TikTok Live",
+      "youtube_video": "Dedicated YouTube video",
+      "youtube_integration": "In-video integration on YouTube",
+      "youtube_short": "YouTube Short",
+      "youtube_live": "YouTube Live",
+      "facebook_post": "Facebook post",
+      "facebook_reel": "Facebook Reel",
+      "facebook_story": "Facebook Story",
+      "linkedin_post": "LinkedIn post",
+      "x_post": "X post",
+      "threads_post": "Threads post",
+      "snapchat_story": "Snapchat Story",
+      "snapchat_spotlight": "Snapchat Spotlight",
+      "twitch_live": "Twitch Live",
+      "pinterest_pin": "Pinterest Pin",
+      "ugc_video": "UGC video",
+      "ugc_photo": "UGC photo"
+    },
+    "sector": {
+      "alcohol": "Alcohol",
+      "gambling": "Gambling and betting",
+      "cbd": "CBD",
+      "finance": "Finance (banking, insurance, investing)",
+      "health": "Health (medicines, devices, supplements)",
+      "crypto": "Crypto-assets",
+      "adult": "Adult content",
+      "beauty_personal_care": "Beauty and personal care",
+      "fashion_accessories": "Fashion and jewellery",
+      "food_beverages": "Food and soft drinks",
+      "restaurants_hospitality": "Hospitality",
+      "travel_tourism": "Travel and tourism",
+      "sports_leisure": "Sports and leisure",
+      "home_garden": "Home and garden",
+      "consumer_electronics": "Consumer electronics",
+      "software_telecom": "Software and telecoms",
+      "video_games": "Video games",
+      "automotive_mobility": "Automotive and mobility",
+      "media_entertainment": "Media and entertainment",
+      "education_training": "Education and training",
+      "baby_kids": "Baby and kids",
+      "pet_care": "Pet care",
+      "retail_ecommerce": "Retail and e-commerce",
+      "real_estate": "Real estate",
+      "business_services": "Business services",
+      "nonprofit_public": "Non-profits and public bodies"
+    },
+    "usage_right": {
+      "organic_repost": "Organic repost",
+      "paid_whitelisting": "Paid whitelisting",
+      "media_buy": "Media buy"
+    }
+  },
+  "companySize": {
+    "1_10": "1 to 10 people",
+    "11_50": "11 to 50 people",
+    "51_250": "51 to 250 people",
+    "251_1000": "251 to 1,000 people",
+    "1001_plus": "More than 1,000 people"
+  },
+  "exclusivity": {
+    "none": "No exclusivity",
+    "le_1m": "Up to 1 month",
+    "le_3m": "Up to 3 months",
+    "negotiable": "To be discussed"
+  },
+  "rhythm": {
+    "one_off": "One-off collaboration",
+    "recurring": "Recurring collaborations",
+    "ambassador": "Ambassador programme"
+  },
+  "contactRole": {
+    "executive": "General management",
+    "marketing": "Marketing",
+    "partnerships_influence": "Partnerships and influence",
+    "communication": "Communication",
+    "ecommerce": "E-commerce",
+    "procurement": "Procurement",
+    "mandated_agency": "Mandated agency"
+  },
+  "workingLanguage": {
+    "fr": "French",
+    "en": "English"
+  },
+  "page": {
+    "title": "My brand profile",
+    "loading": "Loading your profile…",
+    "unavailable": "We can't display your profile right now. Try again in a few minutes.",
+    "retry": "Try again"
+  },
+  "state": {
+    "label": "Status: {state}",
+    "draft": "Draft",
+    "pending_review": "Awaiting review",
+    "published": "Published",
+    "rejected": "Rejected",
+    "suspended": "Suspended"
+  },
+  "statusText": {
+    "draft": "Not visible to creators.",
+    "pendingSince": "Submitted on {date}. Answer within 1 business day. You can still edit your profile.",
+    "published": "Your profile is published. You can edit it here: the name, logo, presentation, website, contact role and main sector are reviewed by the INFLUX team before they are visible; everything else applies at once.",
+    "rejectedReason": "the INFLUX team will tell you why. Fix your profile, then submit it again.",
+    "suspended": "Your profile is suspended: it can no longer be edited. Contact the INFLUX team to find out more.",
+    "rejectedNext": "Fix your profile, then submit it again."
+  },
+  "section": {
+    "identity": "1. Public identity",
+    "expectations": "2. What I am looking for",
+    "contact": "3. Your contact person",
+    "verification": "4. Verification"
+  },
+  "fields": {
+    "companyName": {
+      "label": "Trading name",
+      "help": "Taken from your sign-up. Changing it also updates your account."
+    },
+    "country": {
+      "label": "Country of establishment",
+      "help": "Taken from your account; change it in “My details”."
+    },
+    "primarySector": {
+      "label": "Main sector"
+    },
+    "secondarySectors": {
+      "label": "Secondary sectors"
+    },
+    "companySize": {
+      "label": "Company size"
+    },
+    "targetMarkets": {
+      "label": "Target markets"
+    },
+    "workingLanguages": {
+      "label": "Working languages"
+    },
+    "website": {
+      "label": "Website",
+      "placeholder": "example.com"
+    },
+    "presentation": {
+      "label": "Presentation",
+      "help": "Between 120 and 1,000 characters.",
+      "hint": "No address, number or link in this text: conversations with creators take place in INFLUX."
+    },
+    "topics": {
+      "label": "Topics you look for"
+    },
+    "networks": {
+      "label": "Target networks"
+    },
+    "formats": {
+      "label": "Expected formats"
+    },
+    "usageRights": {
+      "label": "Usual usage rights"
+    },
+    "exclusivityBand": {
+      "label": "Usual exclusivity"
+    },
+    "offersNonMonetary": {
+      "label": "Non-monetary compensation"
+    },
+    "audienceCountries": {
+      "label": "Target audience countries"
+    },
+    "collaborationRhythm": {
+      "label": "Collaboration rhythm"
+    },
+    "contactRole": {
+      "label": "Role"
+    },
+    "contactFirstName": {
+      "label": "First name"
+    },
+    "contactEmail": {
+      "label": "Work e-mail",
+      "help": "If left empty, your sign-in address is used."
+    },
+    "contactPhone": {
+      "label": "Phone",
+      "help": "International format, for example +33612345678."
+    },
+    "contactUrl": {
+      "label": "Contact page",
+      "help": "Full address, in https."
+    }
+  },
+  "contactBlock": {
+    "notice": "The first name is visible only to the creator concerned, once an introduction is opened. The e-mail, phone and contact page stay visible to the INFLUX team only, never to a creator."
+  },
+  "fieldErrors": {
+    "required": "Required to submit your profile.",
+    "invalid": "This value is not valid.",
+    "unknown": "This choice is no longer available: pick another one.",
+    "website": "This is not a valid domain name. Type for example example.com.",
+    "companyName": "Enter the name of your company.",
+    "emptied": "This field is required: it cannot be emptied on a published profile."
+  },
+  "save": {
+    "saving": "Saving…",
+    "saved": "Saved automatically at {time}",
+    "idle": "Automatic saving",
+    "retry": "Changes not saved — trying again in 5 s."
+  },
+  "submit": {
+    "label": "Submit for review",
+    "busy": "Sending…",
+    "done": "Profile submitted. Answer within 1 business day.",
+    "unavailable": "We couldn't submit your profile. Your information is kept; try again in a moment.",
+    "unsaved": "Your latest changes are not saved yet. Try again in a few seconds.",
+    "explain": "The button stays active: if information is missing, it is named above.",
+    "locked": "Your profile can't be submitted in this state."
+  },
+  "progress": {
+    "title": "To submit",
+    "allSet": "All the required information is filled in."
+  },
+  "logo": {
+    "label": "Logo",
+    "help": "Optional but recommended: without a logo, creators see a neutral badge. PNG, JPEG or WebP, 2 MB at most, at least 256 px on the longest side. The image is made square, and the hidden information of the photo is removed.",
+    "alt": "Preview of your logo",
+    "none": "No logo yet.",
+    "choose": "Upload a logo",
+    "replace": "Replace the logo",
+    "remove": "Remove the logo",
+    "retry": "Try the upload again",
+    "reload": "Reload the logo",
+    "status": {
+      "loading": "Loading the logo…",
+      "uploading": "Sending the logo…",
+      "removing": "Removing the logo…",
+      "uploaded": "Logo saved.",
+      "removed": "Logo removed.",
+      "uploadedInReview": "Logo sent: it will be visible once the INFLUX team has reviewed it.",
+      "removedInReview": "Logo removal sent: it will apply once the INFLUX team has reviewed it."
+    },
+    "errors": {
+      "empty": "This file is empty. Choose a PNG, JPEG or WebP image.",
+      "tooLarge": "This file is over 2 MB. Choose a lighter PNG, JPEG or WebP image.",
+      "unsupported_type": "This format is not accepted. Choose a PNG, JPEG or WebP image (no PDF).",
+      "undecodable": "This image cannot be read. Try another PNG, JPEG or WebP file.",
+      "too_many_pixels": "This image is too large: 4,096 px per side at most.",
+      "too_small": "This image is too small: its longest side must be at least 256 px.",
+      "output_too_large": "This image is still too heavy after processing. Choose a simpler image.",
+      "quota": "You have reached the number of uploads allowed for today. Try again tomorrow.",
+      "locked": "Your profile can no longer be edited: the logo cannot change.",
+      "unavailable": "The logo could not be uploaded: the service is not answering. The rest of your profile is saved and the logo needs to be uploaded again.",
+      "removalFailed": "The logo could not be removed. Try again.",
+      "loadFailed": "The logo could not be loaded."
+    },
+    "review": {
+      "regime": "A new logo is reviewed by the INFLUX team before it is visible; the current logo stays displayed until then.",
+      "set": "Your new logo is being reviewed. The current logo stays displayed.",
+      "clear": "The removal of your logo is being reviewed. The current logo stays displayed."
+    },
+    "pendingAlt": "Preview of the proposed logo, being reviewed",
+    "pendingCaption": "Being reviewed"
+  },
+  "home": {
+    "action": {
+      "title": "Complete your brand profile",
+      "titleReady": "Your profile is ready to submit"
+    },
+    "locked": {
+      "campaign": {
+        "title": "Publish a campaign",
+        "text": "Available once your profile is published."
+      },
+      "search": {
+        "title": "Search for creators"
+      },
+      "soon": "Coming soon to your space."
+    },
+    "search": {
+      "text": "Search for creators by criteria: you never see an identity before an introduction."
+    }
+  },
+  "review": {
+    "regime": "A change is reviewed by the INFLUX team before it is visible; the current version stays displayed until then.",
+    "pending": "Being reviewed: your version is not visible yet, the previous version stays displayed."
+  }
+}

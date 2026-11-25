@@ -67,6 +67,170 @@ export const MEMBER_INVITATION_ID = "00000000-0000-4000-8000-00000000ff0a";
  */
 export const PRIVACY_DUAL_CONTROL_REQUEST_ID =
   "00000000-0000-4000-8000-00000000ff0b";
+/**
+ * The active logo rows of advertisers A and B (0204, L2B): rows only, no object in Storage (the
+ * database tests never reach Storage).
+ */
+export const BRAND_LOGO_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff0c",
+  b: "00000000-0000-4000-8000-00000000ff0d",
+} as const;
+/**
+ * A CLOSED entry of queue 1 per advertiser (0207, L2C): a revision withdrawn, so that no case
+ * finds an open entry it did not open (the unique open entry per account).
+ */
+export const REVIEW_ENTRY_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff0e",
+  b: "00000000-0000-4000-8000-00000000ff0f",
+} as const;
+/** The withdrawn revision of each entry above (0207). */
+export const FIELD_REVISION_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff10",
+  b: "00000000-0000-4000-8000-00000000ff11",
+} as const;
+/**
+ * The primary network line of creators A and B (0217, L2D): fixed, so that the exact audience of
+ * the data set and the insert templates of T2 can name the line they belong to.
+ */
+export const CREATOR_SOCIAL_ACCOUNT_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff12",
+  b: "00000000-0000-4000-8000-00000000ff13",
+} as const;
+
+/**
+ * The verification rows of creators A and B (0221, L2E commit 05): an APPROVED account request on
+ * the primary line, its observed code, a purged evidence row and a revoked badge, all inert (no
+ * open request, no holding badge, nothing for the purge task), so that `propre` is observable
+ * against account B and no case finds a request or a badge it did not open.
+ */
+export const VERIFICATION_IDS = {
+  request: {
+    a: "00000000-0000-4000-8000-00000000ff14",
+    b: "00000000-0000-4000-8000-00000000ff15",
+  },
+  code: {
+    a: "00000000-0000-4000-8000-00000000ff16",
+    b: "00000000-0000-4000-8000-00000000ff17",
+  },
+  evidence: {
+    a: "00000000-0000-4000-8000-00000000ff18",
+    b: "00000000-0000-4000-8000-00000000ff19",
+  },
+  badge: {
+    a: "00000000-0000-4000-8000-00000000ff1a",
+    b: "00000000-0000-4000-8000-00000000ff1b",
+  },
+} as const;
+
+/**
+ * 0231 (L2F commit 06): the 2V verification.revoke_badge that withdrew the badge of creator A
+ * (VERIFICATION_IDS.badge.a): requested by agent A, confirmed by admin A, consumed, its request of a
+ * withdrawal executed, so that T2 finds a row of verification.badge_revocation_requests. Inert.
+ */
+export const REVOCATION_DUAL_CONTROL_REQUEST_ID =
+  "00000000-0000-4000-8000-00000000ff1c";
+
+/**
+ * 0232 (L2F commit 07): one UPHELD contest per creator, on his revoked badge (VERIFICATION_IDS.badge),
+ * decided by agent B, closed, so that T2 observes `propre` against account B. Inert: no open entry
+ * of queue 5.
+ */
+export const DISPUTE_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff1d",
+  b: "00000000-0000-4000-8000-00000000ff1e",
+} as const;
+
+/**
+ * 0233 (L2F commit 08): one CONFIRMED entry of queue 6 per creator, on his revoked badge
+ * (VERIFICATION_IDS.badge), decided by agent B, closed, so that T2 finds a row agent and admin read.
+ * Inert: no open entry of queue 6.
+ */
+export const IDENTIFIER_CHANGE_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff1f",
+  b: "00000000-0000-4000-8000-00000000ff20",
+} as const;
+
+/**
+ * 0242 (L2G commit 02): one PURGED visual per creator (withdrawn, its object removed: rows only, no
+ * object in Storage) and one statement of RG83 on it, so that T2 observes `propre` against account
+ * B. Inert: no place held, nothing for queue 3 nor for the purge task.
+ */
+export const PORTFOLIO_IDS = {
+  item: {
+    a: "00000000-0000-4000-8000-00000000ff21",
+    b: "00000000-0000-4000-8000-00000000ff22",
+  },
+  declaration: {
+    a: "00000000-0000-4000-8000-00000000ff23",
+    b: "00000000-0000-4000-8000-00000000ff24",
+  },
+} as const;
+
+/**
+ * 0243 (L2G commit 03): one WITHDRAWN entry of queue 2 per creator and one withdrawn revision on it,
+ * so that T2 observes `propre` against account B. Inert: closed, nothing open in queue 2.
+ */
+export const CREATOR_REVIEW_IDS = {
+  entry: {
+    a: "00000000-0000-4000-8000-00000000ff25",
+    b: "00000000-0000-4000-8000-00000000ff26",
+  },
+  revision: {
+    a: "00000000-0000-4000-8000-00000000ff27",
+    b: "00000000-0000-4000-8000-00000000ff28",
+  },
+} as const;
+
+/**
+ * 0303 (L3B commit 02): one DRAFT campaign per advertiser, with one row in each of its nine lists,
+ * so that T2 observes `propre` against account B. Inert: a draft is in no queue and seen by nobody
+ * but its brand.
+ */
+export const CAMPAIGN_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff29",
+  b: "00000000-0000-4000-8000-00000000ff2a",
+} as const;
+
+/**
+ * 0307 (L3C commit 02): one WITHDRAWN entry of queue 7 per draft campaign, so that T2 observes
+ * `propre` for the brand and the read of agent and admin. Inert: closed, in no queue.
+ */
+export const CAMPAIGN_REVIEW_IDS = {
+  a: "00000000-0000-4000-8000-00000000ff2b",
+  b: "00000000-0000-4000-8000-00000000ff2c",
+} as const;
+
+/**
+ * 0308 (L3C commit 03): one snapshot of campaign B, naming its withdrawn entry, so that T2 observes the
+ * read of agent and admin. Inert: never the current snapshot of the draft campaign B (campaign A
+ * keeps none, the tests of the publication count its versions).
+ */
+export const CAMPAIGN_SNAPSHOT_ID_B = "00000000-0000-4000-8000-00000000ff2d";
+
+/**
+ * 0309 (L3C commit 04): one intervention on campaign B (its creation by agent B), so that T2 observes
+ * the read of agent and admin. Inert: the lifecycle tests count the interventions of campaign A or of
+ * the campaigns they create.
+ */
+export const CAMPAIGN_INTERVENTION_ID_B =
+  "00000000-0000-4000-8000-00000000ff2e";
+
+/**
+ * 0316 (L3E commit 03): one inert search of advertiser A (a fixed past instant, outside every bucket)
+ * serving creator A with two reasons, its exposure, one shortlist of advertiser A holding creator A,
+ * and one counter row, so that T2 finds a row in each table of the journal; 0323 (L3F commit 03): one
+ * opening of creator A from that search. Append-only: inserted once.
+ */
+export const SEARCH_QUERY_ID_A = "00000000-0000-4000-8000-00000000ff2f";
+export const SHORTLIST_ID_A = "00000000-0000-4000-8000-00000000ff30";
+
+/**
+ * 0317 (L3E commit 04): one LIFTED block between advertiser B and creator B, posed by the brand under
+ * the reason `dataset_probe` (the only reason of the stack: the migration loads none), so that T2 finds
+ * a row in each table of matching. Lifted, it excludes nothing from any feed.
+ */
+export const PARTY_BLOCK_ID_B = "00000000-0000-4000-8000-00000000ff31";
+export const DATASET_BLOCK_REASON = "dataset_probe";
 
 export function isInternalRole(role: BusinessRoleName): boolean {
   return role === "agent" || role === "admin";
@@ -240,6 +404,534 @@ export async function loadDataSet(migration: postgres.Sql): Promise<DataSet> {
       await tx`
         insert into profiles.advertiser_profiles (account_id, legal_name)
         values (${accountIdOf("advertiser", side)}, ${`T2 brand ${side}`})
+        on conflict do nothing`;
+    }
+
+    // One row per advertiser in each table of the full brand profile (0202, L2B), so that
+    // `propre` is observable against account B; the T2 insert templates add other codes to A.
+    const brandRows = {
+      a: {
+        sector: "beauty_personal_care",
+        market: "FR",
+        language: "fr",
+        topic: "beauty",
+        network: "instagram",
+        format: "instagram_reel",
+        audience: "FR",
+        right: "organic_repost",
+      },
+      b: {
+        sector: "fashion_accessories",
+        market: "GB",
+        language: "en",
+        topic: "fashion",
+        network: "tiktok",
+        format: "tiktok_video",
+        audience: "BE",
+        right: "media_buy",
+      },
+    } as const;
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("advertiser", side);
+      const rows = brandRows[side];
+      await tx`
+        insert into profiles.advertiser_secondary_sectors (account_id, slot, sector_code)
+        values (${account}, 1, ${rows.sector}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_target_markets (account_id, slot, country_code)
+        values (${account}, 1, ${rows.market}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_working_languages (account_id, language_code)
+        values (${account}, ${rows.language}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_topics (account_id, slot, topic_code)
+        values (${account}, 1, ${rows.topic}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_networks (account_id, network_code)
+        values (${account}, ${rows.network}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_formats (account_id, format_code)
+        values (${account}, ${rows.format}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_audience_countries (account_id, slot, country_code)
+        values (${account}, 1, ${rows.audience}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_usage_rights (account_id, usage_right_code)
+        values (${account}, ${rows.right}) on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_contact_details
+          (account_id, contact_first_name, contact_email, contact_phone)
+        values (${account}, ${`T2 contact ${side}`}, ${`t2-contact-${side}@example.test`},
+                '+33100000000')
+        on conflict do nothing`;
+      // 0204: an active logo row per advertiser, and the Storage usage of the previous UTC day
+      // (today's quota of the tests stays whole)
+      await tx`
+        insert into profiles.brand_logo_objects
+          (id, account_id, state, received_bytes, byte_size, width, height, activated_at)
+        values (${BRAND_LOGO_IDS[side]}, ${account}, 'active', 40000, 20000, 512, 512, now())
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.storage_daily_usage
+          (account_id, bucket_id, usage_day, upload_count, received_bytes)
+        values (${account}, 'brand-logo', (now() at time zone 'UTC')::date - 1, 1, 40000)
+        on conflict do nothing`;
+      // 0207: a closed entry of queue 1 and its withdrawn revision per advertiser
+      await tx`
+        insert into profiles.advertiser_review_entries (id, account_id, kind, state, closed_at)
+        values (${REVIEW_ENTRY_IDS[side]}, ${account}, 'revision', 'withdrawn', now())
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.profile_field_revisions
+          (id, account_id, field_code, proposed_value, status, advertiser_review_entry_id,
+           closed_at)
+        values (${FIELD_REVISION_IDS[side]}, ${account}, 'advertiser.presentation',
+                '"T2 presentation"'::jsonb, 'withdrawn', ${REVIEW_ENTRY_IDS[side]}, now())
+        on conflict do nothing`;
+    }
+    // 0303 (L3B): a draft campaign per advertiser and one row in each of its lists, so that
+    // `propre` is observable against account B; the T2 insert templates add other codes to A.
+    const campaignRows = {
+      a: {
+        network: "instagram",
+        format: "instagram_reel",
+        country: "FR",
+        language: "fr",
+        band: "micro",
+        age: "25_34",
+        topic: "beauty",
+        item: "motivation_message",
+      },
+      b: {
+        network: "tiktok",
+        format: "tiktok_video",
+        country: "GB",
+        language: "en",
+        band: "mid",
+        age: "18_24",
+        topic: "fashion",
+        item: "availability",
+      },
+    } as const;
+    for (const side of ["a", "b"] as const) {
+      const campaign = CAMPAIGN_IDS[side];
+      const rows = campaignRows[side];
+      await tx`
+        insert into campaigns.campaigns (id, advertiser_account_id, title)
+        values (${campaign}, ${accountIdOf("advertiser", side)}, ${`T2 campaign ${side}`})
+        on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_key_messages (campaign_id, position, body)
+        values (${campaign}, 1, ${`T2 key message ${side}`}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_deliverables
+          (campaign_id, slot, network_code, format_code, quantity)
+        values (${campaign}, 1, ${rows.network}, ${rows.format}, 1) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_usage_territories (campaign_id, slot, country_code)
+        values (${campaign}, 1, ${rows.country}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_audience_countries (campaign_id, slot, country_code)
+        values (${campaign}, 1, ${rows.country}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_audience_languages (campaign_id, language_code)
+        values (${campaign}, ${rows.language}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_audience_bands (campaign_id, audience_band_code)
+        values (${campaign}, ${rows.band}) on conflict do nothing`;
+      // 0307 (L3C): a withdrawn entry of queue 7 (CAMPAIGN_REVIEW_IDS), inert
+      await tx`
+        insert into campaigns.campaign_review_entries
+          (id, campaign_id, advertiser_account_id, state, closed_at)
+        values (${CAMPAIGN_REVIEW_IDS[side]}, ${campaign}, ${accountIdOf("advertiser", side)},
+                'withdrawn', now() + interval '1 second')
+        on conflict do nothing`;
+      // 0308 (L3C): an inert snapshot of campaign B (CAMPAIGN_SNAPSHOT_ID_B)
+      if (side === "b") {
+        await tx`
+          insert into campaigns.campaign_published_snapshots
+            (id, campaign_id, version, payload, content_hash, published_at,
+             published_by_account_id, review_entry_id)
+          values (${CAMPAIGN_SNAPSHOT_ID_B}, ${campaign}, 1, '{}'::jsonb,
+                  sha256(convert_to('{}', 'UTF8')), now(), ${accountIdOf("agent", "b")},
+                  ${CAMPAIGN_REVIEW_IDS[side]})
+          on conflict do nothing`;
+        // 0309 (L3C): an inert intervention of campaign B (CAMPAIGN_INTERVENTION_ID_B)
+        await tx`
+          insert into campaigns.agent_interventions
+            (id, campaign_id, advertiser_account_id, kind, new_value, reason_code,
+             agent_account_id)
+          values (${CAMPAIGN_INTERVENTION_ID_B}, ${campaign}, ${accountIdOf("advertiser", side)},
+                  'created', '{}'::jsonb, 'brand_request', ${accountIdOf("agent", "b")})
+          on conflict do nothing`;
+      }
+      await tx`
+        insert into campaigns.campaign_audience_age_bands (campaign_id, age_band_code)
+        values (${campaign}, ${rows.age}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_topics (campaign_id, slot, topic_code)
+        values (${campaign}, 1, ${rows.topic}) on conflict do nothing`;
+      await tx`
+        insert into campaigns.campaign_requested_items (campaign_id, slot, item_code)
+        values (${campaign}, 1, ${rows.item}) on conflict do nothing`;
+    }
+    // 0216 (L2D): the storefront of each creator and one row in each of its lists, so that
+    // `propre` is observable against account B; the T2 insert templates add other codes to A.
+    // Fixed aliases, in the alphabet of profiles.new_creator_alias() (a stack that ran the reprise
+    // of 0216 after the data set keeps the drawn ones).
+    const creatorRows = {
+      a: {
+        alias: "ZZZZ22",
+        topic: "beauty",
+        language: "fr",
+        tone: "educational",
+        format: "instagram_reel",
+        right: "organic_repost",
+      },
+      b: {
+        alias: "ZZZZ23",
+        topic: "fashion",
+        language: "en",
+        tone: "humorous",
+        format: "tiktok_video",
+        right: "media_buy",
+      },
+    } as const;
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      const rows = creatorRows[side];
+      await tx`
+        insert into profiles.creator_public_profiles
+          (account_id, alias, residence_country_code, headline)
+        values (${account}, ${rows.alias}, 'FR', ${`T2 headline ${side}`})
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_topics (account_id, slot, topic_code)
+        values (${account}, 1, ${rows.topic}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_publication_languages (account_id, slot, language_code)
+        values (${account}, 1, ${rows.language}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_tones (account_id, slot, tone_code)
+        values (${account}, 1, ${rows.tone}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_formats (account_id, format_code)
+        values (${account}, ${rows.format}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_usage_rights (account_id, usage_right_code, inclusion)
+        values (${account}, ${rows.right}, 'included') on conflict do nothing`;
+    }
+    // 0314 (L3D): one inert read of the feed by creator A, at a fixed past instant (outside the
+    // 60 s and 24 h of the bucket of the account; append-only: inserted once)
+    await tx`
+      insert into search.creator_campaign_reads
+        (creator_account_id, kind, feed_sort, feed_page, outcome, read_at)
+      select ${accountIdOf("creator", "a")}, 'feed', 'recent', 1, 'served', '2026-01-01T00:00:00Z'
+       where not exists (select 1 from search.creator_campaign_reads
+                          where creator_account_id = ${accountIdOf("creator", "a")}
+                            and read_at = '2026-01-01T00:00:00Z')`;
+    // 0316 (L3E): one inert search of advertiser A serving creator A (SEARCH_QUERY_ID_A), its two
+    // fallback reasons, the exposure of creator A, a shortlist (SHORTLIST_ID_A) and a counter row
+    await tx`
+      insert into search.search_queries
+        (id, account_id, actor_role, view_mode, outcome, filters, sort_code, facet_config_version,
+         result_count, page_reached, created_at)
+      values (${SEARCH_QUERY_ID_A}, ${accountIdOf("advertiser", "a")}, 'advertiser',
+              'advertiser_anonymous', 'served', '{"F1": "beauty"}'::jsonb, 'default',
+              (select min(version) from search.facet_config_versions), 5, 1,
+              '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into search.search_impressions (search_query_id, creator_account_id, rank)
+      values (${SEARCH_QUERY_ID_A}, ${accountIdOf("creator", "a")}, 1)
+      on conflict do nothing`;
+    await tx`
+      insert into search.impression_reasons
+        (search_query_id, creator_account_id, reason_code, position, reason_params)
+      values (${SEARCH_QUERY_ID_A}, ${accountIdOf("creator", "a")}, 'primary_topic', 1,
+              '{"topic": "beauty"}'::jsonb),
+             (${SEARCH_QUERY_ID_A}, ${accountIdOf("creator", "a")}, 'main_audience', 2,
+              '{"country": "FR", "shareBand": "ge_80"}'::jsonb)
+      on conflict do nothing`;
+    await tx`
+      insert into search.creator_exposures (creator_account_id, first_page_at)
+      values (${accountIdOf("creator", "a")}, '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into search.shortlists (id, advertiser_account_id, name, created_at)
+      values (${SHORTLIST_ID_A}, ${accountIdOf("advertiser", "a")}, 'T2 shortlist A',
+              '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into search.shortlist_items (shortlist_id, creator_account_id, added_at)
+      values (${SHORTLIST_ID_A}, ${accountIdOf("creator", "a")}, '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      insert into search.supply_counters
+        (snapshot_on, dimension, dimension_value, published_profiles_count,
+         searchable_profiles_count, computed_at)
+      values ('2026-01-01', 'global', '*', 0, 0, '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    // 0323 (L3F): one inert opening of creator A by advertiser A from that search, at the same fixed
+    // past instant (outside the 24 h of the bucket; append-only: inserted once)
+    await tx`
+      insert into search.profile_openings
+        (account_id, outcome, creator_account_id, search_query_id, created_at)
+      select ${accountIdOf("advertiser", "a")}, 'served', ${accountIdOf("creator", "a")},
+             ${SEARCH_QUERY_ID_A}, '2026-01-01T00:00:00Z'
+       where not exists (select 1 from search.profile_openings
+                          where account_id = ${accountIdOf("advertiser", "a")}
+                            and created_at = '2026-01-01T00:00:00Z')`;
+    // 0325 (L3F): one inert request of advertiser A for a selection, at the same fixed past instant
+    // (outside the 24 h of its bound; inserted once)
+    await tx`
+      insert into search.selection_requests
+        (advertiser_account_id, filters, language, sla_due_at, created_at)
+      select ${accountIdOf("advertiser", "a")}, '{}'::jsonb, 'fr', '2026-01-02T00:00:00Z',
+             '2026-01-01T00:00:00Z'
+       where not exists (select 1 from search.selection_requests
+                          where advertiser_account_id = ${accountIdOf("advertiser", "a")}
+                            and created_at = '2026-01-01T00:00:00Z')`;
+    // 0329 (L3G): one inert prefill of agent A on the draft campaign of advertiser A, at the same
+    // fixed past instant (beyond the 24 h of the door; append-only: inserted once)
+    await tx`
+      insert into search.campaign_prefills (account_id, campaign_id, proposed, created_at)
+      select ${accountIdOf("agent", "a")}, ${CAMPAIGN_IDS.a}, '{"F1": "fashion"}'::jsonb,
+             '2026-01-01T00:00:00Z'
+       where not exists (select 1 from search.campaign_prefills
+                          where account_id = ${accountIdOf("agent", "a")}
+                            and created_at = '2026-01-01T00:00:00Z')`;
+    // 0317 (L3E): one reason and one lifted block of the pair (advertiser B, creator B)
+    await tx`
+      insert into matching.block_reasons (code, label_key, available_to_side)
+      values (${DATASET_BLOCK_REASON}, ${`block.reason.${DATASET_BLOCK_REASON}`}, 'any')
+      on conflict do nothing`;
+    await tx`
+      insert into matching.party_blocks
+        (id, advertiser_account_id, creator_account_id, blocked_by_account_id, blocked_by_side,
+         reason_code, created_at)
+      values (${PARTY_BLOCK_ID_B}, ${accountIdOf("advertiser", "b")}, ${accountIdOf("creator", "b")},
+              ${accountIdOf("advertiser", "b")}, 'advertiser', ${DATASET_BLOCK_REASON},
+              '2026-01-01T00:00:00Z')
+      on conflict do nothing`;
+    await tx`
+      update matching.party_blocks
+         set lifted_at = '2026-01-02T00:00:00Z',
+             lifted_by_account_id = ${accountIdOf("advertiser", "b")}
+       where id = ${PARTY_BLOCK_ID_B} and lifted_at is null`;
+    // 0217 (L2D): the identifying objects of each creator. The identity row comes with the
+    // storefront (trigger, or the reprise of 0217 on an older stack); one primary network line with
+    // its exact figures and one row per audience dimension; one refused sector; one history row
+    // (append-only: inserted once, never updated).
+    const identityRows = {
+      a: {
+        network: "instagram",
+        handle: "t2_creator_a",
+        followers: 47312,
+        country: "FR",
+        age: "18_24",
+        gender: "female",
+        sector: "gambling",
+      },
+      b: {
+        network: "tiktok",
+        handle: "t2_creator_b",
+        followers: 1200,
+        country: "GB",
+        age: "25_34",
+        gender: "male",
+        sector: "alcohol",
+      },
+    } as const;
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      const rows = identityRows[side];
+      const line = CREATOR_SOCIAL_ACCOUNT_IDS[side];
+      await tx`
+        insert into profiles.creator_identities (account_id) values (${account})
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_social_accounts
+          (id, account_id, network_code, is_primary, handle, followers_count, posts_last_30_days,
+           avg_comments_per_post)
+        values (${line}, ${account}, ${rows.network}, true, ${rows.handle}, ${rows.followers},
+                14, 35)
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_audience_countries
+          (social_account_id, account_id, slot, country_code, share_percent)
+        values (${line}, ${account}, 0, ${rows.country}, 72) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_audience_ages
+          (social_account_id, account_id, age_band_code, share_percent)
+        values (${line}, ${account}, ${rows.age}, 40) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_audience_genders
+          (social_account_id, account_id, gender_code, share_percent)
+        values (${line}, ${account}, ${rows.gender}, 61) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_refused_sectors (account_id, sector_code)
+        values (${account}, ${rows.sector}) on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_network_metrics_history
+          (account_id, social_account_id, network_code, followers_count, posts_last_30_days,
+           avg_comments_per_post, figures_source, confirmed, recorded_by_account_id)
+        select ${account}, ${line}, ${rows.network}, ${rows.followers}, 14, 35, 'declared', true,
+               ${account}
+         where not exists (select 1 from profiles.creator_network_metrics_history
+                            where account_id = ${account})`;
+    }
+    // 0242 (L2G): one purged visual per creator and its statement of RG83 (PORTFOLIO_IDS), inert
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      await tx`
+        insert into profiles.portfolio_items
+          (id, account_id, state, received_bytes, byte_size, width, height, checksum, exif_stripped,
+           stored_at, sla_due_at, withdrawn_at, retention_due_at, purge_requested_at, purged_at)
+        values (${PORTFOLIO_IDS.item[side]}, ${account}, 'purged', 40000, 20000, 1080, 1350,
+                encode(sha256(${`t2-portfolio-${side}`}::bytea), 'hex'), true, now(),
+                now() + interval '1 day', now(), now(), now(), now())
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.portfolio_brand_declarations
+          (id, account_id, portfolio_item_id, caption, statement_key)
+        values (${PORTFOLIO_IDS.declaration[side]}, ${account}, ${PORTFOLIO_IDS.item[side]},
+                ${`T2 caption ${side}`}, 'creatorProfile.portfolio.brandConsent')
+        on conflict do nothing`;
+    }
+    // 0243 (L2G): one withdrawn entry of queue 2 per creator and its withdrawn revision
+    // (CREATOR_REVIEW_IDS), inert
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      await tx`
+        insert into profiles.creator_review_entries (id, account_id, kind, state, closed_at)
+        values (${CREATOR_REVIEW_IDS.entry[side]}, ${account}, 'revision', 'withdrawn',
+                now() + interval '1 second')
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.creator_field_revisions
+          (id, account_id, field_code, proposed_value, status, creator_review_entry_id, closed_at)
+        values (${CREATOR_REVIEW_IDS.revision[side]}, ${account}, 'creator.headline',
+                ${tx.json(`T2 headline proposal ${side}`)}, 'withdrawn',
+                ${CREATOR_REVIEW_IDS.entry[side]}, now() + interval '1 second')
+        on conflict do nothing`;
+    }
+    // 0222 (L2E): the internal block of each advertiser, so that agent and admin read both (T2)
+    for (const side of ["a", "b"] as const) {
+      await tx`
+        insert into profiles.advertiser_internal_details
+          (account_id, legal_name, registration_country_code, registration_number)
+        values (${accountIdOf("advertiser", side)}, ${`T2 Brand ${side.toUpperCase()} SAS`}, 'FR',
+                ${`T2-REG-${side.toUpperCase()}`})
+        on conflict do nothing`;
+    }
+    // 0221 (L2E): one inert verification trail per creator (VERIFICATION_IDS), decided by agent A
+    for (const side of ["a", "b"] as const) {
+      const account = accountIdOf("creator", side);
+      const rows = identityRows[side];
+      const agent = accountIdOf("agent", "a");
+      const ids = {
+        request: VERIFICATION_IDS.request[side],
+        code: VERIFICATION_IDS.code[side],
+        evidence: VERIFICATION_IDS.evidence[side],
+        badge: VERIFICATION_IDS.badge[side],
+      };
+      await tx`
+        insert into verification.verification_requests
+          (id, account_id, social_account_id, network_code, level, status, submitted_at,
+           sla_due_at, escalate_at, decided_by_account_id, decided_at, closed_at)
+        values (${ids.request}, ${account}, ${CREATOR_SOCIAL_ACCOUNT_IDS[side]}, ${rows.network},
+                'account_verified', 'approved', now(), now() + interval '1 day',
+                now() + interval '3 days', ${agent}, now(), now())
+        on conflict do nothing`;
+      await tx`
+        insert into verification.ownership_codes
+          (id, request_id, account_id, kind, code, expires_at, observed_by_account_id,
+           observed_at, observed_handle)
+        values (${ids.code}, ${ids.request}, ${account}, 'network',
+                ${`INFLUX-T2DATAS${side.toUpperCase()}`}, now() + interval '7 days', ${agent},
+                now(), ${rows.handle})
+        on conflict do nothing`;
+      await tx`
+        insert into verification.evidence_files
+          (id, request_id, account_id, state, received_bytes, byte_size, width, height, checksum,
+           activated_at, retention_due_at, purge_requested_at, deleted_at)
+        values (${ids.evidence}, ${ids.request}, ${account}, 'purged', 40000, 20000, 1290, 2796,
+                sha256(${`t2-evidence-${side}`}::bytea), now(), now() + interval '45 days',
+                now(), now())
+        on conflict do nothing`;
+      await tx`
+        insert into verification.badges
+          (id, account_id, social_account_id, network_code, request_id, level,
+           granted_by_account_id, granted_at, evidence_source, observed_handle_at_decision, state,
+           revoked_at, revocation_reason_code)
+        values (${ids.badge}, ${account}, ${CREATOR_SOCIAL_ACCOUNT_IDS[side]}, ${rows.network},
+                ${ids.request}, 'account_verified', ${agent}, now(), 'public_profile',
+                ${rows.handle}, 'revoked', now(), 'influx_error')
+        on conflict do nothing`;
+    }
+    // 0231 (L2F): the withdrawal of badge A under 2V, inert (REVOCATION_DUAL_CONTROL_REQUEST_ID)
+    {
+      const badge = VERIFICATION_IDS.badge.a;
+      const creatorA = accountIdOf("creator", "a");
+      const [created] = await tx<{ id: string }[]>`
+        insert into backoffice.dual_control_requests
+          (id, action_code, payload, reason_code, requested_by_account_id)
+        values (${REVOCATION_DUAL_CONTROL_REQUEST_ID}, 'verification.revoke_badge',
+                jsonb_build_object('account_id', ${creatorA}::uuid, 'badge_id', ${badge}::uuid,
+                                   'reason_code', 'influx_error'),
+                'influx_error', ${accountIdOf("agent", "a")})
+        on conflict do nothing
+        returning id::text`;
+      if (created !== undefined) {
+        await tx`
+          update backoffice.dual_control_requests
+             set state = 'confirmed', confirmed_by_account_id = ${accountIdOf("admin", "a")}
+           where id = ${REVOCATION_DUAL_CONTROL_REQUEST_ID} and state = 'pending'`;
+        await tx`
+          update backoffice.dual_control_requests set consumed_at = now()
+           where id = ${REVOCATION_DUAL_CONTROL_REQUEST_ID} and state = 'confirmed'
+             and consumed_at is null`;
+        await tx`
+          insert into verification.badge_revocation_requests
+            (dual_control_request_id, badge_id, account_id, reason_code, requested_by_account_id,
+             executed_by_account_id, executed_at)
+          values (${REVOCATION_DUAL_CONTROL_REQUEST_ID}, ${badge}, ${creatorA}, 'influx_error',
+                  ${accountIdOf("agent", "a")}, ${accountIdOf("admin", "a")}, now())
+          on conflict do nothing`;
+        await tx`
+          update verification.badges set revocation_request_id = ${REVOCATION_DUAL_CONTROL_REQUEST_ID}
+           where id = ${badge} and revocation_request_id is null`;
+      }
+    }
+    // 0232 (L2F): one upheld contest per creator on his revoked badge, inert (DISPUTE_IDS)
+    for (const side of ["a", "b"] as const) {
+      const deciders =
+        side === "a"
+          ? [accountIdOf("agent", "a"), accountIdOf("admin", "a")]
+          : [accountIdOf("agent", "a")];
+      await tx`
+        insert into verification.disputes
+          (id, account_id, badge_id, level, network_code, reason_code, state,
+           original_decider_ids, decided_by_account_id, decided_at, outcome_reason_code,
+           review_mode, closed_at)
+        values (${DISPUTE_IDS[side]}, ${accountIdOf("creator", side)}, ${VERIFICATION_IDS.badge[side]},
+                'account_verified', ${identityRows[side].network}, 'misread', 'upheld',
+                ${deciders}::uuid[], ${accountIdOf("agent", "b")}, now(), 'decision_confirmed',
+                'independent', now())
+        on conflict do nothing`;
+    }
+    // 0233 (L2F): one confirmed entry of queue 6 per creator on his revoked badge, inert
+    for (const side of ["a", "b"] as const) {
+      const handle = identityRows[side].handle;
+      await tx`
+        insert into verification.identifier_change_reviews
+          (id, account_id, social_account_id, network_code, badge_id, previous_handle, new_handle,
+           state, decided_by_account_id, decided_at, observed_handle, closed_at)
+        values (${IDENTIFIER_CHANGE_IDS[side]}, ${accountIdOf("creator", side)},
+                ${CREATOR_SOCIAL_ACCOUNT_IDS[side]}, ${identityRows[side].network},
+                ${VERIFICATION_IDS.badge[side]}, ${handle}, ${`${handle}_renamed`}, 'confirmed',
+                ${accountIdOf("agent", "b")}, now(), ${`${handle}_renamed`}, now())
         on conflict do nothing`;
     }
     await tx`

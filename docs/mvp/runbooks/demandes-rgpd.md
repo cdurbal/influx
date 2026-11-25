@@ -72,6 +72,7 @@ complétée par `expert-conformite-rgpd` le 2026-10-14 (un accès incomplet manq
 |---|---|
 | Compte | `identity.accounts`, `identity.account_roles` : rôle, adresse, vérification et état de délivrabilité de l'adresse, pays, langue, fuseau, nom affiché, statut du compte, attestation 18+ et sa date, statut déclaré, source d'acquisition déclarée, dates de création et de dernière activité, commercial référent (prénom) |
 | Profil de marque | `profiles.advertiser_profiles` : raison sociale (annonceur seulement) |
+| Profil créateur | `profiles.creator_*` (L2D, `0219`) : vitrine saisie et dérivée, listes, identité (couche N), lignes de réseau avec chiffres exacts, tranches et audience détaillée, secteurs refusés, historique des chiffres (un agent apparaît comme « INFLUX ») ; jamais `public_ref` ni l'identifiant d'une ligne. À l'effacement : vitrine gardée (alias, pays) `suspended`, le reste vidé ou supprimé |
 | Consentements | `identity.consent_events` : finalité, accordé ou retiré, date, origine, éléments de preuve (`evidence`) |
 | Conditions acceptées | `identity.terms_acceptances` : version, date, nature, canal, langue, **adresse IP et navigateur enregistrés** |
 | Sessions | `identity.sessions` : création, dernière activité, navigateur (« famille sur système ») ; **jamais** l'empreinte du jeton |
@@ -80,7 +81,7 @@ complétée par `expert-conformite-rgpd` le 2026-10-14 (un accès incomplet manq
 | Incidents de délivrance | `identity.email_delivery_incidents` : type, date, adresse concernée |
 | Signalements de secours | `backoffice.code_delivery_reports` dont `login_email` ou `contact_email` est une adresse, actuelle ou ancienne, du compte : adresses, message, date, statut |
 | Événements reçus de Brevo | `leads.brevo_inbound_outcomes` du compte (désinscription, plainte, rebond), dans la fenêtre de 30 jours |
-| Journal d'activité | `audit.audit_events` dont le compte est l'acteur ou le sujet : code et date ; un agent apparaît comme « INFLUX » ; aucun hachage de chaîne |
+| Journal d'activité | `audit.audit_events` dont le compte est l'acteur ou le sujet, **codes `exported` seulement** (`audit.event_types.export_class`, F3 : `archives/jalons/l3a/f3.md`) : code et date ; un agent apparaît comme « INFLUX » ; aucun hachage de chaîne ; les codes exclus révèlent une mesure de sécurité interne ou la donnée d'un tiers |
 | Rapports d'erreur | `ops.error_occurrences` du compte : date, page, message, navigateur résumé |
 | Demandes « mes données » | `backoffice.data_subject_requests` du demandeur |
 | Destinataires | `leads.contact_sync_states` (Brevo, Apollo) : identifiant externe, dernier état, désinscription. Brevo : attributs (`16` §M4), listes, liste noire, envois et événements rattachés au contact. Apollo : « aucune donnée transmise » tant que le connecteur est `skipped` |

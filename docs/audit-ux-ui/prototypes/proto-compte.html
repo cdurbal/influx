@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Mon compte</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Une page par sujet, une colonne étroite, des sections séparées par des filets (C8). */
+  .cp { display: flex; flex-direction: column; gap: var(--spacing-6); width: 100%; max-width: var(--container-narrow); }
+  .cp-head { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .cp-head .t-page { font-size: var(--text-title-section); }
+  .sec { display: flex; flex-direction: column; gap: var(--spacing-4); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-5); }
+  .sec > h2 { font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--font-weight-bold); }
+  .sec .bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .save { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .save .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .save[data-kind="failed"] { color: var(--color-feedback-error-text); font-weight: var(--font-weight-semibold); }
+  .fgrid { display: grid; gap: var(--spacing-5); }
+  @media (width >= 640px) { .fgrid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .ro { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); border-radius: var(--radius-md); background: var(--color-surface-raised); padding: var(--spacing-3) var(--spacing-4); font-size: var(--text-sm); }
+  .ro b { font-family: var(--font-display); }
+  /* Changement d'adresse : trois étapes visibles */
+  .estep { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .eprog { display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--text-sm); counter-reset: s; }
+  .eprog li { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: var(--spacing-2); align-items: center; color: var(--color-text-secondary); }
+  .eprog li::before { counter-increment: s; content: counter(s); display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: var(--radius-round); background: var(--color-surface-raised); font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-xs); }
+  .eprog li.done::before { content: "✓"; background: var(--color-feedback-success-bg); color: var(--color-feedback-success-text); }
+  .eprog li.cur { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+  .eprog li.cur::before { background: var(--color-surface-active); color: var(--color-text-primary); }
+  .codes { display: grid; gap: var(--spacing-4); }
+  @media (width >= 640px) { .codes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .codebox { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .codebox .control { max-width: 12rem; letter-spacing: 0.3em; font-variant-numeric: tabular-nums; font-family: var(--font-display); }
+  .ok-line { display: inline-flex; align-items: center; gap: var(--spacing-2); color: var(--color-feedback-success-text); font-weight: var(--font-weight-semibold); font-size: var(--text-sm); }
+  /* Listes */
+  .slist { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .slist li { display: grid; grid-template-columns: var(--size-icon-md) minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-1) var(--spacing-3); padding: var(--spacing-3) 0; border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .slist li > .i { color: var(--color-text-secondary); }
+  .slist .t { font-weight: var(--font-weight-semibold); }
+  .slist .s { font-size: var(--text-xs); color: var(--color-text-secondary); }
+  @media (width < 480px) { .slist li { grid-template-columns: var(--size-icon-md) minmax(0, 1fr); } .slist li > .btn, .slist li > .link { grid-column: 2; justify-self: start; } }
+  .keeps { display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .keeps li { display: grid; grid-template-columns: var(--size-icon-sm) minmax(0, 1fr); gap: var(--spacing-2); }
+  .keeps .i { width: var(--size-icon-sm); height: var(--size-icon-sm); margin-top: 0.1875rem; color: var(--color-feedback-success-icon); }
+  details.danger { border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-3); }
+  details.danger > summary { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-weight: var(--font-weight-semibold); color: var(--color-feedback-error-text); }
+  details.danger > summary::-webkit-details-marker { display: none; }
+  details.danger > summary .i { transition: rotate var(--duration-base) var(--ease-standard); }
+  details.danger[open] > summary .i { rotate: 90deg; }
+  details.danger > div { display: flex; flex-direction: column; gap: var(--spacing-3); padding: var(--spacing-2) 0; }
+  .two { display: grid; gap: var(--spacing-4); }
+  @media (width >= 640px) { .two { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .two h3 { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-sm); margin-bottom: var(--spacing-2); }
+  .two ul { display: flex; flex-direction: column; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  /* Page-menu du téléphone (D74) */
+  .hubl { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .hubl li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-1) var(--spacing-3); min-height: calc(var(--size-touch-target) + var(--spacing-4)); padding: var(--spacing-3) var(--spacing-2); border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .hubl a { font-family: var(--font-display); font-weight: var(--font-weight-bold); text-decoration: none; color: var(--color-text-primary); }
+  .hubl a::after { content: ""; position: absolute; inset: 0; }
+  .hubl .s { grid-column: 1; font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .hubl .chev { grid-column: 2; grid-row: 1 / span 2; width: var(--size-icon-sm); height: var(--size-icon-sm); color: var(--color-text-tertiary); }
+</style>
+</head>
+<body data-default="infos">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <option value="hub">Mon compte (page-menu du téléphone)</option>
+      <optgroup label="Mes informations"><option value="infos">Informations</option><option value="email">Changer d'adresse : nouvelle adresse</option><option value="email-codes">Changer d'adresse : les deux codes</option><option value="email-fait">Changer d'adresse : fait</option></optgroup>
+      <option value="preferences">Mes préférences</option>
+      <option value="sessions">Mes sessions</option>
+      <optgroup label="Mes données"><option value="donnees">Mes données</option><option value="supprimer">Supprimer mon compte</option></optgroup>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <button id="demo-fail" type="button" aria-pressed="false">Simuler un échec d'enregistrement</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head"><a class="m-brand" href="#contenu">INFLUX</a><span class="role role--brand">Espace marque</span><button class="btn btn--secondary lg-hide" type="button">English</button></header>
+    <nav class="m-nav" aria-label="Navigation principale"><ul class="m-nav__list">
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-accueils.html#marque"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-mes-campagnes.html"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-recherche.html"><svg class="i"><use href="#i-users"/></svg><span>Créateurs</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link is-ancestor" href="#hub"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a>
+        <div class="m-sub"><a href="proto-profil-marque.html#profil">Profil de marque</a><a href="#infos" data-nav="infos email email-codes email-fait">Mes informations</a><a href="#preferences" data-nav="preferences">Mes préférences</a><a href="#sessions" data-nav="sessions">Mes sessions</a><a href="#donnees" data-nav="donnees supprimer">Mes données</a></div></li>
+    </ul></nav>
+    <div class="m-state"><b>Profil : Publié</b></div>
+    <footer class="m-foot"><button class="btn btn--secondary" type="button">English</button><p class="sm c2">Connecté avec <span class="who-mail">claire.morel@example.test</span></p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button></footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page">
+
+      <!-- ===================== PAGE-MENU (téléphone) ===================== -->
+      <div class="cp" data-when="hub">
+        <header class="cp-head" data-h="1"><h1 class="t-page" tabindex="-1">Mon compte</h1><p class="sm c2">Connecté avec claire.morel@example.test</p></header>
+        <ul class="hubl" data-h="2">
+          <li><a href="proto-profil-marque.html#profil">Profil de marque</a><span class="s">Votre marque, ce que vous cherchez, votre interlocuteur</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+          <li><a href="#infos">Mes informations</a><span class="s">Adresse e-mail, pays, langue</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+          <li><a href="#preferences">Mes préférences</a><span class="s">Les e-mails que vous recevez</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+          <li><a href="#sessions">Mes sessions</a><span class="s">Les appareils connectés à votre compte</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+          <li><a href="#donnees">Mes données</a><span class="s">Exporter ou supprimer vos données</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+        </ul>
+        <button class="btn btn--secondary" type="button" style="align-self: flex-start" data-h="3"><svg class="i i--sm"><use href="#i-log-out"/></svg>Se déconnecter</button>
+      </div>
+
+      <!-- ===================== MES INFORMATIONS ===================== -->
+      <div class="cp" data-when="infos email email-codes email-fait">
+        <header class="cp-head" data-h="1">
+          <a class="go sm c2 lg-hide" href="#hub" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mon compte</a>
+          <div class="row between g3" style="flex-wrap: wrap"><h1 class="t-page" tabindex="-1">Mes informations</h1>
+            <p class="save" data-save data-kind="saved"><svg class="i"><use href="#i-check"/></svg><span data-save-text>Enregistré automatiquement</span><button class="link" type="button" data-retry hidden>Réessayer</button></p></div>
+          <p class="c2">Les informations de votre compte. Elles servent à votre commercial INFLUX et à nos e-mails. <a class="link" href="#contenu">Comment nous utilisons ces informations</a></p>
+        </header>
+
+        <form class="sec" data-autosave novalidate onsubmit="return false" aria-labelledby="h-acc" data-h="2">
+          <h2 id="h-acc">Votre compte</h2>
+          <div class="field"><div class="field__top"><label class="label" for="i-co">Nom de l'entreprise</label><p class="help">La raison sociale. Le nom que lisent les créateurs se change dans votre <a class="link" href="proto-profil-marque.html#modif-1">profil de marque</a>.</p></div>
+            <input class="control" id="i-co" maxlength="120" value="Maison Azur SAS"></div>
+          <div class="fgrid fgrid--2">
+            <div class="field"><div class="field__top"><label class="label" for="i-country">Pays</label><p class="help">Les mises en relation s'ouvrent pays par pays.</p></div>
+              <span class="select"><select class="control" id="i-country"><option>Belgique</option><option selected>France</option><option>Suisse</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Langue de vos e-mails et de votre espace</legend>
+              <span class="seg" style="align-self: flex-start"><label><input type="radio" name="lang" checked>Français</label><label lang="en"><input type="radio" name="lang">English</label></span></fieldset>
+          </div>
+          <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Vous êtes inscrit en tant que</legend>
+            <div class="choices"><label class="choice"><input type="radio" name="st">Particulier</label><label class="choice"><input type="radio" name="st" checked>Professionnel (société, entreprise individuelle, agence)</label></div></fieldset>
+        </form>
+
+        <section class="sec" aria-labelledby="h-mail" data-h="2">
+          <h2 id="h-mail">Adresse e-mail de connexion</h2>
+          <div class="ro" data-unless="email-fait"><span>Vous vous connectez avec <b>claire.morel@example.test</b></span><a class="btn btn--secondary" href="#email" data-when="infos" style="min-height: 2.25rem; padding-block: 0">Changer d'adresse</a></div>
+          <p class="sm c2" data-when="infos">Pour changer d'adresse, nous vérifions d'abord que c'est bien vous. Un code part ensuite à chacune des deux adresses : votre adresse ne change qu'une fois les deux codes saisis.</p>
+
+          <div class="estep" data-when="email email-codes">
+            <ol class="eprog" aria-label="Étapes du changement d'adresse">
+              <li id="ep1">Saisir la nouvelle adresse</li>
+              <li id="ep2">Confirmer que c'est bien vous</li>
+              <li id="ep3">Saisir les deux codes reçus</li>
+            </ol>
+          </div>
+
+          <div class="estep" data-when="email">
+            <div class="field"><label class="label" for="new-mail">Nouvelle adresse e-mail</label>
+              <input class="control" id="new-mail" type="email" inputmode="email" autocomplete="email" spellcheck="false" aria-describedby="nm-err" style="max-width: 26rem">
+              <p class="fmsg fmsg--error" id="nm-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span id="nm-err-t"></span></p></div>
+            <p class="xs c2">Nous vérifions l'adresse ici, avant de vous demander un code : une faute de frappe ne vous coûte rien.</p>
+            <div class="actions"><button class="btn btn--primary" type="button" id="nm-go">Continuer</button><a class="btn btn--text" href="#infos">Annuler</a></div>
+          </div>
+
+          <div class="estep" data-when="email-codes">
+            <p class="sm">Un code vient de partir à chacune des deux adresses. Votre adresse de connexion reste <b>claire.morel@example.test</b> tant que les deux codes n'ont pas été saisis.</p>
+            <div class="codes">
+              <div class="codebox"><label class="label" for="c-old">Code reçu à claire.morel@example.test <span class="req">(adresse actuelle)</span></label>
+                <p class="ok-line" id="ok-old"><svg class="i i--sm"><use href="#i-circle-check"/></svg>Code confirmé</p></div>
+              <div class="codebox"><label class="label" for="c-new">Code reçu à claire@maison-azur.example <span class="req">(nouvelle adresse)</span></label>
+                <input class="control" id="c-new" inputmode="numeric" maxlength="6" autocomplete="one-time-code" aria-describedby="cn-err">
+                <p class="fmsg fmsg--error" id="cn-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Le code comporte 6 chiffres.</span></p>
+                <button class="btn btn--secondary" type="button" id="cn-go" style="align-self: flex-start">Confirmer ce code</button></div>
+            </div>
+            <p class="sm c2">En attente de confirmation : 1 sur 2 · expire le 25/11/2026 à 10 h 12. <button class="link sm" type="button" id="e-cancel">Annuler la demande</button></p>
+          </div>
+
+          <div class="notice notice--success" data-when="email-fait"><svg class="i"><use href="#i-circle-check"/></svg><p>C'est fait : vous vous connectez désormais avec <b>claire@maison-azur.example</b>. Vos autres sessions ont été fermées.</p></div>
+        </section>
+      </div>
+
+      <!-- ===================== MES PRÉFÉRENCES ===================== -->
+      <div class="cp" data-when="preferences">
+        <header class="cp-head" data-h="1">
+          <a class="go sm c2 lg-hide" href="#hub" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mon compte</a>
+          <h1 class="t-page" tabindex="-1">Mes préférences de communication</h1>
+        </header>
+        <section class="sec" aria-labelledby="h-pref" data-h="2">
+          <h2 id="h-pref">E-mails commerciaux et prospection</h2>
+          <p class="ro"><span>État : <b id="pref-st">accordé</b></span><span class="xs c2" id="pref-since">Le 18/11/2026, par vous, à l'inscription.</span></p>
+          <div class="stack g2" id="pref-act"><button class="btn btn--secondary" type="button" id="pref-btn" style="align-self: flex-start">Retirer mon consentement</button><p class="xs c2" id="pref-help">Effet immédiat. Aucune justification demandée.</p></div>
+          <div class="notice notice--success" id="pref-done" hidden><svg class="i"><use href="#i-circle-check"/></svg><p id="pref-done-t"></p></div>
+        </section>
+        <section class="sec" aria-labelledby="h-keep" data-h="3">
+          <h2 id="h-keep">Ce que le retrait ne change pas</h2>
+          <ul class="keeps"><li><svg class="i"><use href="#i-check"/></svg>Votre code de connexion continue d'arriver.</li><li><svg class="i"><use href="#i-check"/></svg>Les messages liés à vos mises en relation aussi.</li><li><svg class="i"><use href="#i-check"/></svg>Votre compte et vos accès sont inchangés.</li></ul>
+        </section>
+      </div>
+
+      <!-- ===================== MES SESSIONS ===================== -->
+      <div class="cp" data-when="sessions">
+        <header class="cp-head" data-h="1">
+          <a class="go sm c2 lg-hide" href="#hub" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mon compte</a>
+          <h1 class="t-page" tabindex="-1">Mes sessions</h1>
+          <p class="c2">Les navigateurs où votre compte est ouvert. Si l'un d'eux ne vous dit rien, fermez-le.</p>
+        </header>
+        <section class="sec" aria-labelledby="h-ses" data-h="2">
+          <h2 id="h-ses" class="sr-only">Sessions ouvertes</h2>
+          <ul class="slist" id="ses">
+            <li><svg class="i"><use href="#i-monitor"/></svg><span class="stack g1"><span class="t">Firefox sur Windows <span class="badge badge--info" style="margin-left: var(--spacing-2)">Cet appareil</span></span><span class="s">Ouverte le 22/11/2026 · dernière activité aujourd'hui à 09 h 41</span></span><span></span></li>
+            <li><svg class="i"><use href="#i-smartphone"/></svg><span class="stack g1"><span class="t">Safari sur iOS</span><span class="s">Ouverte le 20/11/2026 · dernière activité le 23/11/2026</span></span><button class="btn btn--secondary" type="button" data-close-s style="min-height: 2.25rem; padding-block: 0">Fermer</button></li>
+            <li><svg class="i"><use href="#i-monitor"/></svg><span class="stack g1"><span class="t">Chrome sur macOS</span><span class="s">Ouverte le 14/11/2026 · dernière activité le 15/11/2026</span></span><button class="btn btn--secondary" type="button" data-close-s style="min-height: 2.25rem; padding-block: 0">Fermer</button></li>
+          </ul>
+          <p class="xs c2">Nous reconnaissons un navigateur à son type et à son système, jamais à votre position.</p>
+        </section>
+        <details class="danger" data-h="3"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Fermer toutes les sessions</summary>
+          <div><p class="sm">Toutes vos sessions seront fermées, y compris celle de cet appareil : vous devrez vous reconnecter avec un code.</p><button class="btn btn--danger" type="button" style="align-self: flex-start">Oui, fermer toutes les sessions</button></div></details>
+      </div>
+
+      <!-- ===================== MES DONNÉES ===================== -->
+      <div class="cp" data-when="donnees supprimer">
+        <header class="cp-head" data-h="1">
+          <a class="go sm c2 lg-hide" href="#hub" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mon compte</a>
+          <h1 class="t-page" tabindex="-1">Mes données</h1>
+          <p class="c2">Demandez une copie de vos données, ou supprimez votre compte.</p>
+        </header>
+        <section class="sec" aria-labelledby="h-req" data-h="2">
+          <h2 id="h-req">Vos demandes</h2>
+          <ul class="slist"><li><svg class="i"><use href="#i-list-checks"/></svg><span class="stack g1"><span class="t">Export de vos données · En cours de traitement</span><span class="s">Déposée le 20/11/2026 · réponse au plus tard le 20/12/2026</span></span><span></span></li></ul>
+        </section>
+        <section class="sec" aria-labelledby="h-exp" data-h="2">
+          <h2 id="h-exp">Exporter mes données</h2>
+          <p class="sm">Vous recevez un fichier lisible avec les données que nous détenons sur vous. Une personne de l'équipe INFLUX valide votre demande, puis le fichier apparaît ici : vous le téléchargez après un code envoyé à votre adresse.</p>
+          <p class="sm c2">Une demande d'export est déjà en cours : vous la suivez ci-dessus.</p>
+        </section>
+        <details class="danger" id="del" data-h="3"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Supprimer mon compte</summary>
+          <div>
+            <p class="sm"><b>La suppression de votre compte est définitive. Elle ne peut pas être annulée.</b> Vous serez déconnecté de tous vos appareils. Téléchargez d'abord votre export : il sera effacé avec votre compte.</p>
+            <div class="two">
+              <div><h3>Ce qui disparaît</h3><ul><li>Vos informations de compte : adresse e-mail, pays, langue, statut ou nom d'entreprise.</li><li>Votre contact chez Brevo et chez Apollo.io : la suppression leur est transmise en priorité.</li><li>Votre accès : vous ne pourrez plus vous connecter.</li></ul></div>
+              <div><h3>Ce qui est conservé, et pourquoi</h3><ul><li>Les e-mails déjà envoyés : nous ne pouvons pas les rappeler.</li><li>Les écritures du journal d'activité, sous une forme qui ne vous nomme plus.</li><li>La trace de votre acceptation des conditions d'utilisation, sous une forme qui ne vous nomme plus.</li></ul></div>
+            </div>
+            <div class="field"><label class="label" for="del-w">Tapez SUPPRIMER pour confirmer</label><input class="control" id="del-w" autocomplete="off" style="max-width: 16rem" aria-describedby="del-err"><p class="fmsg fmsg--error" id="del-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Tapez SUPPRIMER, en capitales, pour confirmer.</span></p></div>
+            <button class="btn btn--danger" type="button" id="del-go" style="align-self: flex-start">Demander la suppression définitive</button>
+            <p class="xs c2">Un code de vérification vous sera ensuite demandé.</p>
+          </div></details>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  // Adresse : contrôle local avant tout code (U33).
+  var nm = $("#new-mail");
+  function nmErr(t) { $("#nm-err-t").textContent = t; $("#nm-err").hidden = !t; nm.setAttribute("aria-invalid", String(!!t)); }
+  nm.addEventListener("input", function () { if (!$("#nm-err").hidden) nmErr(""); });
+  $("#nm-go").addEventListener("click", function () {
+    var v = nm.value.trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { nmErr("Cette adresse n'a pas un format valide (exemple : nom@exemple.com)."); nm.focus(); P.announce("Cette adresse n'a pas un format valide."); return; }
+    if (v === "claire.morel@example.test") { nmErr("C'est déjà votre adresse de connexion. Saisissez une autre adresse."); nm.focus(); P.announce("C'est déjà votre adresse de connexion."); return; }
+    location.hash = "email-codes"; P.announce("Vérification faite. Un code part à chacune des deux adresses.");
+  });
+  var cn = $("#c-new");
+  cn.addEventListener("input", function () { cn.value = cn.value.replace(/\D/g, "").slice(0, 6); $("#cn-err").hidden = true; cn.removeAttribute("aria-invalid"); });
+  $("#cn-go").addEventListener("click", function () {
+    if (cn.value.length !== 6) { $("#cn-err").hidden = false; cn.setAttribute("aria-invalid", "true"); cn.focus(); P.announce("Le code comporte 6 chiffres."); return; }
+    location.hash = "email-fait"; P.announce("Adresse changée. Vos autres sessions ont été fermées.");
+  });
+  $("#e-cancel").addEventListener("click", function () { location.hash = "infos"; P.announce("Demande annulée. Votre adresse de connexion n'a pas changé."); });
+  // Préférences : un seul bouton, qui dit ce qu'il fait.
+  var granted = true;
+  $("#pref-btn").addEventListener("click", function () {
+    granted = !granted;
+    $("#pref-st").textContent = granted ? "accordé" : "retiré";
+    $("#pref-since").textContent = "Le 24/11/2026, par vous, depuis votre espace.";
+    $("#pref-btn").textContent = granted ? "Retirer mon consentement" : "Recevoir de nouveau ces e-mails";
+    $("#pref-help").textContent = granted ? "Effet immédiat. Aucune justification demandée." : "Vous pourrez retirer ce consentement à tout moment, ici ou depuis chaque e-mail.";
+    var t = granted ? "C'est fait : vous recevrez de nouveau nos e-mails commerciaux." : "C'est fait : vous ne recevez plus nos e-mails commerciaux ni nos messages de prospection.";
+    $("#pref-done-t").textContent = t; $("#pref-done").hidden = false; P.announce(t);
+  });
+  // Sessions
+  $$("[data-close-s]").forEach(function (b) { b.addEventListener("click", function () { var li = b.closest("li"); li.remove(); P.announce("Session fermée."); }); });
+  // Suppression : mot tapé, puis code.
+  $("#del-w").addEventListener("input", function () { $("#del-err").hidden = true; });
+  $("#del-go").addEventListener("click", function () {
+    if ($("#del-w").value !== "SUPPRIMER") { $("#del-err").hidden = false; $("#del-w").focus(); P.announce("Tapez SUPPRIMER, en capitales, pour confirmer."); return; }
+    P.announce("Un code de vérification vous est envoyé (simulé).");
+  });
+  document.addEventListener("proto:state", function (e) {
+    var st = e.detail.st;
+    $$("[data-nav]").forEach(function (a) { var on = a.getAttribute("data-nav").split(" ").indexOf(st) !== -1; a.classList.toggle("is-current", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    $("#ep1").className = st === "email" ? "cur" : "done"; $("#ep2").className = st === "email" ? "" : "done"; $("#ep3").className = st === "email-codes" ? "cur" : "";
+    nmErr(""); nm.value = st === "email" ? "claire@maison-azur" : "";
+    cn.value = ""; $("#cn-err").hidden = true;
+    $("#del").open = st === "supprimer"; $("#del-w").value = ""; $("#del-err").hidden = true;
+    $(".who-mail").textContent = st === "email-fait" ? "claire@maison-azur.example" : "claire.morel@example.test";
+    window.scrollTo(0, 0);
+  });
+});
+</script>
+</body>
+</html>

@@ -27,6 +27,7 @@ import {
   type BootstrapAccount,
 } from "./internal-bootstrap.ts";
 import {
+  assertProductionMarker,
   connectAsHostedMigrationRole,
   hostedGoTrue,
   requiredShellVariable,
@@ -105,21 +106,7 @@ const migration = connectAsHostedMigrationRole(
   "INFLUX_PRODUCTION_DB_CA_FILE",
 );
 try {
-  // The marker of production (runbook production §1), and no trace of the staging one, as the
-  // « Migrate production » job checks; two queries, a missing table fails at parse time.
-  const [tables] = await migration<{ production: boolean; staging: boolean }[]>`
-    select to_regclass('influx_production.environment_marker') is not null as production,
-           to_regclass('influx_staging.environment_marker') is not null as staging`;
-  const markers =
-    tables?.production === true && tables.staging === false
-      ? await migration<{ environment: string }[]>`
-          select environment from influx_production.environment_marker`
-      : [];
-  if (markers.length !== 1 || markers[0]?.environment !== "production") {
-    throw new Error(
-      "this database does not carry influx_production.environment_marker = production alone: refused",
-    );
-  }
+  await assertProductionMarker(migration);
   const [internal] = await migration<{ count: number }[]>`
     select count(*)::int as count from identity.account_roles
      where role in ('agent', 'admin')`;

@@ -30,11 +30,11 @@ import {
   WEB_ORIGIN,
   WEB_SECRET,
 } from "../tests/helpers.ts";
-import { migrationRole } from "./support.ts";
+import { localSuperuser, migrationRole } from "./support.ts";
 
 const NIL = "00000000-0000-4000-8000-000000000000";
 
-type Method = "GET" | "POST";
+type Method = "GET" | "POST" | "PUT";
 
 /**
  * Every route of /v1/bo/*, as the server registers it (`:id` for an identifier), with a body that
@@ -71,7 +71,257 @@ const ROUTES: Readonly<Record<string, { body?: object }>> = {
       reasonCode: "provider_recovered",
     },
   },
+  "GET /v1/bo/queues/counters": {},
+  "GET /v1/bo/queues/profiles-advertiser/entries": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/search": { body: {} },
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/open": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/publish": {
+    body: { reviewToken: "0".repeat(64) },
+  },
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/reject": {
+    body: {
+      reviewToken: "0".repeat(64),
+      reasonCode: "presentation_insufficient",
+    },
+  },
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/release": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/extend": {},
+  "GET /v1/bo/queues/profiles-advertiser/entries/:id/logo": {},
+  "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  // L2G 11: queue 2 (the creator profiles, 0243, 0244) and queue 3 (the visuals of the portfolios)
+  "GET /v1/bo/queues/profiles-creator/entries": {},
+  "POST /v1/bo/queues/profiles-creator/entries/search": { body: {} },
+  "POST /v1/bo/queues/profiles-creator/entries/:id/open": {},
+  "POST /v1/bo/queues/profiles-creator/entries/:id/publish": {
+    body: { reviewToken: "0".repeat(64) },
+  },
+  "POST /v1/bo/queues/profiles-creator/entries/:id/reject": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "bio_insufficient" },
+  },
+  "POST /v1/bo/queues/profiles-creator/entries/:id/release": {},
+  "POST /v1/bo/queues/profiles-creator/entries/:id/extend": {},
+  "POST /v1/bo/queues/profiles-creator/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "GET /v1/bo/queues/profiles-creator/entries/:id/portfolio/:itemId/image": {},
+  "GET /v1/bo/queues/portfolio-moderation/entries": {},
+  "POST /v1/bo/queues/portfolio-moderation/entries/search": { body: {} },
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/open": {},
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/approve": {
+    body: { reviewToken: "0".repeat(64) },
+  },
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/reject": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "watermark" },
+  },
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/release": {},
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/extend": {},
+  "POST /v1/bo/queues/portfolio-moderation/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "GET /v1/bo/queues/portfolio-moderation/entries/:id/image": {},
+  // L3C 07: queue 7 (the campaigns to validate, 0307, 0308) and the record of a campaign (0309)
+  "GET /v1/bo/campaigns/entries": {},
+  "POST /v1/bo/campaigns/entries/search": { body: {} },
+  "POST /v1/bo/campaigns/entries/:id/open": {},
+  "POST /v1/bo/campaigns/entries/:id/release": {},
+  "POST /v1/bo/campaigns/entries/:id/extend": {},
+  "POST /v1/bo/campaigns/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/campaigns/entries/:id/first-review": {
+    body: {
+      reviewToken: "0".repeat(64),
+      opinion: "A favourable opinion of at least twenty characters.",
+    },
+  },
+  "POST /v1/bo/campaigns/entries/:id/publish": {
+    body: { reviewToken: "0".repeat(64), ownerAgentId: NIL },
+  },
+  "POST /v1/bo/campaigns/entries/:id/reject": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "brief_insufficient" },
+  },
+  "GET /v1/bo/campaigns/:id": {},
+  "POST /v1/bo/campaigns": {
+    body: {
+      advertiserAccountId: NIL,
+      title: "Inventory",
+      campaignType: "product_placement",
+    },
+  },
+  "POST /v1/bo/campaigns/:id/corrections": {
+    body: { fieldCode: "title", value: "Inventory", reasonCode: "entry_error" },
+  },
+  "POST /v1/bo/campaigns/:id/pause": { body: { reasonCode: "brand_request" } },
+  "POST /v1/bo/campaigns/:id/resume": { body: { reasonCode: "brand_request" } },
+  "POST /v1/bo/campaigns/:id/close": { body: { reasonCode: "brand_request" } },
+  // L3G 09: the identified creator search of the agents (0328) and the prefill of a campaign (0329)
+  "POST /v1/bo/creator-search": { body: { filters: {} } },
+  "POST /v1/bo/campaigns/:id/creator-prefill": {},
+  // L3G 10: queue 9, the requests for a selection by the team (0330), and the search settings (0333)
+  "GET /v1/bo/team-selection/entries": {},
+  "POST /v1/bo/team-selection/entries/search": { body: {} },
+  "POST /v1/bo/team-selection/entries/:id/open": {},
+  "POST /v1/bo/team-selection/entries/:id/release": {},
+  "POST /v1/bo/team-selection/entries/:id/extend": {},
+  "POST /v1/bo/team-selection/entries/:id/close": {
+    body: { reasonCode: "duplicate" },
+  },
+  "GET /v1/bo/settings/search": {},
+  "GET /v1/bo/queues/verification-creators/entries": {},
+  "POST /v1/bo/queues/verification-creators/entries/search": { body: {} },
+  "POST /v1/bo/queues/verification-creators/entries/:id/open": {},
+  "POST /v1/bo/queues/verification-creators/entries/:id/reexamine": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "network_unreachable" },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/reject": {
+    body: {
+      reviewToken: "0".repeat(64),
+      reasonCode: "other",
+      memberMessage: "A message of at least twenty characters.",
+    },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/release": {},
+  "POST /v1/bo/queues/verification-creators/entries/:id/extend": {},
+  "POST /v1/bo/queues/verification-creators/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/compare": {
+    body: {
+      reviewToken: "0".repeat(64),
+      followers: 1,
+      postsLast30Days: 1,
+      avgComments: 1,
+      engagementBp: null,
+    },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/grant-account": {
+    body: {
+      reviewToken: "0".repeat(64),
+      observedCode: "INFLUX-ABCDEFGH",
+      observedHandle: "t14_inventory",
+    },
+  },
+  "POST /v1/bo/queues/verification-creators/entries/:id/grant-audience": {
+    body: {
+      reviewToken: "0".repeat(64),
+      followers: 1,
+      postsLast30Days: 1,
+      avgComments: 1,
+      engagementBp: null,
+      periodStart: "2026-01-01",
+      periodEnd: "2026-01-02",
+      observedHandle: "t14_inventory",
+    },
+  },
+  "GET /v1/bo/queues/verification-creators/entries/:id/evidence/:evidenceId":
+    {},
+  "GET /v1/bo/queues/verification-brands/entries": {},
+  "POST /v1/bo/queues/verification-brands/entries/search": { body: {} },
+  "POST /v1/bo/queues/verification-brands/entries/:id/open": {},
+  "POST /v1/bo/queues/verification-brands/entries/:id/reexamine": {
+    body: { reviewToken: "0".repeat(64), reasonCode: "network_unreachable" },
+  },
+  "POST /v1/bo/queues/verification-brands/entries/:id/reject": {
+    body: {
+      reviewToken: "0".repeat(64),
+      reasonCode: "other",
+      memberMessage: "A message of at least twenty characters.",
+    },
+  },
+  "POST /v1/bo/queues/verification-brands/entries/:id/release": {},
+  "POST /v1/bo/queues/verification-brands/entries/:id/extend": {},
+  "POST /v1/bo/queues/verification-brands/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/queues/verification-brands/entries/:id/grant": {
+    body: {
+      reviewToken: "0".repeat(64),
+      observedCode: "INFLUX-ABCDEFGH",
+      observedDomain: "t14-inventory.example.test",
+      observedChannel: "dns_txt",
+      registrySourceId: NIL,
+    },
+  },
+  // L2F 14: queue 5 (the contests) and queue 6 (the identifiers changed)
+  "GET /v1/bo/queues/verification-disputes/entries": {},
+  "POST /v1/bo/queues/verification-disputes/entries/search": { body: {} },
+  "POST /v1/bo/queues/verification-disputes/entries/:id/open": {},
+  "POST /v1/bo/queues/verification-disputes/entries/:id/release": {},
+  "POST /v1/bo/queues/verification-disputes/entries/:id/extend": {},
+  "POST /v1/bo/queues/verification-disputes/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/queues/verification-disputes/entries/:id/uphold": {
+    body: {
+      reviewToken: "0".repeat(64),
+      outcomeReasonCode: "decision_confirmed",
+    },
+  },
+  "POST /v1/bo/queues/verification-disputes/entries/:id/overturn": {
+    body: {
+      target: "revocation",
+      reviewToken: "0".repeat(64),
+      observedHandle: "t14_inventory",
+    },
+  },
+  "GET /v1/bo/queues/verification-disputes/entries/:id/evidence/:evidenceId":
+    {},
+  "GET /v1/bo/queues/identifier-changes/entries": {},
+  "POST /v1/bo/queues/identifier-changes/entries/search": { body: {} },
+  "POST /v1/bo/queues/identifier-changes/entries/:id/open": {},
+  "POST /v1/bo/queues/identifier-changes/entries/:id/release": {},
+  "POST /v1/bo/queues/identifier-changes/entries/:id/extend": {},
+  "POST /v1/bo/queues/identifier-changes/entries/:id/force-release": {
+    body: { reasonCode: "holder_absent" },
+  },
+  "POST /v1/bo/queues/identifier-changes/entries/:id/confirm": {
+    body: { reviewToken: "0".repeat(64), observedHandle: "t14_inventory" },
+  },
+  "POST /v1/bo/queues/identifier-changes/entries/:id/require-proof": {
+    body: { reviewToken: "0".repeat(64) },
+  },
   "GET /v1/bo/settings/apollo": {},
+  // L2F 13: the badges of a member account, and the request of the withdrawal of one (opens a 2V)
+  "GET /v1/bo/accounts/:id/badges": {},
+  "POST /v1/bo/accounts/:id/badges/:badgeId/revocation": {
+    body: { reasonCode: "forged_evidence" },
+  },
+  // L2F 15 (D83): a verification opened by an agent for a member, and the grant on the login address
+  // (L2F 20: what the opening offers on the account, 0239)
+  "GET /v1/bo/accounts/:id/verification-requests": {},
+  "POST /v1/bo/accounts/:id/verification-requests": {
+    body: {
+      level: "brand_verified",
+      socialAccountId: null,
+      openingReasonCode: "existing_client",
+    },
+  },
+  "POST /v1/bo/queues/verification-brands/entries/:id/grant-by-login": {
+    body: { reviewToken: "0".repeat(64), registrySourceId: NIL },
+  },
+  // L2E 15: the registry sources of the brand's registration, read by agent and admin, written by admin
+  "GET /v1/bo/verification/registry-sources": {},
+  // L2F 21 (0229): an administrator adds the register of a country or of one of its States
+  "POST /v1/bo/verification/registry-sources": {
+    body: {
+      countryCode: "US",
+      subdivisionCode: "US-CA",
+      name: "Registry of the inventory",
+      url: "https://registry.example.test/",
+      checkedOn: "2026-01-01",
+      isActive: false,
+    },
+  },
+  "PUT /v1/bo/verification/registry-sources/:id": {
+    body: {
+      name: "Registry of the inventory",
+      url: "https://registry.example.test/",
+      checkedOn: "2026-01-01",
+      isActive: false,
+    },
+  },
   "GET /v1/bo/alerts": {},
   "GET /v1/bo/ops/status": {},
   "GET /v1/bo/ops/errors": {},
@@ -221,7 +471,12 @@ function answer(response: LightMyRequestResponse) {
 /** "GET /v1/bo/accounts/:id" ⇒ its method and the path with `id` in place of the parameter. */
 function concrete(route: string, id: string): { method: Method; url: string } {
   const [method = "", path = ""] = route.split(" ");
-  return { method: method as Method, url: path.replace(":id", id) };
+  // L2C 18b: the logo of an entry is named by a query (the route model keeps one `:id`)
+  const query = path.endsWith("/logo") ? `?logo=${NIL}` : "";
+  return {
+    method: method as Method,
+    url: `${path.replace(":id", id).replace(":evidenceId", NIL).replace(":badgeId", NIL).replace(":itemId", NIL)}${query}`,
+  };
 }
 
 /**
@@ -383,6 +638,226 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
       { who: admin, id: agent.accountId },
       { who: admin, id: admin.accountId },
     ],
+    // L2C 11: the entry of the caller's own account is hidden by the database (0207, C(3)): the
+    // answer of an unknown entry. (An entry of an account the caller holds answers its own 403,
+    // 17b §2.5: t14-backoffice-queue-route.)
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/open": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    // L2C 12: the same for every act on an entry; the force release is an admin's, an agent's attempt
+    // is refused whatever the entry (the answer of an agent never depends on the identifier).
+    "GET /v1/bo/queues/profiles-advertiser/entries/:id/logo": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/publish": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/reject": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/release": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/extend": async () => [
+      { who: agent, id: await ownBrandEntry() },
+    ],
+    "POST /v1/bo/queues/profiles-advertiser/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownBrandEntry() }],
+    // L2G 11: an entry of queue 2 and a visual of queue 3 on the caller's own account are hidden by the
+    // database (0242, 0243, C(3)): the answer of an unknown entry, on every route of both queues. (An
+    // account the caller holds answers its own 403, 17b §2.5: t14-creator-queue-route.)
+    "POST /v1/bo/queues/profiles-creator/entries/:id/open": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/publish": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/reject": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/release": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/extend": async () => [
+      { who: agent, id: (await ownCreatorFixture()).entryId },
+    ],
+    "POST /v1/bo/queues/profiles-creator/entries/:id/force-release":
+      async () => [{ who: agent, id: (await ownCreatorFixture()).entryId }],
+    "GET /v1/bo/queues/profiles-creator/entries/:id/portfolio/:itemId/image":
+      async () => [{ who: agent, id: (await ownCreatorFixture()).entryId }],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/open": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/approve": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/reject": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/release": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/extend": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    "POST /v1/bo/queues/portfolio-moderation/entries/:id/force-release":
+      async () => [{ who: agent, id: (await ownCreatorFixture()).itemId }],
+    "GET /v1/bo/queues/portfolio-moderation/entries/:id/image": async () => [
+      { who: agent, id: (await ownCreatorFixture()).itemId },
+    ],
+    // L3C 07: an entry of queue 7 and a campaign on the caller's own account are hidden by the database
+    // (0307, 0308, C(3)): the answer of an unknown one, on every route. (An account the caller holds
+    // answers its own 403, 17b §2.5: t14-campaign-review-route.)
+    ...Object.fromEntries(
+      [
+        "POST /v1/bo/campaigns/entries/:id/open",
+        "POST /v1/bo/campaigns/entries/:id/release",
+        "POST /v1/bo/campaigns/entries/:id/extend",
+        "POST /v1/bo/campaigns/entries/:id/force-release",
+        "POST /v1/bo/campaigns/entries/:id/first-review",
+        "POST /v1/bo/campaigns/entries/:id/publish",
+        "POST /v1/bo/campaigns/entries/:id/reject",
+      ].map((route) => [
+        route,
+        async () => [{ who: agent, id: (await ownCampaignFixture()).entryId }],
+      ]),
+    ),
+    ...Object.fromEntries(
+      [
+        "GET /v1/bo/campaigns/:id",
+        "POST /v1/bo/campaigns/:id/corrections",
+        "POST /v1/bo/campaigns/:id/pause",
+        "POST /v1/bo/campaigns/:id/resume",
+        "POST /v1/bo/campaigns/:id/close",
+        // L3G 09: a campaign of the caller's own account is a draft: not admitted, an unknown one (0329)
+        "POST /v1/bo/campaigns/:id/creator-prefill",
+      ].map((route) => [
+        route,
+        async () => [
+          { who: agent, id: (await ownCampaignFixture()).campaignId },
+        ],
+      ]),
+    ),
+    // L3G 10: a request of queue 9 of a brand the caller HOLDS answers like an unknown request, on every
+    // route (15 RG36, EC-L3G-06-2: 0330 answers 42501 to open, extend and close; the route answers a release
+    // the same way when the caller has no claim to give back). The queue is in the list of the others.
+    ...Object.fromEntries(
+      [
+        "POST /v1/bo/team-selection/entries/:id/open",
+        "POST /v1/bo/team-selection/entries/:id/release",
+        "POST /v1/bo/team-selection/entries/:id/extend",
+        "POST /v1/bo/team-selection/entries/:id/close",
+      ].map((route) => [
+        route,
+        async () => [{ who: agent, id: await heldSelectionRequest() }],
+      ]),
+    ),
+    // L2E 14: a verification request of the caller's own account is hidden by the database (0221,
+    // C(3)): the answer of an unknown request, on every route of both views (an own request of the
+    // creator view on the creator routes, of the brand view on the brand routes).
+    "POST /v1/bo/queues/verification-creators/entries/:id/open": async () => [
+      { who: agent, id: await ownVerificationRequest("creator") },
+    ],
+    "POST /v1/bo/queues/verification-creators/entries/:id/reexamine":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/reject": async () => [
+      { who: agent, id: await ownVerificationRequest("creator") },
+    ],
+    "POST /v1/bo/queues/verification-creators/entries/:id/release":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/extend": async () => [
+      { who: agent, id: await ownVerificationRequest("creator") },
+    ],
+    "POST /v1/bo/queues/verification-creators/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/compare":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/grant-account":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-creators/entries/:id/grant-audience":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "GET /v1/bo/queues/verification-creators/entries/:id/evidence/:evidenceId":
+      async () => [{ who: agent, id: await ownVerificationRequest("creator") }],
+    "POST /v1/bo/queues/verification-brands/entries/:id/open": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/reexamine":
+      async () => [{ who: agent, id: await ownVerificationRequest("brand") }],
+    "POST /v1/bo/queues/verification-brands/entries/:id/reject": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/release": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/extend": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownVerificationRequest("brand") }],
+    "POST /v1/bo/queues/verification-brands/entries/:id/grant": async () => [
+      { who: agent, id: await ownVerificationRequest("brand") },
+    ],
+    // L2F 14: an entry of queue 5 or 6 on the caller's own account answers like an unknown entry (T14.3)
+    "POST /v1/bo/queues/verification-disputes/entries/:id/open": async () => [
+      { who: agent, id: await ownDispute() },
+    ],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/release":
+      async () => [{ who: agent, id: await ownDispute() }],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/extend": async () => [
+      { who: agent, id: await ownDispute() },
+    ],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownDispute() }],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/uphold": async () => [
+      { who: agent, id: await ownDispute() },
+    ],
+    "POST /v1/bo/queues/verification-disputes/entries/:id/overturn":
+      async () => [{ who: agent, id: await ownDispute() }],
+    "GET /v1/bo/queues/verification-disputes/entries/:id/evidence/:evidenceId":
+      async () => [{ who: agent, id: await ownDispute() }],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/open": async () => [
+      { who: agent, id: await ownIdentifierReview() },
+    ],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/release": async () => [
+      { who: agent, id: await ownIdentifierReview() },
+    ],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/extend": async () => [
+      { who: agent, id: await ownIdentifierReview() },
+    ],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/force-release":
+      async () => [{ who: agent, id: await ownIdentifierReview() }],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/confirm": async () => [
+      { who: agent, id: await ownIdentifierReview() },
+    ],
+    "POST /v1/bo/queues/identifier-changes/entries/:id/require-proof":
+      async () => [{ who: agent, id: await ownIdentifierReview() }],
+    // L2F 13: the badges and the withdrawal of an internal account, and of the caller's own, are the
+    // answer of an unknown account; a badge that is not the account's answers like an unknown one.
+    "GET /v1/bo/accounts/:id/badges": async () => [
+      { who: agent, id: admin.accountId },
+      { who: agent, id: agent.accountId },
+    ],
+    "POST /v1/bo/accounts/:id/badges/:badgeId/revocation": async () => [
+      { who: agent, id: otherAgent.accountId },
+      { who: admin, id: admin.accountId },
+    ],
+    // L2F 15: the opening for an internal account or the caller's own is the answer of an unknown account;
+    // the grant on the login address of the caller's own brand request, that of an unknown entry
+    "GET /v1/bo/accounts/:id/verification-requests": async () => [
+      { who: agent, id: otherAgent.accountId },
+      { who: admin, id: admin.accountId },
+      { who: agent, id: agent.accountId },
+    ],
+    "POST /v1/bo/accounts/:id/verification-requests": async () => [
+      { who: agent, id: otherAgent.accountId },
+      { who: admin, id: admin.accountId },
+    ],
+    "POST /v1/bo/queues/verification-brands/entries/:id/grant-by-login":
+      async () => [{ who: agent, id: await ownVerificationRequest("brand") }],
+    // An agent never writes a registry source (admin only, 0224): one that exists or not, the same 403.
+    "PUT /v1/bo/verification/registry-sources/:id": async () => [
+      { who: agent, id: await anyRegistrySource() },
+    ],
     // An agent never reaches the "Santé technique" screen (admins only): a group that exists or not,
     // the same refusal.
     "GET /v1/bo/ops/errors/:id": async () => [
@@ -407,6 +882,292 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
     ],
   };
 
+  /**
+   * An entry of queue 1 on the agent's own account. One role per account (D41) makes it impossible
+   * through the doors, so the superuser writes it with the foreign keys and the trigger of the
+   * deadlines out of the way: the policy is a second line, and this is how it is tried.
+   */
+  let ownEntry: Promise<string> | undefined;
+
+  /** One open entry per account (the unique index): shared by every route that tries it. */
+  function ownBrandEntry(): Promise<string> {
+    ownEntry ??= writeOwnBrandEntry();
+    return ownEntry;
+  }
+
+  async function writeOwnBrandEntry(): Promise<string> {
+    const entryId = randomUUID();
+    await localSuperuser().begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`
+        insert into profiles.advertiser_profiles (account_id, legal_name, status, submitted_at)
+        values (${agent.accountId}, 'Own account', 'pending_review', now())
+        on conflict do nothing`;
+      await tx`
+        insert into profiles.advertiser_review_entries
+          (id, account_id, kind, created_at, sla_due_at, escalate_at)
+        values (${entryId}, ${agent.accountId}, 'submission', now(), now() + interval '1 day',
+                now() + interval '2 days')`;
+    });
+    ownEntries.push(entryId);
+    return entryId;
+  }
+
+  const ownEntries: string[] = [];
+
+  type OwnCreator = { entryId: string; itemId: string };
+  let ownCreator: Promise<OwnCreator> | undefined;
+
+  /**
+   * A storefront of the agent's own account with an open entry of queue 2 and a pending visual of queue
+   * 3 (L2G 11): the doors never write them (one role per account, D41), so the superuser writes them with
+   * the foreign keys and the triggers out of the way; the policies of 0242 and 0243 are a second line,
+   * and this is how they are tried. Removed with the file.
+   */
+  function ownCreatorFixture(): Promise<OwnCreator> {
+    ownCreator ??= (async () => {
+      const entryId = randomUUID();
+      const itemId = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into profiles.creator_public_profiles
+            (account_id, alias, residence_country_code, status)
+          values (${agent.accountId}, profiles.new_creator_alias(), 'FR', 'pending_review')
+          on conflict do nothing`;
+        await tx`
+          insert into profiles.creator_review_entries
+            (id, account_id, kind, created_at, sla_due_at, escalate_at)
+          values (${entryId}, ${agent.accountId}, 'submission', now(), now() + interval '1 day',
+                  now() + interval '2 days')`;
+        await tx`
+          insert into profiles.portfolio_items
+            (id, account_id, state, received_bytes, byte_size, width, height, checksum,
+             exif_stripped, stored_at, sla_due_at, escalate_at)
+          values (${itemId}, ${agent.accountId}, 'pending', 1000, 900, 1080, 1350,
+                  ${"a".repeat(64)}, true, now(), now() + interval '1 day',
+                  now() + interval '2 days')`;
+      });
+      return { entryId, itemId };
+    })();
+    return ownCreator;
+  }
+
+  afterAll(async () => {
+    if (ownCreator !== undefined) {
+      const { entryId, itemId } = await ownCreator;
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`delete from profiles.portfolio_items where id = ${itemId}`;
+        await tx`delete from profiles.creator_review_entries where id = ${entryId}`;
+        await tx`delete from profiles.creator_public_profiles where account_id = ${agent.accountId}`;
+      });
+    }
+  });
+
+  type HeldSelection = { brandId: string; requestId: string };
+  let heldSelection: Promise<HeldSelection> | undefined;
+
+  /**
+   * A request of queue 9 of a brand the agent HOLDS (`owner_agent_id`, L3G 10): the doors never write one
+   * for a brand of the file, so the superuser writes the brand, its profile and the request with the foreign
+   * keys and the triggers out of the way; 0330 refuses its opening to the agent (42501), and this is how it is
+   * tried. Removed with the file.
+   */
+  async function heldSelectionRequest(): Promise<string> {
+    heldSelection ??= (async () => {
+      const brandId = randomUUID();
+      const requestId = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into identity.accounts
+            (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+             is_adult_attested, adult_attested_at, declared_status, owner_agent_id)
+          values (${brandId}, ${randomUUID()}, ${`t14-inv-held-${brandId}@example.test`}, now(), 'FR',
+                  'fr', true, now(), 'business', ${agent.accountId})`;
+        await tx`
+          insert into identity.account_roles (account_id, role) values (${brandId}, 'advertiser')`;
+        await tx`
+          insert into profiles.advertiser_profiles (account_id, legal_name)
+          values (${brandId}, ${`Held ${brandId.slice(0, 8)}`})`;
+        await tx`
+          insert into search.selection_requests
+            (id, advertiser_account_id, filters, language, sla_due_at, created_at)
+          values (${requestId}, ${brandId}, '{}'::jsonb, 'fr', now() + interval '1 day', now())`;
+      });
+      return { brandId, requestId };
+    })();
+    return (await heldSelection).requestId;
+  }
+
+  afterAll(async () => {
+    if (heldSelection !== undefined) {
+      const { brandId, requestId } = await heldSelection;
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`delete from search.selection_requests where id = ${requestId}`;
+        await tx`delete from profiles.advertiser_profiles where account_id = ${brandId}`;
+        await tx`delete from identity.account_roles where account_id = ${brandId}`;
+        await tx`delete from identity.accounts where id = ${brandId}`;
+      });
+    }
+  });
+
+  type OwnCampaign = { campaignId: string; entryId: string };
+  let ownCampaign: Promise<OwnCampaign> | undefined;
+
+  /**
+   * A campaign of the agent's own account with an open entry of queue 7 (L3C 07): the doors never write
+   * one (one role per account, D41), so the superuser writes it with the foreign keys and the triggers out
+   * of the way; the policies of 0307 and 0308 are a second line, and this is how they are tried. Removed
+   * with the file.
+   */
+  function ownCampaignFixture(): Promise<OwnCampaign> {
+    ownCampaign ??= (async () => {
+      const campaignId = randomUUID();
+      const entryId = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into campaigns.campaigns (id, advertiser_account_id)
+          values (${campaignId}, ${agent.accountId})`;
+        await tx`
+          insert into campaigns.campaign_review_entries
+            (id, campaign_id, advertiser_account_id, created_at, sla_due_at, escalate_at)
+          values (${entryId}, ${campaignId}, ${agent.accountId}, now(), now() + interval '1 day',
+                  now() + interval '2 days')`;
+      });
+      return { campaignId, entryId };
+    })();
+    return ownCampaign;
+  }
+
+  afterAll(async () => {
+    if (ownCampaign !== undefined) {
+      const { campaignId, entryId } = await ownCampaign;
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`delete from campaigns.campaign_review_entries where id = ${entryId}`;
+        await tx`delete from campaigns.campaigns where id = ${campaignId}`;
+      });
+    }
+  });
+
+  const ownRequests: Partial<Record<"creator" | "brand", Promise<string>>> = {};
+  const ownRequestIds: string[] = [];
+
+  /**
+   * A pending verification request on the agent's own account, of the population asked: the doors never
+   * write one (one role per account, D41), so the superuser writes it with the foreign keys and the
+   * triggers out of the way; the policy of 0221 is a second line, and this is how it is tried.
+   */
+  function ownVerificationRequest(
+    population: "creator" | "brand",
+  ): Promise<string> {
+    ownRequests[population] ??= writeOwnVerificationRequest(population);
+    return ownRequests[population];
+  }
+
+  async function writeOwnVerificationRequest(
+    population: "creator" | "brand",
+  ): Promise<string> {
+    const requestId = randomUUID();
+    await localSuperuser().begin(async (tx) => {
+      await tx`set local session_replication_role = replica`;
+      await tx`
+        insert into verification.verification_requests
+          (id, account_id, social_account_id, network_code, level, status, created_at,
+           submitted_at, sla_due_at, escalate_at)
+        values (${requestId}, ${agent.accountId},
+                ${population === "creator" ? randomUUID() : null},
+                ${population === "creator" ? "instagram" : null},
+                ${population === "creator" ? "audience_verified" : "brand_verified"}::verification.badge_level,
+                'pending', now(), now(), now() + interval '1 day', now() + interval '2 days')`;
+    });
+    ownRequestIds.push(requestId);
+    return requestId;
+  }
+
+  const ownQueueIds: { dispute: string[]; review: string[] } = {
+    dispute: [],
+    review: [],
+  };
+  let ownDisputeEntry: Promise<string> | undefined;
+  let ownReviewEntry: Promise<string> | undefined;
+
+  /**
+   * A contest (queue 5) on the agent's own account: the doors never write one, so the superuser writes
+   * it with the foreign keys and the triggers out of the way; the policy of 0232 is a second line.
+   */
+  function ownDispute(): Promise<string> {
+    ownDisputeEntry ??= (async () => {
+      const id = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into verification.disputes
+            (id, account_id, badge_id, level, network_code, reason_code, original_decider_ids,
+             sla_due_at, escalate_at)
+          values (${id}, ${agent.accountId}, ${randomUUID()}, 'audience_verified', 'instagram',
+                  'misread', array[${otherAgent.accountId}]::uuid[], now() + interval '1 day',
+                  now() + interval '2 days')`;
+      });
+      ownQueueIds.dispute.push(id);
+      return id;
+    })();
+    return ownDisputeEntry;
+  }
+
+  /** An entry of queue 6 on the agent's own account, written the same way. */
+  function ownIdentifierReview(): Promise<string> {
+    ownReviewEntry ??= (async () => {
+      const id = randomUUID();
+      await localSuperuser().begin(async (tx) => {
+        await tx`set local session_replication_role = replica`;
+        await tx`
+          insert into verification.identifier_change_reviews
+            (id, account_id, social_account_id, network_code, badge_id, previous_handle, new_handle,
+             sla_due_at, escalate_at)
+          values (${id}, ${agent.accountId}, ${randomUUID()}, 'instagram', ${randomUUID()},
+                  't14_before', 't14_after', now() + interval '1 day',
+                  now() + interval '2 days')`;
+      });
+      ownQueueIds.review.push(id);
+      return id;
+    })();
+    return ownReviewEntry;
+  }
+
+  afterAll(async () => {
+    if (ownQueueIds.dispute.length > 0) {
+      await migrationRole()`
+        update verification.disputes set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now()
+         where id = any(${ownQueueIds.dispute}::uuid[]) and state = 'open'`;
+    }
+    if (ownQueueIds.review.length > 0) {
+      await migrationRole()`
+        update verification.identifier_change_reviews set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now()
+         where id = any(${ownQueueIds.review}::uuid[]) and state = 'open'`;
+    }
+  });
+
+  afterAll(async () => {
+    if (ownRequestIds.length > 0) {
+      await migrationRole()`
+        update verification.verification_requests set status = 'cancelled', cancelled_at = now(), closed_at = now()
+         where id = any(${ownRequestIds}::uuid[]) and status = 'pending'`;
+    }
+  });
+
+  afterAll(async () => {
+    if (ownEntries.length > 0) {
+      await migrationRole()`
+        update profiles.advertiser_review_entries set state = 'withdrawn', closed_at = now()
+         where id = any(${ownEntries}::uuid[]) and state = 'open'`;
+    }
+  });
+
   let pendingRequest: Promise<string> | undefined;
 
   /** One pending request of the admin, shared by the three cases (one per setting at a time). */
@@ -426,6 +1187,12 @@ describe("T14.3, T14.4: an object that is not the caller's answers like one that
       );
     }
   });
+
+  async function anyRegistrySource(): Promise<string> {
+    const [row] = await migrationRole()<{ id: string }[]>`
+      select id::text as id from verification.registry_sources order by id limit 1`;
+    return row?.id ?? "";
+  }
 
   /** One error group, committed by the migration role and removed with the file. */
   let groupFingerprint: Buffer | undefined;

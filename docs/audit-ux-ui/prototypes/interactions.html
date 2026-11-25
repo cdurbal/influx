@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Micro-interactions INFLUX</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  .lab { display: grid; gap: var(--spacing-5); }
+  @media (width >= 800px) { .lab { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (width >= 1280px) { .lab { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .lab .card { gap: var(--spacing-4); }
+  .lab .what { font-size: var(--text-xs); color: var(--color-text-tertiary); font-family: var(--font-mono); }
+  .say-log { display: flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); border-radius: var(--radius-md); padding: var(--spacing-2) var(--spacing-3); background: var(--color-surface-raised); }
+  .mini-tbl td, .mini-tbl th { white-space: nowrap; }
+  /* Simulation du mouvement réduit : mêmes effets que prefers-reduced-motion */
+  .sim-reduced { --duration-fast: 0ms; --duration-base: 0ms; --duration-slow: 0ms; }
+  .sim-reduced :is(.btn, .card--link, .d-card) { scale: none !important; translate: none !important; }
+  .sim-reduced .go .i { translate: none !important; }
+  .sim-reduced .skel::after { display: none; }
+  .sim-reduced .dlg { scale: 1; }
+  .sim-reduced .is-entering, .sim-reduced .is-flash, .sim-reduced .is-flash-strong { animation: none; }
+  .sim-reduced .save .i { animation: none !important; }
+  .save { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .save .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .save[data-kind="failed"] { color: var(--color-feedback-error-text); font-weight: var(--font-weight-semibold); }
+  @media (prefers-reduced-motion: no-preference) { .save[data-kind="saving"] .i { animation: spin 1s linear infinite; } }
+  @keyframes spin { to { rotate: 360deg; } }
+  .demo-sheet .sheet__in { display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--spacing-5) var(--spacing-page-gutter) var(--spacing-6); }
+  details.acc > summary { display: flex; align-items: center; justify-content: space-between; min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: var(--font-weight-bold); border-bottom: var(--border-width-thin) solid var(--color-border-default); }
+  details.acc > summary::-webkit-details-marker { display: none; }
+  details.acc > summary .i { transition: rotate var(--duration-base) var(--ease-standard); color: var(--color-text-secondary); }
+  details.acc[open] > summary .i { rotate: 180deg; }
+  details.acc[open] > div { animation: rise-in var(--duration-base) var(--ease-standard); padding: var(--spacing-3) 0; }
+</style>
+</head>
+<body class="doc">
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html" aria-current="page">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Catalogue transverse</p>
+    <h1 class="d-h1">Micro-interactions</h1>
+    <p class="d-lead">Un mouvement a un seul rôle : retour, continuité ou hiérarchie. Il n'anime que l'opacité, la position, l'échelle et les couleurs, avec les durées et les courbes des tokens, et disparaît sous « réduire les animations ». Aucune bibliothèque : CSS natif (<code>transition</code>, <code>@starting-style</code>, <code>position: sticky</code>).</p>
+    <div class="row g3">
+      <button class="d-toggle" type="button" id="sim" aria-pressed="false"><svg class="i i--sm"><use href="#i-hand"/></svg>Simuler « réduire les animations »</button>
+      <p class="say-log" aria-hidden="true"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span>Dernière annonce vocale :</span><span id="demo-say">aucune</span></p>
+    </div>
+  </div>
+
+  <section class="d-sec" style="max-width: none" aria-labelledby="t-lab"><h2 id="t-lab"><span class="n">1</span>À essayer</h2>
+    <div class="lab">
+      <article class="card"><h3 class="t-card">Boutons</h3><p class="what">scale 1,03 / 0,98 · couleurs · ombre · 120 ms</p>
+        <div class="actions"><button class="btn btn--primary" type="button">Créer une campagne</button><button class="btn btn--secondary" type="button">Rechercher</button></div>
+        <div class="actions"><button class="btn btn--secondary" type="button" aria-disabled="true">Indisponible</button><a class="go" href="#t-lab">Voir les 5 campagnes <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+        <p class="sm c2">Survol et appui (existant, F6). Sur téléphone, seul l'appui réagit. Désactivé : aucun mouvement, curseur interdit.</p></article>
+
+      <article class="card"><h3 class="t-card">Modale</h3><p class="what">opacity · scale 0,98 → 1 · voile · 200 ms / 120 ms</p>
+        <button class="btn btn--secondary" type="button" data-dialog="reauth">Retirer le badge</button>
+        <p class="sm c2">Réservée à une confirmation courte ou une vérification d'identité. <code>&lt;dialog&gt;</code> natif : focus piégé, Échap annule sans perdre la saisie, focus rendu au bouton. Sur téléphone : pleine largeur moins les gouttières.</p></article>
+
+      <article class="card"><h3 class="t-card">Panneau du bas</h3><p class="what">translate 100 % → 0 · voile · 200 ms / 120 ms</p>
+        <button class="btn btn--secondary" type="button" data-sheet="lab-sheet" aria-expanded="false" aria-controls="lab-sheet"><svg class="i"><use href="#i-funnel"/></svg>Filtres (1)</button>
+        <p class="sm c2">Filtres et « Ma sélection » sur téléphone. Sur ordinateur, un panneau ne recouvre jamais le contenu : il devient une colonne collante (décision du backoffice, filtres, pilotage du profil), sans animation.</p></article>
+
+      <article class="card" data-autosave><h3 class="t-card">Formulaire</h3><p class="what">contour 2 px → 1 px · message sans boîte · statut</p>
+        <div class="field"><label class="label" for="lab-url">Lien de votre profil TikTok</label>
+          <input class="control" id="lab-url" type="url" value="https://www.instagram.com/lea.cuisine" aria-invalid="true" aria-describedby="lab-url-e">
+          <p class="fmsg fmsg--error" id="lab-url-e"><svg class="i"><use href="#i-circle-alert"/></svg><span>Ce lien doit mener à tiktok.com.</span></p></div>
+        <div class="row between g2"><p class="save" data-save data-kind="saved"><svg class="i"><use href="#i-check"/></svg><span data-save-text>Enregistré à 14 h 07</span><button class="link" type="button" data-retry hidden>Réessayer</button></p><button class="btn btn--text" type="button" id="demo-fail" aria-pressed="false">Simuler un échec</button></div>
+        <p class="sm c2">Corrigez le lien : l'erreur disparaît à la correction. L'enregistrement n'est annoncé vocalement qu'en cas d'échec.</p></article>
+
+      <article class="card"><h3 class="t-card">Retour d'action et annonce</h3><p class="what">icône en fondu 120 ms · fond du compteur 320 ms</p>
+        <div class="row between g3"><span class="sm">Ma sélection privée <span class="counter" id="lab-count">3</span></span>
+          <button class="btn btn--secondary" type="button" id="lab-add"><span class="when-idle row g2"><svg class="i"><use href="#i-plus"/></svg>Ajouter à ma sélection</span><span class="when-added row g2"><svg class="i"><use href="#i-check"/></svg>Ajouté</span></button></div>
+        <div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><p>Bannière persistante : réservée à ce qui demande une action (« Coffret de fêtes » est à corriger).</p></div>
+        <p class="sm c2">Pas de pile de notifications flottantes : le retour se fait à l'endroit de l'action et dans la région d'annonce de la page.</p></article>
+
+      <article class="card"><h3 class="t-card">Tableau dense</h3><p class="what">fond + filet de 2 px · 120 ms · ligne nouvelle 320 ms</p>
+        <div class="d-wrap"><table class="tbl mini-tbl"><thead><tr><th>Marque</th><th class="num">Échéance</th></tr></thead><tbody id="lab-rows">
+          <tr><td><a class="id" href="#t-lab">Terre &amp; Thé</a></td><td class="num"><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>49 min</span></td></tr>
+          <tr><td><a class="id" href="#t-lab">Vélo Urbain Bruxelles</a></td><td class="num">dans 2 h 56</td></tr></tbody></table></div>
+        <button class="btn btn--secondary" type="button" id="lab-row">Simuler une nouvelle entrée</button></article>
+
+      <article class="card"><h3 class="t-card">Chargement</h3><p class="what">balayage 1,2 s linéaire · statique en mouvement réduit</p>
+        <div id="lab-load" class="stack g2" aria-busy="false"><p class="t-card">Profil 93JMS4</p><p class="sm c2">Cuisine végétale de saison, recettes simples pour toute la famille</p></div>
+        <div id="lab-skel" class="stack g2" hidden aria-hidden="true"><div class="skel skel--line" style="width: 40%"></div><div class="skel skel--line"></div><div class="skel skel--line" style="width: 75%"></div></div>
+        <button class="btn btn--secondary" type="button" id="lab-reload"><svg class="i"><use href="#i-refresh-cw"/></svg>Recharger</button>
+        <p class="sm c2">Squelette à la hauteur finale (aucun saut de mise en page), rien sous une seconde.</p></article>
+
+      <article class="card"><h3 class="t-card">Accordéon</h3><p class="what">chevron rotate · contenu opacity et −4 px · 200 ms</p>
+        <details class="acc"><summary>4. Audience <svg class="i"><use href="#i-chevron-down"/></svg></summary><div class="sm c2">Le contenu apparaît en fondu ; aucune hauteur n'est animée.</div></details>
+        <details class="acc"><summary>5. Mon offre <svg class="i"><use href="#i-chevron-down"/></svg></summary><div class="sm c2">Une section ouverte à la fois sur le profil.</div></details></article>
+
+      <article class="card card--link"><h3 class="t-card"><a class="cover" href="#t-lab">Carte cliquable</a></h3><p class="what">translate −2 px · couleurs · 120 ms</p>
+        <p class="sm c2">Contour fort, soulèvement au survol, lien étiré sur le titre et aucun bouton qui mène au même endroit (campagnes du fil).</p></article>
+    </div>
+  </section>
+
+  <section class="d-sec" style="max-width: none" aria-labelledby="t-cat"><h2 id="t-cat"><span class="n">2</span>Catalogue</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Interaction</th><th>Où</th><th>Propriétés animées</th><th>Durée · courbe</th><th>Téléphone</th><th>Mouvement réduit</th></tr></thead>
+      <tbody>
+        <tr><td>Bouton principal ou secondaire</td><td>Partout</td><td>Couleurs, ombre, <code>scale</code> 1,03 au survol, 0,98 à l'appui</td><td>120 ms · standard</td><td>Appui seulement</td><td>Couleurs seules</td></tr>
+        <tr><td>Carte cliquable</td><td>Fil créateur, accueils</td><td>Couleurs, <code>translate</code> −2 px</td><td>120 ms · standard</td><td>Sans effet</td><td>Couleurs seules</td></tr>
+        <tr><td>Lien « › »</td><td>Listes, accueils</td><td>Chevron <code>translate</code> 2 px</td><td>120 ms · standard</td><td>Sans effet</td><td>Aucun</td></tr>
+        <tr><td>Modale</td><td>Identité (BO), suppression, raccourcis <span class="kbd">?</span></td><td><code>opacity</code>, <code>scale</code> 0,98 → 1, voile</td><td>200 ms · standard, sortie 120 ms · sortie</td><td>Pleine largeur moins les gouttières</td><td>Fondu instantané</td></tr>
+        <tr><td>Panneau du bas</td><td>Filtres, « Ma sélection »</td><td><code>translate</code> 100 % → 0, voile</td><td>200 ms · standard, sortie 120 ms</td><td>Seul cas d'usage</td><td>Instantané</td></tr>
+        <tr><td>Colonne collante</td><td>Décision BO, « La marque », pilotage du profil</td><td><code>position: sticky</code></td><td>—</td><td>Empilée sous le contenu</td><td>—</td></tr>
+        <tr><td>Accordéon, <code>details</code></td><td>Profil, facettes, alertes</td><td>Chevron <code>rotate</code> ; contenu <code>opacity</code> et −4 px</td><td>200 ms · standard</td><td>Identique</td><td>Instantané</td></tr>
+        <tr><td>Champ en erreur</td><td>Formulaires</td><td>Bordure 1 → 2 px, couleur ; message sans animation</td><td>120 ms · standard</td><td>Identique</td><td>Instantané</td></tr>
+        <tr><td>Statut d'enregistrement</td><td>Profils, campagne</td><td>Icône qui tourne pendant l'envoi</td><td>1 s linéaire, le temps de l'envoi</td><td>Dans la barre collante</td><td>Icône fixe</td></tr>
+        <tr><td>« Ajouté »</td><td>Recherche, profil anonyme</td><td>Icône en fondu, couleurs</td><td>120 ms · standard</td><td>Identique</td><td>Instantané</td></tr>
+        <tr><td>Compteur qui change</td><td>Sélection, files, rail</td><td>Fond bref, jamais de chiffres qui défilent</td><td>320 ms · standard</td><td>Identique</td><td>Aucun fond ; l'annonce reste</td></tr>
+        <tr><td>Ligne nouvelle, entrée suivante</td><td>Files</td><td>Fond <code>surface-raised</code> qui s'estompe</td><td>320 ms · standard</td><td>—</td><td>Aucun</td></tr>
+        <tr><td>Ligne de tableau</td><td>Files, inscrits</td><td>Fond, filet intérieur de 2 px</td><td>120 ms · standard</td><td>—</td><td>Couleurs seules</td></tr>
+        <tr><td>Changement d'étape de campagne</td><td>Formulaire de campagne</td><td>Contenu en fondu, focus sur le <code>h2</code></td><td>120 ms · standard</td><td>Identique</td><td>Instantané</td></tr>
+        <tr><td>Squelette</td><td>Listes, profils, coquille</td><td>Balayage <code>translate</code></td><td>1,2 s · linéaire, pendant le chargement</td><td>Identique</td><td>Statique</td></tr>
+        <tr><td>Navigation entre pages</td><td>Partout</td><td>Aucune : focus sur le <code>h1</code></td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody></table></div>
+    <p class="sm c2">Écartées dans les espaces connectés (guide <code>03.md</code>, <code>01</code> §11.2) : apparition au défilement, animation liée au défilement, défilement simulé (Lenis, Locomotive), découpage du texte, rebond. Elles retardent la lecture ou cassent l'accessibilité. Les trois idées retenues de la page compagnon de la leçon Framer Academy (lue, vidéo non visionnée) : une variante par état, tester chaque chemin d'entrée et de sortie, une page compréhensible si l'effet est sauté.</p>
+  </section>
+</main>
+
+<div class="sheet demo-sheet" id="lab-sheet" role="dialog" aria-modal="true" aria-labelledby="lab-sheet-t">
+  <div class="sheet__in">
+    <div class="row between"><h2 class="t-card" id="lab-sheet-t" tabindex="-1">Critères de recherche</h2><button class="btn btn--text" type="button" data-sheet-close aria-label="Masquer les filtres"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <div class="field"><label class="label sm" for="lab-f">Pays d'audience</label><span class="select"><select class="control" id="lab-f"><option>Belgique</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+    <div class="actions"><button class="btn btn--primary grow" type="button" data-sheet-close>Voir les résultats</button><button class="btn btn--text" type="button">Tout effacer</button></div>
+  </div>
+</div>
+<div class="scrim" id="scrim"></div>
+
+<dialog class="dlg" id="reauth" aria-labelledby="reauth-t">
+  <form class="stack g4" method="dialog">
+    <h2 class="t-section" id="reauth-t">Confirmez votre identité</h2>
+    <p class="sm c2">Retirer un badge est un geste sensible : saisissez votre code d'authentification.</p>
+    <div class="field"><label class="label sm" for="totp">Code à 6 chiffres</label><input class="control" id="totp" inputmode="numeric" autocomplete="one-time-code" autofocus></div>
+    <div class="actions"><button class="btn btn--primary" type="submit" value="ok">Confirmer</button><button class="btn btn--text" type="button" data-close>Annuler</button></div>
+  </form>
+</dialog>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var sim = document.getElementById("sim");
+  sim.addEventListener("click", function () { var on = document.documentElement.classList.toggle("sim-reduced"); sim.setAttribute("aria-pressed", String(on)); });
+  var url = document.getElementById("lab-url"), err = document.getElementById("lab-url-e");
+  url.addEventListener("input", function () { var ok = /tiktok\.com/i.test(url.value); if (ok) { url.setAttribute("aria-invalid", "false"); err.hidden = true; } });
+  url.addEventListener("blur", function () { var ok = /tiktok\.com/i.test(url.value); url.setAttribute("aria-invalid", String(!ok)); err.hidden = ok; });
+  var n = 3, add = document.getElementById("lab-add"), cnt = document.getElementById("lab-count");
+  add.addEventListener("click", function () { var on = add.classList.toggle("is-added"); n += on ? 1 : -1; cnt.textContent = n; P.flash(cnt.parentNode, true); P.announce(on ? "Profil 93JMS4 ajouté à « Ma sélection » (" + n + " créateurs)." : "Profil 93JMS4 retiré de « Ma sélection » (" + n + " créateurs)."); });
+  document.getElementById("lab-row").addEventListener("click", function () {
+    var tr = document.createElement("tr"); tr.className = "is-flash-strong";
+    tr.innerHTML = '<td><a class="id" href="#t-lab">Kintsugi Studio</a></td><td class="num">dans 6 h 56</td>';
+    document.getElementById("lab-rows").appendChild(tr); P.announce("Nouvelle entrée : Kintsugi Studio.");
+  });
+  document.getElementById("lab-reload").addEventListener("click", function () {
+    var c = document.getElementById("lab-load"), s = document.getElementById("lab-skel");
+    c.hidden = true; s.hidden = false; c.setAttribute("aria-busy", "true");
+    setTimeout(function () { s.hidden = true; c.hidden = false; c.setAttribute("aria-busy", "false"); c.classList.remove("is-entering"); void c.offsetWidth; c.classList.add("is-entering"); }, 1500);
+  });
+});
+</script>
+</body>
+</html>

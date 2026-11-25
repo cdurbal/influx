@@ -1,0 +1,2 @@
+const net = 0;
+export const creatorOfferWitness = { headline: "", net };

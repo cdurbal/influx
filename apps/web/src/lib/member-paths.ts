@@ -12,8 +12,22 @@ export type MemberPage =
   | "signupCreator"
   | "advertiserHome"
   | "creatorHome"
+  | "advertiserCampaigns"
+  | "advertiserCampaign"
+  | "advertiserCampaignPreview"
+  | "advertiserCreators"
+  | "advertiserCreatorProfile"
+  | "advertiserShortlists"
+  | "advertiserShortlist"
+  | "advertiserSelectionRequest"
   | "accountHub"
   | "accountDetails"
+  | "accountProfile"
+  | "accountProfilePreview"
+  | "accountVerificationOwnership"
+  | "accountVerificationAudience"
+  | "accountVerificationAppeal"
+  | "accountBrandVerification"
   | "accountPreferences"
   | "accountSessions"
   | "accountData";
@@ -27,14 +41,100 @@ export const MEMBER_PAGE_SLUGS: Readonly<
   signupCreator: { fr: "inscription/createur", en: "signup/creator" },
   advertiserHome: { fr: "marque", en: "brand" },
   creatorHome: { fr: "createur", en: "creator" },
+  // "Mes campagnes" (17 §4.3, M3; L3B, commit 09): the list of a brand's campaigns, the entry of its column; its
+  // campaign form is a child of it, the identifier of the campaign being the one dynamic segment of a member address.
+  advertiserCampaigns: { fr: "campagnes", en: "campaigns" },
+  advertiserCampaign: { fr: "campagnes/[id]", en: "campaigns/[id]" },
+  // "Créateurs" (17 §4.4, M4; L3F, commit 10): the anonymous search of a brand, the entry of its column; the applied
+  // criteria are the query of the address (creator-search-view.ts), never a path segment.
+  advertiserCreators: { fr: "createurs", en: "creators" },
+  // "Profil anonyme" (17 §4.4, §7.1; 10 RG50; L3F, commit 11): the card of a creator opened, a child of the search; the
+  // one dynamic segment is the ALIAS of the card, the only reference of a creator a brand holds (RG65). Its query is
+  // the search's own address, so that the way back finds the page it left.
+  advertiserCreatorProfile: {
+    fr: "createurs/profil/[id]",
+    en: "creators/profile/[id]",
+  },
+  // "Mes sélections" (17 §4.9, 10 RG51; L3F, commit 11): the brand's private lists, the second page of "Créateurs" (D74);
+  // a list is the child below it, its opaque identifier the dynamic segment (the English path is
+  // translated, « selections »).
+  advertiserShortlists: {
+    fr: "createurs/selections",
+    en: "creators/selections",
+  },
+  advertiserShortlist: {
+    fr: "createurs/selections/[id]",
+    en: "creators/selections/[id]",
+  },
+  // "Demander une sélection à l'équipe" (17 §4.4, 10 RG61; L3F, commits 10 and 11): a child of the search; it takes the
+  // criteria and the campaign of the search back from the query of the address.
+  advertiserSelectionRequest: {
+    fr: "createurs/demande-de-selection",
+    en: "creators/selection-request",
+  },
+  // "Ce que voit un créateur" (17 §2.6, §4.3; 09 RG102, CA68; L3B, commit 11): the brand reads its campaign as the
+  // platform serves it to a creator, a child of the form, nothing to enter; the same identifier, no query.
+  advertiserCampaignPreview: {
+    fr: "campagnes/[id]/apercu",
+    en: "campaigns/[id]/preview",
+  },
   // "Mon compte" (17 §6.0 to §6.4), common to both spaces: /fr/compte/* · /en/account/* (EC-15);
   // its page-menu (D74) holds the bare address, each page of the rubric a sub-path.
   accountHub: { fr: "compte", en: "account" },
   accountDetails: { fr: "compte/informations", en: "account/details" },
+  // "Mon profil de marque" (17 §4.2, M2; EC-L2B-7) for a brand, "Mon profil" (17 §5.2, C2; L2D) for a creator
+  accountProfile: { fr: "compte/profil", en: "account/profile" },
+  // "Ce que voit une marque" (17 §5.2, C2; 07 RG104; L2G, commit 14): the creator reads his own card as served, a
+  // child of the profile, nothing to enter; no query.
+  accountProfilePreview: {
+    fr: "compte/profil/apercu",
+    en: "account/profile/preview",
+  },
+  // "Faire vérifier mon compte" (17 §5.3, C3; L2E): the ownership journey of one network line, a child of
+  // the profile (modele.md §6); the network is the `network` of the query, never a segment (J4S-7).
+  accountVerificationOwnership: {
+    fr: "compte/profil/verification/propriete",
+    en: "account/profile/verification/ownership",
+  },
+  // "Faire vérifier mon audience" (17 §5.3, C3; L2E, commit 19): the same, for the audience of the line.
+  accountVerificationAudience: {
+    fr: "compte/profil/verification/audience",
+    en: "account/profile/verification/audience",
+  },
+  // "Contester une décision" (17 §5.3, C3; 08 RG77; L2F, commit 17): the contest of ONE refusal or withdrawal of
+  // a creator, a child of the profile; the decision is the `request` or the `badge` of the query (an
+  // identifier of the member's own, never a network account, EC-L2F-15).
+  accountVerificationAppeal: {
+    fr: "compte/profil/verification/contestation",
+    en: "account/profile/verification/appeal",
+  },
+  // "Faire vérifier ma marque" (17 §4.2, M2 block 4; 06 RG49 to RG52; L2E, commit 20): the one request of a
+  // brand, a child of the profile; the badge is the account's, so no network and no query (modele.md §6).
+  accountBrandVerification: {
+    fr: "compte/profil/marque-verifiee",
+    en: "account/profile/verified-brand",
+  },
   accountPreferences: { fr: "compte/preferences", en: "account/preferences" },
   accountSessions: { fr: "compte/sessions", en: "account/sessions" },
   accountData: { fr: "compte/donnees", en: "account/data" },
 };
+
+/**
+ * "Campagnes" (17 §2.6, §4.3, §5.5; L3D-A §7): the list address and the record address are common to both
+ * roles, the screen follows the real role (the pattern of PROFILE_ACCOUNT_PAGE): a brand's "Mes campagnes" and
+ * its form, a creator's feed C5 and record C6. The keys keep the names of L3B; these two constants are what the
+ * code of both roles reads, and neither page belongs to a space (PAGE_SPACES). The preview of a brand's own
+ * campaign stays the brand's.
+ */
+export const CAMPAIGNS_PAGE =
+  "advertiserCampaigns" as const satisfies MemberPage;
+export const CAMPAIGN_PAGE = "advertiserCampaign" as const satisfies MemberPage;
+
+/** The pages of "Créateurs", in the order of their sub-menu (D74): the search, then "Mes sélections". */
+export const CREATORS_PAGES = [
+  "advertiserCreators",
+  "advertiserShortlists",
+] as const satisfies readonly MemberPage[];
 
 /**
  * The pages of "mon compte", in the order of their navigation; its page-menu (accountHub, 17 §6.0)
@@ -48,6 +148,104 @@ export const ACCOUNT_PAGES = [
 ] as const satisfies readonly MemberPage[];
 
 export type AccountPage = (typeof ACCOUNT_PAGES)[number];
+
+/**
+ * The profile page of "mon compte", first of its rubric for both roles (L2B "Mon profil de marque",
+ * M2; L2D "Mon profil", C2): the same address, the screen follows the real role (17 §2.6).
+ */
+export const PROFILE_ACCOUNT_PAGE =
+  "accountProfile" as const satisfies MemberPage;
+
+/** Every page of the rubric "mon compte" a member can have in its column. */
+export type AccountSubPage = AccountPage | typeof PROFILE_ACCOUNT_PAGE;
+
+/**
+ * The pages that hang below another one in the column: the profile stays the active sub-entry while
+ * a creator verifies a network line (L2E, commit 18). They are not entries of their own.
+ */
+export const PARENT_PAGES: Readonly<Partial<Record<MemberPage, MemberPage>>> = {
+  advertiserCampaign: "advertiserCampaigns",
+  advertiserCampaignPreview: "advertiserCampaigns",
+  advertiserSelectionRequest: "advertiserCreators",
+  advertiserCreatorProfile: "advertiserCreators",
+  advertiserShortlist: "advertiserShortlists",
+  accountProfilePreview: PROFILE_ACCOUNT_PAGE,
+  accountVerificationOwnership: PROFILE_ACCOUNT_PAGE,
+  accountVerificationAudience: PROFILE_ACCOUNT_PAGE,
+  accountVerificationAppeal: PROFILE_ACCOUNT_PAGE,
+  accountBrandVerification: PROFILE_ACCOUNT_PAGE,
+};
+
+/** The name of the query parameter that carries the network of a verification journey (a reference-list code, never an identifier of an account). */
+export const NETWORK_QUERY_PARAMETER = "network";
+
+/** A network code as the reference list writes it: snake_case, at most 63 characters (0201). */
+export function isNetworkCode(value: string): boolean {
+  return value.length <= 63 && /^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(value);
+}
+
+/**
+ * The path of the ownership journey of a network, in the CURRENT language and without the prefix
+ * (for the localized `Link`): the page, then the network as a query parameter. The query never
+ * reaches `ops`: the collector sends the pathname only (J4S-7).
+ */
+export function ownershipJourneyHref(
+  networkCode: string,
+  locale: AppLocale,
+): string {
+  return `${memberPageHref("accountVerificationOwnership", locale)}?${NETWORK_QUERY_PARAMETER}=${networkCode}`;
+}
+
+/**
+ * The path of the audience journey of a network, as `ownershipJourneyHref` writes the ownership one
+ * (L2E, commit 19): the page, then the network as a query parameter that never reaches `ops`.
+ */
+export function audienceJourneyHref(
+  networkCode: string,
+  locale: AppLocale,
+): string {
+  return `${memberPageHref("accountVerificationAudience", locale)}?${NETWORK_QUERY_PARAMETER}=${networkCode}`;
+}
+
+/** The names of the query parameter that carries the decision of a contest: a refusal's request, or a withdrawn badge (L2F, commit 17). */
+export const APPEAL_REQUEST_PARAMETER = "request";
+export const APPEAL_BADGE_PARAMETER = "badge";
+
+/** A decision a creator contests: the refusal of a request, or the withdrawal of a badge, named by its own identifier. */
+export type AppealTarget =
+  | { kind: "refusal"; requestId: string }
+  | { kind: "revocation"; badgeId: string };
+
+/** The path of the contest of a decision, in the CURRENT language and without the prefix, the decision in the query. */
+export function appealHref(target: AppealTarget, locale: AppLocale): string {
+  const query =
+    target.kind === "refusal"
+      ? `${APPEAL_REQUEST_PARAMETER}=${target.requestId}`
+      : `${APPEAL_BADGE_PARAMETER}=${target.badgeId}`;
+  return `${memberPageHref("accountVerificationAppeal", locale)}?${query}`;
+}
+
+/**
+ * The pages of "mon compte" a member reaches, in the order of the column and the page-menu: the
+ * same for both roles since L2D (the role only decides which screen the profile page holds).
+ */
+export function accountPagesOf(): readonly AccountSubPage[] {
+  return [PROFILE_ACCOUNT_PAGE, ...ACCOUNT_PAGES];
+}
+
+/**
+ * The key of the label of a page of "mon compte" in the translation files (`account.nav.*`,
+ * `account.hub.items.*`): the profile page is "Profil de marque" for a brand, "Mon profil" for a
+ * creator, the others are the same for both.
+ */
+export function accountLabelKeyOf(
+  page: AccountSubPage,
+  role: SignupDoor,
+): AccountSubPage | "accountProfileCreator" {
+  return page === PROFILE_ACCOUNT_PAGE && role === "creator"
+    ? "accountProfileCreator"
+    : page;
+}
 
 /**
  * The pages a member reaches while a version of the terms waits for acceptance (05 RG28; 17 §6.7;
@@ -73,6 +271,14 @@ export function isTermsExempt(page: MemberPage): boolean {
 const PAGE_SPACES: Readonly<Partial<Record<MemberPage, SignupDoor>>> = {
   advertiserHome: "advertiser",
   creatorHome: "creator",
+  // CAMPAIGNS_PAGE and CAMPAIGN_PAGE are common to both roles (L3D-A §7): no space. The brand's preview of its
+  // own campaign stays in its space, a creator is sent home.
+  advertiserCampaignPreview: "advertiser",
+  advertiserCreators: "advertiser",
+  advertiserCreatorProfile: "advertiser",
+  advertiserShortlists: "advertiser",
+  advertiserShortlist: "advertiser",
+  advertiserSelectionRequest: "advertiser",
 };
 
 export function spaceOf(page: MemberPage): SignupDoor | null {
@@ -91,6 +297,24 @@ export function spaceRedirectOf(
   return space === null || space === role ? null : homePageOf(role);
 }
 
+/** The one dynamic segment of a member address: the identifier of a campaign or a list, the alias of a card (17 §2.6). */
+const DYNAMIC_SEGMENT = "[id]";
+
+/** Whether a path (without its slashes) is the address a slug describes; `[id]` stands for any one segment. */
+function slugMatches(slug: string, path: string): boolean {
+  if (!slug.includes(DYNAMIC_SEGMENT)) {
+    return slug === path;
+  }
+  const expected = slug.split("/");
+  const found = path.split("/");
+  return (
+    expected.length === found.length &&
+    expected.every((part, index) =>
+      part === DYNAMIC_SEGMENT ? found[index] !== "" : part === found[index],
+    )
+  );
+}
+
 /**
  * The page a path of the CURRENT language leads to, without the locale prefix (the `usePathname`
  * of src/i18n/navigation.ts: "/compte/donnees"), or null for any other path.
@@ -101,20 +325,62 @@ export function memberPageOfPath(
 ): MemberPage | null {
   const slug = pathname.replace(/^\/+|\/+$/g, "");
   const pages = Object.keys(MEMBER_PAGE_SLUGS) as MemberPage[];
-  return pages.find((page) => MEMBER_PAGE_SLUGS[page][locale] === slug) ?? null;
+  return (
+    pages.find((page) => slugMatches(MEMBER_PAGE_SLUGS[page][locale], slug)) ??
+    null
+  );
 }
 
-/** The path of a page in a language, with its locale prefix (redirects, plain links). */
-export function memberPagePath(page: MemberPage, locale: AppLocale): string {
-  return `/${locale}/${MEMBER_PAGE_SLUGS[page][locale]}`;
+/** The slug of a page in a language, its dynamic segment filled by `segment` when it has one. */
+function slugOf(page: MemberPage, locale: AppLocale, segment?: string): string {
+  const slug = MEMBER_PAGE_SLUGS[page][locale];
+  return segment === undefined ? slug : slug.replace(DYNAMIC_SEGMENT, segment);
+}
+
+/**
+ * The identifier a path carries in its dynamic segment (the campaign of /campagnes/<id>), null for
+ * a page without one: what the other language's link of the shell needs to point to the same campaign.
+ */
+export function memberPageSegmentOfPath(
+  pathname: string,
+  locale: AppLocale,
+): string | null {
+  const page = memberPageOfPath(pathname, locale);
+  if (page === null) {
+    return null;
+  }
+  const index = MEMBER_PAGE_SLUGS[page][locale]
+    .split("/")
+    .indexOf(DYNAMIC_SEGMENT);
+  if (index < 0) {
+    return null;
+  }
+  return pathname.replace(/^\/+|\/+$/g, "").split("/")[index] ?? null;
+}
+
+/**
+ * The path of a page in a language, with its locale prefix (redirects, plain links); `segment`
+ * fills the dynamic segment of a page that has one.
+ */
+export function memberPagePath(
+  page: MemberPage,
+  locale: AppLocale,
+  segment?: string,
+): string {
+  return `/${locale}/${slugOf(page, locale, segment)}`;
 }
 
 /**
  * The path of a page in the CURRENT language, without the prefix: for the localized `Link` and
- * `useRouter` of src/i18n/navigation.ts, which add it.
+ * `useRouter` of src/i18n/navigation.ts, which add it. `segment` fills the dynamic segment of a
+ * page that has one.
  */
-export function memberPageHref(page: MemberPage, locale: AppLocale): string {
-  return `/${MEMBER_PAGE_SLUGS[page][locale]}`;
+export function memberPageHref(
+  page: MemberPage,
+  locale: AppLocale,
+  segment?: string,
+): string {
+  return `/${slugOf(page, locale, segment)}`;
 }
 
 /** The home of a role's space (17 §2.5): the space follows the real role, never the door. */

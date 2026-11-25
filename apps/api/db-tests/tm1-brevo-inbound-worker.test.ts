@@ -223,6 +223,16 @@ async function turn(): Promise<number> {
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(worker, randomUUID(), line, name),
       readErasureNotificationSubject: () => Promise.resolve(null),
+      readProfileDecision: () => Promise.resolve(null),
+      readCreatorProfileDecision: () => Promise.resolve(null),
+      readPortfolioDecision: () => Promise.resolve(null),
+      readCreatorProfile: () => Promise.resolve(null),
+      readBrandProfile: () => Promise.resolve(null),
+      readVerificationEmail: () => Promise.resolve(null),
+      readBadgeEmail: () => Promise.resolve(null),
+      readVerifiedBadge: () => Promise.resolve(null),
+      readCampaignDecision: () => Promise.resolve(null),
+      readCampaignAttributes: () => Promise.resolve(null),
       logger,
     },
   );

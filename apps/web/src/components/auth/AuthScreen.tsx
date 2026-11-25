@@ -86,9 +86,12 @@ export function AuthScreen({
 /** The h1 of a step: focused when it appears (17 §3.6), the step number read with it. */
 export function StepTitle({
   step,
+  above,
   children,
 }: {
   step: number | null;
+  /** A line above the title: the role pill of a known door on screen 1 (L2AU-1). */
+  above?: ReactNode;
   children: ReactNode;
 }) {
   const t = useTranslations("auth");
@@ -101,6 +104,7 @@ export function StepTitle({
   return (
     <PageHeader
       titleRef={titleRef}
+      above={above}
       title={
         <>
           {step === null ? null : (

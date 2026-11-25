@@ -47,8 +47,12 @@ import {
   createWorkerQueue,
   LineTakenBackError,
   readApolloSubjectOf,
+  readBrandProfileAttributesOf,
   readBrevoErasureSubjectOf,
+  readCampaignAttributesOf,
   readBrevoSubjectOf,
+  readCreatorProfileAttributesOf,
+  readVerifiedBadgeOf,
 } from "../src/domains/leads/queue.ts";
 import type {
   ClaimedLine,
@@ -139,7 +143,18 @@ afterEach(async () => {
   }
   if (accountIds.length > 0) {
     await migration`
+      delete from profiles.advertiser_contact_details where account_id = any (${accountIds}::uuid[])`;
+    await migration`
+      delete from profiles.advertiser_topics where account_id = any (${accountIds}::uuid[])`;
+    await migration`
+      delete from profiles.advertiser_target_markets where account_id = any (${accountIds}::uuid[])`;
+    await migration`
       delete from leads.contact_sync_states where account_id = any (${accountIds}::uuid[])`;
+    // L2G commit 10: the creator storefront of RG108's case
+    await migration`
+      delete from profiles.creator_public_networks where account_id = any (${accountIds}::uuid[])`;
+    await migration`
+      delete from profiles.creator_social_accounts where account_id = any (${accountIds}::uuid[])`;
   }
 });
 
@@ -286,6 +301,18 @@ async function turn(options: TurnOptions = {}): Promise<number> {
       readErasureSubject: (line) =>
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       readErasureNotificationSubject: () => Promise.resolve(null),
+      readProfileDecision: () => Promise.resolve(null),
+      readCreatorProfileDecision: () => Promise.resolve(null),
+      readPortfolioDecision: () => Promise.resolve(null),
+      readCreatorProfile: () => Promise.resolve(null),
+      readBrandProfile: (line) =>
+        readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+      readVerificationEmail: () => Promise.resolve(null),
+      readBadgeEmail: () => Promise.resolve(null),
+      readVerifiedBadge: (line) =>
+        readVerifiedBadgeOf(database, randomUUID(), line, worker),
+      readCampaignDecision: () => Promise.resolve(null),
+      readCampaignAttributes: () => Promise.resolve(null),
       logger,
     },
   );
@@ -300,6 +327,10 @@ async function turn(options: TurnOptions = {}): Promise<number> {
     {
       readSubject: (line) =>
         readApolloSubjectOf(database, randomUUID(), line, worker),
+      readBrandProfile: (line) =>
+        readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+      readCampaignAttributes: (line) =>
+        readCampaignAttributesOf(database, randomUUID(), line, worker),
       logger,
       ...(options.apolloTimeoutMs === undefined
         ? {}
@@ -745,5 +776,751 @@ describe("0113: leads.read_apollo_subject(), an Apollo line in processing for th
       cause = cause.cause;
     }
     expect((cause as { code?: string }).code).toBe(INVALID_PARAMETER);
+  });
+});
+
+// L2C commit 10, 0212: profile.completed and lead.updated carry the live brand profile to Brevo and
+// Apollo (06 RG78 to RG81, CA40 to CA43), read by the worker's own function.
+const BRAND = {
+  sector: "food_beverages",
+  size: "11_50",
+  domain: "maison-verbeke.example",
+  completeness: 85,
+  topics: ["food", "travel"],
+  markets: ["BE", "FR", "NL"],
+  // what RG80 keeps out of both providers
+  contactFirstName: "Hildegarde",
+  contactEmail: "hildegarde.contact@maison-verbeke.example",
+  contactPhone: "+3225550123",
+  contactUrl: "https://maison-verbeke.example/contactez-nous",
+  presentation:
+    "Confiserie artisanale de Bruges, fondee en 1921, six boutiques.",
+};
+
+/** The profile of a committed advertiser, as a publication leaves it (the migration role writes). */
+async function fillPublishedProfile(
+  account: string,
+  status = "published",
+): Promise<void> {
+  await migration.begin(async (tx) => {
+    await tx`
+      update profiles.advertiser_profiles
+         set status = ${status}::profiles.advertiser_profile_status,
+             primary_sector_code = ${BRAND.sector}, company_size_band = ${BRAND.size},
+             website_domain = ${BRAND.domain}, completeness_percent = ${BRAND.completeness},
+             presentation = ${BRAND.presentation},
+             first_published_at = case when ${status} = 'published' then now() end
+       where account_id = ${account}`;
+    for (const [index, topic] of BRAND.topics.entries()) {
+      await tx`
+        insert into profiles.advertiser_topics (account_id, slot, topic_code)
+        values (${account}, ${index + 1}, ${topic})`;
+    }
+    for (const [index, country] of BRAND.markets.entries()) {
+      await tx`
+        insert into profiles.advertiser_target_markets (account_id, slot, country_code)
+        values (${account}, ${index + 1}, ${country})`;
+    }
+    await tx`
+      insert into profiles.advertiser_contact_details
+        (account_id, contact_first_name, contact_email, contact_phone, contact_url)
+      values (${account}, ${BRAND.contactFirstName}, ${BRAND.contactEmail},
+              ${BRAND.contactPhone}, ${BRAND.contactUrl})`;
+  });
+}
+
+describe("L2C commit 10, 06 RG78 to RG81, CA40 to CA43: profile.completed on the real queue", () => {
+  function claimed(
+    id: string,
+    account: string,
+    destination: OutboxDestination,
+  ): ClaimedLine {
+    return {
+      id,
+      eventId: randomUUID(),
+      eventType: "profile.completed",
+      destination,
+      subjectKey: `account:${account}`,
+      priority: 100,
+      payload: {},
+      idempotencyKey: "unused",
+    };
+  }
+
+  async function processing(id: string, worker: string): Promise<void> {
+    await migration`
+      update leads.outbox_events
+         set status = 'processing', locked_by = ${worker}, locked_at = now()
+       where id = ${id}`;
+  }
+
+  async function code(error: unknown): Promise<string | undefined> {
+    let cause: unknown = error;
+    while (
+      cause instanceof Error &&
+      (cause as { code?: string }).code === undefined
+    ) {
+      cause = cause.cause;
+    }
+    return (cause as { code?: string }).code;
+  }
+
+  it("CA40, RG79: the first publication reaches Brevo and Apollo with the real attributes of the live profile", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    const ids = await insertLines(
+      account,
+      ["brevo_contact", "apollo_contact"],
+      "advertiser",
+      "profile.completed",
+    );
+    expect(await turn()).toBe(2);
+
+    expect(await lineRow(ids.brevo_contact)).toMatchObject({
+      status: "succeeded",
+    });
+    expect(await lineRow(ids.apollo_contact)).toMatchObject({
+      status: "succeeded",
+    });
+    expect(brevo.contacts.get(emails[0] ?? "")?.attributes).toMatchObject({
+      PROFILE_TYPE: "advertiser",
+      COMPANY: LEGAL_NAME,
+      FUNNEL_STAGE: "profile_completed",
+      PROFILE_COMPLETENESS: BRAND.completeness,
+      MAIN_TOPIC: "food",
+      SECTOR: BRAND.sector,
+      COMPANY_SIZE: BRAND.size,
+      TARGET_MARKETS: "BE,FR,NL",
+      PROFILE_STATUS: "published",
+      VERIFIED_LEVEL: "none",
+    });
+    const [contact] = [...apollo.contacts.values()];
+    expect(contact?.fields).toMatchObject({
+      organization_name: LEGAL_NAME,
+      website_url: `https://${BRAND.domain}`,
+    });
+    expect(contact?.fields.label_names).toEqual(
+      expect.arrayContaining([
+        "influx_sector_food_beverages",
+        "influx_size_11_50",
+        "influx_country_be",
+      ]),
+    );
+  });
+
+  it("CA42, RG80: nothing the brand gave as its contact person, its presentation or the internal note leaves, raw bodies searched", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    await insertLines(
+      account,
+      ["brevo_contact", "apollo_contact"],
+      "advertiser",
+      "profile.completed",
+    );
+    await turn();
+    expect(brevo.requests.length).toBeGreaterThan(0);
+    expect(apollo.requests.length).toBeGreaterThan(0);
+    const raw = [
+      ...brevo.requests.map((request) => request.raw),
+      ...apollo.requests.map((request) => JSON.stringify(request.body)),
+    ].join("\n");
+    expect(
+      valuesFoundIn(raw, [
+        BRAND.contactFirstName,
+        BRAND.contactEmail,
+        BRAND.contactPhone,
+        BRAND.contactUrl,
+        BRAND.presentation,
+        "BE0123456789",
+      ]),
+    ).toEqual([]);
+  });
+
+  it("L2CS-8, RG80: with the REAL raison sociale and number of the internal block in the base, organization_name is the trading name and neither value reaches Brevo nor Apollo", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    const raison = "Vandenbroucke Holding Belgium SA";
+    const number = "BE0987654321";
+    await migration`
+      insert into profiles.advertiser_internal_details
+        (account_id, legal_name, registration_country_code, registration_number)
+      values (${account}, ${raison}, 'BE', ${number})`;
+    try {
+      await insertLines(
+        account,
+        ["brevo_contact", "apollo_contact"],
+        "advertiser",
+        "profile.completed",
+      );
+      expect(await turn()).toBe(2);
+      expect(
+        (apollo.requests[0]?.body as { organization_name?: string })
+          .organization_name,
+      ).toBe(LEGAL_NAME);
+      expect(brevo.contacts.get(emails[0] ?? "")?.attributes.COMPANY).toBe(
+        LEGAL_NAME,
+      );
+      const raw = [
+        ...brevo.requests.map((request) => request.raw),
+        ...apollo.requests.map((request) => JSON.stringify(request.body)),
+      ].join("\n");
+      expect(valuesFoundIn(raw, [raison, number])).toEqual([]);
+      // the worker's reads cannot reach the block at all (06 RG48): the owner has no right on it
+      const [reach] = await migration<{ reached: boolean }[]>`
+        select has_any_column_privilege('influx_leads_definer',
+                                        'profiles.advertiser_internal_details',
+                                        'SELECT') as reached`;
+      expect(reach?.reached).toBe(false);
+    } finally {
+      await migration`
+        delete from profiles.advertiser_internal_details where account_id = ${account}`;
+    }
+  });
+
+  it("RG81: a draft brand is registered with its real completeness, the fields not filled sent empty", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await migration`
+      update profiles.advertiser_profiles set completeness_percent = 30
+       where account_id = ${account}`;
+    await insertLines(account, ["brevo_contact"], "advertiser", "lead.updated");
+    await turn();
+    expect(brevo.contacts.get(emails[0] ?? "")?.attributes).toMatchObject({
+      FUNNEL_STAGE: "registered",
+      PROFILE_COMPLETENESS: 30,
+      MAIN_TOPIC: "",
+      SECTOR: "",
+      COMPANY_SIZE: "",
+      TARGET_MARKETS: "",
+      PROFILE_STATUS: "draft",
+    });
+  });
+
+  it("CA41: without consent the first publication is skipped no_consent at both providers, never a failure", async () => {
+    const account = await createAccount({ role: "advertiser", consent: false });
+    await fillPublishedProfile(account);
+    const ids = await insertLines(
+      account,
+      ["brevo_contact", "apollo_contact"],
+      "advertiser",
+      "profile.completed",
+    );
+    await turn();
+    expect(await lineRow(ids.brevo_contact)).toMatchObject({
+      status: "skipped",
+      skip_reason: "no_consent",
+      last_error_code: null,
+    });
+    expect(await lineRow(ids.apollo_contact)).toMatchObject({
+      status: "skipped",
+      skip_reason: "no_consent",
+      last_error_code: null,
+    });
+    expect(brevo.requests).toEqual([]);
+    expect(apollo.requests).toEqual([]);
+  });
+
+  it("CA43: with Brevo and Apollo unavailable the lines wait, and the profile stays published", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    const ids = await insertLines(
+      account,
+      ["brevo_contact", "apollo_contact"],
+      "advertiser",
+      "profile.completed",
+    );
+    brevo.queue({ status: 503 });
+    apollo.queue({ status: 503 });
+    await turn();
+    expect(await lineRow(ids.brevo_contact)).toMatchObject({
+      status: "pending",
+    });
+    expect(await lineRow(ids.apollo_contact)).toMatchObject({
+      status: "pending",
+    });
+    const [profile] = await migration<{ status: string }[]>`
+      select status::text as status from profiles.advertiser_profiles
+       where account_id = ${account}`;
+    expect(profile?.status).toBe("published");
+  });
+
+  it("0212: the read serves the live row of a line this worker holds, and journals the read on the account", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    const { brevo_contact: line } = await insertLines(
+      account,
+      ["brevo_contact"],
+      "advertiser",
+      "profile.completed",
+    );
+    await processing(line, "tm1-brand-reader");
+    const requestId = `tm1-brand-${randomUUID()}`;
+    const attributes = await readBrandProfileAttributesOf(
+      database,
+      requestId,
+      claimed(line, account, "brevo_contact"),
+      "tm1-brand-reader",
+    );
+    expect(attributes).toEqual({
+      status: "published",
+      completenessPercent: BRAND.completeness,
+      primarySector: BRAND.sector,
+      companySizeBand: BRAND.size,
+      websiteDomain: BRAND.domain,
+      mainTopic: "food",
+      targetMarkets: ["BE", "FR", "NL"],
+      everPublished: true,
+    });
+    expect(Object.keys(attributes ?? {}).sort()).toEqual(
+      [
+        "companySizeBand",
+        "completenessPercent",
+        "everPublished",
+        "mainTopic",
+        "primarySector",
+        "status",
+        "targetMarkets",
+        "websiteDomain",
+      ].sort(),
+    );
+    const register = await migration<
+      { event_type: string; subject_id: string }[]
+    >`
+      select event_type, subject_id::text as subject_id
+        from audit.audit_events where request_id = ${requestId}`;
+    expect(register).toEqual([
+      { event_type: "elevated.leads.drain_outbox", subject_id: account },
+    ]);
+  });
+
+  it("0212: a line of another worker, or not in processing, is refused (55000), a transactional line too (22023)", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    const ids = await insertLines(
+      account,
+      ["brevo_contact", "brevo_transactional"],
+      "advertiser",
+      "profile.completed",
+    );
+    await expect(
+      readBrandProfileAttributesOf(
+        database,
+        randomUUID(),
+        claimed(ids.brevo_contact, account, "brevo_contact"),
+        "tm1-brand-reader",
+      ),
+    ).rejects.toBeInstanceOf(LineTakenBackError);
+    await processing(ids.brevo_contact, "tm1-brand-other");
+    await expect(
+      readBrandProfileAttributesOf(
+        database,
+        randomUUID(),
+        claimed(ids.brevo_contact, account, "brevo_contact"),
+        "tm1-brand-reader",
+      ),
+    ).rejects.toBeInstanceOf(LineTakenBackError);
+    await processing(ids.brevo_transactional, "tm1-brand-reader");
+    const error = await readBrandProfileAttributesOf(
+      database,
+      randomUUID(),
+      claimed(ids.brevo_transactional, account, "brevo_transactional"),
+      "tm1-brand-reader",
+    ).catch((caught: unknown) => caught);
+    expect(await code(error)).toBe(INVALID_PARAMETER);
+  });
+
+  it("0212: no row for a creator, and none for an erased account", async () => {
+    const creator = await createAccount({ role: "creator" });
+    const { apollo_contact: creatorLine } = await insertLines(
+      creator,
+      ["apollo_contact"],
+      "creator",
+      "lead.updated",
+    );
+    await processing(creatorLine, "tm1-brand-reader");
+    expect(
+      await readBrandProfileAttributesOf(
+        database,
+        randomUUID(),
+        claimed(creatorLine, creator, "apollo_contact"),
+        "tm1-brand-reader",
+      ),
+    ).toBeNull();
+
+    const brand = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(brand);
+    const { apollo_contact: brandLine } = await insertLines(
+      brand,
+      ["apollo_contact"],
+      "advertiser",
+      "lead.updated",
+    );
+    await processing(brandLine, "tm1-brand-reader");
+    await migration`
+      update identity.accounts set status = 'deleted', deleted_at = now() where id = ${brand}`;
+    try {
+      expect(
+        await readBrandProfileAttributesOf(
+          database,
+          randomUUID(),
+          claimed(brandLine, brand, "apollo_contact"),
+          "tm1-brand-reader",
+        ),
+      ).toBeNull();
+    } finally {
+      await migration`
+        update identity.accounts set status = 'active', deleted_at = null where id = ${brand}`;
+    }
+  });
+
+  it("L2G commit 10, 07 RG108, RG109: a published creator reaches Apollo with nothing of its storefront, and the base refuses the Apollo line to the creator read (22023)", async () => {
+    const handle = "secret_handle_tm1_apollo";
+    const creator = await createAccount({ role: "creator" });
+    await migration`
+      insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+      values (${creator}, profiles.new_creator_alias(), 'BE')`;
+    await migration`
+      update profiles.creator_public_profiles
+         set status = 'published', published_at = now(), primary_topic_code = 'food'
+       where account_id = ${creator}`;
+    await migration`
+      insert into profiles.creator_social_accounts
+        (account_id, network_code, is_primary, handle, profile_url, followers_count)
+      values (${creator}, 'instagram', true, ${handle},
+              ${`https://www.instagram.com/${handle}`}, 250017)`;
+    await migration`
+      update profiles.creator_public_networks set listed_at = now()
+       where account_id = ${creator}`;
+    await setting("apollo_scope", "tous_les_inscrits");
+    const ids = await insertLines(
+      creator,
+      ["brevo_contact", "apollo_contact"],
+      "creator",
+      "lead.updated",
+    );
+
+    await turn();
+
+    expect((await lineRow(ids.apollo_contact)).status).toBe("succeeded");
+    expect((await lineRow(ids.brevo_contact)).status).toBe("succeeded");
+    expect(apollo.requests.length).toBeGreaterThan(0);
+    const apolloRaw = apollo.requests
+      .map((request) => JSON.stringify(request.body))
+      .join(" ");
+    // RG108: no handle, no URL, no figure; RG109: none of the Brevo attributes of RG107 either
+    expect(
+      valuesFoundIn(apolloRaw, [
+        handle,
+        "instagram",
+        "250017",
+        "NETWORKS",
+        "MAIN_AUDIENCE_BAND",
+        "MAIN_AUDIENCE_COUNTRY",
+      ]),
+    ).toEqual([]);
+    const brevoRaw = brevo.requests.map((request) => request.raw).join(" ");
+    expect(valuesFoundIn(brevoRaw, [handle, "250017"])).toEqual([]);
+    expect(brevoRaw).toContain("NETWORKS");
+
+    // RG109 in the base: the creator read refuses an Apollo line
+    await replay(ids.apollo_contact);
+    await migration`
+      update leads.outbox_events
+         set status = 'processing', locked_by = 'tm1-creator-reader', locked_at = now()
+       where id = ${ids.apollo_contact}`;
+    const error = await readCreatorProfileAttributesOf(
+      database,
+      randomUUID(),
+      claimed(ids.apollo_contact, creator, "apollo_contact"),
+      "tm1-creator-reader",
+    ).catch((caught: unknown) => caught);
+    expect(await code(error)).toBe(INVALID_PARAMETER);
+  });
+
+  it("0212, 03 P7: the worker holds no right on the profile tables, only the function", async () => {
+    const [rights] = await migration<
+      {
+        profile: boolean;
+        topics: boolean;
+        markets: boolean;
+        contact: boolean;
+      }[]
+    >`
+      select has_any_column_privilege('influx_worker', 'profiles.advertiser_profiles', 'SELECT') as profile,
+             has_any_column_privilege('influx_worker', 'profiles.advertiser_topics', 'SELECT') as topics,
+             has_any_column_privilege('influx_worker', 'profiles.advertiser_target_markets', 'SELECT') as markets,
+             has_any_column_privilege('influx_leads_definer', 'profiles.advertiser_contact_details', 'SELECT') as contact`;
+    expect(rights).toEqual({
+      profile: false,
+      topics: false,
+      markets: false,
+      contact: false,
+    });
+  });
+});
+
+// L3C commit 06, 0310: the campaigns of a brand reach Brevo and Apollo (09 RG104, RG105, CA70), read by
+// the worker's own function on the real queue; the SQL of the read itself is in
+// leads-campaign-reads.test.ts.
+describe("L3C commit 06, 09 RG104, RG105, CA70: the campaign attributes on the real queue", () => {
+  const campaigns: string[] = [];
+
+  afterEach(async () => {
+    const ids = campaigns.splice(0);
+    if (ids.length > 0) {
+      await migration`delete from campaigns.campaign_deliverables where campaign_id = any (${ids}::uuid[])`;
+      await migration`delete from campaigns.campaign_audience_countries where campaign_id = any (${ids}::uuid[])`;
+      await migration`delete from campaigns.campaigns where id = any (${ids}::uuid[])`;
+    }
+  });
+
+  function claimed(
+    id: string,
+    account: string,
+    destination: OutboxDestination,
+  ): ClaimedLine {
+    return {
+      id,
+      eventId: randomUUID(),
+      eventType: "campaign.published",
+      destination,
+      subjectKey: `account:${account}`,
+      priority: 100,
+      payload: {},
+      idempotencyKey: "unused",
+    };
+  }
+
+  async function processing(id: string, worker: string): Promise<void> {
+    await migration`
+      update leads.outbox_events
+         set status = 'processing', locked_by = ${worker}, locked_at = now()
+       where id = ${id}`;
+  }
+
+  /**
+   * A campaign first published at `at`: the read counts first_published_at, whatever the state since
+   * (EC-L3C-05-5); the draft keeps the fixture free of the checks of a submitted campaign.
+   */
+  async function firstPublished(account: string, at: string): Promise<string> {
+    const [row] = await migration<{ id: string }[]>`
+      insert into campaigns.campaigns
+        (advertiser_account_id, status, campaign_type_code, sector_code, currency)
+      values (${account}, 'draft', 'product_review', 'sports_leisure', 'EUR')
+      returning id::text as id`;
+    if (row === undefined) {
+      throw new Error("the campaign was not inserted");
+    }
+    campaigns.push(row.id);
+    await migration`
+      insert into campaigns.campaign_audience_countries (campaign_id, slot, country_code)
+      values (${row.id}, 1, 'FR'), (${row.id}, 2, 'BE')`;
+    await migration`
+      insert into campaigns.campaign_deliverables
+        (campaign_id, slot, network_code, format_code, quantity)
+      values (${row.id}, 1, 'tiktok', 'tiktok_video', 1),
+             (${row.id}, 2, 'instagram', 'instagram_reel', 2)`;
+    await migration`
+      update campaigns.campaigns
+         set first_published_at = ${at}::timestamptz
+       where id = ${row.id}`;
+    return row.id;
+  }
+
+  it("a brand that never published: Brevo gets a counter at 0 and nothing else, Apollo the boolean at false, the read journaled on the account", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    const ids = await insertLines(
+      account,
+      ["brevo_contact", "apollo_contact"],
+      "advertiser",
+      "campaign.published",
+    );
+    await processing(ids.brevo_contact, "tm1-campaign-reader");
+    await processing(ids.apollo_contact, "tm1-campaign-reader");
+    const requestId = `tm1-campaigns-${randomUUID()}`;
+    expect(
+      await readCampaignAttributesOf(
+        database,
+        requestId,
+        claimed(ids.brevo_contact, account, "brevo_contact"),
+        "tm1-campaign-reader",
+      ),
+    ).toEqual({
+      hasPublished: false,
+      campaignsPublished: 0,
+      lastPublishedAt: null,
+      lastSector: null,
+      lastCurrency: null,
+      lastCountries: null,
+      lastNetworks: null,
+    });
+    expect(
+      await readCampaignAttributesOf(
+        database,
+        randomUUID(),
+        claimed(ids.apollo_contact, account, "apollo_contact"),
+        "tm1-campaign-reader",
+      ),
+    ).toEqual({
+      hasPublished: false,
+      campaignsPublished: null,
+      lastPublishedAt: null,
+      lastSector: null,
+      lastCurrency: null,
+      lastCountries: null,
+      lastNetworks: null,
+    });
+    const register = await migration<
+      { event_type: string; subject_id: string }[]
+    >`
+      select event_type, subject_id::text as subject_id
+        from audit.audit_events where request_id = ${requestId}`;
+    expect(register).toEqual([
+      { event_type: "elevated.leads.drain_outbox", subject_id: account },
+    ]);
+  });
+
+  it("a brand that published: the codes, the date and the counter for Brevo, the boolean and the date only for Apollo (CA70)", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    await firstPublished(account, "2026-10-01T08:00:00Z");
+    await firstPublished(account, "2026-11-14T08:15:00Z");
+    const ids = await insertLines(
+      account,
+      ["brevo_contact", "apollo_contact"],
+      "advertiser",
+      "campaign.published",
+    );
+    await processing(ids.brevo_contact, "tm1-campaign-reader");
+    await processing(ids.apollo_contact, "tm1-campaign-reader");
+    const forBrevo = await readCampaignAttributesOf(
+      database,
+      randomUUID(),
+      claimed(ids.brevo_contact, account, "brevo_contact"),
+      "tm1-campaign-reader",
+    );
+    expect(forBrevo).toEqual({
+      hasPublished: true,
+      campaignsPublished: 2,
+      lastPublishedAt: "2026-11-14T08:15:00.000Z",
+      lastSector: "sports_leisure",
+      lastCurrency: "EUR",
+      lastCountries: ["FR", "BE"],
+      lastNetworks: ["tiktok", "instagram"],
+    });
+    const forApollo = await readCampaignAttributesOf(
+      database,
+      randomUUID(),
+      claimed(ids.apollo_contact, account, "apollo_contact"),
+      "tm1-campaign-reader",
+    );
+    expect(forApollo).toEqual({
+      hasPublished: true,
+      campaignsPublished: null,
+      lastPublishedAt: "2026-11-14T08:15:00.000Z",
+      lastSector: null,
+      lastCurrency: null,
+      lastCountries: null,
+      lastNetworks: null,
+    });
+  });
+
+  it("the Apollo connector sends the two labels of a brand that published, read on the real queue, and nothing of the campaign beyond them", async () => {
+    const account = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(account);
+    await firstPublished(account, "2026-11-14T08:15:00Z");
+    const { apollo_contact: line } = await insertLines(
+      account,
+      ["apollo_contact"],
+      "advertiser",
+      "campaign.published",
+    );
+    await turn();
+    expect(await lineRow(line)).toMatchObject({
+      status: "succeeded",
+      last_error_code: null,
+    });
+    const raw = apollo.requests[0]?.raw ?? "";
+    expect(raw).toContain("influx_campaign_published");
+    expect(raw).toContain("influx_campaign_published_on_2026_11_14");
+    for (const brevoOnly of ["sports_leisure", "EUR", "tiktok", "instagram"]) {
+      expect(raw).not.toContain(brevoOnly);
+    }
+  });
+
+  it("no row for a creator, none for an erased account; a line of another worker or not in processing is refused (55000), a transactional line too (22023)", async () => {
+    const creator = await createAccount({ role: "creator" });
+    const { apollo_contact: creatorLine } = await insertLines(
+      creator,
+      ["apollo_contact"],
+      "creator",
+      "campaign.published",
+    );
+    await processing(creatorLine, "tm1-campaign-reader");
+    expect(
+      await readCampaignAttributesOf(
+        database,
+        randomUUID(),
+        claimed(creatorLine, creator, "apollo_contact"),
+        "tm1-campaign-reader",
+      ),
+    ).toBeNull();
+
+    const brand = await createAccount({ role: "advertiser" });
+    await fillPublishedProfile(brand);
+    const ids = await insertLines(
+      brand,
+      ["brevo_contact", "brevo_transactional"],
+      "advertiser",
+      "campaign.published",
+    );
+    await expect(
+      readCampaignAttributesOf(
+        database,
+        randomUUID(),
+        claimed(ids.brevo_contact, brand, "brevo_contact"),
+        "tm1-campaign-reader",
+      ),
+    ).rejects.toBeInstanceOf(LineTakenBackError);
+    await processing(ids.brevo_contact, "tm1-campaign-other");
+    await expect(
+      readCampaignAttributesOf(
+        database,
+        randomUUID(),
+        claimed(ids.brevo_contact, brand, "brevo_contact"),
+        "tm1-campaign-reader",
+      ),
+    ).rejects.toBeInstanceOf(LineTakenBackError);
+    await processing(ids.brevo_transactional, "tm1-campaign-reader");
+    const error = await readCampaignAttributesOf(
+      database,
+      randomUUID(),
+      claimed(ids.brevo_transactional, brand, "brevo_transactional"),
+      "tm1-campaign-reader",
+    ).catch((caught: unknown) => caught);
+    let cause: unknown = error;
+    let state: string | undefined;
+    while (cause instanceof Error && state === undefined) {
+      state = (cause as Error & { code?: string }).code;
+      cause = cause.cause;
+    }
+    expect(state).toBe(INVALID_PARAMETER);
+
+    await processing(ids.brevo_contact, "tm1-campaign-reader");
+    await migration`
+      update identity.accounts set status = 'deleted', deleted_at = now() where id = ${brand}`;
+    try {
+      expect(
+        await readCampaignAttributesOf(
+          database,
+          randomUUID(),
+          claimed(ids.brevo_contact, brand, "brevo_contact"),
+          "tm1-campaign-reader",
+        ),
+      ).toBeNull();
+    } finally {
+      await migration`
+        update identity.accounts set status = 'active', deleted_at = null where id = ${brand}`;
+    }
   });
 });

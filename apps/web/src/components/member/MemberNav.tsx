@@ -6,7 +6,12 @@
 // Pure: labels, addresses and the link component come as props, so that a test renders it without
 // the router (tests/member-nav-ui.test.ts).
 import type { ComponentType, ReactNode } from "react";
-import { HomeIcon, UserRoundIcon } from "@/components/ui/icons";
+import {
+  HomeIcon,
+  MegaphoneIcon,
+  UserRoundIcon,
+  UsersIcon,
+} from "@/components/ui/icons";
 import type { ActivePlace, NavEntry } from "@/lib/member-nav";
 import type { MemberPage } from "@/lib/member-paths";
 import {
@@ -22,6 +27,8 @@ import {
 
 const ENTRY_ICONS: Partial<Record<NavEntry, typeof HomeIcon>> = {
   home: HomeIcon,
+  campaigns: MegaphoneIcon,
+  creators: UsersIcon,
   account: UserRoundIcon,
 };
 

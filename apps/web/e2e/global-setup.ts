@@ -4,6 +4,7 @@
 // The returned function is the teardown (PLT-3): the run fails on any error occurrence recorded
 // in ops.error_occurrences since the mark taken here (support/error-guard.ts).
 import {
+  closeStalePublishedCampaigns,
   connectAsMigrationRole,
   requireLocalAuth,
   requireLocalStack,
@@ -16,6 +17,9 @@ export default async function globalSetup(): Promise<() => Promise<void>> {
   const sql = connectAsMigrationRole({ max: 1 });
   let mark: string;
   try {
+    // Campaigns still published or paused from an earlier run leave before any file: the creator's
+    // feed (L3D) reads every one of them. Closed, none deleted (@influx/test-kit/db).
+    await closeStalePublishedCampaigns(sql);
     mark = await readErrorMark(sql);
     const rows = await sql<{ locale: string }[]>`
       select locale from identity.terms_versions

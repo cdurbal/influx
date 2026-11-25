@@ -1,0 +1,587 @@
+{
+  "page": {
+    "title": "Mon profil",
+    "loading": "Chargement de votre profil…",
+    "unavailable": "Nous ne parvenons pas à afficher votre profil pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "noStorefront": "Votre profil n'est pas encore ouvert à la saisie. Revenez plus tard : rien ne vous est demandé pour l'instant."
+  },
+  "alias": {
+    "name": "Profil {alias}",
+    "explain": "Les marques vous voient sous le nom {alias} tant qu'aucune mise en relation n'est ouverte.",
+    "reveal": "Votre pseudo, vos liens et vos chiffres exacts ne leur sont communiqués qu'à ce moment-là, et à elles seules.",
+    "forLife": "L'alias est attribué à vie : ni vous, ni INFLUX ne pouvez le changer.",
+    "none": "Votre alias vous sera attribué avec l'ouverture de votre profil."
+  },
+  "layer": {
+    "public": "Visible de toutes les marques inscrites.",
+    "revealed": "Visible uniquement après l'ouverture d'une mise en relation.",
+    "internal": "Visible uniquement par vous et l'équipe INFLUX."
+  },
+  "summary": {
+    "title": "Sommaire de votre profil",
+    "complete": "Complet",
+    "incomplete": "À compléter",
+    "soon": "Bientôt disponible"
+  },
+  "sections": {
+    "presentation": "Présentation",
+    "editorial": "Ligne éditoriale",
+    "networks": "Réseaux sociaux",
+    "audience": "Audience",
+    "offer": "Mon offre",
+    "portfolio": "Portfolio",
+    "trust": "Confiance"
+  },
+  "blocks": {
+    "missing": "À compléter : {fields}.",
+    "missingCount": "{count, plural, one {# information à compléter} other {# informations à compléter}}",
+    "allSet": "Toutes les informations demandées sont renseignées."
+  },
+  "state": {
+    "draft": "En cours de saisie",
+    "pending_review": "En attente de validation",
+    "published": "Publié",
+    "rejected": "Refusé",
+    "suspended": "Suspendu"
+  },
+  "home": {
+    "state": "État : {state}",
+    "complete": "Compléter mon profil",
+    "review": "Voir mon profil",
+    "leftIn": "{section} ({count})",
+    "remaining": "{count, plural, one {Il reste # information à compléter :} other {Il reste # informations à compléter :}}"
+  },
+  "completeness": {
+    "label": "Complétude du profil",
+    "value": "{score, number} %"
+  },
+  "required": {
+    "headline": "titre court",
+    "bio": "bio",
+    "primaryTopic": "thématique principale",
+    "publicationLanguages": "langues de publication",
+    "residenceCountry": "pays de résidence",
+    "networkLines": "au moins un réseau social",
+    "primaryAccount": "réseau principal",
+    "handle": "pseudo du réseau principal",
+    "profileUrl": "lien du profil du réseau principal",
+    "followers": "nombre d'abonnés du réseau principal",
+    "figuresDate": "confirmation de vos chiffres",
+    "mainAudienceCountry": "pays principal de votre audience",
+    "mainAudienceShare": "part de ce pays dans votre audience",
+    "formats": "formats proposés",
+    "availability": "disponibilité",
+    "portfolio": "au moins 3 visuels déposés",
+    "accountVerified": "un compte vérifié par INFLUX"
+  },
+  "field": {
+    "required": "obligatoire",
+    "limit": "{max, plural, one {# choix au maximum} other {# choix au maximum}}",
+    "count": "{count} sur {max}",
+    "limitReached": "Maximum atteint : décochez un choix pour en prendre un autre.",
+    "characters": "{count, number} / {max, number} caractères",
+    "choose": "Choisir…",
+    "addLanguage": "Ajouter une langue…",
+    "addTopic": "Ajouter une thématique…",
+    "remove": "Retirer {label}",
+    "selected": "Choix retenus",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "fields": {
+    "headline": {
+      "label": "Titre court",
+      "help": "Votre activité en une ligne, de 20 à 120 caractères. Sans pseudo, sans @, sans lien, sans nom de marque."
+    },
+    "bio": {
+      "label": "Bio",
+      "help": "De 150 à 800 caractères. Elle est lue par toutes les marques inscrites : ni pseudo, ni lien, ni coordonnées."
+    },
+    "collaborationExperience": {
+      "label": "Expérience de collaborations avec des marques",
+      "help": "Une tranche suffit : ne citez aucune marque."
+    },
+    "legalFirstName": {
+      "label": "Prénom légal"
+    },
+    "legalLastName": {
+      "label": "Nom légal"
+    },
+    "contactPhone": {
+      "label": "Téléphone",
+      "help": "Au format international, par exemple +33612345678."
+    },
+    "contactEmail": {
+      "label": "E-mail de contact",
+      "help": "Facultatif : votre adresse de connexion reste utilisée sinon."
+    },
+    "city": {
+      "label": "Ville de résidence",
+      "help": "Elle n'est jamais communiquée aux marques."
+    },
+    "primaryTopic": {
+      "label": "Thématique principale"
+    },
+    "secondaryTopics": {
+      "label": "Thématiques secondaires"
+    },
+    "tones": {
+      "label": "Ton éditorial"
+    },
+    "publicationLanguages": {
+      "label": "Langues de publication"
+    },
+    "residenceCountry": {
+      "label": "Pays de résidence",
+      "help": "Repris de votre compte.",
+      "change": "Modifier dans Mon compte"
+    },
+    "accountLanguage": {
+      "label": "Langue de votre espace"
+    },
+    "travelScope": {
+      "label": "Déplacements possibles"
+    },
+    "formats": {
+      "label": "Formats proposés",
+      "help": "Cochez les formats que vous proposez, réseau par réseau."
+    },
+    "usageIncluded": {
+      "label": "Droits d'usage inclus",
+      "help": "Les droits que vous accordez d'emblée. Aucune case cochée : aucun droit n'est accordé d'emblée."
+    },
+    "usageOptional": {
+      "label": "Droits d'usage en option",
+      "help": "Les droits que vous pouvez accorder en plus, à discuter avec votre commercial. Un droit ne figure que dans une des deux listes."
+    },
+    "deliveryLead": {
+      "label": "Délai de livraison habituel"
+    },
+    "maxExclusivity": {
+      "label": "Exclusivité sectorielle acceptée",
+      "help": "La durée maximale pendant laquelle vous acceptez de ne pas travailler avec une marque concurrente."
+    },
+    "acceptsNonMonetary": {
+      "label": "Contrepartie non monétaire acceptée",
+      "help": "Produits, services ou invitations en échange de contenus. Cela n'évite pas la discussion avec votre commercial."
+    },
+    "availability": {
+      "label": "Disponibilité",
+      "help": "Elle est toujours affichée avec sa date de déclaration."
+    },
+    "refusedSectors": {
+      "label": "Secteurs refusés",
+      "help": "Aucune marque ni aucun message n'en est informé, et rien n'est compté : ce choix reste entre vous et l'équipe INFLUX."
+    }
+  },
+  "experience": {
+    "none": "Aucune",
+    "1_5": "De 1 à 5",
+    "6_20": "De 6 à 20",
+    "gt_20": "Plus de 20"
+  },
+  "travel": {
+    "none": "Non",
+    "domestic": "Dans mon pays",
+    "international": "À l'international"
+  },
+  "reference": {
+    "tone": {
+      "educational": "Pédagogique",
+      "humorous": "Humoristique",
+      "inspiring": "Inspirant",
+      "premium": "Premium et élégant",
+      "straightforward": "Direct et sans détour",
+      "family_friendly": "Familial",
+      "expert": "Expert et technique"
+    },
+    "audience_band": {
+      "nano": "Nano (moins de 10 000 abonnés)",
+      "micro": "Micro (de 10 000 à 49 999)",
+      "mid": "Intermédiaire (de 50 000 à 499 999)",
+      "macro": "Macro (de 500 000 à 999 999)",
+      "mega": "Méga (1 million et plus)"
+    },
+    "publication_frequency": {
+      "daily": "Quotidien",
+      "several_per_week": "Plusieurs fois par semaine",
+      "weekly": "Hebdomadaire",
+      "biweekly": "Deux fois par mois",
+      "monthly_or_less": "Mensuel ou moins"
+    },
+    "comment_band": {
+      "0_9": "De 0 à 9",
+      "10_49": "De 10 à 49",
+      "50_199": "De 50 à 199",
+      "200_999": "De 200 à 999",
+      "1000_plus": "1 000 et plus"
+    }
+  },
+  "figures": {
+    "confirmAll": "Vos trois chiffres sont renseignés : appuyez sur « Confirmer mes chiffres » pour les dater d'aujourd'hui.",
+    "confirmSome": "Renseignez aussi votre rythme de publication et vos commentaires moyens, puis appuyez sur « Confirmer mes chiffres » pour dater vos chiffres d'aujourd'hui.",
+    "confirm": "Confirmer mes chiffres",
+    "source": {
+      "declared": "Source : déclaré par vous",
+      "agent_observed": "Source : constaté par INFLUX"
+    },
+    "dated": "{source} · chiffres au {date}",
+    "undated": "{source} · chiffres à confirmer",
+    "stale": "Vérifiez vos chiffres puis confirmez-les : ils datent du {date}. Au-delà de 90 jours, votre profil est affiché plus bas dans les résultats."
+  },
+  "issues": {
+    "required": "Ce champ est obligatoire.",
+    "invalid": "Cette valeur n'est pas valide.",
+    "unknown": "Ce choix n'est plus disponible : choisissez-en un autre.",
+    "duplicate": "Cette valeur existe déjà : retirez le doublon.",
+    "wrong_network": "Ce lien ne correspond pas au réseau choisi.",
+    "sum_exceeds_100": "Le total est de {sum} %, au plus 100. Rien n'est enregistré pour ce réseau tant que ce total n'est pas corrigé.",
+    "count": "Saisissez un nombre entier, zéro ou plus.",
+    "percentage": "Saisissez un pourcentage entre 0 et 100, avec deux décimales au plus.",
+    "url_shape": "Le lien doit commencer par https:// et ne contenir ni espace ni identifiant.",
+    "share": "Saisissez un pourcentage entier de 0 à 100.",
+    "share_min": "Un autre pays pèse 10 % de votre audience au minimum."
+  },
+  "errors": {
+    "identifierInText": "Votre texte contient ce qui ressemble à un pseudo, un lien ou un identifiant. Retirez-le : il sera partagé une fois la mise en relation ouverte."
+  },
+  "save": {
+    "saving": "Enregistrement…",
+    "saved": "Enregistré automatiquement à {time}",
+    "idle": "Enregistrement automatique",
+    "retry": "Modifications non enregistrées — nouvelle tentative dans 5 s."
+  },
+  "networks": {
+    "loading": "Chargement de vos réseaux…",
+    "unavailable": "Nous ne parvenons pas à afficher vos réseaux pour le moment. Réessayez dans quelques minutes.",
+    "intro": "Une ligne par réseau. Votre pseudo, vos liens et vos chiffres exacts ne sont communiqués qu'une fois la mise en relation ouverte ; avant, les marques n'en voient que des tranches.",
+    "empty": "Aucun réseau pour l'instant. Ajoutez d'abord votre réseau principal : c'est là que vos abonnés sont comptés.",
+    "failed": "Cette action n'a pas abouti. Réessayez dans un instant.",
+    "remove": "Retirer",
+    "removeNamed": "Retirer le réseau {network}",
+    "removeConfirm": "Retirer {network} et son audience ?",
+    "removeKeep": "Garder",
+    "removeKeepNamed": "Garder le réseau {network}",
+    "removeNow": "Retirer {network} maintenant",
+    "add": {
+      "label": "Ajouter un réseau",
+      "placeholder": "Choisir un réseau…",
+      "help": "Une ligne par compte : deux comptes sur le même réseau sont possibles, jamais deux fois le même pseudo."
+    },
+    "primary": {
+      "label": "Compte principal",
+      "help": "Un seul compte est principal : c'est le premier que lisent les marques.",
+      "moved": "{to} est maintenant votre compte principal ; {from} ne l'est plus."
+    },
+    "metrics": {
+      "title": "Vos trois chiffres clés"
+    },
+    "bands": {
+      "seen": "Les marques voient : {band}",
+      "notYet": "Les marques ne voient encore aucune tranche : renseignez ce chiffre."
+    },
+    "fields": {
+      "handle": {
+        "label": "Pseudo sur le réseau",
+        "help": "Votre identifiant public sur ce réseau."
+      },
+      "profileUrl": {
+        "label": "Lien de votre profil",
+        "help": "Il commence par https:// et mène au réseau choisi."
+      },
+      "pseudonym": {
+        "label": "Pseudonyme",
+        "help": "Votre nom de scène, s'il diffère de votre pseudo."
+      },
+      "followers": {
+        "label": "Abonnés",
+        "help": "Le nombre d'abonnés de ce compte aujourd'hui."
+      },
+      "posts": {
+        "label": "Publications des 30 derniers jours"
+      },
+      "comments": {
+        "label": "Commentaires moyens par publication"
+      },
+      "reach": {
+        "label": "Portée moyenne par publication",
+        "help": "Le nombre moyen de personnes touchées par publication."
+      },
+      "engagement": {
+        "label": "Taux d'engagement (%)",
+        "help": "Entre 0 et 100, jusqu'à deux décimales."
+      }
+    }
+  },
+  "priorityMetrics": {
+    "explain": "Les marques voient d'abord la tranche de ces trois chiffres ; le chiffre exact vient ensuite."
+  },
+  "posts30d": {
+    "hint": "Comptez vos publications des 30 derniers jours : publications, Reels, vidéos, Shorts. Ne comptez ni les stories ni les directs."
+  },
+  "comments": {
+    "hint": "Faites la moyenne des commentaires sur vos 12 dernières publications, sans compter les jeux-concours."
+  },
+  "engagement": {
+    "unverified": "Votre taux d'engagement n'est pas affiché aux marques tant qu'il n'a pas été constaté par INFLUX."
+  },
+  "offer": {
+    "negotiation": "Les coûts se négocient avec votre commercial.",
+    "ugcGroup": "UGC (contenu livré à la marque)",
+    "noList": "Aucun choix disponible pour le moment.",
+    "otherNetworks": "Autres réseaux ({count, plural, =0 {aucun format coché} one {# format coché} other {# formats cochés}})",
+    "sectorsFold": "Choisir les secteurs refusés ({count, plural, =0 {aucun choix} one {# choix} other {# choix}})",
+    "availabilityDeclared": "Déclarée le {date}. Mettez-la à jour quand elle change.",
+    "delivery": {
+      "lt_7d": "Moins de 7 jours",
+      "7_14d": "De 7 à 14 jours",
+      "15_30d": "De 15 à 30 jours",
+      "gt_30d": "Plus de 30 jours"
+    },
+    "availability": {
+      "lt_2w": "Disponible sous moins de 2 semaines",
+      "lt_1m": "Disponible sous moins d'un mois",
+      "full": "Agenda plein"
+    }
+  },
+  "audience": {
+    "intro": "Ces pourcentages décrivent votre audience, pas vous. Avant toute mise en relation, les marques n'en voient que des tranches ; vos pourcentages exacts ne leur sont communiqués qu'ensuite. Ce qui manque pour atteindre 100 % s'affiche comme « autres » : INFLUX ne complète jamais à votre place.",
+    "noLines": "Ajoutez d'abord un réseau dans le bloc « Réseaux sociaux » : l'audience se renseigne réseau par réseau.",
+    "remainder": "Autres : {share, number} %",
+    "countries": {
+      "legend": "Pays de votre audience",
+      "main": "Pays principal de votre audience",
+      "mainShare": "Part de votre audience dans ce pays (%)",
+      "other": "Autre pays {index} de votre audience",
+      "otherShare": "Part de votre audience dans l'autre pays {index} (%, 10 au minimum)",
+      "add": "Ajouter un pays",
+      "full": "Quatre autres pays au plus.",
+      "removeOther": "Retirer l'autre pays {index}"
+    },
+    "ages": {
+      "legend": "Âges de votre audience",
+      "band": {
+        "18_24": "Part de votre audience âgée de 18 à 24 ans (%)",
+        "25_34": "Part de votre audience âgée de 25 à 34 ans (%)",
+        "35_44": "Part de votre audience âgée de 35 à 44 ans (%)",
+        "45_plus": "Part de votre audience âgée de 45 ans et plus (%)"
+      }
+    },
+    "genders": {
+      "legend": "Femmes, hommes et autres dans votre audience",
+      "share": {
+        "female": "Part de votre audience : femmes (%)",
+        "male": "Part de votre audience : hommes (%)",
+        "other": "Part de votre audience : autres ou non déclaré (%)"
+      }
+    }
+  },
+  "portfolio": {
+    "notice": "Vos visuels approuvés sont visibles de toutes les marques inscrites, avant toute mise en relation.",
+    "pending": "Ce visuel est en cours de modération. Il n'est pas encore visible des marques.",
+    "brandConsent": "Je confirme être autorisé à citer cette marque et à publier ce visuel.",
+    "brandConsentHelp": "Sans cette case, la légende est publiée sans le nom de la marque, ou refusée.",
+    "faceNotice": "Un visage est admis, mais il peut permettre de vous retrouver par une recherche d'image.",
+    "approved": "Approuvé",
+    "rejected": "Refusé : {reason}",
+    "replacementPending": "Remplacement en cours de modération : le visuel actuel reste affiché.",
+    "captionPending": "Légende en cours de validation : la précédente reste affichée.",
+    "count": "{count, plural, one {# visuel déposé} other {# visuels déposés}} sur 8",
+    "full": "Vous avez déposé 8 visuels, le maximum : remplacez-en un pour en changer.",
+    "minimum": "Un profil publié garde au moins 3 visuels : remplacez celui-ci plutôt que de le retirer.",
+    "caption": "Légende (facultative, 200 caractères au plus)",
+    "help": "PNG, JPEG ou WebP, 8 Mo au plus, 320 px au moins sur le plus grand côté. Les informations cachées du fichier (lieu, appareil) sont retirées au dépôt.",
+    "empty": "Aucun visuel déposé pour l'instant. Il en faut au moins 3.",
+    "loading": "Chargement de votre portfolio…",
+    "unavailable": "Nous ne parvenons pas à afficher votre portfolio pour le moment. Réessayez dans quelques minutes.",
+    "reload": "Recharger le portfolio",
+    "add": "Déposer un visuel",
+    "replace": "Remplacer ce visuel",
+    "remove": "Retirer ce visuel",
+    "removeNamed": "Retirer le visuel {position}",
+    "removeNow": "Retirer le visuel {position} maintenant",
+    "removeConfirm": "Retirer ?",
+    "removeKeep": "Garder",
+    "removeKeepNamed": "Garder le visuel {position}",
+    "replaceNamed": "Remplacer le visuel {position}",
+    "saveCaptionNamed": "Enregistrer la légende du visuel {position}",
+    "unsaved": "Modification non enregistrée",
+    "retry": "Réessayer le dépôt",
+    "moveUp": "Monter le visuel {position}",
+    "moveDown": "Descendre le visuel {position}",
+    "saveCaption": "Enregistrer la légende",
+    "item": "Visuel {position}",
+    "imageLoading": "Chargement du visuel…",
+    "replacementAlt": "Aperçu du visuel de remplacement, en cours de modération",
+    "refusedTitle": "Visuels refusés",
+    "refusedItem": "Visuel refusé {position}",
+    "deleteAfter": "Le fichier refusé sera supprimé le {date}.",
+    "reason": {
+      "watermark": "Le visuel porte un filigrane, une signature ou un logo personnel.",
+      "handle_in_image": "Le visuel montre un arobase, un nom de compte ou un pseudo.",
+      "app_interface": "Le visuel montre l'interface d'une application : bandeau de profil, avatar ou commentaires.",
+      "text_naming_account_or_brand": "Un texte du visuel cite votre compte, ou une marque sans votre déclaration d'autorisation.",
+      "identifiable_place": "Le visuel permet de reconnaître un lieu : enseigne, plaque d'immatriculation, numéro de rue ou lieu connu.",
+      "statistics_screenshot": "Une capture de statistiques n'est pas admise au portfolio : elle montre votre pseudo.",
+      "illicit_content": "Le visuel est contraire à la loi ou aux conditions d'utilisation d'INFLUX.",
+      "caption_identifier": "La légende contient un pseudo, un arobase, un lien ou un nom.",
+      "caption_brand_unauthorised": "La légende cite une marque sans que vous ayez déclaré y être autorisé."
+    },
+    "status": {
+      "busy": "Enregistrement…",
+      "uploaded": "Visuel déposé : il est en cours de modération.",
+      "removed": "Visuel retiré.",
+      "ordered": "Ordre enregistré.",
+      "captionApplied": "Légende enregistrée.",
+      "captionPending": "Légende envoyée : elle sera visible après validation par l'équipe INFLUX."
+    },
+    "errors": {
+      "empty": "Ce fichier est vide. Choisissez une image PNG, JPEG ou WebP.",
+      "tooLarge": "Ce fichier dépasse 8 Mo. Choisissez une image plus légère, au format PNG, JPEG ou WebP.",
+      "unsupported_type": "Ce format n'est pas accepté. Choisissez une image PNG, JPEG ou WebP (pas de PDF).",
+      "undecodable": "Cette image ne peut pas être lue. Essayez un autre fichier PNG, JPEG ou WebP.",
+      "too_many_pixels": "Cette image est trop grande : 4 096 px par côté au plus.",
+      "too_small": "Cette image est trop petite : son plus grand côté doit faire 320 px au moins.",
+      "output_too_large": "Cette image reste trop lourde après traitement. Choisissez une image plus simple.",
+      "quota": "Vous avez atteint le nombre de dépôts autorisés pour aujourd'hui. Réessayez plus tard.",
+      "portfolio_full": "Vous avez déposé 8 visuels, le maximum : remplacez-en un pour en changer.",
+      "portfolio_minimum": "Un profil publié garde au moins 3 visuels : remplacez celui-ci plutôt que de le retirer.",
+      "not_replaceable": "Ce visuel ne peut pas être remplacé : seul un visuel approuvé se remplace.",
+      "replacement_pending": "Un remplacement de ce visuel est déjà en cours de modération.",
+      "item_state": "Ce visuel a changé entre-temps. La liste est à jour : vérifiez-la, puis réessayez.",
+      "profile_state": "Votre profil n'est plus modifiable : le portfolio ne peut pas changer.",
+      "conflict": "Cette action n'est plus possible : le portfolio vient d'être relu. Vérifiez la liste.",
+      "captionInvalid": "La légende tient sur une ligne, 200 caractères au plus.",
+      "unavailable": "Cette action n'a pas abouti : le service ne répond pas. Réessayez dans un instant."
+    }
+  },
+  "publish": {
+    "action": "Publier mon profil",
+    "submitted": "Profil soumis à validation. Réponse sous 1 jour ouvré.",
+    "missing": "Il manque {count, plural, one {# information} other {# informations}} pour publier votre profil : {fields}.",
+    "review": "Un commercial INFLUX relit votre profil avant de le publier.",
+    "failed": "Votre profil n'a pas pu être soumis. Réessayez dans un instant."
+  },
+  "frozen": {
+    "pending_review": "Votre profil est en cours de validation : il ne peut pas être modifié avant la réponse de l'équipe INFLUX.",
+    "suspended": "Votre profil est suspendu : il ne peut pas être modifié pour le moment."
+  },
+  "status": {
+    "published": "Votre profil est publié. Seule sa version anonyme, sous votre alias, peut être présentée aux marques.",
+    "pendingWithPublished": "Vos modifications sont en cours de validation. Votre profil reste visible dans sa version précédente.",
+    "pendingFields": "En cours de validation : {fields}.",
+    "rejected": "Votre profil n'a pas été publié : {reason}",
+    "revisionRejected": "Votre modification n'a pas été publiée : {reason}",
+    "revisionKept": "Votre profil reste visible dans sa version précédente."
+  },
+  "refusal": {
+    "fix": "Corrigez-le depuis votre espace INFLUX : votre correction sera relue à son tour.",
+    "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
+  },
+  "rejection": {
+    "identifier_in_text": "Votre titre ou votre bio contient un pseudo, un arobase, un lien ou un nom. Ces informations ne sont visibles qu'une fois la mise en relation ouverte.",
+    "bio_insufficient": "Votre bio ne permet pas à une marque de comprendre ce que vous faites.",
+    "portfolio_insufficient": "Il faut au moins 3 éléments déposés pour publier votre profil.",
+    "portfolio_non_compliant": "Un ou plusieurs de vos visuels permettent de vous identifier.",
+    "network_link_inconsistent": "Le lien déclaré ne correspond pas au réseau choisi.",
+    "figures_inconsistent": "Les chiffres déclarés ne sont pas cohérents entre eux.",
+    "topic_inconsistent": "La thématique déclarée ne correspond pas au contenu montré.",
+    "illicit_content": "Le contenu de votre profil ne peut pas être publié : il est contraire à la loi ou aux conditions d'utilisation d'INFLUX.",
+    "age_doubt": "INFLUX est réservé aux personnes majeures : nous ne pouvons pas publier votre profil en l'état.",
+    "other": "Le message de l'équipe INFLUX :"
+  },
+  "revisionField": {
+    "headline": "titre court",
+    "bio": "bio",
+    "portfolio_caption": "légende d'un visuel",
+    "network_line": "réseau ajouté",
+    "network_handle": "pseudo d'un réseau",
+    "network_url": "lien d'un réseau"
+  },
+  "trust": {
+    "verified": "Votre compte est vérifié par INFLUX.",
+    "missing": "Un compte vérifié par INFLUX est nécessaire pour publier votre profil. Vous le demandez depuis le bloc « Réseaux sociaux », sur la ligne de votre réseau principal.",
+    "go": "Aller aux réseaux sociaux"
+  },
+  "visibility": {
+    "label": "Visible dans la recherche",
+    "on": "Les marques pourront vous trouver dans la recherche, une fois votre profil publié.",
+    "off": "Vous êtes retiré de la recherche : vous ne recevrez plus de demande de marque.",
+    "saved": "Enregistré",
+    "failed": "Ce réglage n'a pas pu être enregistré. Réessayez dans un instant."
+  },
+  "preview": {
+    "title": "Ce que voit une marque",
+    "before": "Avant la mise en relation",
+    "after": "Après la mise en relation",
+    "explain": "Exactement ce que la plateforme sert à une marque, rien de plus.",
+    "tabs": "Choisir la vue de l'aperçu",
+    "back": "Mon profil",
+    "loading": "Chargement de l'aperçu…",
+    "unavailable": "Nous ne parvenons pas à afficher l'aperçu pour le moment. Réessayez dans quelques minutes.",
+    "notPublished": "Votre profil n'est pas encore publié : aucune marque ne le voit. Voici ce qu'elle verrait une fois qu'il le sera.",
+    "beforeIntro": "Avant la mise en relation, une marque ne voit que des tranches : ni pseudo, ni lien, ni chiffre exact.",
+    "afterIntro": "Après la mise en relation, la marque lit en plus votre pseudo, le lien de votre profil et vos chiffres exacts, avec leur source et leur date. Jamais votre e-mail ni votre téléphone.",
+    "afterEmpty": {
+      "noNetwork": "Pour l'instant, une marque mise en relation avec vous verrait la même carte qu'avant : votre carte ne présente encore aucun réseau. Dès qu'un réseau y figure, elle lira en plus son pseudo, son lien et vos chiffres exacts. Jamais votre e-mail ni votre téléphone.",
+      "nothingIdentified": "Pour l'instant, une marque mise en relation avec vous verrait la même carte qu'avant : les réseaux de votre carte n'ont encore ni pseudo, ni lien, ni chiffre exact à montrer. Jamais votre e-mail ni votre téléphone."
+    },
+    "noVisual": "Aucun visuel approuvé pour l'instant : votre carte s'affiche sans image.",
+    "sections": {
+      "networks": "Réseaux",
+      "audience": "Audience",
+      "offer": "Offre"
+    },
+    "metrics": {
+      "rhythm": "Rythme de publication",
+      "engagement": "Engagement",
+      "reach": "Portée moyenne par publication"
+    },
+    "exact": "chiffre exact : {value}",
+    "observed": "Chiffres constatés par INFLUX : ils ne s'affichent pas dans cet aperçu.",
+    "source": {
+      "declared": "Déclarés par le créateur",
+      "agent_observed": "Constatés par INFLUX"
+    },
+    "figuresAt": "{source} · chiffres au {date}",
+    "figuresUndated": "{source} · chiffres non datés",
+    "badge": {
+      "account_verified": "Compte vérifié le {date}",
+      "audience_verified": "Audience vérifiée le {date}"
+    },
+    "shares": "Audience, pourcentages exacts",
+    "share": {
+      "ge_80": "80 % ou plus",
+      "50_80": "De 50 à 80 %",
+      "lt_50": "Moins de 50 %",
+      "10_25": "De 10 à 25 %",
+      "25_50": "De 25 à 50 %",
+      "gt_50": "Plus de 50 %"
+    },
+    "gender": {
+      "female_majority": "Majorité de femmes",
+      "male_majority": "Majorité d'hommes",
+      "mixed": "Audience mixte",
+      "female": "Femmes",
+      "male": "Hommes",
+      "other": "Autres ou non déclaré"
+    },
+    "age": {
+      "18_24": "18-24 ans",
+      "25_34": "25-34 ans",
+      "35_44": "35-44 ans",
+      "45_plus": "45 ans et plus"
+    },
+    "engagementBand": {
+      "under_1": "Moins de 1 %",
+      "1_3": "De 1 à 3 %",
+      "3_6": "De 3 à 6 %",
+      "6_plus": "6 % et plus"
+    },
+    "mainAudience": "Pays principal de l'audience",
+    "audienceCountries": "Autres pays de l'audience",
+    "audienceAges": "Âges de l'audience",
+    "audienceGender": "Genre de l'audience"
+  }
+}

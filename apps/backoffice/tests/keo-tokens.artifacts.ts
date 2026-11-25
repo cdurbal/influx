@@ -38,13 +38,21 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   "--color-surface-muted",
   "--color-border-selected",
   "--color-feedback-success-icon",
-  "--color-feedback-warning-icon",
   "--color-feedback-info-icon",
   "--color-counter-bg",
   "--color-counter-text",
   "--translate-lift",
   // The border of a clickable card on hover (RK-10): the backoffice has no clickable card.
   "--color-border-hover",
+  // Roles and effects of the Lot 3bis (D88, RUA-01), redefined under KEO and read by no class before the
+  // screens of RUC; each entry goes when its reader arrives (a stale entry fails this very test).
+  "--color-logo-plate",
+  "--color-skeleton-base",
+  "--color-skeleton-sheen",
+  "--effect-photo-scrim-strong",
+  "--effect-photo-scrim",
+  "--effect-photo-scrim-soft",
+  "--effect-photo-shadow",
 ];
 
 describe("G3i (b): the built CSS reads every KEO token through var()", () => {
@@ -65,5 +73,50 @@ describe("G3i (b): the built CSS reads every KEO token through var()", () => {
         ".rounded-card: a utility of --radius-card that does not read var(--radius-card) {border-radius:.75rem}",
       ]);
     }
+  });
+});
+
+// RUA-T4 (D88, jalon RUA, line 02; 22-refonte-ux-ui/04 §1, §2; AN-4): the build serves the nine animations, each
+// over its keyframes (`@theme static`: emitted whether a class names them or not), the breakpoint of the forms,
+// and no keyframes that moves anything but opacity, translate, scale, rotate and background color.
+describe("RUA-T4: the built CSS serves the animation tokens of the Lot 3bis", () => {
+  const NAMES: ReadonlyArray<readonly [string, string]> = [
+    ["fade-in", "fade-in"],
+    ["rise-in", "rise-in"],
+    ["flash", "flash"],
+    ["flash-strong", "flash-strong"],
+    ["pop", "pop"],
+    ["pop-in", "pop-in"],
+    ["done-flash", "done-flash"],
+    ["spin", "turn"],
+    ["skeleton", "skeleton"],
+  ];
+  const blockOf = (frames: string): string =>
+    new RegExp(String.raw`@keyframes ${frames}\{(?:[^{}]|\{[^{}]*\})*\}`).exec(
+      builtCss,
+    )?.[0] ?? "";
+
+  it("declares every --animate-* over keyframes that exist, and --breakpoint-form at 640 px", () => {
+    for (const [name, frames] of NAMES) {
+      expect(builtCss, `--animate-${name}`).toMatch(
+        new RegExp(String.raw`--animate-${name}:\s*${frames}\s`),
+      );
+      expect(blockOf(frames), `@keyframes ${frames}`).not.toBe("");
+    }
+    expect(builtCss).toMatch(/--breakpoint-form:\s*640px/);
+  });
+
+  it("animates no height, no width, no `all` and no literal color in them (AN-4)", () => {
+    const properties = NAMES.flatMap(([, frames]) =>
+      [...blockOf(frames).matchAll(/([a-z-]+):/g)].map((match) => match[1]),
+    );
+    expect(properties.length).toBeGreaterThan(15);
+    expect([...new Set(properties)].sort()).toEqual([
+      "background-color",
+      "opacity",
+      "rotate",
+      "scale",
+      "translate",
+    ]);
   });
 });

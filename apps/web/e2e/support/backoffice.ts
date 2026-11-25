@@ -32,9 +32,14 @@ async function withSql<T>(
   }
 }
 
-/** A tag of this run, made of the characters a partial search accepts (05 RG98). */
+/**
+ * A tag of this run, made of the characters a partial search accepts (05 RG98).
+ * A letter splits the run identifier: RG19 flags a telephone from 8 consecutive digits
+ * (`PHONE_MIN_DIGITS = 8`), and an all-numeric 8-character identifier would trip it.
+ */
 export function runTag(name: string): string {
-  return `e2e${(process.env[E2E_RUN_VARIABLE] ?? "").replace(/[^a-z0-9]/gi, "")}${name}`;
+  const id = (process.env[E2E_RUN_VARIABLE] ?? "").replace(/[^a-z0-9]/gi, "");
+  return `e2e${id.slice(0, 4)}x${id.slice(4)}${name}`;
 }
 
 export type SeededInternal = {
@@ -46,12 +51,11 @@ export type SeededInternal = {
 /** Every internal account of the journeys, deactivated by `retireInternals`. */
 const internals: string[] = [];
 
-/** An active agent or admin, signed in on this page's backoffice origin. */
-export async function seedInternal(
-  page: Page,
+/** An active agent or admin with a session proven now, signed in nowhere: its token is the cookie. */
+async function insertInternal(
   role: "agent" | "admin",
   firstName: string,
-): Promise<SeededInternal> {
+): Promise<SeededInternal & { token: Buffer }> {
   const accountId = randomUUID();
   const token = randomBytes(32);
   const sessionId = await withSql((sql) =>
@@ -79,6 +83,25 @@ export async function seedInternal(
     }),
   );
   internals.push(accountId);
+  return { accountId, firstName, sessionId, token };
+}
+
+/** An active agent or admin who signs in nowhere: a colleague who holds locks and owns accounts (L2C-16). */
+export async function seedColleague(
+  role: "agent" | "admin",
+  firstName: string,
+): Promise<SeededInternal> {
+  const { accountId, sessionId } = await insertInternal(role, firstName);
+  return { accountId, firstName, sessionId };
+}
+
+/** An active agent or admin, signed in on this page's backoffice origin. */
+export async function seedInternal(
+  page: Page,
+  role: "agent" | "admin",
+  firstName: string,
+): Promise<SeededInternal> {
+  const { token, ...person } = await insertInternal(role, firstName);
   const url = `${BACKOFFICE_ORIGIN}${SEED_PATH}`;
   await page.route(url, (route) =>
     route.fulfill({
@@ -92,7 +115,7 @@ export async function seedInternal(
   );
   await page.goto(url);
   await page.unroute(url);
-  return { accountId, firstName, sessionId };
+  return person;
 }
 
 /** After the journeys: the internal accounts never stay active peers of other runs. */

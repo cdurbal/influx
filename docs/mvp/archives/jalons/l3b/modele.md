@@ -1,0 +1,49 @@
+# L3B — modèle des campagnes (L3B-A)
+> `architecte`, grille `expert-database`, 2026-11-13. **Prime sur `04` §5.4, `09` Q16 et les prompts 02 à 11 pour tout nom.** *M.* : motif ; `-n` : `EC-L3B-A-n`.
+
+## 1. Q16 — tranche de budget (D78)
+- **Colonne** `per_creator_budget_band_code`, FK `(currency, …)` → `reference.price_bands (currency, code)`. *M.* : une tranche choisie, non dérivée ; FK et CHECK déclaratifs. `campaign_price_bands` (dérivée, RG59) **n'est créée ni au L3B ni en L3C tant que D78 tient** (filtre, net suspendus).
+- `campaigns_cash_range_required` → `campaigns_budget_band_when_submitted` (`gift_only` ou tranche) ; `campaigns_gift_only_has_no_budget_band` (CA76) ; `campaigns_amounts_need_currency` (montant ou tranche ⇒ `currency`, `MATCH SIMPLE` oblige). Affiliation : tranche exigée (RG64).
+- **Devise sans tranche** : rien de choisissable (FK) ; soumission refusée, `budget_band` (§5) ; formulaire limité aux devises pourvues ; remontée au backoffice : L3C (-1). Changer de devise vide les deux tranches dans la même écriture (sinon 23503).
+- **Fourchette exacte gardée, vide** : `per_creator_amount_min_minor`, `…_max_minor`, aucun droit, CHECK `campaigns_exact_range_suspended_d78` (`num_nonnulls = 0`), levé avec D78.
+
+## 2. Champ → colonne (`09` contre `04` §5.4)
+`campaigns.campaigns`, nullable (brouillon) hors clés, `status`, horodatages. Bloc 1 : `title`, `campaign_type_code`, `public_summary`, `brief`, `internal_reference`. 2 : `product_description`, `sector_code`, `restrictions`, `product_is_sent`, `product_value_band_code` (FK `(currency, …)`), `creator_keeps_product`, `shipping_costs_borne_by`, `campaign_key_messages`. 3 : `usage_rights_code`, `usage_rights_duration_band`, `usage_rights_territory_scope`, `exclusivity_band` (valeurs de `04`), **`content_review_delay`** (`48h`, `5bd`, `10bd`), `campaign_deliverables`, `campaign_usage_territories`. 4 : **`audience_gender_code`**, `campaign_audience_{countries,languages,bands,age_bands}`, `campaign_topics`. 5 : `currency`, `remuneration_kind`, `per_creator_budget_band_code`, `creators_wanted`, `total_budget_minor`. 6 : `applications_close_on`, `content_due_on`, `starts_on`, `ends_on`. 7 : `max_applications` (1 à 200), `campaign_requested_items`. 8 (RG85, porte seule) : `authorizations_declared_at`, `_declared_by_account_id`, `_declaration_locale`, `_declaration_hash`. Cycle : `submitted_at` (dernière soumission), `erased_at` (§7).
+- Écarts à `04` : RG44 → `content_review_delay` (-2) ; genre → colonne (-3) ; `product_value_currency` supprimée, RG58 (-4) ; `campaign_deliverables.notes` supprimée, RG13 (-5) ; choix sans défaut nullables (RG29). Réseaux déduits (RG35).
+- Hors L3B : `verified_only` (Q10, -6), compteur (Lot 4) ; colonnes d'agent, de décision, d'instantané (L3C, D81 (1)).
+- **Tout état** : bornes hautes `char_length` (140, 400, 4 000, 600, 1 000, 40), énumérations, `campaigns_dates_ordered` (RG70), `…_publication_window_max_12m` (RG74), `none` ⇒ durée et portée nulles, UGC ⇒ droits (RG43), produit non envoyé ⇒ ses trois champs nuls, `campaigns_gift_kinds_require_product` (`cash_and_gift`, `gift_only` ⇒ produit jamais `false`, -7), `campaigns_declaration_is_complete`.
+- **Hors `draft`, `rejected`, `erased_at`** (CHECK `*_when_submitted`) : obligatoires, bornes basses (10, 120, 300, 20), conditionnels. Textes rognés par l'API (EC-L2B-06-4).
+
+## 3. Noms
+- Types `campaigns.campaign_status`, `campaigns.remuneration_kind` (valeurs de `04`).
+- `reference.campaign_types` (forme de `usage_rights`) : `product_placement`, `ugc_delivered`, `product_review`, `ambassador`, `contest`, `event_presence`, `affiliate_program`.
+- `campaigns.requested_items` (avec `is_active`) : `motivation_message`, `past_content_examples`, `concept_proposal`, `proposed_rate` (**inactif**, D78), `availability`.
+- `campaigns.rejection_reasons`, forme de `profiles.creator_rejection_reasons` (`reason.campaigns.`, `campaignDecision.reason.`) ; **RG90, pas `04` l. 1747** : `contact_in_text`, `amount_in_text`, `link_in_text`, `brief_insufficient`, `deliverables_inconsistent`, `budget_inconsistent`, `calendar_invalid`, `creator_personal_criterion`, `minor_audience` (RG51, -8), `concealed_advertising`, `duplicate` (`fix`) ; `sensitive_authorizations_missing`, `illicit_content`, `other` (`contact`, les deux derniers avec message).
+- Filles, `campaign_id` en tête, plafond par **rang** (patron `0202`), code unique : `campaign_key_messages (position 1..5, body 1 à 200)`, `campaign_deliverables (slot 1..10, network_code, format_code, quantity 1..20)`, `campaign_usage_territories` et `campaign_audience_countries` (1..5), `campaign_topics` (1..3), `campaign_requested_items` (1..4, code actif) ; les trois autres : PK `(campaign_id, code)`. *M.* : plafonds déclaratifs ; remplace `campaign_audience_targets`.
+- Format sans réseau (`ugc_*`) : tout réseau (où la marque diffuse), sinon `formats.network_code` égal ; `campaigns.check_deliverable_format()`, 23514 `deliverable_format` (-9).
+- `0303` charge les neuf codes Lot 3 de `04` §4.3 avec leur `export_class`. Seul `campaign.submitted` s'écrit ; pas de `campaign.created` (-10).
+
+## 4. Droits et états
+- `influx_advertiser` : campagne `select` (hors fourchette), `insert`, `update` des colonnes de saisie ; jamais `status`, `submitted_at`, `erased_at`, déclaration, fourchette, `advertiser_account_id` ; pas de `delete` ; RLS sur `influx.current_account_id()`. Filles : `select`, `insert`, `delete` (**listes en bloc**, une transaction), RLS `exists` sur sa campagne. `select` : `requested_items`, textes RG85.
+- **Gel** : `campaigns.guard_campaign_member_write()` (invoker, patron `0209`) ; sous `influx_advertiser` ou `influx_campaign_definer`, 55000 `campaign_not_editable` hors ancien état `draft`, `rejected` ; fille : campagne `FOR SHARE`. *M.* : l'agent examine la version soumise ; L3C recrée la garde (RG7).
+- Création : tout annonceur actif, `draft` (CA2 : le profil bloque la soumission seule).
+- Agent, admin : rien (L3C). `influx_creator`, `influx_worker`, `influx_identity_definer` : rien sur `campaigns.*` (TM5.6).
+
+## 5. Porte de soumission (`0305`)
+- Propriétaire **neuf `influx_campaign_definer`** (NOLOGIN NOINHERIT, sans membre), ajouté à `03` P7, signé en R ; EXECUTE `influx_advertiser` ; aucun `execute` dynamique (L2DS-5 étendue, L3AS-3). *M.* : D81 (5) ; `influx_identity_definer`, atteint depuis le créateur, n'a aucun droit sur ce que D78 cache (patron EC-L2G-01-4).
+- `campaigns.campaign_input(uuid) → jsonb` (`CampaignInput` de `packages/domain`) et `campaign_missing_required_fields(jsonb) → text[]` (IMMUTABLE, parité, patron `0203`), invoker, propriétaire seul. Codes, ordre du formulaire : `title`, `campaign_type`, `public_summary`, `brief`, `product_description`, `product_sector`, `key_messages` (puce hors 10 à 200), `product_is_sent`, `product_value_band`, `creator_keeps_product`, `shipping_costs_borne_by`, `deliverables`, `usage_rights`, `usage_rights_duration`, `usage_rights_territory` (portée ou pays incohérents), `exclusivity`, `content_review_delay`, `audience_countries`, `audience_languages`, `audience_topics`, `currency`, `remuneration_kind`, `budget_band`, `creators_wanted`, `applications_close_on`, `starts_on`, `ends_on`.
+- `campaigns.submit_own_campaign(p_campaign_id uuid, p_declaration_locale text default null)` : (1) non annonceur actif, campagne inconnue ou d'autrui : 42501 `forbidden` (T14) ; (2) `FOR UPDATE` ; `pending_review` rendue sans écrire ; `published`, `paused`, `closed` : 55000 `campaign_not_submittable` ; (3) profil non `published` : 55000 `profile_not_published` (CA2) ; (4) 23514, DETAIL = **tous** les codes, séparés par `,` (CA3) ; (5) secteur sensible (jointure, RG84) sans langue `fr`/`en` : 23514 `authorizations_declaration`, sinon RG85 écrite (instant, appelant, langue, `body_sha256`) ; non sensible : vidée (-11) ; (6) `pending_review`, `submitted_at`, `campaign.submitted` `{from_status}` (+ langue, empreinte hex), même transaction.
+- `campaigns.authorization_declaration_texts` (`locale` PK, `body`, `body_sha256` générée) : FR de RG85, EN par 05, servi à la case. *M.* : affiché et haché ne font qu'un.
+- RG15 (CA10), RG95 : **L3C**, qui recrée la porte (file 7) ; rien n'est publié au L3B.
+
+## 6. Projection créateur (CA68, RG98)
+- **SQL** `campaigns.campaign_creator_view(uuid) → jsonb` (STABLE, invoker), EXECUTE `influx_advertiser` (08) ; invisible : 42501 ; L3C la reprend telle quelle (instantané). *M.* : l'instantané se bâtit en base.
+- **Liste d'autorisation**, clés toujours présentes (`null`, `[]`) : codes de §5 en camelCase **sauf** `currency`, `budgetBand`, `productValueBand`, `usageRightsTerritory` (→ `usageRightsTerritoryScope`, `usageRightsTerritories`) ; plus `restrictions`, `networks` (déduits), `audienceBands`, `audienceAgeBands`, `audienceGender`, `contentDueOn`, `requestedItems`.
+- **Jamais** : devise, tranches, budget total, référence, déclaration, sensibilité, état, identifiants, `max_applications` (absent de RG98, -12). Profil marque lu vivant (RG2). zod strict `campaignCreatorViewSchema` (`packages/contracts`, 08).
+
+## 7. Export et effacement (`0306`)
+- Export : `advertiser_profile.campaigns` (15 catégories, EC-L2G-05-1) : saisie (référence, budget, tranche compris), état, dates, listes, déclaration (instant, langue, empreinte hex).
+- Effacement (`09` l. 993) : rien supprimé (Lot 4) ; non `closed` → `closed`, `erased_at` ; vidés : textes, référence, budget ; puces supprimées ; gardés : codes, dates, tranche, déclaration (-13). Politiques : comptes `deleted`, ligne vidée seule. L3C étend à l'instantané.
+
+## 8. Répartition, index
+`0303` : §2 à §4, index `(advertiser_account_id, status)`. `0304` : grille (B). `0305` : §5, §6, `03` P7. `0306` : §7. Index différés : fil créateur (L3D), file 7 (L3C). **À relire** (`product-owner`, fin de jalon) : -7, -8, -9, -12, -13.

@@ -32,8 +32,39 @@ export const BODYLESS_METHODS: readonly string[] = ["GET", "DELETE"];
  */
 export const API_PATH_PATTERN = /^\/v1\/[A-Za-z0-9/_-]{0,200}$/;
 
-/** 03 PP-9. */
-export const MAX_BODY_BYTES = 1_048_576;
+/** 03 PP-9, amended by D80: 2 MiB, the raw bytes of a logo (jalons/l2b/stockage.md §3). */
+export const MAX_BODY_BYTES = 2_097_152;
+
+/**
+ * 03 PP-9, amended by D82 (1), (7): the ONLY exceptions to MAX_BODY_BYTES, by method and raw API path
+ * (the query is not part of it). The deposit of a piece of verification and the deposit of a visual of
+ * the portfolio, one image of 8 MiB at most each (the identifier as apps/api writes it, lowercase).
+ * Nothing else is read about the request.
+ */
+export const BODY_LIMIT_EXCEPTIONS: readonly {
+  method: string;
+  path: RegExp;
+  maxBytes: number;
+}[] = [
+  {
+    method: "PUT",
+    path: /^\/v1\/me\/verification\/requests\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/evidence$/,
+    maxBytes: 8_388_608,
+  },
+  {
+    method: "PUT",
+    path: /^\/v1\/me\/creator-profile\/portfolio$/,
+    maxBytes: 8_388_608,
+  },
+];
+
+/** The ceiling of a request body: its exception, else MAX_BODY_BYTES (PP-9). */
+export function maxBodyBytesOf(method: string, path: string): number {
+  const exception = BODY_LIMIT_EXCEPTIONS.find(
+    (candidate) => candidate.method === method && candidate.path.test(path),
+  );
+  return exception?.maxBytes ?? MAX_BODY_BYTES;
+}
 
 /**
  * 03 PP-5: the only request headers forwarded. Every other one is dropped, x-* included.
@@ -176,9 +207,12 @@ type BodyResult =
   { kind: "ok"; body: Uint8Array<ArrayBuffer> | null } | { kind: "too_large" };
 
 /** 03 PP-9: the body is counted while it streams in, whatever Content-Length claims. */
-async function readBody(request: Request): Promise<BodyResult> {
+async function readBody(
+  request: Request,
+  maxBytes: number,
+): Promise<BodyResult> {
   const declaredLength = Number(request.headers.get("content-length") ?? "0");
-  if (declaredLength > MAX_BODY_BYTES) {
+  if (declaredLength > maxBytes) {
     return { kind: "too_large" };
   }
   if (request.body === null) {
@@ -193,7 +227,7 @@ async function readBody(request: Request): Promise<BodyResult> {
       break;
     }
     total += value.byteLength;
-    if (total > MAX_BODY_BYTES) {
+    if (total > maxBytes) {
       await reader.cancel();
       return { kind: "too_large" };
     }
@@ -283,7 +317,7 @@ export async function relay(request: Request): Promise<Response> {
   }
   const bodyResult: BodyResult = BODYLESS_METHODS.includes(request.method)
     ? { kind: "ok", body: null }
-    : await readBody(request);
+    : await readBody(request, maxBodyBytesOf(request.method, path));
   if (bodyResult.kind === "too_large") {
     return refuse("payload_too_large", requestId);
   }

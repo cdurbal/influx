@@ -103,4 +103,46 @@ describe("browser error text (J9S-7)", () => {
     );
     expect(markup).not.toContain(messages.health.errors.unverified);
   });
+
+  it("PLS-7: a browser occurrence flags its stack and its page as unverified", () => {
+    const note = messages.health.errors.unverified;
+    const markup = inTable(
+      createElement(OccurrenceRows, {
+        occurrence: {
+          ...occurrence,
+          route: "/fr/<b>x</b>",
+          stack: "at f (a.js:1)",
+        },
+        source: "browser",
+      }),
+    );
+    // message, page, stack
+    expect(markup.split(note).length - 1).toBe(3);
+    expect(markup).not.toMatch(/<[^>]*href=/);
+  });
+
+  it("PLS-7: a server occurrence flags neither its stack nor its route", () => {
+    const markup = inTable(
+      createElement(OccurrenceRows, {
+        occurrence: { ...occurrence, route: "/v1/x", stack: "at f (a.js:1)" },
+        source: "server",
+      }),
+    );
+    expect(markup).not.toContain(messages.health.errors.unverified);
+  });
+
+  it("PLS-7: a browser group flags its page, a server group does not", () => {
+    const note = messages.health.errors.unverified;
+    const withRoute = (source: OpsErrorGroup["source"]) =>
+      inTable(
+        createElement(GroupRows, {
+          group: { ...group(source), route: "/fr/profil" },
+          open: false,
+          onToggle: () => {},
+          refresh: 0,
+        }),
+      );
+    expect(withRoute("browser").split(note).length - 1).toBe(2);
+    expect(withRoute("server")).not.toContain(note);
+  });
 });

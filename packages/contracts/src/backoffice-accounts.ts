@@ -12,11 +12,17 @@
 import { z } from "./zod.ts";
 import { signupDoorSchema, uiLocaleSchema, MAX_EMAIL_LENGTH } from "./auth.ts";
 import {
+  brandProfileStatusSchema,
+  moderatedFieldCodeSchema,
+  rejectionReasonCodeSchema,
+} from "./brand-profile.ts";
+import {
   consentSourceSchema,
   DATA_REQUEST_OUTCOMES,
   DATA_REQUEST_STATUSES,
   dataRequestTypeSchema,
 } from "./account.ts";
+import { CREATOR_FIGURES_SOURCES } from "./creator-profile.ts";
 import {
   countryCodeSchema,
   declaredStatusSchema,
@@ -383,6 +389,94 @@ export const accountDataRequestSchema = z.strictObject({
 });
 export type AccountDataRequest = z.infer<typeof accountDataRequestSchema>;
 
+/** L2C-18: the decisions of the profile shown on the record, the most recent first, capped by the server. */
+export const ACCOUNT_BRAND_DECISIONS_MAX = 20;
+
+/**
+ * One closed decision of queue 1 on the profile (06 RG65, 15 RG41 block 3): who, when, and for a
+ * refusal the reason by its code. Neither the message sent to the brand nor the internal comment:
+ * the record says so (15 RG123), they are read on the entry.
+ */
+export const accountBrandDecisionSchema = z.strictObject({
+  outcome: z.enum(["published", "rejected"]),
+  decidedAt: z.iso.datetime(),
+  decidedBy: accountOwnerSchema.nullable(),
+  /** The decision came after the deadline (15 C8). */
+  late: z.boolean(),
+  reasonCode: rejectionReasonCodeSchema.nullable(),
+});
+export type AccountBrandDecision = z.infer<typeof accountBrandDecisionSchema>;
+
+/**
+ * L2C-18 (15 RG41 blocks 2 and 3; 17b §3.5): what the record of a BRAND account adds. The contact
+ * person is read here and in the decision view only (D45, D46, L2BS-7): the opening of the record is
+ * journaled by the history read of the same transaction (`history.account_read`, RG40), so the read
+ * of these coordinates writes no line of its own. Codes and values only: the screen words them.
+ * No raw count of changes: the fields are named (06 RG9), "champs modifiés depuis la validation".
+ */
+export const accountBrandSchema = z.strictObject({
+  contact: z.strictObject({
+    firstName: z.string().nullable(),
+    /** The role of the contact person, a code of a closed list (a moderated field). */
+    role: z.string().nullable(),
+    email: z.string().nullable(),
+    phone: z.string().nullable(),
+    url: z.string().nullable(),
+  }),
+  profile: z.strictObject({
+    status: brandProfileStatusSchema,
+    completenessPercent: z.number().int().min(0).max(100).nullable(),
+    /** The moderated fields waiting for a decision since the last validation (06 RG9). */
+    changedFields: z.array(moderatedFieldCodeSchema),
+    decisions: z
+      .array(accountBrandDecisionSchema)
+      .max(ACCOUNT_BRAND_DECISIONS_MAX),
+    /** More decisions exist than `decisions` holds (the register has them all). */
+    hasMoreDecisions: z.boolean(),
+  }),
+});
+export type AccountBrand = z.infer<typeof accountBrandSchema>;
+
+/**
+ * L2G-17 (07 RG71, RG119; 17b §3.6 blocks 2 to 4; jalons/l2g/modele.md §1 point 13): one network line of a
+ * CREATOR record, with the EXACT figures the creator declared or an agent observed, their date and their
+ * source (10 RG71: never a band in place of a figure; a figure absent is null, never zero). No handle,
+ * no address, no pseudonym: the record names the line by its network, the queue shows the rest.
+ */
+export const accountCreatorNetworkSchema = z.strictObject({
+  id: z.uuid(),
+  /** A code of `reference.networks`, worded by the screen. */
+  networkCode: z.string().regex(/^[a-z][a-z0-9_]{0,30}$/),
+  isPrimary: z.boolean(),
+  /** A line added to a profile already published, which no decision has listed yet (modele point 6). */
+  awaitingValidation: z.boolean(),
+  followers: z.number().int().nonnegative().nullable(),
+  postsLast30Days: z.number().int().nonnegative().nullable(),
+  avgComments: z.number().int().nonnegative().nullable(),
+  /** Basis points (350 = 3.50 %), as stored. */
+  engagementRateBp: z.number().int().min(0).max(10000).nullable(),
+  measuredAt: z.iso.datetime().nullable(),
+  source: z.enum(CREATOR_FIGURES_SOURCES),
+});
+export type AccountCreatorNetwork = z.infer<typeof accountCreatorNetworkSchema>;
+
+/**
+ * L2G-17: what the record of a CREATOR account adds, read in the transaction of the opening, which the
+ * history read journals once (`history.account_read`, RG40): the lines with their exact figures, and the
+ * visuals of the portfolio as counts only (never a caption, a file name nor a key). Block 3 (« aucun
+ * tarif saisi », D78) carries no datum. The history of the metrics (RG119) has no reading yet: reliquat.
+ */
+export const accountCreatorSchema = z.strictObject({
+  networks: z.array(accountCreatorNetworkSchema),
+  portfolio: z.strictObject({
+    /** The visuals that count as deposited (07 RG4, RG88): a pending replacement shares its original's place. */
+    deposited: z.number().int().nonnegative(),
+    /** The visuals waiting for a decision of queue 3, replacements included. */
+    pending: z.number().int().nonnegative(),
+  }),
+});
+export type AccountCreator = z.infer<typeof accountCreatorSchema>;
+
 /**
  * GET /v1/bo/accounts/:id: the record of a member account (15 RG41 / RG42, blocks of the Lot 1).
  * Its opening is journaled (RG40) by the history read itself (EC-J8-24). Never a sign-in code, a
@@ -397,6 +491,10 @@ export const accountDetailResponseSchema = z.strictObject({
     deletedAt: z.iso.datetime().nullable(),
   }),
   ownership: z.array(ownershipEntrySchema),
+  /** Blocks 2 and 3 of a brand record; null for a creator, or a brand without a profile row (L2C-18). */
+  brand: accountBrandSchema.nullable(),
+  /** Blocks 2 to 4 of a creator record (L2G-17); null for a brand. */
+  creator: accountCreatorSchema.nullable(),
   /** The most recent first (15 §G, J8 commit 8). */
   dataRequests: z.array(accountDataRequestSchema),
   history: z.strictObject({

@@ -59,7 +59,7 @@
     "steps": {
       "brief": {
         "title": "Vous publiez votre brief",
-        "body": "Produit, objectifs, formats, budget, période et public visé : vous décrivez votre campagne, et l’équipe la relit avant sa mise en ligne. Vous pouvez aussi parcourir les profils vérifiés, présentés de façon anonyme."
+        "body": "Produit, objectifs, formats, budget, période et public visé : vous décrivez votre campagne, et l’équipe la relit avant sa mise en ligne. Vous pouvez aussi parcourir les profils vérifiés, présentés avec une identité masquée."
       },
       "introduction": {
         "title": "INFLUX valide chaque mise en relation",
@@ -197,7 +197,7 @@
         "answer": "Oui. L’inscription et les mises en relation sont ouvertes partout dans le monde, et la plateforme est disponible en français et en anglais."
       },
       "hiddenHandles": {
-        "question": "Pourquoi les profils des créateurs sont-ils anonymes ?",
+        "question": "Pourquoi l’identité des créateurs est-elle masquée ?",
         "answer": "Pour que le choix repose sur des éléments vérifiés et que la collaboration se construise dans INFLUX. Avant la mise en relation, la marque voit les thématiques, l’audience, les statistiques vérifiées, le portfolio et le badge « vérifié ». Le pseudo et les liens vers les réseaux lui sont communiqués quand la marque et le créateur ont tous deux accepté la mise en relation. Les e-mails et numéros de téléphone ne sont jamais communiqués, d’un côté comme de l’autre."
       },
       "messaging": {

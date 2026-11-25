@@ -2,6 +2,7 @@
 // T13.6 extended to the ops tables (a fake address, code and token never reach them), the cap of
 // ten occurrences per fingerprint and minute, the per-minute histogram, and the browser door
 // POST /v1/ops/client-errors (session required, strict body, bounded rate).
+import { KNOWN_ROUTE_MODELS } from "@influx/contracts/route-models";
 import { randomUUID } from "node:crypto";
 import {
   localRoleUrl,
@@ -76,8 +77,20 @@ afterAll(async () => {
   await closeDatabase(database);
 });
 
+/**
+ * The closed list of route models (L2AS-2) plus the synthetic routes of this file, whose letters
+ * only run identifier is the point of the file: the list itself is proved in route-models.test.ts.
+ */
+const routeModels = (model: string) =>
+  KNOWN_ROUTE_MODELS.has(model) || /^\/(?:v1|fr)\/opstest\//.test(model);
+
 function recorder(now: () => Date = () => new Date()): OpsRecorder {
-  return new OpsRecorder({ version: "test", instance: INSTANCE, now });
+  return new OpsRecorder({
+    version: "test",
+    instance: INSTANCE,
+    now,
+    routeModels,
+  });
 }
 
 describe("T13.6 on the ops tables (02 §20.8)", () => {

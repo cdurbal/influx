@@ -1,5 +1,6 @@
 // T16.3 to T16.5 — the commission rates table stays empty and unwritable, and no amount is a
-// float (docs/mvp/18 T16; CLAUDE.md §3, transitional regime). T16.1, T16.2, T16.7: static, in
+// float (docs/mvp/18 T16; CLAUDE.md §3, transitional regime); T16.4 and T16.5 also cover
+// reference.price_bands (04 §4.2, 0201; grid of 0304). T16.1, T16.2, T16.7: static, in
 // packages/test-kit/tests/t16-static.test.ts.
 import {
   inRolledBackTransaction,
@@ -24,6 +25,10 @@ const ROOT = path.resolve(
 const TABLE = "billing.commission_rates";
 const INSERT = `insert into ${TABLE} (scope, advertiser_rate_bp, creator_rate_bp, effective_from, created_by_account_id)
   values ('platform_default', 2000, 1500, now(), '00000000-0000-4000-8000-0000000004a0')`;
+
+const PRICE_BANDS = "reference.price_bands";
+const PRICE_BANDS_INSERT = `insert into ${PRICE_BANDS} (currency, code, label_key, min_amount_minor)
+  values ('EUR', 't16_witness', 'price_band.t16_witness', 0)`;
 
 let migration: postgres.Sql;
 
@@ -52,7 +57,8 @@ describe("T16.3: billing.commission_rates is empty", () => {
   });
 });
 
-describe("T16.4: nobody can write it", () => {
+/** T16.4 for one table: no write right anywhere, and every insertion refused. */
+function nobodyWrites(table: string, insert: string): void {
   it("grants INSERT, UPDATE, DELETE or TRUNCATE to no role of the closed list, nor to PUBLIC or the Data API", async () => {
     const roles = [
       ...Object.keys(EXPECTED_ROLES),
@@ -65,7 +71,7 @@ describe("T16.4: nobody can write it", () => {
       select r.name || ' ' || p.privilege as holder
         from unnest(${roles}::text[]) as r(name),
              unnest(array['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) as p(privilege)
-       where has_table_privilege(r.name, ${TABLE}, p.privilege)`;
+       where has_table_privilege(r.name, ${table}, p.privilege)`;
     expect(rows).toEqual([]);
   });
 
@@ -78,7 +84,7 @@ describe("T16.4: nobody can write it", () => {
     "refuses an insertion by %s without a role taken",
     async (role) => {
       const result = await inRolledBackTransaction(loginRole(role), (tx) =>
-        probe(tx, INSERT),
+        probe(tx, insert),
       );
       expect(result).toEqual({ outcome: "error", code: "42501" });
     },
@@ -91,12 +97,62 @@ describe("T16.4: nobody can write it", () => {
         loginRole(TAKEN_ROLES[role]),
         async (tx) => {
           await takeRole(tx, role);
-          return probe(tx, INSERT);
+          return probe(tx, insert);
         },
       );
       expect(result).toEqual({ outcome: "error", code: "42501" });
     },
   );
+}
+
+describe("T16.4: nobody can write it", () => {
+  nobodyWrites(TABLE, INSERT);
+});
+
+// 04 §4.2: the price bands, and their net bounds, are data written by a reviewed migration only,
+// under the same regime as the rates. 0304 (L3B) loads the grid validated by the founder
+// (jalons/l3b/tranches.md §5), bounds written literally, no net.
+const GRID_CURRENCIES = ["CAD", "CHF", "EUR", "GBP", "USD"];
+const GRID_BANDS = [
+  "under_100 0-10000",
+  "100_250 10000-25000",
+  "250_500 25000-50000",
+  "500_1000 50000-100000",
+  "1000_2500 100000-250000",
+  "2500_5000 250000-500000",
+  "5000_10000 500000-1000000",
+  "10000_25000 1000000-2500000",
+  "25000_50000 2500000-5000000",
+  "50000_plus 5000000-null",
+];
+
+describe("T16.4 extended to reference.price_bands (04 §4.2)", () => {
+  it("L3B-T4: holds exactly the grid of 0304 (tranches.md §5), and no net", async () => {
+    const rows = await migration<{ line: string }[]>`
+      select currency || ' ' || code || ' ' || min_amount_minor || '-'
+             || coalesce(max_amount_minor::text, 'null') as line
+        from reference.price_bands
+       where num_nulls(net_min_amount_minor, net_max_amount_minor, net_basis_label,
+                       net_computed_at) = 4
+       order by currency, min_amount_minor`;
+    expect(rows.map((row) => row.line)).toEqual(
+      GRID_CURRENCIES.flatMap((currency) =>
+        GRID_BANDS.map((band) => `${currency} ${band}`),
+      ),
+    );
+  });
+
+  it("is named by no seed file", () => {
+    const seed = path.join(ROOT, "supabase/seed");
+    const files = existsSync(seed) ? readdirSync(seed) : [];
+    expect(
+      files.filter((file) =>
+        readFileSync(path.join(seed, file), "utf8").includes("price_bands"),
+      ),
+    ).toEqual([]);
+  });
+
+  nobodyWrites(PRICE_BANDS, PRICE_BANDS_INSERT);
 });
 
 /**
@@ -139,6 +195,22 @@ describe("T16.5: no amount stored as a float, and none without its currency", ()
     expect(await amountFindings(migration)).toEqual([]);
   });
 
+  it("sees the four amount columns of reference.price_bands, all bigint beside its currency", async () => {
+    const rows = await migration<{ column: string }[]>`
+      select column_name || ' ' || data_type as column
+        from information_schema.columns
+       where table_schema = 'reference' and table_name = 'price_bands'
+         and (column_name ~ '(^|_)(amount|montant)(_|$)' or column_name = 'currency')
+       order by column_name`;
+    expect(rows.map((row) => row.column)).toEqual([
+      "currency character",
+      "max_amount_minor bigint",
+      "min_amount_minor bigint",
+      "net_max_amount_minor bigint",
+      "net_min_amount_minor bigint",
+    ]);
+  });
+
   it("detects each infraction on witness tables, created then rolled back", async () => {
     const findings = await inRolledBackTransaction(migration, async (tx) => {
       await tx`create table billing.t16_witness_float (fee double precision)`;
@@ -152,6 +224,77 @@ describe("T16.5: no amount stored as a float, and none without its currency", ()
       "billing.t16_witness_float.fee double precision",
       "billing.t16_witness_no_currency has an amount column but no currency column",
       "billing.t16_witness_numeric.amount numeric",
+    ]);
+  });
+});
+
+// T16-L2D (jalons/l2d commit 11; D78, D48, EC-L2D-2): no creator price is stored. The two tables of
+// 04 (rate cards, public rates) are not created, the net bounds of the price bands stay empty and
+// the commission rates stay empty; no column of a creator table is named after a price word.
+const PRICE_WORDS = ["price", "rate", "net", "currency", "amount"];
+
+/** Tables the creator profile must not have, wherever they would be created. */
+async function absentTables(
+  sql: postgres.Sql | postgres.TransactionSql,
+): Promise<string[]> {
+  const rows = await sql<{ name: string }[]>`
+    select table_schema || '.' || table_name as name
+      from information_schema.tables
+     where table_name in ('creator_rate_cards', 'creator_public_rates')
+     order by 1`;
+  return rows.map((row) => row.name);
+}
+
+/** Columns of a `creator_%` table whose whole name is a price word. */
+async function priceColumns(
+  sql: postgres.Sql | postgres.TransactionSql,
+): Promise<string[]> {
+  const rows = await sql<{ name: string }[]>`
+    select table_schema || '.' || table_name || '.' || column_name as name
+      from information_schema.columns
+     where table_schema = any (${OUR_SCHEMAS as unknown as string[]})
+       and table_name like 'creator\_%'
+       and column_name = any (${PRICE_WORDS})
+     order by 1`;
+  return rows.map((row) => row.name);
+}
+
+describe("T16-L2D: no creator price, no net, no rate stored", () => {
+  it("has neither creator_rate_cards nor creator_public_rates, in any schema", async () => {
+    expect(await absentTables(migration)).toEqual([]);
+  });
+
+  it("holds no net bound in reference.price_bands, and no row in billing.commission_rates", async () => {
+    const [bands] = await migration<{ count: number }[]>`
+      select count(*)::int as count from reference.price_bands
+       where net_min_amount_minor is not null or net_max_amount_minor is not null
+          or net_basis_label is not null or net_computed_at is not null`;
+    expect(bands?.count).toBe(0);
+    const [rates] = await migration<{ count: number }[]>`
+      select count(*)::int as count from billing.commission_rates`;
+    expect(rates?.count).toBe(0);
+  });
+
+  it("names no column of a creator table price, rate, net, currency or amount", async () => {
+    expect(await priceColumns(migration)).toEqual([]);
+  });
+
+  it("sees a rate table and a price column when one is created, then rolled back", async () => {
+    const found = await inRolledBackTransaction(migration, async (tx) => {
+      await tx`create table profiles.creator_rate_cards (account_id uuid, price bigint)`;
+      await tx`create table profiles.creator_public_rates (account_id uuid, rate smallint)`;
+      return {
+        tables: await absentTables(tx),
+        columns: await priceColumns(tx),
+      };
+    });
+    expect(found.tables).toEqual([
+      "profiles.creator_public_rates",
+      "profiles.creator_rate_cards",
+    ]);
+    expect(found.columns).toEqual([
+      "profiles.creator_public_rates.rate",
+      "profiles.creator_rate_cards.price",
     ]);
   });
 });

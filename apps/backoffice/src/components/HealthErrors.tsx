@@ -96,6 +96,9 @@ export function OccurrenceRows({
         <td className={`${TD_CLASSES} font-mono`}>{occurrence.version}</td>
         <td className={`${TD_CLASSES} font-mono break-all`}>
           {occurrence.route ?? te.noRoute}
+          {occurrence.route === null ? null : (
+            <UnverifiedNote source={source} />
+          )}
         </td>
         <td className={TD_CLASSES}>
           {occurrence.requestId === null ? (
@@ -135,6 +138,7 @@ export function OccurrenceRows({
               <pre className="font-mono text-sm break-words whitespace-pre-wrap text-text-primary">
                 {occurrence.stack}
               </pre>
+              <UnverifiedNote source={source} />
             </details>
           </td>
         </tr>
@@ -235,6 +239,9 @@ export function GroupRows({
         </th>
         <td className={`${TD_CLASSES} font-mono break-all`}>
           {group.route ?? te.noRoute}
+          {group.route === null ? null : (
+            <UnverifiedNote source={group.source} />
+          )}
         </td>
         <td className={TD_CLASSES}>{te.services[group.service]}</td>
         <td className={`${TD_CLASSES} ${TABULAR_CLASSES}`}>

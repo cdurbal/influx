@@ -17,6 +17,7 @@ import {
   LEAD_CLASSES,
   PRIMARY_SUBMIT_CLASSES,
   TEXT_BUTTON_CLASSES,
+  TEXT_LINK_CLASSES,
 } from "./auth-classes";
 import {
   emailFormMessage,
@@ -27,6 +28,7 @@ import {
 import { RequiredMark, StepTitle } from "./AuthScreen";
 import { requestCode } from "./member-auth";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
+import { RoleBadge } from "@/components/member/ui/RoleBadge";
 
 export function EmailStep({
   door,
@@ -104,7 +106,18 @@ export function EmailStep({
   const isFieldError = isEmailFieldError(message);
   return (
     <>
-      <StepTitle step={1}>{t("step1.title")}</StepTitle>
+      <StepTitle
+        step={1}
+        above={
+          door === null ? undefined : (
+            <RoleBadge role={door} label={t(`step1.role.${door}`)} />
+          )
+        }
+      >
+        {t("step1.title")}
+      </StepTitle>
+      {/* L2AU-1: the brokered model said on the first screen, without any delay promised. */}
+      <p className={LEAD_CLASSES}>{t("step1.mediation")}</p>
       {door === null ? null : (
         <div className={CARD_CLASSES}>
           <p className="text-md text-text-primary">
@@ -162,7 +175,7 @@ export function EmailStep({
           href={legalDocumentPath("privacy_policy", locale)}
           target="_blank"
           rel="noopener noreferrer"
-          className={TEXT_BUTTON_CLASSES}
+          className={TEXT_LINK_CLASSES}
         >
           {t("privacy.link")}
         </a>

@@ -1,6 +1,8 @@
 // Static guards of the Supabase Auth adapter (21 §4, J3-B and J3-C rule 1): the two packages of
 // the J3 at their exact versions, forbidden packages absent from the repository, one importer
-// of @supabase/*, and no test helper (TOTP generator included) reachable from src/.
+// of @supabase/*, and no test helper (TOTP generator included) reachable from src/. From L2B
+// commit 09 (D80, jalons/l2b/stockage.md §1, §2): @supabase/storage-js and sharp, exact versions,
+// one importer each.
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -70,9 +72,35 @@ describe("J3-B: dependencies of the J3", () => {
   });
 });
 
-describe("J3-C rule 1: one module talks to Supabase Auth", () => {
-  it("has src/platform/supabase.ts as the only importer of @supabase/*", () => {
-    expect(importersOf(/^@supabase\//)).toEqual(["src/platform/supabase.ts"]);
+describe("D80: Storage and the re-encoder, exact versions (stockage.md §1, §2)", () => {
+  it("declares @supabase/storage-js 2.117.2 and sharp 0.35.5, exact versions", () => {
+    const manifest = JSON.parse(
+      readFileSync(path.join(API_ROOT, "package.json"), "utf8"),
+    ) as { dependencies: Record<string, string> };
+    expect(manifest.dependencies["@supabase/storage-js"]).toBe("2.117.2");
+    expect(manifest.dependencies["sharp"]).toBe("0.35.5");
+  });
+});
+
+describe("J3-C rule 1: one module talks to Supabase Auth, one to Storage, one to sharp", () => {
+  it("has src/platform/supabase.ts as the only importer of @supabase/auth-js", () => {
+    expect(importersOf(/^@supabase\/auth-js$/)).toEqual([
+      "src/platform/supabase.ts",
+    ]);
+  });
+
+  it("has src/platform/storage.ts as the only importer of @supabase/storage-js", () => {
+    expect(importersOf(/^@supabase\/storage-js$/)).toEqual([
+      "src/platform/storage.ts",
+    ]);
+  });
+
+  it("imports no other package of @supabase/*", () => {
+    expect(importersOf(/^@supabase\/(?!auth-js$|storage-js$)/)).toEqual([]);
+  });
+
+  it("has src/platform/images.ts as the only importer of sharp", () => {
+    expect(importersOf(/^sharp$/)).toEqual(["src/platform/images.ts"]);
   });
 
   it("never imports @influx/test-kit from src/ (its TOTP generator is for tests only, J3-B)", () => {

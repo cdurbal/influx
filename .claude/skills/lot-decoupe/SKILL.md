@@ -20,11 +20,11 @@ Arguments reçus : `$ARGUMENTS`
 
 ## 1. Lire (et rien d'autre)
 
-1. `docs/mvp/00-cadrage-mvp-v2.md` §7, la seule partie du lot : lignes par `Grep "^## 00-" -A 56` dans
+1. `docs/mvp/00-cadrage-mvp-v2.md` §7, la seule partie du lot : lignes par `Grep "^## 00-" -A 70` dans
    `docs/mvp/INDEX.md`, puis `Read` borné.
 2. `docs/mvp/21-plan-de-developpement.md` §7 (ligne du lot) et §8 (reliquat à échéance du lot).
 3. `docs/mvp/decisions.md` : `Grep` des seules décisions citées (jamais le fichier entier).
-4. Chaque spécification du lot : sa table dans l'index (`Grep "^## <nn>-" -A 56`) ; puis, bornées,
+4. Chaque spécification du lot : sa table dans l'index (`Grep "^## <nn>-" -A 70`) ; puis, bornées,
    ses sections « Questions ouvertes » et « Critères d'acceptation », et dans `04` les migrations et
    tables du lot.
 5. `docs/mvp/18-plan-de-test-mvp.md` : les familles de tests que `21` §7 associe au lot (`Grep`).
@@ -59,6 +59,11 @@ Règles de découpage :
 - identifiants `L<N><lettre>` (L2A, L2B…) ; fiche future `jalons/l<n><lettre>-fiche.md` ;
 - chaque reliquat de `21` §8 à échéance du lot reçoit un jalon (souvent un commit « dette » en tête
   du premier) ;
+- chaque skill du domaine du lot de plus de 10 Ko (`wc -c .claude/skills/*/SKILL.md`) reçoit un
+  commit « dette skill » en tête du premier jalon (`sonnet` · `high`) : `SKILL.md` de 10 Ko au plus
+  (règles, check-list, pointeurs), le reste dans `references/` lu à la demande, renvois aux
+  spécifications plutôt que recopies, contradictions avec `decisions.md` corrigées (amendement D77
+  du 2026-11-13) ;
 - une décision non tranchée ne s'invente pas : elle va dans « Préalables » avec son arbitre
   (`CLAUDE.md`, règle d'or).
 

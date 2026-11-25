@@ -1,0 +1,587 @@
+{
+  "page": {
+    "title": "My profile",
+    "loading": "Loading your profile…",
+    "unavailable": "We can't display your profile right now. Please try again in a few minutes.",
+    "retry": "Try again",
+    "noStorefront": "Your profile isn't open for editing yet. Please come back later: nothing is asked of you for now."
+  },
+  "alias": {
+    "name": "Profile {alias}",
+    "explain": "Brands see you as {alias} until an introduction is opened.",
+    "reveal": "Your handle, your links and your exact figures are only shared with them at that point, and with them alone.",
+    "forLife": "Your alias is assigned for life: neither you nor INFLUX can change it.",
+    "none": "Your alias will be assigned when your profile opens."
+  },
+  "layer": {
+    "public": "Visible to every registered brand.",
+    "revealed": "Visible only after an introduction is opened.",
+    "internal": "Visible only to you and the INFLUX team."
+  },
+  "summary": {
+    "title": "Your profile at a glance",
+    "complete": "Complete",
+    "incomplete": "To complete",
+    "soon": "Coming soon"
+  },
+  "sections": {
+    "presentation": "Presentation",
+    "editorial": "Editorial line",
+    "networks": "Social networks",
+    "audience": "Audience",
+    "offer": "My offer",
+    "portfolio": "Portfolio",
+    "trust": "Trust"
+  },
+  "blocks": {
+    "missing": "To complete: {fields}.",
+    "missingCount": "{count, plural, one {# item to complete} other {# items to complete}}",
+    "allSet": "All the information asked for is filled in."
+  },
+  "state": {
+    "draft": "In progress",
+    "pending_review": "Awaiting review",
+    "published": "Published",
+    "rejected": "Refused",
+    "suspended": "Suspended"
+  },
+  "home": {
+    "state": "State: {state}",
+    "complete": "Complete my profile",
+    "review": "View my profile",
+    "leftIn": "{section} ({count})",
+    "remaining": "{count, plural, one {# item left to complete:} other {# items left to complete:}}"
+  },
+  "completeness": {
+    "label": "Profile completeness",
+    "value": "{score, number}%"
+  },
+  "required": {
+    "headline": "short title",
+    "bio": "bio",
+    "primaryTopic": "main topic",
+    "publicationLanguages": "publication languages",
+    "residenceCountry": "country of residence",
+    "networkLines": "at least one social network",
+    "primaryAccount": "main network",
+    "handle": "handle on the main network",
+    "profileUrl": "profile link on the main network",
+    "followers": "follower count on the main network",
+    "figuresDate": "confirmation of your figures",
+    "mainAudienceCountry": "main country of your audience",
+    "mainAudienceShare": "share of that country in your audience",
+    "formats": "formats offered",
+    "availability": "availability",
+    "portfolio": "at least 3 uploaded visuals",
+    "accountVerified": "an account verified by INFLUX"
+  },
+  "field": {
+    "required": "required",
+    "limit": "Up to {max}",
+    "count": "{count} of {max}",
+    "limitReached": "Limit reached: untick a choice to pick another.",
+    "characters": "{count, number} / {max, number} characters",
+    "choose": "Choose…",
+    "addLanguage": "Add a language…",
+    "addTopic": "Add a topic…",
+    "remove": "Remove {label}",
+    "selected": "Your choices",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "fields": {
+    "headline": {
+      "label": "Short title",
+      "help": "Your activity in one line, 20 to 120 characters. No handle, no @, no link, no brand name."
+    },
+    "bio": {
+      "label": "Bio",
+      "help": "150 to 800 characters. Every registered brand reads it: no handle, no link, no contact details."
+    },
+    "collaborationExperience": {
+      "label": "Experience of brand collaborations",
+      "help": "A range is enough: don't name any brand."
+    },
+    "legalFirstName": {
+      "label": "Legal first name"
+    },
+    "legalLastName": {
+      "label": "Legal last name"
+    },
+    "contactPhone": {
+      "label": "Phone",
+      "help": "In international format, for example +33612345678."
+    },
+    "contactEmail": {
+      "label": "Contact e-mail",
+      "help": "Optional: your sign-in address is used otherwise."
+    },
+    "city": {
+      "label": "City of residence",
+      "help": "It is never shared with brands."
+    },
+    "primaryTopic": {
+      "label": "Main topic"
+    },
+    "secondaryTopics": {
+      "label": "Secondary topics"
+    },
+    "tones": {
+      "label": "Editorial tone"
+    },
+    "publicationLanguages": {
+      "label": "Publication languages"
+    },
+    "residenceCountry": {
+      "label": "Country of residence",
+      "help": "Taken from your account.",
+      "change": "Change it in My account"
+    },
+    "accountLanguage": {
+      "label": "Language of your space"
+    },
+    "travelScope": {
+      "label": "Travel possible"
+    },
+    "formats": {
+      "label": "Formats offered",
+      "help": "Tick the formats you offer, network by network."
+    },
+    "usageIncluded": {
+      "label": "Usage rights included",
+      "help": "The rights you grant from the start. No box ticked: no right is granted from the start."
+    },
+    "usageOptional": {
+      "label": "Usage rights as an option",
+      "help": "The rights you can grant on top, to discuss with your sales contact. A right is in one of the two lists only."
+    },
+    "deliveryLead": {
+      "label": "Usual delivery time"
+    },
+    "maxExclusivity": {
+      "label": "Sector exclusivity accepted",
+      "help": "The longest period during which you agree not to work with a competing brand."
+    },
+    "acceptsNonMonetary": {
+      "label": "Non-monetary counterpart accepted",
+      "help": "Products, services or invitations in exchange for content. It does not replace the discussion with your sales contact."
+    },
+    "availability": {
+      "label": "Availability",
+      "help": "It is always shown with the date it was declared."
+    },
+    "refusedSectors": {
+      "label": "Sectors you refuse",
+      "help": "No brand and no message is told of it, and nothing is counted: this choice stays between you and the INFLUX team."
+    }
+  },
+  "experience": {
+    "none": "None",
+    "1_5": "1 to 5",
+    "6_20": "6 to 20",
+    "gt_20": "More than 20"
+  },
+  "travel": {
+    "none": "No",
+    "domestic": "Within my country",
+    "international": "Internationally"
+  },
+  "reference": {
+    "tone": {
+      "educational": "Educational",
+      "humorous": "Humorous",
+      "inspiring": "Inspiring",
+      "premium": "Premium and elegant",
+      "straightforward": "Direct and straightforward",
+      "family_friendly": "Family-friendly",
+      "expert": "Expert and technical"
+    },
+    "audience_band": {
+      "nano": "Nano (under 10,000 followers)",
+      "micro": "Micro (10,000 to 49,999)",
+      "mid": "Mid-tier (50,000 to 499,999)",
+      "macro": "Macro (500,000 to 999,999)",
+      "mega": "Mega (1 million or more)"
+    },
+    "publication_frequency": {
+      "daily": "Daily",
+      "several_per_week": "Several times a week",
+      "weekly": "Weekly",
+      "biweekly": "Twice a month",
+      "monthly_or_less": "Monthly or less"
+    },
+    "comment_band": {
+      "0_9": "0 to 9",
+      "10_49": "10 to 49",
+      "50_199": "50 to 199",
+      "200_999": "200 to 999",
+      "1000_plus": "1,000 or more"
+    }
+  },
+  "figures": {
+    "confirmAll": "All three figures are filled in: press “Confirm my figures” to date them today.",
+    "confirmSome": "Please also fill in how often you post and your average comments, then press “Confirm my figures” to date your figures today.",
+    "confirm": "Confirm my figures",
+    "source": {
+      "declared": "Source: declared by you",
+      "agent_observed": "Source: verified by INFLUX"
+    },
+    "dated": "{source} · figures as of {date}",
+    "undated": "{source} · figures to confirm",
+    "stale": "Check your figures then confirm them: they date from {date}. After 90 days, your profile is shown lower in results."
+  },
+  "issues": {
+    "required": "This field is required.",
+    "invalid": "This value isn't valid.",
+    "unknown": "This choice is no longer available: please pick another.",
+    "duplicate": "This value already exists: please remove the duplicate.",
+    "wrong_network": "This link doesn't match the chosen network.",
+    "sum_exceeds_100": "The total is {sum}%, 100 at most. Nothing is saved for this network until the total is corrected.",
+    "count": "Enter a whole number, zero or more.",
+    "percentage": "Enter a percentage between 0 and 100, with two decimals at most.",
+    "url_shape": "The link must start with https:// and contain no space or credentials.",
+    "share": "Enter a whole percentage from 0 to 100.",
+    "share_min": "Another country weighs 10 % of your audience at least."
+  },
+  "errors": {
+    "identifierInText": "Your text contains what looks like a handle, a link or an identifier. Please remove it: it will be shared once the introduction is opened."
+  },
+  "save": {
+    "saving": "Saving…",
+    "saved": "Saved automatically at {time}",
+    "idle": "Automatic saving",
+    "retry": "Changes not saved — trying again in 5 s."
+  },
+  "networks": {
+    "loading": "Loading your networks…",
+    "unavailable": "We cannot show your networks right now. Please try again in a few minutes.",
+    "intro": "One line per network. Your handle, links and exact figures are only shared once an introduction is opened; until then brands see bands only.",
+    "empty": "No network yet. Start with your main network: that is where your followers are counted.",
+    "failed": "This action did not go through. Please try again in a moment.",
+    "remove": "Remove",
+    "removeNamed": "Remove the {network} network",
+    "removeConfirm": "Remove {network} and its audience?",
+    "removeKeep": "Keep",
+    "removeKeepNamed": "Keep the {network} network",
+    "removeNow": "Remove {network} now",
+    "add": {
+      "label": "Add a network",
+      "placeholder": "Choose a network…",
+      "help": "One line per account: two accounts on the same network are fine, never the same handle twice."
+    },
+    "primary": {
+      "label": "Main account",
+      "help": "Only one account is the main one: it is the first brands read.",
+      "moved": "{to} is now your main account; {from} no longer is."
+    },
+    "metrics": {
+      "title": "Your three key figures"
+    },
+    "bands": {
+      "seen": "Brands see: {band}",
+      "notYet": "Brands don't see a band yet: fill in this figure."
+    },
+    "fields": {
+      "handle": {
+        "label": "Handle on the network",
+        "help": "Your public identifier on this network."
+      },
+      "profileUrl": {
+        "label": "Link to your profile",
+        "help": "It starts with https:// and leads to the chosen network."
+      },
+      "pseudonym": {
+        "label": "Pseudonym",
+        "help": "Your stage name, if it differs from your handle."
+      },
+      "followers": {
+        "label": "Followers",
+        "help": "How many followers this account has today."
+      },
+      "posts": {
+        "label": "Posts in the last 30 days"
+      },
+      "comments": {
+        "label": "Average comments per post"
+      },
+      "reach": {
+        "label": "Average reach per post",
+        "help": "The average number of people reached by a post."
+      },
+      "engagement": {
+        "label": "Engagement rate (%)",
+        "help": "Between 0 and 100, up to two decimals."
+      }
+    }
+  },
+  "priorityMetrics": {
+    "explain": "Brands first see the band of these three figures; the exact figure comes later."
+  },
+  "posts30d": {
+    "hint": "Count your posts from the last 30 days: posts, Reels, videos, Shorts. Do not count stories or live streams."
+  },
+  "comments": {
+    "hint": "Average the comments on your last 12 posts, leaving out giveaways."
+  },
+  "engagement": {
+    "unverified": "Your engagement rate is not shown to brands until INFLUX has verified it."
+  },
+  "offer": {
+    "negotiation": "Costs are negotiated with your sales contact.",
+    "ugcGroup": "UGC (content delivered to the brand)",
+    "noList": "No choice available for now.",
+    "otherNetworks": "Other networks ({count, plural, =0 {no format ticked} one {# format ticked} other {# formats ticked}})",
+    "sectorsFold": "Choose the refused sectors ({count, plural, =0 {none chosen} one {# chosen} other {# chosen}})",
+    "availabilityDeclared": "Declared on {date}. Update it when it changes.",
+    "delivery": {
+      "lt_7d": "Under 7 days",
+      "7_14d": "7 to 14 days",
+      "15_30d": "15 to 30 days",
+      "gt_30d": "Over 30 days"
+    },
+    "availability": {
+      "lt_2w": "Available within 2 weeks",
+      "lt_1m": "Available within a month",
+      "full": "Fully booked"
+    }
+  },
+  "audience": {
+    "intro": "These percentages describe your audience, not you. Before any introduction, brands only see bands; your exact percentages are shared with them afterwards. What is missing to reach 100 % shows as \"others\": INFLUX never fills it in for you.",
+    "noLines": "First add a network in the \"Social networks\" block: the audience is filled in network by network.",
+    "remainder": "Others: {share, number} %",
+    "countries": {
+      "legend": "Countries of your audience",
+      "main": "Main country of your audience",
+      "mainShare": "Share of your audience in this country (%)",
+      "other": "Other country {index} of your audience",
+      "otherShare": "Share of your audience in other country {index} (%, 10 at least)",
+      "add": "Add a country",
+      "full": "Four other countries at most.",
+      "removeOther": "Remove other country {index}"
+    },
+    "ages": {
+      "legend": "Ages of your audience",
+      "band": {
+        "18_24": "Share of your audience aged 18 to 24 (%)",
+        "25_34": "Share of your audience aged 25 to 34 (%)",
+        "35_44": "Share of your audience aged 35 to 44 (%)",
+        "45_plus": "Share of your audience aged 45 and over (%)"
+      }
+    },
+    "genders": {
+      "legend": "Women, men and others in your audience",
+      "share": {
+        "female": "Share of your audience: women (%)",
+        "male": "Share of your audience: men (%)",
+        "other": "Share of your audience: others or not declared (%)"
+      }
+    }
+  },
+  "portfolio": {
+    "notice": "Your approved visuals are visible to every registered brand, before any introduction.",
+    "pending": "This visual is being reviewed. It is not visible to brands yet.",
+    "brandConsent": "I confirm I am allowed to name this brand and publish this visual.",
+    "brandConsentHelp": "Without this box, the caption is published without the brand name, or refused.",
+    "faceNotice": "A face is allowed, but it can let someone find you through an image search.",
+    "approved": "Approved",
+    "rejected": "Rejected: {reason}",
+    "replacementPending": "Replacement being reviewed: the current visual stays shown.",
+    "captionPending": "Caption being reviewed: the previous one stays shown.",
+    "count": "{count, plural, one {# of 8 visual uploaded} other {# of 8 visuals uploaded}}",
+    "full": "You have uploaded 8 visuals, the maximum: replace one to change it.",
+    "minimum": "A published profile keeps at least 3 visuals: replace this one rather than removing it.",
+    "caption": "Caption (optional, 200 characters at most)",
+    "help": "PNG, JPEG or WebP, 8 MB at most, 320 px at least on the longest side. Hidden information in the file (location, device) is removed when you upload.",
+    "empty": "No visual uploaded yet. At least 3 are needed.",
+    "loading": "Loading your portfolio…",
+    "unavailable": "We cannot show your portfolio right now. Please try again in a few minutes.",
+    "reload": "Reload the portfolio",
+    "add": "Upload a visual",
+    "replace": "Replace this visual",
+    "remove": "Remove this visual",
+    "removeNamed": "Remove visual {position}",
+    "removeNow": "Remove visual {position} now",
+    "removeConfirm": "Remove?",
+    "removeKeep": "Keep",
+    "removeKeepNamed": "Keep visual {position}",
+    "replaceNamed": "Replace visual {position}",
+    "saveCaptionNamed": "Save the caption of visual {position}",
+    "unsaved": "Unsaved change",
+    "retry": "Try the upload again",
+    "moveUp": "Move visual {position} up",
+    "moveDown": "Move visual {position} down",
+    "saveCaption": "Save the caption",
+    "item": "Visual {position}",
+    "imageLoading": "Loading the visual…",
+    "replacementAlt": "Preview of the replacement visual, being reviewed",
+    "refusedTitle": "Rejected visuals",
+    "refusedItem": "Rejected visual {position}",
+    "deleteAfter": "The rejected file will be deleted on {date}.",
+    "reason": {
+      "watermark": "The visual carries a watermark, a signature or a personal logo.",
+      "handle_in_image": "The visual shows an at sign, an account name or a handle.",
+      "app_interface": "The visual shows an app interface: profile banner, avatar or comments.",
+      "text_naming_account_or_brand": "Text in the visual names your account, or a brand without your authorisation statement.",
+      "identifiable_place": "The visual makes a place recognisable: a shop sign, a number plate, a street number or a known location.",
+      "statistics_screenshot": "A statistics screenshot is not allowed in the portfolio: it shows your handle.",
+      "illicit_content": "The visual goes against the law or INFLUX's terms of use.",
+      "caption_identifier": "The caption contains a handle, an at sign, a link or a name.",
+      "caption_brand_unauthorised": "The caption names a brand without your statement that you are allowed to."
+    },
+    "status": {
+      "busy": "Saving…",
+      "uploaded": "Visual uploaded: it is being reviewed.",
+      "removed": "Visual removed.",
+      "ordered": "Order saved.",
+      "captionApplied": "Caption saved.",
+      "captionPending": "Caption sent: it will be visible once the INFLUX team has reviewed it."
+    },
+    "errors": {
+      "empty": "This file is empty. Choose a PNG, JPEG or WebP image.",
+      "tooLarge": "This file is over 8 MB. Choose a lighter image, in PNG, JPEG or WebP format.",
+      "unsupported_type": "This format is not accepted. Choose a PNG, JPEG or WebP image (no PDF).",
+      "undecodable": "This image cannot be read. Try another PNG, JPEG or WebP file.",
+      "too_many_pixels": "This image is too large: 4,096 px per side at most.",
+      "too_small": "This image is too small: its longest side must be at least 320 px.",
+      "output_too_large": "This image is still too heavy after processing. Choose a simpler image.",
+      "quota": "You have reached the number of uploads allowed for today. Please try again later.",
+      "portfolio_full": "You have uploaded 8 visuals, the maximum: replace one to change it.",
+      "portfolio_minimum": "A published profile keeps at least 3 visuals: replace this one rather than removing it.",
+      "not_replaceable": "This visual cannot be replaced: only an approved visual can be.",
+      "replacement_pending": "A replacement of this visual is already being reviewed.",
+      "item_state": "This visual changed in the meantime. The list is up to date: check it, then try again.",
+      "profile_state": "Your profile can no longer be edited: the portfolio cannot change.",
+      "conflict": "This action is no longer possible: the portfolio was just reviewed. Check the list.",
+      "captionInvalid": "A caption fits on one line, 200 characters at most.",
+      "unavailable": "This action did not go through: the service is not answering. Please try again in a moment."
+    }
+  },
+  "publish": {
+    "action": "Publish my profile",
+    "submitted": "Profile submitted for review. Answer within 1 business day.",
+    "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to publish your profile: {fields}.",
+    "review": "An INFLUX salesperson reviews your profile before publishing it.",
+    "failed": "Your profile could not be submitted. Please try again in a moment."
+  },
+  "frozen": {
+    "pending_review": "Your profile is being reviewed: it cannot be edited until the INFLUX team replies.",
+    "suspended": "Your profile is suspended: it cannot be edited for now."
+  },
+  "status": {
+    "published": "Your profile is published. Only its anonymous version, under your alias, can be shown to brands.",
+    "pendingWithPublished": "Your changes are being reviewed. Your profile remains visible in its previous version.",
+    "pendingFields": "Being reviewed: {fields}.",
+    "rejected": "Your profile was not published: {reason}",
+    "revisionRejected": "Your change was not published: {reason}",
+    "revisionKept": "Your profile stays visible in its previous version."
+  },
+  "refusal": {
+    "fix": "Correct it from your INFLUX space: your correction will be reviewed in turn.",
+    "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+  },
+  "rejection": {
+    "identifier_in_text": "Your headline or bio contains a handle, an at sign, a link or a name. This information is only visible once an introduction is opened.",
+    "bio_insufficient": "Your bio does not let a brand understand what you do.",
+    "portfolio_insufficient": "At least 3 uploaded items are needed to publish your profile.",
+    "portfolio_non_compliant": "One or more of your visuals make it possible to identify you.",
+    "network_link_inconsistent": "The link you entered does not match the network you chose.",
+    "figures_inconsistent": "The figures you entered are not consistent with each other.",
+    "topic_inconsistent": "The topic you chose does not match the content you show.",
+    "illicit_content": "The content of your profile cannot be published: it goes against the law or INFLUX's terms of use.",
+    "age_doubt": "INFLUX is for adults only: we cannot publish your profile as it stands.",
+    "other": "The message from the INFLUX team:"
+  },
+  "revisionField": {
+    "headline": "headline",
+    "bio": "bio",
+    "portfolio_caption": "a visual's caption",
+    "network_line": "an added network",
+    "network_handle": "a network handle",
+    "network_url": "a network link"
+  },
+  "trust": {
+    "verified": "Your account is verified by INFLUX.",
+    "missing": "An account verified by INFLUX is needed to publish your profile. You ask for it from the “Social networks” block, on the line of your main network.",
+    "go": "Go to the social networks"
+  },
+  "visibility": {
+    "label": "Visible in search",
+    "on": "Brands will be able to find you in search, once your profile is published.",
+    "off": "You are hidden from search: you will no longer receive requests from brands.",
+    "saved": "Saved",
+    "failed": "This setting could not be saved. Please try again in a moment."
+  },
+  "preview": {
+    "title": "What a brand sees",
+    "before": "Before an introduction",
+    "after": "After an introduction",
+    "explain": "Exactly what the platform serves a brand, nothing more.",
+    "tabs": "Choose the preview view",
+    "back": "My profile",
+    "loading": "Loading the preview…",
+    "unavailable": "We cannot show the preview right now. Try again in a few minutes.",
+    "notPublished": "Your profile is not published yet: no brand sees it. This is what a brand would see once it is.",
+    "beforeIntro": "Before an introduction, a brand sees ranges only: no handle, no link, no exact figure.",
+    "afterIntro": "After an introduction, the brand also reads your handle, the link to your profile and your exact figures, with their source and date. Never your e-mail or your phone number.",
+    "afterEmpty": {
+      "noNetwork": "For now, a brand introduced to you would see the same card as before: your card does not show any network yet. Once a network is on it, the brand will also read its handle, its link and your exact figures. Never your e-mail or your phone number.",
+      "nothingIdentified": "For now, a brand introduced to you would see the same card as before: the networks on your card have no handle, link or exact figure to show yet. Never your e-mail or your phone number."
+    },
+    "noVisual": "No approved visual yet: your card is shown without an image.",
+    "sections": {
+      "networks": "Networks",
+      "audience": "Audience",
+      "offer": "Offer"
+    },
+    "metrics": {
+      "rhythm": "Publication rhythm",
+      "engagement": "Engagement",
+      "reach": "Average reach per post"
+    },
+    "exact": "exact figure: {value}",
+    "observed": "Figures observed by INFLUX: they are not shown in this preview.",
+    "source": {
+      "declared": "Declared by the creator",
+      "agent_observed": "Observed by INFLUX"
+    },
+    "figuresAt": "{source} · figures as of {date}",
+    "figuresUndated": "{source} · figures not dated",
+    "badge": {
+      "account_verified": "Account verified on {date}",
+      "audience_verified": "Audience verified on {date}"
+    },
+    "shares": "Audience, exact percentages",
+    "share": {
+      "ge_80": "80% or more",
+      "50_80": "50 to 80%",
+      "lt_50": "Under 50%",
+      "10_25": "10 to 25%",
+      "25_50": "25 to 50%",
+      "gt_50": "Over 50%"
+    },
+    "gender": {
+      "female_majority": "Mostly women",
+      "male_majority": "Mostly men",
+      "mixed": "Mixed audience",
+      "female": "Women",
+      "male": "Men",
+      "other": "Other or not declared"
+    },
+    "age": {
+      "18_24": "Ages 18-24",
+      "25_34": "Ages 25-34",
+      "35_44": "Ages 35-44",
+      "45_plus": "Ages 45 and over"
+    },
+    "engagementBand": {
+      "under_1": "Under 1%",
+      "1_3": "1 to 3%",
+      "3_6": "3 to 6%",
+      "6_plus": "6% or more"
+    },
+    "mainAudience": "Main audience country",
+    "audienceCountries": "Other audience countries",
+    "audienceAges": "Audience ages",
+    "audienceGender": "Audience gender"
+  }
+}

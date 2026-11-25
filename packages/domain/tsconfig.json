@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2024"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    // Neither Node nor DOM: business rules have no process, no fetch, no console, no URL.
+    "types": []
+  },
+  // Sources only: the types of vitest bring Node globals into any program that includes tests.
+  "include": ["src"]
+}

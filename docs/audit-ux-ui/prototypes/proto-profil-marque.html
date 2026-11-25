@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Profil de marque</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Même assistant que le profil créateur (écran 3) et la campagne (écran 7), en trois étapes. */
+  .wz { display: flex; flex-direction: column; gap: var(--spacing-5); width: 100%; max-width: var(--container-narrow); }
+  @media (width >= 768px) { .wz { border: var(--border-width-thin) solid var(--color-border-default); border-radius: var(--radius-card); background: var(--color-surface-card); padding: var(--spacing-inset-card); } }
+  .wz-head { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .wz-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .wz-top h1 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .wz-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .wz-count { font-size: var(--text-sm); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .segs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--spacing-1); }
+  .segs button { position: relative; height: 0.375rem; border-radius: var(--radius-pill); background: var(--color-surface-active); transition: background-color var(--duration-slow) var(--ease-standard); }
+  .segs button::before { content: ""; position: absolute; inset: -0.625rem 0; }
+  .segs button.done, .segs button.cur { background: var(--color-brand-primary); }
+  .segs button.gap { background: var(--color-feedback-warning-icon); }
+  .segs button:disabled { cursor: default; }
+  .wz-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-1) var(--spacing-4); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .wz-meta .link { font-weight: var(--font-weight-semibold); }
+  .wz-step { display: flex; flex-direction: column; gap: var(--spacing-5); }
+  .wz-step.is-in { animation: fade-in var(--duration-fast) var(--ease-standard); }
+  .wz-step > header { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .wz-step .layer { align-self: flex-start; white-space: normal; }
+  .wz-step h2 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .step-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .wz-foot { display: flex; align-items: center; gap: var(--spacing-3); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-4); }
+  .wz-foot .save { flex: 1; justify-content: center; }
+  .save { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .save .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .save[data-kind="failed"] { color: var(--color-feedback-error-text); font-weight: var(--font-weight-semibold); }
+  @media (prefers-reduced-motion: no-preference) { .save[data-kind="saving"] .i { animation: spin 1s linear infinite; } }
+  @keyframes spin { to { rotate: 360deg; } }
+  .save--meta { display: none; }
+  @media (width < 768px) {
+    .m-page { padding-bottom: calc(var(--spacing-section-header) + 4.5rem); }
+    .wz-foot { position: fixed; left: 0; right: 0; bottom: var(--size-nav-bottom-height); z-index: var(--z-raised); background: var(--color-surface-page); padding: var(--spacing-2) var(--spacing-page-gutter); }
+    .wz-foot .save { display: none; }
+    .wz-foot .btn--primary { margin-left: auto; }
+    .save--meta { display: inline-flex; }
+    .next-sub { display: none; }
+  }
+  .fgrid { display: grid; gap: var(--spacing-5); }
+  @media (width >= 640px) { .fgrid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fgrid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  details.opt { border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-2); }
+  details.opt > summary { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-weight: var(--font-weight-semibold); }
+  details.opt > summary::-webkit-details-marker { display: none; }
+  details.opt > summary .i { transition: rotate var(--duration-base) var(--ease-standard); color: var(--color-text-secondary); }
+  details.opt[open] > summary .i { rotate: 90deg; }
+  details.opt > div { display: flex; flex-direction: column; gap: var(--spacing-5); padding: var(--spacing-3) 0 var(--spacing-2); }
+  details.opt[open] > div { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .tags { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+  .tag { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: 2.25rem; border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-raised); padding: 0 var(--spacing-2) 0 var(--spacing-3); font-size: var(--text-sm); }
+  .tag button { display: inline-flex; padding: var(--spacing-1); border-radius: var(--radius-pill); color: var(--color-text-secondary); }
+  .adder { display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center; }
+  .adder .select { flex: 1 1 13rem; max-width: 20rem; }
+  .cond { display: flex; flex-direction: column; gap: var(--spacing-5); border-left: var(--border-width-thick) solid var(--color-border-default); padding-left: var(--spacing-4); }
+  .cond.is-in { animation: rise-in var(--duration-base) var(--ease-standard); }
+  
+  .segs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Formats : un groupe par réseau coché (C5) */
+  .fmts { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .fmts__net { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-3) 0; border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .fmts__empty { padding: var(--spacing-3) 0; font-size: var(--text-sm); color: var(--color-text-tertiary); }
+  /* Logo */
+  .logo-up { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4); }
+  .logo-up .logo-plate { width: 4rem; height: 4rem; font-size: var(--text-md); }
+  .logo-up .logo-empty { display: inline-flex; align-items: center; justify-content: center; width: 4rem; height: 4rem; border-radius: var(--radius-md); border: var(--border-width-thin) dashed var(--color-border-strong); color: var(--color-text-tertiary); }
+  .soft { display: inline-flex; align-items: center; gap: var(--spacing-1); font-size: var(--text-xs); color: var(--color-text-secondary); font-weight: var(--font-weight-semibold); }
+  .soft .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  /* Aperçu : la tête de la page marque (écran 5 bis) */
+  .pv { display: flex; flex-direction: column; gap: var(--spacing-3); border-radius: var(--radius-md); background: var(--color-surface-raised); padding: var(--spacing-4); }
+  .pv.is-in { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .pv__hat { display: flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-xs); color: var(--color-text-secondary); font-weight: var(--font-weight-semibold); }
+  .bcard { display: flex; flex-direction: column; gap: var(--spacing-3); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); padding: var(--spacing-4); max-width: 34rem; }
+  .bcard__top { display: flex; align-items: center; gap: var(--spacing-3); }
+  .bcard__top .logo-plate { width: 3rem; height: 3rem; }
+  .bcard h3 { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-md); }
+  .bcard .meta { font-size: var(--text-xs); color: var(--color-text-secondary); }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--spacing-1); }
+  .chips span { border-radius: var(--radius-pill); background: var(--color-surface-raised); padding: var(--spacing-1) var(--spacing-2); font-size: var(--text-xs); }
+  /* Vérifier et envoyer */
+  .recap { display: flex; flex-direction: column; }
+  .recap section { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4) 0; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .recap h3 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2); font-family: var(--font-display); font-weight: var(--font-weight-bold); }
+  .recap .props { --size-property-label: 11rem; }
+  .missing { display: flex; align-items: flex-start; gap: var(--spacing-2); color: var(--color-feedback-warning-text); font-size: var(--text-sm); }
+  .missing .i { width: var(--size-icon-sm); height: var(--size-icon-sm); margin-top: 0.1875rem; }
+  .sent { display: flex; flex-direction: column; gap: var(--spacing-5); width: 100%; max-width: var(--container-narrow); }
+  .steps-next { display: flex; flex-direction: column; gap: var(--spacing-3); counter-reset: n; }
+  .steps-next li { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: var(--spacing-3); font-size: var(--text-sm); }
+  .steps-next li::before { counter-increment: n; content: counter(n); display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: var(--radius-round); background: var(--color-surface-raised); font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-xs); }
+  /* Après publication : liste de tâches (comme « Mon profil » créateur) */
+  .tasks { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .tasks li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-1) var(--spacing-4); min-height: calc(var(--size-touch-target) + var(--spacing-4)); padding: var(--spacing-3) var(--spacing-2); border-bottom: var(--border-width-thin) solid var(--color-border-default); transition: background-color var(--duration-fast) var(--ease-standard); }
+  .tasks li:hover { background: var(--color-surface-raised); }
+  .tasks a { font-family: var(--font-display); font-weight: var(--font-weight-bold); text-decoration: none; }
+  .tasks a::after { content: ""; position: absolute; inset: 0; }
+  .tasks li:has(a:focus-visible) { outline: var(--focus-ring-width) solid var(--color-focus-ring); outline-offset: calc(-1 * var(--focus-ring-width)); }
+  .tasks a:focus-visible { outline: none; }
+  .tasks .sub { grid-column: 1 / -1; font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .tstat { display: inline-flex; align-items: center; gap: var(--spacing-1); font-size: var(--text-sm); color: var(--color-text-secondary); white-space: nowrap; }
+  .tstat .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .tstat--todo { color: var(--color-feedback-warning-text); font-weight: var(--font-weight-semibold); }
+  @media (width < 640px) { .tasks li { grid-template-columns: minmax(0, 1fr); } .tstat { white-space: normal; } }
+</style>
+</head>
+<body data-default="etape-1">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <option value="etape-1">Étape 1 · Votre marque</option>
+      <option value="etape-2">Étape 2 · Ce que vous cherchez</option>
+      <option value="etape-2-vide">Étape 2 · aucun réseau coché</option>
+      <option value="etape-3">Étape 3 · Votre interlocuteur</option>
+      <option value="verifier">Vérifier et envoyer · 2 manques</option>
+      <option value="verifier-complet">Vérifier et envoyer · complet</option>
+      <option value="envoye">Profil envoyé</option>
+      <option value="profil">Après publication · Mon profil de marque</option>
+      <option value="modif-2">Modifier une étape depuis Mon profil</option>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <button id="demo-fail" type="button" aria-pressed="false">Simuler un échec d'enregistrement</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head"><a class="m-brand" href="#contenu">INFLUX</a><span class="role role--brand">Espace marque</span><button class="btn btn--secondary lg-hide" type="button">English</button></header>
+    <nav class="m-nav" aria-label="Navigation principale"><ul class="m-nav__list">
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-accueils.html#marque"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-campagne.html"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-recherche.html"><svg class="i"><use href="#i-users"/></svg><span>Créateurs</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link is-ancestor" href="#contenu"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a>
+        <div class="m-sub"><a class="is-current" aria-current="page" href="#contenu">Mon profil de marque</a><a href="#contenu">Mon compte</a></div></li>
+    </ul></nav>
+    <div class="m-state"><b id="rail-state">Profil : Brouillon</b></div>
+    <footer class="m-foot"><button class="btn btn--secondary" type="button">English</button><p class="sm c2">Connecté avec claire.morel@example.test</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button></footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page">
+
+      <form class="wz" id="wz" data-autosave novalidate onsubmit="return false">
+        <div class="wz-head" data-h="1">
+          <div class="wz-top"><h1 tabindex="-1" id="wz-title">Création de votre profil de marque</h1><span class="wz-count" id="wz-count">Étape 1 sur 3</span></div>
+          <p class="wz-name"><span class="badge">Brouillon</span><span>personne d'autre que vous ne le voit avant la publication</span></p>
+          <div class="segs" role="group" aria-label="Étapes" id="segs">
+            <button type="button" data-go="1"></button><button type="button" data-go="2"></button><button type="button" data-go="3"></button>
+          </div>
+          <div class="wz-meta"><span id="wz-time">Environ 8 min au total</span>
+            <span class="row g3"><p class="save save--meta" data-save data-kind="saved"><svg class="i"><use href="#i-check"/></svg><span data-save-text>Enregistré</span><button class="link" type="button" data-retry hidden>Réessayer</button></p>
+              <button class="link sm c2" type="button" id="to-check"><span id="to-check-t">Il manque 2 informations</span> · voir la liste</button>
+              <button class="link sm c2" type="button" id="later">Enregistrer et reprendre plus tard</button></span></div>
+          <div class="notice notice--success" id="later-note" hidden><svg class="i"><use href="#i-circle-check"/></svg><p>C'est enregistré. Vous reprendrez à cette étape depuis « Mon profil de marque ».</p></div>
+        </div>
+
+        <!-- Étape 1 · Votre marque -->
+        <section class="wz-step" data-step="1" aria-labelledby="h1s" data-h="2">
+          <header><div class="step-bar"><h2 tabindex="-1" id="h1s">Votre marque</h2><button class="link sm" type="button" data-preview aria-expanded="false"><svg class="i i--sm" style="vertical-align: -0.2em"><use href="#i-eye"/></svg> Aperçu</button></div>
+            <p class="c2">Ce qu'un créateur lit en premier sur votre page. Environ 3 min.</p>
+            <span class="layer"><svg class="i"><use href="#i-globe"/></svg>Public : visible des créateurs une fois le profil publié</span></header>
+          <div class="pv" data-pv hidden></div>
+          <div class="field"><div class="field__top"><span class="label" id="l-logo">Logo</span><p class="help">PNG, JPEG ou SVG, carré de préférence, 2 Mo au plus. Il est posé sur une pastille claire.</p></div>
+            <div class="logo-up" id="logo-up"><span class="logo-empty" id="logo-empty" aria-hidden="true"><svg class="i"><use href="#i-image"/></svg></span><span class="logo-plate" id="logo-img" aria-hidden="true" hidden>MA</span>
+              <div class="stack g1"><button class="btn btn--secondary" type="button" id="logo-btn" aria-describedby="l-logo"><svg class="i"><use href="#i-plus"/></svg><span id="logo-btn-t">Ajouter le logo</span></button>
+                <span class="soft" id="logo-soft"><svg class="i"><use href="#i-info"/></svg>Recommandé : sans logo, une page de marque inspire moins confiance</span></div></div></div>
+          <div class="field"><div class="field__top"><label class="label" for="f-name">Nom de la marque</label><p class="help">Le nom sous lequel les créateurs vous connaissent. La raison sociale reste dans votre compte.</p></div>
+            <input class="control" id="f-name" maxlength="120" value="Maison Azur" data-live></div>
+          <div class="fgrid fgrid--3">
+            <div class="field"><label class="label" for="f-country">Pays du siège</label><span class="select"><select class="control" id="f-country"><option>Belgique</option><option selected>France</option><option>Suisse</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+            <div class="field"><label class="label" for="f-sec">Secteur principal</label><span class="select"><select class="control" id="f-sec" data-live><option>Alimentation et boissons</option><option>Beauté et soins</option><option selected>Mode et accessoires</option><option>Sport et loisirs</option><option>Voyage et tourisme</option><optgroup label="Secteurs réglementés"><option>Alcool</option><option>Jeux d'argent</option></optgroup></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+            <div class="field"><label class="label" for="f-size">Taille de l'entreprise</label><span class="select"><select class="control" id="f-size"><option>1 à 10 personnes</option><option selected>11 à 50 personnes</option><option>51 à 250 personnes</option><option>Plus de 250</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+          </div>
+          <div class="field"><div class="field__top"><label class="label" for="f-pres">Présentation</label><p class="help">Ce que vous faites, votre ton, ce qui vous rend singulier. Ni coordonnée, ni lien : tout passe par INFLUX.</p></div>
+            <textarea class="control" id="f-pres" rows="4" maxlength="1500" data-count="f-pres-c" data-need="pres" data-live></textarea><span class="count" id="f-pres-c">0 / 1 500 caractères</span></div>
+          <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (2)</summary><div>
+            <div class="field"><div class="field__top"><span class="label" id="l-sec2">Secteurs secondaires</span><p class="help">Trois au plus.</p></div><div class="tags"></div>
+              <div class="adder"><span class="select"><select class="control" id="f-sec2" aria-labelledby="l-sec2"><option>Choisir un secteur…</option><option>Beauté et soins</option><option>Sport et loisirs</option><option>Voyage et tourisme</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-sec2"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+            <div class="field"><div class="field__top"><label class="label" for="f-web">Site web <span class="layer layer--internal" style="margin-left: var(--spacing-2)"><svg class="i"><use href="#i-eye-off"/></svg>Visible des agents INFLUX seulement</span></label><p class="help">Il aide votre commercial à vérifier la marque. Il n'est jamais montré à un créateur.</p></div>
+              <input class="control" id="f-web" inputmode="url" value="https://maison-azur.example"></div>
+          </div></details>
+        </section>
+
+        <!-- Étape 2 · Ce que vous cherchez -->
+        <section class="wz-step" data-step="2" aria-labelledby="h2s" hidden data-h="2">
+          <header><div class="step-bar"><h2 tabindex="-1" id="h2s">Ce que vous cherchez</h2><button class="link sm" type="button" data-preview aria-expanded="false"><svg class="i i--sm" style="vertical-align: -0.2em"><use href="#i-eye"/></svg> Aperçu</button></div>
+            <p class="c2">Les créateurs et les contenus qui vous intéressent, en général. Chaque campagne précise ensuite. Environ 4 min.</p>
+            <span class="layer"><svg class="i"><use href="#i-globe"/></svg>Public : visible des créateurs une fois le profil publié</span></header>
+          <div class="pv" data-pv hidden></div>
+          <div class="field"><span class="label" id="l-top">Thématiques</span><div class="tags" id="tags-top"><span class="tag">Mode <button type="button" aria-label="Retirer Mode"><svg class="i i--sm"><use href="#i-x"/></svg></button></span><span class="tag">Voyage <button type="button" aria-label="Retirer Voyage"><svg class="i i--sm"><use href="#i-x"/></svg></button></span></div>
+            <div class="adder"><span class="select"><select class="control" id="f-top" aria-labelledby="l-top"><option>Choisir une thématique…</option><option>Beauté</option><option>Lifestyle</option><option>Sport</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-top"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+          <fieldset class="stack g2"><legend class="label" style="margin-bottom: var(--spacing-1)">Réseaux et formats</legend>
+            <p class="help">Cochez un réseau : ses formats apparaissent dessous. Décocher un réseau garde vos formats en mémoire.</p>
+            <div class="choices" id="nets"><label class="choice"><input type="checkbox" value="ig" checked>Instagram</label><label class="choice"><input type="checkbox" value="tt" checked>TikTok</label><label class="choice"><input type="checkbox" value="yt">YouTube</label><label class="choice"><input type="checkbox" value="li">LinkedIn</label></div>
+            <div class="fmts" id="fmts">
+              <div class="fmts__net" data-net="ig"><p class="overline">Instagram</p><div class="choices"><label class="choice"><input type="checkbox" checked>Reel</label><label class="choice"><input type="checkbox" checked>Story</label><label class="choice"><input type="checkbox">Publication</label><label class="choice"><input type="checkbox">Carrousel</label><label class="choice"><input type="checkbox">Live</label></div></div>
+              <div class="fmts__net" data-net="tt"><p class="overline">TikTok</p><div class="choices"><label class="choice"><input type="checkbox" checked>Vidéo courte</label><label class="choice"><input type="checkbox">Live</label><label class="choice"><input type="checkbox">Story</label></div></div>
+              <div class="fmts__net" data-net="yt" hidden><p class="overline">YouTube</p><div class="choices"><label class="choice"><input type="checkbox">Vidéo dédiée</label><label class="choice"><input type="checkbox">Intégration dans une vidéo</label><label class="choice"><input type="checkbox">Short</label><label class="choice"><input type="checkbox">Live</label></div></div>
+              <div class="fmts__net" data-net="li" hidden><p class="overline">LinkedIn</p><div class="choices"><label class="choice"><input type="checkbox">Publication</label><label class="choice"><input type="checkbox">Article</label><label class="choice"><input type="checkbox">Vidéo</label></div></div>
+              <p class="fmts__empty" id="fmts-empty" hidden>Cochez au moins un réseau pour choisir des formats.</p>
+            </div></fieldset>
+          <div class="fgrid fgrid--2">
+            <div class="field"><span class="label" id="l-aud">Pays d'audience recherchés</span><div class="tags"><span class="tag">France <button type="button" aria-label="Retirer France"><svg class="i i--sm"><use href="#i-x"/></svg></button></span><span class="tag">Belgique <button type="button" aria-label="Retirer Belgique"><svg class="i i--sm"><use href="#i-x"/></svg></button></span></div>
+              <div class="adder"><span class="select"><select class="control" id="f-aud" aria-labelledby="l-aud"><option>Choisir un pays…</option><option>Canada</option><option>Luxembourg</option><option>Suisse</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-aud"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+            <div class="field"><span class="label" id="l-mkt">Vos marchés</span><div class="tags" id="tags-mkt"></div>
+              <div class="adder"><span class="select"><select class="control" id="f-mkt" aria-labelledby="l-mkt" data-need-sel="mkt"><option>Choisir un pays…</option><option>Belgique</option><option>France</option><option>Suisse</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-mkt"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+          </div>
+          <div class="field"><span class="label" id="l-lang">Langues de travail</span><div class="tags"><span class="tag">Français <button type="button" aria-label="Retirer français"><svg class="i i--sm"><use href="#i-x"/></svg></button></span><span class="tag">Anglais <button type="button" aria-label="Retirer anglais"><svg class="i i--sm"><use href="#i-x"/></svg></button></span></div>
+            <div class="adder"><span class="select"><select class="control" id="f-lang" aria-labelledby="l-lang"><option>Choisir une langue…</option><option>Allemand</option><option>Espagnol</option><option>Néerlandais</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-lang"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+          <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (4)</summary><div>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Droits d'usage habituels</legend><span class="seg"><label><input type="radio" name="rights">Aucun</label><label><input type="radio" name="rights" checked>Republication</label><label><input type="radio" name="rights">Publicité sponsorisée</label></span></fieldset>
+            <div class="fgrid fgrid--2">
+              <div class="field"><label class="label" for="f-excl">Exclusivité habituelle</label><span class="select"><select class="control" id="f-excl"><option>Aucune</option><option selected>Pendant la campagne</option><option>Jusqu'à 3 mois</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+              <div class="field"><label class="label" for="f-rhy">Rythme de collaboration</label><span class="select"><select class="control" id="f-rhy"><option>Ponctuel</option><option selected>Quelques fois par an</option><option>Sur la durée</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+            </div>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Proposez-vous des contreparties en produits ?</legend><div class="choices"><label class="choice"><input type="radio" name="nm" checked>Oui</label><label class="choice"><input type="radio" name="nm">Non</label></div></fieldset>
+          </div></details>
+        </section>
+
+        <!-- Étape 3 · Votre interlocuteur -->
+        <section class="wz-step" data-step="3" aria-labelledby="h3s" hidden data-h="2">
+          <header><h2 tabindex="-1" id="h3s">Votre interlocuteur</h2><p class="c2">La personne qui suit les collaborations chez vous. Environ 1 min.</p></header>
+          <div class="zone-int">
+            <p class="zone-int__head"><svg class="i i--sm"><use href="#i-eye-off"/></svg>Visible uniquement par vous et l'équipe INFLUX</p>
+            <p class="sm c2">À la mise en relation, un créateur voit seulement le prénom et la fonction. Jamais l'e-mail ni le téléphone : les échanges passent par INFLUX.</p>
+            <div class="fgrid fgrid--2">
+              <div class="field"><label class="label" for="f-role">Fonction</label><input class="control" id="f-role" maxlength="80" data-need="role"></div>
+              <div class="field"><label class="label" for="f-first">Prénom <span class="req">(facultatif)</span></label><input class="control" id="f-first" maxlength="40" value="Claire"></div>
+            </div>
+            <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Pour votre commercial, facultatif (3)</summary><div>
+              <div class="fgrid fgrid--2">
+                <div class="field"><label class="label" for="f-mail">E-mail professionnel</label><input class="control" id="f-mail" inputmode="email" placeholder="Celui de votre compte, si vide"></div>
+                <div class="field"><label class="label" for="f-tel">Téléphone</label><input class="control" id="f-tel" inputmode="tel"></div>
+              </div>
+              <div class="field"><label class="label" for="f-url">Page de contact</label><input class="control" id="f-url" inputmode="url"></div>
+            </div></details>
+          </div>
+        </section>
+
+        <!-- Vérifier et envoyer -->
+        <section class="wz-step" data-step="verifier" aria-labelledby="hvs" hidden data-h="2">
+          <header><h2 tabindex="-1" id="hvs">Vérifier et envoyer</h2><p class="c2">Relisez votre profil. Un commercial INFLUX le relit avant de le publier, sous 1 jour ouvré. En attendant, vous pouvez déjà préparer une campagne.</p></header>
+          <div class="errsum" id="errsum" tabindex="-1" hidden><p class="errsum__title"><svg class="i"><use href="#i-circle-alert"/></svg><span id="errsum-title"></span></p><ul id="errsum-list"></ul></div>
+          <div class="stack g2"><p class="label">Ce que voit un créateur</p><div id="pv-final"></div><a class="go sm" href="proto-marque.html" target="_blank" rel="noopener" style="min-height: auto">Voir la page complète, comme un créateur <svg class="i i--sm"><use href="#i-external-link"/></svg></a></div>
+          <div class="recap" id="recap"></div>
+          <div class="actions"><button class="btn btn--primary" type="button" id="send">Envoyer à INFLUX pour validation</button><button class="btn btn--text" type="button" id="back3"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Revenir à l'étape 3</button></div>
+          <p class="sm c2">Vous pourrez modifier votre profil après sa publication, depuis « Mon profil de marque ».</p>
+        </section>
+
+        <div class="wz-foot" id="wz-foot" data-h="3">
+          <button class="btn btn--text" type="button" id="prev"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Précédent</button>
+          <p class="save" data-save data-kind="saved"><svg class="i"><use href="#i-check"/></svg><span data-save-text>Enregistré automatiquement</span><button class="link" type="button" data-retry hidden>Réessayer</button></p>
+          <button class="btn btn--primary" type="button" id="next"><span><span id="next-l">Continuer</span><span class="next-sub" id="next-sub">&nbsp;: Ce que vous cherchez</span></span><svg class="i i--sm"><use href="#i-arrow-right"/></svg></button>
+        </div>
+      </form>
+
+      <!-- Après l'envoi -->
+      <div class="sent" id="sent-page" hidden>
+        <header class="page-head" data-h="1">
+          <div class="page-head__row"><h1 class="t-page" tabindex="-1">Mon profil de marque</h1></div>
+          <p class="row g2"><span class="badge badge--info"><svg class="i"><use href="#i-hourglass"/></svg>En cours de validation</span><span class="sm c2">envoyé aujourd'hui à <span id="sent-at">10 h 12</span></span></p>
+        </header>
+        <div class="notice notice--success" data-h="2"><svg class="i"><use href="#i-circle-check"/></svg><p>Votre profil est envoyé à INFLUX. Un commercial le relit sous 1 jour ouvré ; vous recevrez un e-mail à la publication ou s'il faut le corriger.</p></div>
+        <section class="stack g3" data-h="3"><h2 class="t-card">La suite</h2>
+          <ol class="steps-next"><li><span>Un commercial INFLUX relit votre profil : nom, logo, présentation, secteur.</span></li><li><span>Une fois publié, il est visible des créateurs, et vos campagnes peuvent être envoyées.</span></li><li><span>Vous pourrez ensuite demander le badge « Marque vérifiée ».</span></li></ol>
+          <div class="actions"><a class="btn btn--secondary" href="proto-campagne.html">Préparer une campagne en attendant</a><a class="go sm" href="proto-recherche.html">Chercher des créateurs <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+        </section>
+      </div>
+
+      <!-- Après publication : liste de tâches -->
+      <div class="sent" id="hub" hidden>
+        <header class="page-head" data-h="1">
+          <div class="page-head__row"><h1 class="t-page" tabindex="-1">Mon profil de marque</h1><a class="btn btn--secondary" href="proto-marque.html" target="_blank" rel="noopener"><svg class="i"><use href="#i-eye"/></svg>Ce que voit un créateur</a></div>
+          <p class="row g2"><span class="logo-plate logo-plate--sm" aria-hidden="true">MA</span><b>Maison Azur</b><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Publié</span></p>
+        </header>
+        <ol class="tasks" data-h="2">
+          <li><a href="#modif-1">1. Votre marque</a><span class="tstat"><svg class="i"><use href="#i-check"/></svg>Complet</span></li>
+          <li><a href="#modif-2">2. Ce que vous cherchez</a><span class="tstat">À enrichir : rythme de collaboration</span></li>
+          <li><a href="#modif-3">3. Votre interlocuteur</a><span class="tstat"><svg class="i"><use href="#i-check"/></svg>Complet</span></li>
+          <li><a href="#verif">Badge « Marque vérifiée »</a><span class="tstat tstat--todo"><svg class="i"><use href="#i-badge-check"/></svg>À demander</span>
+            <span class="sub">Un agent INFLUX vérifie l'existence de la société. Le badge s'affiche sur votre page et sur vos campagnes.</span></li>
+        </ol>
+        <p class="sm c2" data-h="3">Chaque ligne rouvre son étape seule ; vos modifications s'enregistrent au fil de la saisie.</p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  var STEPS = [null, { t: "Votre marque", min: 3 }, { t: "Ce que vous cherchez", min: 4 }, { t: "Votre interlocuteur", min: 1 }];
+  var ALL = {
+    pres: { step: 1, label: "La présentation de la marque", field: "f-pres" },
+    mkt: { step: 2, label: "Vos marchés", field: "f-mkt" },
+    role: { step: 3, label: "La fonction de votre interlocuteur", field: "f-role" }
+  };
+  var missing = {}, cur = 1, mode = "create", hasLogo = false;
+  function resetMissing() { missing = {}; Object.keys(ALL).forEach(function (k) { missing[k] = ALL[k]; }); }
+  function gaps(n) { return Object.keys(missing).filter(function (k) { return missing[k].step === n; }); }
+  function plural(n, w) { return n + " " + w + (n > 1 ? "s" : ""); }
+  function esc(s) { var d = document.createElement("span"); d.textContent = s; return d.innerHTML; }
+  function lc(s) { return s.charAt(0).toLowerCase() + s.slice(1); }
+
+  function tagsOf(sel) { return $$(sel + " .tag").map(function (t) { return t.firstChild.textContent.trim(); }); }
+  function nets() { return $$("#nets input:checked").map(function (c) { return c.parentNode.textContent.trim(); }); }
+  function card() {
+    var div = document.createElement("article"); div.className = "bcard";
+    var name = $("#f-name").value || "Nom de la marque", pres = $("#f-pres").value || "Votre présentation apparaîtra ici.";
+    div.innerHTML = '<div class="bcard__top">' + (hasLogo ? '<span class="logo-plate" aria-hidden="true">MA</span>' : '<span class="logo-empty" aria-hidden="true" style="width:3rem;height:3rem;display:inline-flex;align-items:center;justify-content:center;border-radius:var(--radius-md);border:var(--border-width-thin) dashed var(--color-border-strong);color:var(--color-text-tertiary)"><svg class="i"><use href="#i-image"/></svg></span>') +
+      '<div class="stack g1"><h3></h3><p class="meta"></p></div></div><p class="sm clamp2"></p><div class="chips"></div>';
+    div.querySelector("h3").textContent = name;
+    div.querySelector(".meta").textContent = $("#f-sec").value + " · " + $("#f-country").value + " · " + $("#f-size").value;
+    div.querySelector(".clamp2").textContent = pres;
+    div.querySelector(".chips").innerHTML = tagsOf("#tags-top").concat(nets()).map(function (t) { return "<span>" + esc(t) + "</span>"; }).join("");
+    return div;
+  }
+  function fillPreview(pv) { pv.innerHTML = '<p class="pv__hat"><svg class="i i--sm"><use href="#i-eye"/></svg>Ce que voit un créateur · jamais le site web ni l\'interlocuteur</p>'; pv.appendChild(card()); }
+  $$("[data-preview]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var pv = b.closest(".wz-step").querySelector("[data-pv]"), open = b.getAttribute("aria-expanded") === "true";
+      b.setAttribute("aria-expanded", String(!open)); pv.hidden = open;
+      if (!open) { fillPreview(pv); pv.classList.remove("is-in"); void pv.offsetWidth; pv.classList.add("is-in"); }
+    });
+  });
+  function refreshPv() { $$("[data-pv]").forEach(function (pv) { if (!pv.hidden) fillPreview(pv); }); }
+  $$("[data-live]").forEach(function (f) { f.addEventListener("input", refreshPv); f.addEventListener("change", refreshPv); });
+
+  function setLogo(on) {
+    hasLogo = on; $("#logo-img").hidden = !on; $("#logo-empty").hidden = on; $("#logo-soft").hidden = on;
+    $("#logo-btn-t").textContent = on ? "Remplacer le logo" : "Ajouter le logo"; refreshPv();
+  }
+  $("#logo-btn").addEventListener("click", function () { setLogo(true); P.announce("Logo ajouté : maison-azur.svg."); });
+
+  function render() {
+    var isStep = typeof cur === "number";
+    $("#wz").hidden = cur === "envoye" || cur === "profil";
+    $("#sent-page").hidden = cur !== "envoye"; $("#hub").hidden = cur !== "profil";
+    $("#rail-state").textContent = cur === "profil" ? "Profil : Publié" : cur === "envoye" ? "Profil : En cours de validation" : mode === "edit" ? "Profil : Publié" : "Profil : Brouillon";
+    if ($("#wz").hidden) return;
+    $$(".wz-step").forEach(function (s) { s.hidden = String(s.getAttribute("data-step")) !== String(cur); });
+    $("#wz-title").textContent = mode === "edit" ? "Modifier votre profil de marque" : mode === "fix" ? "Compléter votre profil de marque" : "Création de votre profil de marque";
+    $("#wz-count").textContent = isStep ? "Étape " + cur + " sur 3" : "Vérification";
+    $$("#segs button").forEach(function (b) {
+      var n = +b.getAttribute("data-go"), past = cur === "verifier" || n < cur || mode === "edit";
+      b.className = n === cur ? "cur" : past ? (gaps(n).length ? "gap" : "done") : "";
+      b.disabled = !past && n !== cur;
+      b.setAttribute("aria-label", "Étape " + n + " : " + STEPS[n].t + (n === cur ? ", en cours" : past ? (gaps(n).length ? ", à compléter" : ", faite") : ", à venir"));
+      if (n === cur) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+    });
+    var left = 0; for (var k = isStep ? cur : 4; k <= 3; k++) left += STEPS[k].min;
+    $("#wz-time").textContent = mode === "edit" ? "Modification enregistrée au fil de la saisie" : cur === 1 ? "Environ 8 min au total" : left ? "Environ " + left + " min restantes" : "Plus que la relecture";
+    var n = Object.keys(missing).length;
+    $("#to-check").hidden = cur === "verifier" || mode === "edit";
+    $("#later").hidden = mode === "edit";
+    $("#to-check-t").textContent = n ? "Il manque " + plural(n, "information") : "Tout est renseigné";
+    $("#wz-foot").hidden = cur === "verifier";
+    $("#prev").style.visibility = cur === 1 || mode === "edit" ? "hidden" : "visible";
+    $("#next-l").textContent = mode === "edit" ? "Revenir à mon profil" : mode === "fix" ? "Revenir à la vérification" : cur === 3 ? "Vérifier mon profil" : "Continuer";
+    $("#next-sub").textContent = mode === "create" && isStep && cur < 3 ? " : " + STEPS[cur + 1].t : "";
+    if (cur === "verifier") buildRecap();
+  }
+  function go(n, how) {
+    cur = n; render();
+    var s = $('.wz-step[data-step="' + n + '"]');
+    if (s) { s.classList.remove("is-in"); void s.offsetWidth; s.classList.add("is-in"); }
+    if (how !== "silent") {
+      window.scrollTo(0, 0);
+      var h = n === "envoye" ? $("#sent-page h1") : n === "profil" ? $("#hub h1") : s.querySelector("h2"); if (h) h.focus({ preventScroll: true });
+      if (how !== "quiet") P.announce(n === "envoye" ? "Profil envoyé à INFLUX." : n === "profil" ? "Mon profil de marque." : typeof n === "number" ? "Étape " + n + " sur 3 : " + STEPS[n].t + "." : "Vérifier et envoyer.");
+    }
+  }
+  var RECAP = {
+    1: function () { return [["Logo", hasLogo ? "maison-azur.svg" : "pas encore ajouté (recommandé)"], ["Nom", $("#f-name").value], ["Pays · secteur · taille", $("#f-country").value + " · " + $("#f-sec").value + " · " + $("#f-size").value], ["Présentation", $("#f-pres").value || "—"], ["Site web (agents INFLUX)", $("#f-web").value || "—"]]; },
+    2: function () { return [["Thématiques", tagsOf("#tags-top").join(", ")], ["Réseaux et formats", "Instagram : Reel, Story · TikTok : vidéo courte"], ["Pays d'audience", "France, Belgique"], ["Marchés", tagsOf("#tags-mkt").join(", ") || "—"], ["Langues de travail", "Français, anglais"]]; },
+    3: function () { return [["Interlocuteur", ($("#f-first").value ? $("#f-first").value + ", " : "") + ($("#f-role").value || "fonction à préciser")]]; }
+  };
+  function buildRecap() {
+    var pvf = $("#pv-final"); pvf.innerHTML = ""; pvf.appendChild(card());
+    var r = $("#recap"); r.innerHTML = "";
+    [1, 2, 3].forEach(function (n) {
+      var g = gaps(n), sec = document.createElement("section");
+      sec.innerHTML = '<div class="row between g3"><h3>' + n + ". " + STEPS[n].t + (n === 3 ? ' <span class="layer layer--internal"><svg class="i"><use href="#i-eye-off"/></svg>interne</span>' : "") + '</h3><button class="link sm" type="button" data-fix="' + n + '">Modifier<span class="sr-only"> : ' + STEPS[n].t + "</span></button></div>" +
+        '<dl class="props">' + RECAP[n]().map(function (p) { return "<dt>" + p[0] + "</dt><dd>" + esc(p[1]) + "</dd>"; }).join("") + "</dl>" +
+        g.map(function (k) { return '<p class="missing"><svg class="i"><use href="#i-triangle-alert"/></svg><span>À compléter : ' + lc(missing[k].label) + "</span></p>"; }).join("");
+      r.appendChild(sec);
+    });
+    $$("[data-fix]", r).forEach(function (b) { b.addEventListener("click", function () { mode = "fix"; go(+b.getAttribute("data-fix")); }); });
+    var n = Object.keys(missing).length, list = $("#errsum-list"); list.innerHTML = "";
+    Object.keys(missing).forEach(function (k) {
+      var li = document.createElement("li"), a = document.createElement("a");
+      a.href = "#" + missing[k].field; a.className = "link"; a.textContent = "Étape " + missing[k].step + " — " + missing[k].label;
+      a.addEventListener("click", function (e) { e.preventDefault(); mode = "fix"; go(missing[k].step, "silent"); var f = document.getElementById(missing[k].field); f.scrollIntoView({ block: "center" }); f.focus({ preventScroll: true }); });
+      li.appendChild(a); list.appendChild(li);
+    });
+    $("#errsum-title").textContent = "Il manque " + plural(n, "information") + " pour envoyer votre profil";
+    if (!n) $("#errsum").hidden = true;
+  }
+  function resolve(k) { if (missing[k]) { delete missing[k]; render(); } }
+
+  $("#next").addEventListener("click", function () {
+    if (mode === "edit") { mode = "create"; location.hash = "profil"; return; }
+    if (mode === "fix") { mode = "create"; go("verifier"); return; }
+    var g = gaps(cur);
+    if (g.length) P.announce("Il reste " + plural(g.length, "information") + " à cette étape : vous pourrez y revenir.");
+    go(cur === 3 ? "verifier" : cur + 1, g.length ? "quiet" : undefined);
+  });
+  $("#prev").addEventListener("click", function () { go(cur - 1); });
+  $("#back3").addEventListener("click", function () { go(3); });
+  $("#to-check").addEventListener("click", function () { mode = "create"; go("verifier"); });
+  $$("#segs button").forEach(function (b) { b.addEventListener("click", function () { if (!b.disabled) go(+b.getAttribute("data-go")); }); });
+  $("#later").addEventListener("click", function () { var n = $("#later-note"); n.hidden = false; n.classList.remove("is-entering"); void n.offsetWidth; n.classList.add("is-entering"); P.announce("Votre profil est enregistré. Vous reprendrez à l'étape " + cur + "."); });
+  $("#send").addEventListener("click", function () {
+    var n = Object.keys(missing).length;
+    if (n) { buildRecap(); var es = $("#errsum"); es.hidden = false; es.scrollIntoView({ block: "start" }); es.focus({ preventScroll: true }); P.announce("Il manque " + plural(n, "information") + " pour envoyer votre profil."); return; }
+    $("#sent-at").textContent = P.time(); location.hash = "envoye";
+  });
+
+  $$("[data-count]").forEach(function (f) { var o = document.getElementById(f.getAttribute("data-count")); f.addEventListener("input", function () { o.textContent = f.value.length + " / " + f.maxLength.toLocaleString("fr-FR") + " caractères"; }); });
+  $$("[data-need]").forEach(function (f) { f.addEventListener("input", function () { if (f.value.trim()) resolve(f.getAttribute("data-need")); }); });
+  // Formats : un groupe par réseau coché ; décocher masque le groupe sans rien perdre.
+  function syncNets(animate) {
+    var any = false;
+    $$("#nets input").forEach(function (c) {
+      var g = $('.fmts__net[data-net="' + c.value + '"]'), was = g.hidden; g.hidden = !c.checked; any = any || c.checked;
+      if (animate && c.checked && was) { g.classList.remove("is-entering"); void g.offsetWidth; g.classList.add("is-entering"); }
+    });
+    $("#fmts-empty").hidden = any; refreshPv();
+  }
+  $$("#nets input").forEach(function (c) { c.addEventListener("change", function () { syncNets(true); P.announce(c.checked ? "Formats " + c.parentNode.textContent.trim() + " affichés." : "Formats " + c.parentNode.textContent.trim() + " masqués, gardés en mémoire."); }); });
+  // Choisir, puis ajouter (C2) : la liste n'agit jamais seule.
+  $$("[data-add-tag]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var s = document.getElementById(b.getAttribute("data-add-tag")); if (s.selectedIndex < 1) return;
+      var name = s.options[s.selectedIndex].text, tag = document.createElement("span");
+      tag.className = "tag is-entering"; tag.innerHTML = esc(name) + ' <button type="button" aria-label="Retirer ' + esc(name) + '"><svg class="i i--sm"><use href="#i-x"/></svg></button>';
+      b.closest(".field").querySelector(".tags").appendChild(tag); s.remove(s.selectedIndex); s.selectedIndex = 0; s.focus();
+      P.announce("Ajouté : " + name + "."); if (s.id === "f-mkt") resolve("mkt"); refreshPv();
+    });
+  });
+  document.addEventListener("click", function (e) { var x = e.target.closest(".tag button"); if (x) { var t = x.closest(".tag"); P.announce("Retiré : " + t.firstChild.textContent.trim() + "."); t.remove(); refreshPv(); } });
+
+  var PRES = "Maison Azur dessine à Marseille des lunettes de soleil en acétate recyclé, pensées pour durer. Nous aimons les contenus lumineux, tournés dehors, qui montrent nos montures portées au quotidien.";
+  document.addEventListener("proto:state", function (e) {
+    var st = e.detail.st, m;
+    $("#later-note").hidden = true; $("#errsum").hidden = true; mode = "create";
+    resetMissing(); $("#f-pres").value = ""; $("#f-role").value = ""; $("#tags-mkt").innerHTML = ""; setLogo(false);
+    $$("#nets input").forEach(function (c) { c.checked = c.value === "ig" || c.value === "tt"; }); syncNets(false);
+    if ((m = /^etape-(\d)/.exec(st))) {
+      if (+m[1] > 1) { $("#f-pres").value = PRES; delete missing.pres; setLogo(true); }
+      if (st === "etape-2-vide") { $$("#nets input").forEach(function (c) { c.checked = false; }); syncNets(false); }
+      go(+m[1], "silent");
+    } else if (st === "verifier") { setLogo(false); $("#f-pres").value = PRES; delete missing.pres; go("verifier", "silent"); }
+    else if (st === "verifier-complet") {
+      setLogo(true); $("#f-pres").value = PRES; $("#f-role").value = "Responsable des partenariats";
+      $("#tags-mkt").innerHTML = '<span class="tag">France <button type="button" aria-label="Retirer France"><svg class="i i--sm"><use href="#i-x"/></svg></button></span>';
+      missing = {}; go("verifier", "silent");
+    } else if (st === "envoye") go("envoye", "silent");
+    else if (st === "profil") go("profil", "silent");
+    else if ((m = /^modif-(\d)$/.exec(st))) { setLogo(true); $("#f-pres").value = PRES; $("#f-role").value = "Responsable des partenariats"; missing = {}; mode = "edit"; go(+m[1], "silent"); }
+    else if (st === "verif") { mode = "create"; go("profil", "silent"); P.announce("Demande du badge : écran non prototypé ici."); }
+  });
+  render();
+});
+</script>
+</body>
+</html>

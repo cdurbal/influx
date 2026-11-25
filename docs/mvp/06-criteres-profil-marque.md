@@ -180,6 +180,8 @@ peut pas** : publier une campagne, lancer une recherche de créateurs, demander 
 
 Un profil ne devient jamais invisible parce que son propriétaire a corrigé une faute de frappe.
 
+*Amendé au L2C (`l2c/file.md` A2, A4, `0207`, `0209`)* : le profil reste `published` pendant l'examen (`brandProfile.status.pendingWithPublished` servi d'après la révision en attente) ; le régime « re-validation » porte six champs (`moderated_fields`), le secteur étant le seul secteur principal ; le logo proposé passe par l'état `in_review`, l'ancien logo restant actif jusqu'à la décision.
+
 **RG10** — Un profil `refusé` porte **un motif typé** choisi dans la liste fermée de RG66, reste
 intégralement modifiable et peut être resoumis sans délai. **Aucun refus muet, aucun dossier laissé
 en attente sans décision.**
@@ -207,8 +209,8 @@ navigateur. La validation dans le navigateur est un confort ; elle n'est jamais 
 
 | Champ | Obligatoire pour publier | Couche | Format | Pourquoi ce champ existe |
 |---|---|---|---|---|
-| Nom commercial | **Oui** | Publique | Texte modéré, ≤ 80 caractères | Conversion : un créateur ne répond pas à une marque sans nom. Pré-rempli depuis le Lot 1 |
-| Logo | Non (fortement incité) | Publique | Image PNG/JPG/WebP, ≤ 2 Mo, ≥ 256 px, carré ou recadré carré | Conversion : une campagne sans logo est lue comme un test |
+| Nom commercial | **Oui** | Publique | Texte modéré, ≤ 120 caractères (EC-L2B-2 : borne de l'inscription, `05` RG13) | Conversion : un créateur ne répond pas à une marque sans nom. Pré-rempli depuis le Lot 1 |
+| Logo | Non (fortement incité) | Publique | Image PNG/JPG/WebP, ≤ 2 Mio déposée, plus grand côté ≥ 256 px, ré-encodée en WebP carré 512 px sans métadonnée (D80, ≤ 1 Mio stocké) | Conversion : une campagne sans logo est lue comme un test |
 | Secteur d'activité principal | **Oui** | Publique | Liste fermée `reference.sectors`, 1 choix | Matching futur (rapprochement secteur ↔ thématique) + exclusion silencieuse des secteurs refusés par un créateur |
 | Secteurs secondaires | Non | Publique | Liste fermée, ≤ 2 choix | Matching futur ; évite de forcer une marque multi-produits dans une case |
 | Taille d'entreprise | **Oui** | Publique | **Tranche fermée** : 1-10 · 11-50 · 51-250 · 251-1 000 · plus de 1 000 | Conversion (le créateur juge le sérieux) + attribut Apollo. **Jamais l'effectif exact** |
@@ -275,8 +277,8 @@ la langue de l'utilisateur et proviennent des fichiers de traduction, jamais de 
 | Thématiques recherchées | **Oui** | Publique | `reference.topics`, 1 à 3 choix | Matching futur (F1, F2) ; premier critère de tri d'un commercial |
 | Réseaux visés | **Oui** | Publique | `reference.networks`, ≥ 1 | Matching futur (F3) : une campagne TikTok adressée à un profil sans TikTok est une demande morte |
 | Formats attendus | **Oui** | Publique | `reference.formats`, ≥ 1 | Matching futur (F11) ; un format non proposé est une exclusion |
-| Budget indicatif par collaboration | **Oui** | Publique | **Tranche** `reference.price_bands` + devise `reference.currencies` | Matching futur (F12) : première cause d'échec en négociation |
-| Droits d'usage habituellement demandés | Non | Publique | `reference.usage_rights`, multi-choix | Matching futur (F14) : première cause de désaccord en négociation |
+| Budget indicatif par collaboration | ~~Oui~~ **Suspendu** (D78, réponse 1 du L2B : ni saisi, ni affiché, ni obligatoire) | Publique | **Tranche** `reference.price_bands` + devise `reference.currencies` | Matching futur (F12) : première cause d'échec en négociation |
+| Droits d'usage habituellement demandés | Non | Publique | `reference.usage_rights`, multi-choix (`none` n'est pas cochable : aucune case cochée le dit) | Matching futur (F14) : première cause de désaccord en négociation |
 | Exclusivité habituellement demandée | Non | Publique | Tranche : non · ≤ 1 mois · ≤ 3 mois · négociable | Matching futur (F15) : deuxième cause de désaccord |
 | Contrepartie non monétaire proposée | Non | Publique | Oui / non | Matching futur (F13) ; ouvre le bas de marché |
 | Pays d'audience visés | **Oui** | Publique | `reference.countries`, ≤ 5 | Matching futur (F6) : la facette la plus utile de la recherche |
@@ -414,10 +416,17 @@ domaine ; **l'agent constate lui-même le code en ligne** et enregistre son cons
 identité de l'agent). Une capture d'écran fournie par la marque ne vaut pas preuve : elle se
 fabrique. Le code est valide **7 jours** (valeur de départ, paramétrable, voir **Q6**).
 
+*Amendé à la clôture de L2F (D83 A-bis, `0234`) : la preuve peut aussi être l'adresse de connexion vérifiée du compte, sur ce domaine ou un sous-domaine, hors messageries grand public (liste en table `consumer_email_domains`) ; la base la lit sans la montrer, l'agent enregistre le constat (`login_address`). L'immatriculation reste constatée par l'agent (RG52). Le `TXT` et la page restent possibles. Réserve de sécurité avant `production` (L2FS-3) : liste trop courte, portée de A-bis à rétrécir aux demandes ouvertes par un agent.*
+
 **RG52** — Le contrôle de l'immatriculation est fait par l'agent dans un **registre public
 accessible en ligne**. Si le registre du pays déclaré n'est pas consultable, la demande est
 **refusée** avec le motif « immatriculation non vérifiable dans ce pays » : le badge n'est pas
 attribué, et il n'existe **pas** de badge dégradé. Ne rien affirmer vaut mieux qu'affirmer à moitié.
+*Précisé le 2026-11-01 (fondateur, **Q7**, D79)* : aucun pays exclu ; sources admises : registre officiel du pays **gratuit** et en ligne, ou base mondiale des identifiants LEI (GLEIF) ; registre payant à l'acte, agrégateur privé ou certificat fourni par la marque ne suffisent pas (un agrégateur sert seulement à trouver le registre officiel). Les sources vivent dans une **table par
+pays tenue par un administrateur** (RG101 : journalisée, jamais par un agent) : un socle au lancement
+(Union européenne par le portail e-Justice, puis les grands pays visés), complété **à la demande**
+quand une marque d'un pays non couvert demande le badge. Faute de source admise, refus motivé
+ci-dessus ; une nouvelle demande reste possible dès qu'une source est ajoutée.
 
 **RG53** — Le badge affiche **sa date** partout où il apparaît : campagne, fiche marque, en-tête de
 conversation. Un badge sans date est un badge qui ment par omission.
@@ -431,6 +440,8 @@ délai de grâce (**30 jours**, valeur proposée) il est retiré.
 déclaration reconnue fausse, société radiée, changement de titulaire du domaine, manquement grave
 aux CGU. Chaque retrait porte un motif typé, est journalisé nominativement et est notifié à la
 marque.
+
+*Amendé à la clôture de L2F (`0231`, `08` RG73) : cinq motifs pour la marque, `forged_evidence`, `terms_breach`, `influx_error` (excuses d'INFLUX, jamais d'accusation) et deux neufs, `company_dissolved` et `domain_transferred` ; `account_closed` et `owner_changed` sont propres au créateur. Le retrait passe par la double validation (`03` §3.2) ; la marque ne conteste pas, elle corrige et resoumet (`08` RG77).*
 
 **RG56** — Les pièces et les constats de vérification vivent en **stockage privé**. **Aucun
 créateur n'y accède, dans aucun cas** — y compris à sa demande, y compris par l'intermédiaire d'un
@@ -448,7 +459,7 @@ jamais affichée à un créateur**.
 | Bloc | Détail | Points |
 |---|---|---|
 | Identité publique | Nom commercial 5 · secteur 5 · taille 3 · pays 2 · présentation ≥ 120 caractères 10 · logo 10 · marchés visés 3 · langues 2 | **40** |
-| Attentes de collaboration | Thématiques 8 · réseaux 6 · formats 6 · budget indicatif 8 · pays d'audience visés 4 · droits d'usage 3 | **35** |
+| Attentes de collaboration | Thématiques 8 · réseaux 6 · formats 6 · budget indicatif 8 (suspendu au L2B : exclu du calcul) · pays d'audience visés 4 · droits d'usage 3 | **35** |
 | Confiance | Domaine renseigné 5 · badge « Marque vérifiée » **demandé** 10 | **15** |
 | Interlocuteur | Fonction 3 · téléphone 4 · e-mail professionnel 3 | **10** |
 
@@ -465,7 +476,7 @@ qui manque et dit ce que cela change, **sans promesse de résultat** :
 
 | Autorisé (vérifiable) | Interdit (invérifiable) |
 |---|---|
-| « Il manque 2 informations pour publier votre profil : formats attendus, budget indicatif. » | « Complétez votre profil pour recevoir plus de réponses. » |
+| « Il manque 2 informations pour soumettre votre profil : formats attendus, budget indicatif. » | « Complétez votre profil pour recevoir plus de réponses. » |
 | « Sans budget indicatif, les créateurs ne peuvent pas savoir si votre besoin correspond à leurs tarifs. » | « Un profil complet multiplie vos chances par 3. » |
 | « Votre logo n'est pas renseigné : vos campagnes s'affichent sans image. » | « Les marques vérifiées obtiennent de meilleurs créateurs. » |
 
@@ -478,12 +489,16 @@ effort à la question « qui verra cette information ? ».
 **RG63** — Le backoffice expose une **file « profils marque à valider »**, distincte de la file des
 profils créateurs, triée par ancienneté croissante, avec pour chaque entrée : marque, date de
 soumission, ancienneté, champs modifiés depuis la dernière validation, alerte de doublon éventuelle,
-agent ayant pris l'entrée en charge.
+agent ayant pris l'entrée en charge. *Amendé au L2C (`l2c/file.md` A1, A3, `0210`)* : une entrée par
+examen (première soumission ou révision), une ouverte au plus par compte ; la décision porte sur la
+version dont le jeton a été rendu à l'ouverture.
 
 **RG64** — Une entrée est **prise en charge** par un agent avant d'être traitée. Un **verrou** empêche
 deux agents de traiter la même entrée : le second voit « déjà prise en charge par … », jamais une
 erreur technique. Une prise en charge expire automatiquement au bout de **30 minutes** sans décision
-et retourne dans la file.
+et retourne dans la file. *Amendé au L2C (`l2c/file.md` A9, `0210`)* : ouvrir une entrée libre la prend
+en charge ; l'expiration se calcule à la lecture, sans tâche ; la prise suivante journalise d'abord
+l'abandon ; le titulaire peut relâcher ou prolonger, un administrateur lever avec un motif typé.
 
 **RG65** — Une décision est **toujours** l'une des deux suivantes : publier, ou refuser avec un motif
 typé. Il n'existe pas de troisième voie silencieuse, ni de mise en attente indéfinie.
@@ -498,9 +513,11 @@ marque, dans sa langue :
 | Logo non conforme | « Votre logo comporte des coordonnées ou n'est pas lisible. » | Remplacer |
 | Nom commercial trompeur | « Le nom déclaré correspond à une marque que vous ne semblez pas représenter. » | Contacter INFLUX |
 | Secteur manifestement incohérent | « Le secteur déclaré ne correspond pas à votre activité. » | Corriger |
-| Contenu illicite ou contraire aux CGU | Message dédié selon le cas | Selon le cas |
+| Contenu illicite ou contraire aux CGU | « Votre profil contient un élément contraire aux conditions d'utilisation d'INFLUX. » / « Your profile contains content that breaches the INFLUX terms of use. » *(message unique au L2C, `l2c/file.md` A6 ; relu en porte de production, `21` §5.8)* | Corriger |
 | Doublon d'une marque déjà inscrite | « Cette marque dispose déjà d'un compte INFLUX. » | Contacter INFLUX |
 | Autre | Message rédigé par l'agent, en complément d'une explication | Contacter INFLUX |
+
+*Amendé à la clôture de L2E (EC-L2E-11, `l2e/modele.md` §5) : RG66 ne porte que le refus du **profil**. Les refus de la demande « Marque vérifiée » ont leur liste fermée propre : `domain_code_not_found`, `registration_not_found`, `registration_unverifiable_country` (RG52), `name_mismatch`, `account_unavailable`, `other`, avec les textes de `modele.md` §5.*
 
 **RG67** — Le motif **« Autre » est exceptionnel et surveillé** : sa fréquence est un indicateur. S'il
 dépasse **10 % des refus** sur un mois, la liste est incomplète et doit être étendue.
@@ -595,7 +612,7 @@ explicite.
 
 | Clé | Français | English |
 |---|---|---|
-| `brandProfile.publish.missing` | Il manque {count, plural, one {# information} other {# informations}} pour publier votre profil : {fields}. | {count, plural, one {# piece of information is} other {# pieces of information are}} missing to publish your profile: {fields}. |
+| `brandProfile.publish.missing` | Il manque {count, plural, one {# information} other {# informations}} pour soumettre votre profil : {fields}. | {count, plural, one {# piece of information is} other {# pieces of information are}} missing to submit your profile: {fields}. |
 | `brandProfile.layer.public` | Visible de tous les créateurs. | Visible to all creators. |
 | `brandProfile.layer.revealed` | Visible uniquement après l'ouverture d'une mise en relation. | Visible only after an introduction is opened. |
 | `brandProfile.layer.internal` | Visible uniquement par l'équipe INFLUX. | Visible only to the INFLUX team. |
@@ -660,7 +677,7 @@ espacements passent par les tokens (`design-system-influx`).
 | Situation | Comportement attendu |
 |---|---|
 | Deux agents ouvrent la même entrée de validation | Un seul la prend en charge ; le second voit « déjà prise en charge par … » (RG64) |
-| Un agent valide pendant que l'annonceur modifie un champ soumis à re-validation | La décision porte sur la version examinée ; la modification postérieure repasse en file, avec la mention « modifié après examen » |
+| Un agent valide pendant que l'annonceur modifie un champ soumis à re-validation | La décision porte sur la version examinée ; la modification postérieure repasse en file, avec la mention « modifié après examen ». *Amendé au L2C (A3, `0210`)* : toute écriture change le jeton de version ; une décision au jeton périmé est refusée (55000 `stale_token`), l'agent relit, sa saisie gardée |
 | Un agent corrige un champ pendant que l'annonceur le corrige aussi | La dernière écriture gagne, les deux versions sont journalisées, et l'annonceur est informé de la correction de l'agent (RG71) |
 | Un admin suspend un profil pendant qu'un agent l'attribue au badge | La suspension prime ; l'attribution est refusée avec un message explicite |
 | Une prise en charge est abandonnée sans décision | Elle expire au bout de 30 minutes et l'entrée retourne dans la file (RG64) |
@@ -783,7 +800,7 @@ ne permet de renseigner un compte de réseau social de la marque.
 
 **CA15** — *Étant donné* un profil publié, *quand* l'annonceur corrige sa présentation, *alors* le
 profil repasse en `en attente de validation` **et la version précédente reste affichée** aux
-créateurs pendant l'examen.
+créateurs pendant l'examen. *Amendé au L2C (A2)* : l'état reste `published`, la révision est portée par `pendingChanges`.
 
 **CA16** — *Étant donné* un profil publié, *quand* l'annonceur change sa tranche de budget, *alors*
 la modification est visible immédiatement, **sans re-validation**.
@@ -934,7 +951,7 @@ Tables prévues et utilisées telles quelles : `profiles.advertiser_profiles`,
 `reference.languages`, `reference.currencies`, `reference.price_bands`, `reference.topics`,
 `reference.networks`, `reference.formats`, `reference.usage_rights`.
 
-**Quatre écarts constatés avec `docs/mvp/04-modele-de-donnees-mvp.md` §5.2, à instruire :**
+**Quatre écarts constatés avec `docs/mvp/04-modele-de-donnees-mvp.md` §5.2, à instruire :** *(état à la clôture de L2E : l'écart 1 est levé par le bloc interne `profiles.advertiser_internal_details`, `0222`, `legal_name` gardé et lu comme « nom commercial » ; l'écart 3 est levé par ce même bloc, qui porte pays et numéro d'immatriculation ; les écarts 2 et 4 relèvent de L2C et restent comme livrés.)*
 
 1. **`legal_name` doit quitter `advertiser_profiles` (public) pour le bloc interne.** La raison
    sociale peut être le nom d'une personne physique (entreprise individuelle) : la publier serait une
@@ -960,7 +977,7 @@ fichier) vivent **en table**, modifiables sans redéploiement, chaque modificati
 | **Brevo — contacts** | Mise à jour des attributs de RG79 à la publication et à chaque modification ; aucun envoi marketing sans consentement |
 | **Brevo — transactionnel** | Notifications de décision (publié, refusé, badge attribué, badge à rafraîchir, badge retiré), bilingues |
 | **Apollo.io** | Enrichissement limité à nom commercial, domaine, secteur, taille, pays, dans le périmètre et la base légale du Lot 1 |
-| **Supabase Storage** | Compartiment public pour les logos **modérés**, compartiment privé pour les pièces de vérification, EXIF supprimés au dépôt |
+| **Supabase Storage** | Compartiment **privé** pour les logos (`brand-logo`, WebP, `03` P10.1, EC-L2B-6), compartiment privé pour les pièces de vérification, EXIF supprimés au dépôt |
 
 ### Indicateurs à suivre
 
@@ -1001,13 +1018,14 @@ fichier) vivent **en table**, modifiables sans redéploiement, chaque modificati
 
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
-| **Q1** | **La fonction de l'interlocuteur est-elle publique, et le prénom masqué ?** D40 ne tranche que l'e-mail et le téléphone. Un prénom associé à un nom de marque se retrouve en une recherche sur un réseau professionnel | **Fonction publique, prénom masqué** (RG35, RG36). Le créateur a besoin de savoir si son interlocuteur décide, pas de savoir qui il est | Fondateur + `expert-ux` + `expert-conformite-rgpd` | Lot 2 |
-| **Q2** | **Durée de conservation du journal de consultation du bloc révélé** (RG41), et information des personnes sur ce journal | Journal écrit, durée alignée sur celle du registre d'audit, à confirmer | `expert-conformite-rgpd` (**veto**) | Lot 2 |
-| **Q3** | **Conservation du numéro d'immatriculation et des constats de vérification** après retrait ou péremption du badge | Conservés le temps de la preuve, purge à échéance écrite | `expert-conformite-rgpd` (**veto**) | Lot 2 |
-| **Q4** | **Faut-il envoyer vers Brevo et Apollo l'e-mail professionnel de l'interlocuteur** lorsqu'il diffère de l'adresse de connexion ? Ce serait un second point de contact sans consentement propre | **Non** (RG80) | `expert-conformite-rgpd` (**veto**) + `expert-marketing` | Lot 2 |
+| **Q1** | ✅ ***Tranchée le 2026-11-01 (fondateur) : fonction publique, prénom masqué jusqu'à l'ouverture (RG35, RG36).*** **La fonction de l'interlocuteur est-elle publique, et le prénom masqué ?** D40 ne tranche que l'e-mail et le téléphone. Un prénom associé à un nom de marque se retrouve en une recherche sur un réseau professionnel | **Fonction publique, prénom masqué** (RG35, RG36). Le créateur a besoin de savoir si son interlocuteur décide, pas de savoir qui il est | Fondateur + `expert-ux` + `expert-conformite-rgpd` | Lot 2 |
+| **Q2** | ✅ ***Tranchée le 2026-11-01 (fondateur) : durée du registre d'audit.*** **Durée de conservation du journal de consultation du bloc révélé** (RG41), et information des personnes sur ce journal | Journal écrit, durée alignée sur celle du registre d'audit, à confirmer | `expert-conformite-rgpd` (**veto**) | Lot 2 |
+| **Q3** | ✅ ***Tranchée le 2026-11-01 (fondateur) : 3 ans, comme les constats d'audience (`08` RG100).*** **Conservation du numéro d'immatriculation et des constats de vérification** après retrait ou péremption du badge | Conservés le temps de la preuve, purge à échéance écrite | `expert-conformite-rgpd` (**veto**) | Lot 2 |
+| **Q4** | ✅ ***Tranchée le 2026-11-01 (fondateur) : non (RG80).*** **Faut-il envoyer vers Brevo et Apollo l'e-mail professionnel de l'interlocuteur** lorsqu'il diffère de l'adresse de connexion ? Ce serait un second point de contact sans consentement propre | **Non** (RG80) | `expert-conformite-rgpd` (**veto**) + `expert-marketing` | Lot 2 |
 | **Q5** | **Péremption du badge « Marque vérifiée » : 12 mois ?** D34 ne fixe explicitement que les 90 jours du badge d'audience | **12 mois + 30 jours de grâce** (RG54) | `product-owner` + Fondateur, dans **D34** | Lot 2 |
-| **Q6** | **Délai cible de validation d'un profil (1 jour ouvré), expiration d'une prise en charge (30 min), durée du code de domaine (7 jours)** | Valeurs de départ ci-contre, **en table** | `chef-de-projet` + Fondateur (cohérence avec **D39**) | Lot 2 |
-| **Q7** | **Liste des pays dont le registre d'immatriculation est consultable en ligne** par un agent, et procédure pour les autres | Refus motivé « immatriculation non vérifiable » tant que la liste n'est pas écrite (RG52) | `chef-de-projet` + juriste | Lot 2 |
-| **Q8** | **Une marque peut-elle publier son profil sans logo ?** Un annuaire de campagnes sans logo est nettement moins crédible | **Oui**, logo fortement incité mais non bloquant (RG15) | `expert-ux` + `chef-de-projet` | Lot 2 |
+| **Q6** | ✅ ***Tranchée le 2026-11-01 (fondateur) : valeurs de départ ci-contre, en table.*** **Délai cible de validation d'un profil (1 jour ouvré), expiration d'une prise en charge (30 min), durée du code de domaine (7 jours)** | Valeurs de départ ci-contre, **en table** | `chef-de-projet` + Fondateur (cohérence avec **D39**) | Lot 2 |
+| **Q7** | ✅ ***Tranchée le 2026-11-01 (fondateur, D79) : aucun pays exclu ; sources admises : registre officiel du pays gratuit et en ligne, ou base mondiale des identifiants LEI (GLEIF) ; registre payant à l'acte, agrégateur privé ou certificat fourni par la marque ne suffisent pas (un agrégateur sert seulement à trouver le registre officiel) ; table des sources par pays tenue par un administrateur, socle puis ajout à la demande (RG52).*** **Liste des pays dont le registre d'immatriculation est consultable en ligne** par un agent, et procédure pour les autres | Refus motivé « immatriculation non vérifiable » tant que la liste n'est pas écrite (RG52) | `chef-de-projet` + juriste | Lot 2 |
+| **Q8** | ✅ ***Tranchée le 2026-11-01 (fondateur) : oui, logo fortement incité mais non bloquant (RG15).*** **Une marque peut-elle publier son profil sans logo ?** Un annuaire de campagnes sans logo est nettement moins crédible | **Oui**, logo fortement incité mais non bloquant (RG15) | `expert-ux` + `chef-de-projet` | Lot 2 |
 | **Q9** | **Faut-il conditionner la recherche de créateurs à la publication du profil** (RG8) ? C'est une protection anti-aspiration, mais aussi une friction sur le parcours annonceur | **Oui**, conditionnée | `chef-de-projet` + Fondateur | **Avant le Lot 3** |
 | **Q10** | **Libellé juridique exact du badge « Marque vérifiée »**, en français et en anglais, relu par un juriste avant tout affichage | Substance fixée par RG49 et RG50 ; rédaction à produire | `expert-conformite-rgpd` + juriste | Lot 2 |
+| **Q11** | **Que doit dire « ce que cela change » de RG61 et CA38 (« effet observable ») ?** Le message de complétude nomme les champs manquants et l'action qu'ils bloquent (la soumission) ; les phrases d'effet de RG61 (« Sans budget indicatif, les créateurs ne peuvent pas savoir… », « sans image ») ne sont portées par aucune clé de RG84 ni par aucun écran | Le message nomme les manquants et l'action qu'ils bloquent, rien d'autre ; aucun texte d'effet ajouté tant que la question n'est pas tranchée | `product-owner` | Avant le Lot 3 |

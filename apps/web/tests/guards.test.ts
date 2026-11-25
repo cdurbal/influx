@@ -9,7 +9,9 @@ import {
   findBrowserRelayClientMismatches,
   findClassListConflicts,
   findMatches as findMatchesIn,
+  findDynamicSegmentViolations,
   findNetworkOrStorageUse,
+  findNonLiteralSlugs,
   findPagesRouterDirectories,
   findPlatformExportViolations,
   findPlatformFileCopies,
@@ -19,7 +21,9 @@ import {
   findRelayImporterViolations,
   findRouteFileViolations,
   findVitrineSnapshotChanges,
+  findPhotoEffectUse,
   PLATFORM_EXPORTS,
+  WEB_STRUCTURAL_SEGMENTS,
   PLATFORM_NETWORK_FILES,
   HARD_CODED_COLOR_PATTERN,
   HARD_CODED_LENGTH_PATTERN,
@@ -55,7 +59,7 @@ import {
   DANGER_RED_TOKENS,
   OPAQUE_TOKEN_VALUE,
   TRANSLUCENT_RED_CLASS,
-  withGlowPeak,
+  withMixOver,
   type Charter,
 } from "@influx/test-kit/guards";
 import {
@@ -67,6 +71,11 @@ import {
   KEO_COLOR_MIX,
   KEO_INHERITS,
   KEO_RETARGETED,
+  PHOTO_EFFECT_READERS,
+  PHOTO_SCRIM,
+  PHOTO_SCRIM_PAIRS,
+  PHOTO_SCRIM_STRONG,
+  PHOTO_WORST,
   ROLE_COLOR_COMPONENTS,
   SUCCESS_MIN_HUE_GAP,
   VITRINE_ONLY,
@@ -354,6 +363,52 @@ describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no sm
     expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
   });
 
+  // RUA-T2 (RU-04, D88): the four effects on a photo, valued in the KEO block alone, exact share, exact base.
+  it("fails on a scrim at 80 %, a green scrim, a scrim valued in @theme and an alpha color in an --effect-* (G3i a, negative cases)", () => {
+    expect(
+      findKeoTrapViolations(
+        withKeoDeclaration(
+          tokens,
+          "--effect-photo-scrim: color-mix(in srgb, var(--color-surface-page) 80%, transparent);",
+        ),
+        KEO_COLOR_MIX,
+      ),
+    ).toEqual(["--effect-photo-scrim: 80% instead of the 75% allowed"]);
+    expect(
+      findKeoTrapViolations(
+        withKeoDeclaration(
+          tokens,
+          "--effect-photo-scrim: color-mix(in srgb, var(--color-brand-primary) 75%, transparent);",
+        ),
+        KEO_COLOR_MIX,
+      ),
+    ).toEqual([
+      '--effect-photo-scrim: "color-mix(in srgb, var(--color-brand-primary) 75%, transparent)" is not the page surface mixed with transparency',
+    ]);
+    expect(
+      findKeoTrapViolations(
+        tokens.replace(
+          "--effect-photo-scrim-soft: transparent;",
+          "--effect-photo-scrim-soft: color-mix(in srgb, var(--color-surface-page) 45%, transparent);",
+        ),
+        KEO_COLOR_MIX,
+      ),
+    ).toEqual([
+      '--effect-photo-scrim-soft: "color-mix(in srgb, var(--color-surface-page) 45%, transparent)" outside the tokens of RK-A (not in the KEO block)',
+    ]);
+    expect(
+      findKeoTrapViolations(
+        withKeoDeclaration(
+          tokens,
+          "--effect-photo-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));",
+        ),
+        KEO_COLOR_MIX,
+      ),
+    ).toEqual([
+      '--effect-photo-shadow: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))" holds an alpha color, a color-mix over transparency replaces it',
+    ]);
+  });
+
   it("lets no fluid size nor letter-spacing through to KEO (TK7.3)", () => {
     expect(findFluidKeoTypography(tokens)).toEqual([]);
   });
@@ -396,11 +451,16 @@ describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () =
 
   it("holds the texts and the field border at the peak of the header glow, about #0d291d (RK-9)", () => {
     const keo = effectiveTokens(tokens, "keo");
-    const withPeak = withGlowPeak(keo, GLOW_PEAK);
+    const withPeak = withMixOver(
+      keo,
+      "--background-image-header-glow",
+      "--color-surface-page",
+      GLOW_PEAK,
+    );
     expect(withPeak.get(GLOW_PEAK)).toBe("#0d291d");
     expect(findTokenPairFailures(withPeak, GLOW_PEAK_PAIRS)).toEqual([]);
     // A glow past the 15 % ceiling sinks the tertiary text and the error red: the pairs see it.
-    const strong = withGlowPeak(
+    const strong = withMixOver(
       effectiveTokens(
         withKeoDeclaration(
           tokens,
@@ -408,9 +468,48 @@ describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () =
         ),
         "keo",
       ),
+      "--background-image-header-glow",
+      "--color-surface-page",
       GLOW_PEAK,
     );
     expect(findTokenPairFailures(strong, GLOW_PEAK_PAIRS)).not.toEqual([]);
+  });
+
+  // RUA-T2 (RU-04, D88): the text of a badge or a counter on the scrims of 82 and 75 %, over the
+  // lightest photo. The 45 % scrim is a decor without text: no pair, but it must stay under it.
+  it("holds the primary text on the scrims of 82 and 75 % laid over a white photo (RU-04)", () => {
+    const keo = effectiveTokens(tokens, "keo");
+    const both = withMixOver(
+      withMixOver(
+        keo,
+        "--effect-photo-scrim-strong",
+        PHOTO_WORST,
+        PHOTO_SCRIM_STRONG,
+      ),
+      "--effect-photo-scrim",
+      PHOTO_WORST,
+      PHOTO_SCRIM,
+    );
+    expect(findTokenPairFailures(both, PHOTO_SCRIM_PAIRS)).toEqual([]);
+    // A scrim down to 45 % no longer carries the text: the pairs see it (negative case).
+    const light = withMixOver(
+      withMixOver(
+        effectiveTokens(
+          withKeoDeclaration(
+            tokens,
+            "--effect-photo-scrim-strong: color-mix(in srgb, var(--color-surface-page) 45%, transparent);",
+          ),
+          "keo",
+        ),
+        "--effect-photo-scrim-strong",
+        PHOTO_WORST,
+        PHOTO_SCRIM_STRONG,
+      ),
+      "--effect-photo-scrim",
+      PHOTO_WORST,
+      PHOTO_SCRIM,
+    );
+    expect(findTokenPairFailures(light, PHOTO_SCRIM_PAIRS)).not.toEqual([]);
   });
 
   it("gives the success its own color per charter, 20 degrees or more from the action", () => {
@@ -518,6 +617,12 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     ).toEqual([]);
   });
 
+  // RUA-T2 (RU-04, D88): the effects on a photo are read by the modules of PHOTO_EFFECT_READERS only
+  // (empty until a screen lays an element on a photo); the detector is self-tested in the test-kit.
+  it("reads the --effect-photo-* tokens in no module but PHOTO_EFFECT_READERS", () => {
+    expect(findPhotoEffectUse(WEB_ROOT, PHOTO_EFFECT_READERS)).toEqual([]);
+  });
+
   it("transforms a state under motion-safe: only and never transitions all (20 §11.5, F6)", () => {
     expect(findStateTransforms(WEB_ROOT, KEO_SCOPES)).toEqual([]);
   });
@@ -533,7 +638,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     const memberPaths = Object.values(MEMBER_PAGE_SLUGS).flatMap((slugs) =>
       Object.values(slugs),
     );
-    expect(memberPaths).toHaveLength(22); // 11 pages, two languages (SN-1: the page-menu of mon compte)
+    expect(memberPaths).toHaveLength(50); // 25 pages, two languages (L3F-11: the anonymous profile of a creator, the lists of a brand and one of them; L3F-10: the anonymous search of a brand, and the request for a selection below it; L3B-11: what a creator sees of a campaign, the brand's preview; L3B-09: the campaigns of a brand, the list and the form; SN-1: the page-menu of mon compte; L2B-11: the brand profile; L2E-18, 19 and 20: the ownership, the audience and the brand journeys; L2F-17: the contest of a decision; L2G-14: what a brand sees)
     expect(
       findMemberGroupMismatches(
         WEB_ROOT,
@@ -699,6 +804,24 @@ describe("G4 replaced: no image outside the brand asset manifest (18 §5 G4)", (
   });
 });
 
+// J4S-7: the error collector sends location.pathname (error-collector.ts l. 42); a name or a handle
+// in a connected-space path would reach `ops`. Segments are opaque identifiers or fixed words.
+describe("J4S-7: no name or handle in a member path", () => {
+  it("carries no dynamic segment outside the closed list in any tree of src/app (L2AT-4)", () => {
+    expect(
+      findDynamicSegmentViolations(
+        path.join(WEB_ROOT, "src", "app"),
+        undefined,
+        WEB_STRUCTURAL_SEGMENTS,
+      ),
+    ).toEqual([]);
+  });
+
+  it("writes every localized page slug as a literal of letters, digits, hyphens and slashes", () => {
+    expect(findNonLiteralSlugs(MEMBER_PAGE_SLUGS)).toEqual([]);
+  });
+});
+
 // G5 ("no route.ts under src/app", CA8) was lifted at J1 in the commit that introduced the relay,
 // and replaced by this stricter guard (02 §13.1, 18 §5, 21 §4 J1-C). The landing page still never
 // reaches the network: only the route file imports the relay, which alone imports the API client.
@@ -819,10 +942,15 @@ describe("Additional guards", () => {
     expect(files).toEqual([
       "account.json",
       "auth.json",
+      "brand-profile.json",
+      "campaign.json",
+      "creator-profile.json",
+      "creator-search.json",
       "errors.json",
       "landing.json",
       "legal.json",
       "member.json",
+      "verification.json",
     ]);
     for (const file of files) {
       const read = (locale: string) =>

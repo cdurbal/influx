@@ -36,16 +36,18 @@ Première ligne `à faire`, dans l'ordre, jusqu'à `jusqu-a <n>` ou la fin :
   ETAT. »
   - `ETAT: livre <sha>` : vérifie `git log -1 --format=%h` et `fait` dans `run.md` ; continue.
   - `ETAT: arret …` : **arrêt**.
-- **`ux`** : un sous-agent `expert-ux` avec le fichier de la ligne ; aucun commit ; un changement
-  demandé : **arrêt**.
+- **`ux`** : un sous-agent `expert-ux` avec le fichier de la ligne ; aucun commit ; rapport de
+  10 Ko au plus (règle de la revue) ; un changement demandé : **arrêt**.
 - **`fondateur`** : **arrêt**, avec la question exacte.
 - **`revue`** : push d'abord (§2), puis **en parallèle** deux sous-agents, `testeur`
   (`model: sonnet`, `effort: high`) et `expert-cybersecurite` (`model: opus`, `effort: xhigh`),
   chacun avec sa section de `revue.md` et la plage du parent du premier commit du jalon à `HEAD`.
   Consigne : aucun fichier modifié ; constats `<ID>T-n` et `<ID>S-n`, gravité (bloquant, à corriger
-  dans le jalon, avant production, plus tard), fichier et ligne, correctif en une phrase.
-  - Rien de bloquant ni à corriger dans le jalon : ligne `fait` (constats reportés dans la note).
-  - Sinon : un sous-agent neuf (`opus`, `xhigh`) écrit les constats dans la fiche § Revue et un
+  dans le jalon, avant production, plus tard), fichier et ligne, correctif en une phrase ;
+  **rapport de 10 Ko au plus** : détail pour « bloquant » et « jalon », une ligne pour les autres.
+  - Rien de bloquant ni à corriger dans le jalon : ligne `fait` (décompte des constats en note,
+    160 caractères au plus ; le détail reste dans le rapport).
+  - Sinon : un sous-agent neuf (`opus`, `xhigh`) écrit les constats dans l'annexe § Revue et un
     prompt `fix-<k>.md` par correctif (gabarit de `jalon-prepare`), ajoutés à `run.md` avant la
     clôture, type `fix`, état `à valider` ; commit `docs(mvp): <ID> review findings` ; **arrêt** :
     le fondateur valide par `/jalon-run <id> valider …`.

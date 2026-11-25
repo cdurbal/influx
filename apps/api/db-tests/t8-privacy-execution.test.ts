@@ -14,10 +14,23 @@
 // - D72 (0150): the erasure authorised by the member (identity.submit_member_erasure(), CHECKs of
 //   T3), its turn of the worker (T4: the open access withdrawn, privacy.erasure_completed queued,
 //   its address read by privacy.read_erasure_notification_subject()), the closure on its messageId.
+// - L3B-T7 (0306): the campaigns in the export and the erasure (l3b/modele.md §7).
+// - L3C-T5 (0310): the entries of queue 7, the snapshots and the interventions of an agent in the
+//   export and the erasure; the decisions of INFLUX on the campaigns in the activity log (L3BS-5).
+// - L3D-T2 (0314): the creator's reads of the open campaigns in the export and the erasure
+//   (l3d/modele.md §6).
+// - L3E-T5 (0318): the brand's searches and shortlists, the blocks a member posed in the export,
+//   never a block posed against it; the search and the blocks of an erased account deleted
+//   (l3e/modele.md §9).
 //
 // Each case runs in ONE rolled-back transaction of the local superuser, which writes the fixtures
 // and acts as apps/api and the worker do (support.ts: actAsInternal, actAsMember, actAs).
-import { inRolledBackTransaction, type DataSet } from "@influx/test-kit/db";
+import {
+  accountIdOf,
+  CAMPAIGN_IDS,
+  inRolledBackTransaction,
+  type DataSet,
+} from "@influx/test-kit/db";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -30,6 +43,11 @@ import {
   migrationRole,
   testDataSet,
 } from "./support.ts";
+import { campaignCalendar } from "./campaign-dates-kit.ts";
+import { publishAsInflux } from "./campaign-publication-kit.ts";
+
+/** The four dates of a valid campaign, from today (L3BT-9). */
+const CALENDAR = campaignCalendar();
 
 const INSUFFICIENT_PRIVILEGE = "42501";
 const INVALID_PARAMETER = "22023";
@@ -40,10 +58,11 @@ const CHECK_VIOLATION = "23514";
 /** The Brevo messageId of the e-mail privacy.erasure_completed (D72, 0150). */
 const ERASURE_MESSAGE_ID = "<t8-erasure@smtp-relay.brevo.com>";
 
-/** The 14 category keys of the export, in the order of the notice (EC-J8-48). */
+/** The 15 category keys of the export, in the order of the notice (EC-J8-48; 0219). */
 const CATEGORIES = [
   "account",
   "advertiser_profile",
+  "creator_profile",
   "consents",
   "terms_acceptances",
   "sessions",
@@ -58,7 +77,7 @@ const CATEGORIES = [
   "recipients",
 ] as const;
 
-/** A notice of the shape apps/api renders (an object with the same 14 keys). */
+/** A notice of the shape apps/api renders (an object with the same 15 keys). */
 const NOTICE = {
   language: "en",
   title: "Your data held by INFLUX",
@@ -1064,7 +1083,7 @@ type ExportFile = {
 };
 
 describe("privacy.execute_request(): access (runbook §4)", () => {
-  it("builds the export from the base: 14 categories, the notice verbatim, the requester's data only, never a digest", async () => {
+  it("builds the export from the base: 15 categories, the notice verbatim, the requester's data only, never a digest", async () => {
     const outcome = await scenario(async (tx) => {
       const member = await newMember(tx, "advertiser");
       const stranger = await newMember(tx);
@@ -1381,6 +1400,191 @@ describe("privacy.execute_request(): access (runbook §4)", () => {
       again: [],
       notice: INVALID_PARAMETER,
     });
+  });
+});
+
+describe("L3A-T5 (L3B-T1): the allowlist of audit codes in the export (F3, 0302, jalons/l3a/f3.md)", () => {
+  /**
+   * Every code of the base NOT exported, by name and class (f3.md; 04 §4.3, notes under the code
+   * tables of Lots 3 to 5): a migration that adds an exclusion adds it here, in the same commit.
+   */
+  const EXCLUDED_BY_CLASS: Readonly<Record<string, readonly string[]>> = {
+    excluded_security: [
+      "agent.reauthentication_failed",
+      "agent.unexpected_mfa_factor",
+      "backoffice.action_refused",
+      "security.backoffice_login_failures",
+      "verification.escalated",
+    ],
+    // 0303 (04 §4.3, note under the Lot 3 table): the declaration of one party against another
+    // 0308 (l3c/modele §8, fiche invariant 5): the first examination of an enhanced review, the act
+    // of an agent on the brand's campaign, never served to the brand
+    excluded_third_party: [
+      "block.created",
+      "block.lifted",
+      "campaign.first_reviewed",
+    ],
+  };
+  const EXCLUDED = Object.values(EXCLUDED_BY_CLASS).flat();
+  /** The exported codes at 0302 (f3.md); a later migration adds codes, never removes one. */
+  const EXPORTED_AT_0302 = 130;
+
+  it("classifies every code explicitly, without default: a code inserted without its class is refused", async () => {
+    const outcome = await scenario(async (tx) => {
+      const [column] = await tx<{ not_null: boolean; has_default: boolean }[]>`
+        select attnotnull as not_null, atthasdef as has_default
+          from pg_catalog.pg_attribute
+         where attrelid = 'audit.event_types'::regclass and attname = 'export_class'`;
+      const classes = await tx<{ export_class: string; codes: string[] }[]>`
+        select export_class, array_agg(code order by code) as codes
+          from audit.event_types group by export_class order by export_class`;
+      const insert =
+        "insert into audit.event_types (code, domain, subject_type, severity) " +
+        "values ('t8.f3_probe', 'audit', 'account', 'info')";
+      return {
+        column,
+        classes,
+        missing: codeOf(await attempt(tx, insert)),
+        // NOT NULL is checked before the arbitration of the conflict (f3.md « Stockage »)
+        missingOnConflict: codeOf(
+          await attempt(
+            tx,
+            "insert into audit.event_types (code, domain, subject_type, severity) " +
+              "values ('chain.genesis', 'audit', 'chain', 'critical') on conflict (code) do nothing",
+          ),
+        ),
+        unknownClass: codeOf(
+          await attempt(
+            tx,
+            "insert into audit.event_types (code, domain, subject_type, severity, export_class) " +
+              "values ('t8.f3_probe', 'audit', 'account', 'info', 'hidden')",
+          ),
+        ),
+      };
+    });
+    expect(outcome.column).toEqual({ not_null: true, has_default: false });
+    const byClass = Object.fromEntries(
+      outcome.classes.map((row) => [row.export_class, row.codes]),
+    );
+    const { exported, ...excluded } = byClass;
+    // the exact list of excluded codes, by name and class: no code excluded without its name here
+    expect(excluded).toEqual(EXCLUDED_BY_CLASS);
+    expect(exported?.length).toBeGreaterThanOrEqual(EXPORTED_AT_0302);
+    expect(outcome).toMatchObject({
+      missing: "23502",
+      missingOnConflict: "23502",
+      unknownClass: CHECK_VIOLATION,
+    });
+  });
+
+  it("serves no line of an excluded code whose member is the subject; an exported line still is", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      // written by the superuser, as the internal functions would on an internal account
+      await tx`select audit.append('security.backoffice_login_failures', 'account', ${member.id}::uuid)`;
+      await tx`select audit.append('backoffice.action_refused', 'account', ${member.id}::uuid)`;
+      await tx`select audit.append('account.role_granted', 'account', ${member.id}::uuid)`;
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      const [written] = await tx<{ count: number }[]>`
+        select count(*)::int as count from audit.audit_events
+         where subject_type = 'account' and subject_id = ${member.id}
+           and event_type in ('security.backoffice_login_failures', 'backoffice.action_refused')`;
+      return { content: String(stored?.content), written: written?.count };
+    });
+    // the two excluded lines exist in the register, the export leaves them out
+    expect(outcome.written).toBe(2);
+    const file = JSON.parse(outcome.content) as ExportFile;
+    const codes = ((file.data as Record<string, Row[]>).activity_log ?? []).map(
+      (line) => line.code,
+    );
+    expect(codes).toContain("account.role_granted");
+    expect(codes).toContain("privacy.execution_approved");
+    for (const excluded of EXCLUDED) {
+      expect(outcome.content.includes(excluded), excluded).toBe(false);
+    }
+  });
+
+  it("filters excluded_third_party too: a code reclassified in a rolled-back transaction leaves the activity_log, then is served again", async () => {
+    const PROBE = "account.role_granted";
+    const servedCodes = (
+      reclassify: boolean,
+    ): Promise<{ codes: string[]; written: number | undefined }> =>
+      scenario(async (tx) => {
+        const member = await newMember(tx);
+        await tx`select audit.append(${PROBE}, 'account', ${member.id}::uuid)`;
+        if (reclassify) {
+          await tx`update audit.event_types set export_class = 'excluded_third_party'
+                    where code = ${PROBE}`;
+        }
+        const request = await deposit(tx, member, "access");
+        await approve(tx, request, "access");
+        rowsOf(await execute(tx, request, NOTICE));
+        const [stored] = await tx<{ content: string }[]>`
+          select content from privacy.data_exports where request_id = ${request}`;
+        const [written] = await tx<{ count: number }[]>`
+          select count(*)::int as count from audit.audit_events
+           where subject_type = 'account' and subject_id = ${member.id} and event_type = ${PROBE}`;
+        const file = JSON.parse(String(stored?.content)) as ExportFile;
+        const codes = (
+          (file.data as Record<string, Row[]>).activity_log ?? []
+        ).map((line) => String(line.code));
+        return { codes, written: written?.count };
+      });
+
+    const reclassified = await servedCodes(true);
+    // the line is in the register, the export leaves it out once its code is excluded_third_party
+    expect(reclassified.written).toBe(1);
+    expect(reclassified.codes).not.toContain(PROBE);
+    expect(reclassified.codes).toContain("privacy.execution_approved");
+
+    // the update was rolled back with its transaction: the class is exported, the line served again
+    const [after] = await scenario(
+      (tx) => tx<{ export_class: string }[]>`
+        select export_class from audit.event_types where code = ${PROBE}`,
+    );
+    expect(after?.export_class).toBe("exported");
+    const restored = await servedCodes(false);
+    expect(restored.written).toBe(1);
+    expect(restored.codes).toContain(PROBE);
+  });
+
+  it("lets influx_privacy_definer read the code and the class of the catalogue only (I-4)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const columns = await tx<{ column: string; privilege: string }[]>`
+        select c.attname::text as column, p.privilege
+          from pg_catalog.pg_attribute c
+         cross join (values ('SELECT'), ('INSERT'), ('UPDATE'), ('REFERENCES')) as p (privilege)
+         where c.attrelid = 'audit.event_types'::regclass and c.attnum > 0 and not c.attisdropped
+           and has_column_privilege('influx_privacy_definer', c.attrelid, c.attname, p.privilege)
+         order by 1, 2`;
+      const [table] = await tx<{ writes: boolean }[]>`
+        select has_table_privilege('influx_privacy_definer', 'audit.event_types',
+                                   'INSERT, UPDATE, DELETE, TRUNCATE') as writes`;
+      const policies = await tx<
+        { policy: string; command: string; qual: string }[]
+      >`
+        select policyname::text as policy, cmd::text as command, qual
+          from pg_catalog.pg_policies
+         where schemaname = 'audit' and tablename = 'event_types'
+           and 'influx_privacy_definer' = any (roles)`;
+      return { columns, writes: table?.writes, policies };
+    });
+    expect(outcome.columns).toEqual([
+      { column: "code", privilege: "SELECT" },
+      { column: "export_class", privilege: "SELECT" },
+    ]);
+    expect(outcome.writes).toBe(false);
+    expect(outcome.policies).toEqual([
+      {
+        policy: "event_types_privacy_definer_select",
+        command: "SELECT",
+        qual: "true",
+      },
+    ]);
   });
 });
 
@@ -1802,6 +2006,795 @@ describe("privacy.execute_request(): erasure (04 §9.2, 21 §J8 point 6)", () =>
     expect(outcome.before).toEqual([{ account_id: outcome.member.id }]);
     expect(outcome.after).toEqual([]);
   });
+});
+
+/** The eight list tables of the brand profile (0202) and their code column. */
+const BRAND_LISTS = [
+  ["advertiser_secondary_sectors", "sector_code"],
+  ["advertiser_target_markets", "country_code"],
+  ["advertiser_working_languages", "language_code"],
+  ["advertiser_topics", "topic_code"],
+  ["advertiser_networks", "network_code"],
+  ["advertiser_formats", "format_code"],
+  ["advertiser_audience_countries", "country_code"],
+  ["advertiser_usage_rights", "usage_right_code"],
+] as const;
+
+/** Fills blocks 1 to 3 of an advertiser's profile (0202), as the superuser. */
+async function fillBrandProfile(
+  tx: Tx,
+  account: string,
+  label: string,
+): Promise<void> {
+  await tx`
+    update profiles.advertiser_profiles
+       set primary_sector_code = 'beauty_personal_care', company_size_band = '11_50',
+           website_domain = ${`${label}.example`},
+           presentation = ${`${label} presentation, a brand that writes its own words.`},
+           exclusivity_band = 'le_3m', collaboration_rhythm = 'recurring',
+           offers_non_monetary = true, contact_role = 'partnerships_influence',
+           completeness_percent = 88
+     where account_id = ${account}`;
+  await tx`
+    insert into profiles.advertiser_secondary_sectors (account_id, slot, sector_code)
+    values (${account}, 1, 'home_garden'), (${account}, 2, 'retail_ecommerce')`;
+  await tx`
+    insert into profiles.advertiser_target_markets (account_id, slot, country_code)
+    values (${account}, 1, 'FR'), (${account}, 2, 'BE')`;
+  await tx`
+    insert into profiles.advertiser_working_languages (account_id, language_code)
+    values (${account}, 'fr'), (${account}, 'en')`;
+  await tx`
+    insert into profiles.advertiser_topics (account_id, slot, topic_code)
+    values (${account}, 1, 'beauty'), (${account}, 2, 'wellness')`;
+  await tx`
+    insert into profiles.advertiser_networks (account_id, network_code)
+    values (${account}, 'instagram'), (${account}, 'tiktok')`;
+  await tx`
+    insert into profiles.advertiser_formats (account_id, format_code)
+    values (${account}, 'instagram_reel'), (${account}, 'tiktok_video')`;
+  await tx`
+    insert into profiles.advertiser_audience_countries (account_id, slot, country_code)
+    values (${account}, 1, 'FR'), (${account}, 2, 'CH')`;
+  await tx`
+    insert into profiles.advertiser_usage_rights (account_id, usage_right_code)
+    values (${account}, 'organic_repost')`;
+  await tx`
+    insert into profiles.advertiser_contact_details
+      (account_id, contact_first_name, contact_email, contact_phone, contact_url)
+    values (${account}, ${`${label} Camille`}, ${`${label}-contact@example.test`}, '+33612345678',
+            ${`https://${label}.example/contact`})`;
+}
+
+/** What the base holds of an advertiser's profile, its lists and its contact person. */
+async function brandProfileOf(tx: Tx, account: string): Promise<Row> {
+  const [profile] = await tx<Row[]>`
+    select legal_name, primary_sector_code, company_size_band, website_domain, presentation,
+           exclusivity_band, collaboration_rhythm, offers_non_monetary, contact_role,
+           completeness_percent
+      from profiles.advertiser_profiles where account_id = ${account}`;
+  const lists: Row = {};
+  for (const [table, column] of BRAND_LISTS) {
+    const rows = await tx.unsafe<{ code: string }[]>(
+      `select ${column}::text as code from profiles.${table}
+        where account_id = $1 order by 1`,
+      [account],
+    );
+    lists[table] = rows.map((row) => row.code);
+  }
+  const contacts = await tx<Row[]>`
+    select contact_first_name, contact_email, contact_phone, contact_url
+      from profiles.advertiser_contact_details where account_id = ${account}`;
+  return { profile, lists, contacts };
+}
+
+describe("the full brand profile of 0202 in the export and the erasure (04 §9.2, L2B)", () => {
+  it("exports the whole profile, its lists in their order and its contact person; nothing of another brand", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await fillBrandProfile(tx, member.id, "t8-brand");
+      await fillBrandProfile(tx, stranger.id, "t8-stranger");
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as { data: Record<string, unknown> };
+    expect(file.data.advertiser_profile).toEqual({
+      legal_name: "T8 Privacy Brand",
+      status: "draft",
+      primary_sector: "beauty_personal_care",
+      secondary_sectors: ["home_garden", "retail_ecommerce"],
+      company_size: "11_50",
+      target_markets: ["FR", "BE"],
+      working_languages: ["en", "fr"],
+      website_domain: "t8-brand.example",
+      presentation: "t8-brand presentation, a brand that writes its own words.",
+      topics: ["beauty", "wellness"],
+      networks: ["instagram", "tiktok"],
+      formats: ["instagram_reel", "tiktok_video"],
+      audience_countries: ["FR", "CH"],
+      usage_rights: ["organic_repost"],
+      exclusivity: "le_3m",
+      collaboration_rhythm: "recurring",
+      offers_non_monetary: true,
+      contact_role: "partnerships_influence",
+      contact: {
+        first_name: "t8-brand Camille",
+        email: "t8-brand-contact@example.test",
+        phone: "+33612345678",
+        page_url: "https://t8-brand.example/contact",
+        updated_at: expect.stringMatching(/Z$/),
+      },
+      completeness_percent: 88,
+      logo_files: [],
+      review_entries: [],
+      field_revisions: [],
+      // 0226 (L2E): no internal block, request nor badge for this brand
+      verification: { internal_details: null, requests: [], badges: [] },
+      // 0306 (L3B, EC-L3B-06-1): no campaign for this brand
+      campaigns: [],
+      // 0318 (L3E): no search, shortlist nor block posed by this brand
+      creator_searches: [],
+      shortlists: [],
+      // 0325 (L3F): no request for a selection by the team
+      selection_requests: [],
+      blocks: [],
+      created_at: expect.stringMatching(/Z$/),
+      updated_at: expect.stringMatching(/Z$/),
+    });
+    // 15 RG81: the requester's data only, never another brand's
+    expect(content.includes("t8-stranger")).toBe(false);
+  });
+
+  it("exports empty lists and no contact person for a profile never filled in", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored };
+    });
+    const file = JSON.parse(String(outcome.stored?.content)) as {
+      data: { advertiser_profile: Row };
+    };
+    expect(file.data.advertiser_profile).toMatchObject({
+      legal_name: "T8 Privacy Brand",
+      primary_sector: null,
+      secondary_sectors: [],
+      target_markets: [],
+      working_languages: [],
+      topics: [],
+      networks: [],
+      formats: [],
+      audience_countries: [],
+      usage_rights: [],
+      offers_non_monetary: null,
+      contact: null,
+      completeness_percent: null,
+    });
+  });
+
+  it("empties every column the brand entered, deletes its lists and empties its contact person (row kept); another brand is untouched", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await fillBrandProfile(tx, member.id, "t8-erased");
+      await fillBrandProfile(tx, stranger.id, "t8-kept");
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        erased: await brandProfileOf(tx, member.id),
+        kept: await brandProfileOf(tx, stranger.id),
+      };
+    });
+    expect(outcome.erased).toEqual({
+      profile: {
+        legal_name: "[deleted]",
+        primary_sector_code: null,
+        company_size_band: null,
+        website_domain: null,
+        presentation: null,
+        exclusivity_band: null,
+        collaboration_rhythm: null,
+        offers_non_monetary: null,
+        contact_role: null,
+        completeness_percent: null,
+      },
+      lists: Object.fromEntries(BRAND_LISTS.map(([table]) => [table, []])),
+      contacts: [
+        {
+          contact_first_name: null,
+          contact_email: null,
+          contact_phone: null,
+          contact_url: null,
+        },
+      ],
+    });
+    expect(outcome.kept).toEqual({
+      profile: {
+        legal_name: "T8 Privacy Brand",
+        primary_sector_code: "beauty_personal_care",
+        company_size_band: "11_50",
+        website_domain: "t8-kept.example",
+        presentation:
+          "t8-kept presentation, a brand that writes its own words.",
+        exclusivity_band: "le_3m",
+        collaboration_rhythm: "recurring",
+        offers_non_monetary: true,
+        contact_role: "partnerships_influence",
+        completeness_percent: 88,
+      },
+      lists: {
+        advertiser_secondary_sectors: ["home_garden", "retail_ecommerce"],
+        advertiser_target_markets: ["BE", "FR"],
+        advertiser_working_languages: ["en", "fr"],
+        advertiser_topics: ["beauty", "wellness"],
+        advertiser_networks: ["instagram", "tiktok"],
+        advertiser_formats: ["instagram_reel", "tiktok_video"],
+        advertiser_audience_countries: ["CH", "FR"],
+        advertiser_usage_rights: ["organic_repost"],
+      },
+      contacts: [
+        {
+          contact_first_name: "t8-kept Camille",
+          contact_email: "t8-kept-contact@example.test",
+          contact_phone: "+33612345678",
+          contact_url: "https://t8-kept.example/contact",
+        },
+      ],
+    });
+  });
+
+  // EC-L2B-05-6: the owner of E-5 anonymises and does nothing else, even on an erased account
+  it.each([
+    [
+      "the name alone, a presentation left",
+      "update profiles.advertiser_profiles set legal_name = '[deleted]' where account_id = $1",
+    ],
+    [
+      "a new presentation",
+      "update profiles.advertiser_profiles set legal_name = '[deleted]', presentation = 'x', " +
+        "primary_sector_code = null, company_size_band = null, website_domain = null, " +
+        "exclusivity_band = null, collaboration_rhythm = null, offers_non_monetary = null, " +
+        "contact_role = null, completeness_percent = null where account_id = $1",
+    ],
+    [
+      "a contact person rewritten",
+      "update profiles.advertiser_contact_details set contact_phone = '+33700000000' " +
+        "where account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s on an erased account (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await fillBrandProfile(tx, member.id, "t8-guard");
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${member.id}`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch nothing of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      await fillBrandProfile(tx, member.id, "t8-active");
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = {
+        list: await attempt(
+          tx,
+          "delete from profiles.advertiser_topics where account_id = $1 returning 1",
+          [member.id],
+        ),
+        contact: await attempt(
+          tx,
+          "update profiles.advertiser_contact_details set contact_first_name = null, " +
+            "contact_email = null, contact_phone = null, contact_url = null " +
+            "where account_id = $1 returning 1",
+          [member.id],
+        ),
+      };
+      await tx.unsafe("reset role");
+      return { results, after: await brandProfileOf(tx, member.id) };
+    });
+    expect(rowsOf(outcome.results.list)).toEqual([]);
+    expect(rowsOf(outcome.results.contact)).toEqual([]);
+    expect(outcome.after.lists).toMatchObject({
+      advertiser_topics: ["beauty", "wellness"],
+    });
+    expect(outcome.after.contacts).toEqual([
+      expect.objectContaining({ contact_first_name: "t8-active Camille" }),
+    ]);
+  });
+});
+
+/**
+ * Gives an advertiser an active logo, an older one still to purge and a pending upload (0204), and
+ * the Storage usage of today and of yesterday, as the superuser.
+ */
+async function giveBrandLogo(tx: Tx, account: string): Promise<void> {
+  await tx`
+    insert into profiles.brand_logo_objects
+      (account_id, state, received_bytes, byte_size, width, height, activated_at,
+       purge_requested_at, created_at)
+    values (${account}, 'purging', 90000, 40000, 512, 512, now() - interval '2 days',
+            now() - interval '1 day', now() - interval '2 days'),
+           (${account}, 'active', 80000, 30000, 512, 512, now() - interval '1 day', null,
+            now() - interval '1 day'),
+           (${account}, 'pending', 70000, null, null, null, null, null, now())`;
+  await tx`
+    insert into profiles.storage_daily_usage
+      (account_id, bucket_id, usage_day, upload_count, received_bytes)
+    values (${account}, 'brand-logo', (now() at time zone 'UTC')::date, 1, 70000),
+           (${account}, 'brand-logo', (now() at time zone 'UTC')::date - 1, 2, 170000)`;
+}
+
+async function brandLogoOf(
+  tx: Tx,
+  account: string,
+): Promise<{ logos: Row[]; usage: number }> {
+  const logos = await tx<Row[]>`
+    select state::text as state, purge_requested_at is not null as to_purge
+      from profiles.brand_logo_objects where account_id = ${account}
+     order by created_at`;
+  const [usage] = await tx<{ count: number }[]>`
+    select count(*)::int as count from profiles.storage_daily_usage
+     where account_id = ${account}`;
+  return { logos, usage: usage?.count ?? 0 };
+}
+
+describe("the brand logo of 0204 in the export and the erasure (04 §9.2, stockage.md §7)", () => {
+  it("exports the metadata of each logo file, never its bytes nor its key", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveBrandLogo(tx, member.id);
+      await giveBrandLogo(tx, stranger.id);
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored, member, stranger };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as {
+      data: { advertiser_profile: { logo_files: unknown } };
+    };
+    const at = expect.stringMatching(/Z$/);
+    expect(file.data.advertiser_profile.logo_files).toEqual([
+      {
+        state: "purging",
+        byte_size: 40000,
+        width: 512,
+        height: 512,
+        created_at: at,
+        activated_at: at,
+      },
+      {
+        state: "active",
+        byte_size: 30000,
+        width: 512,
+        height: 512,
+        created_at: at,
+        activated_at: at,
+      },
+      {
+        state: "pending",
+        byte_size: null,
+        width: null,
+        height: null,
+        created_at: at,
+        activated_at: null,
+      },
+    ]);
+    // no key, no other brand's file: neither account id appears beyond the account's own fields
+    expect(content.includes(".webp")).toBe(false);
+    expect(content.includes(outcome.stranger.id)).toBe(false);
+  });
+
+  it("sends every logo object of the erased brand to purge and deletes its usage; another brand is untouched", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveBrandLogo(tx, member.id);
+      await giveBrandLogo(tx, stranger.id);
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        erased: await brandLogoOf(tx, member.id),
+        kept: await brandLogoOf(tx, stranger.id),
+      };
+    });
+    expect(outcome.erased).toEqual({
+      logos: [
+        { state: "purging", to_purge: true },
+        { state: "purging", to_purge: true },
+        { state: "purging", to_purge: true },
+      ],
+      usage: 0,
+    });
+    expect(outcome.kept).toEqual({
+      logos: [
+        { state: "purging", to_purge: true },
+        { state: "active", to_purge: false },
+        { state: "pending", to_purge: false },
+      ],
+      usage: 2,
+    });
+  });
+
+  it.each([
+    [
+      "a logo made active again",
+      "update profiles.brand_logo_objects set state = 'active', purge_requested_at = null " +
+        "where account_id = $1 and state = 'active'",
+    ],
+    [
+      "a logo resized",
+      "update profiles.brand_logo_objects set byte_size = 1 where account_id = $1",
+    ],
+    [
+      "a logo row deleted",
+      "delete from profiles.brand_logo_objects where account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s on an erased account (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await giveBrandLogo(tx, member.id);
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${member.id}`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch no logo nor usage of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      await giveBrandLogo(tx, member.id);
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = {
+        logo: await attempt(
+          tx,
+          "update profiles.brand_logo_objects set state = 'purging', " +
+            "purge_requested_at = now() where account_id = $1 returning 1",
+          [member.id],
+        ),
+        usage: await attempt(
+          tx,
+          "delete from profiles.storage_daily_usage where account_id = $1 returning 1",
+          [member.id],
+        ),
+      };
+      await tx.unsafe("reset role");
+      return { results, after: await brandLogoOf(tx, member.id) };
+    });
+    expect(rowsOf(outcome.results.logo)).toEqual([]);
+    expect(rowsOf(outcome.results.usage)).toEqual([]);
+    expect(outcome.after).toEqual({
+      logos: [
+        { state: "purging", to_purge: true },
+        { state: "active", to_purge: false },
+        { state: "pending", to_purge: false },
+      ],
+      usage: 2,
+    });
+  });
+});
+
+const REVIEW_MESSAGE = "t8-review message to the brand, written by the agent.";
+const REVIEW_COMMENT = "t8-review internal comment, never to the brand.";
+const REVIEW_VALUE = "t8-review submitted presentation";
+
+/**
+ * Gives an advertiser two examinations of queue 1 (0207), as the superuser: a refused submission
+ * with its message and its internal comment, and an open revision, claimed, with a pending value.
+ */
+async function giveReviewEntries(tx: Tx, account: string): Promise<void> {
+  const agent = accountIdOf("agent", "a");
+  const [refused] = await tx<{ id: string }[]>`
+    insert into profiles.advertiser_review_entries (account_id, kind)
+    values (${account}, 'submission') returning id::text`;
+  await tx`
+    update profiles.advertiser_review_entries
+       set created_at = now() - interval '1 day', state = 'rejected',
+           decided_by_account_id = ${agent}, decided_at = now(), closed_at = now(),
+           rejection_reason_code = 'other', member_message = ${REVIEW_MESSAGE},
+           internal_comment = ${REVIEW_COMMENT}
+     where id = ${String(refused?.id)}`;
+  const [open] = await tx<{ id: string }[]>`
+    insert into profiles.advertiser_review_entries (account_id, kind)
+    values (${account}, 'revision') returning id::text`;
+  await tx`
+    update profiles.advertiser_review_entries
+       set claimed_by_account_id = ${agent}, claimed_at = now(),
+           claim_expires_at = now() + interval '30 minutes',
+           internal_comment = ${REVIEW_COMMENT}
+     where id = ${String(open?.id)}`;
+  await tx`
+    insert into profiles.profile_field_revisions
+      (account_id, field_code, proposed_value, advertiser_review_entry_id)
+    values (${account}, 'advertiser.presentation', to_jsonb(${REVIEW_VALUE}::text),
+            ${String(open?.id)})`;
+}
+
+async function reviewOf(
+  tx: Tx,
+  account: string,
+): Promise<{ entries: Row[]; revisions: number }> {
+  const entries = await tx<Row[]>`
+    select kind::text as kind, state::text as state, closed_at is not null as closed,
+           decided_by_account_id is not null as decided, rejection_reason_code as reason,
+           member_message, internal_comment
+      from profiles.advertiser_review_entries
+     where account_id = ${account}
+     order by created_at`;
+  const [revisions] = await tx<{ count: number }[]>`
+    select count(*)::int as count from profiles.profile_field_revisions
+     where account_id = ${account}`;
+  return { entries, revisions: revisions?.count ?? 0 };
+}
+
+describe("the examinations of 0207 in the export and the erasure (file.md A1, 04 §9.2)", () => {
+  it("exports each entry and each submitted value, never the internal comment, an agent nor the lock", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveReviewEntries(tx, member.id);
+      await giveReviewEntries(tx, stranger.id);
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored, stranger };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as {
+      data: {
+        advertiser_profile: {
+          review_entries: unknown;
+          field_revisions: unknown;
+        };
+      };
+    };
+    const at = expect.stringMatching(/Z$/);
+    expect(file.data.advertiser_profile.review_entries).toEqual([
+      {
+        kind: "submission",
+        state: "rejected",
+        created_at: at,
+        decided_at: at,
+        rejection_reason: "other",
+        member_message: REVIEW_MESSAGE,
+        closed_at: at,
+      },
+      {
+        kind: "revision",
+        state: "open",
+        created_at: at,
+        decided_at: null,
+        rejection_reason: null,
+        member_message: null,
+        closed_at: null,
+      },
+    ]);
+    expect(file.data.advertiser_profile.field_revisions).toEqual([
+      {
+        field: "advertiser.presentation",
+        row_key: null,
+        proposed_value: REVIEW_VALUE,
+        status: "pending_review",
+        submitted_at: at,
+        closed_at: null,
+      },
+    ]);
+    expect(content.includes(REVIEW_COMMENT)).toBe(false);
+    expect(content.includes(accountIdOf("agent", "a"))).toBe(false);
+    expect(content.includes(outcome.stranger.id)).toBe(false);
+  });
+
+  it("deletes the revisions of the erased brand, empties the texts and withdraws the open entry; another brand is untouched", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveReviewEntries(tx, member.id);
+      await giveReviewEntries(tx, stranger.id);
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        erased: await reviewOf(tx, member.id),
+        kept: await reviewOf(tx, stranger.id),
+      };
+    });
+    expect(outcome.erased).toEqual({
+      entries: [
+        {
+          kind: "submission",
+          state: "rejected",
+          closed: true,
+          decided: true,
+          reason: "other",
+          member_message: null,
+          internal_comment: null,
+        },
+        {
+          kind: "revision",
+          state: "withdrawn",
+          closed: true,
+          decided: false,
+          reason: null,
+          member_message: null,
+          internal_comment: null,
+        },
+      ],
+      revisions: 0,
+    });
+    expect(outcome.kept).toEqual({
+      entries: [
+        {
+          kind: "submission",
+          state: "rejected",
+          closed: true,
+          decided: true,
+          reason: "other",
+          member_message: REVIEW_MESSAGE,
+          internal_comment: REVIEW_COMMENT,
+        },
+        {
+          kind: "revision",
+          state: "open",
+          closed: false,
+          decided: false,
+          reason: null,
+          member_message: null,
+          internal_comment: REVIEW_COMMENT,
+        },
+      ],
+      revisions: 1,
+    });
+  });
+
+  it.each([
+    [
+      "reading the internal comment",
+      "select internal_comment from profiles.advertiser_review_entries where account_id = $1",
+    ],
+    [
+      "reading the holder of the lock",
+      "select claimed_by_account_id from profiles.advertiser_review_entries where account_id = $1",
+    ],
+    [
+      "rewriting the author of a decision",
+      "update profiles.advertiser_review_entries set decided_by_account_id = account_id " +
+        "where account_id = $1",
+    ],
+    [
+      "rewriting the reason of a refusal",
+      "update profiles.advertiser_review_entries set rejection_reason_code = null " +
+        "where account_id = $1",
+    ],
+    [
+      "reopening an entry of an erased account",
+      "update profiles.advertiser_review_entries set state = 'open', closed_at = null " +
+        "where account_id = $1 and state = 'withdrawn'",
+    ],
+    [
+      "writing a text on an entry of an erased account",
+      "update profiles.advertiser_review_entries set internal_comment = 'written back' " +
+        "where account_id = $1 and state = 'withdrawn'",
+    ],
+    [
+      "deleting an entry",
+      "delete from profiles.advertiser_review_entries where account_id = $1",
+    ],
+    [
+      "writing back a revision",
+      "update profiles.profile_field_revisions set status = 'withdrawn' where account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await giveReviewEntries(tx, member.id);
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                  where id = ${member.id}`;
+        await tx`
+          update profiles.advertiser_review_entries
+             set state = 'withdrawn', closed_at = now(), internal_comment = null
+           where account_id = ${member.id} and state = 'open'`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch no entry nor revision of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      await giveReviewEntries(tx, member.id);
+      const before = await reviewOf(tx, member.id);
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = {
+        entries: await attempt(
+          tx,
+          "update profiles.advertiser_review_entries set state = 'withdrawn', " +
+            "closed_at = now(), member_message = null, internal_comment = null " +
+            "where account_id = $1 returning 1",
+          [member.id],
+        ),
+        revisions: await attempt(
+          tx,
+          "delete from profiles.profile_field_revisions where account_id = $1 returning 1",
+          [member.id],
+        ),
+      };
+      await tx.unsafe("reset role");
+      return { results, before, after: await reviewOf(tx, member.id) };
+    });
+    expect(rowsOf(outcome.results.entries)).toEqual([]);
+    expect(rowsOf(outcome.results.revisions)).toEqual([]);
+    expect(outcome.after).toEqual(outcome.before);
+  });
+});
+
+describe("the freeze of 0209 stops a member, never the erasure (file.md A4, 04 §9.2)", () => {
+  it.each([["published"], ["suspended"]])(
+    "erases a %s profile: its columns and lists emptied, a logo under review sent to purge",
+    async (status) => {
+      const outcome = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await fillBrandProfile(tx, member.id, "t8-frozen");
+        await tx`
+          insert into profiles.brand_logo_objects
+            (account_id, state, received_bytes, byte_size, width, height)
+          values (${member.id}, 'in_review', 1000, 500, 512, 512)`;
+        await tx.unsafe(
+          "update profiles.advertiser_profiles " +
+            "set status = $1::profiles.advertiser_profile_status where account_id = $2",
+          [status, member.id],
+        );
+        const request = await deposit(tx, member, "erasure");
+        await approve(tx, request, "erasure");
+        rowsOf(await execute(tx, request, null));
+        return {
+          profile: await brandProfileOf(tx, member.id),
+          logos: (await brandLogoOf(tx, member.id)).logos,
+        };
+      });
+      expect(outcome.profile).toMatchObject({
+        profile: { legal_name: "[deleted]", presentation: null },
+        lists: { advertiser_topics: [] },
+      });
+      expect(outcome.logos).toEqual([{ state: "purging", to_purge: true }]);
+    },
+  );
 });
 
 describe("privacy.record_auth_user_deleted() and privacy.complete_request() (15 RG77, RG79, RG85)", () => {
@@ -3235,6 +4228,1667 @@ describe("an address reused by another account (EC-J8-55, review F1)", () => {
     expect([...(outcome.addresses ?? [])].sort()).toEqual(
       [outcome.a.email, outcome.kept].sort(),
     );
+  });
+});
+
+/** The declaration of RG85 hashed in the fixtures (any text: the export serves the hash only). */
+const CAMPAIGN_DECLARATION = "t8-campaign declaration of RG85";
+const CAMPAIGN_DECLARATION_HEX = createHash("sha256")
+  .update(CAMPAIGN_DECLARATION, "utf8")
+  .digest("hex");
+
+/**
+ * Gives an advertiser two campaigns, as the superuser (0303 to 0305): a partial draft, then a
+ * campaign submitted with its declaration of RG85 and a row in each of its nine lists.
+ */
+async function giveCampaigns(
+  tx: Tx,
+  account: string,
+  label: string,
+): Promise<{ draft: string; submitted: string }> {
+  const [draft] = await tx<{ id: string }[]>`
+    insert into campaigns.campaigns
+      (advertiser_account_id, title, brief, internal_reference, currency,
+       per_creator_budget_band_code, total_budget_minor, created_at)
+    values (${account}, ${`${label} draft`}, ${`${label} draft brief`}, 'DRAFT-01', 'GBP',
+            '100_250', 50000, '2026-01-01T09:00:00Z')
+    returning id::text`;
+  const [submitted] = await tx<{ id: string }[]>`
+    insert into campaigns.campaigns
+      (advertiser_account_id, status, title, campaign_type_code, public_summary, brief,
+       internal_reference, product_description, sector_code, restrictions, product_is_sent,
+       product_value_band_code, creator_keeps_product, shipping_costs_borne_by, usage_rights_code,
+       usage_rights_duration_band, usage_rights_territory_scope, exclusivity_band,
+       content_review_delay, audience_gender_code, currency, remuneration_kind,
+       per_creator_budget_band_code, creators_wanted, total_budget_minor, applications_close_on,
+       content_due_on, starts_on, ends_on, max_applications, authorizations_declared_at,
+       authorizations_declared_by_account_id, authorizations_declaration_locale,
+       authorizations_declaration_hash, submitted_at, created_at)
+    values (${account}, 'pending_review', ${`${label} submitted title`}, 'product_placement',
+            ${`${label} summary ${"s".repeat(120)}`}, ${`${label} brief ${"b".repeat(300)}`},
+            'SUB-01', ${`${label} product description`}, 'sports_leisure',
+            ${`${label} restrictions`}, true, 'under_100', true, 'brand', 'organic_repost', '3m',
+            'selected_countries', 'none', '5bd', 'mixed', 'EUR', 'cash_and_gift', '500_1000', 3,
+            3000000, ${CALENDAR.applicationsCloseOn}, ${CALENDAR.contentDueOn}, ${CALENDAR.startsOn},
+            ${CALENDAR.endsOn}, 50,
+            '2026-01-03T10:00:00Z', ${account}, 'fr', decode(${CAMPAIGN_DECLARATION_HEX}, 'hex'),
+            '2026-01-03T10:00:00Z', '2026-01-02T09:00:00Z')
+    returning id::text`;
+  if (draft === undefined || submitted === undefined) {
+    throw new Error("no campaign");
+  }
+  await tx`
+    insert into campaigns.campaign_key_messages (campaign_id, position, body)
+    values (${draft.id}, 1, ${`${label} draft message`}),
+           (${submitted.id}, 1, ${`${label} message one`}),
+           (${submitted.id}, 2, ${`${label} message two`})`;
+  await tx`
+    insert into campaigns.campaign_topics (campaign_id, slot, topic_code)
+    values (${draft.id}, 1, 'travel'), (${submitted.id}, 1, 'beauty'),
+           (${submitted.id}, 2, 'wellness')`;
+  await tx`
+    insert into campaigns.campaign_deliverables
+      (campaign_id, slot, network_code, format_code, quantity)
+    values (${submitted.id}, 1, 'instagram', 'instagram_reel', 2),
+           (${submitted.id}, 2, 'tiktok', 'tiktok_video', 1)`;
+  await tx`
+    insert into campaigns.campaign_usage_territories (campaign_id, slot, country_code)
+    values (${submitted.id}, 1, 'FR'), (${submitted.id}, 2, 'BE')`;
+  await tx`
+    insert into campaigns.campaign_audience_countries (campaign_id, slot, country_code)
+    values (${submitted.id}, 1, 'FR'), (${submitted.id}, 2, 'BE')`;
+  await tx`
+    insert into campaigns.campaign_audience_languages (campaign_id, language_code)
+    values (${submitted.id}, 'fr'), (${submitted.id}, 'en')`;
+  await tx`
+    insert into campaigns.campaign_audience_bands (campaign_id, audience_band_code)
+    values (${submitted.id}, 'micro'), (${submitted.id}, 'mid')`;
+  await tx`
+    insert into campaigns.campaign_audience_age_bands (campaign_id, age_band_code)
+    values (${submitted.id}, '18_24'), (${submitted.id}, '25_34')`;
+  await tx`
+    insert into campaigns.campaign_requested_items (campaign_id, slot, item_code)
+    values (${submitted.id}, 1, 'motivation_message'), (${submitted.id}, 2, 'availability')`;
+  return { draft: draft.id, submitted: submitted.id };
+}
+
+/** What the base holds of a campaign: the columns of modele §7, its key messages and its codes. */
+async function campaignOf(tx: Tx, campaign: string): Promise<Row> {
+  const [row] = await tx<Row[]>`
+    select status::text as status, title, public_summary, brief, internal_reference,
+           product_description, restrictions, total_budget_minor::int as total_budget_minor,
+           erased_at is not null as erased, campaign_type_code, sector_code, currency,
+           per_creator_budget_band_code, applications_close_on::text as applications_close_on,
+           ends_on::text as ends_on, submitted_at is not null as submitted,
+           authorizations_declaration_locale::text as declaration_locale,
+           encode(authorizations_declaration_hash, 'hex') as declaration_hash,
+           (select array_agg(k.body order by k.position)
+              from campaigns.campaign_key_messages k where k.campaign_id = c.id) as key_messages,
+           (select array_agg(t.topic_code order by t.slot)
+              from campaigns.campaign_topics t where t.campaign_id = c.id) as topics,
+           (select count(*)::int from campaigns.campaign_deliverables d
+             where d.campaign_id = c.id) as deliverables
+      from campaigns.campaigns c where c.id = ${campaign}`;
+  return row ?? {};
+}
+
+describe("L3B-T7 the campaigns of 0303 to 0305 in the export and the erasure (0306, modele §7)", () => {
+  it("exports a submitted campaign as entered: reference, budget and band, its lists in order, its declaration (instant, locale, hex hash); never an id nor the author", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaigns(tx, member.id, "t8-camp");
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored, ids };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as {
+      data: { advertiser_profile: { campaigns: Row[] } };
+    };
+    const campaigns = file.data.advertiser_profile.campaigns;
+    expect(campaigns).toHaveLength(2);
+    expect(campaigns[1]).toEqual({
+      status: "pending_review",
+      title: "t8-camp submitted title",
+      campaign_type: "product_placement",
+      public_summary: `t8-camp summary ${"s".repeat(120)}`,
+      brief: `t8-camp brief ${"b".repeat(300)}`,
+      internal_reference: "SUB-01",
+      product_description: "t8-camp product description",
+      sector: "sports_leisure",
+      restrictions: "t8-camp restrictions",
+      product_is_sent: true,
+      product_value_band: "under_100",
+      creator_keeps_product: true,
+      shipping_costs_borne_by: "brand",
+      key_messages: ["t8-camp message one", "t8-camp message two"],
+      deliverables: [
+        { network: "instagram", format: "instagram_reel", quantity: 2 },
+        { network: "tiktok", format: "tiktok_video", quantity: 1 },
+      ],
+      usage_rights: "organic_repost",
+      usage_rights_duration: "3m",
+      usage_rights_territory_scope: "selected_countries",
+      usage_territories: ["FR", "BE"],
+      exclusivity: "none",
+      content_review_delay: "5bd",
+      audience_gender: "mixed",
+      audience_countries: ["FR", "BE"],
+      audience_languages: ["en", "fr"],
+      audience_bands: ["micro", "mid"],
+      audience_age_bands: ["18_24", "25_34"],
+      topics: ["beauty", "wellness"],
+      currency: "EUR",
+      remuneration_kind: "cash_and_gift",
+      budget_band: "500_1000",
+      creators_wanted: 3,
+      total_budget_minor: 3000000,
+      applications_close_on: CALENDAR.applicationsCloseOn,
+      content_due_on: CALENDAR.contentDueOn,
+      starts_on: CALENDAR.startsOn,
+      ends_on: CALENDAR.endsOn,
+      max_applications: 50,
+      requested_items: ["motivation_message", "availability"],
+      authorizations_declaration: {
+        declared_at: "2026-01-03T10:00:00.000Z",
+        locale: "fr",
+        sha256: CAMPAIGN_DECLARATION_HEX,
+      },
+      submitted_at: "2026-01-03T10:00:00.000Z",
+      // 0310 (EC-L3C-05-1): the cycle and the data of L3C, empty before any decision
+      first_published_at: null,
+      paused_at: null,
+      pause_origin: null,
+      closed_at: null,
+      reviews: [],
+      snapshots: [],
+      interventions: [],
+      created_at: "2026-01-02T09:00:00.000Z",
+      updated_at: expect.stringMatching(/Z$/),
+    });
+    // EC-L3B-06-2: never the id of a campaign (the exact keys above leave out its author)
+    expect(content.includes(outcome.ids.draft)).toBe(false);
+    expect(content.includes(outcome.ids.submitted)).toBe(false);
+  });
+
+  it("exports a draft with its empty columns and lists, before the submitted campaign; nothing of another brand", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      await giveCampaigns(tx, member.id, "t8-camp");
+      await giveCampaigns(tx, stranger.id, "t8-stranger");
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored };
+    });
+    const content = String(outcome.stored?.content);
+    const file = JSON.parse(content) as {
+      data: { advertiser_profile: { campaigns: Row[] } };
+    };
+    const [draft, submitted] = file.data.advertiser_profile.campaigns;
+    expect(draft).toMatchObject({
+      status: "draft",
+      title: "t8-camp draft",
+      brief: "t8-camp draft brief",
+      internal_reference: "DRAFT-01",
+      public_summary: null,
+      campaign_type: null,
+      currency: "GBP",
+      budget_band: "100_250",
+      total_budget_minor: 50000,
+      key_messages: ["t8-camp draft message"],
+      topics: ["travel"],
+      deliverables: [],
+      usage_territories: [],
+      audience_countries: [],
+      audience_languages: [],
+      audience_bands: [],
+      audience_age_bands: [],
+      requested_items: [],
+      authorizations_declaration: null,
+      submitted_at: null,
+      created_at: "2026-01-01T09:00:00.000Z",
+    });
+    expect(submitted).toMatchObject({ status: "pending_review" });
+    // 15 RG81: the requester's campaigns only, never another brand's nor the data set's
+    expect(content.includes("t8-stranger")).toBe(false);
+    expect(content.includes("T2 campaign")).toBe(false);
+  });
+
+  it("closes the draft and the submitted campaign, empties their texts, reference and total budget, deletes their key messages; codes, dates, band, lists and declaration kept", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaigns(tx, member.id, "t8-erased");
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        draft: await campaignOf(tx, ids.draft),
+        submitted: await campaignOf(tx, ids.submitted),
+      };
+    });
+    const emptied = {
+      status: "closed",
+      title: null,
+      public_summary: null,
+      brief: null,
+      internal_reference: null,
+      product_description: null,
+      restrictions: null,
+      total_budget_minor: null,
+      erased: true,
+      key_messages: null,
+    };
+    expect(outcome.draft).toEqual({
+      ...emptied,
+      campaign_type_code: null,
+      sector_code: null,
+      currency: "GBP",
+      per_creator_budget_band_code: "100_250",
+      applications_close_on: null,
+      ends_on: null,
+      submitted: false,
+      declaration_locale: null,
+      declaration_hash: null,
+      topics: ["travel"],
+      deliverables: 0,
+    });
+    expect(outcome.submitted).toEqual({
+      ...emptied,
+      campaign_type_code: "product_placement",
+      sector_code: "sports_leisure",
+      currency: "EUR",
+      per_creator_budget_band_code: "500_1000",
+      applications_close_on: CALENDAR.applicationsCloseOn,
+      ends_on: CALENDAR.endsOn,
+      submitted: true,
+      declaration_locale: "fr",
+      declaration_hash: CAMPAIGN_DECLARATION_HEX,
+      topics: ["beauty", "wellness"],
+      deliverables: 2,
+    });
+  });
+
+  it("leaves the campaigns of another brand and of the data set untouched, and writes no campaign line in the register (03 P8)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      const mine = await giveCampaigns(tx, member.id, "t8-erased");
+      const kept = await giveCampaigns(tx, stranger.id, "t8-kept");
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      const [lines] = await tx<{ count: number }[]>`
+        select count(*)::int as count from audit.audit_events
+         where event_type like 'campaign.%'
+           and subject_id in (${mine.draft}::uuid, ${mine.submitted}::uuid)`;
+      return {
+        kept: await campaignOf(tx, kept.submitted),
+        dataSet: await campaignOf(tx, CAMPAIGN_IDS.a),
+        lines: lines?.count,
+      };
+    });
+    expect(outcome.kept).toMatchObject({
+      status: "pending_review",
+      title: "t8-kept submitted title",
+      internal_reference: "SUB-01",
+      total_budget_minor: 3000000,
+      erased: false,
+      key_messages: ["t8-kept message one", "t8-kept message two"],
+    });
+    expect(outcome.dataSet).toMatchObject({
+      status: "draft",
+      title: "T2 campaign a",
+      erased: false,
+      key_messages: ["T2 key message a"],
+    });
+    expect(outcome.lines).toBe(0);
+  });
+
+  // modele §7: the owner of E-5 empties the row, and does nothing else, even on an erased account
+  it.each([
+    [
+      "a campaign closed with its texts left",
+      "update campaigns.campaigns set status = 'closed', erased_at = now() " +
+        "where advertiser_account_id = $1",
+    ],
+    [
+      "a new title",
+      "update campaigns.campaigns set status = 'closed', erased_at = now(), title = 'x', " +
+        "public_summary = null, brief = null, internal_reference = null, " +
+        "product_description = null, restrictions = null, total_budget_minor = null " +
+        "where advertiser_account_id = $1",
+    ],
+    [
+      "a key message added",
+      "insert into campaigns.campaign_key_messages (campaign_id, position, body) " +
+        "select id, 5, 'x' from campaigns.campaigns where advertiser_account_id = $1",
+    ],
+    [
+      "a list of codes deleted",
+      "delete from campaigns.campaign_topics where campaign_id in " +
+        "(select id from campaigns.campaigns where advertiser_account_id = $1)",
+    ],
+    [
+      "a code rewritten",
+      "update campaigns.campaigns set sector_code = null where advertiser_account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s on an erased account (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await giveCampaigns(tx, member.id, "t8-guard");
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${member.id}`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch nothing of the campaigns of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaigns(tx, member.id, "t8-active");
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = {
+        messages: await attempt(
+          tx,
+          "delete from campaigns.campaign_key_messages where campaign_id in " +
+            "(select id from campaigns.campaigns where advertiser_account_id = $1) returning 1",
+          [member.id],
+        ),
+        campaign: await attempt(
+          tx,
+          "update campaigns.campaigns set status = 'closed', erased_at = now(), title = null, " +
+            "public_summary = null, brief = null, internal_reference = null, " +
+            "product_description = null, restrictions = null, total_budget_minor = null " +
+            "where advertiser_account_id = $1 returning 1",
+          [member.id],
+        ),
+      };
+      await tx.unsafe("reset role");
+      return { results, after: await campaignOf(tx, ids.submitted) };
+    });
+    expect(rowsOf(outcome.results.messages)).toEqual([]);
+    expect(rowsOf(outcome.results.campaign)).toEqual([]);
+    expect(outcome.after).toMatchObject({
+      status: "pending_review",
+      title: "t8-active submitted title",
+      erased: false,
+      key_messages: ["t8-active message one", "t8-active message two"],
+    });
+  });
+});
+
+/** The texts of INFLUX on a campaign, never exported, emptied by the erasure (0310). */
+const L3C_COMMENT = "t8-l3c internal comment of the agent";
+const L3C_OPINION = "t8-l3c reasoned opinion of the first reviewer";
+const L3C_MESSAGE = "t8-l3c message to the brand about its refusal";
+
+type CampaignDecisions = {
+  draft: string;
+  submitted: string;
+  /** The intervention of the agent's pause (submitted) and of its correction (draft). */
+  paused: string;
+  corrected: string;
+};
+
+/**
+ * The life of the two campaigns of giveCampaigns() at L3C (0307 to 0309): the submitted one refused
+ * once (first review by agent A, decision by agent B, reason other, message, comment), then
+ * published (the fixture of campaign-publication-kit, its snapshot being the creator view), then
+ * paused by agent A with authority (pause_campaign: the intervention, campaign.paused); the draft's
+ * title corrected by agent A (correct_campaign_field), then given an open entry already first
+ * reviewed by agent A; a campaign.first_reviewed line (excluded_third_party) on the first.
+ */
+async function giveCampaignDecisions(
+  tx: Tx,
+  account: string,
+  label: string,
+): Promise<CampaignDecisions> {
+  const ids = await giveCampaigns(tx, account, label);
+  const agentB = accountIdOf("agent", "b");
+  await tx`
+    insert into campaigns.campaign_review_entries
+      (campaign_id, advertiser_account_id, state, first_reviewed_by_account_id, first_reviewed_at,
+       first_review_opinion, decided_by_account_id, decided_at, rejection_reason_code,
+       member_message, internal_comment, closed_at)
+    values (${ids.submitted}, ${account}, 'rejected', ${agentA}, now(), ${L3C_OPINION}, ${agentB},
+            now(), 'other', ${L3C_MESSAGE}, ${L3C_COMMENT}, now())`;
+  await publishAsInflux(tx, ids.submitted);
+  await tx`
+    update campaigns.campaign_published_snapshots s
+       set payload = campaigns.campaign_creator_view(s.campaign_id),
+           content_hash = sha256(convert_to(campaigns.campaign_creator_view(s.campaign_id)::text,
+                                            'UTF8'))
+     where s.campaign_id = ${ids.submitted}`;
+  const paused = rowsOf(
+    await asAgent(tx, () =>
+      attempt(
+        tx,
+        "select intervention_id::text from campaigns.pause_campaign($1::uuid, $2::text, $3::text)",
+        [ids.submitted, "non_compliant_content", L3C_COMMENT],
+      ),
+    ),
+  )[0]?.intervention_id;
+  const corrected = rowsOf(
+    await asAgent(tx, () =>
+      attempt(
+        tx,
+        "select intervention_id::text from campaigns.correct_campaign_field(" +
+          "$1::uuid, 'title', $2::text::jsonb, 'entry_error', $3::text)",
+        [ids.draft, JSON.stringify(`${label} corrected title`), L3C_COMMENT],
+      ),
+    ),
+  )[0]?.intervention_id;
+  // an open entry already first reviewed (the draft lacks the fields of a submission: its state
+  // stays, no rule of the base ties an entry to it)
+  await tx`
+    insert into campaigns.campaign_review_entries
+      (campaign_id, advertiser_account_id, first_reviewed_by_account_id, first_reviewed_at,
+       first_review_opinion)
+    values (${ids.draft}, ${account}, ${agentA}, now(), ${L3C_OPINION})`;
+  await tx`select audit.append('campaign.first_reviewed', 'campaign', ${ids.submitted}::uuid,
+                               jsonb_build_object('entry_id', gen_random_uuid()))`;
+  return {
+    ...ids,
+    paused: String(paused),
+    corrected: String(corrected),
+  };
+}
+
+/** What the base holds of the entries, snapshots and interventions of a campaign (0310). */
+async function campaignDecisionsOf(tx: Tx, campaign: string): Promise<Row> {
+  const [row] = await tx<Row[]>`
+    select (select coalesce(jsonb_agg(jsonb_build_object(
+                     'state', e.state, 'member_message', e.member_message,
+                     'internal_comment', e.internal_comment, 'opinion', e.first_review_opinion,
+                     'first_reviewed', e.first_reviewed_by_account_id is not null
+                                       and e.first_reviewed_at is not null,
+                     'decided_by', e.decided_by_account_id, 'reason', e.rejection_reason_code,
+                     'claimed', e.claimed_by_account_id is not null,
+                     'closed', e.closed_at is not null,
+                     'texts_erased', e.texts_erased_at is not null)
+                   order by e.state), '[]'::jsonb)
+              from campaigns.campaign_review_entries e where e.campaign_id = c.id) as entries,
+           (select coalesce(jsonb_agg(jsonb_build_object(
+                     'version', s.version, 'payload', s.payload,
+                     'hash', encode(s.content_hash, 'hex'))
+                   order by s.version), '[]'::jsonb)
+              from campaigns.campaign_published_snapshots s where s.campaign_id = c.id) as snapshots,
+           (select coalesce(jsonb_agg(jsonb_build_object(
+                     'kind', i.kind, 'field', i.field_code, 'old_value', i.old_value,
+                     'new_value', i.new_value, 'reason', i.reason_code,
+                     'comment', i.internal_comment, 'agent', i.agent_account_id)
+                   order by i.kind), '[]'::jsonb)
+              from campaigns.agent_interventions i where i.campaign_id = c.id) as interventions
+      from campaigns.campaigns c where c.id = ${campaign}`;
+  return row ?? {};
+}
+
+describe("L3C-T5 the entries, snapshots and interventions in the export and the erasure (0310, modele §9)", () => {
+  it("exports each review (state, dates, reason, message), each snapshot (version, instant, content, hash), each intervention (kind, field, values, reason) and the cycle of a campaign", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c");
+      const [view] = await tx<{ view: Row; hash: string }[]>`
+        select payload as view, encode(content_hash, 'hex') as hash
+          from campaigns.campaign_published_snapshots where campaign_id = ${ids.submitted}`;
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { stored, view };
+    });
+    const file = JSON.parse(String(outcome.stored?.content)) as {
+      data: { advertiser_profile: { campaigns: Row[] } };
+    };
+    const [draft, submitted] = file.data.advertiser_profile.campaigns;
+    expect(submitted).toMatchObject({
+      status: "paused",
+      first_published_at: expect.stringMatching(/Z$/),
+      paused_at: expect.stringMatching(/Z$/),
+      pause_origin: "influx",
+      closed_at: null,
+      snapshots: [
+        {
+          version: 1,
+          published_at: expect.stringMatching(/Z$/),
+          content: outcome.view?.view,
+          sha256: outcome.view?.hash,
+        },
+      ],
+      interventions: [
+        {
+          kind: "paused",
+          field: null,
+          old_value: null,
+          new_value: null,
+          reason: "non_compliant_content",
+          created_at: expect.stringMatching(/Z$/),
+        },
+      ],
+    });
+    expect(
+      [...((submitted?.reviews as Row[]) ?? [])].sort((a, b) =>
+        String(a.state).localeCompare(String(b.state)),
+      ),
+    ).toEqual([
+      {
+        state: "published",
+        created_at: expect.stringMatching(/Z$/),
+        decided_at: expect.stringMatching(/Z$/),
+        rejection_reason: null,
+        member_message: null,
+        closed_at: expect.stringMatching(/Z$/),
+      },
+      {
+        state: "rejected",
+        created_at: expect.stringMatching(/Z$/),
+        decided_at: expect.stringMatching(/Z$/),
+        rejection_reason: "other",
+        member_message: L3C_MESSAGE,
+        closed_at: expect.stringMatching(/Z$/),
+      },
+    ]);
+    expect(outcome.view?.view).toMatchObject({
+      title: "t8-l3c submitted title",
+    });
+    expect(draft).toMatchObject({
+      status: "draft",
+      title: "t8-l3c corrected title",
+      reviews: [
+        {
+          state: "open",
+          created_at: expect.stringMatching(/Z$/),
+          decided_at: null,
+          rejection_reason: null,
+          member_message: null,
+          closed_at: null,
+        },
+      ],
+      snapshots: [],
+      interventions: [
+        {
+          kind: "corrected",
+          field: "title",
+          old_value: "t8-l3c draft",
+          new_value: "t8-l3c corrected title",
+          reason: "entry_error",
+          created_at: expect.stringMatching(/Z$/),
+        },
+      ],
+    });
+  });
+
+  it("never exports an agent, the commercial owner, the first review, the opinion nor an internal comment (EC-L3C-05-2)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c");
+      await tx`update campaigns.campaigns set owner_agent_id = ${agentA}
+                where id = ${ids.submitted}`;
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { content: String(stored?.content), ids };
+    });
+    for (const absent of [
+      agentA,
+      accountIdOf("agent", "b"),
+      L3C_COMMENT,
+      L3C_OPINION,
+      outcome.ids.paused,
+      outcome.ids.corrected,
+      "first_reviewed",
+      "owner_agent",
+      "sla_due_at",
+      "duplicate_of",
+    ]) {
+      expect(outcome.content.includes(absent), absent).toBe(false);
+    }
+  });
+
+  it("serves the decisions of INFLUX on the campaigns in the activity log, actor INFLUX, no payload (L3BS-5); campaign.first_reviewed stays out (excluded_third_party)", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c");
+      const other = await giveCampaignDecisions(
+        tx,
+        stranger.id,
+        "t8-l3c-stranger",
+      );
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      const [written] = await tx<{ count: number }[]>`
+        select count(*)::int as count from audit.audit_events
+         where subject_type = 'campaign'
+           and subject_id in (${ids.draft}::uuid, ${ids.submitted}::uuid)
+           and event_type in ('campaign.paused', 'campaign.corrected', 'campaign.first_reviewed')`;
+      return {
+        content: String(stored?.content),
+        written: written?.count,
+        other,
+      };
+    });
+    expect(outcome.written).toBe(3);
+    const file = JSON.parse(outcome.content) as {
+      data: { activity_log: Row[] };
+    };
+    const campaignLines = file.data.activity_log.filter((line) =>
+      String(line.code).startsWith("campaign."),
+    );
+    // one paused and one corrected line of the account's campaigns, never the stranger's
+    expect(
+      [...campaignLines].sort((a, b) =>
+        String(a.code).localeCompare(String(b.code)),
+      ),
+    ).toEqual([
+      {
+        code: "campaign.corrected",
+        occurred_at: expect.stringMatching(/Z$/),
+        actor: "INFLUX",
+      },
+      {
+        code: "campaign.paused",
+        occurred_at: expect.stringMatching(/Z$/),
+        actor: "INFLUX",
+      },
+    ]);
+    expect(outcome.content.includes("campaign.first_reviewed")).toBe(false);
+    expect(outcome.content.includes("intervention_id")).toBe(false);
+    expect(outcome.content.includes("t8-l3c-stranger")).toBe(false);
+  });
+
+  it("withdraws the open entry and empties the message, comment and opinion of every entry, their decider and first reviewer kept", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c-erased");
+      await tx`update campaigns.campaign_review_entries
+                  set claimed_by_account_id = ${accountIdOf("agent", "b")}, claimed_at = now(),
+                      claim_expires_at = now() + interval '30 minutes'
+                where campaign_id = ${ids.draft} and state = 'open'`;
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        draft: await campaignDecisionsOf(tx, ids.draft),
+        submitted: await campaignDecisionsOf(tx, ids.submitted),
+      };
+    });
+    const emptied = {
+      member_message: null,
+      internal_comment: null,
+      opinion: null,
+      claimed: false,
+      closed: true,
+      texts_erased: true,
+    };
+    expect(outcome.draft.entries).toEqual([
+      {
+        ...emptied,
+        state: "withdrawn",
+        first_reviewed: true,
+        decided_by: null,
+        reason: null,
+      },
+    ]);
+    expect(outcome.submitted.entries).toEqual([
+      {
+        ...emptied,
+        state: "published",
+        first_reviewed: false,
+        decided_by: accountIdOf("agent", "b"),
+        reason: null,
+      },
+      {
+        ...emptied,
+        state: "rejected",
+        first_reviewed: true,
+        decided_by: accountIdOf("agent", "b"),
+        reason: "other",
+      },
+    ]);
+  });
+
+  it("empties the free texts of every snapshot (codes, version and hash kept) and the values and comment of every intervention (kind, field, reason, author kept); no register line", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c-erased");
+      const before = await campaignDecisionsOf(tx, ids.submitted);
+      const count = async (): Promise<number | undefined> => {
+        const [lines] = await tx<{ count: number }[]>`
+          select count(*)::int as count from audit.audit_events
+           where event_type like 'campaign.%'
+             and subject_id in (${ids.draft}::uuid, ${ids.submitted}::uuid)`;
+        return lines?.count;
+      };
+      const linesBefore = await count();
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        before,
+        submitted: await campaignDecisionsOf(tx, ids.submitted),
+        draft: await campaignDecisionsOf(tx, ids.draft),
+        linesBefore,
+        linesAfter: await count(),
+      };
+    });
+    const [snapshotBefore] = outcome.before.snapshots as Row[];
+    const [snapshot] = outcome.submitted.snapshots as Row[];
+    const payloadBefore = snapshotBefore?.payload as Row;
+    expect(payloadBefore.title).toBe("t8-l3c-erased submitted title");
+    expect(snapshot).toEqual({
+      version: 1,
+      hash: snapshotBefore?.hash,
+      payload: {
+        ...payloadBefore,
+        title: null,
+        publicSummary: null,
+        brief: null,
+        productDescription: null,
+        restrictions: null,
+        keyMessages: [],
+      },
+    });
+    expect((snapshot?.payload as Row).deliverables).toHaveLength(2);
+    expect(outcome.submitted.interventions).toEqual([
+      {
+        kind: "paused",
+        field: null,
+        old_value: null,
+        new_value: null,
+        reason: "non_compliant_content",
+        comment: null,
+        agent: agentA,
+      },
+    ]);
+    expect(outcome.draft.interventions).toEqual([
+      {
+        kind: "corrected",
+        field: "title",
+        old_value: null,
+        new_value: null,
+        reason: "entry_error",
+        comment: null,
+        agent: agentA,
+      },
+    ]);
+    expect(outcome.linesAfter).toBe(outcome.linesBefore);
+  });
+
+  // modele §9: the owner of E-5 empties the rows of L3C, and does nothing else, even on an erased account
+  it.each([
+    [
+      "an open entry left open",
+      "update campaigns.campaign_review_entries set member_message = null, internal_comment = null, " +
+        "first_review_opinion = null, texts_erased_at = now() " +
+        "where advertiser_account_id = $1 and state = 'open'",
+    ],
+    [
+      "a snapshot whose title stays",
+      "update campaigns.campaign_published_snapshots set payload = payload || " +
+        '\'{"publicSummary": null, "brief": null, "productDescription": null, ' +
+        '"restrictions": null, "keyMessages": []}\'::jsonb ' +
+        "where campaign_id in (select id from campaigns.campaigns where advertiser_account_id = $1)",
+    ],
+    [
+      "an intervention whose comment stays",
+      "update campaigns.agent_interventions set old_value = null, new_value = null " +
+        "where advertiser_account_id = $1",
+    ],
+  ])(
+    "refuses to influx_privacy_definer %s on an erased account (42501)",
+    async (_label, statement) => {
+      const result = await scenario(async (tx) => {
+        const member = await newMember(tx, "advertiser");
+        await giveCampaignDecisions(tx, member.id, "t8-l3c-guard");
+        await tx`update identity.accounts set status = 'deleted', deleted_at = now()
+                where id = ${member.id}`;
+        await tx.unsafe("set local role influx_privacy_definer");
+        const attempted = await attempt(tx, statement, [member.id]);
+        await tx.unsafe("reset role");
+        return attempted;
+      });
+      expect(codeOf(result)).toBe(INSUFFICIENT_PRIVILEGE);
+    },
+  );
+
+  it("lets influx_privacy_definer touch nothing of the entries, snapshots and interventions of an active account", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx, "advertiser");
+      const ids = await giveCampaignDecisions(tx, member.id, "t8-l3c-active");
+      const before = await campaignDecisionsOf(tx, ids.submitted);
+      await tx.unsafe("set local role influx_privacy_definer");
+      const results = [
+        await attempt(
+          tx,
+          "update campaigns.campaign_review_entries set state = 'withdrawn', closed_at = now(), " +
+            "member_message = null, internal_comment = null, first_review_opinion = null, " +
+            "texts_erased_at = now() where advertiser_account_id = $1 returning 1",
+          [member.id],
+        ),
+        await attempt(
+          tx,
+          "update campaigns.campaign_published_snapshots set payload = payload || " +
+            '\'{"title": null, "publicSummary": null, "brief": null, ' +
+            '"productDescription": null, "restrictions": null, "keyMessages": []}\'::jsonb ' +
+            "where campaign_id in (select id from campaigns.campaigns " +
+            "where advertiser_account_id = $1) returning 1",
+          [member.id],
+        ),
+        await attempt(
+          tx,
+          "update campaigns.agent_interventions set old_value = null, new_value = null, " +
+            "internal_comment = null where advertiser_account_id = $1 returning 1",
+          [member.id],
+        ),
+      ];
+      await tx.unsafe("reset role");
+      return {
+        results,
+        before,
+        after: await campaignDecisionsOf(tx, ids.submitted),
+      };
+    });
+    for (const result of outcome.results) {
+      expect(rowsOf(result)).toEqual([]);
+    }
+    expect(outcome.after).toEqual(outcome.before);
+  });
+});
+
+/** Two reads of the open campaigns of `account` (0314): the feed, then a refused record. */
+async function giveCampaignReads(
+  tx: Tx,
+  account: string,
+  campaign: string,
+): Promise<void> {
+  await tx`
+    insert into search.creator_campaign_reads
+      (creator_account_id, kind, campaign_id, feed_sort, feed_page, outcome, read_at)
+    values (${account}, 'feed', null, 'deadline', 2, 'served', '2026-11-10T08:00:00Z'),
+           (${account}, 'record', ${campaign}, null, null, 'refused', '2026-11-10T08:01:00Z')`;
+}
+
+async function campaignReadsOf(tx: Tx, account: string): Promise<number> {
+  const [row] = await tx<{ n: number }[]>`
+    select count(*)::int as n from search.creator_campaign_reads
+     where creator_account_id = ${account}`;
+  return row?.n ?? 0;
+}
+
+describe("L3D-T2 the reads of the open campaigns in the export and the erasure (0314, modele §6)", () => {
+  it("exports each read in creator_profile.campaign_reads (kind, campaign asked, sort, page, outcome, instant), never its id nor another creator's", async () => {
+    const asked = randomUUID();
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const stranger = await newMember(tx);
+      await tx`
+        insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+        values (${member.id}, profiles.new_creator_alias(), 'FR')`;
+      await giveCampaignReads(tx, member.id, asked);
+      await giveCampaignReads(tx, stranger.id, randomUUID());
+      const request = await deposit(tx, member, "access");
+      await approve(tx, request, "access");
+      rowsOf(await execute(tx, request, NOTICE));
+      const [stored] = await tx<{ content: string }[]>`
+        select content from privacy.data_exports where request_id = ${request}`;
+      return { content: String(stored?.content) };
+    });
+    const file = JSON.parse(outcome.content) as {
+      data: { creator_profile: { campaign_reads: Row[] } };
+    };
+    expect(file.data.creator_profile.campaign_reads).toEqual([
+      {
+        kind: "feed",
+        campaign_id: null,
+        feed_sort: "deadline",
+        feed_page: 2,
+        outcome: "served",
+        read_at: "2026-11-10T08:00:00.000Z",
+      },
+      {
+        kind: "record",
+        campaign_id: asked,
+        feed_sort: null,
+        feed_page: null,
+        outcome: "refused",
+        read_at: "2026-11-10T08:01:00.000Z",
+      },
+    ]);
+  });
+
+  it("deletes every read of the erased creator, those of another creator kept", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      const stranger = await newMember(tx);
+      await giveCampaignReads(tx, member.id, randomUUID());
+      await giveCampaignReads(tx, stranger.id, randomUUID());
+      const request = await deposit(tx, member, "erasure");
+      await approve(tx, request, "erasure");
+      rowsOf(await execute(tx, request, null));
+      return {
+        member: await campaignReadsOf(tx, member.id),
+        stranger: await campaignReadsOf(tx, stranger.id),
+      };
+    });
+    expect(outcome).toEqual({ member: 0, stranger: 2 });
+  });
+
+  it("lets influx_privacy_definer delete nothing of an active account's reads, and update none", async () => {
+    const outcome = await scenario(async (tx) => {
+      const member = await newMember(tx);
+      await giveCampaignReads(tx, member.id, randomUUID());
+      await tx.unsafe("set local role influx_privacy_definer");
+      const removed = await attempt(
+        tx,
+        "delete from search.creator_campaign_reads where creator_account_id = $1 returning 1",
+        [member.id],
+      );
+      const updated = await attempt(
+        tx,
+        "update search.creator_campaign_reads set outcome = 'served' " +
+          "where creator_account_id = $1 returning 1",
+        [member.id],
+      );
+      await tx.unsafe("reset role");
+      return { removed, updated, left: await campaignReadsOf(tx, member.id) };
+    });
+    expect(rowsOf(outcome.removed)).toEqual([]);
+    expect(codeOf(outcome.updated)).toBe(INSUFFICIENT_PRIVILEGE);
+    expect(outcome.left).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// L3E-T5 (0318; l3e/modele.md §9): the creator search and the blocks in the export and the erasure
+
+/** A creator with a storefront (its alias: what a brand's shortlist names). */
+async function newCreatorWithAlias(
+  tx: Tx,
+): Promise<{ member: Member; alias: string }> {
+  const member = await newMember(tx);
+  const [row] = await tx<{ alias: string }[]>`
+    insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+    values (${member.id}, profiles.new_creator_alias(), 'FR')
+    returning alias`;
+  return { member, alias: String(row?.alias) };
+}
+
+/** A draft campaign of a brand, by its title. */
+async function newDraftCampaign(
+  tx: Tx,
+  brand: string,
+  title: string,
+): Promise<string> {
+  const [row] = await tx<{ id: string }[]>`
+    insert into campaigns.campaigns (advertiser_account_id, title, created_at)
+    values (${brand}, ${title}, '2026-11-01T09:00:00Z')
+    returning id::text`;
+  return String(row?.id);
+}
+
+type SearchLine = {
+  outcome: "served" | "page_cap" | "rate_limited";
+  count: number;
+  page: number;
+  kBlocked?: boolean;
+  filters?: Row;
+  sort?: string;
+  campaign?: string | null;
+  at: string;
+};
+
+/** A line of the search journal, as the door of 0319 will write it (the version read, never a
+ * number assumed: identities are not rolled back). */
+async function giveSearch(
+  tx: Tx,
+  brand: string,
+  line: SearchLine,
+): Promise<string> {
+  const [row] = await tx<{ id: string }[]>`
+    insert into search.search_queries
+      (account_id, actor_role, view_mode, campaign_id, outcome, filters, sort_code,
+       facet_config_version, result_count, page_reached, blocked_by_k_anonymity, created_at)
+    values (${brand}, 'advertiser', 'advertiser_anonymous', ${line.campaign ?? null}, ${line.outcome},
+            ${JSON.stringify(line.filters ?? {})}::text::jsonb, ${line.sort ?? "default"},
+            (select max(version) from search.facet_config_versions), ${line.count}, ${line.page},
+            ${line.kBlocked ?? false}, ${line.at})
+    returning id::text`;
+  return String(row?.id);
+}
+
+/** A creator served by a search, with one reason, and its first exposure. */
+async function giveImpression(
+  tx: Tx,
+  search: string,
+  creator: string,
+  rank: number,
+): Promise<void> {
+  await tx`
+    insert into search.search_impressions (search_query_id, creator_account_id, rank)
+    values (${search}, ${creator}, ${rank})`;
+  await tx`
+    insert into search.impression_reasons
+      (search_query_id, creator_account_id, reason_code, position, reason_params)
+    values (${search}, ${creator}, 'primary_topic', 1, '{"topic": "beauty"}'::jsonb)`;
+  await tx`
+    insert into search.creator_exposures (creator_account_id, first_page_at)
+    values (${creator}, '2026-11-10T08:00:00Z')
+    on conflict (creator_account_id) do nothing`;
+}
+
+/** A shortlist of a brand holding the creators given (date, note). */
+async function giveShortlist(
+  tx: Tx,
+  brand: string,
+  name: string,
+  campaign: string | null,
+  creators: readonly string[],
+  at = "2026-11-11T09:00:00Z",
+): Promise<string> {
+  const [row] = await tx<{ id: string }[]>`
+    insert into search.shortlists (advertiser_account_id, name, campaign_id, created_at)
+    values (${brand}, ${name}, ${campaign}, ${at})
+    returning id::text`;
+  const shortlist = String(row?.id);
+  for (const [index, creator] of creators.entries()) {
+    await tx`
+      insert into search.shortlist_items (shortlist_id, creator_account_id, added_at, note)
+      values (${shortlist}, ${creator}, ${`2026-11-11T09:0${index + 1}:00Z`},
+              ${`t8 note ${index + 1}`})`;
+  }
+  return shortlist;
+}
+
+/** The reasons of a block for the cases (block_reasons is empty until Lot 4: seeded here). */
+const BLOCK_REASON = "t_eight_block";
+
+async function giveBlockReason(tx: Tx): Promise<void> {
+  await tx`
+    insert into matching.block_reasons (code, label_key, available_to_side)
+    values (${BLOCK_REASON}, ${`block.reason.${BLOCK_REASON}`}, 'any')
+    on conflict (code) do nothing`;
+}
+
+/** A block of the pair, posed by a side (the brand, the creator, or INFLUX through an admin). */
+async function giveBlock(
+  tx: Tx,
+  brand: string,
+  creator: string,
+  side: "advertiser" | "creator" | "influx",
+  comment: string,
+  lifted = false,
+): Promise<void> {
+  const by =
+    side === "advertiser" ? brand : side === "creator" ? creator : adminA;
+  const [row] = await tx<{ id: string }[]>`
+    insert into matching.party_blocks
+      (advertiser_account_id, creator_account_id, blocked_by_account_id, blocked_by_side,
+       reason_code, comment, created_at)
+    values (${brand}, ${creator}, ${by}, ${side}, ${BLOCK_REASON}, ${comment},
+            '2026-11-12T10:00:00Z')
+    returning id::text`;
+  if (lifted) {
+    // the superuser, outside influx_%: the guard of 0317 lets it through
+    await tx`
+      update matching.party_blocks
+         set lifted_at = '2026-11-13T10:00:00Z', lifted_by_account_id = ${by},
+             lift_reason_code = 't_eight_lift'
+       where id = ${String(row?.id)}`;
+  }
+}
+
+async function exportOf(tx: Tx, member: Member): Promise<string> {
+  const request = await deposit(tx, member, "access");
+  await approve(tx, request, "access");
+  rowsOf(await execute(tx, request, NOTICE));
+  const [stored] = await tx<{ content: string }[]>`
+    select content from privacy.data_exports where request_id = ${request}`;
+  return String(stored?.content);
+}
+
+async function eraseOf(tx: Tx, member: Member): Promise<void> {
+  const request = await deposit(tx, member, "erasure");
+  await approve(tx, request, "erasure");
+  rowsOf(await execute(tx, request, null));
+}
+
+/** What the base holds of the search and the blocks naming an account, on each side. */
+async function searchTraceOf(tx: Tx, account: string): Promise<Row> {
+  const [row] = await tx<Row[]>`
+    select
+      (select count(*)::int from search.search_queries where account_id = ${account}) as searches,
+      (select count(*)::int from search.search_impressions i
+         where i.creator_account_id = ${account}
+            or i.search_query_id in (select q.id from search.search_queries q
+                                      where q.account_id = ${account})) as impressions,
+      (select count(*)::int from search.impression_reasons r
+         where r.creator_account_id = ${account}
+            or r.search_query_id in (select q.id from search.search_queries q
+                                      where q.account_id = ${account})) as reasons,
+      (select count(*)::int from search.creator_exposures
+         where creator_account_id = ${account}) as exposures,
+      (select count(*)::int from search.shortlists
+         where advertiser_account_id = ${account}) as shortlists,
+      (select count(*)::int from search.shortlist_items i
+         where i.creator_account_id = ${account}
+            or i.shortlist_id in (select s.id from search.shortlists s
+                                   where s.advertiser_account_id = ${account})) as shortlist_items,
+      (select count(*)::int from matching.party_blocks
+         where advertiser_account_id = ${account} or creator_account_id = ${account}) as blocks`;
+  return row ?? {};
+}
+
+type SearchExport = {
+  data: {
+    advertiser_profile: {
+      creator_searches: Row[];
+      shortlists: Row[];
+      blocks: Row[];
+    } | null;
+    creator_profile: { blocks: Row[] } | null;
+    activity_log: Row[];
+  };
+};
+
+describe("L3E-T5 the creator search and the blocks in the export and the erasure (0318, modele §9)", () => {
+  it("L3E-T5 exports the brand's searches (instant, filters, sort, page, outcome, band or null, k block, campaign title); never the exact count, an impression, a reason nor a creator served", async () => {
+    const outcome = await scenario(async (tx) => {
+      const brand = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      const served = await newCreatorWithAlias(tx);
+      const campaign = await newDraftCampaign(
+        tx,
+        brand.id,
+        "t8 search campaign",
+      );
+      const first = await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 37,
+        page: 1,
+        filters: { F1: "beauty", F3: ["instagram"] },
+        campaign,
+        at: "2026-11-10T08:00:00Z",
+      });
+      await giveImpression(tx, first, served.member.id, 1);
+      await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 3,
+        page: 1,
+        kBlocked: true,
+        filters: { F1: "travel" },
+        sort: "verified_first",
+        at: "2026-11-10T08:01:00Z",
+      });
+      await giveSearch(tx, brand.id, {
+        outcome: "page_cap",
+        count: 0,
+        page: 6,
+        sort: "audience",
+        at: "2026-11-10T08:02:00Z",
+      });
+      await giveSearch(tx, brand.id, {
+        outcome: "rate_limited",
+        count: 0,
+        page: 1,
+        at: "2026-11-10T08:03:00Z",
+      });
+      await giveSearch(tx, stranger.id, {
+        outcome: "served",
+        count: 12,
+        page: 1,
+        filters: { F1: "stranger_topic" },
+        at: "2026-11-10T08:04:00Z",
+      });
+      return {
+        content: await exportOf(tx, brand),
+        served: served.member.id,
+        alias: served.alias,
+      };
+    });
+    const file = JSON.parse(outcome.content) as SearchExport;
+    expect(file.data.advertiser_profile?.creator_searches).toEqual([
+      {
+        searched_at: "2026-11-10T08:00:00.000Z",
+        filters: { F1: "beauty", F3: ["instagram"] },
+        sort: "default",
+        page: 1,
+        outcome: "served",
+        count_band: "25_49",
+        blocked_by_k_anonymity: false,
+        campaign_title: "t8 search campaign",
+      },
+      {
+        searched_at: "2026-11-10T08:01:00.000Z",
+        filters: { F1: "travel" },
+        sort: "verified_first",
+        page: 1,
+        outcome: "served",
+        count_band: null,
+        blocked_by_k_anonymity: true,
+        campaign_title: null,
+      },
+      {
+        searched_at: "2026-11-10T08:02:00.000Z",
+        filters: {},
+        sort: "audience",
+        page: 6,
+        outcome: "page_cap",
+        count_band: null,
+        blocked_by_k_anonymity: false,
+        campaign_title: null,
+      },
+      {
+        searched_at: "2026-11-10T08:03:00.000Z",
+        filters: {},
+        sort: "default",
+        page: 1,
+        outcome: "rate_limited",
+        count_band: null,
+        blocked_by_k_anonymity: false,
+        campaign_title: null,
+      },
+    ]);
+    expect(file.data.advertiser_profile?.shortlists).toEqual([]);
+    expect(file.data.advertiser_profile?.blocks).toEqual([]);
+    // the creator served, its alias, the reason shown and the exact count never leave the base
+    for (const absent of [
+      outcome.served,
+      outcome.alias,
+      "result_count",
+      "primary_topic",
+      "rank",
+      "stranger_topic",
+    ]) {
+      expect(outcome.content.includes(absent), absent).toBe(false);
+    }
+  });
+
+  it("L3E-T5 exports the brand's shortlists with their creators by alias and the blocks it posed; never the alias of a creator it only saw served", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const brand = await newMember(tx, "advertiser");
+      const listed = await newCreatorWithAlias(tx);
+      const seen = await newCreatorWithAlias(tx);
+      const blocked = await newCreatorWithAlias(tx);
+      const campaign = await newDraftCampaign(
+        tx,
+        brand.id,
+        "t8 shortlist campaign",
+      );
+      const search = await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 9,
+        page: 1,
+        at: "2026-11-10T08:00:00Z",
+      });
+      await giveImpression(tx, search, listed.member.id, 1);
+      await giveImpression(tx, search, seen.member.id, 2);
+      await giveShortlist(tx, brand.id, "t8 favourites", campaign, [
+        listed.member.id,
+      ]);
+      await giveShortlist(
+        tx,
+        brand.id,
+        "t8 empty",
+        null,
+        [],
+        "2026-11-11T10:00:00Z",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        blocked.member.id,
+        "advertiser",
+        "t8 brand comment",
+        true,
+      );
+      return {
+        content: await exportOf(tx, brand),
+        listed: listed.alias,
+        seen: seen.alias,
+        blocked: blocked.alias,
+      };
+    });
+    const file = JSON.parse(outcome.content) as SearchExport;
+    expect(file.data.advertiser_profile?.shortlists).toEqual([
+      {
+        name: "t8 favourites",
+        campaign_title: "t8 shortlist campaign",
+        created_at: "2026-11-11T09:00:00.000Z",
+        creators: [
+          {
+            alias: outcome.listed,
+            added_at: "2026-11-11T09:01:00.000Z",
+            note: "t8 note 1",
+          },
+        ],
+      },
+      {
+        name: "t8 empty",
+        campaign_title: null,
+        created_at: "2026-11-11T10:00:00.000Z",
+        creators: [],
+      },
+    ]);
+    expect(file.data.advertiser_profile?.blocks).toEqual([
+      {
+        creator_alias: outcome.blocked,
+        reason: BLOCK_REASON,
+        comment: "t8 brand comment",
+        created_at: "2026-11-12T10:00:00.000Z",
+        lifted_at: "2026-11-13T10:00:00.000Z",
+      },
+    ]);
+    // a creator served but never shortlisted stays unnamed (modele §9); who lifted, never
+    expect(outcome.content.includes(outcome.seen)).toBe(false);
+    expect(outcome.content.includes("t_eight_lift")).toBe(false);
+  });
+
+  it("L3E-T5 exports the blocks the creator posed (brand, reason, comment, dates); never an impression, a reason nor its exposure (RG8)", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const creator = await newCreatorWithAlias(tx);
+      const brand = await newMember(tx, "advertiser");
+      await tx`update profiles.advertiser_profiles set legal_name = 't8 Blocked Brand'
+                where account_id = ${brand.id}`;
+      const search = await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 5,
+        page: 1,
+        filters: { F1: "brand_topic" },
+        at: "2026-11-10T08:00:00Z",
+      });
+      await giveImpression(tx, search, creator.member.id, 1);
+      await giveBlock(
+        tx,
+        brand.id,
+        creator.member.id,
+        "creator",
+        "t8 creator comment",
+      );
+      return { content: await exportOf(tx, creator.member) };
+    });
+    const file = JSON.parse(outcome.content) as SearchExport;
+    expect(file.data.creator_profile?.blocks).toEqual([
+      {
+        brand: "t8 Blocked Brand",
+        reason: BLOCK_REASON,
+        comment: "t8 creator comment",
+        created_at: "2026-11-12T10:00:00.000Z",
+        lifted_at: null,
+      },
+    ]);
+    expect(file.data.advertiser_profile).toBeNull();
+    for (const absent of ["brand_topic", "beauty", "first_page_at", "rank"]) {
+      expect(outcome.content.includes(absent), absent).toBe(false);
+    }
+  });
+
+  it("L3E-T5 leaves out of a member's export every block posed against it, by the other party or by INFLUX, its reason and comment, and block.* of its activity log (RG30, L3A-T5)", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const brand = await newMember(tx, "advertiser");
+      const creator = await newCreatorWithAlias(tx);
+      const blocker = await newCreatorWithAlias(tx);
+      const other = await newCreatorWithAlias(tx);
+      const otherBrand = await newMember(tx, "advertiser");
+      // another creator blocks the brand; INFLUX blocks the brand with a third creator and the pair
+      // of the two members exported; another brand blocks the creator
+      await giveBlock(
+        tx,
+        brand.id,
+        blocker.member.id,
+        "creator",
+        "t8 against the brand",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        creator.member.id,
+        "influx",
+        "t8 influx against both",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        other.member.id,
+        "influx",
+        "t8 influx against the brand",
+      );
+      await giveBlock(
+        tx,
+        otherBrand.id,
+        creator.member.id,
+        "advertiser",
+        "t8 against the creator",
+      );
+      // the register line of the gesture (Lot 4), written here by the superuser on each block
+      await tx`
+        select audit.append('block.created', 'party_block', b.id)
+          from matching.party_blocks b
+         where b.advertiser_account_id = ${brand.id} or b.creator_account_id = ${creator.member.id}`;
+      // L3A-T5: the two codes of a block are excluded_third_party, by name
+      const classes = await tx<{ code: string; export_class: string }[]>`
+        select code, export_class from audit.event_types where code like 'block.%' order by code`;
+      return {
+        brand: await exportOf(tx, brand),
+        creator: await exportOf(tx, creator.member),
+        classes,
+      };
+    });
+    expect(outcome.classes).toEqual([
+      { code: "block.created", export_class: "excluded_third_party" },
+      { code: "block.lifted", export_class: "excluded_third_party" },
+    ]);
+    const brand = JSON.parse(outcome.brand) as SearchExport;
+    const creator = JSON.parse(outcome.creator) as SearchExport;
+    expect(brand.data.advertiser_profile?.blocks).toEqual([]);
+    expect(creator.data.creator_profile?.blocks).toEqual([]);
+    for (const content of [outcome.brand, outcome.creator]) {
+      for (const absent of [
+        "t8 against the brand",
+        "t8 influx against the brand",
+        "t8 influx against both",
+        "t8 against the creator",
+        BLOCK_REASON,
+        "block.created",
+      ]) {
+        expect(content.includes(absent), absent).toBe(false);
+      }
+    }
+    // the export of the creator still serves its exported lines (the filter of f3.md only)
+    expect(creator.data.activity_log.map((line) => line.code)).toContain(
+      "privacy.execution_approved",
+    );
+  });
+
+  it("L3E-T5 erases a brand: its searches, their impressions and reasons, its shortlists and their creators, every block of its pairs; another brand's kept", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const brand = await newMember(tx, "advertiser");
+      const stranger = await newMember(tx, "advertiser");
+      const creator = await newCreatorWithAlias(tx);
+      const other = await newCreatorWithAlias(tx);
+      for (const owner of [brand.id, stranger.id]) {
+        const search = await giveSearch(tx, owner, {
+          outcome: "served",
+          count: 20,
+          page: 1,
+          at: "2026-11-10T08:00:00Z",
+        });
+        await giveImpression(tx, search, creator.member.id, 1);
+        await giveShortlist(tx, owner, "t8 list", null, [creator.member.id]);
+      }
+      await giveBlock(
+        tx,
+        brand.id,
+        creator.member.id,
+        "advertiser",
+        "t8 posed by the brand",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        other.member.id,
+        "creator",
+        "t8 posed against the brand",
+      );
+      await giveBlock(
+        tx,
+        stranger.id,
+        other.member.id,
+        "influx",
+        "t8 stranger's pair",
+      );
+      await eraseOf(tx, brand);
+      return {
+        brand: await searchTraceOf(tx, brand.id),
+        stranger: await searchTraceOf(tx, stranger.id),
+        creator: await searchTraceOf(tx, creator.member.id),
+      };
+    });
+    expect(outcome.brand).toEqual({
+      searches: 0,
+      impressions: 0,
+      reasons: 0,
+      exposures: 0,
+      shortlists: 0,
+      shortlist_items: 0,
+      blocks: 0,
+    });
+    expect(outcome.stranger).toEqual({
+      searches: 1,
+      impressions: 1,
+      reasons: 1,
+      exposures: 0,
+      shortlists: 1,
+      shortlist_items: 1,
+      blocks: 1,
+    });
+    // the creator served by the stranger keeps its impression, its exposure and its place
+    expect(outcome.creator).toMatchObject({
+      impressions: 1,
+      reasons: 1,
+      exposures: 1,
+      shortlist_items: 1,
+      blocks: 0,
+    });
+  });
+
+  it("L3E-T5 erases a creator: its impressions and reasons in any search, its exposure, its place in any shortlist, every block of its pairs; the searches and shortlists of the brands kept; nothing of an active account deleted", async () => {
+    const outcome = await scenario(async (tx) => {
+      await giveBlockReason(tx);
+      const brand = await newMember(tx, "advertiser");
+      const creator = await newCreatorWithAlias(tx);
+      const other = await newCreatorWithAlias(tx);
+      const search = await giveSearch(tx, brand.id, {
+        outcome: "served",
+        count: 30,
+        page: 1,
+        at: "2026-11-10T08:00:00Z",
+      });
+      await giveImpression(tx, search, creator.member.id, 1);
+      await giveImpression(tx, search, other.member.id, 2);
+      await giveShortlist(tx, brand.id, "t8 list", null, [
+        creator.member.id,
+        other.member.id,
+      ]);
+      await giveBlock(
+        tx,
+        brand.id,
+        creator.member.id,
+        "advertiser",
+        "t8 posed against the creator",
+      );
+      await giveBlock(
+        tx,
+        brand.id,
+        other.member.id,
+        "creator",
+        "t8 the other's block",
+      );
+      await eraseOf(tx, creator.member);
+      // the owner of the erasure, on the lines of active accounts: nothing deleted, nothing updated
+      await tx.unsafe("set local role influx_privacy_definer");
+      const removed: number[] = [];
+      for (const statement of [
+        "delete from search.search_queries where account_id = $1 returning 1",
+        "delete from search.search_impressions where creator_account_id = $2 returning 1",
+        "delete from search.impression_reasons where creator_account_id = $2 returning 1",
+        "delete from search.creator_exposures where creator_account_id = $2 returning 1",
+        "delete from search.shortlist_items where creator_account_id = $2 returning 1",
+        "delete from search.shortlists where advertiser_account_id = $1 returning 1",
+        "delete from matching.party_blocks where creator_account_id = $2 returning 1",
+      ]) {
+        // both parameters typed in every statement (one of them unused)
+        const typed = `${statement.replace(" returning 1", "")} and $1::uuid is not null and $2::uuid is not null returning 1`;
+        removed.push(
+          rowsOf(await attempt(tx, typed, [brand.id, other.member.id])).length,
+        );
+      }
+      const updated = codeOf(
+        await attempt(
+          tx,
+          "update matching.party_blocks set comment = null where creator_account_id = $1",
+          [other.member.id],
+        ),
+      );
+      await tx.unsafe("reset role");
+      return {
+        creator: await searchTraceOf(tx, creator.member.id),
+        brand: await searchTraceOf(tx, brand.id),
+        other: await searchTraceOf(tx, other.member.id),
+        removed,
+        updated,
+      };
+    });
+    expect(outcome.creator).toEqual({
+      searches: 0,
+      impressions: 0,
+      reasons: 0,
+      exposures: 0,
+      shortlists: 0,
+      shortlist_items: 0,
+      blocks: 0,
+    });
+    expect(outcome.brand).toEqual({
+      searches: 1,
+      impressions: 1,
+      reasons: 1,
+      exposures: 0,
+      shortlists: 1,
+      shortlist_items: 1,
+      blocks: 1,
+    });
+    expect(outcome.other).toMatchObject({
+      impressions: 1,
+      exposures: 1,
+      shortlist_items: 1,
+      blocks: 1,
+    });
+    expect(outcome.removed).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    expect(outcome.updated).toBe(INSUFFICIENT_PRIVILEGE);
   });
 });
 

@@ -791,15 +791,16 @@ files (`15` RG26), qui a déjà évité onze files orphelines.
 | `account.welcome_creator` | Bienvenue créateur | Compte créé | Le membre | P1 | **compte** | `05` RG86 |
 | `account.suspended` | Compte suspendu, avec le message du motif typé | Suspension | Le membre | P1 | identifiant de suspension | `15` §E |
 | `account.reactivated` | Compte réactivé | Levée de suspension | Le membre | P1 | identifiant de suspension | `15` §E |
-| `profile.decision` | Profil validé ou refusé, avec le message du motif | Décision de la file `profiles_*` | Le membre | P1 | identifiant de décision | `06`, `07` |
+| `profile.decision` | Profil validé ou refusé, avec le message du motif | Décision de la file `profiles_*` | Le membre | P1 | identifiant de décision (L2C : `profile.decision:<entry_id>`, rendu par le worker depuis `email.json`, D69) | `06`, `07` |
 | `portfolio.decision` | Visuel refusé, avec motif | Modération d'un visuel | Le créateur | P2 | identifiant de décision | `07` RG97 |
 | `badge.granted` | Badge attribué, avec son niveau et **sa date de péremption** | Décision | Le créateur | P1 | identifiant de décision | `08` |
 | `badge.refused` | Badge refusé, avec le motif | Décision | Le créateur | P1 | identifiant de décision | `08` |
+| `verification.received` · `verification.code_issued` · `verification.decision` · `verification.request_expired` | *(L2E, EC-L2E-3, amendé à la clôture ; remplacent `badge.granted` et `badge.refused` pour le L2E)* Demande reçue ; code de propriété généré (sans le code) ; décision (accordée ou refusée, motif fermé de `modele.md` §5) ; demande expirée | Dépôt, ouverture, décision de la file 4, tâche `verification_expiry` | Le créateur (marque : mêmes types, motifs de `06`) | P1 | `<type>:<request_id>` (`code_issued` : `<code_id>`) ; charge `event_id`, `account_id`, `request_id`, `email_code` | `08` RG94 |
 | `badge.expiring` | Badge à rafraîchir | **J-15** | Le créateur | P2 | badge + étape (J-15) | `08` RG70, AL14 |
 | `badge.expired` | Badge périmé | J+0 (90 jours) | Le créateur | P2 | badge + étape (J+0) | `08` RG70 |
 | `badge.withdrawn` | Badge retiré, avec le motif | Retrait | Le créateur | P1 | identifiant de décision | `08` |
 | `badge.dispute_outcome` | Issue d'une contestation | Décision de réexamen | Le créateur | P1 | identifiant de contestation | `08` RG77 |
-| `campaign.decision` | Campagne validée ou refusée, avec le motif | Décision de la file `campaigns` | La marque | P1 | identifiant de décision | `09` |
+| `campaign.decision` | Campagne validée, refusée, mise en pause, reprise, clôturée, corrigée ou créée pour la marque (huit variantes : `published`, `rejected`, `paused_by_influx`, `resumed_by_influx`, `closed_by_influx`, `closed_automatically`, `corrected`, `created_for_brand`), avec le motif de refus ; ni titre, montant ni lien. *L3C : la variante vit dans la charge ; le journal `leads.transactional_sends` garde le code du catalogue `campaign.decision` (`0311`, arbitrage A2)* | Décision de la file `campaigns` ou intervention d'un agent | La marque | P1 | identifiant de décision ou d'intervention | `09` |
 | `intro.acknowledgement` | Accusé d'une demande de contact ou d'une candidature | Dépôt | L'initiateur | P2 | mise en relation + destinataire | `13` RG111 |
 | `intro.invitation` | Invitation à accepter une mise en relation | Validation, ou proposition INFLUX | Chaque partie | P1 | mise en relation + destinataire + `invitation` | `13` RG111, `04` |
 | `intro.reminder` | Relance d'acceptation | **J+3**, puis **J+6** | La partie silencieuse | P2 | mise en relation + destinataire + **étape** (3 ou 6) | `13`, AL6 |
@@ -1477,10 +1478,24 @@ et coûte cher à reconstituer.
 | Nom d'entreprise | `COMPANY` | texte, 120 | — | **Vide pour un créateur.** Jamais rempli avec un nom de personne (`05` RG88) |
 | Date d'inscription | `SIGNED_UP_AT` | date-heure | — | Jamais absente |
 | Source d'inscription | `SIGNUP_SOURCE` | liste fermée | `direct` | Valeur par défaut |
-| Étape de funnel | `FUNNEL_STAGE` | liste fermée : inscrit · profil complété · campagne publiée · en négociation | `registered` | Valeur par défaut |
-| Complétude du profil | `PROFILE_COMPLETENESS` | entier 0–100 | `0` | `0` |
-| Secteur ou thématique principale | `MAIN_TOPIC` | liste fermée | — | **Vide**, jamais deviné |
-| Niveau de badge | `VERIFIED_LEVEL` | liste fermée `none` · `n1` · `n2` | `none` | `none` |
+| Étape de funnel | `FUNNEL_STAGE` | liste fermée : `registered` (inscrit) · `profile_completed` (profil complété) · `campaign_published` · `in_negotiation` | `registered` | Valeur par défaut. *Amendé le 2026-11-04 (L2C, `06` RG78, RG79) et le 2026-11-11 (L2G, `07` RG106)* : une marque ou un créateur est `profile_completed` dès sa première publication (`first_published_at`, `published_at`), et le reste ; les deux dernières valeurs arrivent aux lots 3 et 4 |
+| Complétude du profil | `PROFILE_COMPLETENESS` | entier 0–100 | `0` | `0`. Marque : le score stocké de la ligne vivante (`06` RG83) ; créateur : le score stocké (`07` RG88) ; jamais recalculé par le worker |
+| Thématique principale | `MAIN_TOPIC` | code de `reference.topics` (liste fermée) | — | **Vide**, jamais deviné. Marque : la première thématique (rang 1) ; créateur : sa thématique principale (`07` RG107, L2G) |
+| Réseaux couverts | `NETWORKS` *(L2G, créé sur `staging` le 2026-11-11, D70)* | codes de `reference.networks` des lignes **listées** (publiées), séparés par des virgules, dans l'ordre des codes | — | **Vide.** Créateur seulement (`07` RG107). Jamais un pseudo, un lien ni un nom de compte (RG108) |
+| Tranche d'audience du compte principal | `MAIN_AUDIENCE_BAND` *(L2G)* | code de `reference.audience_bands` de la ligne principale listée | — | **Vide.** Créateur seulement. Une tranche, jamais un chiffre d'abonnés (`07` RG108) |
+| Pays principal d'audience | `MAIN_AUDIENCE_COUNTRY` *(L2G)* | code ISO 3166-1 alpha-2 | — | **Vide.** Créateur seulement (`07` RG107) |
+| Secteur | `SECTOR` | code de `reference.sectors` (liste fermée) | — | **Vide**, jamais deviné. Marque seulement (`06` RG79) ; secteur principal, jamais les secteurs secondaires |
+| Taille d'entreprise | `COMPANY_SIZE` | tranche `1_10` · `11_50` · `51_250` · `251_1000` · `1001_plus` | — | **Vide.** Une tranche, jamais un effectif (`06` RG22). Marque seulement |
+| Marchés visés | `TARGET_MARKETS` | codes ISO 3166-1 alpha-2 en majuscules, dans l'ordre du profil, séparés par des virgules (5 au plus) | — | **Vide.** Marque seulement |
+| État du profil | `PROFILE_STATUS` | liste fermée `draft` · `pending_review` · `published` · `rejected` · `suspended` | — | Créateur : l'état de la vitrine vivante (`07` RG9, L2G ; **vide** sans vitrine) ; marque : l'état de la ligne vivante ; une révision en examen laisse `published` (`06` RG9) |
+| Niveau de badge | `VERIFIED_LEVEL` | liste fermée `none` · `n1` · `n2` *(L2E : `n1` compte vérifié créateur ou marque vérifiée, `n2` audience vérifiée ; valeur lue du badge tenant)* | `none` | `none` |
+| Date du badge | `VERIFIED_AT` *(L2E, créé sur `staging` le 2026-11-07)* | texte (date ISO), comme `CONSENT_AT` | — | Vide ; date du badge qui fixe `VERIFIED_LEVEL`, relue à chaque réécriture du contact (Brevo seul, jamais Apollo) |
+| Campagnes publiées | `CAMPAIGNS_PUBLISHED` *(L3C, créé sur `staging` le 2026-11-15, D70)* | nombre (float), compteur des campagnes **jamais publiées** (`first_published_at`, closes comprises) | `0` | `0` : un vrai compte (aucune campagne publiée), jamais une valeur inventée. **Marque seulement** ; envoyé quand la base sert les campagnes du compte (annonceur avec profil marque), jamais pour un créateur (`09` RG104) |
+| Dernière campagne : date | `LAST_CAMPAIGN_AT` *(L3C)* | texte (date ISO UTC), première publication de la dernière campagne | — | **Vide** (`09` RG107). Marque seulement |
+| Dernière campagne : catégorie | `LAST_CAMPAIGN_SECTOR` *(L3C)* | code de `reference.sectors` | — | **Vide.** Marque seulement |
+| Dernière campagne : devise | `LAST_CAMPAIGN_CURRENCY` *(L3C)* | ISO 4217 | — | **Vide.** Marque seulement |
+| Dernière campagne : pays visés | `LAST_CAMPAIGN_COUNTRIES` *(L3C)* | codes ISO 3166-1 alpha-2, dans l'ordre des pays d'audience, séparés par des virgules | — | **Vide.** Marque seulement |
+| Dernière campagne : réseaux visés | `LAST_CAMPAIGN_NETWORKS` *(L3C)* | codes de `reference.networks`, dans l'ordre du premier livrable de chaque réseau, séparés par des virgules | — | **Vide.** Marque seulement |
 | Consentement marketing | `MARKETING_CONSENT` | booléen | `false` | `false` — **jamais `true` par défaut** |
 | Date du consentement | `CONSENT_AT` | date-heure | — | Vide |
 | Source du consentement | `CONSENT_SOURCE` | liste fermée | — | Vide |
@@ -1490,6 +1505,10 @@ et coûte cher à reconstituer.
 **RG142 — Un champ absent est envoyé vide, jamais rempli d'une valeur inventée** (`05` RG88,
 `13` RG115). Remplir « entreprise » avec le nom d'un créateur produirait une donnée fausse dans un
 outil qui l'exploite pour segmenter et pour écrire.
+
+*Amendé le 2026-11-04 (L2C commit 10, `06` RG79 à RG81) : `SECTOR`, `COMPANY_SIZE`, `TARGET_MARKETS` et `PROFILE_STATUS` rejoignent la liste fermée ; le budget et le badge n'y sont pas (aucun budget au pilote, `06` réponse A du L2B, D48, D78 ; badge au L2E). Les valeurs viennent de la ligne vivante du profil, lue par le worker à la consommation (`leads.read_brand_profile_attributes()`, `0212`). Ne partent jamais : la raison sociale, le numéro d'immatriculation, les pièces, les notes, l'interlocuteur (prénom, e-mail, téléphone, page), la présentation et le domaine du site (Apollo seul).*
+
+*Amendé le 2026-11-15 (L3C commit 06, `09` RG103 à RG107) : les six attributs de campagne ci-dessus rejoignent la liste fermée, séparés de la liste des trente (`BREVO_CAMPAIGN_ATTRIBUTES`) ; ils sont des codes, des dates et un compteur, jamais une tranche de rémunération, un budget, une référence, une note ni un texte (D78, RG106). Ils viennent de `leads.read_campaign_attributes()` (`0310`), lue à chaque réécriture du contact d'un annonceur ; `FUNNEL_STAGE` passe à `campaign_published` dès la première publication d'une campagne. Apollo ne reçoit que « a publié une campagne » et sa date, en deux étiquettes (`influx_campaign_published`, `influx_campaign_published_on_AAAA_MM_JJ`), sans champ personnalisé (`09` RG105, CA70).*
 
 **RG143 — Ne sont jamais envoyés comme attribut de contact** : nom ou prénom d'une personne
 physique, pseudonyme, identifiant de réseau social, lien de réseau, numéro de téléphone, montant,

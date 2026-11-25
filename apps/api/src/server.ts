@@ -5,7 +5,12 @@ import type { IncomingHttpHeaders, IncomingMessage } from "node:http";
 import fastifyCookie from "@fastify/cookie";
 import { systemStatusSchema } from "@influx/contracts/system";
 import Fastify, { LogController } from "fastify";
-import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import type {
+  FastifyError,
+  FastifyReply,
+  FastifyRequest,
+  FastifySchema,
+} from "fastify";
 import type { DestinationStream } from "pino";
 import type { ApiConfig } from "./config/schema.ts";
 import {
@@ -21,9 +26,24 @@ import {
 import { requireBackofficeSession } from "./domains/identity/backoffice-session.ts";
 import { registerBackofficeAccountRoutes } from "./domains/backoffice/accounts-routes.ts";
 import { registerDataExportRoutes } from "./domains/privacy/member/routes.ts";
+import { registerCreatorProfileRoutes } from "./domains/profiles/creator/routes.ts";
+import { registerVerificationRoutes } from "./domains/verification/routes.ts";
+import { registerBrandVerificationRoutes } from "./domains/verification/brand-routes.ts";
+import { registerVerificationBadgesRoutes } from "./domains/backoffice/verification-badges-routes.ts";
+import { registerVerificationOpeningRoutes } from "./domains/backoffice/verification-opening-routes.ts";
+import { registerVerificationRegistryRoutes } from "./domains/backoffice/verification-registry-routes.ts";
+import { registerCampaignRoutes } from "./domains/campaigns/routes.ts";
+import { registerCreatorSearchRoutes } from "./domains/search/creator-search/routes.ts";
+import { registerIdentifiedSearchRoutes } from "./domains/search/identified-search/routes.ts";
+import { registerCreatorSearchProfileRoutes } from "./domains/search/creator-search-profile/routes.ts";
+import { registerSelectionRequestRoutes } from "./domains/search/selection-requests/routes.ts";
+import { registerShortlistRoutes } from "./domains/search/shortlists/routes.ts";
+import { registerOpenCampaignRoutes } from "./domains/search/open-campaigns/routes.ts";
+import { registerBrandProfileRoutes } from "./domains/profiles/routes.ts";
 import { registerBackofficeActionRoutes } from "./domains/backoffice/actions-routes.ts";
 import { registerBackofficeInvitationRoutes } from "./domains/backoffice/invitations-routes.ts";
 import { registerBackofficeOpsRoutes } from "./domains/backoffice/ops-routes.ts";
+import { registerBackofficeQueueRoutes } from "./domains/backoffice/queues-routes.ts";
 import { PWNED_PASSWORDS_TIMEOUT_MS } from "./domains/identity/settings.ts";
 import {
   registerIdentityRoutes,
@@ -35,6 +55,8 @@ import { registerOpsRoutes } from "./domains/ops/routes.ts";
 import { createAuthTokenCodec } from "./platform/auth-tokens.ts";
 import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createPwnedPasswordCheck } from "./platform/hibp.ts";
+import { createImageSlots } from "./platform/images.ts";
+import { createObjectStore, type ObjectStore } from "./platform/storage.ts";
 import { createSupabaseAuth } from "./platform/supabase.ts";
 import {
   ApiError,
@@ -61,6 +83,7 @@ import {
   readClientAddress,
 } from "./platform/client-address.ts";
 import { createLogger } from "./platform/logger.ts";
+import { MemberAddressRateLimiter } from "./platform/member-rate.ts";
 import { PublicRateLimiter } from "./platform/public-rate.ts";
 import { readClientUserAgent } from "./platform/user-agent.ts";
 import {
@@ -88,7 +111,11 @@ declare module "fastify" {
  */
 export const RATE_LIMITED_RETRY_AFTER_SECONDS = 60;
 
-/** Same ceiling as the relay of the fronts (`03` PP-9). */
+/**
+ * The ceiling of every route but two deposits, each in a context of its own: the logo, up to the
+ * relay's 2 MiB (`03` PP-9 amended by D80; domains/profiles/routes.ts), and a piece of verification,
+ * up to the relay's 8 MiB exception for that path (D82 (1); domains/verification/routes.ts).
+ */
 export const MAX_BODY_BYTES = 1_048_576;
 
 /** Bound of the database check of GET /health: the probe allows 10 s for the whole answer. */
@@ -139,6 +166,23 @@ const ROUTE_HOOKS_REFUSED = ["onSend", "preSerialization"] as const;
 /** A route option holding one hook or a list of hooks; an empty list declares none. */
 function hasHook(value: unknown): boolean {
   return Array.isArray(value) ? value.length > 0 : value !== undefined;
+}
+
+/** A route as the onRoute hook saw it, with its schemas once the envelope fallback is added. */
+export type InventoriedRoute = {
+  method: string;
+  url: string;
+  schema: FastifySchema;
+};
+
+const routeInventories = new WeakMap<object, InventoriedRoute[]>();
+
+/**
+ * Every route a server registered, read from its own onRoute hook, never from a list kept by hand
+ * (18 T1.2): the anonymisation sweep calls each one, and a route added later is swept by itself.
+ */
+export function routeInventoryOf(server: object): readonly InventoriedRoute[] {
+  return routeInventories.get(server) ?? [];
 }
 
 /** One log line per request, written on completion: method, route model, status, duration. */
@@ -217,6 +261,8 @@ export type BuildServerOptions = {
    * tests that run without a database.
    */
   isDatabaseReachable?: () => Promise<boolean>;
+  /** Supabase Storage (D80); the adapter of src/platform/storage.ts by default. Tests replace it. */
+  storage?: ObjectStore;
 };
 
 export function buildServer(
@@ -237,6 +283,11 @@ export function buildServer(
     new OpsRecorder({ version: config.version, instance: config.instance });
   // 18 T15: the routes without a session, per client address and per instance (public-rate.ts).
   const publicRate = new PublicRateLimiter(
+    options.identity?.now ?? (() => new Date()),
+  );
+  // 11 CA18, 10 RG64, 18 T15.4: the creator's reads of the open campaigns and the brand's creator
+  // search, per client address (member-rate.ts).
+  const memberAddressRate = new MemberAddressRateLimiter(
     options.identity?.now ?? (() => new Date()),
   );
 
@@ -281,6 +332,9 @@ export function buildServer(
   // No secret here: the short tokens are signed by src/platform/auth-tokens.ts alone.
   void app.register(fastifyCookie, { hook: false });
 
+  const inventory: InventoriedRoute[] = [];
+  routeInventories.set(app, inventory);
+
   // Structural rules on every route, checked when the route is registered: a violation stops
   // the server before it listens (02 §4 rule 1, 21 J1-E).
   app.addHook("onRoute", (route) => {
@@ -319,6 +373,9 @@ export function buildServer(
     // Surface bound to the prefix (21 J1-G, J1-J A2). /health belongs to no surface.
     if (url !== HEALTH_ROUTE) {
       checkRouteSurface(url, route.config?.surface);
+    }
+    for (const method of methods) {
+      inventory.push({ method: String(method), url, schema: route.schema });
     }
   });
 
@@ -398,6 +455,22 @@ export function buildServer(
       );
       throw new RetryLaterError("rate_limited", refusal.retryAfterSeconds);
     }
+    // 11 RG21, CA18, 18 T15.4 (L3D): the bulk reads of a member, per client address, before the
+    // session; the account's own bucket is in the database. The line never names the address.
+    const memberRefusal = memberAddressRate.take(
+      `${request.method} ${routeUrl}`,
+      request.clientAddress,
+    );
+    if (memberRefusal !== null) {
+      request.log.info(
+        { route: routeUrl, scope: "address" },
+        "member route over its address rate",
+      );
+      throw new RetryLaterError(
+        "rate_limited",
+        memberRefusal.retryAfterSeconds,
+      );
+    }
   });
 
   // D60 (02 §20.5): every completed request, by route model, in memory; written each minute.
@@ -430,6 +503,8 @@ export function buildServer(
     }
     if (error instanceof RetryLaterError) {
       void reply.header("retry-after", String(error.retryAfterSeconds));
+    } else if (classified.retryAfterSeconds !== undefined) {
+      void reply.header("retry-after", String(classified.retryAfterSeconds));
     } else if (statusCode === 429) {
       void reply.header(
         "retry-after",
@@ -522,6 +597,90 @@ export function buildServer(
     now: options.identity?.now ?? (() => new Date()),
   });
 
+  // Storage, with the secret key of the service: the logo of the brand profile and its read by an agent.
+  const objectStore = options.storage ?? createObjectStore(config.supabase);
+  // The two slots of re-encoding of the process, shared by the logo, the pieces and the visuals (D82 (2), (7)).
+  const imageSlots = createImageSlots();
+
+  // The brand profile: read, autosave, submission (docs/mvp/06; jalon L2B commit 07); its logo
+  // (commit 09, D80), through Storage with the secret key of the service.
+  registerBrandProfileRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+    store: objectStore,
+    slots: imageSlots,
+  });
+
+  // The campaigns a brand writes and submits (docs/mvp/09; jalon L3B commit 07): list, draft, read,
+  // autosave, submission.
+  registerCampaignRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
+  // The creator's read of the open campaigns: the feed, the record, the brand's logo (docs/mvp/11; jalon
+  // L3D commit 03), through the doors of the schema search (0314).
+  registerOpenCampaignRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+    store: objectStore,
+  });
+
+  // The brand's anonymous creator search (docs/mvp/10; jalon L3E commit 08), through the door of the
+  // schema search (0319, 0320).
+  registerCreatorSearchRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
+  // The identified creator search of the agents and the prefill of a campaign's compatible creators
+  // (docs/mvp/10; jalon L3G commit 09), through the doors of the schema search (0328, 0329).
+  registerIdentifiedSearchRoutes(app, { database });
+
+  // The anonymous profile a brand opens and its visuals relayed as JSON (docs/mvp/10; jalon L3F commit
+  // 07), through the doors of the schema search (0323) and Storage with the secret key of the service.
+  registerCreatorSearchProfileRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+    store: objectStore,
+  });
+
+  // The brand's private shortlists and its request for a selection by the INFLUX team (docs/mvp/10;
+  // jalon L3F commit 08), through the doors of the schema search (0324, 0325): no Storage, no outbox.
+  registerShortlistRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+  registerSelectionRequestRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
+  // The creator profile: read and autosave of blocks 1, 2 and 5 (docs/mvp/07; jalon L2D commit 08); its
+  // portfolio (L2G commit 07, D82 (7)), through Storage with the secret key of the service.
+  registerCreatorProfileRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+    store: objectStore,
+    slots: imageSlots,
+  });
+
+  // The creator's own verification requests: state by network line, open, code, submit, cancel (docs/mvp/08;
+  // jalon L2E commit 12); the deposit and removal of a piece (commit 13, D82).
+  registerVerificationRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+    store: objectStore,
+    slots: imageSlots,
+  });
+
+  // The brand's own verification request, « Marque vérifiée »: internal block, open, domain code, submit,
+  // cancel (docs/mvp/06; jalon L2E commit 15).
+  registerBrandVerificationRoutes(app, {
+    database,
+    now: options.identity?.now ?? (() => new Date()),
+  });
+
   // Authentication of the backoffice (21 §4, J3 commit 10).
   registerBackofficeAuthRoutes(app, {
     environment: { name: config.environment, brevoMode: config.brevo.mode },
@@ -556,6 +715,18 @@ export function buildServer(
 
   // The "Santé technique" screen, read-only, admins only (D60, 02 §20.5; 21 §J9 commit 9).
   registerBackofficeOpsRoutes(app, { database });
+
+  // Queue 1, "profils marque à valider": counters, list, opening = claiming (L2C commit 11).
+  registerBackofficeQueueRoutes(app, { database, store: objectStore });
+
+  // The registry sources of the brand's registration: read by agent and admin, written by an admin
+  // (docs/mvp/06 RG52, RG101; jalon L2E commit 15).
+  registerVerificationRegistryRoutes(app, { database });
+
+  // The badges of a member account and the request of their withdrawal, which opens a 2V an
+  // administrator confirms (docs/mvp/08 RG73 to RG76; jalon L2F commit 13).
+  registerVerificationBadgesRoutes(app, { database });
+  registerVerificationOpeningRoutes(app, { database });
 
   // Browser errors of the connected spaces (D60, 02 §20.5).
   registerOpsRoutes(app, {

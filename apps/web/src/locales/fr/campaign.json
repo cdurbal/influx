@@ -1,0 +1,552 @@
+{
+  "meta": {
+    "list": "Campagnes",
+    "form": "Campagne",
+    "preview": "Ce que voit un créateur"
+  },
+  "list": {
+    "title": "Mes campagnes",
+    "loading": "Chargement de vos campagnes…",
+    "unavailable": "Nous ne parvenons pas à afficher vos campagnes pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "create": "Créer une campagne",
+    "creating": "Création…",
+    "createFailed": "La campagne n'a pas pu être créée. Réessayez dans un instant.",
+    "empty": {
+      "title": "Votre première campagne",
+      "text": "Une campagne INFLUX décrit ce que vous proposez à des créateurs : l'offre, le travail attendu, l'audience visée, le budget et le calendrier. Elle s'enregistre au fur et à mesure, et un commercial INFLUX la relit avant sa publication."
+    },
+    "untitled": "Campagne sans titre",
+    "updatedOn": "Modifiée le {date}",
+    "resume": "Reprendre",
+    "view": "Consulter",
+    "profileLink": "Aller à mon profil de marque"
+  },
+  "feed": {
+    "title": "Campagnes",
+    "loading": "Chargement des campagnes…",
+    "count": "{count, plural, one {# campagne} other {# campagnes}}",
+    "sort": {
+      "label": "Trier par",
+      "recent": "Plus récentes",
+      "deadline": "Date limite la plus proche"
+    },
+    "more": "Voir la suite",
+    "moreLoading": "Chargement…",
+    "capReached": "Liste limitée : {count} campagnes affichées sur {total}.",
+    "closed": "Candidatures closes",
+    "empty": {
+      "title": "Aucune campagne ouverte pour le moment.",
+      "text": "Complétez votre profil : c'est ce que regarde un commercial INFLUX quand il rapproche une marque d'un créateur.",
+      "profileLink": "Aller à mon profil"
+    },
+    "unavailable": "Nous ne parvenons pas à afficher les campagnes pour le moment. Réessayez dans quelques minutes.",
+    "forbidden": "Les campagnes ne sont pas accessibles avec l'état actuel de votre compte.",
+    "rateLimited": "Vous consultez les campagnes très souvent. Réessayez dans un instant.",
+    "rateLimitedWait": "Vous consultez les campagnes très souvent. Réessayez dans {seconds, plural, one {# seconde} other {# secondes}}.",
+    "retry": "Réessayer",
+    "card": {
+      "open": "Voir la campagne",
+      "publishedOn": "Publiée le {date}",
+      "deadline": "Candidatures avant le {date}",
+      "period": {
+        "range": "Du {from} au {to}",
+        "from": "À partir du {from}",
+        "until": "Jusqu'au {to}"
+      },
+      "countries": "Audience visée : {countries}",
+      "logoAlt": "Logo de {name}"
+    }
+  },
+  "usageRights": {
+    "warning": "Ce que devient votre contenu : cette campagne demande un achat média illimité et mondial. Votre contenu pourra être diffusé sans limite de durée ni de pays. Vérifiez ces conditions avant de vous engager."
+  },
+  "disclosure": {
+    "notice": "Votre publication devra indiquer son caractère commercial, selon les règles de votre pays et de celui de l'audience. INFLUX vous rappelle cette obligation sans en garantir la conformité locale."
+  },
+  "record": {
+    "campaign": "La campagne",
+    "back": "Campagnes",
+    "loading": "Chargement de la campagne…",
+    "gone": {
+      "title": "Cette campagne n'est plus ouverte.",
+      "text": "Elle a été close, mise en pause ou retirée. D'autres campagnes vous attendent."
+    },
+    "unavailable": "Nous ne parvenons pas à afficher cette campagne pour le moment. Réessayez dans quelques minutes.",
+    "forbidden": "Les campagnes ne sont pas accessibles avec l'état actuel de votre compte.",
+    "rateLimited": "Vous consultez les campagnes très souvent. Réessayez dans un instant.",
+    "rateLimitedWait": "Vous consultez les campagnes très souvent. Réessayez dans {seconds, plural, one {# seconde} other {# secondes}}.",
+    "retry": "Réessayer",
+    "noApplication": "La candidature n'est pas encore disponible : cette page sert à découvrir la campagne."
+  },
+  "home": {
+    "title": "Mes campagnes",
+    "text": "Créez une campagne, enregistrée au fur et à mesure, puis soumettez-la à un commercial INFLUX.",
+    "link": "Voir mes campagnes"
+  },
+  "publish": {
+    "title": "Soumettre ma campagne",
+    "missing": "Il manque {count, plural, one {# information} other {# informations}} pour soumettre votre campagne : {fields}.",
+    "ready": "Toutes les informations obligatoires sont renseignées : vous pouvez soumettre votre campagne.",
+    "listTitle": "À compléter avant de soumettre",
+    "button": "Soumettre ma campagne",
+    "busy": "Envoi en cours…",
+    "explain": "Un commercial INFLUX relit la campagne avant sa publication. Une fois soumise, elle n'est plus modifiable pendant l'examen.",
+    "sensitiveNotice": "La catégorie de ce produit demande une revue renforcée, ce qui peut allonger l'examen.",
+    "declarationRequired": "Cochez cette déclaration pour soumettre la campagne.",
+    "submittedTitle": "Votre campagne est soumise.",
+    "submittedText": "Elle n'est plus modifiable pendant l'examen.",
+    "backToList": "Retour à mes campagnes",
+    "unavailable": "La campagne n'a pas pu être soumise pour le moment. Réessayez dans un instant.",
+    "unsaved": "Votre dernière saisie n'est pas encore enregistrée. Attendez la fin de l'enregistrement, puis soumettez à nouveau.",
+    "invalid": "Corrigez d'abord {count, plural, one {le champ refusé} other {les champs refusés}}, puis soumettez à nouveau :",
+    "locked": "Cette campagne n'est plus modifiable : elle ne peut pas être soumise à nouveau.",
+    "profileRequired": "Publiez votre profil de marque avant de soumettre une campagne."
+  },
+  "budget": {
+    "bandBrand": "Tranche de budget par créateur : ce que vous payez au total, commission INFLUX incluse. Seul votre commercial INFLUX la voit.",
+    "negotiate": "À négocier avec votre commercial.",
+    "internalPilot": "Votre budget n'est jamais publié : seul votre commercial INFLUX le voit.",
+    "giftOnly": "Dotation seule : aucune tranche de budget n'est demandée. La valeur du produit se renseigne à l'étape 1.",
+    "chooseCurrency": "Choisissez d'abord la devise.",
+    "creatorSees": "Un créateur voit la nature de la rémunération, suivie de la mention ci-dessous. Aucun montant ni aucune tranche ne lui est montré.",
+    "noNature": "Choisissez la nature de la rémunération : elle s'affichera ici.",
+    "creatorNature": "Rémunération : {kind}"
+  },
+  "application": {
+    "validationNotice": "Candidater n'ouvre pas de conversation : la candidature est examinée par un commercial INFLUX."
+  },
+  "status": {
+    "label": {
+      "draft": "Brouillon",
+      "pending_review": "En cours de validation",
+      "published": "Publiée",
+      "paused": "En pause",
+      "closed": "Clôturée",
+      "rejected": "À corriger"
+    },
+    "draft": "Brouillon enregistré automatiquement. Personne d'autre que vous ne le voit tant que vous ne l'avez pas soumis.",
+    "pending": "Votre campagne est en cours de validation par l'équipe INFLUX.",
+    "published": "Votre campagne est publiée : les créateurs peuvent la lire.",
+    "paused": "Campagne en pause — les candidatures sont suspendues.",
+    "closed": "Cette campagne est clôturée.",
+    "rejected": "Votre campagne n'a pas été publiée : {reason}",
+    "rejectedNoReason": "Votre campagne n'a pas été publiée. Corrigez-la, puis soumettez-la à nouveau."
+  },
+  "rejection": {
+    "contact_in_text": "Votre campagne contient une adresse, un numéro, un lien ou une invitation à vous contacter en dehors d'INFLUX.",
+    "amount_in_text": "Un montant figure dans votre texte. Les montants se déclarent dans le bloc budget, qui n'est jamais publié.",
+    "link_in_text": "Les liens ne sont pas acceptés dans une campagne. Votre site figure déjà sur votre profil.",
+    "brief_insufficient": "Votre brief ne permet pas à un créateur de comprendre ce que vous attendez.",
+    "deliverables_inconsistent": "Les formats demandés ne correspondent pas aux réseaux visés.",
+    "budget_inconsistent": "La tranche de budget déclarée n'est pas exploitable en l'état.",
+    "calendar_invalid": "Les dates de votre campagne ne sont plus valides.",
+    "creator_personal_criterion": "Votre campagne exprime un critère portant sur la personne du créateur (âge, genre, apparence). Le ciblage porte sur l'audience, jamais sur le créateur.",
+    "minor_audience": "Une campagne ne peut pas viser une audience de moins de 18 ans.",
+    "concealed_advertising": "Une campagne ne peut pas demander de présenter un contenu rémunéré comme un avis spontané.",
+    "duplicate": "Une campagne identique est déjà publiée.",
+    "sensitive_authorizations_missing": "Nous n'avons pas pu vérifier vos autorisations pour ce type de produit.",
+    "illicit_content": "Votre campagne ne peut pas être publiée : elle est contraire à la loi ou aux conditions d'utilisation d'INFLUX. Le message de l'équipe INFLUX :",
+    "other": "Votre campagne n'a pas pu être publiée en l'état. Le message de l'équipe INFLUX :"
+  },
+  "refusal": {
+    "fix": "Corrigez votre campagne depuis votre espace INFLUX, puis soumettez-la de nouveau.",
+    "contact": "Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion."
+  },
+  "lifecycle": {
+    "title": "Vie de la campagne",
+    "published": "Votre campagne est visible des créateurs. En pause, elle n'accepte plus de candidature ; les échanges déjà ouverts ne sont pas touchés.",
+    "paused": "Votre campagne est en pause : elle n'accepte plus de candidature. Reprenez-la quand vous voulez, sans nouvelle validation.",
+    "closed": "Cette campagne est terminée : elle ne se rouvre pas.",
+    "pause": "Mettre en pause",
+    "pausing": "Mise en pause…",
+    "resume": "Reprendre",
+    "resuming": "Reprise…",
+    "close": "Clôturer",
+    "closing": "Clôture…",
+    "closeWarning": "Clôturer est définitif : la campagne ne pourra plus être rouverte, vous pourrez seulement en créer une nouvelle. Aucune donnée n'est effacée et les échanges déjà ouverts ne sont pas touchés.",
+    "closeConfirm": "Oui, clôturer définitivement",
+    "cancel": "Annuler",
+    "done": {
+      "pause": "Campagne mise en pause : elle n'accepte plus de candidature.",
+      "resume": "Campagne reprise : elle est de nouveau publiée.",
+      "close": "Campagne clôturée, définitivement."
+    },
+    "failed": {
+      "unavailable": "Cette action n'a pas pu être faite. Réessayez dans un instant.",
+      "notAllowed": "Cette action n'est plus possible : la campagne a changé d'état. Son état à jour est affiché.",
+      "pausedByInflux": "Cette campagne a été mise en pause par l'équipe INFLUX : elle seule peut la reprendre. Contactez-la depuis l'aide de l'écran de connexion."
+    }
+  },
+  "form": {
+    "loading": "Chargement de votre campagne…",
+    "unavailable": "Nous ne parvenons pas à afficher cette campagne pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "back": "Mes campagnes",
+    "backPrefix": "Retour à",
+    "newTitle": "Nouvelle campagne",
+    "locked": "Cette campagne n'est plus modifiable : elle est en cours d'examen ou déjà publiée.",
+    "intro": "Une campagne est l'offre que vous proposez à des créateurs. Commencez par l'essentiel : le reste se complète plus tard, tout est enregistré au fur et à mesure.",
+    "step": "Étape {step} sur {total}",
+    "stepsLabel": "Étapes de la campagne",
+    "stepName": "{number}. {title}",
+    "stepMissing": "{count, plural, =0 {tout est renseigné} one {# information à compléter} other {# informations à compléter}}",
+    "previous": "Étape précédente",
+    "next": "Étape suivante",
+    "steps": {
+      "1": {
+        "title": "L'offre",
+        "question": "Qu'est-ce que vous proposez, et sur quoi ?"
+      },
+      "2": {
+        "title": "Le travail attendu",
+        "question": "Qu'est-ce que le créateur doit produire, et qu'en ferez-vous ?"
+      },
+      "3": {
+        "title": "Pour qui",
+        "question": "Quelle audience visez-vous ?"
+      },
+      "4": {
+        "title": "Le budget",
+        "question": "Combien payez-vous par créateur, commission INFLUX incluse ?"
+      },
+      "5": {
+        "title": "Calendrier et candidature",
+        "question": "Quand, et que doit envoyer un créateur ?"
+      }
+    },
+    "blocks": {
+      "identification": "Identification",
+      "product": "Produit et dotation",
+      "internal": "Interne — jamais publié",
+      "deliverables": "Livrables",
+      "rights": "Droits d'usage et exclusivité",
+      "review": "Validation des contenus",
+      "audience": "Audience visée",
+      "audienceMore": "Précisions facultatives",
+      "remuneration": "Rémunération",
+      "creatorSees": "Ce que voit un créateur",
+      "calendar": "Calendrier",
+      "application": "Candidature"
+    },
+    "internalNotice": "Cet encart n'est jamais publié : seuls vous et votre commercial INFLUX le voient.",
+    "errorsTitle": "À corriger dans cette étape"
+  },
+  "preview": {
+    "title": "Ce que voit un créateur",
+    "banner": "Aperçu : voici votre campagne telle qu'un créateur la verrait, exactement comme INFLUX la lui présente. Rien n'est envoyé ni publié depuis cette page.",
+    "back": "Retour à la campagne",
+    "loading": "Chargement de l'aperçu…",
+    "unavailable": "Nous ne parvenons pas à afficher cet aperçu pour le moment. Réessayez dans quelques minutes.",
+    "retry": "Réessayer",
+    "empty": "Rien à montrer pour l'instant : complétez les étapes de la campagne, l'aperçu se mettra à jour.",
+    "brandTitle": "La marque",
+    "brandUnpublished": "Votre profil de marque n'est pas encore publié : un créateur ne verrait ni votre nom ni votre présentation.",
+    "logoAlt": "Logo de la marque",
+    "deliverable": "{quantity} × {network} · {format}",
+    "link": "Voir ce que voit un créateur",
+    "sections": {
+      "offer": "L'offre",
+      "product": "Le produit",
+      "work": "Le travail attendu",
+      "audience": "L'audience visée",
+      "remuneration": "La rémunération",
+      "calendar": "Le calendrier"
+    },
+    "rows": {
+      "campaignType": "Type de campagne",
+      "publicSummary": "Résumé",
+      "brief": "Brief",
+      "keyMessages": "Messages clés",
+      "restrictions": "Interdits et points de vigilance",
+      "productDescription": "Produit ou service",
+      "productSector": "Catégorie du produit",
+      "productIsSent": "Produit envoyé",
+      "creatorKeepsProduct": "Produit conservé par le créateur",
+      "shippingCostsBorneBy": "Frais d'envoi et de retour",
+      "deliverables": "Livrables",
+      "networks": "Réseaux",
+      "usageRights": "Droits d'usage",
+      "usageRightsDuration": "Durée des droits d'usage",
+      "usageRightsTerritoryScope": "Territoire des droits d'usage",
+      "usageRightsTerritories": "Pays des droits d'usage",
+      "exclusivity": "Exclusivité sectorielle",
+      "contentReviewDelay": "Délai de validation des contenus",
+      "requestedItems": "À joindre à la candidature",
+      "audienceCountries": "Pays de l'audience",
+      "audienceLanguages": "Langues de publication",
+      "audienceTopics": "Thématiques",
+      "audienceBands": "Taille d'audience",
+      "audienceAgeBands": "Tranches d'âge",
+      "audienceGender": "Répartition de genre",
+      "remunerationKind": "Nature de la rémunération",
+      "creatorsWanted": "Créateurs recherchés",
+      "remunerationNotice": "Conditions financières",
+      "applicationsCloseOn": "Candidatures jusqu'au",
+      "contentDueOn": "Livraison des contenus",
+      "startsOn": "Publication à partir du",
+      "endsOn": "Publication jusqu'au"
+    }
+  },
+  "save": {
+    "saving": "Enregistrement…",
+    "saved": "Enregistré automatiquement à {time}",
+    "idle": "Enregistrement automatique",
+    "retry": "Modifications non enregistrées — nouvelle tentative dans 5 s.",
+    "failedTitle": "Votre saisie n'est pas encore enregistrée",
+    "failedText": "Elle reste dans cette page : vous pouvez continuer. Une nouvelle tentative a lieu dans quelques secondes.",
+    "retryNow": "Réessayer maintenant"
+  },
+  "layer": {
+    "public": "Publié : visible des créateurs.",
+    "internal": "Interne : jamais publié."
+  },
+  "field": {
+    "optional": "facultatif",
+    "characters": "{count, number} / {max, number} caractères",
+    "quantity": "Quantité",
+    "network": "Réseau",
+    "format": "Format",
+    "line": "Ligne {number}",
+    "addLine": "Ajouter un livrable",
+    "removeLine": "Retirer le livrable {number}",
+    "lineLimit": "{max} lignes au plus",
+    "keyMessageLabel": "Message clé {number}",
+    "addKeyMessage": "Ajouter un message clé",
+    "removeKeyMessage": "Retirer le message clé {number}",
+    "keyMessageLimit": "{max} messages au plus",
+    "clearChoice": "Effacer mon choix"
+  },
+  "fields": {
+    "title": {
+      "label": "Titre de la campagne",
+      "help": "Décrivez l'offre, pas la marque : votre nom figure déjà sur votre profil. Ni montant, ni coordonnée, ni lien."
+    },
+    "campaignType": {
+      "label": "Type de campagne"
+    },
+    "publicSummary": {
+      "label": "Résumé public",
+      "help": "Ce que vous cherchez, pour qui et sur quel réseau. C'est le seul texte lu avant d'ouvrir la campagne."
+    },
+    "brief": {
+      "label": "Brief détaillé",
+      "help": "Le contexte, les attentes créatives, le ton, ce qui doit apparaître et ce qui est laissé libre."
+    },
+    "internalReference": {
+      "label": "Référence interne",
+      "help": "Pour vous y retrouver entre plusieurs campagnes. Elle n'est jamais publiée."
+    },
+    "productDescription": {
+      "label": "Produit ou service concerné",
+      "help": "Un créateur juge une campagne sur le produit, pas sur un secteur."
+    },
+    "productSector": {
+      "label": "Catégorie du produit"
+    },
+    "keyMessages": {
+      "label": "Messages clés",
+      "help": "Ce que vous voulez entendre dire, en une à cinq puces de 10 à 200 caractères. Recommandé."
+    },
+    "restrictions": {
+      "label": "Interdits et points de vigilance",
+      "help": "Ce que vous refusez de voir : termes interdits, concurrents à ne pas citer, allégations à ne pas faire. Jamais un critère sur la personne du créateur."
+    },
+    "productIsSent": {
+      "label": "Un produit est-il envoyé au créateur ?"
+    },
+    "currency": {
+      "label": "Devise de la campagne",
+      "help": "Une seule devise pour toute la campagne : elle sert à la valeur du produit et au budget."
+    },
+    "productValueBand": {
+      "label": "Valeur du produit envoyé",
+      "help": "En tranche, jamais une valeur exacte. Seul votre commercial INFLUX la voit."
+    },
+    "creatorKeepsProduct": {
+      "label": "Le créateur conserve-t-il le produit ?",
+      "help": "Un produit à rendre n'est pas une rémunération."
+    },
+    "shippingCostsBorneBy": {
+      "label": "Frais d'envoi et de retour"
+    },
+    "deliverables": {
+      "label": "Livrables",
+      "help": "Un livrable est un réseau, un format et une quantité : « 2 stories + 1 reel » n'est pas « 3 contenus ». Les formats UGC (vidéo, photo) sont livrés à la marque, qui les diffuse elle-même."
+    },
+    "usageRights": {
+      "label": "Droits d'usage demandés"
+    },
+    "usageRightsDuration": {
+      "label": "Durée des droits d'usage"
+    },
+    "usageRightsTerritoryScope": {
+      "label": "Territoire des droits d'usage"
+    },
+    "usageRightsTerritories": {
+      "label": "Pays des droits d'usage",
+      "add": "Ajouter un pays…"
+    },
+    "exclusivity": {
+      "label": "Exclusivité sectorielle demandée"
+    },
+    "contentReviewDelay": {
+      "label": "Délai de validation des contenus",
+      "help": "Vous vous engagez à répondre sous ce délai. INFLUX ne reçoit et ne valide aucun livrable."
+    },
+    "audienceCountries": {
+      "label": "Pays visés",
+      "help": "Les pays où vit l'audience que vous visez. Cela décrit l'audience, jamais le créateur.",
+      "add": "Ajouter un pays…"
+    },
+    "audienceLanguages": {
+      "label": "Langues de publication attendues",
+      "add": "Ajouter une langue…"
+    },
+    "audienceTopics": {
+      "label": "Thématiques visées"
+    },
+    "audienceBands": {
+      "label": "Taille d'audience souhaitée",
+      "help": "En tranches, jamais un nombre exact."
+    },
+    "audienceAgeBands": {
+      "label": "Tranches d'âge de l'audience",
+      "help": "Aucune tranche en dessous de 18 ans : INFLUX n'ouvre pas ce sujet."
+    },
+    "audienceGender": {
+      "label": "Répartition de genre de l'audience",
+      "help": "Facultatif. Elle décrit l'audience, jamais le créateur ; sans choix, elle est indifférente."
+    },
+    "remunerationKind": {
+      "label": "Nature de la rémunération"
+    },
+    "budgetBand": {
+      "label": "Tranche de budget par créateur"
+    },
+    "creatorsWanted": {
+      "label": "Nombre de créateurs recherchés",
+      "help": "De {min} à {max}. Au-delà, un accompagnement commercial est plus adapté."
+    },
+    "applicationsCloseOn": {
+      "label": "Date limite de candidature",
+      "help": "Après cette date, la campagne n'accepte plus de candidature, mais reste lisible."
+    },
+    "contentDueOn": {
+      "label": "Date de livraison des contenus",
+      "help": "Recommandé : ce que le créateur doit tenir. Elle suit la date limite de candidature."
+    },
+    "startsOn": {
+      "label": "Début de la période de publication",
+      "help": "Elle suit la livraison des contenus."
+    },
+    "endsOn": {
+      "label": "Fin de la période de publication",
+      "help": "La période de publication dure 12 mois au plus."
+    },
+    "requestedItems": {
+      "label": "Éléments que vous aimeriez trouver dans une candidature",
+      "help": "Facultatif. Ils orientent le créateur, sans ajouter ni retirer de champ à sa candidature."
+    },
+    "maxApplications": {
+      "label": "Plafond de candidatures",
+      "help": "Facultatif, de {min} à {max}. Une fois atteint, la campagne n'accepte plus de candidature ; le nombre reçu n'est jamais montré aux créateurs."
+    }
+  },
+  "fieldErrors": {
+    "invalid": "Cette valeur n'est pas valide.",
+    "unknown": "Ce choix n'est plus disponible : choisissez-en un autre.",
+    "tooLong": "Ce texte est trop long.",
+    "duplicate": "Un même réseau et un même format ne peuvent figurer qu'une fois : changez la quantité.",
+    "formatNetworkMismatch": "Ce format ne correspond pas à ce réseau : choisissez un format du réseau.",
+    "ugcRequiresRights": "Un contenu livré à la marque exige des droits d'usage : choisissez-les à l'étape 2, ou changez de type de campagne.",
+    "giftRequiresProduct": "Cette campagne offre un produit : répondez « oui » à l'envoi d'un produit, ou changez la nature de la rémunération.",
+    "notApplicable": "Cette réponse n'a pas de sens avec une autre réponse : vérifiez les choix voisins.",
+    "dateOrder": "Cette date ne suit pas l'ordre du calendrier : vérifiez les quatre dates.",
+    "windowTooLong": "La période de publication ne peut pas dépasser 12 mois.",
+    "required": "À renseigner ou à corriger avant de soumettre la campagne."
+  },
+  "errors": {
+    "contactInText": "Votre texte contient ce qui ressemble à une coordonnée directe ou à une invitation à vous contacter hors d'INFLUX.",
+    "linkInText": "Votre texte contient ce qui ressemble à un lien. Les liens ne sont pas acceptés dans une campagne : le domaine de votre marque figure déjà sur votre profil.",
+    "amountInText": "Un montant figure dans votre texte. Les montants se déclarent dans le bloc budget.",
+    "datesOrder": "{first} doit précéder {second}."
+  },
+  "campaign_type": {
+    "product_placement": "Placement de produit dans un contenu",
+    "ugc_delivered": "Contenu livré à la marque (UGC)",
+    "product_review": "Test de produit et avis",
+    "ambassador": "Ambassadeur sur la durée",
+    "contest": "Concours ou jeu concours",
+    "event_presence": "Présence à un événement ou déplacement",
+    "affiliate_program": "Programme d'affiliation"
+  },
+  "shipping": {
+    "brand": "À la charge de la marque",
+    "creator": "À la charge du créateur"
+  },
+  "remuneration": {
+    "cash": "Rémunération en numéraire",
+    "cash_and_gift": "Rémunération en numéraire et dotation",
+    "gift_only": "Dotation seule",
+    "affiliate": "Affiliation"
+  },
+  "requested_item": {
+    "motivation_message": "Un message de motivation",
+    "past_content_examples": "Des exemples de contenus déjà réalisés",
+    "concept_proposal": "Une proposition de concept",
+    "availability": "Sa disponibilité sur la période"
+  },
+  "usage_right": {
+    "none": "Aucun : le contenu reste sur le compte du créateur",
+    "organic_repost": "Repost organique : vous republiez le contenu sur vos comptes, sans budget publicitaire",
+    "paid_whitelisting": "Whitelisting publicitaire : vous diffusez de la publicité payante depuis le compte du créateur",
+    "media_buy": "Achat média : le contenu est diffusé comme publicité de la marque"
+  },
+  "usage_duration": {
+    "1m": "1 mois",
+    "3m": "3 mois",
+    "6m": "6 mois",
+    "12m": "12 mois",
+    "unlimited": "Illimitée"
+  },
+  "usage_territory": {
+    "worldwide": "Monde entier",
+    "selected_countries": "Pays choisis"
+  },
+  "review_delay": {
+    "48h": "48 heures",
+    "5bd": "5 jours ouvrés",
+    "10bd": "10 jours ouvrés"
+  },
+  "audience_band": {
+    "nano": "Nano (moins de 10 000 abonnés)",
+    "micro": "Micro (de 10 000 à 49 999)",
+    "mid": "Intermédiaire (de 50 000 à 499 999)",
+    "macro": "Macro (de 500 000 à 999 999)",
+    "mega": "Méga (1 million et plus)"
+  },
+  "age_band": {
+    "18_24": "18-24 ans",
+    "25_34": "25-34 ans",
+    "35_44": "35-44 ans",
+    "45_plus": "45 ans et plus"
+  },
+  "audience_gender": {
+    "female_majority": "Majorité féminine (60 % et plus)",
+    "mixed": "Mixte",
+    "male_majority": "Majorité masculine (60 % et plus)"
+  },
+  "price_band": {
+    "under_100": "Moins de 100\u00a0{currency}",
+    "100_250": "100 à 250\u00a0{currency}",
+    "250_500": "250 à 500\u00a0{currency}",
+    "500_1000": "500 à 1\u202f000\u00a0{currency}",
+    "1000_2500": "1\u202f000 à 2\u202f500\u00a0{currency}",
+    "2500_5000": "2\u202f500 à 5\u202f000\u00a0{currency}",
+    "5000_10000": "5\u202f000 à 10\u202f000\u00a0{currency}",
+    "10000_25000": "10\u202f000 à 25\u202f000\u00a0{currency}",
+    "25000_50000": "25\u202f000 à 50\u202f000\u00a0{currency}",
+    "50000_plus": "50\u202f000\u00a0{currency} et plus"
+  }
+}

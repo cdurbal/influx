@@ -1,6 +1,7 @@
 // E-4 in the loop of the worker (J7 commit 5, decision 3): the scheduler over an in-memory store,
 // the reads of the reconciliation over a fake fetch, and the pure parts of the two tasks. The real
 // database, the Brevo double and the GoTrue double are db-tests/tm1-periodic-tasks.
+import { OPS_PERIODIC_TASKS } from "@influx/contracts/backoffice-ops";
 import { describe, expect, it } from "vitest";
 import {
   AUTH_ORPHAN_AGE_MS,
@@ -15,14 +16,29 @@ import {
 } from "../src/domains/maintenance/brevo-reads.ts";
 import { createBrevoReconciliation } from "../src/domains/maintenance/brevo-reconciliation.ts";
 import {
+  createStoragePurge,
+  STORAGE_PURGE_BATCH,
+  STORAGE_PURGE_MAX_BATCHES,
+} from "../src/domains/maintenance/storage-purge.ts";
+import type { ObjectStore } from "../src/platform/storage.ts";
+import {
   CLAIMED_ELSEWHERE_BACKOFF_MS,
   createPeriodicScheduler,
   isDue,
   createDataExportPurge,
   createOpsRetention,
+  createBadgeLifecycle,
+  createCampaignClosure,
+  createSupplyCounters,
+  createVerificationExpiry,
+  BADGE_LIFECYCLE_BATCH,
+  CAMPAIGN_CLOSURE_BATCH,
+  CAMPAIGN_CLOSURE_MAX_BATCHES,
+  BADGE_LIFECYCLE_MAX_BATCHES,
   EXPORT_PURGE_BATCH,
   OPS_RETENTION_MAX_STEPS,
   periodKeyOf,
+  PERIODIC_TASKS,
   PeriodicRunInterrupted,
   PeriodicTaskError,
   type PeriodicCounts,
@@ -30,6 +46,8 @@ import {
   type PeriodicStore,
   type PeriodicTask,
   type ReconciliationFinding,
+  VERIFICATION_EXPIRY_BATCH,
+  VERIFICATION_EXPIRY_MAX_BATCHES,
 } from "../src/domains/maintenance/periodic.ts";
 
 const AT_0259 = Date.parse("2026-10-13T02:59:59.000Z");
@@ -77,6 +95,30 @@ function memoryStore(options: { claimedElsewhere?: boolean } = {}) {
     async opsRetentionStep() {
       return { more: 0 };
     },
+    async claimStoragePurges() {
+      return [];
+    },
+    async completeStoragePurges(_run, ids) {
+      return ids.length;
+    },
+    async purgeStorageUsage() {
+      return 0;
+    },
+    async expireVerificationRequests() {
+      return 0;
+    },
+    async runBadgeLifecycle() {
+      return 0;
+    },
+    async purgeVerificationFindings() {
+      return 0;
+    },
+    async closeEndedCampaigns() {
+      return 0;
+    },
+    async computeSupplyCounters() {
+      return 0;
+    },
   };
   return { store, claims, finishes, findings };
 }
@@ -105,6 +147,9 @@ describe("periods and hours (decision 3)", () => {
     expect(periodKeyOf("auth_orphan_purge", AT_0259)).toBe("2026-10-13T02");
     // J8 commit 8: an export past its deadline is emptied within the hour (runbook §4)
     expect(periodKeyOf("data_export_purge", AT_0259)).toBe("2026-10-13T02");
+    expect(periodKeyOf("storage_purge", AT_0259)).toBe("2026-10-13T02");
+    // L2E commit 07: a code past its date expires its request within the hour (0223)
+    expect(periodKeyOf("verification_expiry", AT_0259)).toBe("2026-10-13T02");
   });
 
   it("starts the reconciliation at 03:00 UTC, the other tasks at any hour", () => {
@@ -670,5 +715,459 @@ describe("data_export_purge (runbook demandes-rgpd §4, J8 commit 8)", () => {
         stop.signal,
       ),
     ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+  });
+});
+
+describe("storage_purge (0205; jalons/l2b/stockage.md §7)", () => {
+  const KEY = (n: number) =>
+    `00000000-0000-4000-8000-000000000001/00000000-0000-4000-8000-${String(n).padStart(12, "0")}.webp`;
+
+  /** Objects in memory: the keys removed, and the keys whose removal fails. */
+  function memoryObjects(failing: ReadonlySet<string> = new Set()) {
+    const removed: string[] = [];
+    const objects: ObjectStore = {
+      async write() {
+        return { ok: true, value: null };
+      },
+      async read() {
+        return { ok: true, value: null };
+      },
+      async remove(_bucket, key) {
+        if (failing.has(key)) {
+          return {
+            ok: false,
+            reason: "unavailable",
+            status: 503,
+            errorCode: null,
+          };
+        }
+        removed.push(key);
+        return { ok: true, value: null };
+      },
+    };
+    return { objects, removed };
+  }
+
+  it("removes each object, then forgets the rows removed and purges the usage", async () => {
+    const { store } = memoryStore();
+    const completed: string[][] = [];
+    store.claimStoragePurges = async () => [
+      { objectId: "l1", bucket: "brand-logo", objectKey: KEY(1) },
+      { objectId: "l2", bucket: "brand-logo", objectKey: KEY(2) },
+    ];
+    store.completeStoragePurges = async (_run, ids) => {
+      completed.push([...ids]);
+      return ids.length;
+    };
+    store.purgeStorageUsage = async () => 4;
+    const { objects, removed } = memoryObjects();
+    const counts: PeriodicCounts = {};
+    await createStoragePurge({ store, objects })(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(removed).toEqual([KEY(1), KEY(2)]);
+    expect(completed).toEqual([["l1", "l2"]]);
+    expect(counts).toEqual({
+      claimed: 2,
+      removed: 2,
+      remove_failed: 0,
+      purged: 2,
+      usage_purged: 4,
+    });
+  });
+
+  it("keeps the row of a failed removal and closes the run failed (retried the next hour)", async () => {
+    const { store } = memoryStore();
+    const completed: string[][] = [];
+    store.claimStoragePurges = async () => [
+      { objectId: "l1", bucket: "brand-logo", objectKey: KEY(1) },
+      { objectId: "l2", bucket: "brand-logo", objectKey: KEY(2) },
+    ];
+    store.completeStoragePurges = async (_run, ids) => {
+      completed.push([...ids]);
+      return ids.length;
+    };
+    const { objects } = memoryObjects(new Set([KEY(1)]));
+    const counts: PeriodicCounts = {};
+    await expect(
+      createStoragePurge({ store, objects })(
+        { runId: "run-1", attempt: 1 },
+        counts,
+        signal(),
+      ),
+    ).rejects.toMatchObject({ code: "storage.remove_failed" });
+    expect(completed).toEqual([["l2"]]);
+    expect(counts).toMatchObject({
+      claimed: 2,
+      removed: 1,
+      remove_failed: 1,
+      purged: 1,
+    });
+  });
+
+  it("takes batch after batch while they are full, within its bound per run", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.claimStoragePurges = async (_run, limit) => {
+      calls += 1;
+      return Array.from({ length: limit }, (_, index) => ({
+        objectId: `l${calls}-${index}`,
+        bucket: "brand-logo" as const,
+        objectKey: KEY(calls * 1000 + index),
+      }));
+    };
+    const { objects } = memoryObjects();
+    const counts: PeriodicCounts = {};
+    await createStoragePurge({ store, objects })(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(calls).toBe(STORAGE_PURGE_MAX_BATCHES);
+    expect(counts.purged).toBe(STORAGE_PURGE_MAX_BATCHES * STORAGE_PURGE_BATCH);
+  });
+
+  it("forgets the objects already removed when a stop interrupts a batch", async () => {
+    const { store } = memoryStore();
+    const stop = new AbortController();
+    const completed: string[][] = [];
+    store.claimStoragePurges = async () => [
+      { objectId: "l1", bucket: "brand-logo", objectKey: KEY(1) },
+      { objectId: "l2", bucket: "brand-logo", objectKey: KEY(2) },
+    ];
+    store.completeStoragePurges = async (_run, ids) => {
+      completed.push([...ids]);
+      return ids.length;
+    };
+    const objects: ObjectStore = {
+      ...memoryObjects().objects,
+      async remove() {
+        stop.abort();
+        return { ok: true, value: null };
+      },
+    };
+    await expect(
+      createStoragePurge({ store, objects })(
+        { runId: "run-1", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+    expect(completed).toEqual([["l1"]]);
+  });
+});
+
+describe("verification_expiry (0223; 08 edge case 1)", () => {
+  it("calls again while a batch is full, within its bound per run, and adds up the expired", async () => {
+    const { store } = memoryStore();
+    const answers = [VERIFICATION_EXPIRY_BATCH, 3];
+    let calls = 0;
+    store.expireVerificationRequests = async () => answers[calls++] ?? 0;
+    const counts: PeriodicCounts = {};
+    await createVerificationExpiry(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(calls).toBe(2);
+    expect(counts).toEqual({ expired: VERIFICATION_EXPIRY_BATCH + 3 });
+
+    calls = 0;
+    store.expireVerificationRequests = async () => {
+      calls += 1;
+      return VERIFICATION_EXPIRY_BATCH;
+    };
+    const bounded: PeriodicCounts = {};
+    await createVerificationExpiry(store)(
+      { runId: "run-2", attempt: 1 },
+      bounded,
+      signal(),
+    );
+    expect(calls).toBe(VERIFICATION_EXPIRY_MAX_BATCHES);
+  });
+});
+
+describe("badge_lifecycle (0230; 08 RG69 to RG71, RG100; L2F commit 12)", () => {
+  it("is in the list of the tasks of the backoffice's health screen, which reads the same enum (0230)", () => {
+    expect([...PERIODIC_TASKS].sort()).toEqual([...OPS_PERIODIC_TASKS].sort());
+  });
+
+  it("is a daily task, keyed by UTC day: one run a day whatever the clock of the instance", () => {
+    expect(periodKeyOf("badge_lifecycle", AT_0259)).toBe("2026-10-13");
+    expect(periodKeyOf("badge_lifecycle", AT_0300)).toBe("2026-10-13");
+    expect(isDue("badge_lifecycle", AT_0259, 3)).toBe(true);
+  });
+
+  it("runs the cycle, then the purge, each by full batches, and adds up what moved and what was erased", async () => {
+    const { store } = memoryStore();
+    const order: string[] = [];
+    const cycle = [BADGE_LIFECYCLE_BATCH, 7];
+    const purge = [BADGE_LIFECYCLE_BATCH, BADGE_LIFECYCLE_BATCH, 2];
+    store.runBadgeLifecycle = async () => {
+      order.push("cycle");
+      return cycle.shift() ?? 0;
+    };
+    store.purgeVerificationFindings = async () => {
+      order.push("purge");
+      return purge.shift() ?? 0;
+    };
+    const counts: PeriodicCounts = {};
+    await createBadgeLifecycle(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(order).toEqual(["cycle", "cycle", "purge", "purge", "purge"]);
+    expect(counts).toEqual({
+      moved: BADGE_LIFECYCLE_BATCH + 7,
+      purged: BADGE_LIFECYCLE_BATCH * 2 + 2,
+    });
+  });
+
+  it("is bounded per run, and stops between two steps when asked, leaving the run open", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.runBadgeLifecycle = async () => {
+      calls += 1;
+      return BADGE_LIFECYCLE_BATCH;
+    };
+    await createBadgeLifecycle(store)(
+      { runId: "run-2", attempt: 1 },
+      {},
+      signal(),
+    );
+    expect(calls).toBe(BADGE_LIFECYCLE_MAX_BATCHES);
+
+    const stop = new AbortController();
+    let cycles = 0;
+    store.runBadgeLifecycle = async () => {
+      cycles += 1;
+      stop.abort();
+      return BADGE_LIFECYCLE_BATCH;
+    };
+    await expect(
+      createBadgeLifecycle(store)(
+        { runId: "run-3", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+    expect(cycles).toBe(1);
+  });
+});
+
+describe("L3C-T6: campaign_closure (0309; 09 RG9; L3C commit 06)", () => {
+  it("is a daily task keyed by UTC day: one run a day whatever the clock of the instance", () => {
+    expect(periodKeyOf("campaign_closure", AT_0259)).toBe("2026-10-13");
+    expect(periodKeyOf("campaign_closure", AT_0300)).toBe("2026-10-13");
+    expect(isDue("campaign_closure", AT_0259, 3)).toBe(true);
+  });
+
+  it("is claimed once per period once its runner is there, and a process without it never claims it", async () => {
+    const { store, claims, finishes } = memoryStore();
+    const closed: PeriodicRun[] = [];
+    store.closeEndedCampaigns = async (run) => {
+      closed.push(run);
+      return 3;
+    };
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: { campaign_closure: createCampaignClosure(store) },
+      logger: silentLogger().logger,
+      now: () => AT_0259,
+    });
+    await scheduler.tick(signal());
+    await scheduler.tick(signal());
+    expect(claims).toEqual([
+      { task: "campaign_closure", periodKey: "2026-10-13" },
+    ]);
+    expect(closed).toEqual([{ runId: "run-1", attempt: 1 }]);
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["succeeded", { closed: 3 }],
+    ]);
+
+    const without = memoryStore();
+    await createPeriodicScheduler({
+      store: without.store,
+      runners: { badge_lifecycle: async () => {} },
+      logger: silentLogger().logger,
+      now: () => AT_0259,
+    }).tick(signal());
+    expect(without.claims.map((claim) => claim.task)).not.toContain(
+      "campaign_closure",
+    );
+  });
+
+  it("closes by full batches of 500 and stops at the first short one, adding up the count", async () => {
+    const { store } = memoryStore();
+    const answers = [CAMPAIGN_CLOSURE_BATCH, CAMPAIGN_CLOSURE_BATCH, 7];
+    let calls = 0;
+    store.closeEndedCampaigns = async () => {
+      calls += 1;
+      return answers.shift() ?? 0;
+    };
+    const counts: PeriodicCounts = {};
+    await createCampaignClosure(store)(
+      { runId: "run-1", attempt: 1 },
+      counts,
+      signal(),
+    );
+    expect(CAMPAIGN_CLOSURE_BATCH).toBe(500);
+    expect(calls).toBe(3);
+    expect(counts).toEqual({ closed: CAMPAIGN_CLOSURE_BATCH * 2 + 7 });
+  });
+
+  it("is bounded per run, and stops between two batches when asked, leaving the run open", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.closeEndedCampaigns = async () => {
+      calls += 1;
+      return CAMPAIGN_CLOSURE_BATCH;
+    };
+    await createCampaignClosure(store)(
+      { runId: "run-2", attempt: 1 },
+      {},
+      signal(),
+    );
+    expect(calls).toBe(CAMPAIGN_CLOSURE_MAX_BATCHES);
+
+    const stop = new AbortController();
+    let batches = 0;
+    store.closeEndedCampaigns = async () => {
+      batches += 1;
+      stop.abort();
+      return CAMPAIGN_CLOSURE_BATCH;
+    };
+    await expect(
+      createCampaignClosure(store)(
+        { runId: "run-3", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+    expect(batches).toBe(1);
+  });
+
+  it("a failure of the database closes the run failed with the counts reached, and the next period runs again", async () => {
+    let now = AT_0300;
+    const { store, finishes } = memoryStore();
+    const answers = [CAMPAIGN_CLOSURE_BATCH];
+    store.closeEndedCampaigns = async () => {
+      const next = answers.shift();
+      if (next === undefined) {
+        throw new Error("boom");
+      }
+      return next;
+    };
+    const { logger, lines } = silentLogger();
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: { campaign_closure: createCampaignClosure(store) },
+      logger,
+      now: () => now,
+    });
+    await scheduler.tick(signal());
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["failed", { closed: CAMPAIGN_CLOSURE_BATCH }],
+    ]);
+    expect(
+      lines.some((line) => line.message === "maintenance.periodic.failed"),
+    ).toBe(true);
+    now += 24 * 3_600_000;
+    answers.push(2);
+    await scheduler.tick(signal());
+    expect(finishes.at(-1)).toMatchObject({
+      outcome: "succeeded",
+      counts: { closed: 2 },
+    });
+  });
+});
+
+describe("L3G-T7: supply_counters (0331; 10 RG2, CA60, D38; L3G commit 07)", () => {
+  it("is a daily task keyed by UTC day, due from 00:00 UTC, and in the list of the health screen", () => {
+    expect(periodKeyOf("supply_counters", AT_0259)).toBe("2026-10-13");
+    expect(periodKeyOf("supply_counters", AT_0300)).toBe("2026-10-13");
+    expect(
+      isDue("supply_counters", Date.parse("2026-10-13T00:00:00.000Z"), 3),
+    ).toBe(true);
+    expect(OPS_PERIODIC_TASKS).toContain("supply_counters");
+  });
+
+  it("is claimed once per period, computes the day in one call and counts the rows written", async () => {
+    const { store, claims, finishes } = memoryStore();
+    const computed: PeriodicRun[] = [];
+    store.computeSupplyCounters = async (run) => {
+      computed.push(run);
+      return 14;
+    };
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: { supply_counters: createSupplyCounters(store) },
+      logger: silentLogger().logger,
+      now: () => AT_0259,
+    });
+    await scheduler.tick(signal());
+    await scheduler.tick(signal());
+    expect(claims).toEqual([
+      { task: "supply_counters", periodKey: "2026-10-13" },
+    ]);
+    expect(computed).toEqual([{ runId: "run-1", attempt: 1 }]);
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["succeeded", { rows: 14 }],
+    ]);
+  });
+
+  it("a failure of the database closes the run failed (the day before stays in base), and the next day runs again", async () => {
+    let now = AT_0300;
+    const { store, finishes } = memoryStore();
+    let fail = true;
+    store.computeSupplyCounters = async () => {
+      if (fail) {
+        throw new Error("boom");
+      }
+      return 3;
+    };
+    const { logger, lines } = silentLogger();
+    const scheduler = createPeriodicScheduler({
+      store,
+      runners: { supply_counters: createSupplyCounters(store) },
+      logger,
+      now: () => now,
+    });
+    await scheduler.tick(signal());
+    expect(finishes.map((finish) => [finish.outcome, finish.counts])).toEqual([
+      ["failed", {}],
+    ]);
+    expect(
+      lines.some((line) => line.message === "maintenance.periodic.failed"),
+    ).toBe(true);
+    now += 24 * 3_600_000;
+    fail = false;
+    await scheduler.tick(signal());
+    expect(finishes.at(-1)).toMatchObject({
+      outcome: "succeeded",
+      counts: { rows: 3 },
+    });
+  });
+
+  it("stops before computing when asked, leaving the run open for another instance", async () => {
+    const { store } = memoryStore();
+    let calls = 0;
+    store.computeSupplyCounters = async () => {
+      calls += 1;
+      return 1;
+    };
+    const stop = new AbortController();
+    stop.abort();
+    await expect(
+      createSupplyCounters(store)(
+        { runId: "run-1", attempt: 1 },
+        {},
+        stop.signal,
+      ),
+    ).rejects.toBeInstanceOf(PeriodicRunInterrupted);
+    expect(calls).toBe(0);
   });
 });

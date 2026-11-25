@@ -21,13 +21,25 @@ import {
 } from "@/lib/member-nav";
 import {
   ACCOUNT_PAGES,
+  accountLabelKeyOf,
+  accountPagesOf,
   isTermsExempt,
   MEMBER_PAGE_SLUGS,
   memberPageHref,
   memberPageOfPath,
+  memberPagePath,
+  memberPageSegmentOfPath,
   spaceOf,
   spaceRedirectOf,
   TERMS_EXEMPT_PAGES,
+  APPEAL_BADGE_PARAMETER,
+  APPEAL_REQUEST_PARAMETER,
+  appealHref,
+  audienceJourneyHref,
+  isNetworkCode,
+  NETWORK_QUERY_PARAMETER,
+  ownershipJourneyHref,
+  PARENT_PAGES,
   type MemberPage,
 } from "@/lib/member-paths";
 
@@ -76,13 +88,16 @@ describe("TD2.1: five entries at most per role, in a fixed order (17 §2.1)", ()
     }
   });
 
-  it("shows the entries whose screen exists only: Accueil and Compte before Lot 2", () => {
+  it("shows the entries whose screen exists only: Accueil, Campagnes (L3B), Créateurs (L3F) and Compte for a brand, Accueil, Campagnes (L3D) and Compte for a creator", () => {
     expect(navItemsOf("advertiser")).toEqual([
       { entry: "home", page: "advertiserHome" },
+      { entry: "campaigns", page: "advertiserCampaigns" },
+      { entry: "creators", page: "advertiserCreators" },
       { entry: "account", page: "accountHub" },
     ]);
     expect(navItemsOf("creator")).toEqual([
       { entry: "home", page: "creatorHome" },
+      { entry: "campaigns", page: "advertiserCampaigns" },
       { entry: "account", page: "accountHub" },
     ]);
   });
@@ -145,8 +160,22 @@ describe("TD2.4: the active entry of each page", () => {
     signupCreator: null,
     advertiserHome: "home",
     creatorHome: "home",
+    advertiserCampaigns: "campaigns",
+    advertiserCampaign: "campaigns",
+    advertiserCampaignPreview: "campaigns",
+    advertiserCreators: "creators",
+    advertiserCreatorProfile: "creators",
+    advertiserShortlists: "creators",
+    advertiserShortlist: "creators",
+    advertiserSelectionRequest: "creators",
     accountHub: "account",
     accountDetails: "account",
+    accountProfile: "account",
+    accountProfilePreview: "account",
+    accountVerificationOwnership: "account",
+    accountVerificationAudience: "account",
+    accountVerificationAppeal: "account",
+    accountBrandVerification: "account",
     accountPreferences: "account",
     accountSessions: "account",
     accountData: "account",
@@ -179,6 +208,69 @@ describe("TD2.4: the active entry of each page", () => {
       expect(memberPageOfPath(pathname, locale), pathname).toBeNull();
     }
     expect(activePlaceOf(null)).toBeNull();
+  });
+});
+
+const LIST_ID = "0b6a4f0e-8f3c-4c7e-9d51-2f6e3a1c9b77";
+
+describe("L3F-T11: the pages of the profile and the lists, below « Créateurs » (D74; 17 §4.4, §4.9)", () => {
+  it("addresses the profile by its alias, the lists and one list by their identifier, in both languages", () => {
+    expect(memberPageHref("advertiserCreatorProfile", "fr", "7K3M")).toBe(
+      "/createurs/profil/7K3M",
+    );
+    expect(memberPageHref("advertiserCreatorProfile", "en", "7K3M")).toBe(
+      "/creators/profile/7K3M",
+    );
+    expect(memberPageHref("advertiserShortlists", "fr")).toBe(
+      "/createurs/selections",
+    );
+    expect(memberPageHref("advertiserShortlist", "en", LIST_ID)).toBe(
+      `/creators/selections/${LIST_ID}`,
+    );
+    for (const [page, locale, path] of [
+      ["advertiserCreatorProfile", "fr", "/createurs/profil/7K3M"],
+      ["advertiserCreatorProfile", "en", "/creators/profile/7K3M"],
+      ["advertiserShortlists", "fr", "/createurs/selections"],
+      ["advertiserShortlists", "en", "/creators/selections"],
+      ["advertiserShortlist", "fr", `/createurs/selections/${LIST_ID}`],
+      ["advertiserShortlist", "en", `/creators/selections/${LIST_ID}`],
+    ] as const) {
+      expect(memberPageOfPath(path, locale), path).toBe(page);
+    }
+    expect(memberPageSegmentOfPath("/createurs/profil/7K3M", "fr")).toBe(
+      "7K3M",
+    );
+  });
+
+  it("places the profile under the search and a list under « Mes sélections », both brand pages", () => {
+    expect(activePlaceOf("advertiserCreators")).toEqual({
+      entry: "creators",
+      sub: "advertiserCreators",
+    });
+    expect(activePlaceOf("advertiserCreatorProfile")).toEqual({
+      entry: "creators",
+      sub: "advertiserCreators",
+    });
+    expect(activePlaceOf("advertiserSelectionRequest")).toEqual({
+      entry: "creators",
+      sub: "advertiserCreators",
+    });
+    expect(activePlaceOf("advertiserShortlists")).toEqual({
+      entry: "creators",
+      sub: "advertiserShortlists",
+    });
+    expect(activePlaceOf("advertiserShortlist")).toEqual({
+      entry: "creators",
+      sub: "advertiserShortlists",
+    });
+    for (const page of [
+      "advertiserCreatorProfile",
+      "advertiserShortlists",
+      "advertiserShortlist",
+    ] as const) {
+      expect(spaceOf(page), page).toBe("advertiser");
+      expect(spaceRedirectOf(page, "creator"), page).toBe("creatorHome");
+    }
   });
 });
 
@@ -270,12 +362,16 @@ describe("TN1: the sub-entries of a rubric and the place of a page (D74, sn-fich
     for (const entry of [
       "home",
       "campaigns",
-      "creators",
       "applications",
       "relations",
     ] as const) {
       expect(subEntriesOf(entry), entry).toEqual([]);
     }
+    // "Créateurs" has its sub-menu since L3F, commit 11: the search, then "Mes sélections" (D74)
+    expect(subEntriesOf("creators")).toEqual([
+      "advertiserCreators",
+      "advertiserShortlists",
+    ]);
   });
 
   it("places the page-menu on its rubric, a sub-page under it, a home on its entry", () => {
@@ -311,5 +407,314 @@ describe("TN1: the sub-entries of a rubric and the place of a page (D74, sn-fich
     ] as const) {
       expect(activePlaceOf(page), page).toBeNull();
     }
+  });
+});
+
+describe("L2B-11, L2D-12: the profile leads the pages of Compte, a brand's or a creator's (17 §4.2, §5.2, EC-L2B-7)", () => {
+  it("gives both roles their profile first, then the common pages (inverted at L2D: a creator used to have the common pages only)", () => {
+    expect(accountPagesOf()).toEqual(["accountProfile", ...ACCOUNT_PAGES]);
+    expect(subEntriesOf("account", "advertiser")[0]).toBe("accountProfile");
+    expect(subEntriesOf("account", "creator")).toEqual([
+      "accountProfile",
+      ...ACCOUNT_PAGES,
+    ]);
+    // without a role: the pages common to both, as before
+    expect(subEntriesOf("account")).toEqual([...ACCOUNT_PAGES]);
+  });
+
+  it("labels the profile page by role: Profil de marque for a brand, Mon profil for a creator; the others alike", () => {
+    expect(accountLabelKeyOf("accountProfile", "advertiser")).toBe(
+      "accountProfile",
+    );
+    expect(accountLabelKeyOf("accountProfile", "creator")).toBe(
+      "accountProfileCreator",
+    );
+    for (const page of ACCOUNT_PAGES) {
+      expect(accountLabelKeyOf(page, "creator"), page).toBe(page);
+      expect(accountLabelKeyOf(page, "advertiser"), page).toBe(page);
+    }
+  });
+
+  it("addresses the page in both languages and places it under Compte, keeping it out of the common list", () => {
+    expect(MEMBER_PAGE_SLUGS.accountProfile).toEqual({
+      fr: "compte/profil",
+      en: "account/profile",
+    });
+    expect(memberPageOfPath("/compte/profil", "fr")).toBe("accountProfile");
+    expect(memberPageOfPath("/account/profile", "en")).toBe("accountProfile");
+    expect(memberPageOfPath("/account/profile", "fr")).toBeNull();
+    expect(activePlaceOf("accountProfile")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountProfile");
+    expect(isTermsExempt("accountProfile")).toBe(false);
+  });
+
+  it("addresses the ownership journey below the profile, in both languages, with the network in the query and the profile kept active (L2E 18)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountVerificationOwnership).toEqual({
+      fr: "compte/profil/verification/propriete",
+      en: "account/profile/verification/ownership",
+    });
+    expect(NETWORK_QUERY_PARAMETER).toBe("network");
+    expect(ownershipJourneyHref("instagram", "fr")).toBe(
+      "/compte/profil/verification/propriete?network=instagram",
+    );
+    expect(ownershipJourneyHref("tiktok", "en")).toBe(
+      "/account/profile/verification/ownership?network=tiktok",
+    );
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountVerificationOwnership", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountVerificationOwnership",
+      );
+    }
+    expect(
+      memberPageOfPath("/account/profile/verification/ownership", "fr"),
+    ).toBeNull();
+    expect(PARENT_PAGES).toEqual({
+      advertiserCampaign: "advertiserCampaigns",
+      advertiserCampaignPreview: "advertiserCampaigns",
+      advertiserSelectionRequest: "advertiserCreators",
+      advertiserCreatorProfile: "advertiserCreators",
+      advertiserShortlist: "advertiserShortlists",
+      accountProfilePreview: "accountProfile",
+      accountVerificationOwnership: "accountProfile",
+      accountVerificationAudience: "accountProfile",
+      accountVerificationAppeal: "accountProfile",
+      accountBrandVerification: "accountProfile",
+    });
+    expect(activePlaceOf("accountVerificationOwnership")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountVerificationOwnership");
+    expect(isTermsExempt("accountVerificationOwnership")).toBe(false);
+  });
+
+  it("addresses the preview of what a brand sees below the profile too, in both languages, with no query (L2G 14)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountProfilePreview).toEqual({
+      fr: "compte/profil/apercu",
+      en: "account/profile/preview",
+    });
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountProfilePreview", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountProfilePreview",
+      );
+    }
+    expect(activePlaceOf("accountProfilePreview")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountProfilePreview");
+    expect(isTermsExempt("accountProfilePreview")).toBe(false);
+  });
+
+  it("addresses the audience journey below the profile too, in both languages, with the network in the query (L2E 19)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountVerificationAudience).toEqual({
+      fr: "compte/profil/verification/audience",
+      en: "account/profile/verification/audience",
+    });
+    expect(audienceJourneyHref("instagram", "fr")).toBe(
+      "/compte/profil/verification/audience?network=instagram",
+    );
+    expect(audienceJourneyHref("youtube", "en")).toBe(
+      "/account/profile/verification/audience?network=youtube",
+    );
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountVerificationAudience", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountVerificationAudience",
+      );
+    }
+    expect(activePlaceOf("accountVerificationAudience")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountVerificationAudience");
+    expect(isTermsExempt("accountVerificationAudience")).toBe(false);
+  });
+
+  it("addresses the contest of a decision below the profile too, in both languages, the decision in the query (L2F 17)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountVerificationAppeal).toEqual({
+      fr: "compte/profil/verification/contestation",
+      en: "account/profile/verification/appeal",
+    });
+    const id = "5c1f0a3e-8a47-4c0b-9b53-0e2b9a1d7f10";
+    expect(appealHref({ kind: "refusal", requestId: id }, "fr")).toBe(
+      `/compte/profil/verification/contestation?${APPEAL_REQUEST_PARAMETER}=${id}`,
+    );
+    expect(appealHref({ kind: "revocation", badgeId: id }, "en")).toBe(
+      `/account/profile/verification/appeal?${APPEAL_BADGE_PARAMETER}=${id}`,
+    );
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountVerificationAppeal", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountVerificationAppeal",
+      );
+    }
+    expect(activePlaceOf("accountVerificationAppeal")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountVerificationAppeal");
+    expect(isTermsExempt("accountVerificationAppeal")).toBe(false);
+  });
+
+  it("addresses the brand verification below the profile too, in both languages, with no network in the address (L2E 20)", () => {
+    expect(MEMBER_PAGE_SLUGS.accountBrandVerification).toEqual({
+      fr: "compte/profil/marque-verifiee",
+      en: "account/profile/verified-brand",
+    });
+    for (const locale of LOCALES) {
+      const href = memberPageHref("accountBrandVerification", locale);
+      expect(memberPageOfPath(href, locale), href).toBe(
+        "accountBrandVerification",
+      );
+      expect(href).not.toContain("?");
+    }
+    expect(activePlaceOf("accountBrandVerification")).toEqual({
+      entry: "account",
+      sub: "accountProfile",
+    });
+    expect(ACCOUNT_PAGES).not.toContain("accountBrandVerification");
+    expect(isTermsExempt("accountBrandVerification")).toBe(false);
+  });
+
+  it("reads a network code as the reference list writes it, and nothing else", () => {
+    for (const code of ["instagram", "x", "tiktok", "some_network_2"]) {
+      expect(isNetworkCode(code), code).toBe(true);
+    }
+    for (const code of [
+      "",
+      "Instagram",
+      "insta gram",
+      "insta-gram",
+      "_instagram",
+      "instagram_",
+      "a__b",
+      "@camille",
+      "../etc",
+      "a".repeat(64),
+    ]) {
+      expect(isNetworkCode(code), code).toBe(false);
+    }
+  });
+});
+
+describe("L3B-09: the campaigns of a brand, a list and a form with an identifier in the address (17 §2.6, §4.3)", () => {
+  const ID = "7d6f1c43-6a0c-4cc4-9f0b-1c1f5f6d2a10";
+
+  it("addresses the list and the form in both languages, the form below the list in the column", () => {
+    expect(MEMBER_PAGE_SLUGS.advertiserCampaigns).toEqual({
+      fr: "campagnes",
+      en: "campaigns",
+    });
+    expect(MEMBER_PAGE_SLUGS.advertiserCampaign).toEqual({
+      fr: "campagnes/[id]",
+      en: "campaigns/[id]",
+    });
+    expect(memberPageOfPath("/campagnes", "fr")).toBe("advertiserCampaigns");
+    expect(memberPageOfPath("/campaigns", "en")).toBe("advertiserCampaigns");
+    expect(memberPageOfPath(`/campagnes/${ID}`, "fr")).toBe(
+      "advertiserCampaign",
+    );
+    expect(memberPageOfPath(`/campaigns/${ID}`, "en")).toBe(
+      "advertiserCampaign",
+    );
+    expect(activePlaceOf("advertiserCampaigns")).toEqual({
+      entry: "campaigns",
+      sub: null,
+    });
+    expect(activePlaceOf("advertiserCampaign")).toEqual({
+      entry: "campaigns",
+      sub: null,
+    });
+    expect(subEntriesOf("campaigns", "advertiser")).toEqual([]);
+  });
+
+  it("tells a campaign path from the other language's, and from a deeper one", () => {
+    for (const [pathname, locale] of [
+      [`/campaigns/${ID}`, "fr"],
+      [`/campagnes/${ID}`, "en"],
+      [`/campagnes/${ID}/preview`, "fr"],
+      [`/campaigns/${ID}/apercu`, "en"],
+      ["/campagnes/a/b/c", "fr"],
+    ] as const) {
+      expect(memberPageOfPath(pathname, locale), pathname).toBeNull();
+    }
+  });
+
+  it("fills the dynamic segment of an address, and reads it back from a path", () => {
+    expect(memberPageHref("advertiserCampaign", "fr", ID)).toBe(
+      `/campagnes/${ID}`,
+    );
+    expect(memberPageHref("advertiserCampaign", "en", ID)).toBe(
+      `/campaigns/${ID}`,
+    );
+    expect(memberPagePath("advertiserCampaign", "en", ID)).toBe(
+      `/en/campaigns/${ID}`,
+    );
+    expect(memberPageSegmentOfPath(`/campagnes/${ID}`, "fr")).toBe(ID);
+    expect(memberPageSegmentOfPath("/campagnes", "fr")).toBeNull();
+    expect(memberPageSegmentOfPath("/compte", "fr")).toBeNull();
+    expect(memberPageSegmentOfPath("/inconnue/x", "fr")).toBeNull();
+  });
+
+  it("shares the campaigns between the two spaces (L3D-A §7): the list and the record belong to none, so neither role is sent home", () => {
+    expect(spaceOf("advertiserCampaigns")).toBeNull();
+    expect(spaceOf("advertiserCampaign")).toBeNull();
+    expect(spaceRedirectOf("advertiserCampaigns", "creator")).toBeNull();
+    expect(spaceRedirectOf("advertiserCampaign", "creator")).toBeNull();
+    expect(spaceRedirectOf("advertiserCampaigns", "advertiser")).toBeNull();
+    expect(isTermsExempt("advertiserCampaigns")).toBe(false);
+  });
+});
+
+describe("L3B-11: what a creator sees, the preview of a campaign, a third segment below the form (17 §2.6, §4.3)", () => {
+  const ID = "7d6f1c43-6a0c-4cc4-9f0b-1c1f5f6d2a10";
+
+  it("addresses the preview in both languages, below the list in the column, the identifier carried", () => {
+    expect(MEMBER_PAGE_SLUGS.advertiserCampaignPreview).toEqual({
+      fr: "campagnes/[id]/apercu",
+      en: "campaigns/[id]/preview",
+    });
+    expect(memberPageOfPath(`/campagnes/${ID}/apercu`, "fr")).toBe(
+      "advertiserCampaignPreview",
+    );
+    expect(memberPageOfPath(`/campaigns/${ID}/preview`, "en")).toBe(
+      "advertiserCampaignPreview",
+    );
+    expect(memberPageHref("advertiserCampaignPreview", "fr", ID)).toBe(
+      `/campagnes/${ID}/apercu`,
+    );
+    expect(memberPagePath("advertiserCampaignPreview", "en", ID)).toBe(
+      `/en/campaigns/${ID}/preview`,
+    );
+    expect(memberPageSegmentOfPath(`/campagnes/${ID}/apercu`, "fr")).toBe(ID);
+    expect(activePlaceOf("advertiserCampaignPreview")).toEqual({
+      entry: "campaigns",
+      sub: null,
+    });
+  });
+
+  it("keeps the form and the preview apart, and the other language's slug is no page", () => {
+    expect(memberPageOfPath(`/campagnes/${ID}`, "fr")).toBe(
+      "advertiserCampaign",
+    );
+    expect(memberPageOfPath(`/campagnes/${ID}/apercu`, "en")).toBeNull();
+    expect(memberPageOfPath(`/campaigns/${ID}/apercu`, "en")).toBeNull();
+  });
+
+  it("belongs to the brand's space: a creator is sent to their own home", () => {
+    expect(spaceOf("advertiserCampaignPreview")).toBe("advertiser");
+    expect(spaceRedirectOf("advertiserCampaignPreview", "creator")).toBe(
+      "creatorHome",
+    );
+    expect(
+      spaceRedirectOf("advertiserCampaignPreview", "advertiser"),
+    ).toBeNull();
+    expect(isTermsExempt("advertiserCampaignPreview")).toBe(false);
   });
 });

@@ -26,7 +26,24 @@ const DOMAINS = [
 const SUPABASE = {
   regex: "^@supabase/",
   message:
-    "@supabase/* is imported only by src/platform/supabase.ts (02 §13.2).",
+    "@supabase/auth-js is imported only by src/platform/supabase.ts (02 §13.2), @supabase/storage-js only by src/platform/storage.ts (D80).",
+};
+// The two adapters of Supabase: each its own package of it, and nothing else of @supabase/*.
+const SUPABASE_BUT_AUTH = {
+  regex: "^@supabase/(?!auth-js$)",
+  message:
+    "src/platform/supabase.ts imports @supabase/auth-js only; Storage is src/platform/storage.ts (D80).",
+};
+const SUPABASE_BUT_STORAGE = {
+  regex: "^@supabase/(?!storage-js$)",
+  message:
+    "src/platform/storage.ts imports @supabase/storage-js only; GoTrue is src/platform/supabase.ts (D80).",
+};
+// The native re-encoder is loaded by one file, which a missing binary stops at start (D80).
+const SHARP = {
+  regex: "^sharp$",
+  message:
+    "sharp is imported only by src/platform/images.ts (D80, jalons/l2b/stockage.md §1).",
 };
 const DRIZZLE = {
   regex: "^drizzle-orm(?:/|$)",
@@ -164,7 +181,7 @@ export default defineConfig([
       "@typescript-eslint/no-explicit-any": "error",
       // Logs go through pino (02 §4, rule 3).
       "no-console": "error",
-      ...restrictImports(SUPABASE, DRIZZLE, POSTGRES),
+      ...restrictImports(SUPABASE, DRIZZLE, POSTGRES, SHARP),
     },
   },
   // Property restrictions of src/: for a given file the last matching block wins, so each block
@@ -237,17 +254,30 @@ export default defineConfig([
   },
   {
     files: ["src/platform/supabase.ts"],
-    rules: restrictImports(DRIZZLE, POSTGRES),
+    rules: restrictImports(SUPABASE_BUT_AUTH, DRIZZLE, POSTGRES, SHARP),
+  },
+  {
+    files: ["src/platform/storage.ts"],
+    rules: restrictImports(SUPABASE_BUT_STORAGE, DRIZZLE, POSTGRES, SHARP),
+  },
+  {
+    files: ["src/platform/images.ts"],
+    rules: restrictImports(SUPABASE, DRIZZLE, POSTGRES),
+  },
+  {
+    // The tests of the re-encoding build their images and read the output with sharp (T9.5).
+    files: ["tests/**/*.ts"],
+    rules: restrictImports(SUPABASE, DRIZZLE, POSTGRES),
   },
   {
     files: ["src/db/**/*.ts"],
-    rules: restrictImports(SUPABASE),
+    rules: restrictImports(SUPABASE, SHARP),
   },
   {
     // Database tests talk to the local stack through the harness of @influx/test-kit, which is
     // built on the postgres driver (18 §9.3 A-2).
     files: ["db-tests/**/*.ts"],
-    rules: restrictImports(SUPABASE, DRIZZLE),
+    rules: restrictImports(SUPABASE, DRIZZLE, SHARP),
   },
   ...DOMAINS.flatMap((domain) => [
     {
@@ -256,12 +286,18 @@ export default defineConfig([
         SUPABASE,
         DRIZZLE,
         POSTGRES,
+        SHARP,
         otherDomainRepository(domain),
       ),
     },
     {
       files: [`src/domains/${domain}/**/repository.ts`],
-      rules: restrictImports(SUPABASE, POSTGRES, otherDomainRepository(domain)),
+      rules: restrictImports(
+        SUPABASE,
+        POSTGRES,
+        SHARP,
+        otherDomainRepository(domain),
+      ),
     },
   ]),
 ]);

@@ -44,7 +44,9 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
   it("gives an agent no administration entry, today and with every screen shipped", () => {
     expect(navItemsOf("agent").map((item) => item.key)).toEqual([
       "dashboard",
+      "queues",
       "accounts",
+      "creatorSearch",
     ]);
     expect(navItemsOf("agent", SEVEN).map((item) => item.key)).not.toContain(
       "admin",
@@ -57,7 +59,9 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
   it("gives an admin every entry that holds a screen, in order: seven once all are shipped", () => {
     expect(navItemsOf("admin").map((item) => item.key)).toEqual([
       "dashboard",
+      "queues",
       "accounts",
+      "creatorSearch",
       "admin",
     ]);
     expect(navItemsOf("admin", SEVEN).map((item) => item.key)).toEqual(ORDER);
@@ -67,13 +71,17 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
     const admin = navItemsOf("admin");
     expect(admin.map((item) => item.href)).toEqual([
       "/accueil",
+      "/files/profils-marque",
       "/inscrits",
+      "/createurs/recherche",
       "/double-validation",
     ]);
-    expect(admin[2]?.sections.map((section) => section.key)).toEqual([
+    expect(admin[4]?.sections.map((section) => section.key)).toEqual([
       "dualControl",
       "internalAccounts",
       "apollo",
+      "searchSettings",
+      "registrySources",
       "health",
     ]);
   });
@@ -91,8 +99,51 @@ describe("TD2.7: the entries of a role (17b §1.2, CA63)", () => {
 describe("TD2.8: the active entry of each address (17b §1.7)", () => {
   const cases: readonly [string, RailKey, string][] = [
     ["/accueil", "dashboard", "home"],
+    ["/files/profils-marque", "queues", "brandReviewQueue"],
+    [
+      "/files/profils-marque/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "brandReviewQueue",
+    ],
+    ["/files/profils-createur", "queues", "creatorReviewQueue"],
+    [
+      "/files/profils-createur/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "creatorReviewQueue",
+    ],
+    ["/files/visuels", "queues", "portfolioQueue"],
+    [
+      "/files/visuels/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "portfolioQueue",
+    ],
+    ["/files/verifications-createurs", "queues", "verificationCreators"],
+    [
+      "/files/verifications-createurs/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "verificationCreators",
+    ],
+    ["/files/verifications-marques", "queues", "verificationBrands"],
+    ["/files/campagnes", "queues", "campaignReviewQueue"],
+    [
+      "/files/campagnes/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "campaignReviewQueue",
+    ],
+    ["/files/contestations", "queues", "verificationDisputes"],
+    [
+      "/files/contestations/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "queues",
+      "verificationDisputes",
+    ],
+    ["/files/identifiants-modifies", "queues", "identifierChanges"],
     ["/inscrits", "accounts", "signups"],
     ["/inscrits/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22", "accounts", "signups"],
+    [
+      "/inscrits/campagnes/7f1c3c1e-2d0b-4a52-9c5e-0d3b8f7a1b22",
+      "accounts",
+      "signups",
+    ],
     ["/invitations", "accounts", "memberInvitations"],
     ["/double-validation", "admin", "dualControl"],
     [
@@ -102,6 +153,9 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
     ],
     ["/comptes-internes", "admin", "internalAccounts"],
     ["/reglages/apollo", "admin", "apollo"],
+    ["/reglages/recherche", "admin", "searchSettings"],
+    ["/files/selections-equipe", "queues", "teamSelectionQueue"],
+    ["/reglages/sources-registre", "admin", "registrySources"],
     ["/sante-technique", "admin", "health"],
   ];
 
@@ -112,6 +166,8 @@ describe("TD2.8: the active entry of each address (17b §1.7)", () => {
   }
 
   it("finds no entry for an unknown path nor for a mere prefix", () => {
+    expect(activePlaceOf("/files")).toBeNull();
+    expect(activePlaceOf("/files/profils-marquex")).toBeNull();
     expect(activePlaceOf("/")).toBeNull();
     expect(activePlaceOf("/absente")).toBeNull();
     expect(activePlaceOf("/inscritsx")).toBeNull();
@@ -135,6 +191,33 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     }
   });
 
+  it("gives Files its screens in order, queues 1 to 3, the two views of queue 4, then queues 5 and 6, the entry opening the first (L2E-21, L2G-15, L2G-16)", () => {
+    const queues = itemOf("queues");
+    expect(subEntriesOf(queues).map((section) => section.key)).toEqual([
+      "brandReviewQueue",
+      "creatorReviewQueue",
+      "portfolioQueue",
+      "verificationCreators",
+      "verificationBrands",
+      "verificationDisputes",
+      "identifierChanges",
+      "campaignReviewQueue",
+      "teamSelectionQueue",
+    ]);
+    expect(queues.href).toBe("/files/profils-marque");
+    expect(subEntriesOf(queues).map((section) => section.href)).toEqual([
+      "/files/profils-marque",
+      "/files/profils-createur",
+      "/files/visuels",
+      "/files/verifications-createurs",
+      "/files/verifications-marques",
+      "/files/contestations",
+      "/files/identifiants-modifies",
+      "/files/campagnes",
+      "/files/selections-equipe",
+    ]);
+  });
+
   it("gives Comptes and Administration their screens in order, the entry opening the first", () => {
     const accounts = itemOf("accounts");
     expect(subEntriesOf(accounts).map((section) => section.key)).toEqual([
@@ -147,6 +230,8 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
       "dualControl",
       "internalAccounts",
       "apollo",
+      "searchSettings",
+      "registrySources",
       "health",
     ]);
     expect(admin.href).toBe(subEntriesOf(admin)[0]?.href);
@@ -174,6 +259,15 @@ describe("TN3: the screens of an entry as its sub-entries in the rail (D74)", ()
     const agent = navItemsOf("agent");
     expect(agent.map((item) => item.key)).not.toContain("admin");
     expect(agent.flatMap(subEntriesOf).map((section) => section.key)).toEqual([
+      "brandReviewQueue",
+      "creatorReviewQueue",
+      "portfolioQueue",
+      "verificationCreators",
+      "verificationBrands",
+      "verificationDisputes",
+      "identifierChanges",
+      "campaignReviewQueue",
+      "teamSelectionQueue",
       "signups",
       "memberInvitations",
     ]);

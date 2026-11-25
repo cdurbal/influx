@@ -14,7 +14,9 @@
     "test:unit": "node scripts/run-tests.ts unit",
     "db:demo-accounts": "node scripts/seed-demo-accounts.ts",
     "test:db": "node scripts/run-tests.ts db",
+    "test:db:check-shards": "node scripts/check-db-shards.ts",
     "db:staging-demo-accounts": "node --env-file=.env.local scripts/seed-staging-demo-accounts.ts",
+    "db:staging-fake-profiles": "node --env-file=.env.local scripts/seed-staging-fake-profiles.ts",
     "db:publish-terms": "node scripts/publish-terms.ts",
     "db:publish-terms:staging": "node --env-file=.env.local scripts/publish-terms.ts --target=staging",
     "prod:bootstrap-admins": "node scripts/bootstrap-production-admins.ts",
@@ -25,12 +27,15 @@
   "dependencies": {
     "@fastify/cookie": "11.1.2",
     "@influx/contracts": "workspace:*",
+    "@influx/domain": "workspace:*",
     "@supabase/auth-js": "2.117.2",
+    "@supabase/storage-js": "2.117.2",
     "drizzle-orm": "0.45.3",
     "fastify": "5.12.5",
     "pino": "10.3.1",
     "postgres": "3.4.9",
-    "zod": "4.6.5"
+    "sharp": "0.35.5",
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

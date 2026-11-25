@@ -21,6 +21,21 @@ export function migrationRole(): postgres.Sql {
   return sql;
 }
 
+let sharedMigration: postgres.Sql | undefined;
+
+/**
+ * The migration role over ONE pool per file, for a file that reads and writes fixtures many times:
+ * migrationRole() opens a new connection at every call and keeps it until the end of the file, so a
+ * long file holds dozens of slots and starves the parallel files of the full suite (EC-33).
+ */
+export function sharedMigrationRole(): postgres.Sql {
+  if (sharedMigration === undefined) {
+    sharedMigration = connectAsMigrationRole({ max: 3 });
+    opened.push(sharedMigration);
+  }
+  return sharedMigration;
+}
+
 const byRole = new Map<LoginRole, postgres.Sql>();
 
 /**
@@ -165,9 +180,92 @@ export async function bindRequestSession(
        || jsonb_build_object('session_id', ${session}::text))::text, true)`;
 }
 
+/**
+ * A fixture name drawn from a hexadecimal identifier, with an alphabet of letters only (L2CT-1):
+ * each hexadecimal character becomes one of `g` to `v`, so the name holds no run of digits (RG19
+ * would read it as a phone number) and cannot collide, once normalised (RG25), with the names of
+ * earlier runs or of other files (`x` and `a` to `f` only).
+ */
+export function letterName(hex: string): string {
+  return hex
+    .replace(/-/g, "")
+    .replace(/[0-9a-f]/gi, (character) =>
+      String.fromCharCode("g".charCodeAt(0) + Number.parseInt(character, 16)),
+    );
+}
+
+/**
+ * L2CT-1, L2CT-7: leaves nothing of the brand fixtures of a file in the shared stack. The open
+ * entries of the accounts are withdrawn (they would crowd the queue of the agents and its
+ * counters), and their published profiles leave `published` for `draft`: RG25 reads every
+ * published profile of the database, and a name left there makes duplicates for the runs to come.
+ */
+export async function retireBrandFixtures(
+  sql: postgres.Sql,
+  accountIds: readonly string[],
+): Promise<void> {
+  if (accountIds.length === 0) {
+    return;
+  }
+  const ids = [...accountIds];
+  await sql.begin(async (tx) => {
+    await tx`
+      update profiles.advertiser_review_entries
+         set state = 'withdrawn', closed_at = now()
+       where state = 'open' and account_id = any(${ids}::uuid[])`;
+    await tx`
+      update profiles.advertiser_profiles
+         set status = 'draft'
+       where status = 'published' and account_id = any(${ids}::uuid[])`;
+  });
+}
+
+/**
+ * L2CT-2, L2CS-1: a bounded probe, never a sleep alone. Polls `pg_stat_activity` (from `probe`, a
+ * connection of the local superuser outside the transactions it watches) until `count` backends wait
+ * on a lock behind the backend `holderPid`, directly or through one another, or until `timeoutMs`
+ * has passed. Returns the number of waiting backends seen last.
+ */
+export async function lockWaitersBehind(
+  probe: postgres.Sql,
+  holderPid: number,
+  count: number,
+  timeoutMs = 5_000,
+): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const [row] = await probe<{ n: number }[]>`
+      with recursive chain (pid) as (
+        select a.pid from pg_catalog.pg_stat_activity a
+         where a.wait_event_type = 'Lock'
+           and ${holderPid}::int = any (pg_catalog.pg_blocking_pids(a.pid))
+        union
+        select a.pid from pg_catalog.pg_stat_activity a
+          join chain c on c.pid = any (pg_catalog.pg_blocking_pids(a.pid))
+         where a.wait_event_type = 'Lock'
+      )
+      select count(*)::int as n from chain`;
+    const seen = row?.n ?? 0;
+    if (seen >= count || Date.now() >= deadline) {
+      return seen;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+}
+
+/** The backend of a transaction, for lockWaitersBehind(). */
+export async function backendPid(tx: postgres.TransactionSql): Promise<number> {
+  const [row] = await tx<{ pid: number }[]>`select pg_backend_pid() as pid`;
+  if (row === undefined) {
+    throw new Error("no backend pid");
+  }
+  return row.pid;
+}
+
 afterAll(async () => {
   await Promise.all(opened.map((sql) => sql.end({ timeout: 1 })));
   opened.length = 0;
   byRole.clear();
   superuser = undefined;
+  sharedMigration = undefined;
 });

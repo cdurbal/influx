@@ -4,10 +4,13 @@
 // the elevated transaction (periodic.ts).
 import { sql } from "drizzle-orm";
 import type { Transaction } from "../../db/index.ts";
+import { STORAGE_BUCKETS, type StorageBucket } from "../../platform/storage.ts";
 
 /**
  * The closed list of ops.periodic_task (0117; data_export_purge: 0136, J8 commit 8; ops_retention:
- * 0147, J9 commit 8).
+ * 0147, J9 commit 8; storage_purge: 0205, L2B commit 09; verification_expiry: 0223, L2E commit 07;
+ * badge_lifecycle: 0230, L2F commit 05; campaign_closure: 0309, L3C commit 04, its runner L3C
+ * commit 06; supply_counters: 0331, L3G commit 07).
  */
 export const PERIODIC_TASKS = [
   "brevo_reconciliation",
@@ -15,6 +18,11 @@ export const PERIODIC_TASKS = [
   "brevo_inbound_purge",
   "data_export_purge",
   "ops_retention",
+  "storage_purge",
+  "verification_expiry",
+  "badge_lifecycle",
+  "campaign_closure",
+  "supply_counters",
 ] as const;
 export type PeriodicTask = (typeof PERIODIC_TASKS)[number];
 
@@ -162,6 +170,157 @@ export async function runOpsRetention(
     }
   }
   return result;
+}
+
+/**
+ * A row of the purge (0205, 0223): its id, its bucket (a logo or an evidence) and the key of its
+ * object in Storage.
+ */
+export type StoragePurgeCandidate = {
+  objectId: string;
+  bucket: StorageBucket;
+  objectKey: string;
+};
+
+/**
+ * 0205, 0223 (stockage.md §7; modele §4): the stale pending rows and the evidence past its date to
+ * purging, then at most `limit` purging rows not tried in the last 30 minutes, their attempt
+ * counted. A bucket outside the closed list of storage.ts is an error (never removed blindly).
+ */
+export async function claimStoragePurges(
+  tx: Transaction,
+  run: PeriodicRun,
+  limit: number,
+): Promise<StoragePurgeCandidate[]> {
+  const rows = await tx.execute<{
+    object_id: string;
+    bucket_id: string;
+    object_key: string;
+  }>(
+    sql`select object_id::text as object_id, bucket_id, object_key
+          from ops.claim_storage_purges(${run.runId}::uuid, ${run.attempt}::smallint,
+                 ${limit}::integer)`,
+  );
+  return rows.map((row) => {
+    const bucket = STORAGE_BUCKETS.find((known) => known === row.bucket_id);
+    if (bucket === undefined) {
+      throw new Error("ops.claim_storage_purges answered an unknown bucket");
+    }
+    return { objectId: row.object_id, bucket, objectKey: row.object_key };
+  });
+}
+
+/**
+ * 0205, 0223: the rows whose object is removed — a logo row deleted, an evidence row purged and
+ * kept; retention.purged written by the database.
+ */
+export async function completeStoragePurges(
+  tx: Transaction,
+  run: PeriodicRun,
+  objectIds: readonly string[],
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.complete_storage_purges(${run.runId}::uuid, ${run.attempt}::smallint,
+                 ${`{${objectIds.join(",")}}`}::uuid[]) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** 0223: draft requests expired per call of ops.expire_verification_requests() at most. */
+export const VERIFICATION_EXPIRY_BATCH = 500;
+
+/**
+ * 0223 (08 edge case 1): the draft requests whose live code has expired become expired, their
+ * e-mail queued and their register line written by the database; the count (at most
+ * VERIFICATION_EXPIRY_BATCH: call again).
+ */
+export async function expireVerificationRequests(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.expire_verification_requests(${run.runId}::uuid, ${run.attempt}::smallint)
+                 as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** 0230: badges moved per call of ops.run_badge_lifecycle(), and rows purged per call of the purge. */
+export const BADGE_LIFECYCLE_BATCH = 500;
+
+/**
+ * 0230 (08 RG69 to RG71; modele §3): the reminder, « à rafraîchir » and expiry of the badges due,
+ * their e-mails, lead.updated and public rows written by the database; the count (at most
+ * BADGE_LIFECYCLE_BATCH: call again).
+ */
+export async function runBadgeLifecycle(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.run_badge_lifecycle(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * 0230 (08 RG100; modele point 3): the findings kept past their retention erased; the count (about
+ * BADGE_LIFECYCLE_BATCH per call: call again while it is full).
+ */
+export async function purgeVerificationFindings(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.purge_verification_findings(${run.runId}::uuid, ${run.attempt}::smallint)
+                 as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** 0309: campaigns closed per call of ops.close_ended_campaigns() at most. */
+export const CAMPAIGN_CLOSURE_BATCH = 500;
+
+/**
+ * 0309 (09 RG9; modele §5): the published or paused campaigns whose UTC day reached ends_on +
+ * campaign_auto_close_days closed, by the system (no actor), their e-mail queued and their register
+ * line written by the database; the count (at most CAMPAIGN_CLOSURE_BATCH: call again). Only inside
+ * the open campaign_closure run of this attempt (55000 otherwise).
+ */
+export async function closeEndedCampaigns(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.close_ended_campaigns(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * 0331 (10 RG2, D38; l3g/modele.md §6): the rows of the UTC day of search.supply_counters replaced
+ * (global, topic, country; published and searchable), never search_settings; the rows written. Only
+ * inside the open supply_counters run of this attempt (55000 otherwise).
+ */
+export async function computeSupplyCounters(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.compute_supply_counters(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** 0205: the daily usage of the buckets older than 7 days, deleted. */
+export async function purgeStorageUsage(
+  tx: Transaction,
+  run: PeriodicRun,
+): Promise<number> {
+  const rows = await tx.execute<{ count: number }>(
+    sql`select ops.purge_storage_usage(${run.runId}::uuid, ${run.attempt}::smallint) as count`,
+  );
+  return Number(rows[0]?.count ?? 0);
 }
 
 /** C5.b (0125): an account to realign at GoTrue, with its address in force (never logged). */

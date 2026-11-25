@@ -5,7 +5,13 @@
       "label": "Navigation principale",
       "entries": {
         "home": "Accueil",
+        "campaigns": "Campagnes",
+        "creators": "Créateurs",
         "account": "Compte"
+      },
+      "sub": {
+        "advertiserCreators": "Recherche",
+        "advertiserShortlists": "Mes sélections"
       }
     },
     "space": {
@@ -14,6 +20,12 @@
     },
     "footer": {
       "signOut": "Se déconnecter"
+    },
+    "accountState": {
+      "state": "Profil : {state}",
+      "missing": "{count, plural, one {# information manquante} other {# informations manquantes}}",
+      "complete": "Compléter mon profil",
+      "submit": "Soumettre mon profil"
     }
   }
 }

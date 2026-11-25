@@ -206,7 +206,7 @@ export const RELAY_FILES = {
  */
 export const BROWSER_RELAY_CLIENT_FILE = "src/browser/relay-client.ts";
 export const BROWSER_RELAY_CLIENT_SHA256 =
-  "18126a39e83e6a6242a5a9d66665b03b1ecacafabc0151aa63e4009e3c97f894";
+  "2232339f1b8391b0bf6d903845a3489dc11818dadbbb4129765180289f6ecb3e";
 
 /** The package of the plumbing of both fronts (arbitration PL-07). */
 export const WEB_PLATFORM_PACKAGE = "@influx/web-platform";
@@ -260,7 +260,7 @@ export const RELAY_FILE_SHA256: Readonly<Record<string, string>> = {
   [RELAY_FILES.route]:
     "a79a3d1dad364cdc19058c3818a29f98a03b341469ad11c43eb2809bbe1f57d6",
   [RELAY_FILES.relay]:
-    "1002289bbc5b53bd6e590b0481db2320209ba964912efb886a3f5bbd3a22114e",
+    "2fb8854e42891027ffbe6a8b596f6e54e6bf8b41bd208865bcb7bde7f414f935",
   [RELAY_FILES.apiClient]:
     "36c772dca55144f0334ca40df0a51227264bcdcebae39626ad0534201d0c5985",
   [RELAY_FILES.config]:
@@ -333,6 +333,102 @@ export function findPagesRouterDirectories(frontRoot: string): string[] {
   return PAGES_ROUTER_DIRECTORIES.filter((relative) =>
     existsSync(path.join(frontRoot, relative)),
   ).map((relative) => `unexpected Pages Router directory: ${relative}/`);
+}
+
+/**
+ * The dynamic segments a connected-space page or route may carry (J4S-7, 21 §8 and
+ * docs/mvp/archives/21-journal-lot1-archive.md l. 68): a closed list, each entry an opaque
+ * identifier (UUID), never a name or a handle. The error collector sends `location.pathname` to the
+ * API (`packages/web-platform/src/observability/error-collector.ts` l. 42): a name in a path would
+ * reach `ops` as personal data. Extending the list is a conscious gesture, in the commit of the
+ * route that needs it.
+ */
+export const OPAQUE_DYNAMIC_SEGMENTS: readonly string[] = ["[id]"];
+
+/** The message of both guards of J4S-7, imposed by the milestone sheet. */
+export const OPAQUE_PATH_RULE =
+  "segment = identifiant opaque, ou modèle de route Next envoyé par le collecteur (`error-collector.ts` l. 42)";
+
+const PAGE_OR_ROUTE_FILE = /^(?:page|route)\.(?:ts|tsx|js|jsx|mjs)$/;
+const DYNAMIC_SEGMENT = /^\[.*\]$/;
+const LITERAL_SLUG = /^[A-Za-z0-9/-]+$/;
+
+/**
+ * J4S-7 (L2AT-4): the dynamic segments that are not data, by position from the root of `src/app`:
+ * the locale (a closed set, fr and en), the catch-all that answers the localized 404 (it renders
+ * nothing and calls `notFound()`), and the relay route (`api/[...path]`, pinned by the route-file
+ * and fingerprint guards). Exact positions, never a name: `[locale]` below another directory, or
+ * the same catch-all one level deeper, is still a violation.
+ */
+export const WEB_STRUCTURAL_SEGMENTS: readonly string[] = [
+  "[locale]",
+  "[locale]/[...rest]",
+  "api/[...path]",
+];
+
+/** The backoffice has the relay route only (L2AT-4). */
+export const BACKOFFICE_STRUCTURAL_SEGMENTS: readonly string[] = [
+  "api/[...path]",
+];
+
+/**
+ * J4S-7: the pages and routes under a front's `src/app` (every tree since L2B, not only
+ * `[locale]/(member)` and `(app)`) whose path holds a dynamic segment (`[x]`, `[...x]`,
+ * `[[...x]]`) outside the closed list. `structural` lists, by position from the root, the segments
+ * that are not data (WEB_STRUCTURAL_SEGMENTS); the closed list itself is unchanged.
+ * Returns "relative/dir: [segment] (message)".
+ */
+export function findDynamicSegmentViolations(
+  spaceRoot: string,
+  allowed: readonly string[] = OPAQUE_DYNAMIC_SEGMENTS,
+  structural: readonly string[] = [],
+): string[] {
+  if (!existsSync(spaceRoot)) {
+    return [`${spaceRoot}: connected-space directory not found`];
+  }
+  const directories = new Set(
+    listFiles(spaceRoot)
+      .filter((file) => PAGE_OR_ROUTE_FILE.test(path.basename(file)))
+      .map((file) => relativePath(spaceRoot, path.dirname(file))),
+  );
+  return [...directories].sort().flatMap((directory) =>
+    directory
+      .split("/")
+      .filter(
+        (segment, index, segments) =>
+          DYNAMIC_SEGMENT.test(segment) &&
+          !allowed.includes(segment) &&
+          !structural.includes(segments.slice(0, index + 1).join("/")),
+      )
+      .map((segment) => `${directory}: ${segment} (${OPAQUE_PATH_RULE})`),
+  );
+}
+
+/**
+ * J4S-7: the slugs of a page table that are not a literal of letters, digits, `-` and `/`. A slug
+ * built from a name, a handle or any runtime value would put it in a path. The one exception is a
+ * segment of the closed list of opaque identifiers (OPAQUE_DYNAMIC_SEGMENTS: the `[id]` of a
+ * campaign, L3B-09), written as such: the page's identifier, never a name.
+ */
+/** A slug with its opaque dynamic segments (the closed list) taken out: what is left must be a literal. */
+function withoutOpaqueSegments(slug: string): string {
+  return OPAQUE_DYNAMIC_SEGMENTS.reduce(
+    (rest, segment) => rest.split(segment).join(""),
+    slug,
+  );
+}
+
+export function findNonLiteralSlugs(
+  slugs: Readonly<Record<string, Readonly<Record<string, string>>>>,
+): string[] {
+  return Object.entries(slugs).flatMap(([page, byLocale]) =>
+    Object.entries(byLocale)
+      .filter(([, slug]) => !LITERAL_SLUG.test(withoutOpaqueSegments(slug)))
+      .map(
+        ([locale, slug]) =>
+          `${page}.${locale}: ${JSON.stringify(slug)} (${OPAQUE_PATH_RULE})`,
+      ),
+  );
 }
 
 /** A relay file and the root it lives under: the route in a front, the rest in packages/web-platform. */
@@ -1084,21 +1180,29 @@ const COLOR_MIX_OVER_TRANSPARENT =
   /color-mix\(\s*in srgb\s*,\s*(#[0-9a-fA-F]{6})\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)/;
 
 /**
- * The effective tokens plus one derived color, `name`: the peak of the header glow, i.e. the brand
- * green of its `color-mix(… N%, transparent)` laid over the page (RK-9; 20 §11.4). The percentage
- * is read from the stylesheet, so a stronger glow moves the pairs checked against it. Nothing is
- * declared: the color exists only here, for G3d. A glow with no such mix is a finding (it throws).
+ * The effective tokens plus one derived color, `name`: the `color-mix(… N%, transparent)` held by
+ * `token`, laid over `ground` (G3d; 20 §11.4). The mixed color and the percentage are read from the
+ * stylesheet, so a stronger glow or a lighter scrim moves the pairs checked against it. One function
+ * for two uses: the peak of the header glow over the page (`ground` = `--color-surface-page`, RK-9)
+ * and a scrim over the lightest photo (`ground` = PHOTO_WORST, RU-04). `ground` is a `--token` of the
+ * set or a 6-digit hex. Nothing is declared: the color exists only here, for G3d. A token with no
+ * such mix, or a ground that is neither, is a finding (it throws).
  */
-export function withGlowPeak(
+export function withMixOver(
   tokens: ReadonlyMap<string, string>,
+  token: string,
+  ground: string,
   name: string,
 ): Map<string, string> {
-  const mix = COLOR_MIX_OVER_TRANSPARENT.exec(
-    tokens.get("--background-image-header-glow") ?? "",
-  );
-  const page = tokens.get("--color-surface-page");
-  if (mix === null || page === undefined) {
-    throw new Error("no header glow made of a color-mix over the page");
+  const mix = COLOR_MIX_OVER_TRANSPARENT.exec(tokens.get(token) ?? "");
+  const under = ground.startsWith("--") ? tokens.get(ground) : ground;
+  if (mix === null) {
+    throw new Error(`${token}: no color-mix over transparency`);
+  }
+  if (under === undefined || !/^#[0-9a-fA-F]{6}$/.test(under)) {
+    throw new Error(
+      `${ground}: not a 6-digit hex color nor a token holding one`,
+    );
   }
   const share = Number(mix[2]) / 100;
   const channel = (hex: string, start: number): number =>
@@ -1107,7 +1211,7 @@ export function withGlowPeak(
     .map((start) =>
       Math.round(
         channel(mix[1] ?? "", start) * share +
-          channel(page, start) * (1 - share),
+          channel(under, start) * (1 - share),
       )
         .toString(16)
         .padStart(2, "0"),
@@ -1772,12 +1876,35 @@ export const KEO_FORBIDDEN_NAMESPACES: readonly string[] = [
   "--container-",
 ];
 
-/** A token allowed to mix the brand green with transparency (RK-A), and its ceiling in percent. */
-export type ColorMixAllowance = { name: string; maxPercent?: number };
+/** The colors a `color-mix` over transparency may be made of (G3i; RK-A, then RU-04 of D88). */
+export type ColorMixBase =
+  "var(--color-brand-primary)" | "var(--color-surface-page)" | "#000000";
 
-/** The only `color-mix` RK-A admits: the brand green, a percentage, then transparency. */
-const BRAND_COLOR_MIX =
-  /^color-mix\(\s*in srgb\s*,\s*var\(\s*--color-brand-primary\s*\)\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)$/;
+/** What each base is called in a finding. */
+const COLOR_MIX_BASE_LABEL: Readonly<Record<ColorMixBase, string>> = {
+  "var(--color-brand-primary)": "the brand green",
+  "var(--color-surface-page)": "the page surface",
+  "#000000": "black",
+};
+
+/**
+ * A token allowed to hold `color-mix(in srgb, <base> N%, transparent)`: `base` is the brand green
+ * unless said otherwise (RK-A), `maxPercent` a ceiling (the header glow), `percent` the exact share
+ * (the three scrims and the shadow on a photo, RU-04).
+ */
+export type ColorMixAllowance = {
+  name: string;
+  maxPercent?: number;
+  base?: ColorMixBase;
+  percent?: number;
+};
+
+/** The only shape of `color-mix` that G3i admits: a color, a percentage, then transparency. */
+const COLOR_MIX_OVER_NOTHING =
+  /^color-mix\(\s*in srgb\s*,\s*(var\(\s*--[\w-]+\s*\)|#[0-9a-fA-F]{6})\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)$/;
+
+/** An alpha channel written in an `--effect-*`: `rgba(`, `hsla(` or `#rrggbbaa` (RU-04; 02 §21.3). */
+const EFFECT_ALPHA_COLOR = /\b(?:rgba|hsla)\(|#[0-9a-fA-F]{8}\b/;
 
 /** Every `color-mix(…)` of a value, its parentheses balanced. */
 function colorMixesOf(value: string): string[] {
@@ -1804,13 +1931,17 @@ function colorMixesOf(value: string): string[] {
 /**
  * G3i (a), on the sources: a token of a namespace that Tailwind inscribes, redefined in the KEO
  * block; an `@theme inline` (every value inscribed, 02 §21.3 point 3); a `color-mix` anywhere but
- * in a token of `allowances` inside the KEO block, in the form RK-A admits, within its ceiling.
+ * in a token of `allowances` inside the KEO block, made of the base the allowance names, at its exact
+ * percentage or within its ceiling; an allowance given to a `--color-*`; an alpha color (`rgba(`,
+ * `hsla(`, `#rrggbbaa`) in any `--effect-*`, which a `color-mix` over transparency replaces (RU-04).
  */
 export function findKeoTrapViolations(
   css: string,
   allowances: readonly ColorMixAllowance[],
 ): string[] {
-  const findings: string[] = [];
+  const findings: string[] = allowances
+    .filter((entry) => entry.name.startsWith("--color-"))
+    .map((entry) => `${entry.name}: a --color-* never holds a color-mix`);
   if (/@theme\b[^{;]*\binline\b/.test(css.replace(/\/\*[\s\S]*?\*\//g, " "))) {
     findings.push(
       "@theme inline: Tailwind would inscribe every value, KEO would be read nowhere",
@@ -1830,18 +1961,34 @@ export function findKeoTrapViolations(
   }
   const visit = (block: CssBlock, inKeo: boolean) => {
     for (const { name, value } of block.declarations) {
+      if (name.startsWith("--effect-") && EFFECT_ALPHA_COLOR.test(value)) {
+        findings.push(
+          `${name}: "${value}" holds an alpha color, a color-mix over transparency replaces it`,
+        );
+      }
       for (const mix of colorMixesOf(value)) {
         const allowance = inKeo
           ? allowances.find((entry) => entry.name === name)
           : undefined;
-        const percent = BRAND_COLOR_MIX.exec(mix)?.[1];
+        const parsed = COLOR_MIX_OVER_NOTHING.exec(mix);
+        const base = parsed?.[1]?.replace(/\s+/g, "");
+        const percent = parsed?.[2];
+        const wanted: ColorMixBase =
+          allowance?.base ?? "var(--color-brand-primary)";
         if (allowance === undefined) {
           findings.push(
             `${name}: "${mix}" outside the tokens of RK-A${inKeo ? "" : " (not in the KEO block)"}`,
           );
-        } else if (percent === undefined) {
+        } else if (percent === undefined || base !== wanted) {
           findings.push(
-            `${name}: "${mix}" is not the brand green mixed with transparency`,
+            `${name}: "${mix}" is not ${COLOR_MIX_BASE_LABEL[wanted]} mixed with transparency`,
+          );
+        } else if (
+          allowance.percent !== undefined &&
+          Number(percent) !== allowance.percent
+        ) {
+          findings.push(
+            `${name}: ${percent}% instead of the ${allowance.percent}% allowed`,
           );
         } else if (
           allowance.maxPercent !== undefined &&
@@ -2182,6 +2329,29 @@ export function findDocumentSmoothing(css: string): string[] {
       ? [`${selector}: declares a font smoothing (${collapse(body)})`]
       : [];
   });
+}
+
+/** The four tokens of the effects on a photo (RU-04, D88): the three scrims and the shadow. */
+export const PHOTO_EFFECT_TOKENS: readonly string[] = [
+  "effect-photo-scrim-strong",
+  "effect-photo-scrim",
+  "effect-photo-scrim-soft",
+  "effect-photo-shadow",
+];
+
+/**
+ * G8, the effects on a photo confined (RU-04): every line of src/ that names one of the four
+ * `effect-photo-*` tokens outside the modules of `readers` (PHOTO_EFFECT_READERS), comments aside,
+ * and every listed module that does not exist. An element laid on a photo reads them; no card, page
+ * or surface does.
+ */
+export function findPhotoEffectUse(
+  frontRoot: string,
+  readers: readonly string[],
+): string[] {
+  return PHOTO_EFFECT_TOKENS.flatMap((token) =>
+    findTokenUseOutside(frontRoot, token, readers),
+  );
 }
 
 /**

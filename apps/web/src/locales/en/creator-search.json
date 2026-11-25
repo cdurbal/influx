@@ -1,0 +1,265 @@
+{
+  "meta": {
+    "search": "Creators",
+    "request": "Request a selection",
+    "profile": "Anonymous profile",
+    "shortlists": "My selections",
+    "shortlist": "My selection"
+  },
+  "page": {
+    "title": "Creators",
+    "explain": "Search works by criteria, to protect creators' anonymity."
+  },
+  "request": {
+    "link": "Ask the INFLUX team for a selection",
+    "hint": "You describe your need, the INFLUX team proposes a selection."
+  },
+  "filters": {
+    "title": "Search criteria",
+    "noFreeText": "Choose your criteria, then run the search: it only runs when you ask for it.",
+    "apply": "See the results",
+    "clear": "Clear all",
+    "all": "All",
+    "open": "Filters",
+    "openCount": "Filters ({count})",
+    "close": "Hide the filters",
+    "referencesFailed": "The lists of choices did not load: some criteria are empty for now.",
+    "referencesRetry": "Reload the lists",
+    "badge": {
+      "account_verified": "Verified account",
+      "audience_verified": "Verified audience"
+    }
+  },
+  "facets": {
+    "F1": "Main topic",
+    "F3": "Networks",
+    "F4": "Audience band",
+    "F6": "Audience country",
+    "F6s": "Share of the audience in this country",
+    "F8": "Publication languages",
+    "F11": "Formats",
+    "F17": "Badges"
+  },
+  "criteria": {
+    "title": "Active criteria",
+    "country": "Audience country: {country}",
+    "share": "Share of the audience: {share}",
+    "remove": "Remove the criterion: {label}"
+  },
+  "campaign": {
+    "label": "Search linked to",
+    "none": "No campaign",
+    "untitled": "Untitled campaign",
+    "current": "Chosen campaign",
+    "failed": "Your campaigns did not load."
+  },
+  "sort": {
+    "label": "Sort",
+    "default": "Relevance",
+    "audience": "Audience",
+    "verified_first": "Verified first",
+    "new_profiles": "New profiles",
+    "explainToggle": "How sorting works",
+    "explain": "\"Relevance\" puts first the profiles that meet more of your criteria and your campaign, then those whose audience or account is verified and whose figures are recent. It is not a score."
+  },
+  "bands": {
+    "5_9": "About 5 to 9 profiles match your search.",
+    "10_24": "About 10 to 24 profiles match your search.",
+    "25_49": "About 25 to 49 profiles match your search.",
+    "50_plus": "More than 50 profiles match your search."
+  },
+  "results": {
+    "title": "Search results",
+    "loading": "Searching…",
+    "pager": "Pages of results",
+    "page": "Page {page}",
+    "previous": "Previous page",
+    "next": "Next page",
+    "capReached": "More profiles exist: refine your criteria to reach them.",
+    "endOfResults": "There are no more profiles on this page.",
+    "backToFirst": "Back to the first page"
+  },
+  "reasons": {
+    "title": "Suggested because",
+    "vigilance": "Point of attention: {text}"
+  },
+  "reason": {
+    "topic_match": "Matching topic: {topic}",
+    "primary_topic": "Main topic: {topic}",
+    "network_match": "On {network}, audience: {band}",
+    "audience_country_match": "Audience country {country}: {share}",
+    "campaign_audience_country": "Audience country targeted by your campaign, {country}: {share}",
+    "main_audience": "Main audience country, {country}: {share}",
+    "language_match": "Publication language: {language}",
+    "format_match": "Format offered: {format}",
+    "campaign_format": "Format of your campaign: {format}, on {network}",
+    "audience_verified": "Audience verified on {network}",
+    "account_verified": "Account verified on {network}",
+    "figures_fresh": "Recent figures on {network}",
+    "available": "{availability}"
+  },
+  "vigilance": {
+    "stale_figures": "The figures of the main network are not recent.",
+    "recent_profile": "Recent profile.",
+    "audience_badge_to_renew": "The audience badge is due for renewal.",
+    "declared_full": "The creator declares a full calendar."
+  },
+  "closed": {
+    "title": "Search is not open yet",
+    "notice": "Search will open once our catalogue is rich enough. In the meantime, describe your need: our team proposes a selection. Your criteria stay editable and are kept."
+  },
+  "notPublished": {
+    "action": "Complete my brand profile"
+  },
+  "tooNarrow": {
+    "title": "Your search is too narrow to be displayed.",
+    "text": "Widen a criterion, or ask the INFLUX team for a selection.",
+    "widen": "To widen it:",
+    "remove": "Remove the criterion \"{facet}\"",
+    "loosen": "Remove the share of the audience"
+  },
+  "rateLimited": {
+    "text": "You have reached the search limit. Come back later, or ask the INFLUX team for a selection.",
+    "waitMinutes": "{count, plural, one {You can search again in about # minute.} other {You can search again in about # minutes.}}",
+    "waitHours": "{count, plural, one {You can search again in about # hour.} other {You can search again in about # hours.}}",
+    "kept": "The results already shown stay readable."
+  },
+  "pageCap": {
+    "text": "You have reached the end of the results that can be displayed: refine your criteria to see other profiles."
+  },
+  "forbidden": {
+    "text": "This campaign is not available for a search.",
+    "action": "Search without a campaign"
+  },
+  "failed": {
+    "text": "The search cannot run right now. Your criteria are kept.",
+    "retry": "Try again"
+  },
+  "selectionRequest": {
+    "title": "Ask the INFLUX team for a selection",
+    "explain": "Describe your need: the INFLUX team reviews your request and proposes a selection of creators. No creator is notified.",
+    "recap": "Criteria taken from your search",
+    "recapNone": "No criteria: your request will cover the whole catalogue.",
+    "back": "Creators",
+    "campaign": "Campaign concerned (optional)",
+    "message": "Your need in a few words (optional)",
+    "messageHelp": "The kind of profiles, the tone, the schedule. Give no e-mail or phone number: everything goes through INFLUX.",
+    "counter": "{count} / {max} characters",
+    "submit": "Send my request",
+    "sending": "Sending…",
+    "sent": {
+      "title": "Your request has been passed to the INFLUX team",
+      "text": "The INFLUX team will answer you by {date}.",
+      "note": "This is the team's time to answer, not a guaranteed number of profiles. No creator is told.",
+      "back": "Back to the search"
+    },
+    "refusal": {
+      "not_found": "This campaign is not available for a request.",
+      "limit": "Your request could not be sent. Try again.",
+      "full": "Your request could not be sent. Try again.",
+      "invalid_name": "Your request could not be sent. Try again.",
+      "invalid_note": "Your request could not be sent. Try again.",
+      "rate_limited": "You have sent the maximum number of requests for today. Try again tomorrow.",
+      "unavailable": "Your request could not be sent right now. Your details are kept: try again."
+    }
+  },
+  "shortlist": {
+    "add": "Add to my selection",
+    "remove": "Remove from my selection",
+    "inList": "In your selection “{name}”",
+    "defaultName": "My selection",
+    "refusal": {
+      "not_found": "This creator is no longer available.",
+      "limit": "You have reached the maximum number of selections. Delete one to make another.",
+      "full": "This selection is full: remove a creator to add another.",
+      "invalid_name": "The name must be 1 to 80 characters long.",
+      "invalid_note": "The note must be 1 to 500 characters long.",
+      "invalid_message": "The message must be 1 to 1,000 characters long.",
+      "rate_limited": "Too many actions in a short time. Try again in a moment.",
+      "unavailable": "The action could not be completed. Try again."
+    }
+  },
+  "panel": {
+    "title": "My private selection ({count})",
+    "private": "Private: no creator is told.",
+    "open": "Show my selection",
+    "close": "Hide",
+    "choose": "Selection shown",
+    "members": "Creators of the selection",
+    "empty": "No creator yet: add them from the results, one at a time.",
+    "createName": "Name of a new selection",
+    "create": "Create a selection",
+    "all": "My selections",
+    "failed": "Your selection could not be loaded.",
+    "retry": "Reload"
+  },
+  "profile": {
+    "open": "View profile",
+    "back": "Search results",
+    "title": "Anonymous profile",
+    "explain": "This is the profile as the platform shows it: no identity is visible before an introduction.",
+    "region": "Region of residence",
+    "private": "Adding to your selection or asking for a selection does not tell any creator.",
+    "loading": "Opening the profile…",
+    "gone": "This profile is no longer available.",
+    "rateLimited": "You have opened many profiles today. Come back later, or ask the INFLUX team for a selection.",
+    "waitMinutes": "{count, plural, one {You can open another profile in about # minute.} other {You can open another profile in about # minutes.}}",
+    "waitHours": "{count, plural, one {You can open another profile in about # hour.} other {You can open another profile in about # hours.}}",
+    "failed": "This profile cannot be opened right now."
+  },
+  "lists": {
+    "title": "My selections",
+    "explain": "Your selections are private: no creator is told and nothing leaves INFLUX. They keep your ideas and attach them to a campaign.",
+    "loading": "Loading your selections…",
+    "failed": "Your selections could not be loaded.",
+    "closed": "Search is not open yet: your selections will be available when it opens.",
+    "notPublished": "Publish your brand profile to use your selections.",
+    "empty": "You have no selection yet. Add creators from the search, or make a selection below.",
+    "toSearch": "Search for creators",
+    "count": "{count, plural, =0 {No creator} one {# creator} other {# creators}}",
+    "campaign": "Campaign: {title}",
+    "campaignOther": "one of your campaigns",
+    "noCampaign": "No campaign",
+    "open": "Open",
+    "problem": {
+      "empty": "Give the selection a name.",
+      "too_long": "The name must be 80 characters at most."
+    },
+    "form": {
+      "title": "New selection",
+      "name": "Name of the selection",
+      "campaign": "Campaign (optional)",
+      "campaignHelp": "Attaching the selection to a campaign links it to its need; you can detach it later.",
+      "create": "Create the selection",
+      "created": "Selection created."
+    }
+  },
+  "list": {
+    "title": "My selection",
+    "back": "My selections",
+    "explain": "This selection is private: no creator is told. Only you read your notes.",
+    "gone": "This selection does not exist.",
+    "members": "Creators of the selection",
+    "empty": "This selection holds no visible creator. Add some from the search.",
+    "remove": "Remove from the selection",
+    "edit": {
+      "title": "Name and campaign",
+      "save": "Save",
+      "saved": "Changes saved."
+    },
+    "note": {
+      "label": "Your note (private)",
+      "help": "Only you read it. Leave empty to clear the note.",
+      "counter": "{count} / {max} characters",
+      "save": "Save the note",
+      "saved": "Note saved."
+    },
+    "delete": {
+      "title": "Delete the selection",
+      "action": "Delete this selection",
+      "confirm": "Delete this selection? It cannot be recovered. No creator is told.",
+      "yes": "Yes, delete",
+      "cancel": "Cancel"
+    }
+  }
+}

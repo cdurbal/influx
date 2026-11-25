@@ -3,6 +3,8 @@
 // MemberShell, which provides it once the account is read and the terms are settled.
 import type { MeResponse } from "@influx/contracts/account";
 import { createContext, useContext } from "react";
+import type { BrandSummary } from "@/components/brand-profile/use-brand-summary";
+import type { CreatorSummary } from "@/components/creator-profile/use-creator-summary";
 
 export type MemberContextValue = {
   me: MeResponse;
@@ -14,6 +16,13 @@ export type MemberContextValue = {
   signedOut: (message: string | null) => void;
   /** Ends the page on "your account is deleted" (D72): no navigation, the session is closed. */
   accountDeleted: () => void;
+  /**
+   * The state of a brand's profile (17 §2.3, §2.4), read by the shell for the column and the home;
+   * `none` for a creator. The profile screen gives it each answer it gets (`adopt`).
+   */
+  brandProfile: BrandSummary;
+  /** The same for a creator's profile (L2D, commit 15): alias, state, score, what is missing; `none` for a brand. */
+  creatorProfile: CreatorSummary;
 };
 
 export const MemberContext = createContext<MemberContextValue | null>(null);

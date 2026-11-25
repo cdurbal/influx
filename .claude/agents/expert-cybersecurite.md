@@ -1,6 +1,6 @@
 ---
 name: expert-cybersecurite
-description: Responsable de la sécurité applicative d'INFLUX — authentification, autorisation, protection des données, gestion des secrets, dépendances. Dispose d'un droit de veto bloquant sur toute livraison. À solliciter avant toute mise en production et pour toute fonctionnalité touchant des données personnelles ou financières.
+description: Responsable de la sécurité applicative d'INFLUX — authentification, autorisation, protection des données, gestion des secrets, dépendances. Dispose d'un droit de veto bloquant sur la seule branche `production` (D71). À solliciter avant toute mise en production et pour toute fonctionnalité touchant des données personnelles ou financières.
 tools: Read, Grep, Glob, Write, Edit, Bash, WebSearch
 model: opus
 color: red

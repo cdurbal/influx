@@ -304,20 +304,24 @@ describe("T2.2 and T2.3: every table of our schemas is declared, protected and a
   });
 
   it("finds a row in every table for the migration role, commission_rates excepted (rule 3)", async () => {
+    // Empty by design: the rates (T16.3). The price bands, empty at L2A, are loaded by 0304 (L3B).
+    const emptyByDesign = new Set(["billing.commission_rates"]);
     const empty: string[] = [];
+    const filled: string[] = [];
     for (const rights of TABLE_RIGHTS) {
       const [row] = await migration.unsafe<{ count: number }[]>(
         `select count(*)::int as count from ${rights.table}`,
       );
-      const isRates = rights.table === "billing.commission_rates";
-      if ((row?.count ?? 0) === 0 && !isRates) {
+      const count = row?.count ?? 0;
+      if (count === 0 && !emptyByDesign.has(rights.table)) {
         empty.push(rights.table);
       }
-      if (isRates) {
-        expect(row?.count).toBe(0);
+      if (count > 0 && emptyByDesign.has(rights.table)) {
+        filled.push(rights.table);
       }
     }
     expect(empty).toEqual([]);
+    expect(filled).toEqual([]);
   });
 
   it("owns no schema outside the declared list, and keeps public empty of our objects", async () => {
@@ -705,13 +709,31 @@ describe("T2.7: exact snapshot of the privileges of the closed list", () => {
     ).map((line) => line.split("|")[0]);
     // influx_maintenance_definer (0117): retention.purged, from E-4 functions only;
     // influx_leads_definer (0132): leads.replay_requested, from leads.replay_outbox_lines() only;
-    // influx_privacy_definer (0137): the E-5 lines, from the privacy functions only
+    // influx_privacy_definer (0137): the E-5 lines, from the privacy functions only;
+    // influx_moderation_definer (0210): the claims and decisions of queue 1, from its functions only;
+    // influx_creator_verification_definer (0222): the creator's verification requests, from its doors
+    // influx_verification_definer (0224): the claims and decisions of queue 4, from its functions only
+    // influx_creator_profile_definer (0242): the creator's deposits and withdrawals, from its doors
+    // influx_campaign_definer (0305): campaign.submitted, from the submission door only
+    // influx_campaign_review_definer (0307): the claims of queue 7, from its functions only
+    // influx_search_admin_definer (0316): search.settings_changed, from its two writers only
+    // influx_creator_search_definer (0325): search.selection_requested, from the brand's request only
+    // influx_agent_search_definer (0330): the claims and closures of queue 9, from its doors only
     expect(appenders.sort()).toEqual([
+      "influx_agent_search_definer",
       "influx_audit_writer",
+      "influx_campaign_definer",
+      "influx_campaign_review_definer",
+      "influx_creator_profile_definer",
+      "influx_creator_search_definer",
+      "influx_creator_verification_definer",
       "influx_identity_definer",
       "influx_leads_definer",
       "influx_maintenance_definer",
+      "influx_moderation_definer",
       "influx_privacy_definer",
+      "influx_search_admin_definer",
+      "influx_verification_definer",
     ]);
   });
 });

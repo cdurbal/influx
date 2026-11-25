@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 5 bis · Page publique de la marque</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html" aria-current="page">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 5 bis · Créateur, et commercial en aperçu</p>
+    <h1 class="d-h1">Page publique de la marque</h1>
+    <p class="d-lead">La structure du profil anonyme, adaptée à une marque. Un créateur l'ouvre depuis une campagne ; le commercial l'ouvre depuis l'écran 5, dans un nouvel onglet, sur la version soumise.</p>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Prototype">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Ordinateur 1 440 px</button><button class="d-toggle" type="button" data-mode="phone" aria-pressed="false"><svg class="i i--sm"><use href="#i-smartphone"/></svg>Téléphone 390 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="createur" data-cap="" aria-pressed="true">Vue d'un créateur</button>
+        <button type="button" data-st="soumise" data-cap="" aria-pressed="false">Version soumise (backoffice)</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot" hidden><img alt="" src="data:,"></div><div class="d-screen d-none">Cette page n'existe pas aujourd'hui : un créateur ne voit la marque que dans la fiche d'une campagne.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-marque.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-marque.html" title="Prototype de la page de la marque" loading="lazy"></iframe></div></figure>
+    </div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Du profil anonyme à la page de la marque</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Profil anonyme</th><th>Page de la marque</th><th>Pourquoi</th></tr></thead>
+      <tbody>
+        <tr><td>Mosaïque du portfolio</td><td>En-tête : logo sur sa pastille claire, nom, badge « Marque vérifiée », secteur, pays, accroche</td><td>Une marque n'a pas de portfolio ; son identité est publique</td></tr>
+        <tr><td>Chiffres clés du réseau principal</td><td>La marque en bref : vérification, campagnes ouvertes, taille, ancienneté</td><td>Ce qui rassure un créateur</td></tr>
+        <tr><td>« Proposé car »</td><td>Ce qui vous concerne : thématique et audience communes avec votre profil, vérification</td><td>Comparaison au profil, jamais un score</td></tr>
+        <tr><td>Bio</td><td>Présentation, « Lire la suite »</td><td>—</td></tr>
+        <tr><td>Réseaux, audience</td><td>Campagnes ouvertes, ce qu'elle recherche, façon de travailler</td><td>Ce qu'un créateur veut savoir avant de s'intéresser</td></tr>
+        <tr><td>Encadré « Ma sélection »</td><td>Encadré « 2 campagnes ouvertes » et « Voir ses campagnes » ; rappel du rôle du commercial</td><td>Pas de contact direct (D45) ; aucun montant (D78)</td></tr>
+        <tr><td>—</td><td>Bandeau « Version soumise, non publiée » quand le commercial l'ouvre depuis l'écran 5</td><td>Juger ce qui sera publié, pas la version en ligne</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La page dans son ensemble.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>« Ce qui vous concerne » compare la marque au profil du créateur : à confirmer avec <code>expert-matching</code> (pas de score, des faits).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Tranché le 2026-11-24 : le site web n'est pas montré aux créateurs (contact hors plateforme) ; les agents INFLUX voient toutes les informations, site compris.</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-5-bo-decision.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 5 · Décision BO</a><a class="go" href="ecran-6-bo-fiche-compte.html">Écran 6 · Fiche de compte <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

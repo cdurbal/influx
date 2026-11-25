@@ -13,8 +13,14 @@
 //   7. the subject's own read (leads.read_apollo_subject, 0113), in its own short transaction: under
 //      interet_legitime_avec_opposition an opposition recorded after the sign-up excludes for good
 //      (prospection_opposed); an advertiser without a company name is company_not_identified;
-//   8. the mapping and the output check: a refusal goes back to the drain, which fails the line, in
-//      dry_run as in live.
+//   8. for an advertiser, the live brand profile (leads.read_brand_profile_attributes, 0212; 06
+//      RG79), in its own short transaction: its domain, sector and size band enrich the contact;
+//   9. for an advertiser, « a publié une campagne » and its date (leads.read_campaign_attributes, 0310;
+//      09 RG105, CA70), in its own short transaction: two labels, nothing else of a campaign;
+//  10. the mapping and the output check: a refusal goes back to the drain, which fails the line, in
+//      dry_run as in live. profile.completed (the first publication of a brand, 06 RG78) and
+//      campaign.published (the first publication of a campaign, 09 RG103) are mapped as lead.updated
+//      is: the contact is rewritten from the database, whatever the event.
 // The answer's contact id is the only value read back (RG85), kept by the database as the contact
 // state (0111) for the next update. What leaves for the drain is names and verdicts; the values stay
 // in the closure of `send`.
@@ -23,7 +29,11 @@ import {
   type Connector,
   type Preparation,
 } from "../../connector.ts";
-import type { ClaimedLine } from "../../repository.ts";
+import type {
+  BrandProfileAttributes,
+  CampaignAttributes,
+  ClaimedLine,
+} from "../../repository.ts";
 import {
   createApolloClient,
   type ApolloClient,
@@ -57,9 +67,30 @@ export type ApolloSubjectReader = (
   line: ClaimedLine,
 ) => Promise<ApolloSubject | null>;
 
+/**
+ * The live brand profile of a contact line (0212; 06 RG79): read only for an advertiser, in its own
+ * short transaction; null when the account holds no brand profile.
+ */
+export type ApolloBrandProfileReader = (
+  line: ClaimedLine,
+) => Promise<BrandProfileAttributes | null>;
+
+/**
+ * The campaigns of the brand of a contact line (0310; 09 RG105): « a publié » and its date only (the
+ * base nulls every other column on an Apollo line, CA70), in its own short transaction; null when the
+ * account holds no brand profile.
+ */
+export type ApolloCampaignAttributesReader = (
+  line: ClaimedLine,
+) => Promise<CampaignAttributes | null>;
+
 export type ApolloConnectorDependencies = {
   /** Reads the subject of a line in processing for this worker (0113), its own transaction. */
   readSubject: ApolloSubjectReader;
+  /** Reads the live brand profile of a contact line (0212), its own transaction. */
+  readBrandProfile: ApolloBrandProfileReader;
+  /** Reads « a publié une campagne » and its date for a contact line (0310), its own transaction. */
+  readCampaignAttributes: ApolloCampaignAttributesReader;
   logger: ApolloClientLogger;
   fetch?: typeof fetch;
   timeoutMs?: number;
@@ -150,10 +181,24 @@ export function createApolloConnector(
         return { kind: "skip", reason: "company_not_identified" };
       }
 
-      const body = map(account, subject.email, subject.company, {
-        scope: apollo.scope,
-        legalBasis,
-      });
+      // 06 RG79: the live profile of a brand enriches the contact (domain, sector, size)
+      const profile =
+        account.role === "advertiser"
+          ? await dependencies.readBrandProfile(line)
+          : null;
+      // 09 RG105: « a publié une campagne » and its date, the only campaign attribute of Apollo
+      const campaigns =
+        account.role === "advertiser"
+          ? await dependencies.readCampaignAttributes(line)
+          : null;
+      const body = map(
+        account,
+        subject.email,
+        subject.company,
+        { scope: apollo.scope, legalBasis },
+        profile,
+        campaigns,
+      );
       const rejected = checkContactOutput(body);
       return {
         kind: "mapped",

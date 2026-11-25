@@ -12,6 +12,7 @@ import { effectiveTokens } from "@influx/test-kit/guards";
 import enAccount from "@/locales/en/account.json" with { type: "json" };
 import enMember from "@/locales/en/member.json" with { type: "json" };
 import frAccount from "@/locales/fr/account.json" with { type: "json" };
+import frCreatorProfile from "@/locales/fr/creator-profile.json" with { type: "json" };
 import frMember from "@/locales/fr/member.json" with { type: "json" };
 import { revokeSessions, seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
@@ -186,9 +187,10 @@ test("TD5.2: the bar at the bottom at lg − 1, the column on the left at lg, no
   expect(column).toMatchObject({ x: 0, y: 0, height: 800 });
   expect(list?.x).toBe(0);
   expect((list?.x ?? 0) + (list?.width ?? 0)).toBeLessThanOrEqual(main?.x ?? 0);
-  // The column stays in place while the content scrolls.
+  // The column stays in place while the content scrolls (the creator home, now taller than the
+  // window, really scrolls: a sticky box then sits within a sixty-fourth of a pixel of the top).
   await page.mouse.wheel(0, 600);
-  expect((await nav.locator("..").boundingBox())?.y).toBe(0);
+  expect((await nav.locator("..").boundingBox())?.y).toBeCloseTo(0, 0);
 
   for (const width of [375, 768]) {
     await page.setViewportSize({ width, height: 600 });
@@ -256,6 +258,12 @@ for (const [width, expected] of [
 
     await page.reload();
     await expect(title(page)).toHaveText(AUTH_LABELS.fr.home.creator.title);
+    // The card of the profile arrives with its own read: the order is taken once it is in place.
+    await expect(
+      page
+        .getByRole("main")
+        .getByRole("link", { name: frCreatorProfile.home.complete }),
+    ).toBeVisible();
     expect(await tabOrder(page)).toEqual(expected);
     await page.keyboard.press("Shift+Tab");
     expect(await focusRegion(page)).toBe(expected.at(-2));
@@ -549,9 +557,11 @@ test("TN6: at 1440 px, the four sub-entries under Compte on mes données, the cu
       exact: true,
     }),
   });
-  await expect(account.locator("ul a")).toHaveText(
-    ACCOUNT_SUB_PAGES.map(({ key }) => ACCOUNT.fr.nav[key]),
-  );
+  // The member is a brand: its profile (L2B-11) leads the four pages common to both spaces.
+  await expect(account.locator("ul a")).toHaveText([
+    ACCOUNT.fr.nav.accountProfile,
+    ...ACCOUNT_SUB_PAGES.map(({ key }) => ACCOUNT.fr.nav[key]),
+  ]);
   await expect(account.locator("ul a").first()).toBeVisible();
   await expect(nav.locator('[aria-current="page"]')).toHaveText(
     ACCOUNT.fr.nav.accountData,
@@ -566,7 +576,9 @@ test("TN6: at 1440 px, the four sub-entries under Compte on mes données, the cu
     .getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true })
     .click();
   await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
-  await expect(account.locator("ul a")).toHaveCount(ACCOUNT_SUB_PAGES.length);
+  await expect(account.locator("ul a")).toHaveCount(
+    ACCOUNT_SUB_PAGES.length + 1,
+  );
   await expect(nav.locator('[aria-current="page"]')).toHaveText(
     MEMBER.fr.nav.entries.account,
   );
@@ -599,19 +611,27 @@ for (const width of [375, 768]) {
       .click();
     await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
     await expect(title(page)).toBeFocused();
-    expect(await visibleLinks()).toBe(2);
+    // Accueil, Campagnes (L3D) and Compte: the three entries a creator has.
+    expect(await visibleLinks()).toBe(3);
+    // The creator's profile leads the four pages common to both spaces (L2D, commit 12).
     await expect(page.getByRole("main").getByRole("listitem")).toHaveCount(
-      ACCOUNT_SUB_PAGES.length,
+      ACCOUNT_SUB_PAGES.length + 1,
     );
 
-    for (const { key, screen } of ACCOUNT_SUB_PAGES) {
+    for (const { key, heading } of [
+      { key: "accountProfileCreator", heading: frCreatorProfile.page.title },
+      ...ACCOUNT_SUB_PAGES.map(({ key, screen }) => ({
+        key,
+        heading: ACCOUNT.fr[screen].title,
+      })),
+    ] as const) {
       await page
         .getByRole("main")
         .getByRole("link", { name: ACCOUNT.fr.nav[key], exact: true })
         .click();
-      await expect(title(page), key).toHaveText(ACCOUNT.fr[screen].title);
+      await expect(title(page), key).toHaveText(heading);
       await expect(title(page), key).toBeFocused();
-      expect(await visibleLinks(), key).toBe(2);
+      expect(await visibleLinks(), key).toBe(3);
       await expect(
         nav.getByRole("link", {
           name: MEMBER.fr.nav.entries.account,
@@ -644,14 +664,147 @@ test("TN6: one navigation landmark and one aria-current on the page-menu and a s
   }
 });
 
-test("axe finds nothing on the creator home at 375, 768, 1024 and 1440 px (WCAG 2.2 AA)", async ({
+test("the creator home leads with the card of the profile, the column repeats its state, and axe finds nothing at 375, 768, 1024 and 1440 px (WCAG 2.2 AA)", async ({
   page,
 }) => {
   await openHome(page, "fr", "creator");
+  // L2D, commit 15: the alias, the state, the score and what is missing by name, one way to the
+  // profile; no word of publication, no amount (EC-L2D-5, D78).
+  await expect(
+    page.getByRole("main").getByRole("heading", {
+      name: frCreatorProfile.page.title,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText(/^Profil [A-Z0-9]{6}$/),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("main")
+      .getByText(
+        frCreatorProfile.home.state.replace(
+          "{state}",
+          frCreatorProfile.state.draft,
+        ),
+      ),
+  ).toBeVisible();
+  await expect(page.getByRole("main").getByRole("meter")).toHaveCount(1);
+  // L2DU-3: the way to the profile first, then a count by section, each one a link to its anchor.
+  await expect(
+    page
+      .getByRole("main")
+      .getByText(/^Il reste \d+ informations à compléter :$/),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("main")
+      .getByRole("link", { name: /^Présentation \(\d+\)$/ }),
+  ).toHaveAttribute("href", "/fr/compte/profil#creator-section-presentation");
+  await expect(page.getByRole("main").getByText(/^À compléter : /)).toHaveCount(
+    0,
+  );
+  const way = page
+    .getByRole("main")
+    .getByRole("link", { name: frCreatorProfile.home.complete });
+  await expect(way).toHaveAttribute("href", "/fr/compte/profil");
+  await expect(page.getByRole("main")).not.toContainText(/publier|€/i);
+  const stateInColumn = page.getByText(
+    frMember.shell.accountState.state.replace(
+      "{state}",
+      frCreatorProfile.state.draft,
+    ),
+    { exact: true },
+  );
+  await page.setViewportSize({ width: 375, height: 900 });
+  await expect(stateInColumn).toBeHidden();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(stateInColumn).toBeVisible();
   for (const width of [375, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     await expectNoAxeViolation(page, `accueil créateur à ${width} px`, {
       wcag22: true,
     });
   }
+  // The way the card shows really opens the profile (17 §2.4): its page and its title.
+  await way.click();
+  await expect(title(page)).toHaveText(frCreatorProfile.page.title);
+  await expect(page).toHaveURL(/\/fr\/compte\/profil$/);
 });
+
+// L2AU-2 and L2AU-3 (logo test of L2A; 20 §11.3, §11.8; 17 §2.2, §2.3): the space's role pill in
+// the header at every width, a dot of 12 px on a neutral ground, nothing cut or overflowing at
+// 320 px; the link of the home card underlined and aligned to the left. One case per language.
+for (const [locale, role] of [
+  ["fr", "creator"],
+  ["en", "advertiser"],
+] as const) {
+  test(`L2AU-2, L2AU-3: the ${role} home in ${locale}, the role pill in the header and an underlined link, at 320, 375 and 1440 px`, async ({
+    page,
+  }) => {
+    await openHome(page, locale, role);
+    // The banner: the page's own header, inside <main>, titles the home with the same words.
+    const pill = page
+      .getByRole("banner")
+      .getByText(MEMBER[locale].space[role], { exact: true });
+    for (const width of [320, 375, 1440]) {
+      const where = `${width} px`;
+      await page.setViewportSize({ width, height: 900 });
+      await expect(pill, where).toBeVisible();
+      const look = await pill.evaluate((element) => {
+        const style = getComputedStyle(element);
+        const dot = element.querySelector('[aria-hidden="true"]');
+        const header = element.closest("header");
+        const probe = document.createElement("span");
+        element.append(probe);
+        probe.style.backgroundColor = "var(--color-surface-raised)";
+        const raised = getComputedStyle(probe).backgroundColor;
+        probe.remove();
+        return {
+          inHeader: header !== null,
+          neutral: style.backgroundColor === raised,
+          bordered: parseFloat(style.borderTopWidth) > 0,
+          dot: dot?.getBoundingClientRect().width ?? 0,
+          cut: element.scrollWidth > element.clientWidth,
+          lines: Math.round(
+            (element.clientHeight -
+              parseFloat(style.paddingTop) -
+              parseFloat(style.paddingBottom)) /
+              parseFloat(style.lineHeight),
+          ),
+          headerCut:
+            header === null ? true : header.scrollWidth > header.clientWidth,
+          right: Math.max(
+            ...[...(header?.children ?? [])].map(
+              (child) => child.getBoundingClientRect().right,
+            ),
+          ),
+        };
+      });
+      expect(look.inHeader, where).toBe(true);
+      expect(look.neutral, where).toBe(true);
+      expect(look.bordered, where).toBe(true);
+      expect(look.dot, where).toBeGreaterThanOrEqual(12);
+      expect([look.cut, look.headerCut, look.lines], where).toEqual([
+        false,
+        false,
+        1,
+      ]);
+      expect(look.right, where).toBeLessThanOrEqual(width);
+      if (width === 320) continue;
+      const link = page.getByRole("link", { name: ACCOUNT[locale].homeLink });
+      const style = await link.evaluate((element) => {
+        const computed = getComputedStyle(element);
+        return {
+          decoration: computed.textDecorationLine,
+          align: computed.textAlign,
+          weight: computed.fontWeight,
+        };
+      });
+      expect(style, where).toEqual({
+        decoration: "underline",
+        align: "left",
+        weight: "600",
+      });
+    }
+  });
+}

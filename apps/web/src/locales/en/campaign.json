@@ -1,0 +1,552 @@
+{
+  "meta": {
+    "list": "Campaigns",
+    "form": "Campaign",
+    "preview": "What a creator sees"
+  },
+  "list": {
+    "title": "My campaigns",
+    "loading": "Loading your campaigns…",
+    "unavailable": "We cannot show your campaigns right now. Try again in a few minutes.",
+    "retry": "Try again",
+    "create": "Create a campaign",
+    "creating": "Creating…",
+    "createFailed": "The campaign could not be created. Try again in a moment.",
+    "empty": {
+      "title": "Your first campaign",
+      "text": "An INFLUX campaign describes what you offer to creators: the offer, the work expected, the audience aimed at, the budget and the calendar. It saves as you go, and an INFLUX account manager reviews it before it is published."
+    },
+    "untitled": "Untitled campaign",
+    "updatedOn": "Changed on {date}",
+    "resume": "Resume",
+    "view": "View",
+    "profileLink": "Go to my brand profile"
+  },
+  "feed": {
+    "title": "Campaigns",
+    "loading": "Loading campaigns…",
+    "count": "{count, plural, one {# campaign} other {# campaigns}}",
+    "sort": {
+      "label": "Sort by",
+      "recent": "Most recent",
+      "deadline": "Nearest deadline"
+    },
+    "more": "Show more",
+    "moreLoading": "Loading…",
+    "capReached": "List limited: {count} campaigns shown out of {total}.",
+    "closed": "Applications closed",
+    "empty": {
+      "title": "No open campaign for now.",
+      "text": "Complete your profile: it is what an INFLUX account manager looks at when matching a brand with a creator.",
+      "profileLink": "Go to my profile"
+    },
+    "unavailable": "We cannot show the campaigns right now. Please try again in a few minutes.",
+    "forbidden": "Campaigns are not available with the current state of your account.",
+    "rateLimited": "You are reading campaigns very often. Please try again in a moment.",
+    "rateLimitedWait": "You are reading campaigns very often. Please try again in {seconds, plural, one {# second} other {# seconds}}.",
+    "retry": "Try again",
+    "card": {
+      "open": "View the campaign",
+      "publishedOn": "Published on {date}",
+      "deadline": "Apply before {date}",
+      "period": {
+        "range": "From {from} to {to}",
+        "from": "From {from}",
+        "until": "Until {to}"
+      },
+      "countries": "Target audience: {countries}",
+      "logoAlt": "Logo of {name}"
+    }
+  },
+  "usageRights": {
+    "warning": "What becomes of your content: this campaign requires unlimited worldwide paid media rights. Your content may be used with no time or country limit. Check these conditions before you commit."
+  },
+  "disclosure": {
+    "notice": "Your post must state that it is commercial, under the rules of your country and of your audience's. INFLUX reminds you of this obligation without guaranteeing local compliance."
+  },
+  "record": {
+    "campaign": "The campaign",
+    "back": "Campaigns",
+    "loading": "Loading the campaign…",
+    "gone": {
+      "title": "This campaign is no longer open.",
+      "text": "It has closed, been paused or been withdrawn. Other campaigns are waiting for you."
+    },
+    "unavailable": "We cannot show this campaign right now. Please try again in a few minutes.",
+    "forbidden": "Campaigns are not available with your account's current state.",
+    "rateLimited": "You are reading campaigns very often. Please try again in a moment.",
+    "rateLimitedWait": "You are reading campaigns very often. Please try again in {seconds, plural, one {# second} other {# seconds}}.",
+    "retry": "Try again",
+    "noApplication": "Applying is not available yet: this page lets you read the campaign."
+  },
+  "home": {
+    "title": "My campaigns",
+    "text": "Create a campaign, saved as you go, then submit it to an INFLUX account manager.",
+    "link": "See my campaigns"
+  },
+  "publish": {
+    "title": "Submit my campaign",
+    "missing": "{count, plural, one {# piece of information is} other {# pieces of information are}} missing to submit your campaign: {fields}.",
+    "ready": "All the required information is filled in: you can submit your campaign.",
+    "listTitle": "To complete before submitting",
+    "button": "Submit my campaign",
+    "busy": "Sending…",
+    "explain": "An INFLUX account manager reviews the campaign before it is published. Once submitted, it cannot be edited during the review.",
+    "sensitiveNotice": "This product category calls for an enhanced review, which may lengthen the review.",
+    "declarationRequired": "Tick this declaration to submit the campaign.",
+    "submittedTitle": "Your campaign is submitted.",
+    "submittedText": "It cannot be edited during the review.",
+    "backToList": "Back to my campaigns",
+    "unavailable": "The campaign could not be submitted right now. Try again in a moment.",
+    "unsaved": "Your last entry is not saved yet. Wait for the save to finish, then submit again.",
+    "invalid": "First correct {count, plural, one {the field that was refused} other {the fields that were refused}}, then submit again:",
+    "locked": "This campaign can no longer be edited: it cannot be submitted again.",
+    "profileRequired": "Publish your brand profile before submitting a campaign."
+  },
+  "budget": {
+    "bandBrand": "Budget band per creator: the total amount you pay, INFLUX commission included. Only your INFLUX account manager sees it.",
+    "negotiate": "To be negotiated with your account manager.",
+    "internalPilot": "Your budget is never published: only your INFLUX account manager sees it.",
+    "giftOnly": "Gifted product only: no budget band is asked. The value of the product is entered in step 1.",
+    "chooseCurrency": "Choose the currency first.",
+    "creatorSees": "A creator sees the nature of the compensation, followed by the line below. No amount and no band is shown to them.",
+    "noNature": "Choose the nature of the compensation: it will show here.",
+    "creatorNature": "Compensation: {kind}"
+  },
+  "application": {
+    "validationNotice": "Applying does not open a conversation: the application is reviewed by an INFLUX account manager."
+  },
+  "status": {
+    "label": {
+      "draft": "Draft",
+      "pending_review": "Being reviewed",
+      "published": "Published",
+      "paused": "Paused",
+      "closed": "Closed",
+      "rejected": "To correct"
+    },
+    "draft": "Draft saved automatically. Nobody but you sees it until you submit it.",
+    "pending": "Your campaign is being reviewed by the INFLUX team.",
+    "published": "Your campaign is published: creators can read it.",
+    "paused": "Campaign paused — applications are on hold.",
+    "closed": "This campaign is closed.",
+    "rejected": "Your campaign was not published: {reason}",
+    "rejectedNoReason": "Your campaign was not published. Correct it, then submit it again."
+  },
+  "rejection": {
+    "contact_in_text": "Your campaign contains an address, a number, a link or an invitation to contact you outside INFLUX.",
+    "amount_in_text": "An amount appears in your text. Amounts are declared in the budget block, which is never published.",
+    "link_in_text": "Links are not accepted in a campaign. Your website is already on your profile.",
+    "brief_insufficient": "Your brief does not let a creator understand what you expect.",
+    "deliverables_inconsistent": "The requested formats do not match the targeted networks.",
+    "budget_inconsistent": "The declared budget band cannot be used as it stands.",
+    "calendar_invalid": "The dates of your campaign are no longer valid.",
+    "creator_personal_criterion": "Your campaign sets a criterion about the creator as a person (age, gender, appearance). Targeting is about the audience, never about the creator.",
+    "minor_audience": "A campaign cannot target an audience under 18.",
+    "concealed_advertising": "A campaign cannot ask for paid content to be presented as a spontaneous opinion.",
+    "duplicate": "An identical campaign is already published.",
+    "sensitive_authorizations_missing": "We could not verify your authorisations for this type of product.",
+    "illicit_content": "Your campaign cannot be published: it is contrary to the law or to the INFLUX terms of use. The message from the INFLUX team:",
+    "other": "Your campaign could not be published as it stands. The message from the INFLUX team:"
+  },
+  "refusal": {
+    "fix": "Correct your campaign from your INFLUX space, then submit it again.",
+    "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+  },
+  "lifecycle": {
+    "title": "Campaign life",
+    "published": "Your campaign is visible to creators. Paused, it no longer accepts applications; conversations already open are not affected.",
+    "paused": "Your campaign is paused: it no longer accepts applications. Resume it whenever you like, with no new review.",
+    "closed": "This campaign is over: it cannot be reopened.",
+    "pause": "Pause campaign",
+    "pausing": "Pausing…",
+    "resume": "Resume campaign",
+    "resuming": "Resuming…",
+    "close": "Close campaign",
+    "closing": "Closing…",
+    "closeWarning": "Closing is final: the campaign can never be reopened, you can only create a new one. Nothing is erased and conversations already open are not affected.",
+    "closeConfirm": "Yes, close it for good",
+    "cancel": "Cancel",
+    "done": {
+      "pause": "Campaign paused: it no longer accepts applications.",
+      "resume": "Campaign resumed: it is published again.",
+      "close": "Campaign closed, for good."
+    },
+    "failed": {
+      "unavailable": "This action could not be done. Try again in a moment.",
+      "notAllowed": "This action is no longer possible: the campaign changed state. Its current state is shown.",
+      "pausedByInflux": "This campaign was paused by the INFLUX team: only it can resume it. Contact it from the help on the sign-in screen."
+    }
+  },
+  "form": {
+    "loading": "Loading your campaign…",
+    "unavailable": "We cannot show this campaign right now. Try again in a few minutes.",
+    "retry": "Try again",
+    "back": "My campaigns",
+    "backPrefix": "Back to",
+    "newTitle": "New campaign",
+    "locked": "This campaign can no longer be edited: it is under review or already published.",
+    "intro": "A campaign is the offer you make to creators. Start with the essentials: the rest can be completed later, everything is saved as you go.",
+    "step": "Step {step} of {total}",
+    "stepsLabel": "Campaign steps",
+    "stepName": "{number}. {title}",
+    "stepMissing": "{count, plural, =0 {everything is filled in} one {# piece of information to complete} other {# pieces of information to complete}}",
+    "previous": "Previous step",
+    "next": "Next step",
+    "steps": {
+      "1": {
+        "title": "The offer",
+        "question": "What are you offering, and what is it about?"
+      },
+      "2": {
+        "title": "The work expected",
+        "question": "What must the creator produce, and what will you do with it?"
+      },
+      "3": {
+        "title": "For whom",
+        "question": "Which audience are you aiming at?"
+      },
+      "4": {
+        "title": "The budget",
+        "question": "How much do you pay per creator, INFLUX commission included?"
+      },
+      "5": {
+        "title": "Calendar and application",
+        "question": "When, and what must a creator send?"
+      }
+    },
+    "blocks": {
+      "identification": "Identification",
+      "product": "Product and gift",
+      "internal": "Internal — never published",
+      "deliverables": "Deliverables",
+      "rights": "Usage rights and exclusivity",
+      "review": "Content review",
+      "audience": "Audience aimed at",
+      "audienceMore": "Optional details",
+      "remuneration": "Compensation",
+      "creatorSees": "What a creator sees",
+      "calendar": "Calendar",
+      "application": "Application"
+    },
+    "internalNotice": "This box is never published: only you and your INFLUX account manager see it.",
+    "errorsTitle": "To correct in this step"
+  },
+  "preview": {
+    "title": "What a creator sees",
+    "banner": "Preview: this is your campaign as a creator would see it, exactly as INFLUX presents it to them. Nothing is sent or published from this page.",
+    "back": "Back to the campaign",
+    "loading": "Loading the preview…",
+    "unavailable": "We can't show this preview right now. Please try again in a few minutes.",
+    "retry": "Try again",
+    "empty": "Nothing to show yet: complete the steps of the campaign and the preview will follow.",
+    "brandTitle": "The brand",
+    "brandUnpublished": "Your brand profile is not published yet: a creator would see neither your name nor your presentation.",
+    "logoAlt": "Brand logo",
+    "deliverable": "{quantity} × {network} · {format}",
+    "link": "See what a creator sees",
+    "sections": {
+      "offer": "The offer",
+      "product": "The product",
+      "work": "The work expected",
+      "audience": "The audience aimed at",
+      "remuneration": "The remuneration",
+      "calendar": "The calendar"
+    },
+    "rows": {
+      "campaignType": "Campaign type",
+      "publicSummary": "Summary",
+      "brief": "Brief",
+      "keyMessages": "Key messages",
+      "restrictions": "Restrictions and points of care",
+      "productDescription": "Product or service",
+      "productSector": "Product category",
+      "productIsSent": "Product sent",
+      "creatorKeepsProduct": "Product kept by the creator",
+      "shippingCostsBorneBy": "Shipping and return costs",
+      "deliverables": "Deliverables",
+      "networks": "Networks",
+      "usageRights": "Usage rights",
+      "usageRightsDuration": "Duration of the usage rights",
+      "usageRightsTerritoryScope": "Territory of the usage rights",
+      "usageRightsTerritories": "Countries of the usage rights",
+      "exclusivity": "Sector exclusivity",
+      "contentReviewDelay": "Content review delay",
+      "requestedItems": "To include in the application",
+      "audienceCountries": "Audience countries",
+      "audienceLanguages": "Publication languages",
+      "audienceTopics": "Topics",
+      "audienceBands": "Audience size",
+      "audienceAgeBands": "Age bands",
+      "audienceGender": "Gender split",
+      "remunerationKind": "Nature of the remuneration",
+      "creatorsWanted": "Creators wanted",
+      "remunerationNotice": "Financial terms",
+      "applicationsCloseOn": "Applications until",
+      "contentDueOn": "Content delivery",
+      "startsOn": "Publication from",
+      "endsOn": "Publication until"
+    }
+  },
+  "save": {
+    "saving": "Saving…",
+    "saved": "Saved automatically at {time}",
+    "idle": "Automatic saving",
+    "retry": "Changes not saved — new attempt in 5 s.",
+    "failedTitle": "Your entry is not saved yet",
+    "failedText": "It stays on this page: you can carry on. A new attempt is made in a few seconds.",
+    "retryNow": "Try again now"
+  },
+  "layer": {
+    "public": "Published: visible to creators.",
+    "internal": "Internal: never published."
+  },
+  "field": {
+    "optional": "optional",
+    "characters": "{count, number} / {max, number} characters",
+    "quantity": "Quantity",
+    "network": "Network",
+    "format": "Format",
+    "line": "Line {number}",
+    "addLine": "Add a deliverable",
+    "removeLine": "Remove deliverable {number}",
+    "lineLimit": "{max} lines at most",
+    "keyMessageLabel": "Key message {number}",
+    "addKeyMessage": "Add a key message",
+    "removeKeyMessage": "Remove key message {number}",
+    "keyMessageLimit": "{max} messages at most",
+    "clearChoice": "Clear my choice"
+  },
+  "fields": {
+    "title": {
+      "label": "Campaign title",
+      "help": "Describe the offer, not the brand: your name is already on your profile. No amount, contact detail or link."
+    },
+    "campaignType": {
+      "label": "Campaign type"
+    },
+    "publicSummary": {
+      "label": "Public summary",
+      "help": "What you are looking for, for whom and on which network. It is the only text read before the campaign is opened."
+    },
+    "brief": {
+      "label": "Detailed brief",
+      "help": "The context, the creative expectations, the tone, what must appear and what is left free."
+    },
+    "internalReference": {
+      "label": "Internal reference",
+      "help": "To tell your campaigns apart. It is never published."
+    },
+    "productDescription": {
+      "label": "Product or service concerned",
+      "help": "A creator judges a campaign on the product, not on a sector."
+    },
+    "productSector": {
+      "label": "Product category"
+    },
+    "keyMessages": {
+      "label": "Key messages",
+      "help": "What you want to hear said, in one to five bullets of 10 to 200 characters. Recommended."
+    },
+    "restrictions": {
+      "label": "Prohibitions and points of attention",
+      "help": "What you refuse to see: forbidden terms, competitors not to be named, claims not to be made. Never a criterion about the creator as a person."
+    },
+    "productIsSent": {
+      "label": "Is a product sent to the creator?"
+    },
+    "currency": {
+      "label": "Campaign currency",
+      "help": "One currency for the whole campaign: it serves the value of the product and the budget."
+    },
+    "productValueBand": {
+      "label": "Value of the product sent",
+      "help": "As a band, never an exact value. Only your INFLUX account manager sees it."
+    },
+    "creatorKeepsProduct": {
+      "label": "Does the creator keep the product?",
+      "help": "A product to be returned is not a payment."
+    },
+    "shippingCostsBorneBy": {
+      "label": "Shipping and return costs"
+    },
+    "deliverables": {
+      "label": "Deliverables",
+      "help": "A deliverable is a network, a format and a quantity: “2 stories + 1 reel” is not “3 pieces of content”. UGC formats (video, photo) are delivered to the brand, which publishes them itself."
+    },
+    "usageRights": {
+      "label": "Usage rights requested"
+    },
+    "usageRightsDuration": {
+      "label": "Duration of the usage rights"
+    },
+    "usageRightsTerritoryScope": {
+      "label": "Territory of the usage rights"
+    },
+    "usageRightsTerritories": {
+      "label": "Countries of the usage rights",
+      "add": "Add a country…"
+    },
+    "exclusivity": {
+      "label": "Sector exclusivity requested"
+    },
+    "contentReviewDelay": {
+      "label": "Time to review the content",
+      "help": "You commit to answer within this time. INFLUX does not receive or validate any deliverable."
+    },
+    "audienceCountries": {
+      "label": "Countries aimed at",
+      "help": "The countries where the audience you aim at lives. It describes the audience, never the creator.",
+      "add": "Add a country…"
+    },
+    "audienceLanguages": {
+      "label": "Languages of publication expected",
+      "add": "Add a language…"
+    },
+    "audienceTopics": {
+      "label": "Topics aimed at"
+    },
+    "audienceBands": {
+      "label": "Audience size wished",
+      "help": "As bands, never an exact number."
+    },
+    "audienceAgeBands": {
+      "label": "Age bands of the audience",
+      "help": "No band under 18: INFLUX does not open this subject."
+    },
+    "audienceGender": {
+      "label": "Gender split of the audience",
+      "help": "Optional. It describes the audience, never the creator; without a choice, it is no preference."
+    },
+    "remunerationKind": {
+      "label": "Nature of the compensation"
+    },
+    "budgetBand": {
+      "label": "Budget band per creator"
+    },
+    "creatorsWanted": {
+      "label": "Number of creators wanted",
+      "help": "From {min} to {max}. Beyond that, a sales-assisted engagement fits better."
+    },
+    "applicationsCloseOn": {
+      "label": "Application deadline",
+      "help": "After this date the campaign no longer accepts applications, but stays readable."
+    },
+    "contentDueOn": {
+      "label": "Content delivery date",
+      "help": "Recommended: what the creator must meet. It follows the application deadline."
+    },
+    "startsOn": {
+      "label": "Start of the publication period",
+      "help": "It follows the content delivery."
+    },
+    "endsOn": {
+      "label": "End of the publication period",
+      "help": "The publication period lasts 12 months at most."
+    },
+    "requestedItems": {
+      "label": "Items you would like to find in an application",
+      "help": "Optional. They guide the creator, and add or remove no field of their application."
+    },
+    "maxApplications": {
+      "label": "Ceiling of applications",
+      "help": "Optional, from {min} to {max}. Once reached, the campaign no longer accepts applications; the number received is never shown to creators."
+    }
+  },
+  "fieldErrors": {
+    "invalid": "This value is not valid.",
+    "unknown": "This choice is no longer available: pick another one.",
+    "tooLong": "This text is too long.",
+    "duplicate": "The same network and the same format can only appear once: change the quantity.",
+    "formatNetworkMismatch": "This format does not belong to this network: pick a format of the network.",
+    "ugcRequiresRights": "Content delivered to the brand requires usage rights: choose them in step 2, or change the campaign type.",
+    "giftRequiresProduct": "This campaign offers a product: answer “yes” to a product being sent, or change the nature of the payment.",
+    "notApplicable": "This answer makes no sense with another one: check the neighbouring choices.",
+    "dateOrder": "This date does not follow the order of the calendar: check the four dates.",
+    "windowTooLong": "The publication period cannot exceed 12 months.",
+    "required": "To fill in or correct before submitting the campaign."
+  },
+  "errors": {
+    "contactInText": "Your text contains what looks like direct contact details or an invitation to get in touch outside INFLUX.",
+    "linkInText": "Your text contains what looks like a link. Links are not accepted in a campaign: your brand's domain is already on your profile.",
+    "amountInText": "Your text contains an amount. Amounts belong in the budget section.",
+    "datesOrder": "{first} must come before {second}."
+  },
+  "campaign_type": {
+    "product_placement": "Product placement in a content",
+    "ugc_delivered": "Content delivered to the brand (UGC)",
+    "product_review": "Product test and review",
+    "ambassador": "Long-term ambassador",
+    "contest": "Contest or giveaway",
+    "event_presence": "Event attendance or trip",
+    "affiliate_program": "Affiliate programme"
+  },
+  "shipping": {
+    "brand": "Paid by the brand",
+    "creator": "Paid by the creator"
+  },
+  "remuneration": {
+    "cash": "Cash payment",
+    "cash_and_gift": "Cash payment and gifted product",
+    "gift_only": "Gifted product only",
+    "affiliate": "Affiliate: a share of the sales generated"
+  },
+  "requested_item": {
+    "motivation_message": "A motivation message",
+    "past_content_examples": "Examples of content already made",
+    "concept_proposal": "A concept proposal",
+    "availability": "Their availability over the period"
+  },
+  "usage_right": {
+    "none": "None: the content stays on the creator's account",
+    "organic_repost": "Organic repost: you republish the content on your own accounts, with no advertising budget",
+    "paid_whitelisting": "Paid whitelisting: you run paid advertising from the creator's account",
+    "media_buy": "Media buy: the content runs as the brand's own advertising"
+  },
+  "usage_duration": {
+    "1m": "1 month",
+    "3m": "3 months",
+    "6m": "6 months",
+    "12m": "12 months",
+    "unlimited": "Unlimited"
+  },
+  "usage_territory": {
+    "worldwide": "Worldwide",
+    "selected_countries": "Chosen countries"
+  },
+  "review_delay": {
+    "48h": "48 hours",
+    "5bd": "5 business days",
+    "10bd": "10 business days"
+  },
+  "audience_band": {
+    "nano": "Nano (under 10,000 followers)",
+    "micro": "Micro (10,000 to 49,999)",
+    "mid": "Mid-tier (50,000 to 499,999)",
+    "macro": "Macro (500,000 to 999,999)",
+    "mega": "Mega (1 million and over)"
+  },
+  "age_band": {
+    "18_24": "18-24",
+    "25_34": "25-34",
+    "35_44": "35-44",
+    "45_plus": "45 and over"
+  },
+  "audience_gender": {
+    "female_majority": "Mostly female (60% or more)",
+    "mixed": "Mixed",
+    "male_majority": "Mostly male (60% or more)"
+  },
+  "price_band": {
+    "under_100": "Under 100\u00a0{currency}",
+    "100_250": "100 to 250\u00a0{currency}",
+    "250_500": "250 to 500\u00a0{currency}",
+    "500_1000": "500 to 1,000\u00a0{currency}",
+    "1000_2500": "1,000 to 2,500\u00a0{currency}",
+    "2500_5000": "2,500 to 5,000\u00a0{currency}",
+    "5000_10000": "5,000 to 10,000\u00a0{currency}",
+    "10000_25000": "10,000 to 25,000\u00a0{currency}",
+    "25000_50000": "25,000 to 50,000\u00a0{currency}",
+    "50000_plus": "50,000\u00a0{currency} or more"
+  }
+}

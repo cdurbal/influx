@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 10 · Profil de marque</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html" aria-current="page">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 10 · Annonceur</p>
+    <h1 class="d-h1">Profil de marque</h1>
+    <p class="d-lead">Le formulaire d'une page en quatre sections devient l'assistant des écrans 3 et 7, en trois étapes, suivi de « Vérifier et envoyer ». Après la publication, « Mon profil de marque » est une liste de tâches qui rouvre une étape à la fois ; le badge « Marque vérifiée » y est une tâche. Choix du 2026-11-24 : option A, badge en tâche, logo recommandé sans bloquer l'envoi.</p>
+    <div class="d-ids"><span class="u">U22</span><span class="u">U23</span><span class="u">U29</span><span class="u u--imp">U03</span><span class="u">U63</span><span class="u">U59</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Ordinateur 1 440 px</button><button class="d-toggle" type="button" data-mode="phone" aria-pressed="false"><svg class="i i--sm"><use href="#i-smartphone"/></svg>Téléphone 390 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="etape-1" data-cap="" aria-pressed="true">Étape 1 · Votre marque</button>
+        <button type="button" data-st="etape-2" data-cap="" aria-pressed="false">Étape 2 · Ce que vous cherchez</button>
+        <button type="button" data-st="etape-3" data-cap="" aria-pressed="false">Étape 3 · Interlocuteur</button>
+        <button type="button" data-st="verifier" data-cap="" aria-pressed="false">Vérifier et envoyer</button>
+        <button type="button" data-st="envoye" data-cap="" aria-pressed="false">Profil envoyé</button>
+        <button type="button" data-st="profil" data-cap="" aria-pressed="false">Mon profil de marque</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>Pas de capture du profil de marque dans l'audit.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-profil-marque.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-profil-marque.html" title="Prototype du profil de marque" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran : « Ajouter le logo », « Aperçu » (il suit la saisie), cocher et décocher un réseau à l'étape 2, « Choisir… » puis « Ajouter », « Envoyer à INFLUX pour validation » avec des manques, puis une ligne de « Mon profil de marque ».</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Problèmes relevés</h2>
+    <ul class="d-list">
+      <li><b>« Visible de tous les créateurs » sur environ 18 champs</b> (U22) : le bruit noie les seuls champs qui ne sont pas publics.</li>
+      <li><b>24 formats à plat</b>, sans lien avec les réseaux cochés : le bloc aligne 54 cases (U23).</li>
+      <li><b>Listes triées par code anglais</b> : le premier secteur proposé est « Contenu adulte » (U29).</li>
+      <li><b>Listes qui agissent au changement</b> : au clavier, la première flèche ajoute un pays ou un secteur (U03, WCAG 3.2.2).</li>
+      <li><b>« Soumettre à la validation »</b> ne dit pas ce qui se passe ensuite (U63), et la marque neuve n'a pas de suite annoncée (U59).</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Composition cible</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Étape</th><th>Contenu</th></tr></thead>
+      <tbody>
+        <tr><td>1 · Votre marque</td><td>Logo (recommandé, ne bloque pas), nom, pays, secteur principal, taille, présentation. Replié : secteurs secondaires, site web marqué « Visible des agents INFLUX seulement »</td></tr>
+        <tr><td>2 · Ce que vous cherchez</td><td>Thématiques, réseaux puis leurs formats (C5), pays d'audience, marchés, langues de travail. Replié : droits d'usage, exclusivité, rythme, contreparties</td></tr>
+        <tr><td>3 · Votre interlocuteur</td><td>Encadré interne : fonction, prénom ; replié pour le commercial : e-mail, téléphone, page de contact. Un créateur ne voit que le prénom et la fonction (D46)</td></tr>
+        <tr><td>Vérifier et envoyer</td><td>Aperçu de la tête de la page marque (écran 5 bis), récapitulatif par étape, un seul résumé des manques, « Envoyer à INFLUX pour validation »</td></tr>
+        <tr><td>Mon profil de marque</td><td>Liste de tâches : une ligne par étape avec son état, plus le badge « Marque vérifiée » à demander</td></tr>
+      </tbody></table></div>
+    <p class="sm c2">Un badge « Public » par étape remplace les badges par champ. Les listes sont triées dans la langue de la page, secteurs réglementés regroupés en fin, et s'ajoutent par « Ajouter » (C2).</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les trois étapes et la page « Mon profil de marque », sur ordinateur et sur téléphone.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Le découpage des champs : obligatoires visibles, facultatifs repliés (les obligatoires suivent <code>KEY_OF_REQUIRED</code> du code actuel).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>L'écran de demande du badge n'est pas prototypé : il relève de la spécification du badge (D34, libellés chez le juriste).</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-9-selections.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 9 · Sélections</a><a class="go" href="ecran-11-entree.html">Écran 11 · Inscription et connexion <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

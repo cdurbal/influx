@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Inscription et connexion</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Entrée : une colonne étroite centrée, sans navigation ; un seul sujet par écran. */
+  .a-page { min-height: 100dvh; display: flex; flex-direction: column; background: var(--color-surface-page); }
+  .a-head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-4); padding: var(--spacing-4) var(--spacing-page-gutter); }
+  .a-main { flex: 1; display: flex; justify-content: center; padding: var(--spacing-6) var(--spacing-page-gutter) var(--spacing-section-header); }
+  .a-col { display: flex; flex-direction: column; gap: var(--spacing-5); width: 100%; max-width: 28rem; }
+  .a-col--wide { max-width: 36rem; }
+  @media (width >= 640px) { .a-card { border: var(--border-width-thin) solid var(--color-border-default); border-radius: var(--radius-card); background: var(--color-surface-card); padding: var(--spacing-inset-card); } }
+  .a-card { display: flex; flex-direction: column; gap: var(--spacing-5); }
+  .a-top { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .a-top h1 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .a-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .a-meta .link { font-weight: var(--font-weight-semibold); }
+  .a-step { font-variant-numeric: tabular-nums; }
+  .a-alt { text-align: center; font-size: var(--text-sm); color: var(--color-text-secondary); }
+  /* Porte */
+  .doors { display: grid; gap: var(--spacing-4); }
+  @media (width >= 640px) { .doors { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .door { gap: var(--spacing-3); }
+  .door h2 { font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--font-weight-bold); }
+  .door .i--lg { color: var(--color-text-brand-strong); }
+  /* Phrase de correspondance : au-dessus du code (RG48) */
+  .phrase { display: flex; flex-direction: column; gap: var(--spacing-1); border-radius: var(--radius-md); background: var(--color-surface-raised); padding: var(--spacing-3) var(--spacing-4); }
+  .phrase b { font-family: var(--font-display); font-size: var(--text-md); letter-spacing: 0.02em; }
+  /* Code : un seul vrai champ posé sur six cases dessinées */
+  .otp { position: relative; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--spacing-2); max-width: 22rem; }
+  .otp span { display: flex; align-items: center; justify-content: center; aspect-ratio: 5 / 6; border-radius: var(--radius-md); border: var(--border-width-thin) solid var(--color-border-strong); background: var(--color-surface-input, var(--color-surface-raised)); font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; transition: border-color var(--duration-fast) var(--ease-standard); }
+  .otp span.cur { border: var(--border-width-thick) solid var(--color-focus-ring); }
+  .otp.bad span { border: var(--border-width-thick) solid var(--color-border-error); }
+  .otp input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; font-size: 1rem; cursor: text; }
+  .otp-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .rescue { display: flex; flex-direction: column; gap: var(--spacing-4); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-4); }
+  .rescue.is-in { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .rescue ol { display: flex; flex-direction: column; gap: var(--spacing-2); padding-left: var(--spacing-5); list-style: decimal; font-size: var(--text-sm); }
+  /* Informations : deux groupes titrés (C12) */
+  .grp { display: flex; flex-direction: column; gap: var(--spacing-4); }
+  .grp > legend { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-md); margin-bottom: var(--spacing-1); }
+  .grp + .grp { border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-5); }
+  .vmail { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .vmail .i { width: var(--size-icon-sm); height: var(--size-icon-sm); color: var(--color-feedback-success-icon, var(--color-text-secondary)); }
+  .choice .help { display: block; }
+  .field > .seg { align-self: flex-start; }
+  .choice.is-bad { color: var(--color-feedback-error-text); }
+  .choice.is-bad input { outline: var(--border-width-thick) solid var(--color-border-error); outline-offset: 1px; }
+  details.fold > summary { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-size: var(--text-sm); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
+  details.fold > summary::-webkit-details-marker { display: none; }
+  details.fold > summary .i { transition: rotate var(--duration-base) var(--ease-standard); }
+  details.fold[open] > summary .i { rotate: 90deg; }
+  details.fold > p { font-size: var(--text-sm); color: var(--color-text-secondary); padding-bottom: var(--spacing-2); }
+</style>
+</head>
+<body data-default="porte">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <option value="porte">Porte · marque ou créateur</option>
+      <option value="email">Inscription · e-mail (marque)</option>
+      <option value="email-erreur">Inscription · e-mail mal formé</option>
+      <option value="connexion">Connexion · e-mail</option>
+      <option value="code">Code · inscription</option>
+      <option value="code-connexion">Code · connexion</option>
+      <option value="code-erreur">Code · incorrect</option>
+      <option value="code-aide">Code · « Je ne reçois pas le code »</option>
+      <option value="infos-marque">Informations · marque</option>
+      <option value="infos-createur">Informations · créateur, 3 manques</option>
+      <option value="autre-role">Compte existant avec l'autre rôle</option>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="a-page">
+  <header class="a-head"><a class="m-brand" href="proto-accueils.html">INFLUX</a><button class="btn btn--secondary" type="button" lang="en">English</button></header>
+  <main class="a-main" id="contenu">
+
+    <!-- Porte -->
+    <div class="a-col a-col--wide" data-when="porte">
+      <div class="a-top" data-h="1"><h1 tabindex="-1">Vous êtes une marque ou un créateur ?</h1><p class="c2">Choisissez votre espace. Vous pourrez encore changer jusqu'à la création de votre compte.</p></div>
+      <div class="doors" data-h="2">
+        <article class="card card--link door"><svg class="i i--lg"><use href="#i-megaphone"/></svg><h2><a class="cover" href="#email">Je suis une marque</a></h2><p class="sm c2">Vous cherchez des créateurs pour vos campagnes.</p></article>
+        <article class="card card--link door"><svg class="i i--lg"><use href="#i-sparkles"/></svg><h2><a class="cover" href="#email-createur">Je suis créateur</a></h2><p class="sm c2">Vous cherchez des campagnes rémunérées.</p></article>
+      </div>
+      <p class="a-alt" data-h="3">Déjà inscrit ? <a class="link" href="#connexion">Me connecter</a></p>
+    </div>
+
+    <!-- E-mail (inscription ou connexion) -->
+    <div class="a-col" data-when="email email-erreur email-createur connexion">
+      <form class="a-card" novalidate onsubmit="return false" id="f-email">
+        <div class="a-top" data-h="1">
+          <p class="a-meta"><span class="a-step" data-unless="connexion">Étape 1 sur 3</span><span data-when="email email-erreur"><span aria-hidden="true">·</span> Inscription marque</span><span data-when="email-createur"><span aria-hidden="true">·</span> Inscription créateur</span><a class="link sm" href="#porte" data-unless="connexion">Changer</a></p>
+          <h1 tabindex="-1"><span data-unless="connexion">Continuer avec votre e-mail</span><span data-when="connexion">Me connecter</span></h1>
+          <p class="c2">Pas de mot de passe : nous vous envoyons un code à 6 chiffres.</p>
+        </div>
+        <div class="field" data-h="2"><label class="label" for="mail">Adresse e-mail</label>
+          <input class="control" id="mail" type="email" inputmode="email" autocomplete="email" spellcheck="false" value="claire.morel@example.test" aria-describedby="mail-err">
+          <p class="fmsg fmsg--error" id="mail-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Cette adresse n'a pas un format valide (exemple : nom@exemple.com).</span></p></div>
+        <button class="btn btn--primary btn--block" type="button" id="send-code" data-h="2">Recevoir mon code</button>
+        <details class="fold" data-h="3"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Ce que nous faisons de votre adresse</summary>
+          <p>Votre adresse sert à vous envoyer un code et à gérer votre compte. À l'inscription, avec votre accord, elle est enregistrée dans Brevo (e-mails) et peut l'être dans Apollo.io (prospection commerciale). Elle est conservée tant que votre compte est ouvert. Vous pouvez y accéder, la corriger, la supprimer ou retirer votre accord à tout moment. <a class="link" href="#contenu">Politique de confidentialité</a></p></details>
+      </form>
+      <p class="a-alt" data-unless="connexion">Déjà inscrit ? <a class="link" href="#connexion">Me connecter</a></p>
+      <p class="a-alt" data-when="connexion">Pas encore de compte ? <a class="link" href="#porte">Rejoindre INFLUX</a></p>
+    </div>
+
+    <!-- Code -->
+    <div class="a-col" data-when="code code-connexion code-erreur code-aide">
+      <form class="a-card" novalidate onsubmit="return false">
+        <div class="a-top" data-h="1">
+          <p class="a-meta"><span class="a-step" data-unless="code-connexion">Étape 2 sur 3 <span aria-hidden="true">·</span> Inscription marque</span><span data-when="code-connexion">Connexion</span></p>
+          <h1 tabindex="-1">Entrez le code</h1>
+          <p class="c2">Nous avons écrit à <b>claire.morel@example.test</b>. <a class="link" href="#email">Modifier</a></p>
+        </div>
+        <div class="phrase" data-h="2"><span class="sm c2">Phrase de correspondance, à retrouver dans l'e-mail</span><b>phare cerise</b><span class="xs c2">Si l'e-mail porte une autre phrase, ne saisissez pas le code.</span></div>
+        <div class="field" data-h="2"><label class="label" for="otp-in">Code à 6 chiffres</label>
+          <div class="otp" id="otp"><span></span><span></span><span></span><span></span><span></span><span></span>
+            <input id="otp-in" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" aria-describedby="otp-err otp-help"></div>
+          <p class="fmsg fmsg--error" id="otp-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Ce code est incorrect. Il vous reste 4 essais.</span></p>
+          <p class="help" id="otp-help">Restez dans cet onglet : le code ne fonctionne qu'ici. Le sixième chiffre envoie le code.</p></div>
+        <button class="btn btn--primary btn--block" type="button" id="verify" data-h="2"><span data-unless="code-connexion">Continuer mon inscription</span><span data-when="code-connexion">Me connecter</span></button>
+        <div class="otp-row" data-h="3"><span id="cd">Nouveau code possible dans <span id="cd-s">42</span> s</span><button class="link sm" type="button" id="no-code" aria-expanded="false" aria-controls="rescue">Je ne reçois pas le code</button></div>
+        <div class="rescue" id="rescue" hidden>
+          <p class="t-card">Vous ne recevez pas le code ?</p>
+          <ol><li>Regardez vos courriers indésirables et les onglets « Promotions » ou « Notifications ».</li><li>L'adresse est-elle exacte ? claire.morel@example.test · <a class="link" href="#email">Corriger mon adresse</a></li><li>Toujours rien au bout de 2 minutes : signalez-le à l'équipe INFLUX.</li></ol>
+          <div class="field"><label class="label" for="r-mail">Une autre adresse e-mail, où vous répondre</label><input class="control" id="r-mail" type="email" inputmode="email"></div>
+          <div class="field"><label class="label" for="r-msg">Précisions <span class="req">(facultatif)</span></label><textarea class="control" id="r-msg" rows="2" maxlength="500"></textarea></div>
+          <button class="btn btn--secondary" type="button" id="r-send">Signaler que je ne reçois pas le code</button>
+          <p class="xs c2">Un commercial INFLUX vous répondra à cette autre adresse. Ce formulaire ne donne jamais accès à un compte et ne délivre aucun code.</p>
+        </div>
+      </form>
+    </div>
+
+    <!-- Informations -->
+    <div class="a-col a-col--wide" data-when="infos-marque infos-createur">
+      <form class="a-card" novalidate onsubmit="return false" id="f-infos">
+        <div class="a-top" data-h="1">
+          <p class="a-meta"><span class="a-step">Étape 3 sur 3</span><span aria-hidden="true">·</span><span class="vmail"><svg class="i"><use href="#i-circle-check"/></svg><span><span data-when="infos-marque">claire.morel@example.test</span><span data-when="infos-createur">lea.dumont@example.test</span>, adresse vérifiée</span></span></p>
+          <h1 tabindex="-1"><span data-when="infos-marque">Créer votre compte marque</span><span data-when="infos-createur">Créer votre compte créateur</span></h1>
+          <p class="c2">Tous les champs sont obligatoires, sauf la dernière question.</p>
+        </div>
+        <div class="errsum" id="errsum" tabindex="-1" hidden><p class="errsum__title"><svg class="i"><use href="#i-circle-alert"/></svg><span id="errsum-t"></span></p><ul id="errsum-l"></ul></div>
+
+        <fieldset class="grp" data-h="2"><legend>Vous</legend>
+          <div class="field" data-when="infos-marque"><label class="label" for="i-co">Nom de l'entreprise</label><input class="control" id="i-co" maxlength="120" value="Maison Azur SAS" autocomplete="organization"></div>
+          <div class="field"><div class="field__top"><label class="label" for="i-country"><span data-when="infos-marque">Pays de l'entreprise</span><span data-when="infos-createur">Pays de résidence</span></label><p class="help">L'inscription est ouverte partout ; les mises en relation s'ouvrent pays par pays.</p></div>
+            <span class="select" style="max-width: 20rem"><select class="control" id="i-country" data-req="Votre pays" aria-describedby="i-country-e"><option value="">Choisir…</option><option>Belgique</option><option selected>France</option><option>Suisse</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span>
+            <p class="fmsg fmsg--error" id="i-country-e" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Choisissez votre pays.</span></p></div>
+          <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-1)">Langue de communication</legend><p class="help" style="margin-bottom: var(--spacing-2)">La langue de vos e-mails et de votre espace.</p>
+            <span class="seg"><label><input type="radio" name="lang" checked>Français</label><label lang="en"><input type="radio" name="lang">English</label></span></fieldset>
+          <fieldset class="field" id="i-status"><legend class="label" style="margin-bottom: var(--spacing-2)">Vous vous inscrivez en tant que</legend>
+            <div class="choices"><label class="choice"><input type="radio" name="status" value="ind" data-grp="status">Particulier</label><label class="choice"><input type="radio" name="status" value="pro" data-grp="status">Professionnel (société, entreprise individuelle, agence)</label></div>
+            <p class="fmsg fmsg--error" id="i-status-e" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Indiquez si vous êtes particulier ou professionnel.</span></p></fieldset>
+        </fieldset>
+
+        <fieldset class="grp" data-h="2"><legend>Vos engagements</legend>
+          <label class="choice" id="c-age-l"><input type="checkbox" id="c-age" data-check="Votre âge"><span>Je certifie avoir 18 ans ou plus.<span class="help">Les personnes de moins de 18 ans ne peuvent pas utiliser INFLUX.</span></span></label>
+          <label class="choice" id="c-cgu-l"><input type="checkbox" id="c-cgu" data-check="Les conditions générales"><span>J'accepte les conditions générales d'utilisation. <a class="link" href="#contenu">Lire les CGU</a></span></label>
+          <label class="choice" id="c-mkt-l"><input type="checkbox" id="c-mkt" data-check="L'enregistrement de vos coordonnées"><span><span data-when="infos-marque">J'accepte que mes coordonnées professionnelles soient enregistrées dans Brevo et Apollo.io, les outils d'INFLUX, pour recevoir les e-mails commerciaux d'INFLUX destinés aux marques et être contacté par un commercial.</span><span data-when="infos-createur">J'accepte que mes coordonnées soient enregistrées dans Brevo et Apollo.io, les outils d'INFLUX, pour recevoir les e-mails commerciaux d'INFLUX destinés aux créateurs et être contacté par un commercial.</span><span class="help">Vous pourrez retirer cet accord à tout moment depuis votre espace.</span></span></label>
+        </fieldset>
+
+        <div class="field" data-h="3" style="border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-5)"><label class="label" for="i-src">Comment avez-vous connu INFLUX ? <span class="req">(facultatif)</span></label>
+          <span class="select" style="max-width: 20rem"><select class="control" id="i-src"><option>Choisir…</option><option>Un moteur de recherche</option><option>Les réseaux sociaux</option><option>Un événement</option><option>Le bouche-à-oreille</option><option>Autre</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+        <button class="btn btn--primary btn--block" type="button" id="create" data-h="2">Créer mon compte</button>
+        <p class="xs c2" style="text-align: center">Vous arrivez ensuite directement sur votre accueil.</p>
+      </form>
+    </div>
+
+    <!-- Compte existant avec l'autre rôle -->
+    <div class="a-col" data-when="autre-role">
+      <div class="a-card">
+        <div class="a-top" data-h="1"><p class="a-meta">Inscription créateur</p><h1 tabindex="-1">Vous avez déjà un compte INFLUX</h1></div>
+        <div class="notice notice--info" data-h="2"><svg class="i"><use href="#i-info"/></svg><p>Cette adresse est déjà associée à un compte <b>marque</b>. Un compte INFLUX porte un seul rôle : utilisez une autre adresse pour créer un compte créateur.</p></div>
+        <div class="actions" data-h="2"><a class="btn btn--primary" href="proto-accueils.html#marque">Accéder à mon espace marque</a><a class="btn btn--text" href="#email-createur">Utiliser une autre adresse</a></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  var HEADS = { porte: "Vous êtes une marque ou un créateur ?", email: "Étape 1 sur 3 : votre e-mail.", connexion: "Me connecter.", code: "Étape 2 sur 3 : entrez le code.", "infos-marque": "Étape 3 sur 3 : vos informations." };
+
+  // E-mail : l'erreur s'efface dès la frappe (U25).
+  var mail = $("#mail");
+  function mailBad(on) { mail.setAttribute("aria-invalid", String(on)); $("#mail-err").hidden = !on; }
+  mail.addEventListener("input", function () { if (mail.getAttribute("aria-invalid") === "true") mailBad(false); });
+  $("#send-code").addEventListener("click", function () {
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail.value.trim())) { mailBad(true); mail.focus(); P.announce("Cette adresse n'a pas un format valide."); return; }
+    location.hash = document.body.getAttribute("data-state") === "connexion" ? "code-connexion" : "code";
+  });
+
+  // Code : six cases dessinées, un seul champ ; le sixième chiffre envoie.
+  var otp = $("#otp"), inp = $("#otp-in"), boxes = $$("#otp span");
+  function paint() {
+    var v = inp.value; boxes.forEach(function (b, i) { b.textContent = v[i] || ""; b.classList.toggle("cur", document.activeElement === inp && i === Math.min(v.length, 5)); });
+  }
+  function codeBad(on) { otp.classList.toggle("bad", on); inp.setAttribute("aria-invalid", String(on)); $("#otp-err").hidden = !on; }
+  inp.addEventListener("input", function () {
+    inp.value = inp.value.replace(/\D/g, "").slice(0, 6); if (otp.classList.contains("bad")) codeBad(false); paint();
+    if (inp.value.length === 6) verify();
+  });
+  inp.addEventListener("focus", paint); inp.addEventListener("blur", paint);
+  function verify() {
+    var st = document.body.getAttribute("data-state");
+    if (inp.value.length < 6) { codeBad(true); $("#otp-err span").textContent = "Le code comporte 6 chiffres."; inp.focus(); P.announce("Le code comporte 6 chiffres."); return; }
+    if (inp.value !== "123456" && st === "code-erreur") { codeBad(true); $("#otp-err span").textContent = "Ce code est incorrect. Il vous reste 4 essais."; inp.select(); P.announce("Ce code est incorrect. Il vous reste 4 essais."); return; }
+    location.href = st === "code-connexion" ? "proto-accueils.html#marque" : "#infos-marque";
+  }
+  $("#verify").addEventListener("click", verify);
+  $("#no-code").addEventListener("click", function () {
+    var r = $("#rescue"), open = r.hidden; r.hidden = !open; $("#no-code").setAttribute("aria-expanded", String(open));
+    if (open) { r.classList.remove("is-in"); void r.offsetWidth; r.classList.add("is-in"); }
+  });
+  $("#r-send").addEventListener("click", function () { P.announce("Votre signalement est enregistré. Un commercial INFLUX vous répondra à l'adresse indiquée."); });
+  var timer;
+  function countdown() { clearInterval(timer); var s = 42; $("#cd-s").textContent = s; $("#cd").innerHTML = 'Nouveau code possible dans <span id="cd-s">42</span> s';
+    timer = setInterval(function () { s--; if (s <= 0) { clearInterval(timer); $("#cd").innerHTML = '<button class="link sm" type="button">Recevoir un nouveau code</button>'; return; } $("#cd-s").textContent = s; }, 1000); }
+
+  // Informations : un seul résumé, des liens qui portent le focus, erreurs effacées à la saisie.
+  var CHECKS = [
+    { id: "i-country", label: "Votre pays", ok: function () { return $("#i-country").value !== ""; }, mark: function (b) { $("#i-country").setAttribute("aria-invalid", String(b)); $("#i-country-e").hidden = !b; } },
+    { id: "i-status", focus: 'input[name="status"]', label: "Particulier ou professionnel", ok: function () { return !!$('input[name="status"]:checked'); }, mark: function (b) { $("#i-status-e").hidden = !b; } },
+    { id: "c-age", label: "L'attestation de 18 ans ou plus", ok: function () { return $("#c-age").checked; }, mark: function (b) { $("#c-age-l").classList.toggle("is-bad", b); } },
+    { id: "c-cgu", label: "L'acceptation des conditions générales", ok: function () { return $("#c-cgu").checked; }, mark: function (b) { $("#c-cgu-l").classList.toggle("is-bad", b); } },
+    { id: "c-mkt", label: "L'accord pour l'enregistrement de vos coordonnées", ok: function () { return $("#c-mkt").checked; }, mark: function (b) { $("#c-mkt-l").classList.toggle("is-bad", b); } }
+  ];
+  function checkAll(show) {
+    var bad = CHECKS.filter(function (c) { return !c.ok(); });
+    CHECKS.forEach(function (c) { c.mark(show && bad.indexOf(c) !== -1); });
+    var es = $("#errsum"), l = $("#errsum-l"); l.innerHTML = "";
+    bad.forEach(function (c) { var li = document.createElement("li"), a = document.createElement("a"); a.className = "link"; a.href = "#" + c.id; a.textContent = c.label;
+      a.addEventListener("click", function (e) { e.preventDefault(); var f = c.focus ? $(c.focus) : document.getElementById(c.id); f.scrollIntoView({ block: "center" }); f.focus({ preventScroll: true }); }); li.appendChild(a); l.appendChild(li); });
+    $("#errsum-t").textContent = bad.length === 1 ? "Il manque 1 réponse pour créer votre compte" : "Il manque " + bad.length + " réponses pour créer votre compte";
+    if (show) es.hidden = !bad.length; else if (!bad.length) es.hidden = true;
+    return bad.length;
+  }
+  $$("#f-infos input, #f-infos select").forEach(function (f) { f.addEventListener("change", function () { if (!$("#errsum").hidden) checkAll(true); }); });
+  $("#create").addEventListener("click", function () {
+    var n = checkAll(true);
+    if (n) { var es = $("#errsum"); es.scrollIntoView({ block: "start" }); es.focus({ preventScroll: true }); P.announce($("#errsum-t").textContent + "."); return; }
+    location.href = "proto-accueils.html#" + (document.body.getAttribute("data-state") === "infos-createur" ? "createur-neuf" : "marque-neuve");
+  });
+
+  document.addEventListener("proto:state", function (e) {
+    var st = e.detail.st;
+    mailBad(false); codeBad(false); inp.value = ""; paint(); $("#rescue").hidden = true; $("#no-code").setAttribute("aria-expanded", "false");
+    $("#errsum").hidden = true; CHECKS.forEach(function (c) { c.mark(false); });
+    $$('input[name="status"]').forEach(function (r) { r.checked = false; }); ["c-age", "c-cgu", "c-mkt"].forEach(function (id) { $("#" + id).checked = false; });
+    $("#i-country").value = "France";
+    mail.value = st === "email-createur" ? "lea.dumont@example.test" : "claire.morel@example.test";
+    if (st === "email-erreur") { mail.value = "claire.morel@example"; mailBad(true); }
+    if (/^code/.test(st)) countdown();
+    if (st === "code-erreur") { inp.value = "123465"; paint(); codeBad(true); }
+    if (st === "code-aide") { $("#rescue").hidden = false; $("#no-code").setAttribute("aria-expanded", "true"); }
+    if (st === "infos-marque") { $('input[name="status"][value="pro"]').checked = true; }
+    if (st === "infos-createur") { $('input[name="status"][value="ind"]').checked = true; $("#c-cgu").checked = true; $("#i-country").value = ""; checkAll(true); }
+    var h = document.querySelector("[data-when]:not([hidden]) h1"); if (h && e.detail.user !== false) h.blur();
+  });
+});
+</script>
+</body>
+</html>

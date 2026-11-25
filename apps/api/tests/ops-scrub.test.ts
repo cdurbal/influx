@@ -2,6 +2,7 @@
 // §20.8; 18 T13.6). The database side is in db-tests/t13-ops-recording.test.ts.
 import { describe, expect, it } from "vitest";
 import { bucketOf } from "../src/domains/ops/buckets.ts";
+import { OpsRecorder } from "../src/domains/ops/recorder.ts";
 import { CLIENT_ERROR_RATE } from "../src/domains/ops/routes.ts";
 import { MinuteCounter } from "../src/platform/minute-counter.ts";
 import {
@@ -86,14 +87,53 @@ describe("fingerprints", () => {
 describe("route models and duration buckets", () => {
   it.each([
     ["/v1/auth/verify-code", "/v1/auth/verify-code"],
-    ["/v1/creators/:id", "/v1/creators/:id"],
+    ["/v1/me/sessions/:id", "/v1/me/sessions/:id"],
     ["/fr/marque", "/fr/marque"],
-    ["/v1/creators/3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "/v1/creators/:id"],
-    ["/v1/invoices/123456", "/v1/invoices/:id"],
-    ["/fr/x?email=a@b.example", "/fr/x"],
-    ["/fr/a@b.example", "/fr/:id"],
+    [
+      "/v1/me/sessions/3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e5f",
+      "/v1/me/sessions/:id",
+    ],
+    ["/v1/me/sessions/123456", "/v1/me/sessions/:id"],
+    ["/fr/connexion?email=a@b.example", "/fr/connexion"],
+    ["/inscrits/3f1c2d4e-5a6b-4c7d-8e9f-0a1b2c3d4e5f", "/inscrits/:id"],
+    ["/", "/"],
   ])("models %s as %s", (path, model) => {
     expect(routeModelOf(path)).toBe(model);
+  });
+
+  // L2AS-2: a closed list. A path no page or route serves is never stored, whatever it holds.
+  it.each([
+    ["an unknown page", "/fr/x"],
+    ["a name in a path", "/fr/profil/jean-dupont"],
+    ["a handle in a path", "/en/creator/anne_martin"],
+    ["an e-mail address in a path", "/fr/a@b.example"],
+    ["a route of no front", "/v1/creators/:id"],
+    ["a numeric segment of an unknown route", "/v1/invoices/123456"],
+    ["a known page under the wrong prefix", "/v1/marque"],
+    ["a known page, longer", "/fr/marque/jean-dupont"],
+    ["a trailing slash", "/fr/marque/"],
+    ["the other language's slug", "/en/marque"],
+    ["not a path", "fr/marque"],
+  ])("never stores %s", (_label, path) => {
+    expect(routeModelOf(path)).toBeNull();
+  });
+
+  it("counts a request on an unknown path as unmatched, and keeps a known one", () => {
+    const ops = new OpsRecorder({ version: "test", instance: "test" });
+    ops.recordRequest("GET", "/fr/profil/jean-dupont", 404, 5);
+    ops.recordRequest("GET", "/v1/status", 200, 5);
+    ops.recordRequest("GET", undefined, 404, 5);
+    // The cells are private: their keys are `METHOD route model`.
+    const keys = [...ops["requests"].values()].flatMap((cells) => [
+      ...cells.keys(),
+    ]);
+    expect(keys.sort()).toEqual(["GET /v1/status", "GET unmatched"]);
+  });
+
+  it("takes the filter of its settings for the routes of a test", () => {
+    const filter = (model: string) => model === "/fr/special";
+    expect(routeModelOf("/fr/special", filter)).toBe("/fr/special");
+    expect(routeModelOf("/fr/marque", filter)).toBeNull();
   });
 
   it.each([

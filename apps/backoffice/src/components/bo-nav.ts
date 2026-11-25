@@ -19,11 +19,23 @@ export type RailKey =
 /** The screens that exist today, each a sub-entry of one entry (17b §1.7, D74). */
 export type SectionKey =
   | "home"
+  | "brandReviewQueue"
+  | "creatorReviewQueue"
+  | "portfolioQueue"
+  | "verificationCreators"
+  | "verificationBrands"
+  | "verificationDisputes"
+  | "identifierChanges"
+  | "campaignReviewQueue"
+  | "teamSelectionQueue"
   | "signups"
   | "memberInvitations"
+  | "identifiedSearch"
   | "dualControl"
   | "internalAccounts"
   | "apollo"
+  | "searchSettings"
+  | "registrySources"
   | "health";
 
 export type Section = { key: SectionKey; href: string; adminOnly: boolean };
@@ -40,7 +52,63 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
     key: "dashboard",
     sections: [{ key: "home", href: "/accueil", adminOnly: false }],
   },
-  { key: "queues", sections: [] },
+  {
+    key: "queues",
+    sections: [
+      {
+        key: "brandReviewQueue",
+        href: "/files/profils-marque",
+        adminOnly: false,
+      },
+      // queue 2, the creator profiles to validate (07 RG4; L2G-15)
+      {
+        key: "creatorReviewQueue",
+        href: "/files/profils-createur",
+        adminOnly: false,
+      },
+      // queue 3, the visuals of the portfolio to moderate (07 RG77 to RG85; L2G-16)
+      {
+        key: "portfolioQueue",
+        href: "/files/visuels",
+        adminOnly: false,
+      },
+      // queue 4, two views of one table, never a mixed screen (08 RG61, 17b §3.7)
+      {
+        key: "verificationCreators",
+        href: "/files/verifications-createurs",
+        adminOnly: false,
+      },
+      {
+        key: "verificationBrands",
+        href: "/files/verifications-marques",
+        adminOnly: false,
+      },
+      // queues 5 and 6 (08 RG77, RG78; 15 RG29): the contests of a badge decision, the handles changed
+      {
+        key: "verificationDisputes",
+        href: "/files/contestations",
+        adminOnly: false,
+      },
+      {
+        key: "identifierChanges",
+        href: "/files/identifiants-modifies",
+        adminOnly: false,
+      },
+      // queue 7, the campaigns to validate (09 RG5; 17b §3.8; L3C-08)
+      {
+        key: "campaignReviewQueue",
+        href: "/files/campagnes",
+        adminOnly: false,
+      },
+      // queue 9, the requests for a selection by the team (10 RG61; 15 RG26; 17b §1.7; L3G-13). The rail has no
+      // groups yet: the queue closes the list, where the dashboard of Lot 5 will bring « Faire se rencontrer »
+      {
+        key: "teamSelectionQueue",
+        href: "/files/selections-equipe",
+        adminOnly: false,
+      },
+    ],
+  },
   {
     key: "accounts",
     sections: [
@@ -48,7 +116,17 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       { key: "memberInvitations", href: "/invitations", adminOnly: false },
     ],
   },
-  { key: "creatorSearch", sections: [] }, // Lot 3
+  {
+    key: "creatorSearch",
+    // the identified search and the compatible creators of a campaign (10 §H; 17b §3.3; L3G-12)
+    sections: [
+      {
+        key: "identifiedSearch",
+        href: "/createurs/recherche",
+        adminOnly: false,
+      },
+    ],
+  },
   { key: "deals", sections: [] }, // Lot 5
   { key: "alerts", sections: [] },
   {
@@ -57,6 +135,14 @@ export const RAIL_ENTRIES: readonly RailEntry[] = [
       { key: "dualControl", href: "/double-validation", adminOnly: true },
       { key: "internalAccounts", href: "/comptes-internes", adminOnly: true },
       { key: "apollo", href: "/reglages/apollo", adminOnly: true },
+      // the settings of the creator search, read and requested by an administrator (10 RG2; L3G-13)
+      { key: "searchSettings", href: "/reglages/recherche", adminOnly: true },
+      // read by an agent through the brand decision screen (06 RG52), written by an administrator (RG101)
+      {
+        key: "registrySources",
+        href: "/reglages/sources-registre",
+        adminOnly: true,
+      },
       { key: "health", href: "/sante-technique", adminOnly: true },
     ],
   },

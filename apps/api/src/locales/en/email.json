@@ -122,6 +122,359 @@
         "reason": "you deleted your INFLUX account"
       }
     },
+    "profileDecision": {
+      "published": {
+        "subject": "Your INFLUX brand profile is published",
+        "preheader": "An INFLUX sales representative has reviewed and published your brand profile.",
+        "title": "Your brand profile is published",
+        "body": "An INFLUX sales representative has reviewed your brand profile and published it.",
+        "edit": "You can view it from your INFLUX space. If you later change the name, logo, presentation, website, contact role or main sector, the change will be reviewed before it is published; until then, the published version stays in place.",
+        "why": "your brand profile was reviewed by an INFLUX sales representative"
+      },
+      "rejected": {
+        "subject": "Your INFLUX brand profile was not published",
+        "preheader": "An INFLUX sales representative has reviewed your brand profile: here is why it is not published.",
+        "title": "Your brand profile was not published",
+        "body": "An INFLUX sales representative has reviewed your brand profile and has not published it as it stands.",
+        "why": "your brand profile was reviewed by an INFLUX sales representative"
+      },
+      "reason": {
+        "contact_in_public_field": "Your presentation contains a contact address, number or link. Contact details only become visible once a connection is opened.",
+        "presentation_insufficient": "Your presentation does not allow a creator to understand what your business does.",
+        "logo_non_compliant": "Your logo contains contact details or is not legible.",
+        "misleading_brand_name": "The declared name matches a brand that you do not appear to represent.",
+        "sector_inconsistent": "The declared sector does not match your business.",
+        "illicit_content": "The content of your profile cannot be published: it goes against the law or INFLUX's terms of use.",
+        "duplicate_brand": "This brand already has an INFLUX account.",
+        "other": "Your profile could not be published as it stands. The message from the INFLUX team:"
+      },
+      "nextStep": {
+        "fix": "Correct your profile from your INFLUX space, then submit it again.",
+        "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+      }
+    },
+    "creatorProfileDecision": {
+      "published": {
+        "subject": "Your INFLUX creator profile is published",
+        "preheader": "An INFLUX sales representative reviewed and published your profile.",
+        "title": "Your profile is published",
+        "body": "An INFLUX sales representative reviewed your profile and published it. Only its anonymous version, under your alias, can be shown to brands.",
+        "edit": "If you later change your headline, bio, a caption, a visual, a network, a handle or a link, the change will be reviewed before it is published; meanwhile, the published version stays in place. Your figures, topics and availability change at once.",
+        "why": "your creator profile was reviewed by an INFLUX sales representative"
+      },
+      "rejected": {
+        "subject": "Your INFLUX creator profile was not published",
+        "preheader": "An INFLUX sales representative reviewed your profile: here is why it is not published.",
+        "title": "Your profile was not published",
+        "body": "An INFLUX sales representative reviewed your profile and did not publish it as it stands.",
+        "why": "your creator profile was reviewed by an INFLUX sales representative"
+      },
+      "revisionApproved": {
+        "subject": "Your INFLUX profile change is published",
+        "preheader": "An INFLUX sales representative reviewed and published your change.",
+        "title": "Your change is published",
+        "body": "An INFLUX sales representative reviewed your change and published it.",
+        "why": "a change to your creator profile was reviewed by an INFLUX sales representative"
+      },
+      "revisionRejected": {
+        "subject": "Your INFLUX profile change was not published",
+        "preheader": "An INFLUX sales representative reviewed your change: here is why it is not published.",
+        "title": "Your change was not published",
+        "body": "An INFLUX sales representative reviewed your change and did not publish it. Your profile stays visible in its previous version.",
+        "why": "a change to your creator profile was reviewed by an INFLUX sales representative"
+      },
+      "reason": {
+        "identifier_in_text": "Your headline or bio contains a handle, an at sign, a link or a name. This information is only visible once an introduction is opened.",
+        "bio_insufficient": "Your bio does not let a brand understand what you do.",
+        "portfolio_insufficient": "At least 3 uploaded items are needed to publish your profile.",
+        "portfolio_non_compliant": "One or more of your visuals make it possible to identify you.",
+        "network_link_inconsistent": "The link you entered does not match the network you chose.",
+        "figures_inconsistent": "The figures you entered are not consistent with each other.",
+        "topic_inconsistent": "The topic you chose does not match the content you show.",
+        "illicit_content": "The content of your profile cannot be published: it goes against the law or INFLUX's terms of use.",
+        "age_doubt": "INFLUX is for adults only: we cannot publish your profile as it stands.",
+        "other": "The message from the INFLUX team:"
+      },
+      "nextStep": {
+        "fix": "Correct it from your INFLUX space: your correction will be reviewed in turn.",
+        "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+      }
+    },
+    "portfolioDecision": {
+      "approved": {
+        "subject": "Your INFLUX visual is approved",
+        "preheader": "An INFLUX sales representative approved a visual of your portfolio.",
+        "title": "Your visual is approved",
+        "body": "An INFLUX sales representative approved the visual you uploaded on {date}. It is now part of the anonymous version of your profile.",
+        "replacement": "It replaces the previous visual, removed from your profile."
+      },
+      "rejected": {
+        "subject": "Your INFLUX visual was not approved",
+        "preheader": "An INFLUX sales representative did not approve a visual of your portfolio.",
+        "title": "Your visual was not approved",
+        "body": "An INFLUX sales representative did not approve the visual you uploaded on {date}.",
+        "replacement": "The previous visual stays in place.",
+        "nextStep": "You can upload another visual from your INFLUX space. The rejected file will be deleted in {days} days."
+      },
+      "why": "a visual of your portfolio was reviewed by an INFLUX sales representative",
+      "reason": {
+        "watermark": "The visual carries a watermark, a signature or a personal logo.",
+        "handle_in_image": "The visual shows an at sign, an account name or a handle.",
+        "app_interface": "The visual shows an app interface: profile banner, avatar or comments.",
+        "text_naming_account_or_brand": "Text in the visual names your account, or a brand without your authorisation statement.",
+        "identifiable_place": "The visual makes a place recognisable: a shop sign, a number plate, a street number or a known location.",
+        "statistics_screenshot": "A statistics screenshot is not allowed in the portfolio: it shows your handle.",
+        "illicit_content": "The visual goes against the law or INFLUX's terms of use.",
+        "caption_identifier": "The caption contains a handle, an at sign, a link or a name.",
+        "caption_brand_unauthorised": "The caption names a brand without your statement that you are allowed to."
+      }
+    },
+    "campaignDecision": {
+      "type": {
+        "product_placement": "Product placement in a content",
+        "ugc_delivered": "Content delivered to the brand (UGC)",
+        "product_review": "Product test and review",
+        "ambassador": "Long-term ambassador",
+        "contest": "Contest or giveaway",
+        "event_presence": "Event attendance or trip",
+        "affiliate_program": "Affiliate programme"
+      },
+      "field": {
+        "title": "Campaign title",
+        "campaign_type": "Campaign type",
+        "public_summary": "Public summary",
+        "brief": "Detailed brief",
+        "internal_reference": "Internal reference",
+        "product_description": "Product or service",
+        "product_sector": "Product category",
+        "restrictions": "Restrictions and points of attention",
+        "key_messages": "Key messages",
+        "product_is_sent": "Product sent",
+        "product_value_band": "Value of the product sent",
+        "creator_keeps_product": "Product kept by the creator",
+        "shipping_costs_borne_by": "Shipping costs",
+        "deliverables": "Deliverables",
+        "usage_rights": "Usage rights",
+        "usage_rights_duration": "Duration of the usage rights",
+        "usage_rights_territory": "Territory of the usage rights",
+        "exclusivity": "Exclusivity",
+        "content_review_delay": "Content review delay",
+        "audience_countries": "Audience countries",
+        "audience_languages": "Audience languages",
+        "audience_bands": "Audience size bands",
+        "audience_age_bands": "Audience age bands",
+        "audience_gender": "Audience gender",
+        "audience_topics": "Topics",
+        "currency": "Currency",
+        "remuneration_kind": "Kind of remuneration",
+        "budget_band": "Budget per creator",
+        "creators_wanted": "Number of creators wanted",
+        "total_budget": "Total budget",
+        "applications_close_on": "Application deadline",
+        "content_due_on": "Content due date",
+        "starts_on": "Start of the period",
+        "ends_on": "End of the period",
+        "max_applications": "Maximum number of applications",
+        "requested_items": "Items requested from applicants"
+      },
+      "interventionReason": {
+        "brand_request": "This decision follows your request.",
+        "entry_error": "It corrects an entry error.",
+        "non_compliant_content": "The content of your campaign does not comply with INFLUX rules.",
+        "other": "It matches none of the usual reasons: contact INFLUX to know why."
+      },
+      "published": {
+        "subject": "Your INFLUX campaign is published",
+        "preheader": "An INFLUX sales representative reviewed and published your campaign.",
+        "title": "Your campaign is published",
+        "body": "An INFLUX sales representative reviewed your “{type}” campaign and published it on {date}.",
+        "next": "You can follow it, pause it or close it from your INFLUX space.",
+        "why": "your campaign was reviewed by an INFLUX sales representative"
+      },
+      "rejected": {
+        "subject": "Your INFLUX campaign was not published",
+        "preheader": "An INFLUX sales representative reviewed your campaign: here is why it is not published.",
+        "title": "Your campaign was not published",
+        "body": "An INFLUX sales representative reviewed your “{type}” campaign on {date} and did not publish it as it stands.",
+        "why": "your campaign was reviewed by an INFLUX sales representative"
+      },
+      "reason": {
+        "contact_in_text": "Your campaign contains an address, a number, a link or an invitation to contact you outside INFLUX.",
+        "amount_in_text": "An amount appears in your text. Amounts are declared in the budget block, which is never published.",
+        "link_in_text": "Links are not accepted in a campaign. Your website is already on your profile.",
+        "brief_insufficient": "Your brief does not let a creator understand what you expect.",
+        "deliverables_inconsistent": "The requested formats do not match the targeted networks.",
+        "budget_inconsistent": "The declared budget band cannot be used as it stands.",
+        "calendar_invalid": "The dates of your campaign are no longer valid.",
+        "creator_personal_criterion": "Your campaign sets a criterion about the creator as a person (age, gender, appearance). Targeting is about the audience, never about the creator.",
+        "minor_audience": "A campaign cannot target an audience under 18.",
+        "concealed_advertising": "A campaign cannot ask for paid content to be presented as a spontaneous opinion.",
+        "duplicate": "An identical campaign is already published.",
+        "sensitive_authorizations_missing": "We could not verify your authorisations for this type of product.",
+        "illicit_content": "Your campaign cannot be published: it is contrary to the law or to the INFLUX terms of use. The message from the INFLUX team:",
+        "other": "Your campaign could not be published as it stands. The message from the INFLUX team:"
+      },
+      "nextStep": {
+        "fix": "Correct your campaign from your INFLUX space, then submit it again.",
+        "contact": "To discuss it, contact INFLUX from the help on the sign-in screen."
+      },
+      "pausedByInflux": {
+        "subject": "Your INFLUX campaign is paused",
+        "preheader": "An INFLUX sales representative paused your campaign.",
+        "title": "Your campaign is paused",
+        "body": "An INFLUX sales representative paused your “{type}” campaign on {date}. It accepts no new application while it is paused.",
+        "next": "To discuss it, contact INFLUX from the help on the sign-in screen.",
+        "why": "an INFLUX sales representative paused your campaign"
+      },
+      "resumedByInflux": {
+        "subject": "Your INFLUX campaign is resumed",
+        "preheader": "An INFLUX sales representative put your campaign back online.",
+        "title": "Your campaign is resumed",
+        "body": "An INFLUX sales representative resumed your “{type}” campaign on {date}, after it was paused.",
+        "next": "You can follow it from your INFLUX space.",
+        "why": "an INFLUX sales representative resumed your campaign"
+      },
+      "closedByInflux": {
+        "subject": "Your INFLUX campaign is closed",
+        "preheader": "An INFLUX sales representative closed your campaign.",
+        "title": "Your campaign is closed",
+        "body": "An INFLUX sales representative closed your “{type}” campaign on {date}. A closed campaign cannot be reopened; its history is kept.",
+        "next": "To discuss it, contact INFLUX from the help on the sign-in screen.",
+        "why": "an INFLUX sales representative closed your campaign"
+      },
+      "closedAutomatically": {
+        "subject": "Your INFLUX campaign is closed",
+        "preheader": "The period of your campaign is over: it was closed.",
+        "title": "Your campaign is closed",
+        "body": "Your “{type}” campaign was closed automatically on {date}, its planned period having ended. A closed campaign cannot be reopened; its history is kept.",
+        "next": "You can create a new campaign from your INFLUX space.",
+        "why": "the period of your campaign is over"
+      },
+      "corrected": {
+        "subject": "Your INFLUX campaign was corrected",
+        "preheader": "An INFLUX sales representative corrected a field of your campaign.",
+        "title": "A field of your campaign was corrected",
+        "body": "An INFLUX sales representative corrected the “{field}” field of your “{type}” campaign on {date}.",
+        "next": "You can review your campaign from your INFLUX space.",
+        "why": "an INFLUX sales representative corrected a field of your campaign"
+      },
+      "createdForBrand": {
+        "subject": "An INFLUX campaign draft was created for you",
+        "preheader": "An INFLUX sales representative created a campaign draft, at your request.",
+        "title": "Your campaign draft is created",
+        "body": "At your request, an INFLUX sales representative created a “{type}” campaign draft on {date}.",
+        "next": "Complete it and submit it from your INFLUX space: it is only published after review.",
+        "why": "an INFLUX sales representative created a campaign draft at your request"
+      }
+    },
+    "verificationNotice": {
+      "network": {
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "youtube": "YouTube",
+        "facebook": "Facebook",
+        "linkedin": "LinkedIn",
+        "x": "X",
+        "snapchat": "Snapchat",
+        "twitch": "Twitch",
+        "pinterest": "Pinterest",
+        "threads": "Threads"
+      },
+      "badge": {
+        "account_verified": "Account verified — {network}",
+        "audience_verified": "Audience verified — {network}",
+        "brand_verified": "Brand verified"
+      },
+      "neverAsk": "INFLUX will never ask for your password, access to your account, or a code you received by message.",
+      "received": {
+        "subject": "Your INFLUX verification request is received",
+        "preheader": "An INFLUX salesperson is reviewing it: reply within 1 business day.",
+        "title": "Your verification request is received",
+        "body": "We have received your request for the \"{badge}\" badge.",
+        "pending": "Your request is being reviewed. We answer within 1 business day.",
+        "why": "you submitted a verification request from your INFLUX account"
+      },
+      "codeIssued": {
+        "subject": "Your INFLUX verification code is ready",
+        "preheader": "It is valid until {expiresAt, date, long}.",
+        "title": "Your verification code is ready",
+        "network": "A verification code was generated for your {network} account. You will find it in your INFLUX space, on the screen of your request: it is never sent by email.",
+        "domain": "A verification code was generated for your website's domain. You will find it in your INFLUX space, on the screen of your request: it is never sent by email.",
+        "instructionsNetwork": "Paste this code into your {network} bio. We check it online ourselves. You can remove it as soon as the check is recorded.",
+        "instructionsDomain": "Publish this code in a TXT DNS record of your domain, or on a page of your website. We check it online ourselves.",
+        "validity": "This code is valid until {expiresAt, date, long}.",
+        "why": "you asked for a verification code from your INFLUX account"
+      },
+      "expired": {
+        "subject": "Your INFLUX verification request has expired",
+        "preheader": "The code was not used in time.",
+        "title": "Your verification request has expired",
+        "body": "The code of your request for the \"{badge}\" badge expired before you submitted it, and the request was closed.",
+        "next": "Your code has expired. You can generate a new one.",
+        "why": "a verification request submitted from your INFLUX account has expired"
+      }
+    },
+    "verificationDecision": {
+      "granted": {
+        "subject": "Your INFLUX badge is granted",
+        "preheader": "{badge}, on {grantedAt, date, long}.",
+        "title": "Your badge is granted",
+        "body": "An INFLUX salesperson granted you the \"{badge}\" badge, on {grantedAt, date, long}.",
+        "source": {
+          "account_verified": "INFLUX confirmed this account belongs to the registered creator.",
+          "audience_verified": "Figures observed by INFLUX in the {network} native dashboard. INFLUX makes no claim about follower authenticity.",
+          "brand_verified": "Domain and registration checked by INFLUX against a public register."
+        },
+        "validUntil": "This badge is valid until {expiresAt, date, long}.",
+        "why": "your verification request was reviewed by an INFLUX salesperson"
+      },
+      "rejected": {
+        "subject": "Your INFLUX verification request was not successful",
+        "preheader": "An INFLUX salesperson reviewed your request: here is why.",
+        "title": "Your verification request was not successful",
+        "body": "An INFLUX salesperson reviewed your request for the \"{badge}\" badge and did not grant it.",
+        "why": "your verification request was reviewed by an INFLUX salesperson",
+        "disputeOpen": "You can appeal this decision for {days} days.",
+        "disputeOpenOne": "You can appeal this decision for {days} day."
+      },
+      "reason": {
+        "creator": {
+          "missing_evidence": "No evidence was attached to your request.",
+          "evidence_too_old": "The period shown on your screenshot ended more than 30 days ago.",
+          "evidence_unreadable": "The account or the period cannot be read on your screenshot.",
+          "evidence_wrong_source": "Only the network's official statistics are accepted. A screenshot from a third-party measurement tool cannot be used.",
+          "evidence_too_wide": "Your screenshot shows information about other people. Crop it following our instructions.",
+          "ownership_not_proven": "The verification code was not found on your profile.",
+          "account_not_public": "We could not view your profile without being logged in. Make it public for the time of the check, or give up verifying this network.",
+          "ownership_prerequisite": "We first check that this account belongs to you, before observing your figures.",
+          "evidence_inconsistent": "The information provided does not match.",
+          "evidence_suspected_forgery": "We cannot accept this document.",
+          "shared_account": "This account seems to be run by several people. We cannot establish its ownership for an identified person.",
+          "agency_managed": "Accounts managed by an agency are not supported for the moment.",
+          "terms_breach": "Your profile does not comply with the INFLUX terms of use.",
+          "minor": "INFLUX is for adults only: we cannot process your request.",
+          "account_unavailable": "Your request cannot be processed while your account is suspended.",
+          "other": "Your request could not be accepted as it stands. The message from the INFLUX team:"
+        },
+        "brand": {
+          "domain_code_not_found": "We found the code neither in your domain's DNS records nor on a page of your website.",
+          "registration_not_found": "This registration could not be found in your country's public register.",
+          "registration_unverifiable_country": "Registration cannot be checked in this country: INFLUX does not yet consult a free public register there. You can request the badge again once a source is added.",
+          "name_mismatch": "The legal name you entered does not match the register.",
+          "account_unavailable": "Your request cannot be processed while your account is suspended.",
+          "other": "Your request could not be accepted as it stands. The message from the INFLUX team:"
+        }
+      },
+      "nextStep": {
+        "redeposit": "You can upload new evidence, then ask for the verification again from your INFLUX space.",
+        "restartOwnership": "You can start the proof of ownership again from your INFLUX space.",
+        "makePublic": "Make your account public, then ask for the verification again from your INFLUX space.",
+        "askOwnershipFirst": "First ask for the \"Account verified\" badge for this network from your INFLUX space.",
+        "retryBrand": "You can correct your brand's information, then ask for the verification again from your INFLUX space.",
+        "contact": "To discuss it, contact INFLUX from the help on the sign-in screen.",
+        "none": "No new request is possible for the moment."
+      }
+    },
     "internal": {
       "criticalAlert": {
         "subject": "INFLUX — Alerte critique / Critical alert",
@@ -257,7 +610,7 @@
         "preheader": "Your brand account is ready. Here is how INFLUX works.",
         "title": "Welcome to INFLUX",
         "intro": "Your brand account is ready. INFLUX connects you with content creators for your campaigns.",
-        "how": "You discover creators through anonymised profiles. Every introduction is approved by an INFLUX account manager, then accepted by both sides: only then does the conversation open and are identities revealed.",
+        "how": "You discover creators through profiles with their identity hidden. Every introduction is approved by an INFLUX account manager, then accepted by both sides: only then does the conversation open and are identities revealed.",
         "together": "Your INFLUX account manager supports you at every step, from the first exchange to the contract. Everything happens in INFLUX, where your conversations remain available.",
         "signIn": "To sign in, enter your email address on INFLUX: we send you a 6-digit code. There is no password.",
         "never": "INFLUX will never ask you for your sign-in code.",
@@ -268,11 +621,104 @@
         "preheader": "Your creator account is ready. Here is how INFLUX works.",
         "title": "Welcome to INFLUX",
         "intro": "Your creator account is ready. INFLUX connects you with brands looking for creators for their paid campaigns.",
-        "how": "Brands discover your profile in an anonymised form, and you can apply to their campaigns. Every introduction is approved by an INFLUX account manager, then accepted by both sides: only then does the conversation open and are identities revealed.",
+        "how": "Brands discover your profile with your identity hidden, and you can apply to their campaigns. Every introduction is approved by an INFLUX account manager, then accepted by both sides: only then does the conversation open and are identities revealed.",
         "together": "Your INFLUX account manager supports you at every step and tells you what you earn for each collaboration. Everything happens in INFLUX, where your conversations remain available.",
         "signIn": "To sign in, enter your email address on INFLUX: we send you a 6-digit code. There is no password.",
         "never": "INFLUX will never ask you for your sign-in code.",
         "reason": "you have just created a creator account on INFLUX"
+      }
+    },
+    "badgeNotice": {
+      "expiryReminder": {
+        "creator": {
+          "subject": "Your verified audience is about to expire",
+          "preheader": "Your verified audience expires on {expiresAt, date, long}.",
+          "body": "Your verified audience expires on {expiresAt, date, long}. Upload a recent screenshot to keep it."
+        },
+        "brand": {
+          "subject": "Your Brand verified badge is about to expire",
+          "preheader": "Your \"Brand verified\" badge expires on {expiresAt, date, long}.",
+          "body": "Your \"Brand verified\" badge expires on {expiresAt, date, long}. Request verification again from your INFLUX space to keep it."
+        },
+        "why": "your INFLUX verification badge is about to expire"
+      },
+      "expiryToRefresh": {
+        "creator": {
+          "subject": "Your verified audience needs refreshing",
+          "preheader": "Your verified audience needs refreshing.",
+          "body": "Your verified audience needs refreshing. It stays visible with its date until {graceEndsAt, date, long}."
+        },
+        "brand": {
+          "subject": "Your Brand verified badge needs refreshing",
+          "preheader": "Your \"Brand verified\" badge needs refreshing.",
+          "body": "Your \"Brand verified\" badge needs refreshing. It stays visible with its date until {graceEndsAt, date, long}."
+        },
+        "why": "your INFLUX verification badge needs refreshing"
+      },
+      "expiryRemoved": {
+        "creator": {
+          "subject": "Your verified audience has expired",
+          "preheader": "Your verified audience has expired.",
+          "body": "Your verified audience has expired. Your figures are shown as declared again."
+        },
+        "brand": {
+          "subject": "Your Brand verified badge has expired",
+          "preheader": "Your \"Brand verified\" badge has expired.",
+          "body": "Your \"Brand verified\" badge has expired. You can request verification again from your INFLUX space."
+        },
+        "why": "your INFLUX verification badge has expired"
+      },
+      "revoked": {
+        "subject": "Your INFLUX badge was removed",
+        "preheader": "A badge on your INFLUX account was removed.",
+        "body": "Your badge was removed: {reason}",
+        "disputeOpen": "You can appeal this decision for {days} days.",
+        "disputeOpenOne": "You can appeal this decision for {days} day.",
+        "why": "a badge on your INFLUX account was removed",
+        "reason": {
+          "forged_evidence": "A document or piece of information provided for this verification turned out to be inaccurate.",
+          "account_closed": "The social media account concerned has been deleted, closed or is no longer accessible.",
+          "owner_changed": "The social media account concerned has changed hands.",
+          "terms_breach": "Your profile does not comply with the INFLUX terms of use.",
+          "influx_error": "INFLUX granted this badge by mistake. You are not at fault, and we apologise.",
+          "company_dissolved": "The company has been struck off the public register.",
+          "domain_transferred": "Your website's domain has changed hands."
+        }
+      },
+      "disputeReceived": {
+        "subject": "Your appeal has been received",
+        "preheader": "We have received your appeal about the \"{badge}\" badge.",
+        "body": "We have received your appeal about the \"{badge}\" badge. We are reviewing it and will write to you once it is decided.",
+        "why": "you appealed a decision of INFLUX"
+      },
+      "disputeOutcome": {
+        "subject": "Your appeal has been decided",
+        "preheader": "Your appeal has been decided.",
+        "why": "you appealed a decision of INFLUX",
+        "outcome": {
+          "decision_confirmed": "After review, the decision stands for its original reason: {reason}",
+          "new_request_needed": "After review, your appeal cannot succeed as it stands: you can submit a new request from your INFLUX space.",
+          "other": "After review, the decision stands. The message from the INFLUX team:",
+          "decision_overturned": "After review, INFLUX reverses its decision and apologises: your \"{badge}\" badge is granted as of {restoredAt, date, long}."
+        }
+      },
+      "reconfirmRequired": {
+        "subject": "Your badge needs to be reconfirmed",
+        "preheader": "You changed the handle of your {network} account.",
+        "body": "You changed the handle of your {network} account. To keep your badge, prove ownership again from your INFLUX space.",
+        "why": "the handle of a verified account on your INFLUX profile changed"
+      },
+      "agentOpened": {
+        "subject": "Your INFLUX salesperson started your verification",
+        "creator": {
+          "preheader": "Your INFLUX salesperson started the verification of your {network} account.",
+          "body": "Your INFLUX salesperson started the verification of your {network} account. Find the code to publish in your INFLUX space."
+        },
+        "brand": {
+          "preheader": "Your INFLUX salesperson started the verification of your brand.",
+          "body": "Your INFLUX salesperson started the verification of your brand. If anything is needed from you, it is shown in your INFLUX space."
+        },
+        "why": "an INFLUX salesperson started a verification on your account"
       }
     }
   },

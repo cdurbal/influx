@@ -2,7 +2,9 @@
 // Lot 1 (migrations 0129 and 0130; 15 RG26, RG29, RG38, §F; D39). The rights of the three tables
 // are T2's (test-kit/rights); here: the content, and the two halves of 15 RG26 — no queue without
 // a delay, no delay without a queue — held by the database. Every write is made by the migration
-// role in a rolled-back transaction.
+// role in a rolled-back transaction. L2C commit 04 (0206): queue 1 profiles_advertiser, the
+// operating settings (claim_expiry_minutes) and backoffice.business_deadline(), the deadline in
+// business hours computed once per entry (04 §5.6, 06 RG7).
 import { inRolledBackTransaction, type ProbeResult } from "@influx/test-kit/db";
 import type postgres from "postgres";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -56,12 +58,22 @@ const D39_BUSINESS_HOURS = {
 };
 
 describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG29)", () => {
-  it("holds the four queues the J8 fills, with the attributes of 15 RG29", async () => {
+  it("holds the four queues the J8 fills and queue 1 of L2C, with the attributes of 15 RG29", async () => {
     const rows = await migration`
       select code, label_key, handled_by_roles::text[] as roles, allows_bulk_action as bulk,
              has_lock as lock, is_active, retired_at
         from backoffice.queues order by code`;
     expect(rows).toEqual([
+      // 0307 (L3C): queue 7, 09 RG87-RG97, a lock, no bulk action
+      {
+        code: "campaigns",
+        label_key: "queue.campaigns",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
       {
         code: "data_subject_requests",
         label_key: "queue.data_subject_requests",
@@ -89,6 +101,16 @@ describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG2
         is_active: true,
         retired_at: null,
       },
+      // 0233 (L2F): queue 6, 08 RG78, a lock, no bulk action
+      {
+        code: "identity_change_review",
+        label_key: "queue.identity_change_review",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
       // 15 RG30: no lock, the replay is idempotent; the only bulk action of J8 (replay of 200)
       {
         code: "lead_sync_failures",
@@ -96,6 +118,67 @@ describe("backoffice.queues: the closed catalogue of the J8 queues (15 RG26, RG2
         roles: ["agent", "admin"],
         bulk: true,
         lock: false,
+        is_active: true,
+        retired_at: null,
+      },
+      // 0242 (L2G): queue 3, 07 RG77-RG83, a lock; a bulk action allowed (15 RG29), no route before
+      // Lot 6bis (l2g/modele point 2)
+      {
+        code: "portfolio_moderation",
+        label_key: "queue.portfolio_moderation",
+        roles: ["agent", "admin"],
+        bulk: true,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
+      // 0206 (L2C): 06 RG63-RG72, a lock of 30 minutes, no bulk action
+      {
+        code: "profiles_advertiser",
+        label_key: "queue.profiles_advertiser",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
+      // 0242 (L2G): queue 2, 07 RG4-RG10 and RG93-RG97, a lock, no bulk action
+      {
+        code: "profiles_creator",
+        label_key: "queue.profiles_creator",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
+      // 0325 (L3F): queue 9, 10 RG61, a lock, no bulk action; its claim and closure at L3G
+      {
+        code: "team_selection",
+        label_key: "queue.team_selection",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
+      // 0221 (L2E): queue 4, 08 RG61-RG67 and 06 RG51-RG52, a lock, no bulk action
+      {
+        code: "verification",
+        label_key: "queue.verification",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
+        is_active: true,
+        retired_at: null,
+      },
+      // 0232 (L2F): queue 5, 08 RG77, a lock, no bulk action
+      {
+        code: "verification_disputes",
+        label_key: "queue.verification_disputes",
+        roles: ["agent", "admin"],
+        bulk: false,
+        lock: true,
         is_active: true,
         retired_at: null,
       },
@@ -150,6 +233,17 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
              business_hours, escalate_after_minutes as escalate, is_provisional, is_active
         from backoffice.sla_policies order by queue_code`;
     expect(rows).toEqual([
+      // 0307 (L3C): queue 7, 1 business day (2 in enhanced review: campaign_enhanced_review_minutes),
+      // claim within 4 business hours, escalation at 3 business days of age (15 RG29, RG37)
+      {
+        queue_code: "campaigns",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
       // internal objective of 10 business days; the legal month is data_subject_requests.due_at
       {
         queue_code: "data_subject_requests",
@@ -179,12 +273,83 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
         is_provisional: true,
         is_active: true,
       },
+      // 0233 (L2F): queue 6, 1 business day, claim within 4 business hours (15 RG29)
+      {
+        queue_code: "identity_change_review",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
       {
         queue_code: "lead_sync_failures",
         claim: null,
         decision: 960,
         business_hours: D39_BUSINESS_HOURS,
         escalate: 480,
+        is_provisional: true,
+        is_active: true,
+      },
+      // 0242 (L2G): queue 3, the delay of queue 1 (l2g/modele §4)
+      {
+        queue_code: "portfolio_moderation",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
+      // 06 RG7: 1 business day, escalated at 3 business days of age (480 + 960), decided
+      {
+        queue_code: "profiles_advertiser",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
+      // 0242 (L2G): queue 2, 07 RG6 (one business day), the delay of queue 1
+      {
+        queue_code: "profiles_creator",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
+      // 0325 (L3F): queue 9, 1 business day, claim within 4 business hours (15 Q3: a proposal,
+      // provisional), the default escalation
+      {
+        queue_code: "team_selection",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 480,
+        is_provisional: true,
+        is_active: true,
+      },
+      // 0221 (L2E): queue 4, the delay of queue 1 (08 RG61, RG100)
+      {
+        queue_code: "verification",
+        claim: 240,
+        decision: 480,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
+        is_provisional: false,
+        is_active: true,
+      },
+      // 0232 (L2F): queue 5, 5 business days (04 l. 5107, 15 Q2: a proposal, provisional)
+      {
+        queue_code: "verification_disputes",
+        claim: 480,
+        decision: 2400,
+        business_hours: D39_BUSINESS_HOURS,
+        escalate: 960,
         is_provisional: true,
         is_active: true,
       },
@@ -303,8 +468,251 @@ describe("backoffice.sla_policies: one delay per queue, as data (D39, 15 RG29, R
   });
 });
 
+describe("backoffice.operational_settings: a closed key/value list (04 §5.10, 15 RG38, EC-L2C-2)", () => {
+  // 0221 adds the parameters of 08 RG100 to the list: they are asserted by
+  // db-tests/verification-core.test.ts (EC-L2E-05-12).
+  it("holds claim_expiry_minutes = 30 (15 RG27 C3), loaded by the migration", async () => {
+    const rows = await migration`
+      select key, value, updated_by_account_id from backoffice.operational_settings
+       where key = 'claim_expiry_minutes'`;
+    expect(rows).toEqual([
+      { key: "claim_expiry_minutes", value: 30, updated_by_account_id: null },
+    ]);
+  });
+
+  // The value is sent as text, then cast: a jsonb parameter would be serialised as a JSON string.
+  const SET_EXPIRY =
+    "update backoffice.operational_settings set value = $1::text::jsonb where key = 'claim_expiry_minutes'";
+
+  it.each([
+    ["a fraction of a minute", "30.5"],
+    ["a string", '"30"'],
+    ["zero minutes", "0"],
+    ["more than a day", "1441"],
+  ])("refuses claim_expiry_minutes as %s (23514)", async (_label, value) => {
+    const result = await inRolledBackTransaction(migration, (tx) =>
+      attempt(tx, SET_EXPIRY, [value]),
+    );
+    expect(result).toEqual({
+      outcome: "error",
+      code: CHECK_VIOLATION,
+      constraint: "operational_settings_claim_expiry_minutes",
+    });
+  });
+
+  it("refuses a key outside the closed list (23514)", async () => {
+    const result = await inRolledBackTransaction(migration, (tx) =>
+      attempt(
+        tx,
+        "insert into backoffice.operational_settings (key, value) values ('t_key', '1')",
+      ),
+    );
+    expect(result).toEqual({
+      outcome: "error",
+      code: CHECK_VIOLATION,
+      constraint: "operational_settings_key_closed",
+    });
+  });
+
+  it("accepts another whole number of minutes, a row update and not a deployment (15 RG38)", async () => {
+    const result = await inRolledBackTransaction(migration, (tx) =>
+      attempt(tx, SET_EXPIRY, ["45"]),
+    );
+    expect(result).toEqual({ outcome: "rows", count: 1 });
+  });
+});
+
+describe("backoffice.business_deadline(): the deadline in business hours, computed once (04 §5.6, 06 RG7)", () => {
+  /** The deadline as an ISO minute in UTC, or null. */
+  async function deadline(
+    sql: postgres.Sql | postgres.TransactionSql,
+    queue: string,
+    from: string,
+    minutes: number | null,
+  ): Promise<string | null> {
+    const [row] = await sql<{ at: string | null }[]>`
+      select to_char(backoffice.business_deadline(${queue}, ${from}::timestamptz,
+                                                  ${minutes}::integer) at time zone 'UTC',
+                     'YYYY-MM-DD"T"HH24:MI"Z"') as at`;
+    return row?.at ?? null;
+  }
+
+  it.each([
+    // 2026-11-06 is a Friday: one hour left on Friday, seven on Monday
+    [
+      "Friday 16:00, over the weekend",
+      "2026-11-06T16:00:00Z",
+      480,
+      "2026-11-09T16:00Z",
+    ],
+    [
+      "Saturday 10:00, outside the hours",
+      "2026-11-07T10:00:00Z",
+      480,
+      "2026-11-09T17:00Z",
+    ],
+    [
+      "Tuesday 07:00, before the opening",
+      "2026-11-10T07:00:00Z",
+      480,
+      "2026-11-10T17:00Z",
+    ],
+    [
+      "Tuesday 18:00, after the closing",
+      "2026-11-10T18:00:00Z",
+      480,
+      "2026-11-11T17:00Z",
+    ],
+    [
+      "Monday 09:00, ending at the closing",
+      "2026-11-09T09:00:00Z",
+      480,
+      "2026-11-09T17:00Z",
+    ],
+    [
+      "Wednesday 12:30, a claim objective",
+      "2026-11-11T12:30:00Z",
+      240,
+      "2026-11-11T16:30Z",
+    ],
+  ])(
+    "counts the business hours of profiles_advertiser from %s",
+    async (_label, from, minutes, expected) => {
+      expect(
+        await deadline(migration, "profiles_advertiser", from, minutes),
+      ).toBe(expected);
+    },
+  );
+
+  it("escalates at 3 business days of age: 960 minutes after the decision deadline (06 RG7)", async () => {
+    expect(
+      await deadline(
+        migration,
+        "profiles_advertiser",
+        "2026-11-09T16:00:00Z",
+        960,
+      ),
+    ).toBe("2026-11-11T16:00Z");
+    expect(
+      await deadline(
+        migration,
+        "profiles_advertiser",
+        "2026-11-06T16:00:00Z",
+        480 + 960,
+      ),
+    ).toBe("2026-11-11T16:00Z");
+  });
+
+  it("counts whole weeks beyond the first (10 business days of data_subject_requests)", async () => {
+    expect(
+      await deadline(
+        migration,
+        "data_subject_requests",
+        "2026-11-06T16:00:00Z",
+        4800,
+      ),
+    ).toBe("2026-11-20T16:00Z");
+  });
+
+  it("counts on the wall clock of the time zone of the policy, across a daylight saving change", async () => {
+    const results = await inRolledBackTransaction(migration, async (tx) => {
+      await tx`
+        update backoffice.sla_policies
+           set business_hours = '{"time_zone": "Europe/Paris", "days": [1, 2, 3, 4, 5],
+                                  "opens": "09:00", "closes": "17:00"}'::jsonb
+         where queue_code = 'profiles_advertiser'`;
+      return [
+        // Friday 16:00 in Paris (UTC+1) -> Monday 16:00 in Paris
+        await deadline(tx, "profiles_advertiser", "2026-11-06T15:00:00Z", 480),
+        // Friday 23 October 16:00 in Paris (UTC+2); summer time ends on Sunday 25 -> Monday
+        // 16:00 in Paris (UTC+1)
+        await deadline(tx, "profiles_advertiser", "2026-10-23T14:00:00Z", 480),
+      ];
+    });
+    expect(results).toEqual(["2026-11-09T15:00Z", "2026-10-26T15:00Z"]);
+  });
+
+  it("counts calendar minutes when the policy has no business hours (dual_control_pending)", async () => {
+    expect(
+      await deadline(
+        migration,
+        "dual_control_pending",
+        "2026-11-07T10:00:00Z",
+        1440,
+      ),
+    ).toBe("2026-11-08T10:00Z");
+  });
+
+  it("returns NULL for no delay, and the start itself for zero minutes", async () => {
+    expect(
+      await deadline(
+        migration,
+        "profiles_advertiser",
+        "2026-11-07T10:00:00Z",
+        null,
+      ),
+    ).toBeNull();
+    expect(
+      await deadline(
+        migration,
+        "profiles_advertiser",
+        "2026-11-07T10:00:00Z",
+        0,
+      ),
+    ).toBe("2026-11-07T10:00Z");
+  });
+
+  it("refuses negative minutes, an unknown queue and an inactive delay (22023), never a default", async () => {
+    const results = await inRolledBackTransaction(migration, async (tx) => {
+      const negative = await attempt(
+        tx,
+        "select backoffice.business_deadline('profiles_advertiser', now(), -1)",
+      );
+      const unknown = await attempt(
+        tx,
+        "select backoffice.business_deadline('t_no_such_queue', now(), 480)",
+      );
+      await tx`update backoffice.sla_policies set is_active = false
+                where queue_code = 'profiles_advertiser'`;
+      const inactive = await attempt(
+        tx,
+        "select backoffice.business_deadline('profiles_advertiser', now(), 480)",
+      );
+      return [negative, unknown, inactive];
+    });
+    expect(results).toEqual([
+      { outcome: "error", code: "22023" },
+      { outcome: "error", code: "22023" },
+      { outcome: "error", code: "22023" },
+    ]);
+  });
+
+  it("is executed by its writers only: influx_identity_definer (queue 1, 0207), influx_creator_verification_definer (queue 4, 0222), influx_verification_definer (queue 4 opened by an agent, 0234), influx_creator_profile_definer (queue 3, 0242) and influx_campaign_definer (queue 7, 0307)", async () => {
+    const rows = await migration<{ rolname: string }[]>`
+      select rolname from pg_catalog.pg_roles
+       where rolname like 'influx\\_%'
+         and pg_catalog.has_function_privilege(
+               oid, 'backoffice.business_deadline(text, timestamptz, integer)', 'EXECUTE')
+       order by rolname`;
+    // 0222: the creator doors submit to queue 4, whose deadlines the invoker trigger
+    // verification.prepare_request() computes with the writer's rights; 0234 (D83 A): the agent's
+    // opening makes the request pending at once, through the same trigger; 0242: a stored visual
+    // enters queue 3 through the invoker trigger profiles.prepare_portfolio_item_entry(); 0307: a
+    // submitted campaign enters queue 7 through campaigns.prepare_campaign_review_entry(); 0325: the
+    // brand's request for a selection is born with the deadline of queue 9 (its door)
+    expect(rows).toEqual([
+      { rolname: "influx_campaign_definer" },
+      { rolname: "influx_creator_profile_definer" },
+      { rolname: "influx_creator_search_definer" },
+      { rolname: "influx_creator_verification_definer" },
+      { rolname: "influx_identity_definer" },
+      { rolname: "influx_verification_definer" },
+    ]);
+  });
+});
+
 describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98) and the technical alerts (15 RG165)", () => {
-  it("holds the fourteen alerts of J8 and the fifteen of D60 (0147), with nature and recipients", async () => {
+  it("holds the fourteen alerts of J8, AL21 of L3E (0321) and the fifteen of D60 (0147), with nature and recipients", async () => {
     const rows = await migration<
       {
         code: string;
@@ -319,6 +727,12 @@ describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98) an
     expect(rows.map((row) => [row.code, row.nature, row.recipients])).toEqual([
       ["AL2", "etat", ["agent", "admin"]],
       ["AL5", "etat", ["agent", "admin"]],
+      // 0321 (L3E-10): the volume of the creator search (I-9), a state alert for the admins
+      ["AL21", "etat", ["admin"]],
+      // 0331 (L3G-07): AL22, the brand searches blocked by k (10 RG86)
+      ["AL22", "etat", ["admin"]],
+      // 0330 (L3G-06): AL23, a request of queue 9 past its deadline
+      ["AL23", "etat", ["agent", "admin"]],
       ["AL24", "etat", ["owner_agent", "admin"]],
       ["AL25", "evenement", ["admin"]],
       ["AL26", "etat", ["admin"]],
@@ -347,6 +761,8 @@ describe("backoffice.alert_definitions: the alerts of Lot 1 (15 §F, 16 RG98) an
       ["AL61", "etat", ["on_call"]],
       ["AL62", "evenement", ["on_call"]],
       ["AL63", "etat", ["admin", "on_call"]],
+      // 0331 (L3G-07): AL65, the critical mass of the creator search (10 RG2, CA60, D38)
+      ["AL65", "etat", ["admin"]],
     ]);
     expect(rows.every((row) => row.is_active)).toBe(true);
   });

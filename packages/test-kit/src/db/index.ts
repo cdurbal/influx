@@ -5,3 +5,4 @@ export * from "./local-auth.ts";
 export * from "./local-stack.ts";
 export * from "./role-passwords.ts";
 export * from "./scram.ts";
+export * from "./stale-campaigns.ts";

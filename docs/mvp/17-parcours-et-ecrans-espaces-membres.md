@@ -173,7 +173,7 @@ Mobile 375 — gabarit commun aux deux espaces (ici : espace marque, page « Mes
 |---|---|
 | Points de rupture | Sous `breakpoint-lg` (1 024 px) : en-tête + barre du bas. Conception à 375 px, vérification à 320 px (WCAG 1.4.10) : cinq cellules de 64 px restent au-dessus de `size-touch-target` |
 | Tablette (768–1 023 px) | Même gabarit. Cellules de la barre plafonnées à `spacing-11` (6 rem), groupe centré ; contenu en `container-narrow`, centré. **Pas de colonne latérale** : une tablette en portrait se tient à deux mains, et 16 rem de colonne ne laisseraient que 512 px au contenu |
-| En-tête | INFLUX (lien vers l'accueil de l'espace) · cloche (Lot 4, absente avant) · langue. `surface-page`, filet bas `border-default`, sans flou ni transparence |
+| En-tête | INFLUX (lien vers l'accueil de l'espace) · pastille de rôle de l'espace (« Espace marque », « Espace créateur », `20` §11.3 usage (1) ; L2AU-2) · cloche (Lot 4, absente avant) · langue. Ni débordement ni troncature à 320 px. `surface-page`, filet bas `border-default`, sans flou ni transparence |
 | Barre du bas | Hauteur `size-nav-bottom-height` **plus la zone de sécurité de l'appareil** (`env(safe-area-inset-bottom)`, `viewport-fit=cover`) : sans elle, l'indicateur d'accueil de l'iPhone recouvre les libellés |
 | Libellé toujours visible | Jamais d'icône seule. Une icône seule oblige à apprendre un vocabulaire visuel ; un créateur qui vient trois fois par mois ne l'apprend pas. `text-xs`, Max 11 caractères FR **et** EN. *« Candidatures » (12) dépasse : à raccourcir par `expert-marketing`, ou limite portée à 12 après essai à 320 px* |
 | Item actif | **Trois porteurs simultanés** : `aria-current="page"`, libellé et icône en `font-weight-semibold` + `color-text-primary`, et un **trait supérieur** de 2 px `color-nav-item-active-indicator`. Inactif : `color-text-secondary`. Jamais la couleur seule (`CLAUDE.md` §4) |
@@ -224,7 +224,7 @@ Desktop 1440 — gabarit commun aux deux espaces (ici : espace marque, page « M
 |---|---|
 | Point de rupture | ≥ `breakpoint-lg` (1 024 px) ; conception à 1 440. De 1 024 à 1 279 px, colonne inchangée, le contenu garde au moins 768 px. Sous 1 024 px : §2.2. **Aucun menu « hamburger »** dans l'espace membre : cinq items tiennent dans une barre, un menu caché coûte un geste par navigation |
 | Colonne | Largeur fixe `size-member-rail` (16 rem, nom de `02` §21.5) ; collante, pleine hauteur de fenêtre, défilement propre si son contenu dépasse (petite hauteur, zoom) ; `surface-page`, filet droit `border-default`. Le contenu défile seul. Pas de panneau flottant ni de coins arrondis autour de la colonne (`20` §11.7) |
-| En-tête de colonne | INFLUX (lien vers l'accueil de l'espace) et cloche (Lot 4, absente avant) ; dessous, le nom de l'espace précédé du point de rôle (`20` §11.3). Il dit où l'on est ; ce n'est **pas un sélecteur** (un rôle par compte, D41) |
+| En-tête de colonne | INFLUX (lien vers l'accueil de l'espace) et cloche (Lot 4, absente avant) ; dessous, le nom de l'espace dans la pastille neutre de rôle, point de `spacing-3` (`20` §11.3, §11.8 ; L2AU-2). Il dit où l'on est ; ce n'est **pas un sélecteur** (un rôle par compte, D41) |
 | Items | Icône `size-icon-md` + libellé `text-md` sur une ligne + compteur à droite ; hauteur ≥ `size-touch-target`, marge `spacing-2` (l'anneau de focus n'est pas rogné), `radius-md`. Actif : surface `color-nav-item-active-bg`, libellé `text-primary` semi-gras, filet gauche 2 px `color-nav-item-active-indicator`, `aria-current="page"`. Libellés courts, les mêmes que dans la barre du bas (§2.2, un seul `<nav>`). « Compte » est actif sur toutes les pages `/compte/*` |
 | Sous-menu *(D74, 2026-10-29)* | Les pages d'une rubrique sont une liste **imbriquée dans l'entrée active seulement**, dans le même `<nav>` ; sans icône, libellé aligné sur celui de la rubrique, `text-sm`, hauteur ≥ `size-touch-target`. Sur sa page-menu, la rubrique est l'item courant ; sur une sous-page, elle passe à l'état **ancêtre** (`text-primary` semi-gras, sans surface, sans filet, sans `aria-current`) et la sous-entrée porte surface, filet et `aria-current="page"`. Un seul `aria-current` par page. Masqué sous `lg`. Détail : `archives/jalons/sn-fiche.md` |
 | Bloc d'état du compte | Sous les items : état du profil écrit, ce qui manque, `[◦ Compléter mon profil]`. Desktop seulement (sur mobile, il vit sur l'accueil). Arrive avec le profil (Lot 2), absent avant. La complétude **n'est jamais affichée à l'autre partie** (`06` RG57, `07` RG86) |
@@ -316,7 +316,7 @@ l'espace interne** (`05` RG140). Messages avant et après vérification : `05` R
 
 | Espace | Chemin | Note |
 |---|---|---|
-| Marque | `/[locale]/marque`, `/campagnes`, `/campagnes/[id]`, `/createurs`, `/selections`, `/relations`, `/relations/[reference]`, `/compte/*` | `[id]` de campagne **opaque**, jamais séquentiel |
+| Marque | `/[locale]/marque`, `/campagnes`, `/campagnes/[id]`, `/campagnes/[id]/apercu` · `/campaigns/[id]/preview` (aperçu « ce que voit un créateur », EC-L3B-4), `/createurs`, `/selections`, `/relations`, `/relations/[reference]`, `/compte/*` (dont `/compte/profil` · `/account/profile`, M2 du profil marque, EC-L2B-7) | `[id]` de campagne **opaque**, jamais séquentiel |
 | Créateur | `/[locale]/createur`, `/campagnes`, `/campagnes/[id]`, `/candidatures`, `/relations`, `/relations/[reference]`, `/compte/*` | Une carte créateur est référencée par son **alias** (`10` RG65) |
 | Commun | `/[locale]/connexion` (3 écrans), `/[locale]/compte` (page-menu, D74), `/compte/informations`, `/compte/preferences`, `/compte/sessions`, `/compte/donnees`, `/aide` | « Mes informations » a quitté `/compte` le 2026-10-29 (D74) |
 
@@ -391,6 +391,7 @@ Mobile 375                                Desktop 1440 (colonne centrée, contai
 
 | Bloc | Contenu | Règle |
 |---|---|---|
+| Signature de médiation *(L2AU-1)* | Sous le `h1`, en `text-secondary`, à la connexion comme à l'inscription : un commercial INFLUX accompagne jusqu'à la mise en relation, **sans promesse de délai**. Porte connue (inscription seulement, jamais `connexion`) : pastille de rôle « Marque » / « Créateur » au-dessus du `h1` (`20` §11.3 usage (2)) | `20` §11.7, D45 |
 | Rappel de porte | Le profil choisi, **modifiable jusqu'à la création du compte**. « Changer » revient au choix de porte et **décoche le consentement** et efface les champs du profil abandonné | `05` RG3, RG4 |
 | Champ e-mail | Étiquette visible, `type="email"`, `inputmode="email"`, `autocomplete="email"`, `spellcheck="false"`. **Jamais un texte d'exemple seul** | `05` RG115 |
 | Mention d'information | **Visible dès cet écran**, pas repliée dans un accordéon fermé : finalités, **Brevo et Apollo.io nommés**, droits, lien vers la politique de confidentialité | `05` RG6 |
@@ -401,6 +402,8 @@ Mobile 375                                Desktop 1440 (colonne centrée, contai
 | Clé | FR (intention) | EN (intention) | Max |
 |---|---|---|---|
 | `auth.step1.title` | Continuer avec votre e-mail | Continue with your email | 40 |
+| `auth.step1.mediation` *(L2AU-1)* | Un commercial INFLUX vous accompagne jusqu'à la mise en relation. | An INFLUX salesperson guides you through to the introduction. | 80 |
+| `auth.step1.role.advertiser` · `.creator` *(L2AU-1)* | Marque · Créateur | Brand · Creator | 12 |
 | `auth.step1.lead` | Pas de mot de passe : nous vous envoyons un code à 6 chiffres. | No password: we send you a 6-digit code. | 90 |
 | `auth.step1.roleRecap.advertiser` | Vous vous inscrivez comme **marque**. | You are signing up as a **brand**. | 45 |
 | `auth.step1.roleRecap.creator` | Vous vous inscrivez comme **créateur**. | You are signing up as a **creator**. | 45 |
@@ -714,10 +717,10 @@ Desktop 1440
 │ ── 3. Votre interlocuteur ──────────────────────  │                           │
 │ Fonction *                       [v]  [Publique] │                           │
 │ ┌──────────────────────────────────────────────┐ │                           │
-│ │ [i:lock] Masqué jusqu'à l'ouverture d'une    │ │                           │
-│ │ mise en relation — visible alors du seul     │ │                           │
-│ │ créateur concerné, et d'INFLUX en            │ │                           │
-│ │ permanence.                      RG35, RG37  │ │                           │
+│ │ [i:lock] Prénom : masqué jusqu'à la mise en  │ │                           │
+│ │ relation. E-mail, téléphone, page : internes,│ │                           │
+│ │ vus d'INFLUX seul, jamais d'un membre (D46). │ │                           │
+│ │                                  RG35, RG37  │ │                           │
 │ │ Prénom            [            ]             │ │                           │
 │ │ E-mail pro        [            ]             │ │                           │
 │ │ Téléphone     [+33][           ]             │ │                           │
@@ -749,6 +752,14 @@ ET répétée sur chaque champ masqué : sur mobile, le titre de section sort de
 
 L'icône **et** le texte sont présents dans les trois cas : le vert du badge « révélé » ne porte
 jamais l'information seul.
+
+**Quand le texte ne tient pas sur une ligne** (recette L2D, décision du fondateur, 2026-11-06), le
+badge se réduit à son icône, dans sa teinte, à côté du libellé du champ ; jamais de badge sur deux
+lignes. La largeur est mesurée, pas présumée : le badge reste entier dès que la place le permet. Le
+texte s'affiche au survol, au focus clavier et au toucher ; Échap ou un toucher ailleurs le referme,
+et il reste lisible dans un formulaire en lecture seule. Il demeure le nom de l'icône et la
+description du champ pour un lecteur d'écran (`06` RG85, CA39). Vaut aussi pour les étiquettes du
+créateur (§5.2).
 
 **Les cinq états du profil** (`06` RG3), chacun avec son libellé écrit et son bandeau :
 
@@ -785,9 +796,17 @@ retenu : 5 étapes**, regroupées par question posée à la marque, avec navigat
 | 1. L'offre | Bloc 1 identification + Bloc 2 produit | « Qu'est-ce que vous proposez, sur quoi ? » | Titre, type, résumé, brief, produit, catégorie, produit envoyé |
 | 2. Le travail attendu | Bloc 3 livrables, droits, exclusivité | « Qu'est-ce que le créateur doit produire, et qu'en ferez-vous ? » | Livrables, droits (+ durée et territoire si ≠ aucun), exclusivité, délai de validation |
 | 3. Pour qui | Bloc 4 audience visée | « Quelle audience visez-vous ? » | Pays, langues, thématiques |
-| 4. Le budget | Bloc 5 budget | « Combien payez-vous **au total** ? » | Min, max, devise, nature, nombre de créateurs |
+| 4. Le budget | Bloc 5 budget | « Que payez-vous **par créateur** ? » *(D78, EC-L3B-2 : tranche interne, jamais de minimum ni de maximum)* | Devise, tranche (sauf dotation seule), nature, nombre de créateurs |
 | 5. Calendrier et candidature | Blocs 6 et 7 | « Quand, et que doit envoyer un créateur ? » | 4 dates |
 | — | Bloc 8 interne | Réparti : référence interne en étape 1, budget total en étape 4, notes en étape 5 — **toujours dans un encart « Interne — jamais publié »** | — |
+
+> **Amendement L3B (EC-L3B-2, D78).** La maquette de l'étape 4 ci-dessous est antérieure à
+> l'extension de D78 au Lot 3 : elle ne fait plus foi. L'étape 4 suit le bandeau de `09` §F : la marque
+> choisit une **tranche par créateur** (`reference.price_bands`, dans la devise de la campagne,
+> « commission INFLUX incluse »), obligatoire sauf « dotation seule » ; aucune fourchette, aucun
+> montant ni net, aucun récapitulatif chiffré « ce que voit un créateur » (le créateur voit la nature
+> de la rémunération et « À négocier avec votre commercial »). Aucun budget total n'est saisi
+> (EC-L3B-10-1).
 
 ```
 Desktop — étape 4, la plus sensible du parcours
@@ -867,24 +886,24 @@ Desktop 1440
 │ (colonne collante)    │ Recherche liée à : [Rentrée beauté 2026 v] [◦ Aucune]│
 │                       │                                                      │
 │ Thématique        [v] │ Environ 10-24 profils correspondent.        RG59    │
-│ Réseaux           [ ] │ Tri : [Pertinence v] (Audience · Tarif · Vérifiés    │
-│ Audience / réseau [ ] │        d'abord · Nouveaux profils)           RG43    │
+│ Réseaux           [ ] │ Tri : [Pertinence v] (Audience · Vérifiés d'abord ·  │
+│ Audience / réseau [ ] │        Nouveaux profils)                     RG43    │
 │ Pays d'audience   [v] │ Critères actifs : [Beauté ×][Instagram ×][France ×]  │
 │   + part      [≥80% v]│                                                      │
 │ Langues           [ ] │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │
 │ Formats           [ ] │ │ carte anonyme│ │ carte anonyme│ │ carte anonyme│  │
-│ Tarif        [v]+[EUR]│ │   (§7.1)     │ │              │ │              │  │
-│  [ ] Inclure les      │ └──────────────┘ └──────────────┘ └──────────────┘  │
-│  créateurs qui        │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │
-│  tarifent dans une    │ │              │ │              │ │              │  │
-│  autre devise    RG18 │ └──────────────┘ └──────────────┘ └──────────────┘  │
-│ Badge             [ ] │                                                      │
-│                       │           Page 1 sur 5 · 12 par page         RG63    │
+│ Badge             [ ] │ │   (§7.1)     │ │              │ │              │  │
+│                       │ └──────────────┘ └──────────────┘ └──────────────┘  │
+│                       │ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐  │
+│                       │ │              │ │              │ │              │  │
+│                       │ └──────────────┘ └──────────────┘ └──────────────┘  │
+│                       │                                                      │
+│                       │      [Page précédente]  Page 1  [Page suivante] RG63 │
 │ [□ Tout effacer]      │                                                      │
 │ ───────────────────── │ ┌──────────────────────────────────────────────────┐ │
-│ [□ Demander une       │ │ MA SÉLECTION (3)                                 │ │
+│ [□ Demander une       │ │ MA SÉLECTION (3)  (commit 11 du L3F)             │ │
 │  sélection à l'équipe]│ │ Profil 7K3M · Profil 2QX8 · Profil B40T          │ │
-│        RG61, permanent│ │ [■ Demander une mise en relation pour ces 3]     │ │
+│        RG61, permanent│ │ (aucune demande de mise en relation : Lot 4)     │ │
 │                       │ └──────────────────────────────────────────────────┘ │
 └───────────────────────┴──────────────────────────────────────────────────────┘
 
@@ -907,14 +926,39 @@ Mobile 375
 
 | Élément | Décision et règle |
 |---|---|
-| Facettes ouvertes | Les **8 du socle** uniquement (`10` RG12). Les facettes de seconde vague apparaissent **quand le paramètre les ouvre**, sans redéploiement (RG11). L'écran ne montre jamais une facette fermée, même grisée |
+| Facettes ouvertes | Les **7 du socle** au pilote, la huitième (le tarif, F12) étant suspendue tant que D78 tient (`10` RG12 ; amendé par L3F, EC-L3F-5). Les facettes de seconde vague apparaissent **quand le paramètre les ouvre**, sans redéploiement (RG11). L'écran ne montre jamais une facette fermée, même grisée |
 | Aucun champ texte libre | `10` RG6. Il n'existe **aucune barre de recherche** dans cet écran. C'est contre-intuitif pour un utilisateur habitué aux annuaires : une ligne d'explication le dit (« la recherche se fait par critères, pour protéger l'anonymat des créateurs ») |
-| Tarif + devise | La devise est **obligatoire** et pré-remplie depuis le profil (`10` RG18). La case « inclure les autres devises » est **sous le filtre**, et les profils concernés portent la mention « tarif dans une autre devise » |
+| Tarif + devise | **Suspendus au pilote** (D78, EC-L3F-5) : ni filtre, ni tri, ni devise, ni case « autres devises », ni tarif sur la carte. Ils reviennent avec F12 (`10` RG18) |
 | Nombre de résultats | **Tranche uniquement**, jamais un nombre. Formulé comme une information, pas comme une limitation |
 | Tri | Toujours **nommé à l'écran** (`10` RG44). Le tri par défaut s'appelle « Pertinence » et un `[i:info]` ouvre l'explication des paliers en langage courant — pas un score |
 | Sélection | Panneau persistant, **aucune notification au créateur** (`10` RG51, RG8). Le libellé dit « privée » |
 | Pagination | 12 par page, 5 pages, **explicite** (`10` RG63). Pas de défilement infini : il rendrait le plafond incompréhensible |
 | Demande de sélection à l'équipe | **Présent en permanence**, pas seulement sous le seuil (`10` RG61) |
+
+**Amendé par L3F, commit 10 (EC-L3F-5, EC-L3F-10-1 à -3).** Les critères sont ceux de l'adresse (rechargement, retour,
+reprise par la demande) et s'appliquent ensemble par « Voir les résultats » : une page est une recherche du seau du
+compte (`10` RG64), aucun critère ne lance la sienne. La pagination est « Page précédente · Page N · Page suivante »,
+sans total : le nombre de pages dirait le nombre de résultats (RG59) ; une page déjà lue ne se redemande pas. L'état ③
+dit « Revenez plus tard », avec le délai de la base (`Retry-After`) quand elle en donne un. La carte n'offre que
+« Ajouter à ma sélection » (L3F, commit 11) ; « Demander une mise en relation (pour ces 3) » disparaît jusqu'au Lot 4
+(RG55). Sur téléphone (L3F fix-1, L3FU-1 et -2), « Filtres » et « Tri » sont sur une ligne ; le panneau des filtres, repliable
+au-dessus des résultats (non un plein écran), s'ouvre sur « Recherche liée à » puis le formulaire ; l'explication du tri
+est derrière un `[i]` (à toute largeur) et celle de la page tient en une ligne ; « Voir les résultats » referme le panneau
+et donne le focus à la tranche (à défaut, à la tête des résultats). Un seul exemplaire de chaque contrôle : la page est
+une grille dont les contrôles sont les cellules (dès `lg`, disposition inchangée).
+
+**Amendé par L3F, commit 11 (EC-L3F-11-1 à -4).** Chaque carte offre « Ajouter à ma sélection » (un bouton qui devient
+« Retirer de ma sélection ») et un lien « Voir le profil » vers `createurs/profil/<alias>` (le seul segment d'adresse est
+l'alias, RG65 ; l'adresse de la recherche suit en requête, avec `list=`, la sélection active, qui n'est pas un critère). Le
+profil ouvert est la carte entière, plus grande, avec ses trois visuels et, quand la base la sert (RG15), la région en code
+(aucune liste de noms de régions n'existe encore) ; ses deux seules actions sont « Ajouter à ma sélection » et la demande
+de sélection. Le panneau « Ma sélection privée (n) » est une barre collante au-dessus de la barre du bas sous `lg`
+(ouverte par son bouton), une carte en fin de résultats dès `lg`, et sous `lg` « Mes sélections » a son lien sous le
+titre de la recherche et du profil (L3FU-3) ; la première sélection d'une marque se crée à l'ajout, sous
+le nom « Ma sélection ». « Mes sélections » (`createurs/selections`) et une sélection (`createurs/selections/<id>`) forment
+le sous-menu de « Créateurs » (D74) : créer, renommer, rattacher à une campagne ou détacher, noter, retirer, supprimer, sans
+« tout sélectionner » ni export. La demande de sélection reprend critères et campagne, ajoute un message libre borné
+(1 000 caractères, sans coordonnée) et confirme **un délai** (le jour de réponse fixé par la base), jamais un résultat.
 
 **Les trois états spécifiques de cette recherche** — ce sont eux qui font ou défont l'écran.
 
@@ -1354,6 +1398,8 @@ colonne de complétude collante à droite. Trois colonnes, pas deux.
 | Visible uniquement après l'ouverture d'une mise en relation. | `creatorProfile.layer.revealed` | `[i:lock]` + texte, `color-brand-subtle-bg` |
 | Visible uniquement par vous et l'équipe INFLUX. | `creatorProfile.layer.internal` | `[i:eye-off]` + texte, `color-text-tertiary` |
 
+Un texte qui ne tient pas sur une ligne laisse l'icône seule, et s'affiche à la demande (§4.2).
+
 > **Écart relevé dans l'implémentation en cours** (§10, E2) : les libellés codés aujourd'hui
 > (« Couche A · Public Anonyme », « Couche I · Révélé sur accord », « Couche N · Interne INFLUX »)
 > exposent un vocabulaire interne. Les codes A / I / N sont un outil de spécification, **pas un
@@ -1457,6 +1503,11 @@ superlatif, aucune étoile (`08` RG6, RG13). Ces libellés sont **provisoires au
 doivent être relus par un juriste avant tout affichage (`08` RG10, Q1).
 
 ### 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière
+
+> **⚠️ Régime du pilote, premier temps (D78, 2026-11-01) : aucun tarif saisi ni affiché**, les coûts
+> se négocient avec le commercial. C4 devient « Mon offre » : couples (réseau, format), droits
+> d'usage, disponibilité, secteurs refusés, contrepartie non monétaire (`07` §G). Les champs et
+> libellés de tarif ci-dessous sont suspendus.
 
 **L'écran le plus dangereux du produit côté créateur** (`07` RG65). Un créateur qui saisit « ce que
 je veux toucher » là où le produit attend « ce que la marque paie » se trompe de 35 %.
@@ -1747,7 +1798,7 @@ confidentialité le couvre.
 | Invitations reçues | Les mises en relation à l'état 3 : proposition INFLUX ou demande de marque validée. Une carte, une action : `[■ Examiner]` → §7.2 | `13` RG66, RG100 |
 | Mon profil vu par une marque | Prévisualisation de la **carte anonyme réelle** servie par l'API, pas une reconstitution | Symétrique de `09` RG102 ; **manque dans `07`**, voir §10 |
 | Preuves déposées | Liste des pièces, état, motif de refus, rappel que les pièces ne sont **jamais** visibles d'une marque | `07` RG54, `08` §I |
-| Contester un badge retiré | Formulaire de contestation, motif, pièce | `08` §H |
+| Contester un badge retiré ou une demande refusée | Formulaire de contestation (C3) : motif fermé, texte de 1 000 caractères au plus, **aucune pièce jointe** (une preuve neuve passe par une nouvelle demande) ; dans la fenêtre de `dispute_window_days` (30) ; une par décision | `08` §H, RG77 |
 
 ---
 

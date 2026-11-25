@@ -30,6 +30,11 @@ import {
 } from "react";
 import { messages } from "@/messages/fr";
 import { HELP_CLASSES, inputClasses, TITLE_CLASSES } from "./auth-classes";
+import { AccountBadgesBlock } from "./AccountBadgesBlock";
+import { AccountOpeningBlock } from "./AccountOpeningBlock";
+import { AccountBrandBlocks } from "./AccountBrandBlocks";
+import { AccountCampaignsBlock } from "./AccountCampaignsBlock";
+import { AccountCreatorBlocks } from "./AccountCreatorBlocks";
 import { ActionFeedback, AdminOnlyNotice } from "./ActionFeedback";
 import {
   correctionNotice,
@@ -788,6 +793,15 @@ export function AccountScreen({ id }: { id: string }) {
           </Field>
         </dl>
       </section>
+      <AccountBrandBlocks brand={detail.brand} />
+      {account.role === "advertiser" ? (
+        <AccountCampaignsBlock accountId={account.id} />
+      ) : null}
+      <AccountCreatorBlocks accountId={account.id} creator={detail.creator} />
+      <AccountBadgesBlock accountId={account.id} />
+      {account.role === "creator" || account.role === "advertiser" ? (
+        <AccountOpeningBlock accountId={account.id} role={account.role} />
+      ) : null}
       <SyncBlock detail={detail} onReplayed={() => setReload(reload + 1)} />
       <CorrectionForm
         detail={detail}

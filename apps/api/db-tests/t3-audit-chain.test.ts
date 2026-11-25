@@ -173,7 +173,7 @@ async function lastSeq(): Promise<number> {
 // ---------------------------------------------------------------------------------------------
 
 describe("T3.1: no execution role mutates an append-only table", () => {
-  it("lists the append-only tables of the Lot 0 and of the Lot 1", () => {
+  it("lists the append-only tables of the Lots 0, 1 and 2", () => {
     expect([...APPEND_ONLY_TABLES].sort()).toEqual(
       [
         "audit.audit_events",
@@ -182,6 +182,8 @@ describe("T3.1: no execution role mutates an append-only table", () => {
         "identity.terms_acceptances",
         // 0105 (J5, 04 §5.1)
         "identity.email_delivery_incidents",
+        // 0217 (L2D, 07 RG119): deleted with the account only, by influx_privacy_definer (0219)
+        "profiles.creator_network_metrics_history",
       ].sort(),
     );
   });

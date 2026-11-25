@@ -31,12 +31,11 @@ le périmètre fonctionnel (→ `product-owner`), le moment de livrer (→ `chef
 
 ## Zones critiques — couverture obligatoire
 
-1. **Calcul de la commission 35 % (part annonceur 20 % + part créateur 15 %).** Tests unitaires
-   exhaustifs : arrondis sur chaque part et dans chaque devise, taux dérogatoires, historisation
-   des deux taux à la signature, identité montant contrat = part annonceur + part créateur + net
-   créateur, montants nuls ou négatifs refusés, devise non autorisée refusée, contrat refusé hors
-   des pays ouverts. **Une erreur ici coûte de l'argent réel** : c'est la zone la plus testée du
-   projet.
+1. **Commission.** Au MVP (`CLAUDE.md` §2, régime transitoire) : prouver l'**absence** de taux et
+   de calcul (`commission_rates` vide, aucun pourcentage ni net estimé affiché, montants saisis
+   par le commercial enregistrés et additionnés tels quels). En V2 seulement : tests exhaustifs
+   du calcul 35 % (arrondis par part et par devise, taux figés à la signature, identité montant =
+   part annonceur + part créateur + net, pays ouverts) — **une erreur y coûte de l'argent réel**.
 2. **Row Level Security.** Tests d'intégration prouvant qu'un annonceur ne lit pas les données
    d'un autre annonceur, qu'un influenceur ne lit pas les contrats d'autrui, et qu'un compte non
    authentifié n'accède à rien. Le test doit vérifier au niveau base, pas seulement au niveau API.

@@ -1,0 +1,165 @@
+// The labels of the reference lists the brand profile form draws from (jalons/l2b, commit 10; 04
+// §4.2 R8: labels live in the translation files, never in the database). Every ACTIVE code of
+// reference.topics, networks, formats, sectors and usage_rights has its label in French and in
+// English under its `label_key`, and every label belongs to a code of its table (a retired code may
+// keep its label: old profiles still show it). `usage_right.none` has none: it is no right and is
+// never ticked among others (L2-amend). The files read are the web app's, the ones the screen shows.
+import { readFileSync } from "node:fs";
+import type postgres from "postgres";
+import { beforeAll, describe, expect, it } from "vitest";
+import { migrationRole } from "./support.ts";
+
+type Labels = Record<string, Record<string, string>>;
+
+const LOCALES = ["fr", "en"] as const;
+
+/** The `reference` part of `apps/web/src/locales/<locale>/brand-profile.json`. */
+function referenceLabels(locale: (typeof LOCALES)[number]): Labels {
+  const file = new URL(
+    `../../web/src/locales/${locale}/brand-profile.json`,
+    import.meta.url,
+  );
+  const messages = JSON.parse(readFileSync(file, "utf8")) as {
+    reference: Labels;
+  };
+  return messages.reference;
+}
+
+/** The table, the singular of its `label_key` prefix, and the codes the form must not label. */
+const LISTS = [
+  { table: "topics", prefix: "topic", unlabelled: [] },
+  { table: "networks", prefix: "network", unlabelled: [] },
+  { table: "formats", prefix: "format", unlabelled: [] },
+  { table: "sectors", prefix: "sector", unlabelled: [] },
+  { table: "usage_rights", prefix: "usage_right", unlabelled: ["none"] },
+] as const;
+
+let migration: postgres.Sql;
+
+beforeAll(() => {
+  migration = migrationRole();
+});
+
+async function rowsOf(
+  table: string,
+): Promise<{ code: string; label_key: string; active: boolean }[]> {
+  return migration.unsafe(
+    `select code, label_key, retired_at is null as active
+       from reference.${table} order by code`,
+  );
+}
+
+describe("labels of the reference lists of the brand profile (04 §4.2 R8)", () => {
+  for (const locale of LOCALES) {
+    for (const { table, prefix, unlabelled } of LISTS) {
+      it(`${locale}: every active code of reference.${table} has its label under its label_key`, async () => {
+        const labels = referenceLabels(locale)[prefix] ?? {};
+        const missing: string[] = [];
+        for (const row of await rowsOf(table)) {
+          if (!row.active || unlabelled.some((code) => code === row.code)) {
+            continue;
+          }
+          expect(row.label_key, row.code).toBe(`${prefix}.${row.code}`);
+          if ((labels[row.code] ?? "").trim() === "") {
+            missing.push(row.code);
+          }
+        }
+        expect(missing).toEqual([]);
+      });
+
+      it(`${locale}: every label of ${prefix} belongs to a code of reference.${table}`, async () => {
+        const known = new Set((await rowsOf(table)).map((row) => row.code));
+        const labels = Object.keys(referenceLabels(locale)[prefix] ?? {});
+        expect(labels.filter((code) => !known.has(code))).toEqual([]);
+      });
+    }
+  }
+
+  it("has no label for usage right none, in either language", async () => {
+    const codes = (await rowsOf("usage_rights")).map((row) => row.code);
+    expect(codes).toContain("none");
+    for (const locale of LOCALES) {
+      expect(
+        Object.keys(referenceLabels(locale).usage_right ?? {}),
+      ).not.toContain("none");
+    }
+  });
+});
+
+/** The `reference` part of `apps/web/src/locales/<locale>/creator-profile.json` (L2D, commit 12). */
+function creatorReferenceLabels(locale: (typeof LOCALES)[number]): Labels {
+  const file = new URL(
+    `../../web/src/locales/${locale}/creator-profile.json`,
+    import.meta.url,
+  );
+  const messages = JSON.parse(readFileSync(file, "utf8")) as {
+    reference: Labels;
+  };
+  return messages.reference;
+}
+
+describe("labels of the reference lists of the creator profile (04 §4.2 R8; L2D commit 12)", () => {
+  // The topics are the brands' (07 RG33: one vocabulary): their labels are the brand file's, held above.
+  // The editorial tones are the creator's own.
+  for (const locale of LOCALES) {
+    it(`${locale}: every active code of reference.editorial_tones has its label under its label_key`, async () => {
+      const labels = creatorReferenceLabels(locale).tone ?? {};
+      const missing: string[] = [];
+      for (const row of await rowsOf("editorial_tones")) {
+        if (!row.active) {
+          continue;
+        }
+        expect(row.label_key, row.code).toBe(`editorial_tone.${row.code}`);
+        if ((labels[row.code] ?? "").trim() === "") {
+          missing.push(row.code);
+        }
+      }
+      expect(missing).toEqual([]);
+    });
+
+    it(`${locale}: every label of tone belongs to a code of reference.editorial_tones`, async () => {
+      const known = new Set(
+        (await rowsOf("editorial_tones")).map((row) => row.code),
+      );
+      const labels = Object.keys(creatorReferenceLabels(locale).tone ?? {});
+      expect(labels.filter((code) => !known.has(code))).toEqual([]);
+    });
+  }
+});
+
+// The bands the system derives from the figures of a network line (L2D, commit 13; 07 RG22, RG114,
+// RG115): the creator reads them under "what brands see", labelled in the creator file.
+const BAND_LISTS = [
+  { table: "audience_bands", prefix: "audience_band" },
+  { table: "publication_frequencies", prefix: "publication_frequency" },
+  { table: "comment_bands", prefix: "comment_band" },
+] as const;
+
+describe("labels of the derived bands of the creator profile (04 §4.2 R8; L2D commit 13)", () => {
+  for (const locale of LOCALES) {
+    for (const { table, prefix } of BAND_LISTS) {
+      it(`${locale}: every active code of reference.${table} has its label under its label_key`, async () => {
+        const labels = creatorReferenceLabels(locale)[prefix] ?? {};
+        const missing: string[] = [];
+        for (const row of await rowsOf(table)) {
+          if (!row.active) {
+            continue;
+          }
+          expect(row.label_key, row.code).toBe(`${prefix}.${row.code}`);
+          if ((labels[row.code] ?? "").trim() === "") {
+            missing.push(row.code);
+          }
+        }
+        expect(missing).toEqual([]);
+      });
+
+      it(`${locale}: every label of ${prefix} belongs to a code of reference.${table}`, async () => {
+        const known = new Set((await rowsOf(table)).map((row) => row.code));
+        const labels = Object.keys(
+          creatorReferenceLabels(locale)[prefix] ?? {},
+        );
+        expect(labels.filter((code) => !known.has(code))).toEqual([]);
+      });
+    }
+  }
+});

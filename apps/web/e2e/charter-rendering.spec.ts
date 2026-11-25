@@ -147,6 +147,60 @@ test("TK1.2: neither zoom nor press under reduced motion", async ({ page }) => {
   await expectStill(page, signInButton(page));
 });
 
+// RUA-T5 (D88, jalon RUA, line 02; 22-refonte-ux-ui/04 §1; AN-1): under reduced motion, every animation of the
+// Lot 3bis is served at zero duration and the skeleton sweep, which repeats, is not served at all. Read as a
+// screen will use them, `animation: var(--animate-…)` on an element of the page; the same elements outside
+// reduced motion prove that the zero comes from the media query, not from the declarations.
+const ANIMATIONS = [
+  "fade-in",
+  "rise-in",
+  "flash",
+  "flash-strong",
+  "pop",
+  "pop-in",
+  "done-flash",
+  "spin",
+] as const;
+
+async function servedAnimations(
+  page: Page,
+): Promise<Record<string, { name: string; duration: string }>> {
+  return page.evaluate((names) => {
+    const served: Record<string, { name: string; duration: string }> = {};
+    for (const name of [...names, "skeleton"]) {
+      const probe = document.createElement("div");
+      probe.style.animation = `var(--animate-${name})`;
+      document.body.append(probe);
+      const style = getComputedStyle(probe);
+      served[name] = {
+        name: style.animationName,
+        duration: style.animationDuration,
+      };
+      probe.remove();
+    }
+    return served;
+  }, ANIMATIONS);
+}
+
+test("RUA-T5, AN-1: under reduced motion the --animate-* run for 0 s and the skeleton sweep is none", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await open(page, SIGN_IN);
+  const moving = await servedAnimations(page);
+  for (const name of ANIMATIONS) {
+    expect(moving[name]?.duration, `${name}, motion allowed`).not.toBe("0s");
+  }
+  expect(moving["skeleton"]?.name, "skeleton, motion allowed").toBe("skeleton");
+
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  const still = await servedAnimations(page);
+  for (const name of ANIMATIONS) {
+    expect(still[name]?.duration, `${name}, reduced motion`).toBe("0s");
+  }
+  expect(still["skeleton"]?.name, "skeleton, reduced motion").toBe("none");
+});
+
 test("TK1.2: neither zoom nor press on an unavailable button", async ({
   page,
 }) => {

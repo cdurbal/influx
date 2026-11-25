@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Fil et fiche de campagne</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  .page { display: flex; flex-direction: column; gap: var(--spacing-5); width: 100%; }
+  /* ===== Fil ===== */
+  .feed-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .feed-head .tools { display: flex; align-items: center; gap: var(--spacing-3); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .feed-head .select { min-width: 14rem; }
+  @media (width < 640px) { .feed-head .tools { width: 100%; justify-content: space-between; } .feed-head .select { min-width: 0; flex: 1; max-width: 15rem; } }
+  .fbar { display: flex; align-items: center; gap: var(--spacing-2); overflow-x: auto; padding-bottom: var(--spacing-1); scrollbar-width: none; }
+  .fbar::-webkit-scrollbar { display: none; }
+  .pill { flex-shrink: 0; display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: 2.5rem; border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-page); padding: 0 var(--spacing-4); font-size: var(--text-sm); white-space: nowrap; color: var(--color-text-primary); transition: border-color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard); }
+  .pill:hover { border-color: var(--color-border-hover); }
+  .pill .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .pill[aria-pressed="true"] { border-color: var(--color-text-primary); background: var(--color-surface-active); font-weight: var(--font-weight-semibold); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--spacing-4); }
+  .cc { position: relative; display: flex; flex-direction: column; gap: var(--spacing-2); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); padding: var(--spacing-4); transition: border-color var(--duration-fast) var(--ease-standard), translate var(--duration-fast) var(--ease-standard); }
+  .cc:hover { border-color: var(--color-border-hover); }
+  @media (prefers-reduced-motion: no-preference) { .cc:hover { translate: 0 -2px; } }
+  .cc:has(.cc__t:focus-visible) { outline: var(--focus-ring-width) solid var(--color-focus-ring); outline-offset: var(--focus-ring-offset); }
+  .cc__brand { display: flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .cc__brand .ver { width: var(--size-icon-sm); height: var(--size-icon-sm); color: var(--color-verified-text); }
+  .cc__t { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-md); line-height: var(--leading-snug); text-decoration: none; color: var(--color-text-primary); }
+  .cc__t::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+  .cc__t:focus-visible { outline: none; }
+  .due { display: inline-flex; align-items: center; gap: var(--spacing-1); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+  .due .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .due--soon { color: var(--color-feedback-warning-text); }
+  .cc__meta { font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .cc[hidden] { display: none; }
+  /* ===== Fiche ===== */
+  .crumb { align-self: flex-start; }
+  .rhead { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .rbrand { display: flex; align-items: center; gap: var(--spacing-3); color: var(--color-text-secondary); font-size: var(--text-sm); }
+  .rbrand .logo-plate { width: 3rem; height: 3rem; }
+  .rbrand b { color: var(--color-text-primary); font-family: var(--font-display); }
+  .rbrand .ver { width: var(--size-icon-sm); height: var(--size-icon-sm); color: var(--color-verified-text); vertical-align: -0.15em; }
+  .rhead h1 { font-family: var(--font-display); font-size: clamp(1.625rem, 1.3rem + 1.1vw, 2.125rem); font-weight: var(--font-weight-extrabold); letter-spacing: var(--tracking-heading); line-height: var(--leading-tight); max-width: 40rem; text-wrap: balance; }
+  .closed { align-self: flex-start; }
+  .r-grid { display: flex; flex-direction: column; gap: var(--spacing-6); }
+  @media (width >= 1024px) { .r-grid { display: grid; grid-template-columns: minmax(0, 7fr) minmax(19rem, 4fr); gap: var(--spacing-9); align-items: start; } }
+  .r-main { display: flex; flex-direction: column; min-width: 0; }
+  .r-main > section { display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--spacing-6) 0; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .r-main > section:first-child { border-top: 0; padding-top: 0; }
+  .r-main h2 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .ess { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); }
+  .ess > div { display: grid; grid-template-columns: var(--size-icon-lg) minmax(0, 1fr); gap: var(--spacing-3); padding: var(--spacing-4); }
+  .ess > div:nth-child(2n) { border-left: var(--border-width-thin) solid var(--color-border-default); }
+  .ess > div:nth-child(n+3) { border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .ess .i { width: var(--size-icon-lg); height: var(--size-icon-lg); color: var(--color-text-secondary); }
+  .ess dt { font-size: var(--text-xs); color: var(--color-text-secondary); font-weight: var(--font-weight-semibold); }
+  .ess dd { font-weight: var(--font-weight-semibold); }
+  .ess dd small { display: block; font-weight: var(--font-weight-regular); font-size: var(--text-xs); color: var(--color-text-secondary); }
+  @media (width < 640px) { .ess { grid-template-columns: 1fr; } .ess > div:nth-child(2n) { border-left: 0; } .ess > div:nth-child(n+2) { border-top: var(--border-width-thin) solid var(--color-border-default); } }
+  .reasons { display: flex; flex-direction: column; gap: var(--spacing-4); }
+  .reasons li { display: grid; grid-template-columns: var(--size-icon-lg) minmax(0, 1fr); gap: var(--spacing-4); }
+  .reasons .i { width: var(--size-icon-lg); height: var(--size-icon-lg); color: var(--color-text-secondary); }
+  .reasons b { display: block; font-weight: var(--font-weight-semibold); }
+  .brief { max-width: var(--size-measure); line-height: var(--leading-body); }
+  .brief.is-clamped { display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+  .r-main .props { --size-property-label: 12rem; font-size: var(--text-md); max-width: 46rem; }
+  .bullets { display: flex; flex-direction: column; gap: var(--spacing-2); max-width: var(--size-measure); }
+  .bullets li { display: grid; grid-template-columns: 1rem minmax(0, 1fr); gap: var(--spacing-2); }
+  .bullets li::before { content: "·"; font-weight: var(--font-weight-extrabold); color: var(--color-text-secondary); }
+  .aside { display: flex; flex-direction: column; gap: var(--spacing-4); }
+  @media (width >= 1024px) { .aside { position: sticky; top: var(--spacing-6); } }
+  .box { display: flex; flex-direction: column; gap: var(--spacing-4); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); box-shadow: var(--shadow-md); padding: var(--spacing-5); }
+  .box .btn--primary { width: 100%; }
+  .box .big { font-family: var(--font-display); font-size: var(--text-heading-3); font-weight: var(--font-weight-extrabold); line-height: var(--leading-tight); }
+  @media (width < 1024px) { .box { display: none; } }
+  .mbar { display: none; }
+  @media (width < 1024px) {
+    .mbar { position: fixed; left: 0; right: 0; bottom: var(--size-nav-bottom-height); z-index: var(--z-raised); display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-3); padding: var(--spacing-2) var(--spacing-page-gutter); background: var(--color-surface-page); border-top: var(--border-width-thin) solid var(--color-border-default); }
+    body[data-state^="fiche"] .m-main { padding-bottom: calc(var(--size-nav-bottom-height) + 4.25rem); }
+  }
+  .mbar[hidden] { display: none; }
+</style>
+</head>
+<body data-default="fil">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <option value="fil">Fil des campagnes</option>
+      <option value="vide">Fil vide</option>
+      <option value="fiche">Fiche, avant le Lot 4</option>
+      <option value="fiche-lot4">Fiche, cible du Lot 4 (candidature)</option>
+      <option value="fiche-close">Fiche, candidatures closes</option>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head"><a class="m-brand" href="#contenu">INFLUX</a><span class="role role--creator">Espace créateur</span><button class="btn btn--secondary lg-hide" type="button">English</button></header>
+    <nav class="m-nav" aria-label="Navigation principale"><ul class="m-nav__list">
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-accueils.html#createur"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link is-ancestor" href="#fil"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-profil.html#profil"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a></li>
+    </ul></nav>
+    <div class="m-state"><b>Profil : Publié</b></div>
+    <footer class="m-foot"><button class="btn btn--secondary" type="button">English</button><p class="sm c2">Connecté avec lea.dumont@example.test</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button></footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page">
+
+      <!-- ===================== FIL ===================== -->
+      <div class="page" data-when="fil vide">
+        <header class="feed-head" data-h="1">
+          <h1 class="t-page" tabindex="-1">Campagnes</h1>
+          <div class="tools" data-unless="vide"><span id="f-count" aria-live="polite">6 campagnes ouvertes</span>
+            <span class="select"><select class="control" aria-label="Trier par" id="sort"><option value="due">Date limite proche</option><option value="new">Plus récentes</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+        </header>
+        <div class="fbar" role="group" aria-label="Filtres" data-unless="vide" data-h="2">
+          <button class="pill" type="button" aria-pressed="false" data-filter="theme">Ma thématique<svg class="i"><use href="#i-chevron-down"/></svg></button>
+          <button class="pill" type="button" aria-pressed="false" data-filter="net">Mes réseaux<svg class="i"><use href="#i-chevron-down"/></svg></button>
+          <button class="pill" type="button" aria-pressed="false" data-filter="country">Pays<svg class="i"><use href="#i-chevron-down"/></svg></button>
+          <button class="pill" type="button" aria-pressed="false" data-filter="product">Produit envoyé</button>
+        </div>
+        <div class="grid" id="grid" data-unless="vide" data-h="3">
+          <article class="cc" data-due="3" data-new="4" data-product="1" data-theme="1" data-net="1"><p class="cc__brand"><span class="logo-plate logo-plate--sm" aria-hidden="true">LF</span>Les Fermes d'Ici<svg class="i ver" role="img" aria-label="Marque vérifiée"><use href="#i-badge-check"/></svg></p>
+            <a class="cc__t" href="#fiche">Paniers de saison : 3 recettes de l'hiver</a>
+            <p class="due due--soon"><svg class="i"><use href="#i-clock"/></svg>Candidatures : plus que 2 jours</p>
+            <p class="cc__meta">Instagram : 1 Reel, 2 stories · produit envoyé</p><p class="cc__meta">Belgique · Cuisine et gastronomie</p></article>
+          <article class="cc" data-due="9" data-new="2" data-product="1" data-theme="1" data-net="1"><p class="cc__brand"><span class="logo-plate logo-plate--sm" aria-hidden="true">AS</span>Atelier Sève<svg class="i ver" role="img" aria-label="Marque vérifiée"><use href="#i-badge-check"/></svg></p>
+            <a class="cc__t" href="#fiche">Routine éclat d'hiver : sérum à la vitamine C</a>
+            <p class="due"><svg class="i"><use href="#i-clock"/></svg>Candidatures : 9 jours</p>
+            <p class="cc__meta">Instagram : 2 Reels · produit envoyé</p><p class="cc__meta">France · Beauté</p></article>
+          <article class="cc" data-due="14" data-new="1" data-product="0" data-theme="1" data-net="1"><p class="cc__brand"><span class="logo-plate logo-plate--sm" aria-hidden="true">CB</span>Cuisine Brute</p>
+            <a class="cc__t" href="#fiche">Série « batch cooking du dimanche »</a>
+            <p class="due"><svg class="i"><use href="#i-clock"/></svg>Candidatures : 14 jours</p>
+            <p class="cc__meta">YouTube : 1 vidéo dédiée</p><p class="cc__meta">France, Belgique · Cuisine et gastronomie</p></article>
+          <article class="cc" data-due="21" data-new="3" data-product="1" data-theme="0" data-net="1"><p class="cc__brand"><span class="logo-plate logo-plate--sm" aria-hidden="true">MA</span>Maison Azur<svg class="i ver" role="img" aria-label="Marque vérifiée"><use href="#i-badge-check"/></svg></p>
+            <a class="cc__t" href="#fiche">Collection solaire 2027</a>
+            <p class="due"><svg class="i"><use href="#i-clock"/></svg>Candidatures : 21 jours</p>
+            <p class="cc__meta">Instagram : 1 Reel, 3 stories · produit envoyé</p><p class="cc__meta">France, Belgique · Mode, voyage</p></article>
+          <article class="cc" data-due="26" data-new="6" data-product="0" data-theme="0" data-net="0"><p class="cc__brand"><span class="logo-plate logo-plate--sm" aria-hidden="true">VU</span>Vélo Urbain<svg class="i ver" role="img" aria-label="Marque vérifiée"><use href="#i-badge-check"/></svg></p>
+            <a class="cc__t" href="#fiche">À vélo pour aller au travail, tout l'hiver</a>
+            <p class="due"><svg class="i"><use href="#i-clock"/></svg>Candidatures : 26 jours</p>
+            <p class="cc__meta">TikTok : 2 vidéos courtes</p><p class="cc__meta">Belgique · Sport et loisirs</p></article>
+          <article class="cc" data-due="34" data-new="5" data-product="1" data-theme="1" data-net="1"><p class="cc__brand"><span class="logo-plate logo-plate--sm" aria-hidden="true">TT</span>Terre &amp; Thé</p>
+            <a class="cc__t" href="#fiche">Infusions glacées : l'été au salon de thé</a>
+            <p class="due"><svg class="i"><use href="#i-clock"/></svg>Candidatures : 34 jours</p>
+            <p class="cc__meta">Instagram : 1 publication, 2 stories · produit envoyé</p><p class="cc__meta">Belgique · Cuisine et gastronomie</p></article>
+        </div>
+        <p class="sm c2" id="f-none" hidden>Aucune campagne ne répond à ces filtres. <button class="link" type="button" id="f-clear">Retirer les filtres</button></p>
+        <div class="empty-state" data-when="vide" data-h="2">
+          <svg class="i i--lg"><use href="#i-megaphone"/></svg>
+          <p class="t-card">Aucune campagne ouverte pour le moment</p>
+          <p class="sm c2">Les marques publient de nouvelles campagnes chaque semaine. En attendant, un profil complet est ce que regarde votre commercial quand il vous propose à une marque.</p>
+          <a class="btn btn--secondary" href="proto-profil.html#profil">Voir mon profil</a>
+        </div>
+      </div>
+
+      <!-- ===================== FICHE ===================== -->
+      <div class="page" data-when="fiche fiche-lot4 fiche-close">
+        <a class="go sm c2 crumb" href="#fil" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Campagnes</a>
+        <header class="rhead" data-h="1">
+          <p class="rbrand"><span class="logo-plate" aria-hidden="true">AS</span><span><b>Atelier Sève</b> <svg class="i ver" role="img" aria-label="Marque vérifiée"><use href="#i-badge-check"/></svg><br>Beauté et soins · France</span></p>
+          <h1 tabindex="-1">Routine éclat d'hiver : sérum à la vitamine C</h1>
+          <span class="badge badge--warning closed" data-when="fiche-close"><svg class="i"><use href="#i-clock"/></svg>Candidatures closes depuis le 3 décembre</span>
+        </header>
+
+        <div class="r-grid">
+          <div class="r-main" data-h="2">
+            <section aria-labelledby="h-ess">
+              <h2 id="h-ess" class="sr-only">L'essentiel</h2>
+              <dl class="ess">
+                <div><svg class="i"><use href="#i-clock"/></svg><div><dt>Candidatures</dt><dd data-unless="fiche-close">Jusqu'au 3 décembre<small>dans 9 jours</small></dd><dd data-when="fiche-close">Closes le 3 décembre</dd></div></div>
+                <div><svg class="i"><use href="#i-calendar"/></svg><div><dt>Publication</dt><dd>Du 24 décembre au 21 janvier<small>contenus livrés avant le 18 décembre</small></dd></div></div>
+                <div><svg class="i"><use href="#i-images"/></svg><div><dt>Contenus demandés</dt><dd>Instagram : 2 Reels<small>validation par la marque sous 3 jours ouvrés</small></dd></div></div>
+                <div><svg class="i"><use href="#i-hand"/></svg><div><dt>Contrepartie</dt><dd>Rémunération et produit<small>montant à négocier avec votre commercial</small></dd></div></div>
+              </dl>
+            </section>
+
+            <section aria-labelledby="h-you">
+              <h2 id="h-you">Ce qui vous concerne</h2>
+              <ul class="reasons">
+                <li><svg class="i"><use href="#i-languages"/></svg><span><b>Vous publiez dans la langue demandée</b><span class="sm c2">La campagne demande le français, l'une de vos deux langues de publication.</span></span></li>
+                <li><svg class="i"><use href="#i-map-pin"/></svg><span><b>Une audience dans le pays visé</b><span class="sm c2">La campagne vise la France ; 25 % de votre audience Instagram y est.</span></span></li>
+                <li><svg class="i"><use href="#i-badge-check"/></svg><span><b>Le réseau demandé est votre réseau principal</b><span class="sm c2">Instagram, audience vérifiée par INFLUX.</span></span></li>
+              </ul>
+              <p class="xs c2">Des faits tirés de votre profil, jamais une note.</p>
+            </section>
+
+            <section aria-labelledby="h-brief">
+              <h2 id="h-brief">Le brief</h2>
+              <p class="brief is-clamped" id="brief">Notre nouveau sérum à la vitamine C sort en décembre. Nous cherchons des créatrices et créateurs qui montrent une routine du matin réaliste, en lumière naturelle, sans retouche ni filtre beauté. Le ton est simple et chaleureux : ce que vous feriez vraiment un matin d'hiver avant de partir. Le produit doit apparaître dans les dix premières secondes, la texture doit être visible en gros plan, et vous êtes libres du décor, de la musique et du déroulé. Nous préférons une routine courte et sincère à une démonstration complète. Les deux Reels peuvent former une série (avant, après trois semaines) ou être indépendants.</p>
+              <button class="link" type="button" id="more" aria-expanded="false" aria-controls="brief" style="align-self: flex-start">Lire la suite</button>
+            </section>
+
+            <section aria-labelledby="h-exp">
+              <h2 id="h-exp">Ce qui est attendu</h2>
+              <p class="label">Messages clés</p>
+              <ul class="bullets"><li>15 % de vitamine C stabilisée, fabriqué en France.</li><li>Convient aux peaux sensibles.</li></ul>
+              <p class="label">Interdits et points de vigilance</p>
+              <ul class="bullets"><li>Aucune promesse médicale (« soigne », « guérit »).</li><li>Aucune autre marque de soin visible à l'image.</li></ul>
+            </section>
+
+            <section aria-labelledby="h-cond">
+              <h2 id="h-cond">Droits et conditions</h2>
+              <dl class="props">
+                <dt>Droits d'usage</dt><dd>Republication sur les réseaux de la marque, 6 mois, France</dd>
+                <dt>Exclusivité</dt><dd>Aucune</dd>
+                <dt>Produit</dt><dd>Envoyé, vous le conservez ; envoi à la charge de la marque</dd>
+                <dt>Langue de publication</dt><dd>Français</dd>
+              </dl>
+            </section>
+
+            <section aria-labelledby="h-brand">
+              <h2 id="h-brand">La marque</h2>
+              <p class="brief">Atelier Sève formule des soins à partir d'ingrédients végétaux cultivés en France, dans un atelier de 30 personnes près de Lyon.</p>
+              <a class="go" href="proto-marque.html" style="align-self: flex-start">Voir la page de la marque <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+            </section>
+          </div>
+
+          <aside class="aside" aria-label="Candidature" data-h="3">
+            <div class="box">
+              <div data-unless="fiche-close"><p class="big">9 jours</p><p class="sm c2">pour candidater, jusqu'au 3 décembre</p></div>
+              <div data-when="fiche-close"><p class="big">Closes</p><p class="sm c2">depuis le 3 décembre</p></div>
+              <!-- Avant le Lot 4 : pas de bouton (option b) -->
+              <div class="stack g3" data-when="fiche"><p class="sm">La candidature ouvrira avec la messagerie. D'ici là, votre commercial INFLUX peut vous proposer à cette marque : un profil complet l'y aide.</p><a class="btn btn--secondary" href="proto-profil.html#profil">Voir mon profil</a></div>
+              <!-- Cible du Lot 4 -->
+              <div class="stack g3" data-when="fiche-lot4"><button class="btn btn--primary" type="button" id="apply">Candidater</button><p class="xs c2">Votre commercial transmet votre candidature à la marque. Votre identité reste masquée jusqu'à l'acceptation des deux parties.</p></div>
+              <div class="stack g3" data-when="fiche-close"><p class="sm">Cette campagne n'accepte plus de candidature.</p><a class="btn btn--secondary" href="#fil">Voir les campagnes ouvertes</a></div>
+              <p class="xs c2" style="border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-3)">Montant à négocier avec votre commercial INFLUX.</p>
+            </div>
+          </aside>
+        </div>
+        <div class="mbar" data-when="fiche"><span><b>9 jours</b><span class="xs c2"> pour candidater</span></span><a class="btn btn--secondary" href="proto-profil.html#profil">Voir mon profil</a></div>
+        <div class="mbar" data-when="fiche-lot4"><span><b>9 jours</b><span class="xs c2"> pour candidater</span></span><button class="btn btn--primary" type="button">Candidater</button></div>
+        <div class="mbar" data-when="fiche-close"><span><b>Closes</b></span><a class="btn btn--secondary" href="#fil">Campagnes ouvertes</a></div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  var cards = $$(".cc"), grid = $("#grid");
+  function apply() {
+    var act = $$(".pill[aria-pressed='true']").map(function (p) { return p.getAttribute("data-filter"); });
+    var n = 0;
+    cards.forEach(function (c) {
+      var ok = act.every(function (f) { return f === "country" ? true : c.getAttribute("data-" + f) === "1"; });
+      c.hidden = !ok; if (ok) n++;
+    });
+    var key = $("#sort").value === "due" ? "data-due" : "data-new";
+    cards.slice().sort(function (a, b) { return +a.getAttribute(key) - +b.getAttribute(key); }).forEach(function (c) { grid.appendChild(c); });
+    $("#f-count").textContent = n + (n > 1 ? " campagnes ouvertes" : " campagne ouverte");
+    $("#f-none").hidden = n > 0;
+  }
+  var LABEL = { theme: "Ma thématique : Cuisine et gastronomie, Bien-être", net: "Mes réseaux : Instagram, YouTube", country: "Pays : France, Belgique", product: "Produit envoyé" };
+  $$(".pill").forEach(function (p) {
+    p.addEventListener("click", function () {
+      var on = p.getAttribute("aria-pressed") !== "true"; p.setAttribute("aria-pressed", String(on));
+      var f = p.getAttribute("data-filter"), chev = p.querySelector("svg");
+      p.firstChild.textContent = on ? LABEL[f] : { theme: "Ma thématique", net: "Mes réseaux", country: "Pays", product: "Produit envoyé" }[f];
+      if (chev) p.appendChild(chev);
+      apply(); P.announce($("#f-count").textContent + ".");
+    });
+  });
+  $("#sort").addEventListener("change", function () { apply(); P.announce("Tri : " + this.options[this.selectedIndex].text + "."); });
+  $("#f-clear").addEventListener("click", function () { $$(".pill[aria-pressed='true']").forEach(function (p) { p.click(); }); });
+  $("#more").addEventListener("click", function () {
+    var b = $("#brief"), open = this.getAttribute("aria-expanded") === "true";
+    b.classList.toggle("is-clamped", open); this.setAttribute("aria-expanded", String(!open)); this.textContent = open ? "Lire la suite" : "Réduire";
+  });
+  $("#apply").addEventListener("click", function () { P.announce("Cible du Lot 4 : la candidature sera conçue avec la messagerie (simulé)."); });
+  document.addEventListener("proto:state", function (e) {
+    window.scrollTo(0, 0);
+  });
+  apply();
+});
+</script>
+</body>
+</html>

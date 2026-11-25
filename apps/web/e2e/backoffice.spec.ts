@@ -36,6 +36,7 @@ import {
   retireInternals,
   runTag,
   seededAddress,
+  seedColleague,
   seedInternal,
   seedSignup,
 } from "./support/backoffice";
@@ -48,6 +49,11 @@ import {
   test,
 } from "./support/journey";
 import { focusedElement } from "./support/focus";
+import {
+  reviewEntryFacts,
+  seedReviewEntry,
+  withdrawReviewEntries,
+} from "./support/review-queue";
 import {
   brandGreen,
   computed,
@@ -74,15 +80,29 @@ import {
   visibleShadows,
 } from "./support/rendering";
 import { BACKOFFICE_ORIGIN } from "./support/servers";
+import { withSql } from "./support/verification-cycle";
 
 const m = messages;
 
 test.describe.configure({ mode: "serial" });
 test.use({ viewport: { width: 1440, height: 900 } });
 
+/** L3G-E2: the thresholds of the critical mass before the journey that changes them, put back afterwards. */
+let originalThresholds: unknown = null;
+
 test.afterAll(async () => {
+  if (originalThresholds !== null) {
+    const value = originalThresholds;
+    await withSql(
+      (sql) => sql`
+        update search.search_settings
+           set value = ${sql.json(value as never)}
+         where key = 'critical_mass_thresholds'`,
+    );
+  }
   await restoreAdmins();
   await removeQueueLines();
+  await withdrawReviewEntries();
   await retireInternals();
 });
 
@@ -411,6 +431,7 @@ test("CA63: an agent sees no Apollo setting, is refused on its address, and the 
   await expect(nav.getByRole("link", { name: m.nav.accounts })).toBeVisible();
   for (const adminOnly of [
     m.nav.apollo,
+    m.nav.registrySources,
     m.nav.dualControl,
     m.nav.internalAccounts,
   ]) {
@@ -887,7 +908,9 @@ test("TD6.1: one main navigation, no admin entry for an agent, the skip link fir
   const nav = mainNavigation(page);
   await expect(nav.getByRole("link")).toHaveText([
     m.nav.dashboard,
+    m.nav.queues,
     m.nav.accounts,
+    m.nav.creatorSearch,
   ]);
   await expect(nav.getByRole("link", { name: m.nav.admin })).toHaveCount(0);
   await expect(nav.locator("[aria-current=page]")).toHaveText(m.nav.dashboard);
@@ -908,10 +931,85 @@ test("TD6.1: one main navigation, no admin entry for an agent, the skip link fir
   await expect(nav.locator("[aria-current=page]")).toHaveText(m.nav.signups);
   await expect(nav.getByRole("link")).toHaveText([
     m.nav.dashboard,
+    m.nav.queues,
     m.nav.accounts,
     m.nav.signups,
     m.nav.memberInvitations,
+    m.nav.creatorSearch,
   ]);
+});
+
+test("L2C-16: an admin reaches the brand profile queue through Files, the first of its screens, as an agent does", async ({
+  page,
+}) => {
+  await seedInternal(page, "admin", "Alix");
+  await page.goto(bo("/accueil"));
+  const nav = mainNavigation(page);
+  await nav.getByRole("link", { name: m.nav.queues, exact: true }).click();
+  await expect(page).toHaveURL(bo("/files/profils-marque"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    m.queue.profiles_advertiser,
+  );
+  // Files opens its first screen and shows its three as sub-entries, that one current (D74, L2E-21)
+  await expect(nav.locator("[aria-current=page]")).toHaveText(
+    m.nav.brandReviewQueue,
+  );
+  await expect(
+    nav.getByRole("link", { name: m.nav.verificationCreators }),
+  ).toBeVisible();
+  await expect(
+    nav.getByRole("link", { name: m.nav.verificationBrands }),
+  ).toBeVisible();
+  // the list answers an admin: a table or the empty queue, never an error
+  await expect(
+    page
+      .getByRole("table", { name: m.queueList.tableLabel })
+      .or(page.getByText(/^Aucune entrée en attente/)),
+  ).toBeVisible();
+  await expect(page.getByText(m.queueList.error)).toHaveCount(0);
+});
+
+test("L2C-17: an admin lifts a colleague's claim with a typed reason and takes the entry; the holder is told at the next opening", async ({
+  page,
+}) => {
+  const admin = await seedInternal(page, "admin", "Alix");
+  const owner = await seedColleague("agent", "Noa");
+  const holder = await seedColleague("agent", "Marie");
+  const held = await seedReviewEntry({
+    ownerAgentId: owner.accountId,
+    name: `Maison ${runTag("lift")}`,
+    dueInMinutes: 200,
+    heldByAgentId: holder.accountId,
+  });
+  const r = m.queueReview;
+  await page.goto(bo(`/files/profils-marque/${held.entryId}`));
+  await expect(page.getByText(/^En cours — Marie, depuis /)).toBeVisible();
+  await page.getByRole("button", { name: r.force.button }).click();
+  // a typed reason is asked for; the lifting is the administrator's, then the entry is his to decide
+  await page.getByRole("button", { name: r.force.confirm }).click();
+  await expect(page.getByText(r.force.required)).toBeVisible();
+  await page
+    .getByRole("radio", { name: r.force.reasons.holder_absent })
+    .check();
+  await page.getByRole("button", { name: r.force.confirm }).click();
+  await expect(page.getByText(r.notices.lifted_by_you("Marie"))).toBeVisible();
+  await expect(
+    page.getByText(/^Vous avez pris cette entrée en charge à /),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: new RegExp(`^${r.decision.publish}`) }),
+  ).toBeVisible();
+  expect((await reviewEntryFacts(held.entryId)).claimedBy).toBe(
+    admin.accountId,
+  );
+  const lines = await registerLinesBy(
+    "queue.claim_forced_release",
+    admin.accountId,
+  );
+  expect(lines.at(-1)?.payload).toMatchObject({
+    reason_code: "holder_absent",
+    holder_account_id: holder.accountId,
+  });
 });
 
 test("TD6.2: the rail from lg, the compact list from md, the workstation screen below md or below 500 px high", async ({
@@ -932,9 +1030,11 @@ test("TD6.2: the rail from lg, the compact list from md, the workstation screen 
     await page.setViewportSize({ width, height: 900 });
     await expect(nav.getByRole("link")).toHaveText([
       m.nav.dashboard,
+      m.nav.queues,
       m.nav.accounts,
       m.nav.signups,
       m.nav.memberInvitations,
+      m.nav.creatorSearch,
       m.nav.admin,
     ]);
     const box = await nav.boundingBox();
@@ -949,7 +1049,7 @@ test("TD6.2: the rail from lg, the compact list from md, the workstation screen 
     await expect(mainNavigation(page)).toHaveCount(1);
     // The entries and the sub-entries of Comptes, every one in the window (its lines: TN7).
     const links = nav.getByRole("link");
-    await expect(links).toHaveCount(5);
+    await expect(links).toHaveCount(7);
     for (const link of await links.all()) {
       await expect(link).toBeInViewport();
     }
@@ -1037,6 +1137,8 @@ test("TN7: the screens of the active entry as sub-entries of the rail, a second 
     m.nav.dualControl,
     m.nav.internalAccounts,
     m.nav.apollo,
+    m.nav.searchSettings,
+    m.nav.registrySources,
     m.nav.health,
   ]);
   await expect(nav.getByRole("link", { name: m.nav.signups })).toHaveCount(0);
@@ -1803,4 +1905,93 @@ test("TK6.2: no row marked at rest, nor the neighbour of the hovered one", async
     await rowIndicators(page, firstCell(1)),
     "the neighbour of the hovered row",
   ).toEqual([]);
+});
+
+test("L3G-E2: an administrator asks to change the thresholds of the critical mass and another administrator confirms it on the dual control screen (D84, L3ES-2; 03 PD2)", async ({
+  page,
+}) => {
+  const searchSettings = m.searchSettings;
+  const number = new Intl.NumberFormat("fr-FR");
+  originalThresholds = await withSql(async (sql) => {
+    const [row] = await sql<{ value: unknown }[]>`
+      select value from search.search_settings where key = 'critical_mass_thresholds'`;
+    return row?.value ?? null;
+  });
+  const current = originalThresholds as {
+    publishedProfiles: number;
+    perTopic: number;
+  };
+  const wanted = String(current.publishedProfiles + 1);
+
+  // The search settings change under a peer's control or not at all (10 RG2, D38 Q2): the peer who can confirm is
+  // seeded here, never an admin another journey happens to have left active (a request without one is refused).
+  await seedColleague("admin", "Noa");
+  await seedInternal(page, "admin", "Ilan");
+  await page.goto(bo("/reglages/recherche"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    searchSettings.title,
+  );
+  // the opening is read, never decided here by a counter (CA60), and the register note is honest
+  await expect(page.locator("[data-search-opening]")).toBeVisible();
+  await expect(page.locator("main")).toContainText(searchSettings.historyNote);
+
+  const form = page.getByRole("form", {
+    name: searchSettings.mass.thresholdsTitle,
+  });
+  await expect(
+    form.getByLabel(searchSettings.mass.publishedProfiles),
+  ).toHaveValue(String(current.publishedProfiles));
+  // the same value asks nothing; a reason is demanded
+  await form.getByRole("button", { name: searchSettings.submit }).click();
+  await expect(form).toContainText(searchSettings.problems.unchanged);
+  await form.getByLabel(searchSettings.mass.publishedProfiles).fill(wanted);
+  await form.getByRole("button", { name: searchSettings.submit }).click();
+  await expect(form).toContainText(searchSettings.problems.reason);
+  await form
+    .getByLabel(searchSettings.reasonLabel)
+    .selectOption({ label: searchSettings.reasons.founder_decision });
+  await form.getByRole("button", { name: searchSettings.submit }).click();
+
+  // The request waits for a peer: the proposed value is said, the requester has no confirmation to give.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    m.dualControl.requestTitle,
+  );
+  await expect(
+    page.getByRole("heading", {
+      level: 2,
+      name: m.dualControl.actions["search.change_setting"],
+    }),
+  ).toBeVisible();
+  await expect(page.getByText(m.dualControl.awaitPeer)).toBeVisible();
+  const requestUrl = page.url();
+
+  // Another administrator (the session of the page is replaced by his) reads the same recap, the new value in
+  // words, and confirms it.
+  await seedInternal(page, "admin", "Maé");
+  await page.goto(requestUrl);
+  await expect(
+    page.getByText(
+      searchSettings.words.thresholds(
+        number.format(current.publishedProfiles + 1),
+        number.format(current.perTopic),
+      ),
+    ),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("listitem").filter({
+      hasText: m.dualControl.consequences.setting_changed,
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: m.dualControl.confirm }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: m.dualControl.done(false) }),
+  ).toBeVisible();
+
+  // The base holds the new thresholds.
+  const stored = await withSql(async (sql) => {
+    const [row] = await sql<{ value: { publishedProfiles: number } }[]>`
+      select value from search.search_settings where key = 'critical_mass_thresholds'`;
+    return row?.value.publishedProfiles;
+  });
+  expect(stored).toBe(current.publishedProfiles + 1);
 });

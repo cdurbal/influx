@@ -193,6 +193,10 @@ async function meOf(
     countryCode: countryCodeSchema.parse(profile.countryCode),
     declaredStatus: declaredStatusSchema.parse(profile.declaredStatus),
     companyName: profile.companyName,
+    // a published brand's new name waits for review: the validated one stays above (06 RG9)
+    ...(profile.companyNamePending === null
+      ? {}
+      : { companyNamePending: profile.companyNamePending }),
     termsToAccept: termsToAcceptOf(context.termsToAccept),
   };
 }
@@ -278,6 +282,10 @@ export function registerAccountRoutes(
           try {
             await updateOwnAccount(tx, body);
           } catch (error) {
+            if (sqlStateOf(error) === "55000") {
+              // the guard of 0209: the name of a suspended brand is frozen (file.md A4)
+              throw new ApiError("conflict");
+            }
             const issue = updateRefusalOf(error);
             if (issue === null) {
               throw error;

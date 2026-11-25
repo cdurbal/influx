@@ -88,6 +88,8 @@ type LineSpec = {
   /** Seconds from now: negative = available for that long already, positive = in the future. */
   availableIn?: number;
   emailCode?: string;
+  /** The event type of the line: lead.created by default. */
+  eventType?: string;
   /** A line already taken: by which worker, how many seconds ago. */
   processing?: { by: string; secondsAgo: number };
   attempts?: number;
@@ -112,7 +114,7 @@ async function insertLine(spec: LineSpec = {}): Promise<string> {
     `insert into leads.outbox_events
        (event_id, event_type, destination, subject_key, priority, payload, idempotency_key,
         available_at, status, locked_by, locked_at, attempts)
-     values ($1, 'lead.created', $2::leads.outbox_destination, $3, $4::smallint, $5::jsonb, $6,
+     values ($1, $12, $2::leads.outbox_destination, $3, $4::smallint, $5::jsonb, $6,
              now() + make_interval(secs => $7::double precision), $8::leads.outbox_status, $9,
              case when $9::text is null then null
                   else now() - make_interval(secs => $10::double precision) end,
@@ -130,6 +132,7 @@ async function insertLine(spec: LineSpec = {}): Promise<string> {
       spec.processing?.by ?? null,
       spec.processing?.secondsAgo ?? 0,
       spec.attempts ?? 0,
+      spec.eventType ?? "lead.created",
     ] as postgres.ParameterOrJSON<never>[],
   );
   if (row === undefined) {
@@ -1023,6 +1026,120 @@ describe("leads.complete_outbox_attempt(): the four outcomes", () => {
     expect(await contactStates(account)).toEqual([]);
   });
 
+  it("succeeded (live) on a campaign decision: journaled under campaign.decision, the code of the catalogue, never its variant (0311, arbitrage A2)", async () => {
+    const account = await createAccount("advertiser");
+    const id = await insertLine({
+      subject: `account:${account}`,
+      destination: "brevo_transactional",
+      eventType: "campaign.decision",
+      emailCode: "published",
+    });
+    const messageId = `<tm1-${randomUUID()}@smtp-relay.test>`;
+    const result = await withOthersLocked(() =>
+      committedAsWorker(async (tx) => {
+        await claim(tx);
+        await begin(tx, id);
+        return complete(tx, id, {
+          status: "succeeded",
+          providerMessageId: messageId,
+          locale: "fr",
+          templateVersion: 1,
+        });
+      }),
+    );
+    expect(result).toEqual({
+      written_status: "succeeded",
+      journal_inserted: true,
+      account_id: account,
+    });
+    expect(await lineRow(id)).toMatchObject({
+      status: "succeeded",
+      locked: false,
+      completed: true,
+      provider_message_id: messageId,
+      last_error_code: null,
+    });
+    expect(await journalOf(id)).toEqual([
+      {
+        email_code: "campaign.decision",
+        priority: "p1",
+        account_id: account,
+        recipient_email: null,
+        locale: "fr",
+        template_ref: "campaign.decision",
+        template_version: 1,
+        status: "sent",
+        sent: true,
+        provider_message_id: messageId,
+      },
+    ]);
+  });
+
+  it("succeeded (live) on a profile decision: still journaled under the code its line names (0311)", async () => {
+    const account = await createAccount("advertiser");
+    const id = await insertLine({
+      subject: `account:${account}`,
+      destination: "brevo_transactional",
+      eventType: "profile.decision",
+      emailCode: "profile.decision",
+    });
+    const messageId = `<tm1-${randomUUID()}@smtp-relay.test>`;
+    const result = await withOthersLocked(() =>
+      committedAsWorker(async (tx) => {
+        await claim(tx);
+        await begin(tx, id);
+        return complete(tx, id, {
+          status: "succeeded",
+          providerMessageId: messageId,
+          locale: "en",
+          templateVersion: 2,
+        });
+      }),
+    );
+    expect(result).toEqual({
+      written_status: "succeeded",
+      journal_inserted: true,
+      account_id: account,
+    });
+    expect(await journalOf(id)).toEqual([
+      {
+        email_code: "profile.decision",
+        priority: "p1",
+        account_id: account,
+        recipient_email: null,
+        locale: "en",
+        template_ref: "profile.decision",
+        template_version: 2,
+        status: "sent",
+        sent: true,
+        provider_message_id: messageId,
+      },
+    ]);
+  });
+
+  it("refuses the live success of a campaign decision whose line names no e-mail code (22023, 0311)", async () => {
+    const account = await createAccount("advertiser");
+    const id = await insertLine({
+      subject: `account:${account}`,
+      destination: "brevo_transactional",
+      eventType: "campaign.decision",
+    });
+    const result = await withOthersLocked(() =>
+      asWorker(async (tx) => {
+        await claim(tx);
+        await begin(tx, id);
+        return tryComplete(tx, id, {
+          status: "succeeded",
+          providerMessageId: `<tm1-${randomUUID()}@smtp-relay.test>`,
+          locale: "fr",
+          templateVersion: 1,
+        });
+      }),
+    );
+    expect(result).toEqual({ outcome: "error", code: INVALID_PARAMETER });
+    expect(await journalOf(id)).toEqual([]);
+  });
+
   it("skipped: a normal case with its reason, written in the contact state, never a failure (RG36, RG80)", async () => {
     const account = await createAccount("creator");
     const id = await insertLine({ subject: `account:${account}` });
@@ -1690,9 +1807,28 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       // 0116 (J7 decision 2): E-3 processing of a raw Brevo line, E-4 reconciliation finding
       "leads.process_brevo_inbound_event()",
       "leads.read_apollo_subject(bigint,text)",
+      // 0212 (L2C commit 10): the brand attributes of a Brevo or Apollo contact
+      "leads.read_brand_profile_attributes(bigint,text)",
+      // 0236 (L2F commit 12): the facts of an e-mail of the life of the badge
+      "leads.read_brevo_badge_email(bigint,text)",
+      // 0310 (L3C commit 05): the facts of a campaign decision e-mail
+      "leads.read_brevo_campaign_decision(bigint,text)",
+      // 0245 (L2G commit 05): the decision of a creator profile e-mail
+      "leads.read_brevo_creator_profile_decision(bigint,text)",
       // 0137 (J8 commit 8): Brevo operation 2, the subject of an account.deleted line
       "leads.read_brevo_erasure_subject(bigint,text)",
+      // 0245 (L2G commit 05): the decision of a visual e-mail
+      "leads.read_brevo_portfolio_decision(bigint,text)",
+      // 0211 (L2C commit 09a): the decision of a brand decision e-mail
+      "leads.read_brevo_profile_decision(bigint,text)",
       "leads.read_brevo_subject(bigint,text)",
+      // 0227 (L2E commit 16): the facts of a verification e-mail, the badge level of a contact
+      "leads.read_brevo_verification_email(bigint,text)",
+      // 0310 (L3C commit 05): the campaign attributes of a Brevo or Apollo contact (RG104, RG105)
+      "leads.read_campaign_attributes(bigint,text)",
+      // 0245 (L2G commit 05): the creator attributes of a Brevo contact (RG107)
+      "leads.read_creator_profile_attributes(bigint,text)",
+      "leads.read_verified_badge(bigint,text)",
       "leads.record_brevo_reconciliation_event(text,timestamp with time zone,text,text,uuid,bigint,bigint,text)",
       "leads.recover_stale_outbox_lines(integer)",
       // 0147 (J9 commit 8, D60): the admin recipients of the technical alerts, the round of the scope worker
@@ -1700,6 +1836,15 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "ops.begin_alert_round(text)",
       // 0117 (J7 decision 3): E-4 maintenance.run_periodic
       "ops.claim_periodic_run(ops.periodic_task,text)",
+      // 0205 (L2B commit 09): E-4, the hourly purge of Storage
+      "ops.claim_storage_purges(uuid,smallint,integer)",
+      // 0309 (L3C commit 04): E-4, the automatic closure of the ended campaigns (09 RG9)
+      "ops.close_ended_campaigns(uuid,smallint)",
+      "ops.complete_storage_purges(uuid,smallint,uuid[])",
+      // 0331 (L3G commit 07): E-4, the daily counters of critical mass (10 RG2, D38)
+      "ops.compute_supply_counters(uuid,smallint)",
+      // 0223 (L2E commit 07): E-4, the expiry of the draft verification requests
+      "ops.expire_verification_requests(uuid,smallint)",
       "ops.filter_auth_orphans(uuid,smallint,uuid[])",
       "ops.finish_periodic_run(uuid,smallint,ops.periodic_run_outcome,jsonb)",
       // 0125 (C5.b, J7 commit 7 review): the realignment of the hourly GoTrue pass
@@ -1707,12 +1852,16 @@ describe("E-3: the four functions belong to influx_leads_definer and run for inf
       "ops.purge_brevo_inbound_events(uuid,smallint,integer)",
       // 0137 (J8 commit 8): E-4, the purge of the exports
       "ops.purge_data_exports(uuid,smallint,integer)",
+      "ops.purge_storage_usage(uuid,smallint)",
+      // 0230 (L2F commit 05): E-4, the daily cycle of the badges and the retention of their findings
+      "ops.purge_verification_findings(uuid,smallint)",
       // 0147 (J9 commit 8, D60): the samples of the base and of the probe, the heartbeat, the
       // retention of ops, the states and the snapshot of the technical alerts
       "ops.record_database_sample()",
       "ops.record_probe_results(text,jsonb)",
       "ops.record_retention_purge(uuid,smallint,text,integer)",
       "ops.record_worker_heartbeat(text,text,text,timestamp with time zone,boolean)",
+      "ops.run_badge_lifecycle(uuid,smallint)",
       "ops.run_ops_retention(uuid,smallint)",
       "ops.save_alert_states(text,jsonb)",
       "ops.technical_alert_snapshot(timestamp with time zone)",

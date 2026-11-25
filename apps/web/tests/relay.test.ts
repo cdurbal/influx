@@ -482,20 +482,80 @@ describe("PP-7: request identifier", () => {
 });
 
 describe("PP-9: body size and delay", () => {
-  it("forwards a body of exactly 1 MiB", async () => {
+  // D80: 2 MiB, the raw bytes of a logo (jalons/l2b/stockage.md §3).
+  it("forwards a body of exactly 2 MiB", async () => {
     await call("/api/v1/upload", {
       method: "POST",
-      body: "x".repeat(1_048_576),
+      body: "x".repeat(2_097_152),
     });
-    expect(received[0]?.body.byteLength).toBe(1_048_576);
+    expect(received[0]?.body.byteLength).toBe(2_097_152);
   });
 
-  it("refuses a body over 1 MiB with 413, without calling apps/api", async () => {
+  it("refuses a body over 2 MiB with 413, without calling apps/api", async () => {
     const response = await call("/api/v1/upload", {
       method: "POST",
-      body: "x".repeat(1_048_577),
+      body: "x".repeat(2_097_153),
     });
     await expectRefusal(response, 413, "payload_too_large");
+    expect(received).toEqual([]);
+  });
+
+  // D82 (1): 8 MiB on the deposit of a piece of verification, and there only.
+  const evidencePath =
+    "/api/v1/me/verification/requests/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10/evidence";
+
+  it("forwards 8 MiB exactly on the deposit of a piece, refuses one byte more", async () => {
+    await call(evidencePath, {
+      method: "PUT",
+      body: "x".repeat(8_388_608),
+    });
+    expect(received[0]?.body.byteLength).toBe(8_388_608);
+    const over = await call(evidencePath, {
+      method: "PUT",
+      body: "x".repeat(8_388_609),
+    });
+    await expectRefusal(over, 413, "payload_too_large");
+    expect(received).toHaveLength(1);
+  });
+
+  // D82 (7): 8 MiB on the deposit of a visual of the portfolio too, its query left out of the path.
+  const portfolioPath = "/api/v1/me/creator-profile/portfolio";
+
+  it("forwards 8 MiB exactly on the deposit of a visual, a replacement included, refuses one byte more", async () => {
+    for (const path of [
+      portfolioPath,
+      `${portfolioPath}?replaces=0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10`,
+    ]) {
+      await call(path, { method: "PUT", body: "x".repeat(8_388_608) });
+    }
+    expect(received.map((request) => request.body.byteLength)).toEqual([
+      8_388_608, 8_388_608,
+    ]);
+    const over = await call(portfolioPath, {
+      method: "PUT",
+      body: "x".repeat(8_388_609),
+    });
+    await expectRefusal(over, 413, "payload_too_large");
+    expect(received).toHaveLength(2);
+  });
+
+  it("keeps 2 MiB for any other method or path, an uppercase identifier included", async () => {
+    for (const [method, path] of [
+      ["POST", evidencePath],
+      ["PATCH", evidencePath],
+      ["PUT", `${evidencePath}/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10`],
+      ["PUT", "/api/v1/me/brand-profile/logo"],
+      ["PUT", evidencePath.toUpperCase().replace("/API/V1/", "/api/v1/")],
+      ["POST", portfolioPath],
+      ["PUT", `${portfolioPath}/order`],
+      ["PATCH", `${portfolioPath}/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10`],
+    ] as const) {
+      const response = await call(path, {
+        method,
+        body: "x".repeat(2_097_153),
+      });
+      await expectRefusal(response, 413, "payload_too_large");
+    }
     expect(received).toEqual([]);
   });
 
@@ -737,8 +797,8 @@ describe("GET /health of web (EC-22)", () => {
 
   it("J9S-6: a flood spends one call, and a failure is kept for the window like a success", async () => {
     handler = (_request, response) => {
-      response.writeHead(429, { "content-type": "application/json" });
-      response.end(JSON.stringify({ error: { code: "rate_limited" } }));
+      response.writeHead(500, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { code: "internal" } }));
     };
     const answers = await Promise.all(
       Array.from({ length: 25 }, () => probe({ "x-real-ip": "203.0.113.9" })),
@@ -750,6 +810,23 @@ describe("GET /health of web (EC-22)", () => {
     expect((await probe()).status).toBe(503);
     expect(received).toHaveLength(1);
     vi.setSystemTime(clock + 5_100);
+    expect((await probe()).status).toBe(200);
+    expect(received).toHaveLength(2);
+  });
+
+  it("PLS-3: a flood answered 429 spends one call, but the 429 is not kept: the next probe goes upstream", async () => {
+    handler = (_request, response) => {
+      response.writeHead(429, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: { code: "rate_limited" } }));
+    };
+    const answers = await Promise.all(
+      Array.from({ length: 25 }, () => probe({ "x-real-ip": "203.0.113.9" })),
+    );
+    expect(answers.map((answer) => answer.status)).toEqual(
+      Array.from({ length: 25 }, () => 503),
+    );
+    expect(received).toHaveLength(1);
+    handler = answerOk;
     expect((await probe()).status).toBe(200);
     expect(received).toHaveLength(2);
   });

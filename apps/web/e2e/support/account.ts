@@ -27,6 +27,8 @@ export async function seedMember(
     acceptTerms: boolean;
     /** The browser summaries of the sessions; the first one is this browser's. */
     sessions: readonly string[];
+    /** A creator's storefront, as the sign-up writes it (0216); false: an account granted the role later. */
+    storefront?: boolean;
   },
 ): Promise<SeededMember> {
   const accountId = randomUUID();
@@ -49,6 +51,11 @@ export async function seedMember(
         await tx`
           insert into profiles.advertiser_profiles (account_id, legal_name)
           values (${accountId}, 'Maison E2E')`;
+      } else if (options.storefront ?? true) {
+        // as identity.provision_account() does at sign-up (0216): the storefront, a fresh alias
+        await tx`
+          insert into profiles.creator_public_profiles (account_id, alias, residence_country_code)
+          values (${accountId}, profiles.new_creator_alias(), 'FR')`;
       }
       // 05 RG33: one checkbox, two purposes, given at sign-up the day before
       await tx`

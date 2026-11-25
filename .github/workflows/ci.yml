@@ -3,15 +3,26 @@
 # - `check`: security review markers, migration names, spec index and format, always; then types,
 #   lint, the tests without database, the build and its artefact checks;
 # - `db`: the local Supabase stack, rebuilt from the migrations, and the database tests (never
-#   skipped when code changed);
+#   skipped when code changed), in two shards on a stack of their own each (L3A-04, L2GT-1:
+#   apps/api/db-tests/shards.ts says which file runs where);
+# - `db-merge`: no stack; every database test file ran in exactly one shard and the floors of
+#   executed cases are met on the union of the two reports (apps/api/scripts/check-db-shards.ts);
 # - `e2e`: the J5 browser journeys (Playwright, Chromium headless shell only, 5-minute cap on the
-#   step) against their own local stack, started in the background while both fronts build;
+#   step) in three shards (L2C-14, docs/mvp/jalons/l2c/e2e.md; L2D-01), each against its own local stack,
+#   started in the background while both fronts build;
+# - `e2e-merge`: no stack; TK3.1 on the surveys of the shards, then the reports of the three runs
+#   merged and the floors of executed cases checked on the whole (L2C-14a);
 # - `relay-node-24`: the relay and the origin check on Node 24, the production runtime (C-2).
 # A documentation-only push to `main` runs `check`'s cheap steps alone; `production` and pull
 # requests always run everything.
 # Plan: docs/mvp/21-plan-de-developpement.md §4, J0, J2 point 7, J3-F commit 4 and J5 commit 6.
 # Duration budget: 10 minutes for the whole run, journeys included (`18` A-4); no cache, on
-# purpose (no cache-poisoning surface): the browser and the images are downloaded at each run.
+# purpose (no cache-poisoning surface): the browser (5 to 7 s) and the images are downloaded at
+# each run. L2D-fix-1 (L2DT-2): the slow part of the browser step was never that download but
+# `--with-deps`, nine font packages from the Ubuntu mirror (7 to 9 minutes at 45 kB/s in runs
+# 42228919569 and 42243018278, 2 s in a fast one); the runner image already holds every library
+# of the headless shell, and the fonts of the journeys are self-hosted. So no `--with-deps`, no
+# cache to fill.
 name: CI
 
 # D71: `production` runs the same checks, and only there do the security review markers block.
@@ -169,12 +180,21 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: pnpm -r run test:artifacts
 
+  # L3A-04 (L2GT-1): two shards (`fail-fast: false`: a red shard never hides the other). Each runs
+  # the files that apps/api/db-tests/shards.ts assigns to it, balanced by duration, on a stack of
+  # its own: a shard must stay under 7 min 30 s, the stack start-up included (L3A invariant 3).
+  # The floors of executed cases describe the whole project: a shard skips them, `db-merge` checks
+  # them on the union of the reports. Locally, `pnpm --filter @influx/api test:db` is unchanged.
   db:
-    name: Database tests
+    name: Database tests (${{ matrix.shard }}/2)
     needs: [changes]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     # Raised rate limits of the LOCAL Supabase Auth, read by `env()` in supabase/config.toml (EC-38
     # point 4): never a value that `supabase config push` would carry to a hosted project. Every
     # Supabase CLI command refuses to read the config when they are unset (EC-51). Set on the jobs
@@ -203,8 +223,8 @@ jobs:
 
       # Local Supabase stack (CLI pinned at the root, 21 J1-A): the database, plus Supabase Auth
       # behind its gateway and Mailpit for the findings of J3 commit 7 (21 §4, J3-A: GoTrue is
-      # never assumed, it is observed; Mailpit is where a native e-mail would land). The other
-      # containers are not started (time budget).
+      # never assumed, it is observed; Mailpit is where a native e-mail would land) and, since
+      # L2B-03, Storage. The other containers are not started (time budget).
       # The workstation runs the GoTrue version of staging, which the CLI reads from
       # supabase/.temp/gotrue-version since the J4 link (ignored by Git). The runner is not linked:
       # the same version is pinned here, or the CLI default GoTrue answers differently (EC-57).
@@ -217,7 +237,12 @@ jobs:
       - name: Start the local Supabase stack (database, Auth, gateway, Mailpit)
         run: >-
           pnpm exec supabase start
-          -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          -x realtime,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+
+      # L2B-03 (D80): Storage is part of the stack, for the brand-logo bucket and the purge task.
+      # The CLI already waits for its health check; this proves the gateway routes to it.
+      - name: Check that Storage answers through the gateway
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-connrefused http://127.0.0.1:54321/storage/v1/status
 
       # The base is rebuilt from zero in one command (21 J2, "Terminé quand").
       - name: Rebuild the database from the migrations
@@ -227,15 +252,71 @@ jobs:
       - name: Set the test passwords of the connection roles
         run: pnpm db:role-passwords
 
-      - name: Database tests
-        run: pnpm --filter @influx/api test:db
+      - name: Database tests (shard ${{ matrix.shard }}/2)
+        run: pnpm --filter @influx/api test:db -- --shard=${{ matrix.shard }}
 
+      # The JSON report of the shard, read by `db-merge`.
+      - name: Keep the report of the shard
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: db-report-${{ matrix.shard }}
+          path: apps/api/test-results/db-report-shard-${{ matrix.shard }}.json
+          if-no-files-found: error
+          retention-days: 1
+
+  # L3A-04: no stack, no database. The union of the two shard reports against the declaration of
+  # db-tests/shards.ts (a file in no shard, in two, missing from its report) and against the floors
+  # of executed cases (db-tests/case-floors.ts). It replaces `db` in the `needs` of the migrations.
+  db-merge:
+    name: Database tests, merged
+    needs: [db]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download the reports of the shards
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: db-report-*
+          merge-multiple: true
+          path: apps/api/test-results/shards
+
+      - name: Every file ran in one shard, and the floors of executed cases are met
+        run: pnpm --filter @influx/api test:db:check-shards
+
+  # L2C-14, L2D-01: three shards (`--project=chromium` is needed: without it, the `chromium` project, which the
+  # TK3.1 project depends on, is never split and every case goes to shard 1). The 5-minute cap of the
+  # Playwright step holds for each shard. Playwright cuts the list of cases in consecutive runs of
+  # files: with two shards, 1/2 took backoffice.spec.ts (serial, 55 cases) with six other files and
+  # ran 396 to 424 s of the job against 300 s for 2/2 (L2CT-5); with three, backoffice.spec.ts
+  # ends shard 1 with the five short files before it, the other files fill shards 2 and 3.
   e2e:
-    name: Browser journeys
+    name: Browser journeys (${{ matrix.shard }}/3)
     needs: [changes]
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     # Same local stack as `db`, same raised limits of its Auth (EC-38, EC-51, C5-2).
     env:
       INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT: "1000"
@@ -268,16 +349,22 @@ jobs:
       # the background while both fronts build and Chromium downloads, and is awaited below.
       - name: Start the local Supabase stack in the background
         run: |
-          nohup bash -c 'pnpm exec supabase start -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1; echo $? > "$RUNNER_TEMP/supabase-start.exit"' > /dev/null 2>&1 &
+          nohup bash -c 'pnpm exec supabase start -x realtime,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1; echo $? > "$RUNNER_TEMP/supabase-start.exit"' > /dev/null 2>&1 &
 
       # The journeys start both fronts without building them under CI (apps/web/playwright.config.ts).
       - name: Build both fronts
         run: pnpm --filter @influx/web --filter @influx/backoffice run build
 
       - name: Install the Chromium of Playwright
+        # A stuck download fails fast and is re-run (`gh run rerun --failed`), instead of eating
+        # the job (L2DT-2: 464 and 524 s once).
+        timeout-minutes: 3
         # Headless shell only: the config runs devices["Desktop Chrome"] in headless mode, which
-        # never launches the full Chromium; it saves its download (about 100 MB).
-        run: pnpm --filter @influx/web exec playwright install --with-deps --only-shell chromium
+        # never launches the full Chromium; it saves its download (about 100 MB). No
+        # `--with-deps`: it only added fonts here, from a mirror that took up to 9 minutes (see the
+        # header). If a later runner image lacks a library, the journeys fail at launch: then add
+        # `playwright install-deps chromium` for the missing packages, not `--with-deps` blindly.
+        run: pnpm --filter @influx/web exec playwright install --only-shell chromium
 
       - name: Wait for the local Supabase stack
         timeout-minutes: 6
@@ -285,6 +372,10 @@ jobs:
           while [ ! -f "$RUNNER_TEMP/supabase-start.exit" ]; do sleep 2; done
           cat "$RUNNER_TEMP/supabase-start.log"
           exit "$(cat "$RUNNER_TEMP/supabase-start.exit")"
+
+      # L2B-03 (D80): Storage answers through the gateway before the base is rebuilt.
+      - name: Check that Storage answers through the gateway
+        run: curl --fail --silent --show-error --retry 10 --retry-delay 2 --retry-connrefused http://127.0.0.1:54321/storage/v1/status
 
       # The base is rebuilt from zero, as in `db`, so that both jobs test the same base.
       - name: Rebuild the database from the migrations
@@ -302,9 +393,87 @@ jobs:
         run: pnpm --filter @influx/api db:publish-terms -- --latest
 
       - name: Browser journeys (Playwright)
-        # About 45 s locally: a stuck journey must not consume the job.
+        # About 45 s locally: a stuck journey must not consume the job. The blob report is merged
+        # by `e2e-merge`, which also runs TK3.1 and checks the floors of executed cases.
         timeout-minutes: 5
-        run: pnpm test:e2e
+        working-directory: apps/web
+        run: pnpm exec playwright test --project=chromium --shard=${{ matrix.shard }}/3 --reporter=list,blob
+
+      - name: Keep the blob report of the shard
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-blob-${{ matrix.shard }}
+          path: apps/web/blob-report
+          if-no-files-found: error
+          retention-days: 1
+
+      # What the axe passes recorded for TK3.1 (e2e/support/rendering.ts).
+      - name: Keep the title surveys of the shard
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-headings-${{ matrix.shard }}
+          path: apps/web/test-results/tk3-headings
+          if-no-files-found: error
+          retention-days: 1
+
+  # L2C-14a: no stack, no browser, no server. TK3.1 reads the surveys of the shards
+  # (`--no-deps`: the `chromium` project ran in the shards; E2E_HEADINGS_FROM, see
+  # apps/web/playwright.config.ts), then the blobs of the shards and of TK3.1 are merged into the
+  # report the floors of executed cases read, as in a single run (`pnpm test:e2e`).
+  e2e-merge:
+    name: Browser journeys, merged
+    needs: [e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          package-manager-cache: false
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download the title surveys of the shards
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: e2e-headings-*
+          merge-multiple: true
+          path: apps/web/shard-headings
+
+      - name: Download the blob reports of the shards
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: e2e-blob-*
+          merge-multiple: true
+          path: apps/web/shard-blobs
+
+      - name: TK3.1 on the surveys of the shards
+        working-directory: apps/web
+        env:
+          E2E_HEADINGS_FROM: shard-headings
+        run: pnpm exec playwright test --project=charter-headings --no-deps --reporter=list,blob
+
+      - name: Merge the reports and check the floors of executed cases
+        working-directory: apps/web
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: test-results/e2e-report.json
+        run: |
+          mkdir all-blobs
+          cp shard-blobs/*.zip blob-report/*.zip all-blobs/
+          pnpm exec playwright merge-reports --reporter=json all-blobs
+          node ../../packages/test-kit/scripts/check-case-floors.ts e2e/case-floors.ts test-results/e2e-report.json
 
   # C-2 (end-of-J1 security review, 21 J1-J): the relay runs on Node 24 in production (J1-B,
   # Node >= 24.12), while the other jobs run the version of .node-version. What Node's fetch does
@@ -362,7 +531,7 @@ jobs:
   migrate-staging:
     name: Migrate staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [check, db, e2e, relay-node-24]
+    needs: [check, db-merge, e2e-merge, relay-node-24]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: staging
@@ -444,7 +613,7 @@ jobs:
       github.event_name == 'push'
       && github.ref == 'refs/heads/production'
       && vars.PRODUCTION_MIGRATION_ENABLED == 'true'
-    needs: [check, db, e2e, relay-node-24]
+    needs: [check, db-merge, e2e-merge, relay-node-24]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production

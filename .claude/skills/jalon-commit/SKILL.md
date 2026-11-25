@@ -27,7 +27,8 @@ sauf `force`.
 
 ## 2. Lire
 
-1. `docs/mvp/jalons/<id>-fiche.md` en entier : le contrat.
+1. `docs/mvp/jalons/<id>-fiche.md` en entier : le contrat. `<id>/annexe.md` : seulement pour les
+   types `revue`, `fix` et `cloture`, ou si le prompt la cite (section citée seulement).
 2. `docs/mvp/jalons/<id>/<fichier>`, et les « Notes du commit précédent » si le prompt en porte.
 3. Les seules tranches citées : l'index par `Grep`, puis `Read` borné (le crochet D77 refuse la
    lecture entière d'un gros document). `docs/mvp/archives/` : seulement pour un identifiant cité.
@@ -60,7 +61,8 @@ touchée, en plus les `db-tests/` du domaine (toute la suite base pour une migra
 
 - Un seul, au titre imposé par la fiche ; corps en anglais de 2 à 4 lignes ; ligne d'attribution
   donnée par le système.
-- Dans le même commit, la ligne `<n>` de `run.md` passe à `fait`, avec l'invariant clé en note.
+- Dans le même commit, la ligne `<n>` de `run.md` passe à `fait`, avec l'invariant clé en note
+  (**160 caractères au plus** ; le détail va dans le corps du commit).
 - **Autres sessions sur le même arbre** : `git add <tes fichiers>` et `git commit` dans la même
   commande, après `git diff --cached --name-only` vide ou limité à tes fichiers ; jamais
   `git add -A`, `git mv`, `reset`, ni `--amend` d'un commit qui n'est pas le tien et `HEAD`.

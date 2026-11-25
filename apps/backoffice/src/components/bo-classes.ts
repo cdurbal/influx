@@ -113,3 +113,13 @@ export const SUCCESS_CLASSES = cn(
 export const MONO_CLASSES = "font-mono text-sm break-all text-text-primary";
 
 export const TABULAR_CLASSES = "tabular-nums";
+
+/**
+ * The list of the entries past their deadline (08 RG66, CA42): a section of its own, with a thick
+ * border in the error tone beside a written heading and flag, so it is never confused with the general
+ * list (the border only underlines: the heading says it).
+ */
+export const OVERDUE_LIST_CLASSES = cn(
+  "flex flex-col gap-3 rounded-card border-(length:--border-width-thick) border-feedback-error-border",
+  "bg-surface-card p-inset-card",
+);

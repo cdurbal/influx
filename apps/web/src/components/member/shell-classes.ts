@@ -27,11 +27,11 @@ export const COLUMN_CLASSES = cn(
   "lg:border-r-(length:--border-width-thin) lg:border-border-default",
 );
 
-/** The header below lg (INFLUX, then the language), the head of the column from lg. */
+/** The header below lg (INFLUX, the role pill, then the language), the head of the column from lg. */
 export const HEADER_CLASSES = cn(
-  "sticky top-0 z-(--z-header) flex h-(--header-height) items-center justify-between gap-4",
+  "sticky top-0 z-(--z-header) flex h-(--header-height) items-center justify-between gap-2",
   "bg-surface-page px-page-gutter max-lg:border-b-(length:--border-width-thin) max-lg:border-border-default",
-  "lg:static lg:h-auto lg:flex-col lg:items-start lg:justify-start lg:gap-2 lg:px-4 lg:pb-4 lg:pt-5",
+  "lg:static lg:h-auto lg:flex-col lg:items-start lg:justify-start lg:px-4 lg:pb-4 lg:pt-5",
 );
 
 export const BRAND_LINK_CLASSES = cn(
@@ -39,8 +39,12 @@ export const BRAND_LINK_CLASSES = cn(
   "font-display text-md font-bold text-text-primary",
 );
 
-/** The name of the space with its role dot: from lg only (17 §2.3). */
-export const SPACE_NAME_CLASSES = "hidden lg:inline-flex";
+/**
+ * The name of the space in its role pill, at every width (17 §2.2, §2.3; L2AU-2): below lg, right
+ * after INFLUX, the language pushed to the far end, its inset narrower so that the header holds on
+ * one line at 320 px; from lg, under INFLUX in the column head.
+ */
+export const SPACE_NAME_CLASSES = "max-lg:mr-auto max-lg:px-2";
 
 /** Below lg only: the language sits in the header; from lg, in the foot of the column. */
 export const HEADER_ONLY_CLASSES = "lg:hidden";
@@ -141,3 +145,12 @@ export const MAIN_CLASSES = "flex-1 lg:pb-0";
 export const NAV_PLACEHOLDER_CLASSES = cn(NAV_CLASSES, "lg:hidden");
 
 export const NAV_PLACEHOLDER_LIST_CLASSES = "h-(--size-nav-bottom-height)";
+
+/**
+ * The state of the account in the column (17 §2.3 "Bloc d'état du compte"): under the items, above
+ * the foot, from lg only; below lg the home carries it. A rule above, as the foot has.
+ */
+export const ACCOUNT_STATE_CLASSES = cn(
+  "hidden lg:mt-4 lg:flex lg:flex-col lg:items-start lg:gap-2 lg:px-4 lg:py-4",
+  "lg:border-t-(length:--border-width-thin) lg:border-border-default",
+);

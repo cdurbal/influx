@@ -98,7 +98,7 @@ permanence ce qui a été révélé, à qui, et quand**.
 
 | Donnée | Avant validation | Après ouverture de la conversation |
 |---|---|---|
-| Thématiques, pays, audience en tranches, formats, tarifs, badge | Visible | Visible |
+| Thématiques, pays, audience en tranches, formats, badge (tarifs : renvoyés en V2, aucun n'est saisi ni affiché au pilote, D78) | Visible | Visible |
 | Portfolio (visuels modérés) | Visible | Visible |
 | Pseudo, `@`, liens réseaux, captures d'écran du créateur | **Masqué** | Révélé, horodaté |
 | Identité de la marque | Visible | Visible |

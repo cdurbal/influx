@@ -1,0 +1,115 @@
+<title>Refonte visuelle INFLUX</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<style>
+  .status { display: inline-flex; align-items: center; gap: var(--spacing-2); align-self: flex-start; border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-feedback-warning-border); background: var(--color-feedback-warning-bg); color: var(--color-feedback-warning-text); padding: var(--spacing-1) var(--spacing-3); font-family: var(--font-display); font-size: var(--text-sm); font-weight: var(--font-weight-bold); }
+  .who { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+  .facts { display: grid; gap: var(--spacing-4); }
+  @media (width >= 900px) { .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .fact { display: flex; flex-direction: column; gap: var(--spacing-1); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-3); }
+  .fact b { font-family: var(--font-display); }
+</style>
+
+<div class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <span class="status"><svg class="i i--sm"><use href="#i-hourglass"/></svg>En attente de votre validation</span>
+    <h1 class="d-h1">Cinq écrans d'INFLUX, avant et après</h1>
+    <p class="d-lead">Propositions visuelles tirées de l'audit validé le 22 novembre 2026 (documents 01 à 06). Aucun composant de production n'a été modifié : chaque prototype est une page isolée qui reprend les vrais tokens, les polices et les icônes de l'application, avec des données fictives.</p>
+  </div>
+
+  <section class="d-sec" style="max-width: none" aria-labelledby="t-screens"><h2 id="t-screens"><span class="n">1</span>Les écrans</h2>
+    <div class="d-cards">
+      <article class="d-card"><span class="num">Écran 1 · Annonceur et créateur</span><a href="ecran-1-accueils.html">Accueils</a><p class="sm c2">Première visite avec liste « Bien démarrer », puis « à traiter » et l'objet principal.</p><span class="d-ids"><span class="u u--crit">U01</span><span class="u">U08 U59 U60 U61</span></span></article>
+      <article class="d-card"><span class="num">Écran 2 · Annonceur</span><a href="ecran-2-recherche.html">Recherche de créateurs</a><p class="sm c2">Carte de résultat de 400 px au lieu de 1 400, chiffres D61 comparables.</p><span class="d-ids"><span class="u">U10 U11 U12 U64</span></span></article>
+      <article class="d-card"><span class="num">Écran 2 bis · Annonceur</span><a href="ecran-2b-profil-anonyme.html">Profil anonyme</a><p class="sm c2">Vue détaillée d'un créateur, sur le modèle de la fiche Airbnb : visuels, chiffres clés, encadré « Ma sélection ».</p><span class="d-ids"><span class="u">nouveau</span></span></article>
+      <article class="d-card"><span class="num">Écran 3 · Créateur</span><a href="ecran-3-profil-createur.html">Profil créateur</a><p class="sm c2">Formulaire complexe : trois formats comparés, collecte progressive retenue, fin des cartes imbriquées.</p><span class="d-ids"><span class="u u--crit">U02 U03</span><span class="u">U21 U28 U22 U30</span></span></article>
+      <article class="d-card"><span class="num">Écran 4 · Commercial</span><a href="ecran-4-bo-tableau-de-bord.html">Tableau de bord du backoffice</a><p class="sm c2">Hors délai et prises en charge d'abord, neuf files en tableau, alertes regroupées.</p><span class="d-ids"><span class="u u--crit">U05</span><span class="u">U40 U38</span></span></article>
+      <article class="d-card"><span class="num">Écran 5 · Commercial</span><a href="ecran-5-bo-decision.html">Décision d'une entrée de file</a><p class="sm c2">Dossier et colonne de décision collante ; une seule surface.</p><span class="d-ids"><span class="u u--crit">U06</span><span class="u">U36 U37 U35</span></span></article>
+      <article class="d-card"><span class="num">Écran 5 bis · Créateur</span><a href="ecran-5b-marque.html">Page de la marque</a><p class="sm c2">Le profil anonyme adapté à une marque, avec l'aperçu « version soumise » du backoffice.</p><span class="d-ids"><span class="u">nouveau</span></span></article>
+      <article class="d-card"><span class="num">Écran 6 · Commercial</span><a href="ecran-6-bo-fiche-compte.html">Fiche de compte</a><p class="sm c2">En-tête d'identité, colonne « à traiter », propriétés collantes, gestes rares repliés.</p><span class="d-ids"><span class="u u--crit">U07 U06</span><span class="u">U42</span></span></article>
+      <article class="d-card"><span class="num">Écran 7 · Annonceur</span><a href="ecran-7-campagne.html">Formulaire de campagne</a><p class="sm c2">L'assistant de l'écran 3 appliqué à la campagne : budget en encadré interne, « Vérifier et envoyer ».</p><span class="d-ids"><span class="u">U22 U24 U26 U27 U30</span></span></article>
+      <article class="d-card"><span class="num">Écran 8 · Créateur</span><a href="ecran-8-campagnes-createur.html">Fil et fiche de campagne</a><p class="sm c2">Cartes compactes et filtres ; fiche sur le modèle de la page de la marque, sans bouton inutile avant le Lot 4.</p><span class="d-ids"><span class="u">U14 U15 U46</span></span></article>
+      <article class="d-card"><span class="num">Écran 9 · Annonceur</span><a href="ecran-9-selections.html">Sélections</a><p class="sm c2">Liste en lignes ; sélection en cartes ou en tableau, notes privées, demande à l'équipe INFLUX.</p><span class="d-ids"><span class="u">U17 U64</span></span></article>
+      <article class="d-card"><span class="num">Écran 10 · Annonceur</span><a href="ecran-10-profil-marque.html">Profil de marque</a><p class="sm c2">Assistant en trois étapes, formats par réseau, interlocuteur interne ; liste de tâches après publication.</p><span class="d-ids"><span class="u">U22 U23 U29 U03 U63</span></span></article>
+      <article class="d-card"><span class="num">Écran 11 · Annonceur, créateur</span><a href="ecran-11-entree.html">Inscription et connexion</a><p class="sm c2">Porte, e-mail, code en quatre blocs, informations en deux groupes ; arrivée directe sur l'accueil.</p><span class="d-ids"><span class="u">U47 U48 U62 U25 U26 U63</span></span></article>
+      <article class="d-card"><span class="num">Écran 12 · Annonceur</span><a href="ecran-12-mes-campagnes.html">Mes campagnes</a><p class="sm c2">Lignes regroupées par action : à faire, en cours, terminées ; brouillon possible pour la marque neuve.</p><span class="d-ids"><span class="u">U13 U64 U59</span></span></article>
+      <article class="d-card"><span class="num">Écran 13 · Backoffice</span><a href="ecran-13-bo-recherche.html">Recherche identifiée</a><p class="sm c2">La forme de l'écran 2 en vue identifiée : cartes photo, nom réel vers la fiche, valeurs exactes ; cible Lot 4.</p><span class="d-ids"><span class="u">U06 U42</span></span></article>
+      <article class="d-card"><span class="num">Écran 14 · Créateur</span><a href="ecran-14-verifications.html">Vérifications créateur</a><p class="sm c2">« Mes vérifications » par réseau ; propriété en deux écrans, audience sur une page, contestation.</p><span class="d-ids"><span class="u">U28 U22</span></span></article>
+      <article class="d-card"><span class="num">Écran 15 · Créateur</span><a href="ecran-15-apercu.html">Aperçu « Ce que voit une marque »</a><p class="sm c2">La page de l'écran 2 bis vue par le créateur, avant et après la mise en relation ; onglets gris.</p><span class="d-ids"><span class="u">U34</span></span></article>
+      <article class="d-card"><span class="num">Écran 16 · Backoffice</span><a href="ecran-16-bo-listes.html">Listes des files et des inscrits</a><p class="sm c2">Le tableau de l'écran 4 : ligne entière en lien, une ligne par entrée, total ; filtres en pastilles.</p><span class="d-ids"><span class="u">U38 U39 U56</span></span></article>
+      <article class="d-card"><span class="num">Écran 17 · Backoffice</span><a href="ecran-17-bo-campagne.html">Fiche campagne</a><p class="sm c2">Gabarit de la fiche de compte ; atteignable depuis la marque et la file ; « Créateurs compatibles ».</p><span class="d-ids"><span class="u">U06 U37</span></span></article>
+      <article class="d-card"><span class="num">Écran 18 · Annonceur</span><a href="ecran-18-campagne-marque.html">Fiche campagne côté marque</a><p class="sm c2">Page de lecture de l'écran 8, avec l'état, le budget interne, l'historique et les gestes de la marque.</p><span class="d-ids"><span class="u">U19 U15</span></span></article>
+      <article class="d-card"><span class="num">Écran 19 · Backoffice</span><a href="ecran-19-bo-mobile.html">Backoffice sur téléphone</a><p class="sm c2">Règle provisoire sans page montée (U43), puis les deux gestes de D58 : la file et la conversation.</p><span class="d-ids"><span class="u">U43</span></span></article>
+      <article class="d-card"><span class="num">Écran 20 · Annonceur, créateur</span><a href="ecran-20-compte.html">Mon compte</a><p class="sm c2">Informations, préférences, sessions, données ; changement d'adresse contrôlé avant tout code.</p><span class="d-ids"><span class="u">U33 U51 U63</span></span></article>
+      <article class="d-card"><span class="num">Écran 21 · Backoffice</span><a href="ecran-21-bo-admin.html">Invitations, synchronisation, administration</a><p class="sm c2">Invitations, échecs de synchronisation, comptes internes, double validation, réglages Apollo, santé technique.</p><span class="d-ids"><span class="u">U37 U41 U57</span></span></article>
+      <article class="d-card"><span class="num">Transverse</span><a href="interactions.html">Micro-interactions</a><p class="sm c2">Catalogue (durées, propriétés, téléphone, mouvement réduit) et démonstrations.</p><span class="d-ids"><span class="u">04 §12</span></span></article>
+    </div>
+    <div class="facts">
+      <p class="fact"><b>Comparer</b><span class="sm c2">Chaque page montre côte à côte la capture de l'audit et le prototype dans un cadre à la vraie largeur (1 440 ou 390 px). Les boutons d'état changent les deux.</span></p>
+      <p class="fact"><b>Lire la hiérarchie</b><span class="sm c2">« Afficher la hiérarchie » numérote les régions du prototype dans l'ordre de lecture voulu, repris dans la page.</span></p>
+      <p class="fact"><b>Manipuler</b><span class="sm c2">« Plein écran » ouvre le prototype seul : redimensionnez la fenêtre pour voir le responsive. Le bandeau jaune est l'instrumentation du prototype.</span></p>
+    </div>
+  </section>
+
+  <section class="d-sec" aria-labelledby="t-why"><h2 id="t-why"><span class="n">2</span>Pourquoi ces cinq écrans</h2>
+    <p>Critères : fréquence d'usage, poids métier, gravité des constats de l'audit (matrice <code>06</code>) et impact sur l'expérience, avec les trois profils représentés.</p>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Écran</th><th>Profil</th><th>Fréquence</th><th>Constats</th><th>Raison</th></tr></thead>
+      <tbody>
+        <tr><td>Accueils</td><td>Annonceur, créateur</td><td>Quotidien ; première arrivée de chaque inscrit</td><td>U01 critique (impact 9), U08, U59, U60, U61</td><td>La page la plus vue ; la seule que les deux portes partagent ; elle porte les écarts au guide d'onboarding.</td></tr>
+        <tr><td>Recherche de créateurs</td><td>Annonceur</td><td>Hebdomadaire ; cœur de la valeur marque</td><td>U10, U11, U12, U64</td><td>C'est là que la marque juge INFLUX ; une douzaine de profils y occupe 18 000 px.</td></tr>
+        <tr><td>Profil créateur</td><td>Créateur</td><td>Passage obligé, puis mises à jour</td><td>U02 et U03 critiques, U21, U28, U22, U30</td><td>Le formulaire le plus complexe du produit et le cas le plus net de cartes imbriquées.</td></tr>
+        <tr><td>Tableau de bord du backoffice</td><td>Commercial, admin</td><td>Quotidien, première page</td><td>U05 critique (impact 9), U40, U38</td><td>Sans vue d'ensemble des neuf files, le délai d'un jour ouvré ne se pilote pas.</td></tr>
+        <tr><td>Décision d'une entrée</td><td>Commercial</td><td>Des dizaines de fois par jour</td><td>U36, U37, U35, U06 critique</td><td>Le geste le plus répété ; son cadre servira aux files du Lot 5.</td></tr>
+      </tbody></table></div>
+    <p class="sm c2"><b>Écartés de cette passe.</b> La fiche de compte du backoffice (U07, critique) : refonte lourde qui dépend de l'arbitrage de l'ordre des blocs (<code>15</code> RG41) et d'un appel API ; son en-tête d'identité suivra le modèle de l'écran 5. Le formulaire de campagne : déjà bien découpé, sa barre mobile dépend de l'arbitrage RG4. « Mes campagnes » et le fil créateur : leurs listes sont prototypées dans les accueils. Les sélections : elles reprennent la carte compacte de l'écran 2.</p>
+  </section>
+
+  <section class="d-sec" aria-labelledby="t-rules"><h2 id="t-rules"><span class="n">3</span>Principes appliqués partout</h2>
+    <ul class="d-list">
+      <li><b>Une seule pilule verte par zone de vue.</b> Les autres actions sont secondaires ou des liens.</li>
+      <li><b>Trois niveaux de surface au plus</b> : la page, une carte pour un objet autonome, un bloc intérieur surélevé. Les regroupements tiennent à la typographie, à l'espace et aux filets.</li>
+      <li><b>L'espacement diminue de l'extérieur vers l'intérieur</b> : une carte compacte est rembourrée de 16 px, jamais plus que l'écart qui la sépare de sa voisine ; 8 px entre une icône et son libellé.</li>
+      <li><b>Un état durable est un badge, pas une notice</b> ; un état vide n'a pas de cadre.</li>
+      <li><b>Ce qui demande une action vient d'abord</b>, puis l'objet principal, puis le contexte.</li>
+      <li><b>Un seul cadre de page aligné à gauche</b> : le titre ne bouge plus d'un écran à l'autre.</li>
+      <li><b>Rien n'est porté par la couleur seule</b> : icône, mot ou forme accompagnent chaque état.</li>
+    </ul>
+  </section>
+
+  <section class="d-sec" aria-labelledby="t-refs"><h2 id="t-refs"><span class="n">4</span>Références : ce qui a réellement été consulté</h2>
+    <p>Chaque page d'écran cite ses sources. Elles viennent toutes du benchmark <code>02</code> : documentation de Shopify Polaris, Stripe, Linear, Intercom, Airtable, Atlassian et HubSpot, articles de NN/g, GOV.UK et WCAG 2.2, et les quatre fiches du guide interne <code>docs/good-practice-ux/</code>.</p>
+    <p><b>Non utilisés, faute d'accès au contenu.</b> Mobbin : aucun écran accessible sans abonnement. Page Flows : seuls les intitulés d'étapes du parcours d'inscription Stripe, écrans verrouillés. Vidéos 1 à 4 du cahier des charges : introuvables ; vidéo 5 : métadonnées seulement. Aucun choix des prototypes ne s'appuie sur elles. De la vidéo 6 (Framer Academy), seule la page compagnon a été lue ; ses trois principes fondent le catalogue des micro-interactions. Pour aller plus loin : un essai Page Flows de 3 jours (2,95 $, à souscrire par vous) ou les adresses exactes des vidéos.</p>
+  </section>
+
+  <section class="d-sec" aria-labelledby="t-how"><h2 id="t-how"><span class="n">5</span>Comment c'est construit</h2>
+    <ul class="d-list">
+      <li><b>Le vrai design system.</b> <code>assets/tokens.css</code> est généré depuis <code>packages/ui/src/styles/tokens.css</code> (bloc KEO) et <code>tokens-backoffice.css</code>. Polices Manrope et Source Sans 3 du dépôt, icônes de <code>lucide-react</code>. Les classes reprennent les recettes des primitives (<code>button-classes.ts</code>, <code>card-classes.ts</code>, <code>bo-classes.ts</code>…).</li>
+      <li><b>Les tokens nouveaux de <code>04</code> §1</b> (pastille de logo, squelette, longueurs) sont déclarés à part et marqués « proposés ». Aucune couleur nouvelle.</li>
+      <li><b>Aucune dépendance</b> : HTML, CSS et un peu de JavaScript sans bibliothèque. Aucun fichier de production touché ; le tout vit dans <code>docs/audit-ux-ui/prototypes/</code>.</li>
+      <li><b>Limites.</b> Textes en français seulement. Données fictives. Les compteurs de files et les campagnes d'un compte supposent des appels API encore à arbitrer.</li>
+    </ul>
+  </section>
+
+  <section class="d-sec" aria-labelledby="t-ask"><h2 id="t-ask"><span class="n">6</span>Ce que je vous demande</h2>
+    <p>Pour chaque écran : <b>validé</b>, <b>validé avec réserves</b> (lesquelles) ou <b>à revoir</b>. Chaque page liste en fin ses points ouverts ; voici les plus structurants :</p>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Badge de visibilité une fois par groupe sur les formulaires (C4), qui s'écarte de la décision du 2026-11-06.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Carte de résultat compacte et titre-lien (modifie <code>17</code> §7.1, avec <code>product-owner</code> et <code>expert-matching</code>).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Colonne de décision et nouvel ordre du dossier au backoffice (<code>17b</code> §2.5, <code>product-owner</code>).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Textes de bienvenue et tâches « Bien démarrer » des deux portes (avec <code>expert-marketing</code>).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les longueurs proposées : mesure de lecture 40 rem, libellé de propriété 13 rem, champ numérique 8 rem, colonne de décision 22 rem.</span></li>
+    </ul>
+    <p class="sm c2">Rien ne sera appliqué aux composants de production avant votre retour. Ensuite : intégration de <code>04</code> à <code>20</code> §11, décisions de la phase 0, puis découpage en jalons selon le plan <code>05</code>.</p>
+  </section>
+</main>
+</div>

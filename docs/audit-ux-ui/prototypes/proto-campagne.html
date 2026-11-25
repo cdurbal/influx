@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Formulaire de campagne</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Même assistant que le profil créateur (écran 3), appliqué à la campagne. */
+  .wz { display: flex; flex-direction: column; gap: var(--spacing-5); width: 100%; max-width: var(--container-narrow); }
+  @media (width >= 768px) { .wz { border: var(--border-width-thin) solid var(--color-border-default); border-radius: var(--radius-card); background: var(--color-surface-card); padding: var(--spacing-inset-card); } }
+  .wz-head { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .wz-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .wz-top h1 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .wz-name { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .wz-count { font-size: var(--text-sm); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .segs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--spacing-1); }
+  .segs button { position: relative; height: 0.375rem; border-radius: var(--radius-pill); background: var(--color-surface-active); transition: background-color var(--duration-slow) var(--ease-standard); }
+  .segs button::before { content: ""; position: absolute; inset: -0.625rem 0; }
+  .segs button.done, .segs button.cur { background: var(--color-brand-primary); }
+  .segs button.gap { background: var(--color-feedback-warning-icon); }
+  .segs button:disabled { cursor: default; }
+  .wz-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-1) var(--spacing-4); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .wz-meta .link { font-weight: var(--font-weight-semibold); }
+  .wz-step { display: flex; flex-direction: column; gap: var(--spacing-5); }
+  .wz-step.is-in { animation: fade-in var(--duration-fast) var(--ease-standard); }
+  .wz-step > header { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .wz-step .layer { align-self: flex-start; white-space: normal; }
+  .wz-step h2 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .step-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .wz-foot { display: flex; align-items: center; gap: var(--spacing-3); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-4); }
+  .wz-foot .save { flex: 1; justify-content: center; }
+  .save { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .save .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .save[data-kind="failed"] { color: var(--color-feedback-error-text); font-weight: var(--font-weight-semibold); }
+  @media (prefers-reduced-motion: no-preference) { .save[data-kind="saving"] .i { animation: spin 1s linear infinite; } }
+  @keyframes spin { to { rotate: 360deg; } }
+  .save--meta { display: none; }
+  @media (width < 768px) {
+    .m-page { padding-bottom: calc(var(--spacing-section-header) + 4.5rem); }
+    .wz-foot { position: fixed; left: 0; right: 0; bottom: var(--size-nav-bottom-height); z-index: var(--z-raised); background: var(--color-surface-page); padding: var(--spacing-2) var(--spacing-page-gutter); }
+    .wz-foot .save { display: none; }
+    .wz-foot .btn--primary { margin-left: auto; }
+    .save--meta { display: inline-flex; }
+    .next-sub { display: none; }
+  }
+  .fgrid { display: grid; gap: var(--spacing-5); }
+  @media (width >= 640px) { .fgrid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fgrid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  details.opt { border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-2); }
+  details.opt > summary { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-weight: var(--font-weight-semibold); }
+  details.opt > summary::-webkit-details-marker { display: none; }
+  details.opt > summary .i { transition: rotate var(--duration-base) var(--ease-standard); color: var(--color-text-secondary); }
+  details.opt[open] > summary .i { rotate: 90deg; }
+  details.opt > div { display: flex; flex-direction: column; gap: var(--spacing-5); padding: var(--spacing-3) 0 var(--spacing-2); }
+  details.opt[open] > div { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .tags { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+  .tag { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: 2.25rem; border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-raised); padding: 0 var(--spacing-2) 0 var(--spacing-3); font-size: var(--text-sm); }
+  .tag button { display: inline-flex; padding: var(--spacing-1); border-radius: var(--radius-pill); color: var(--color-text-secondary); }
+  .adder { display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center; }
+  .adder .select { flex: 1 1 13rem; max-width: 20rem; }
+  .cond { display: flex; flex-direction: column; gap: var(--spacing-5); border-left: var(--border-width-thick) solid var(--color-border-default); padding-left: var(--spacing-4); }
+  .cond.is-in { animation: rise-in var(--duration-base) var(--ease-standard); }
+  /* Livrables : un groupe par réseau coché, formats avec quantité */
+  .deliv { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .deliv__net { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-3) 0; border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .deliv__row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-3); }
+  .qty { display: inline-flex; align-items: center; gap: var(--spacing-1); }
+  .qty button { display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: var(--radius-round); border: var(--border-width-thin) solid var(--color-border-default); color: var(--color-text-secondary); }
+  .qty button:hover { background: var(--color-surface-hover); color: var(--color-text-primary); }
+  .qty output { min-width: 1.5rem; text-align: center; font-variant-numeric: tabular-nums; font-weight: var(--font-weight-semibold); }
+  .qty output.zero { color: var(--color-text-tertiary); }
+  .date { max-width: 12rem; font-variant-numeric: tabular-nums; }
+  .dates .field { gap: var(--spacing-1); }
+  .order { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-2); font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .order .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  /* Aperçu : la carte du fil créateur */
+  .pv { display: flex; flex-direction: column; gap: var(--spacing-3); border-radius: var(--radius-md); background: var(--color-surface-raised); padding: var(--spacing-4); }
+  .pv.is-in { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .pv__hat { display: flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-xs); color: var(--color-text-secondary); font-weight: var(--font-weight-semibold); }
+  .feedcard { display: flex; flex-direction: column; gap: var(--spacing-2); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); padding: var(--spacing-4); max-width: 26rem; }
+  .feedcard__brand { display: flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .feedcard__brand .i { width: var(--size-icon-sm); height: var(--size-icon-sm); color: var(--color-verified-text); }
+  .feedcard h3 { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-md); line-height: var(--leading-snug); }
+  .feedcard .due { display: inline-flex; align-items: center; gap: var(--spacing-1); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); }
+  .feedcard .due .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .feedcard .meta { font-size: var(--text-xs); color: var(--color-text-secondary); }
+  /* Vérifier et envoyer */
+  .recap { display: flex; flex-direction: column; }
+  .recap section { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4) 0; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .recap h3 { display: flex; align-items: center; gap: var(--spacing-2); font-family: var(--font-display); font-weight: var(--font-weight-bold); }
+  .recap .props { --size-property-label: 11rem; }
+  .missing { display: flex; align-items: flex-start; gap: var(--spacing-2); color: var(--color-feedback-warning-text); font-size: var(--text-sm); }
+  .missing .i { width: var(--size-icon-sm); height: var(--size-icon-sm); margin-top: 0.1875rem; }
+  .sent { display: flex; flex-direction: column; gap: var(--spacing-5); width: 100%; max-width: var(--container-narrow); }
+  .steps-next { display: flex; flex-direction: column; gap: var(--spacing-3); counter-reset: n; }
+  .steps-next li { display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: var(--spacing-3); font-size: var(--text-sm); }
+  .steps-next li::before { counter-increment: n; content: counter(n); display: inline-flex; align-items: center; justify-content: center; width: 1.75rem; height: 1.75rem; border-radius: var(--radius-round); background: var(--color-surface-raised); font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-xs); }
+</style>
+</head>
+<body data-default="etape-1">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <option value="etape-1">Étape 1 · L'offre</option>
+      <option value="etape-2">Étape 2 · Le travail attendu</option>
+      <option value="etape-3">Étape 3 · Pour qui</option>
+      <option value="etape-4">Étape 4 · Le budget</option>
+      <option value="etape-5">Étape 5 · Calendrier (dates dans le désordre)</option>
+      <option value="verifier">Vérifier et envoyer · 3 manques</option>
+      <option value="verifier-complet">Vérifier et envoyer · complet</option>
+      <option value="profil-attente">Vérifier et envoyer · profil de marque non publié (D86)</option>
+      <option value="envoyee">Campagne envoyée</option>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <button id="demo-fail" type="button" aria-pressed="false">Simuler un échec d'enregistrement</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head"><a class="m-brand" href="#contenu">INFLUX</a><span class="role role--brand">Espace marque</span><button class="btn btn--secondary lg-hide" type="button">English</button></header>
+    <nav class="m-nav" aria-label="Navigation principale"><ul class="m-nav__list">
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-accueils.html#marque"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link is-ancestor" href="#contenu"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a>
+        <div class="m-sub"><a class="is-current" aria-current="page" href="#contenu">Mes campagnes</a></div></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-recherche.html"><svg class="i"><use href="#i-users"/></svg><span>Créateurs</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="#contenu"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a></li>
+    </ul></nav>
+    <div class="m-state"><b id="rail-state">Profil : Publié</b></div>
+    <footer class="m-foot"><button class="btn btn--secondary" type="button">English</button><p class="sm c2">Connecté avec claire.morel@example.test</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button></footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page">
+
+      <form class="wz" id="wz" data-autosave novalidate onsubmit="return false">
+        <div class="wz-head" data-h="1">
+          <a class="go sm c2" href="#contenu" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mes campagnes</a>
+          <div class="wz-top"><h1 tabindex="-1" id="wz-title">Création de votre campagne</h1><span class="wz-count" id="wz-count">Étape 1 sur 5</span></div>
+          <p class="wz-name"><span class="badge">Brouillon</span><span id="wz-name">Collection solaire 2027</span><span>· personne d'autre que vous ne le voit avant l'envoi</span></p>
+          <div class="segs" role="group" aria-label="Étapes" id="segs">
+            <button type="button" data-go="1"></button><button type="button" data-go="2"></button><button type="button" data-go="3"></button><button type="button" data-go="4"></button><button type="button" data-go="5"></button>
+          </div>
+          <div class="wz-meta"><span id="wz-time">Environ 15 min au total</span>
+            <span class="row g3"><p class="save save--meta" data-save data-kind="saved"><svg class="i"><use href="#i-check"/></svg><span data-save-text>Enregistré</span><button class="link" type="button" data-retry hidden>Réessayer</button></p>
+              <button class="link sm c2" type="button" id="to-check"><span id="to-check-t">Il manque 3 informations</span> · voir la liste</button>
+              <button class="link sm c2" type="button" id="later">Enregistrer et reprendre plus tard</button></span></div>
+          <div class="notice notice--success" id="later-note" hidden><svg class="i"><use href="#i-circle-check"/></svg><p>C'est enregistré. Vous reprendrez à cette étape depuis « Mes campagnes ».</p></div>
+        </div>
+
+        <!-- Étape 1 · L'offre -->
+        <section class="wz-step" data-step="1" aria-labelledby="h1s" data-h="2">
+          <header><div class="step-bar"><h2 tabindex="-1" id="h1s">L'offre</h2><button class="link sm" type="button" data-preview aria-expanded="false"><svg class="i i--sm" style="vertical-align: -0.2em"><use href="#i-eye"/></svg> Aperçu</button></div>
+            <p class="c2">Ce que vous proposez, et sur quel produit. Environ 5 min.</p>
+            <span class="layer"><svg class="i"><use href="#i-globe"/></svg>Public : visible des créateurs une fois la campagne ouverte</span></header>
+          <div class="pv" data-pv hidden></div>
+          <div class="field"><div class="field__top"><label class="label" for="f-title">Titre de la campagne</label><p class="help">Décrivez l'offre, pas la marque : votre nom figure déjà sur votre profil. Ni montant, ni coordonnée, ni lien.</p></div>
+            <input class="control" id="f-title" maxlength="120" value="Collection solaire 2027" data-count="f-title-c" data-live="title"><span class="count" id="f-title-c">23 / 120 caractères</span></div>
+          <div class="field" style="max-width: 22rem"><label class="label" for="f-type">Type de campagne</label><span class="select"><select class="control" id="f-type"><option>Lancement de produit</option><option>Placement de produit</option><option>Ambassadeur sur la durée</option><option>Événement</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+          <div class="field"><div class="field__top"><label class="label" for="f-sum">Résumé public</label><p class="help">Ce que vous cherchez, pour qui et sur quel réseau. C'est le seul texte lu avant d'ouvrir la campagne.</p></div>
+            <textarea class="control" id="f-sum" rows="3" maxlength="400" data-count="f-sum-c" data-live="sum">Nous cherchons des créatrices et créateurs lifestyle pour présenter notre collection de lunettes de soleil 2027, en Reels et en stories, au printemps.</textarea><span class="count" id="f-sum-c">148 / 400 caractères</span></div>
+          <div class="field"><div class="field__top"><label class="label" for="f-brief">Brief détaillé</label><p class="help">Le contexte, les attentes créatives, le ton, ce qui doit apparaître et ce qui est laissé libre.</p></div>
+            <textarea class="control" id="f-brief" rows="5" maxlength="4000" data-count="f-brief-c" data-need="brief"></textarea><span class="count" id="f-brief-c">0 / 4 000 caractères</span></div>
+          <div class="fgrid fgrid--2">
+            <div class="field"><label class="label" for="f-prod">Produit ou service concerné</label><input class="control" id="f-prod" maxlength="600" value="Lunettes de soleil, collection 2027 (6 modèles)"></div>
+            <div class="field"><label class="label" for="f-cat">Catégorie du produit</label><span class="select"><select class="control" id="f-cat"><option>Mode et accessoires</option><option>Beauté</option><option>Sport et loisirs</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+          </div>
+          <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (3)</summary><div>
+            <div class="field"><div class="field__top"><span class="label" id="l-km">Messages clés</span><p class="help">De une à cinq phrases de 10 à 200 caractères.</p></div>
+              <input class="control" aria-labelledby="l-km" maxlength="200" value="Verres polarisés, montures en acétate recyclé."></div>
+            <div class="field"><div class="field__top"><label class="label" for="f-rest">Interdits et points de vigilance</label><p class="help">Ce qui ne doit pas apparaître : concurrents, alcool, conduite…</p></div><textarea class="control" id="f-rest" rows="2" maxlength="600"></textarea></div>
+            <div class="zone-int"><p class="zone-int__head"><svg class="i i--sm"><use href="#i-eye-off"/></svg>Visible uniquement par vous et l'équipe INFLUX</p>
+              <div class="field" style="max-width: 20rem"><div class="field__top"><label class="label" for="f-ref">Référence interne</label><p class="help">Votre code de projet ou de bon de commande.</p></div><input class="control" id="f-ref" maxlength="60"></div></div>
+          </div></details>
+        </section>
+
+        <!-- Étape 2 · Le travail attendu -->
+        <section class="wz-step" data-step="2" aria-labelledby="h2s" hidden data-h="2">
+          <header><h2 tabindex="-1" id="h2s">Le travail attendu</h2><p class="c2">Les contenus demandés et ce que vous ferez de ces contenus. Environ 3 min.</p>
+            <span class="layer"><svg class="i"><use href="#i-globe"/></svg>Public : visible des créateurs une fois la campagne ouverte</span></header>
+          <fieldset class="stack g2"><legend class="label" style="margin-bottom: var(--spacing-1)">Livrables</legend>
+            <p class="help">Cochez un réseau, puis le nombre de contenus par format.</p>
+            <div class="choices" id="d-nets"><label class="choice"><input type="checkbox" value="ig" checked>Instagram</label><label class="choice"><input type="checkbox" value="tt">TikTok</label><label class="choice"><input type="checkbox" value="yt">YouTube</label></div>
+            <div class="deliv">
+              <div class="deliv__net" data-net="ig"><p class="overline">Instagram</p>
+                <div class="deliv__row"><span>Reel</span><span class="qty"><button type="button" aria-label="Un Reel de moins">−</button><output aria-live="polite">1</output><button type="button" aria-label="Un Reel de plus">+</button></span></div>
+                <div class="deliv__row"><span>Story</span><span class="qty"><button type="button" aria-label="Une story de moins">−</button><output aria-live="polite">3</output><button type="button" aria-label="Une story de plus">+</button></span></div>
+                <div class="deliv__row"><span>Publication</span><span class="qty"><button type="button" aria-label="Une publication de moins">−</button><output class="zero" aria-live="polite">0</output><button type="button" aria-label="Une publication de plus">+</button></span></div></div>
+              <div class="deliv__net" data-net="tt" hidden><p class="overline">TikTok</p>
+                <div class="deliv__row"><span>Vidéo courte</span><span class="qty"><button type="button" aria-label="Une vidéo de moins">−</button><output class="zero" aria-live="polite">0</output><button type="button" aria-label="Une vidéo de plus">+</button></span></div></div>
+              <div class="deliv__net" data-net="yt" hidden><p class="overline">YouTube</p>
+                <div class="deliv__row"><span>Vidéo dédiée</span><span class="qty"><button type="button" aria-label="Une vidéo de moins">−</button><output class="zero" aria-live="polite">0</output><button type="button" aria-label="Une vidéo de plus">+</button></span></div>
+                <div class="deliv__row"><span>Short</span><span class="qty"><button type="button" aria-label="Un short de moins">−</button><output class="zero" aria-live="polite">0</output><button type="button" aria-label="Un short de plus">+</button></span></div></div>
+            </div></fieldset>
+          <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Droits d'usage demandés</legend>
+            <span class="seg" id="rights"><label><input type="radio" name="rights" value="none">Aucun</label><label><input type="radio" name="rights" value="organic" checked>Republication sur vos réseaux</label><label><input type="radio" name="rights" value="ads">Publicité sponsorisée</label></span></fieldset>
+          <div class="cond" id="rights-more">
+            <div class="fgrid fgrid--2">
+              <div class="field"><label class="label" for="f-rd">Durée des droits</label><span class="select"><select class="control" id="f-rd"><option>3 mois</option><option selected>6 mois</option><option>12 mois</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+              <div class="field"><label class="label" for="f-rt">Territoire</label><span class="select"><select class="control" id="f-rt"><option>Pays de la campagne</option><option>Monde entier</option><option>Pays choisis</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+            </div></div>
+          <div class="fgrid fgrid--2">
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Exclusivité sectorielle</legend><div class="choices"><label class="choice"><input type="radio" name="excl" checked>Non</label><label class="choice"><input type="radio" name="excl">Oui, pendant la campagne</label></div></fieldset>
+            <div class="field"><div class="field__top"><label class="label" for="f-rev">Délai de validation des contenus</label><p class="help">Le temps que vous prenez pour approuver un contenu avant publication.</p></div><span class="select"><select class="control" id="f-rev" data-need="review"><option value="">Choisir…</option><option>48 heures</option><option>3 jours ouvrés</option><option>5 jours ouvrés</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+          </div>
+        </section>
+
+        <!-- Étape 3 · Pour qui -->
+        <section class="wz-step" data-step="3" aria-labelledby="h3s" hidden data-h="2">
+          <header><div class="step-bar"><h2 tabindex="-1" id="h3s">Pour qui</h2><button class="link sm" type="button" data-preview aria-expanded="false"><svg class="i i--sm" style="vertical-align: -0.2em"><use href="#i-eye"/></svg> Aperçu</button></div>
+            <p class="c2">Les créateurs que vous cherchez, par leur audience. Environ 2 min.</p>
+            <span class="layer"><svg class="i"><use href="#i-globe"/></svg>Public : visible des créateurs une fois la campagne ouverte</span></header>
+          <div class="pv" data-pv hidden></div>
+          <div class="field"><span class="label" id="l-c">Pays visés</span><div class="tags"><span class="tag">France <button type="button" aria-label="Retirer France"><svg class="i i--sm"><use href="#i-x"/></svg></button></span><span class="tag">Belgique <button type="button" aria-label="Retirer Belgique"><svg class="i i--sm"><use href="#i-x"/></svg></button></span></div>
+            <div class="adder"><span class="select"><select class="control" id="f-c" aria-labelledby="l-c"><option>Choisir un pays…</option><option>Suisse</option><option>Canada</option><option>Luxembourg</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-c"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+          <div class="field"><span class="label" id="l-l">Langues de publication attendues</span><div class="tags"><span class="tag">Français <button type="button" aria-label="Retirer français"><svg class="i i--sm"><use href="#i-x"/></svg></button></span></div>
+            <div class="adder"><span class="select"><select class="control" id="f-l" aria-labelledby="l-l"><option>Choisir une langue…</option><option>Anglais</option><option>Néerlandais</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-l"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+          <div class="field"><span class="label" id="l-t">Thématiques visées</span><div class="tags"><span class="tag">Mode <button type="button" aria-label="Retirer Mode"><svg class="i i--sm"><use href="#i-x"/></svg></button></span><span class="tag">Voyage <button type="button" aria-label="Retirer Voyage"><svg class="i i--sm"><use href="#i-x"/></svg></button></span></div>
+            <div class="adder"><span class="select"><select class="control" id="f-t" aria-labelledby="l-t"><option>Choisir une thématique…</option><option>Lifestyle</option><option>Sport et loisirs</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-t"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+          <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (3)</summary><div>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Taille d'audience souhaitée</legend><div class="choices"><label class="choice"><input type="checkbox">Nano (moins de 10 000)</label><label class="choice"><input type="checkbox" checked>Micro (10 000 à 49 999)</label><label class="choice"><input type="checkbox" checked>Intermédiaire (50 000 à 499 999)</label><label class="choice"><input type="checkbox">Macro</label></div></fieldset>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Tranches d'âge de l'audience</legend><div class="choices"><label class="choice"><input type="checkbox">18 à 24 ans</label><label class="choice"><input type="checkbox">25 à 34 ans</label><label class="choice"><input type="checkbox">35 à 44 ans</label><label class="choice"><input type="checkbox">45 ans et plus</label></div></fieldset>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Répartition de genre de l'audience</legend><div class="choices"><label class="choice"><input type="radio" name="gen" checked>Indifférent</label><label class="choice"><input type="radio" name="gen">Plutôt féminine</label><label class="choice"><input type="radio" name="gen">Plutôt masculine</label></div></fieldset>
+          </div></details>
+        </section>
+
+        <!-- Étape 4 · Le budget -->
+        <section class="wz-step" data-step="4" aria-labelledby="h4s" hidden data-h="2">
+          <header><h2 tabindex="-1" id="h4s">Le budget</h2><p class="c2">Le produit envoyé, puis votre budget, qui reste entre vous et INFLUX. Environ 2 min.</p></header>
+          <div class="stack g4">
+            <span class="layer"><svg class="i"><use href="#i-globe"/></svg>Public : visible des créateurs</span>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Un produit est-il envoyé au créateur ?</legend><div class="choices" id="sent"><label class="choice"><input type="radio" name="sent" value="yes" checked>Oui</label><label class="choice"><input type="radio" name="sent" value="no">Non</label></div></fieldset>
+            <div class="cond" id="sent-more">
+              <div class="fgrid fgrid--3">
+                <div class="field"><label class="label" for="f-pv">Valeur du produit</label><span class="select"><select class="control" id="f-pv"><option>Moins de 50</option><option selected>50 à 200</option><option>Plus de 200</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+                <div class="field"><label class="label" for="f-keep">Le créateur le conserve ?</label><span class="select"><select class="control" id="f-keep"><option selected>Oui</option><option>Non, retour prévu</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+                <div class="field"><label class="label" for="f-ship">Frais d'envoi à la charge</label><span class="select"><select class="control" id="f-ship"><option selected>De la marque</option><option>Partagés</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+              </div></div>
+          </div>
+          <div class="zone-int">
+            <p class="zone-int__head"><svg class="i i--sm"><use href="#i-eye-off"/></svg>Visible uniquement par vous et l'équipe INFLUX, jamais par un créateur</p>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Nature de la rémunération</legend><div class="choices" id="rem"><label class="choice"><input type="radio" name="rem" value="money" checked>Rémunération</label><label class="choice"><input type="radio" name="rem" value="mixed">Rémunération et produit</label><label class="choice"><input type="radio" name="rem" value="gift">Produit seul</label></div></fieldset>
+            <div class="fgrid fgrid--3">
+              <div class="field"><label class="label" for="f-cur">Devise</label><span class="select"><select class="control" id="f-cur"><option selected>Euro (EUR)</option><option>Franc suisse (CHF)</option><option>Dollar canadien (CAD)</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+              <div class="field" id="band-f"><label class="label" for="f-band">Budget par créateur</label><span class="select"><select class="control" id="f-band"><option>Moins de 500</option><option selected>500 à 1 500</option><option>1 500 à 5 000</option><option>Plus de 5 000</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+              <div class="field"><label class="label" for="f-nb">Créateurs recherchés</label><input class="control control--num" id="f-nb" inputmode="numeric" value="4"></div>
+            </div>
+            <p class="sm c2">Commission incluse, précisée par votre commercial. Les montants se négocient avec lui.</p>
+          </div>
+        </section>
+
+        <!-- Étape 5 · Calendrier et candidature -->
+        <section class="wz-step" data-step="5" aria-labelledby="h5s" hidden data-h="2">
+          <header><h2 tabindex="-1" id="h5s">Calendrier et candidature</h2><p class="c2">Les dates, dans l'ordre où elles arrivent. Environ 3 min.</p>
+            <span class="layer"><svg class="i"><use href="#i-globe"/></svg>Public : visible des créateurs une fois la campagne ouverte</span></header>
+          <p class="order"><span>Candidatures</span><svg class="i"><use href="#i-arrow-right"/></svg><span>livraison des contenus</span><svg class="i"><use href="#i-arrow-right"/></svg><span>période de publication</span></p>
+          <div class="fgrid fgrid--2 dates">
+            <div class="field"><div class="field__top"><label class="label" for="d1">Date limite de candidature</label><p class="help">jj/mm/aaaa</p></div><input class="control date" id="d1" inputmode="numeric" value="15/01/2027" data-date></div>
+            <div class="field"><div class="field__top"><label class="label" for="d2">Livraison des contenus <span class="req">(facultatif)</span></label><p class="help">jj/mm/aaaa</p></div><input class="control date" id="d2" inputmode="numeric" value="20/02/2027" data-date></div>
+            <div class="field"><div class="field__top"><label class="label" for="d3">Début de la publication</label><p class="help">jj/mm/aaaa</p></div><input class="control date" id="d3" inputmode="numeric" value="01/03/2027" data-date></div>
+            <div class="field"><div class="field__top"><label class="label" for="d4">Fin de la publication</label><p class="help">jj/mm/aaaa</p></div><input class="control date" id="d4" inputmode="numeric" value="" data-date data-need="end"></div>
+          </div>
+          <p class="fmsg fmsg--warn" id="d-msg" hidden><svg class="i"><use href="#i-triangle-alert"/></svg><span id="d-msg-t"></span></p>
+          <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (2)</summary><div>
+            <div class="field"><div class="field__top"><label class="label" for="f-req">Éléments que vous aimeriez trouver dans une candidature</label><p class="help">Une idée de contenu, des exemples de collaborations…</p></div><textarea class="control" id="f-req" rows="2" maxlength="600"></textarea></div>
+            <div class="field" style="max-width: 16rem"><div class="field__top"><label class="label" for="f-max">Plafond de candidatures</label><p class="help">Au-delà, la campagne n'accepte plus de candidature.</p></div><input class="control control--num" id="f-max" inputmode="numeric"></div>
+          </div></details>
+        </section>
+
+        <!-- Vérifier et envoyer -->
+        <section class="wz-step" data-step="verifier" aria-labelledby="hvs" hidden data-h="2">
+          <header><h2 tabindex="-1" id="hvs">Vérifier et envoyer</h2><p class="c2">Relisez votre campagne. Un commercial INFLUX la relit avant de l'ouvrir aux créateurs, sous 1 jour ouvré.</p></header>
+          <div class="notice notice--warning" id="d86" hidden><svg class="i"><use href="#i-triangle-alert"/></svg><div class="stack g2"><p><b>Votre profil de marque est en cours de validation.</b> Votre campagne est prête : vous pourrez l'envoyer dès que votre profil sera publié, sous 1 jour ouvré. Nous vous préviendrons par e-mail.</p><a class="go sm" href="#contenu" style="min-height: auto">Voir mon profil de marque <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="errsum" id="errsum" tabindex="-1" hidden><p class="errsum__title"><svg class="i"><use href="#i-circle-alert"/></svg><span id="errsum-title"></span></p><ul id="errsum-list"></ul></div>
+          <div class="stack g2"><p class="label">Ce que voit un créateur dans le fil</p><div id="pv-final"></div><a class="go sm" href="#contenu" style="min-height: auto">Voir la fiche complète, comme un créateur <svg class="i i--sm"><use href="#i-external-link"/></svg></a></div>
+          <div class="recap" id="recap"></div>
+          <div class="actions"><button class="btn btn--primary" type="button" id="send">Envoyer à INFLUX pour validation</button><button class="btn btn--text" type="button" id="back5"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Revenir à l'étape 5</button></div>
+          <p class="sm c2" id="send-help">Après l'envoi, la campagne n'est plus modifiable pendant la relecture.</p>
+        </section>
+
+        <div class="wz-foot" id="wz-foot" data-h="3">
+          <button class="btn btn--text" type="button" id="prev"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Précédent</button>
+          <p class="save" data-save data-kind="saved"><svg class="i"><use href="#i-check"/></svg><span data-save-text>Enregistré automatiquement</span><button class="link" type="button" data-retry hidden>Réessayer</button></p>
+          <button class="btn btn--primary" type="button" id="next"><span><span id="next-l">Continuer</span><span class="next-sub" id="next-sub">&nbsp;: Le travail attendu</span></span><svg class="i i--sm"><use href="#i-arrow-right"/></svg></button>
+        </div>
+      </form>
+
+      <!-- Après l'envoi -->
+      <div class="sent" id="sent-page" hidden>
+        <header class="page-head" data-h="1">
+          <a class="go sm c2" href="#contenu" style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mes campagnes</a>
+          <div class="page-head__row"><h1 class="t-page" tabindex="-1">Collection solaire 2027</h1></div>
+          <p class="row g2"><span class="badge badge--info"><svg class="i"><use href="#i-hourglass"/></svg>En cours de validation</span><span class="sm c2">envoyée aujourd'hui à <span id="sent-at">10 h 12</span></span></p>
+        </header>
+        <div class="notice notice--success" data-h="2"><svg class="i"><use href="#i-circle-check"/></svg><p>Votre campagne est envoyée à INFLUX. Un commercial la relit sous 1 jour ouvré ; vous recevrez un e-mail à l'ouverture ou s'il faut la corriger.</p></div>
+        <section class="stack g3" data-h="3"><h2 class="t-card">La suite</h2>
+          <ol class="steps-next"><li><span>Un commercial INFLUX relit la campagne : titre, résumé, brief, budget.</span></li><li><span>Une fois validée, elle s'ouvre aux créateurs et apparaît dans leur fil jusqu'au 15 janvier 2027.</span></li><li><span>Votre commercial vous présente les candidatures et les créateurs qu'il vous propose.</span></li></ol>
+          <div class="actions"><a class="btn btn--secondary" href="proto-recherche.html">Chercher des créateurs en attendant</a><a class="go sm" href="#contenu">Voir mes campagnes <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+        </section>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  var STEPS = [null, { t: "L'offre", min: 5 }, { t: "Le travail attendu", min: 3 }, { t: "Pour qui", min: 2 }, { t: "Le budget", min: 2 }, { t: "Calendrier et candidature", min: 3 }];
+  var ALL = {
+    brief: { step: 1, label: "Le brief détaillé", field: "f-brief" },
+    review: { step: 2, label: "Le délai de validation des contenus", field: "f-rev" },
+    end: { step: 5, label: "La date de fin de publication", field: "d4" }
+  };
+  var missing = {}, cur = 1, mode = "create", profileLive = true;
+  function resetMissing() { missing = {}; Object.keys(ALL).forEach(function (k) { missing[k] = ALL[k]; }); }
+  resetMissing();
+  function gaps(n) { return Object.keys(missing).filter(function (k) { return missing[k].step === n; }); }
+  function plural(n, w) { return n + " " + w + (n > 1 ? "s" : ""); }
+
+  function card() {
+    var t = $("#f-title").value || "Titre de la campagne", s = $("#f-sum").value || "Votre résumé public apparaîtra ici.";
+    var div = document.createElement("article"); div.className = "feedcard";
+    div.innerHTML = '<p class="feedcard__brand"><span class="logo-plate logo-plate--sm" aria-hidden="true">MA</span>Maison Azur <svg class="i" role="img" aria-label="Marque vérifiée"><use href="#i-badge-check"/></svg></p><h3></h3><p class="sm clamp2"></p><p class="due"><svg class="i"><use href="#i-calendar"/></svg>Candidatures jusqu\'au 15 janvier 2027</p><p class="meta">Instagram : 1 Reel, 3 stories · France, Belgique · Mode, voyage · produit envoyé</p>';
+    div.querySelector("h3").textContent = t; div.querySelector(".clamp2").textContent = s;
+    return div;
+  }
+  function fillPreview(pv) {
+    pv.innerHTML = '<p class="pv__hat"><svg class="i i--sm"><use href="#i-eye"/></svg>Ce que voit un créateur dans le fil · jamais le budget</p>';
+    pv.appendChild(card());
+  }
+  $$("[data-preview]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var pv = b.closest(".wz-step").querySelector("[data-pv]"), open = b.getAttribute("aria-expanded") === "true";
+      b.setAttribute("aria-expanded", String(!open)); pv.hidden = open;
+      if (!open) { fillPreview(pv); pv.classList.remove("is-in"); void pv.offsetWidth; pv.classList.add("is-in"); }
+    });
+  });
+  $$("[data-live]").forEach(function (f) { f.addEventListener("input", function () {
+    $$("[data-pv]").forEach(function (pv) { if (!pv.hidden) fillPreview(pv); });
+    if (f.id === "f-title") $("#wz-name").textContent = f.value || "Sans titre";
+  }); });
+
+  function render() {
+    var isStep = typeof cur === "number";
+    $("#wz").hidden = cur === "envoyee"; $("#sent-page").hidden = cur !== "envoyee";
+    if (cur === "envoyee") return;
+    $$(".wz-step").forEach(function (s) { s.hidden = String(s.getAttribute("data-step")) !== String(cur); });
+    $("#wz-title").textContent = mode === "fix" ? "Compléter votre campagne" : "Création de votre campagne";
+    $("#wz-count").textContent = isStep ? "Étape " + cur + " sur 5" : "Vérification";
+    $$("#segs button").forEach(function (b) {
+      var n = +b.getAttribute("data-go"), past = cur === "verifier" || n < cur;
+      b.className = n === cur ? "cur" : past ? (gaps(n).length ? "gap" : "done") : "";
+      b.disabled = !past && n !== cur;
+      b.setAttribute("aria-label", "Étape " + n + " : " + STEPS[n].t + (n === cur ? ", en cours" : past ? (gaps(n).length ? ", à compléter" : ", faite") : ", à venir"));
+      if (n === cur) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+    });
+    var left = 0; for (var k = isStep ? cur : 6; k <= 5; k++) left += STEPS[k].min;
+    $("#wz-time").textContent = cur === 1 ? "Environ 15 min au total" : left ? "Environ " + left + " min restantes" : "Plus que la relecture";
+    var n = Object.keys(missing).length;
+    $("#to-check").hidden = cur === "verifier";
+    $("#to-check-t").textContent = n ? "Il manque " + plural(n, "information") : "Tout est renseigné";
+    $("#wz-foot").hidden = cur === "verifier";
+    $("#prev").style.visibility = cur === 1 ? "hidden" : "visible";
+    var label = mode === "fix" ? "Revenir à la vérification" : cur === 5 ? "Vérifier ma campagne" : "Continuer";
+    $("#next-l").textContent = label;
+    $("#next-sub").textContent = mode !== "fix" && isStep && cur < 5 ? " : " + STEPS[cur + 1].t : "";
+    if (cur === "verifier") buildRecap();
+  }
+  function go(n, how) {
+    cur = n; render();
+    var s = $('.wz-step[data-step="' + n + '"]');
+    if (s) { s.classList.remove("is-in"); void s.offsetWidth; s.classList.add("is-in"); }
+    if (how !== "silent") {
+      window.scrollTo(0, 0);
+      var h = n === "envoyee" ? $("#sent-page h1") : s.querySelector("h2"); if (h) h.focus({ preventScroll: true });
+      if (how !== "quiet") P.announce(n === "envoyee" ? "Campagne envoyée à INFLUX." : typeof n === "number" ? "Étape " + n + " sur 5 : " + STEPS[n].t + "." : "Vérifier et envoyer.");
+    }
+  }
+  var RECAP = {
+    1: function () { return [["Titre", $("#f-title").value], ["Type", $("#f-type").value], ["Résumé public", $("#f-sum").value], ["Produit", $("#f-prod").value + " · " + $("#f-cat").value]]; },
+    2: function () { return [["Livrables", "Instagram : 1 Reel, 3 stories"], ["Droits d'usage", "Republication sur vos réseaux · 6 mois · pays de la campagne"], ["Exclusivité", "Non"]]; },
+    3: function () { return [["Pays", "France, Belgique"], ["Langues", "Français"], ["Thématiques", "Mode, voyage"]]; },
+    4: function () { return [["Produit envoyé", "Oui · 50 à 200 · conservé · envoi à votre charge"], ["Budget (interne)", "Rémunération · 500 à 1 500 EUR par créateur · 4 créateurs"]]; },
+    5: function () { return [["Candidatures", "jusqu'au " + $("#d1").value], ["Livraison", $("#d2").value || "non précisée"], ["Publication", "du " + $("#d3").value + (($("#d4").value) ? " au " + $("#d4").value : "")]]; }
+  };
+  function esc(s) { var d = document.createElement("span"); d.textContent = s; return d.innerHTML; }
+  function buildRecap() {
+    var pvf = $("#pv-final"); pvf.innerHTML = ""; pvf.appendChild(card());
+    var r = $("#recap"); r.innerHTML = "";
+    [1, 2, 3, 4, 5].forEach(function (n) {
+      var g = gaps(n), sec = document.createElement("section");
+      sec.innerHTML = '<div class="row between g3"><h3>' + n + ". " + STEPS[n].t + (n === 4 ? ' <span class="layer layer--internal"><svg class="i"><use href="#i-eye-off"/></svg>budget interne</span>' : "") + '</h3><button class="link sm" type="button" data-fix="' + n + '">Modifier<span class="sr-only"> : ' + STEPS[n].t + "</span></button></div>" +
+        '<dl class="props">' + RECAP[n]().map(function (p) { return "<dt>" + p[0] + "</dt><dd>" + esc(p[1]) + "</dd>"; }).join("") + "</dl>" +
+        g.map(function (k) { return '<p class="missing"><svg class="i"><use href="#i-triangle-alert"/></svg><span>À compléter : ' + missing[k].label.charAt(0).toLowerCase() + missing[k].label.slice(1) + "</span></p>"; }).join("");
+      r.appendChild(sec);
+    });
+    $$("[data-fix]", r).forEach(function (b) { b.addEventListener("click", function () { mode = "fix"; go(+b.getAttribute("data-fix")); }); });
+    var n = Object.keys(missing).length, list = $("#errsum-list"); list.innerHTML = "";
+    Object.keys(missing).forEach(function (k) {
+      var li = document.createElement("li"), a = document.createElement("a");
+      a.href = "#" + missing[k].field; a.className = "link"; a.textContent = "Étape " + missing[k].step + " — " + missing[k].label;
+      a.addEventListener("click", function (e) { e.preventDefault(); mode = "fix"; go(missing[k].step, "silent"); var f = document.getElementById(missing[k].field); f.scrollIntoView({ block: "center" }); f.focus({ preventScroll: true }); });
+      li.appendChild(a); list.appendChild(li);
+    });
+    $("#errsum-title").textContent = "Il manque " + plural(n, "information") + " pour envoyer votre campagne";
+    if (!n) $("#errsum").hidden = true;
+    $("#d86").hidden = profileLive;
+    $("#send").hidden = !profileLive;
+    $("#send-help").textContent = profileLive ? "Après l'envoi, la campagne n'est plus modifiable pendant la relecture." : "Votre brouillon reste enregistré et modifiable.";
+  }
+  function resolve(k) { if (missing[k]) { delete missing[k]; render(); } }
+
+  $("#next").addEventListener("click", function () {
+    if (mode === "fix") { mode = "create"; go("verifier"); return; }
+    var g = gaps(cur);
+    if (g.length) P.announce("Il reste " + plural(g.length, "information") + " à cette étape : vous pourrez y revenir.");
+    go(cur === 5 ? "verifier" : cur + 1, g.length ? "quiet" : undefined);
+  });
+  $("#prev").addEventListener("click", function () { go(cur - 1); });
+  $("#back5").addEventListener("click", function () { go(5); });
+  $("#to-check").addEventListener("click", function () { mode = "create"; go("verifier"); });
+  $$("#segs button").forEach(function (b) { b.addEventListener("click", function () { if (!b.disabled) go(+b.getAttribute("data-go")); }); });
+  $("#later").addEventListener("click", function () { var n = $("#later-note"); n.hidden = false; n.classList.remove("is-entering"); void n.offsetWidth; n.classList.add("is-entering"); P.announce("Votre campagne est enregistrée. Vous reprendrez à l'étape " + cur + "."); });
+  $("#send").addEventListener("click", function () {
+    var n = Object.keys(missing).length;
+    if (n) { buildRecap(); var es = $("#errsum"); es.hidden = false; es.scrollIntoView({ block: "start" }); es.focus({ preventScroll: true }); P.announce("Il manque " + plural(n, "information") + " pour envoyer votre campagne."); return; }
+    $("#sent-at").textContent = P.time(); location.hash = "envoyee";
+  });
+
+  // Champs : compteur, manque levé à la saisie.
+  $$("[data-count]").forEach(function (f) { var o = document.getElementById(f.getAttribute("data-count")); f.addEventListener("input", function () { o.textContent = f.value.length + " / " + f.maxLength.toLocaleString("fr-FR") + " caractères"; }); });
+  $$("[data-need]").forEach(function (f) { f.addEventListener("input", function () { if (f.value.trim() && f.getAttribute("data-need") !== "end") resolve(f.getAttribute("data-need")); }); f.addEventListener("change", function () { if (f.value.trim() && f.getAttribute("data-need") !== "end") resolve(f.getAttribute("data-need")); }); });
+  // Livrables : un groupe par réseau coché ; décocher ne perd rien (le groupe est seulement masqué).
+  $$("#d-nets input").forEach(function (c) { c.addEventListener("change", function () {
+    var g = $('.deliv__net[data-net="' + c.value + '"]'); g.hidden = !c.checked;
+    if (c.checked) { g.classList.remove("is-entering"); void g.offsetWidth; g.classList.add("is-entering"); }
+  }); });
+  $$(".qty").forEach(function (q) {
+    var o = q.querySelector("output"), b = q.querySelectorAll("button");
+    function set(v) { v = Math.max(0, Math.min(20, v)); o.textContent = v; o.classList.toggle("zero", v === 0); }
+    b[0].addEventListener("click", function () { set(+o.textContent - 1); });
+    b[1].addEventListener("click", function () { set(+o.textContent + 1); });
+  });
+  // Champs conditionnels : apparaissent sous la réponse qui les appelle.
+  function cond(name, box, show) {
+    $$('input[name="' + name + '"]').forEach(function (r) { r.addEventListener("change", function () {
+      var on = show(r.value); var el = document.getElementById(box); if (el.hidden === !on) return;
+      el.hidden = !on; if (on) { el.classList.remove("is-in"); void el.offsetWidth; el.classList.add("is-in"); }
+    }); });
+  }
+  cond("rights", "rights-more", function (v) { return v !== "none"; });
+  cond("sent", "sent-more", function (v) { return v === "yes"; });
+  cond("rem", "band-f", function (v) { return v !== "gift"; });
+  // Dates : format de la langue de la page, ordre contrôlé, message effacé dès que l'ordre est bon.
+  function parse(v) { var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v.trim()); return m ? new Date(+m[3], +m[2] - 1, +m[1]) : null; }
+  function checkDates(announce) {
+    var d = ["d1", "d2", "d3", "d4"].map(function (id) { return parse(document.getElementById(id).value); });
+    var msg = "", bad = null;
+    ["d1", "d2", "d3", "d4"].forEach(function (id) { var v = document.getElementById(id).value.trim(); if (v && !parse(v) && !msg) { msg = "À vérifier : écrivez la date sous la forme jj/mm/aaaa, par exemple 15/01/2027."; bad = id; } });
+    if (!msg && d[0] && d[2] && d[2] < d[0]) { msg = "À vérifier : la publication commence avant la date limite de candidature."; bad = "d3"; }
+    if (!msg && d[1] && d[2] && d[2] < d[1]) { msg = "À vérifier : la publication commence avant la livraison des contenus."; bad = "d3"; }
+    if (!msg && d[2] && d[3] && d[3] < d[2]) { msg = "À vérifier : la fin de la publication précède son début."; bad = "d4"; }
+    ["d1", "d2", "d3", "d4"].forEach(function (id) { document.getElementById(id).setAttribute("aria-invalid", String(id === bad)); });
+    var m = $("#d-msg"); m.hidden = !msg; $("#d-msg-t").textContent = msg;
+    if (msg && announce) P.announce(msg);
+    if (!msg && d[3]) resolve("end");
+  }
+  $$("[data-date]").forEach(function (f) { f.addEventListener("blur", function () { checkDates(true); }); f.addEventListener("input", function () { if (!$("#d-msg").hidden) checkDates(false); }); });
+  // Tags
+  $$("[data-add-tag]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var s = document.getElementById(b.getAttribute("data-add-tag")); if (s.selectedIndex < 1) return;
+      var name = s.options[s.selectedIndex].text, tag = document.createElement("span");
+      tag.className = "tag is-entering"; tag.innerHTML = esc(name) + ' <button type="button" aria-label="Retirer ' + esc(name) + '"><svg class="i i--sm"><use href="#i-x"/></svg></button>';
+      b.closest(".field").querySelector(".tags").appendChild(tag); s.remove(s.selectedIndex); s.selectedIndex = 0; s.focus();
+      P.announce("Ajouté : " + name + ".");
+    });
+  });
+  document.addEventListener("click", function (e) { var x = e.target.closest(".tag button"); if (x) { var t = x.closest(".tag"); P.announce("Retiré : " + t.firstChild.textContent.trim() + "."); t.remove(); } });
+
+  document.addEventListener("proto:state", function (e) {
+    var st = e.detail.st, m;
+    $("#later-note").hidden = true; $("#errsum").hidden = true; mode = "create"; profileLive = true;
+    $("#rail-state").textContent = "Profil : Publié";
+    resetMissing(); $("#f-brief").value = ""; $("#f-rev").selectedIndex = 0; $("#d4").value = ""; $("#d3").value = "01/03/2027"; $("#d-msg").hidden = true;
+    if ((m = /^etape-(\d)$/.exec(st))) {
+      go(+m[1], "silent");
+      if (st === "etape-5") { $("#d3").value = "10/01/2027"; checkDates(false); }
+    } else if (st === "verifier") go("verifier", "silent");
+    else if (st === "verifier-complet" || st === "profil-attente") {
+      $("#f-brief").value = "Notre collection 2027 réinvente la lunette de soleil du quotidien. Nous attendons des contenus lumineux, tournés en extérieur, qui montrent les montures portées en situation réelle."; $("#f-rev").selectedIndex = 2; $("#d4").value = "31/03/2027";
+      missing = {}; if (st === "profil-attente") { profileLive = false; $("#rail-state").textContent = "Profil : En cours de validation"; }
+      go("verifier", "silent");
+    } else if (st === "envoyee") go("envoyee", "silent");
+  });
+  render();
+});
+</script>
+</body>
+</html>

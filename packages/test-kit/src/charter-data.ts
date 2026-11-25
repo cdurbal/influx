@@ -46,6 +46,8 @@ export const KEO_INHERITS: readonly string[] = [
   "--color-verified-bg",
   "--color-badge-error-bg",
   "--color-data-3",
+  // The main account of a creator (RU-13, D88): an alias of data-3, which KEO keeps, so nothing to redefine.
+  "--color-network-primary",
 ];
 
 /**
@@ -87,15 +89,40 @@ export const KEO_RETARGETED: readonly string[] = [
 // ---------------------------------------------------------------------------------------------
 
 /**
- * The tokens of the KEO block that may hold `color-mix(in srgb, var(--color-brand-primary) N%,
- * transparent)`: the glow of the primary button at rest and on hover, and the header glow, at 15 %
- * at most. Never a `--color-*`, a text, the ground of a card nor a border.
+ * The tokens of the KEO block that may hold `color-mix(in srgb, <base> N%, transparent)`. RK-A: the
+ * brand green, in the glow of the primary button at rest and on hover, and in the header glow, at 15 %
+ * at most. RU-04 (D88, 20 §11.5): the page surface at 82, 75 and 45 % for the three scrims, black at
+ * 50 % for the shadow, of an element laid on a photo, the share exact. Never a `--color-*`, a text,
+ * the ground of a card nor a border.
  */
 export const KEO_COLOR_MIX: readonly ColorMixAllowance[] = [
   { name: "--effect-action-glow" },
   { name: "--effect-action-glow-hover" },
   { name: "--background-image-header-glow", maxPercent: 15 },
+  {
+    name: "--effect-photo-scrim-strong",
+    base: "var(--color-surface-page)",
+    percent: 82,
+  },
+  {
+    name: "--effect-photo-scrim",
+    base: "var(--color-surface-page)",
+    percent: 75,
+  },
+  {
+    name: "--effect-photo-scrim-soft",
+    base: "var(--color-surface-page)",
+    percent: 45,
+  },
+  { name: "--effect-photo-shadow", base: "#000000", percent: 50 },
 ];
+
+/**
+ * The modules (relative to the root of a front) that read the `--effect-photo-*` tokens, the only
+ * ones allowed to (G8; RU-04). Empty in RUA, which declares the tokens: the screen that lays an
+ * element on a photo adds its module here, in the commit that reads the token.
+ */
+export const PHOTO_EFFECT_READERS: readonly string[] = [];
 
 // ---------------------------------------------------------------------------------------------
 // G8: what the member pages never consume (02 §21.6; 18 §5.1)
@@ -304,6 +331,23 @@ export const CONTRAST_MATRIX: Readonly<Record<Charter, readonly TokenPair[]>> =
         [CARD],
         NON_TEXT_MIN,
       ),
+      // The Lot 3bis (D88, RUA; 20 §11.4): the star of the main account on the surfaces of a card,
+      // the initials of a logo on its plate, the tick of a checked box on the action green.
+      ...contrasts(
+        ["--color-network-primary"],
+        [CARD, RAISED, HOVER],
+        NON_TEXT_MIN,
+      ),
+      ...contrasts(
+        ["--color-text-inverse"],
+        ["--color-logo-plate", "--color-surface-inverse"],
+        TEXT_MIN,
+      ),
+      ...contrasts(
+        ["--color-text-inverse"],
+        ["--color-action-primary-bg"],
+        NON_TEXT_MIN,
+      ),
       ...DANGER_PAIRS,
       ...SUCCESS_HUE_PAIRS,
     ],
@@ -362,6 +406,25 @@ export const GLOW_PEAK_PAIRS: readonly TokenPair[] = [
   ...contrasts(["--color-feedback-error-text"], [GLOW_PEAK], TEXT_MIN),
   ...contrasts(["--color-border-strong"], [GLOW_PEAK], NON_TEXT_MIN),
 ];
+
+/** The lightest photo: the worst ground of a light text under a scrim (RU-04; `withMixOver`). */
+export const PHOTO_WORST = "#ffffff";
+
+/** The derived colors of the scrims of 82 and 75 % laid over PHOTO_WORST (`withMixOver`). */
+export const PHOTO_SCRIM_STRONG = "--derived-photo-scrim-strong";
+export const PHOTO_SCRIM = "--derived-photo-scrim";
+
+/**
+ * The text that may sit on the scrims of 82 and 75 % (20 §11.4, "voile"): the primary text on the
+ * composite of the scrim over a white photo, the worst case. Kept apart from CONTRAST_MATRIX, whose
+ * pairs are all declared tokens, as GLOW_PEAK_PAIRS. The scrim of 45 % carries no text (decor, the edge
+ * of its element holds by `--effect-photo-shadow`): no pair.
+ */
+export const PHOTO_SCRIM_PAIRS: readonly TokenPair[] = contrasts(
+  ["--color-text-primary"],
+  [PHOTO_SCRIM_STRONG, PHOTO_SCRIM],
+  TEXT_MIN,
+);
 
 // ---------------------------------------------------------------------------------------------
 // G3g and G3h: where the role colors live, which pairs of classes never go together (20 §11.3, §11.4)

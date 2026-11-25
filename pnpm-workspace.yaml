@@ -19,3 +19,8 @@ allowBuilds:
   "@swc/core": false
   esbuild: true
   unrs-resolver: false
+
+# Audited advisory GHSA-68fv-2mgg-jv7q (high): source-map-js < 1.2.2, transitive of next > postcss.
+# Pin the patched version until postcss and next resolve it by themselves; remove then (L2A-03).
+overrides:
+  source-map-js: 1.2.2

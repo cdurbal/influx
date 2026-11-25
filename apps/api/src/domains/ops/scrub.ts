@@ -3,6 +3,7 @@
 // It removes what may identify a person or open an account — e-mail addresses, codes and other
 // digit runs, identifiers, tokens, IP addresses, query strings, absolute paths — and bounds the
 // length. Pure, deterministic, without any I/O.
+import { KNOWN_ROUTE_MODELS } from "@influx/contracts/route-models";
 import { createHash } from "node:crypto";
 
 /**
@@ -120,11 +121,23 @@ export function fingerprintOf(parts: {
 
 const ROUTE_MODEL = /^\/[A-Za-z0-9/_:.*[\]-]{0,199}$/;
 
+/** Whether a route model is on the closed list of packages/contracts (L2AS-2). */
+export type RouteModelFilter = (model: string) => boolean;
+
+const isKnownRouteModel: RouteModelFilter = (model) =>
+  KNOWN_ROUTE_MODELS.has(model);
+
 /**
- * A route model, as stored (0016): a pathname whose identifiers and digit segments become `:id`.
- * Anything that is not a plain path becomes null rather than being stored.
+ * A route model, as stored (0016): a pathname whose identifiers and digit segments become `:id`,
+ * kept only when it is on the closed list (L2AS-2, `@influx/contracts/route-models`). Anything
+ * else — a path no page or route serves, a name or a handle in an address, anything that is not a
+ * plain path — becomes null rather than being stored (a request counts it as `unmatched`).
+ * `isKnown` is replaced by tests only, for synthetic routes.
  */
-export function routeModelOf(path: string | null | undefined): string | null {
+export function routeModelOf(
+  path: string | null | undefined,
+  isKnown: RouteModelFilter = isKnownRouteModel,
+): string | null {
   if (path === null || path === undefined || path === "") {
     return null;
   }
@@ -141,5 +154,7 @@ export function routeModelOf(path: string | null | undefined): string | null {
         : segment,
     )
     .join("/");
-  return model !== undefined && ROUTE_MODEL.test(model) ? model : null;
+  return model !== undefined && ROUTE_MODEL.test(model) && isKnown(model)
+    ? model
+    : null;
 }

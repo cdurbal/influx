@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 7 · Formulaire de campagne</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html" aria-current="page">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 7 · Annonceur</p>
+    <h1 class="d-h1">Formulaire de campagne</h1>
+    <p class="d-lead">Les cinq étapes actuelles sont gardées, mais la forme reprend l'assistant validé pour le profil créateur (écran 3) : progression en segments, temps restant, champs obligatoires d'abord, le reste replié, « Continuer » jamais bloquant, puis « Vérifier et envoyer ». Option A, retenue le 2026-11-24.</p>
+    <div class="d-ids"><span class="u u--imp">U22</span><span class="u u--imp">U24</span><span class="u u--imp">U26</span><span class="u u--imp">U27</span><span class="u u--imp">U30</span><span class="u">U52</span><span class="u">U63</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Ordinateur 1 440 px</button><button class="d-toggle" type="button" data-mode="phone" aria-pressed="false"><svg class="i i--sm"><use href="#i-smartphone"/></svg>Téléphone 390 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="etape-1" data-cap="m06-campagne-etape-1.jpg" aria-pressed="true">Étape 1</button>
+        <button type="button" data-st="etape-2" data-cap="" aria-pressed="false">Étape 2</button>
+        <button type="button" data-st="etape-4" data-cap="" aria-pressed="false">Étape 4 · budget</button>
+        <button type="button" data-st="etape-5" data-cap="" aria-pressed="false">Étape 5 · dates</button>
+        <button type="button" data-st="verifier" data-cap="" aria-pressed="false">Vérifier et envoyer</button>
+        <button type="button" data-st="profil-attente" data-cap="" aria-pressed="false">Profil non publié</button>
+        <button type="button" data-st="envoyee" data-cap="" aria-pressed="false">Envoyée</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>Pas de capture de cet état dans l'audit.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-campagne.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-campagne.html" title="Prototype du formulaire de campagne" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran :
+      <br>« Aperçu » aux étapes 1 et 3, puis modifier le titre ;
+      <br>cocher TikTok à l'étape 2 ;
+      <br>choisir « Aucun » droit d'usage, « Non » au produit envoyé ou « Produit seul » ;
+      <br>corriger la date de début à l'étape 5 ;
+      <br>« Envoyer » avec des informations manquantes, puis suivre un lien du résumé.</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Problèmes relevés</h2>
+    <ul class="d-list">
+      <li><b>Une étape 1 interminable</b> : 6 champs obligatoires et 3 facultatifs au même niveau, dans des cartes posées dans la page ; environ 4 150 px sur téléphone.</li>
+      <li><b>Le même badge sur presque chaque champ</b> (U22) : « Publié : visible des créateurs » noie la seule information qui compte, le budget interne (U30).</li>
+      <li><b>Trois actions principales dès l'étape 1 sur téléphone</b> (U24) : « Étape suivante », le panneau « Soumettre » et la barre « Soumettre ».</li>
+      <li><b>Les erreurs</b> : jusqu'à 11 boîtes rouges (U27) ; quatre façons de dire ce qui manque selon l'écran (U26).</li>
+      <li><b>Les dates</b> au format du système, sans contrôle de leur ordre (U52) ; <b>« Soumettre ma campagne »</b> ne dit pas ce qui se passe ensuite (U63).</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Composition cible</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Étape</th><th>Visible tout de suite</th><th>Replié sous « Facultatif »</th></tr></thead>
+      <tbody>
+        <tr><td>1 · L'offre</td><td>Titre, type, résumé public, brief, produit, catégorie</td><td>Messages clés, interdits, référence interne (encadré interne)</td></tr>
+        <tr><td>2 · Le travail attendu</td><td>Livrables groupés par réseau coché, avec une quantité par format ; droits d'usage (durée et territoire s'ils sont demandés) ; exclusivité ; délai de validation des contenus</td><td>—</td></tr>
+        <tr><td>3 · Pour qui</td><td>Pays, langues, thématiques</td><td>Taille d'audience, âges, genre</td></tr>
+        <tr><td>4 · Le budget</td><td>Produit envoyé (public) ; encadré interne : nature de la rémunération, devise, tranche de budget (sauf produit seul), nombre de créateurs</td><td>—</td></tr>
+        <tr><td>5 · Calendrier et candidature</td><td>Date limite, livraison (facultative), début et fin de publication, au format jj/mm/aaaa, ordre contrôlé</td><td>Éléments attendus dans une candidature, plafond</td></tr>
+      </tbody></table></div>
+    <ul class="d-list">
+      <li><b>Un badge « Public » par étape</b>, et un encadré « Visible uniquement par vous et l'équipe INFLUX, jamais par un créateur » pour le budget et la référence interne.</li>
+      <li><b>Une seule action principale</b> : « Continuer : &lt;étape suivante&gt; ». L'envoi reste toujours atteignable en secondaire, par « Il manque 3 informations · voir la liste » en tête (C6).</li>
+      <li><b>« Vérifier et envoyer »</b> : la carte du fil telle qu'un créateur la verra, sans budget ; le récapitulatif par étape avec « Modifier » ; un seul résumé des manques, dont chaque ligne ouvre l'étape et place le curseur sur le champ ; « Envoyer à INFLUX pour validation ».</li>
+      <li><b>Profil de marque pas encore publié</b> (D86) : le brouillon se prépare jusqu'au bout. Le récapitulatif explique pourquoi l'envoi attend et mène au profil.</li>
+      <li><b>Après l'envoi</b> : la campagne est « En cours de validation », la suite est décrite en trois étapes, et une action est proposée en attendant (chercher des créateurs).</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La page dans son ensemble, sur ordinateur et sur téléphone.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Correction du tableau validé : droits d'usage, exclusivité et délai de validation sont obligatoires dans le code (RG4). Ils sont donc visibles tout de suite à l'étape 2, pas repliés.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Le bloc « Produit envoyé » passe de l'étape 1 (code actuel) à l'étape 4, comme validé : c'est un changement de règle pour le <code>product-owner</code>.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>« Soumettre » n'est plus une action principale visible en permanence : arbitrage de RG4 par le <code>product-owner</code> (C6).</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-6-bo-fiche-compte.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 6 · Fiche de compte</a><a class="go" href="ecran-8-campagnes-createur.html">Écran 8 · Campagnes créateur <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

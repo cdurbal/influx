@@ -145,21 +145,31 @@ describe("J3 commit 11: the demonstration accounts", () => {
       "created",
     );
     const rows = await migrationRole()<
-      { email: string; role: string; accepted: number }[]
+      {
+        email: string;
+        role: string;
+        accepted: number;
+        brand_profiles: number;
+      }[]
     >`
       select a.email, r.role::text as role,
              (select count(*)::int from identity.terms_acceptances t where t.account_id = a.id)
-               as accepted
+               as accepted,
+             (select count(*)::int from profiles.advertiser_profiles p where p.account_id = a.id)
+               as brand_profiles
         from identity.accounts a
         join identity.account_roles r on r.account_id = a.id
         join auth.users u on u.id = a.auth_user_id
        where a.email in ${migrationRole()(accounts.map((account) => account.email))}
        order by a.email`;
-    expect(rows.map((row) => [row.role, row.accepted]).sort()).toEqual([
-      ["admin", 0],
-      ["advertiser", 1],
-      ["agent", 0],
-      ["creator", 1],
+    // The brand holds its profile like after a real sign-up; nobody else holds one.
+    expect(
+      rows.map((row) => [row.role, row.accepted, row.brand_profiles]).sort(),
+    ).toEqual([
+      ["admin", 0, 0],
+      ["advertiser", 1, 1],
+      ["agent", 0, 0],
+      ["creator", 1, 0],
     ]);
     for (const account of accounts.filter(
       (each) => each.enrollmentToken !== null,

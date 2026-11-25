@@ -25,17 +25,37 @@ import {
   completeAttempt,
   isLineNotInProcessing,
   readApolloSubject,
+  readBrandProfileAttributes,
+  readBrevoBadgeEmail,
+  readBrevoCampaignDecision,
+  readCampaignAttributes,
+  readBrevoCreatorProfileDecision,
   readBrevoErasureSubject,
+  readBrevoPortfolioDecision,
+  readBrevoProfileDecision,
   readBrevoSubject,
+  readBrevoVerificationEmail,
+  readCreatorProfileAttributes,
+  readVerifiedBadge,
   recoverStaleLines,
   startWorkerStep,
   type AttemptOutcome,
   type ApolloSubject,
   type AttemptState,
+  type BrandProfileAttributes,
+  type BrevoBadgeEmail,
+  type BrevoCampaignDecision,
+  type CampaignAttributes,
+  type BrevoCreatorProfileDecision,
   type BrevoErasureSubject,
+  type BrevoPortfolioDecision,
+  type BrevoProfileDecision,
   type BrevoSubject,
+  type BrevoVerificationEmail,
   type ClaimedLine,
+  type CreatorProfileAttributes,
   type RecoveredLine,
+  type VerifiedBadge,
   type WorkerStart,
   type WrittenStatus,
 } from "./repository.ts";
@@ -175,6 +195,318 @@ export async function readBrevoErasureSubjectOf(
           value: subject,
           auditSubject:
             subject === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of a brand decision (0211, profile.decision): the decision, its reason,
+ * the message of the agent and the account's language, for a line in processing for this worker.
+ * It reads no address (that comes from readBrevoSubjectOf); its register line is on the account all
+ * the same, as the other privileged reads of the worker. Its own short transaction, closed before
+ * the call (G4).
+ */
+export async function readBrevoProfileDecisionOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoProfileDecision | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const decision = await readBrevoProfileDecision(tx, line.id, worker);
+        return {
+          value: decision,
+          auditSubject:
+            decision === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of a creator profile decision (0245, creator_profile.decision): the
+ * kind of the entry, the decision, its reason, the message of the agent and the account's language,
+ * for a line in processing for this worker. As readBrevoProfileDecisionOf: no address, its register
+ * line on the account, its own short transaction closed before the call (G4).
+ */
+export async function readBrevoCreatorProfileDecisionOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoCreatorProfileDecision | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const decision = await readBrevoCreatorProfileDecision(
+          tx,
+          line.id,
+          worker,
+        );
+        return {
+          value: decision,
+          auditSubject:
+            decision === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of the decision of a visual (0245, portfolio.decision): the decision,
+ * its reason, whether it replaces another visual, the day of its deposit and the account's
+ * language. Same shape as readBrevoCreatorProfileDecisionOf.
+ */
+export async function readBrevoPortfolioDecisionOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoPortfolioDecision | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const decision = await readBrevoPortfolioDecision(tx, line.id, worker);
+        return {
+          value: decision,
+          auditSubject:
+            decision === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo contact connector's read of the creator attributes (0245; 07 RG107 to RG110): the live
+ * storefront of the line's account, for a Brevo contact line in processing for this worker. Never
+ * called for an Apollo line (the base refuses it, RG109). Its own short transaction, closed before
+ * the call (G4).
+ */
+export async function readCreatorProfileAttributesOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<CreatorProfileAttributes | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const attributes = await readCreatorProfileAttributes(
+          tx,
+          line.id,
+          worker,
+        );
+        return {
+          value: attributes,
+          auditSubject:
+            attributes === null
+              ? null
+              : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of the facts of a verification e-mail (0227, verification.received,
+ * .code_issued, .decision, .request_expired): the level, the reason, the date of the badge or the
+ * kind and expiry of the code, and the account's language, for a line in processing for this
+ * worker. It reads no address (that comes from readBrevoSubjectOf) and never the code; its
+ * register line is on the account all the same, as the other privileged reads of the worker. Its
+ * own short transaction, closed before the call (G4).
+ */
+export async function readBrevoVerificationEmailOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoVerificationEmail | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const facts = await readBrevoVerificationEmail(tx, line.id, worker);
+        return {
+          value: facts,
+          auditSubject:
+            facts === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of the facts of an e-mail of the life of the badge (0236,
+ * verification.expiry_*, .revoked_notice, .dispute_received, .dispute_outcome, .reconfirm_required,
+ * .agent_opened_notice) for a line in processing for this worker: the object the line names, its
+ * level, reason and dates, and the account's language. No address (readBrevoSubjectOf), no figure,
+ * no handle. Its own short transaction, closed before the call (G4).
+ */
+export async function readBrevoBadgeEmailOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoBadgeEmail | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const facts = await readBrevoBadgeEmail(tx, line.id, worker);
+        return {
+          value: facts,
+          auditSubject:
+            facts === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo contact connector's read of the badge level of the account (0227, VERIFIED_LEVEL and
+ * VERIFIED_AT): for a brevo_contact line in processing for this worker, never Apollo. Its own
+ * short transaction, closed before the call (G4).
+ */
+export async function readVerifiedBadgeOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<VerifiedBadge | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const badge = await readVerifiedBadge(tx, line.id, worker);
+        return {
+          value: badge,
+          auditSubject:
+            badge === null ? null : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The contact connectors' read of the brand attributes (0212, profile.completed and lead.updated):
+ * the live profile of the line's account, for a line in processing for this worker, shared by
+ * Brevo and Apollo. It reads no address; its register line is on the account all the same, as the
+ * other privileged reads of the worker. Its own short transaction, closed before the call (G4).
+ */
+export async function readBrandProfileAttributesOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrandProfileAttributes | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const attributes = await readBrandProfileAttributes(
+          tx,
+          line.id,
+          worker,
+        );
+        return {
+          value: attributes,
+          auditSubject:
+            attributes === null
+              ? null
+              : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The contact connectors' read of the campaign attributes (0310; 09 RG104, RG105): the campaigns of the
+ * line's account, for a line in processing for this worker, shared by Brevo and Apollo. On an Apollo
+ * line the base returns the boolean and the date only (CA70). It reads no address; its register line
+ * is on the account all the same, as the other privileged reads of the worker. Its own short
+ * transaction, closed before the call (G4).
+ */
+export async function readCampaignAttributesOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<CampaignAttributes | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const attributes = await readCampaignAttributes(tx, line.id, worker);
+        return {
+          value: attributes,
+          auditSubject:
+            attributes === null
+              ? null
+              : line.subjectKey.slice("account:".length),
+        };
+      },
+    ),
+  );
+}
+
+/**
+ * The Brevo connector's read of the facts of a campaign decision e-mail (0310, campaign.decision): the
+ * code, the type of the campaign, the day, the reason, the message of a refusal, the field of a
+ * correction and the account's language, for a line in processing for this worker. It reads no
+ * address (that comes from readBrevoSubjectOf), never the internal comment nor an agent; its register
+ * line is on the account all the same. Its own short transaction, closed before the call (G4).
+ */
+export async function readBrevoCampaignDecisionOf(
+  database: WorkerDatabase,
+  requestId: string,
+  line: ClaimedLine,
+  worker: string,
+): Promise<BrevoCampaignDecision | null> {
+  return translated(
+    withElevatedTransaction(
+      database,
+      "leads.drain_outbox",
+      requestId,
+      async (tx) => {
+        const facts = await readBrevoCampaignDecision(tx, line.id, worker);
+        return {
+          value: facts,
+          auditSubject:
+            facts === null ? null : line.subjectKey.slice("account:".length),
         };
       },
     ),

@@ -546,8 +546,9 @@ export function relayIntegrationSuite(suite: RelayIntegrationSuite): void {
   });
 
   describe("T7.3: body size and delay (PP-9)", () => {
-    it("forwards 1 MiB, refuses 1 MiB + 1 with 413, declared or streamed", async () => {
-      const limit = 1_048_576;
+    // D80: 2 MiB, the raw bytes of a logo (jalons/l2b/stockage.md §3).
+    it("forwards 2 MiB, refuses 2 MiB + 1 with 413, declared or streamed", async () => {
+      const limit = 2_097_152;
       const exact = await relayed("/api/v1/echo", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -564,6 +565,37 @@ export function relayIntegrationSuite(suite: RelayIntegrationSuite): void {
         });
         expectRelayRefusal(expect, over, 413, "payload_too_large");
       }
+      expect(api.requests).toHaveLength(1);
+    });
+
+    // D82 (1): 8 MiB on the deposit of a piece of verification, and on that path only.
+    it("forwards 8 MiB on the deposit of a piece, refuses 8 MiB + 1 there and 2 MiB + 1 elsewhere", async () => {
+      const limit = 8_388_608;
+      const evidence =
+        "/api/v1/me/verification/requests/0d6c1b9e-3f7a-4c52-9a1e-6b2f8d4c7e10/evidence";
+      const octets = { "content-type": "application/octet-stream" };
+      const exact = await relayed(evidence, {
+        method: "PUT",
+        headers: octets,
+        body: Buffer.alloc(limit, 0x61),
+      });
+      expect(exact.status).toBe(200);
+      expect(api.requests[0]?.bodyBytes).toBe(limit);
+      for (const chunked of [false, true]) {
+        const over = await relayed(evidence, {
+          method: "PUT",
+          headers: octets,
+          body: Buffer.alloc(limit + 1, 0x61),
+          chunked,
+        });
+        expectRelayRefusal(expect, over, 413, "payload_too_large");
+      }
+      const elsewhere = await relayed(evidence, {
+        method: "POST",
+        headers: octets,
+        body: Buffer.alloc(2_097_153, 0x61),
+      });
+      expectRelayRefusal(expect, elsewhere, 413, "payload_too_large");
       expect(api.requests).toHaveLength(1);
     });
 

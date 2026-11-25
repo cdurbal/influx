@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Mes campagnes (marque)</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Des lignes regroupées par ce qu'il faut faire (D4) ; une seule action verte. */
+  .camp { width: 100%; max-width: var(--container-narrow); display: flex; flex-direction: column; gap: var(--spacing-6); }
+  .grp { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .grp > h2, .grp > details > summary { display: flex; align-items: center; gap: var(--spacing-2); font-family: var(--font-display); font-size: var(--text-sm); font-weight: var(--font-weight-bold); color: var(--color-text-secondary); }
+  .grp .n { font-variant-numeric: tabular-nums; color: var(--color-text-tertiary); }
+  .grp details > summary { min-height: var(--size-touch-target); cursor: pointer; list-style: none; }
+  .grp details > summary::-webkit-details-marker { display: none; }
+  .grp details > summary .i { transition: rotate var(--duration-base) var(--ease-standard); }
+  .grp details[open] > summary .i { rotate: 90deg; }
+  .grp details[open] > .rows { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .rows > li.c-row { grid-template-columns: minmax(0, 1fr) 15rem 5.5rem 1.25rem; padding-inline: var(--spacing-2); }
+  .c-row .r-title a { text-decoration: none; }
+  .c-row .st { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-1); }
+  .c-row .st .sub { font-size: var(--text-xs); color: var(--color-text-secondary); }
+  .c-row .date { font-size: var(--text-sm); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .c-row .chev { color: var(--color-text-tertiary); width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .c-row .why { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-1) var(--spacing-3); font-size: var(--text-sm); color: var(--color-feedback-warning-text); }
+  .c-row .why .i { width: var(--size-icon-sm); height: var(--size-icon-sm); align-self: center; }
+  .c-row .why a { position: relative; z-index: 1; font-weight: var(--font-weight-semibold); }
+  .c-row.is-done .r-title { color: var(--color-text-secondary); }
+  @media (width < 768px) {
+    .rows > li.c-row { grid-template-columns: minmax(0, 1fr) 1.25rem; align-items: start; }
+    .c-row .r-main { grid-column: 1; }
+    .c-row .chev { grid-column: 2; grid-row: 1; align-self: center; }
+    .c-row .st { grid-column: 1; flex-direction: row; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-2); }
+    .c-row .date { grid-column: 1; }
+    .c-row .date::before { content: "Modifiée le "; }
+  }
+  .page-head__row .btn { flex-shrink: 0; }
+  .empty { display: flex; flex-direction: column; gap: var(--spacing-4); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); padding: var(--spacing-inset-card); }
+  .empty h2 { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-md); }
+  .empty ol { display: flex; flex-direction: column; gap: var(--spacing-2); padding-left: var(--spacing-5); list-style: decimal; font-size: var(--text-sm); color: var(--color-text-secondary); }
+</style>
+</head>
+<body data-default="liste">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <option value="liste">Cinq campagnes</option>
+      <option value="pause">Une campagne en pause</option>
+      <option value="un-brouillon">Un seul brouillon</option>
+      <option value="neuve">Marque neuve, profil non publié</option>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head"><a class="m-brand" href="#contenu">INFLUX</a><span class="role role--brand">Espace marque</span><button class="btn btn--secondary lg-hide" type="button">English</button></header>
+    <nav class="m-nav" aria-label="Navigation principale"><ul class="m-nav__list">
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-accueils.html#marque"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link is-ancestor" href="#contenu"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a>
+        <div class="m-sub"><a class="is-current" aria-current="page" href="#contenu">Mes campagnes</a></div></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-recherche.html"><svg class="i"><use href="#i-users"/></svg><span>Créateurs</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="proto-profil-marque.html#profil"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a></li>
+    </ul></nav>
+    <div class="m-state"><b data-unless="neuve">Profil : Publié</b><b data-when="neuve">Profil : Brouillon</b><a class="go sm" href="proto-profil-marque.html#etape-1" data-when="neuve">Compléter mon profil <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+    <footer class="m-foot"><button class="btn btn--secondary" type="button">English</button><p class="sm c2">Connecté avec claire.morel@example.test</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button></footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page">
+      <div class="camp">
+        <header class="page-head" data-h="1">
+          <div class="page-head__row"><h1 class="t-page" tabindex="-1">Mes campagnes</h1><a class="btn btn--primary" href="proto-campagne.html#etape-1"><svg class="i"><use href="#i-plus"/></svg>Créer une campagne</a></div>
+        </header>
+
+        <!-- Liste -->
+        <section class="grp" aria-labelledby="g-todo" data-when="liste pause un-brouillon" data-h="2"><h2 id="g-todo">À faire <span class="n" id="n-todo">2</span></h2>
+          <ul class="rows">
+            <li class="c-row" data-unless="un-brouillon"><div class="r-main"><p class="r-title"><a class="cover" href="proto-campagne-marque.html#corriger">Coffret de fêtes : calendrier de l'Avent beauté</a></p></div>
+              <div class="st"><span class="badge badge--warning"><svg class="i"><use href="#i-triangle-alert"/></svg>À corriger</span></div><span class="date">22 nov.</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+              <p class="why"><span>Motif de votre commercial : « Votre brief ne permet pas à un créateur de comprendre ce que vous attendez. »</span><a class="link" href="proto-campagne.html#etape-1">Corriger<span class="sr-only"> : Coffret de fêtes</span></a></p></li>
+            <li class="c-row"><div class="r-main"><p class="r-title"><a class="cover" href="proto-campagne.html#etape-1">Collection solaire 2027</a></p></div>
+              <div class="st"><span class="badge">Brouillon</span><span class="sub">3 informations manquantes</span></div><span class="date">22 nov.</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+          </ul>
+        </section>
+
+        <section class="grp" aria-labelledby="g-cur" data-when="liste pause" data-h="2"><h2 id="g-cur">En cours <span class="n">2</span></h2>
+          <ul class="rows">
+            <li class="c-row"><div class="r-main"><p class="r-title"><a class="cover" href="proto-campagne-marque.html#validation">Baume lèvres SPF 30 : lancement de printemps</a></p></div>
+              <div class="st"><span class="badge badge--info"><svg class="i"><use href="#i-hourglass"/></svg>En cours de validation</span><span class="sub">réponse sous 1 jour ouvré</span></div><span class="date">22 nov.</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+            <li class="c-row" data-when="liste"><div class="r-main"><p class="r-title"><a class="cover" href="proto-campagne-marque.html#publiee">Routine éclat d'hiver : sérum à la vitamine C</a></p></div>
+              <div class="st"><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Publiée</span><span class="sub">candidatures jusqu'au 15 janv.</span></div><span class="date">22 nov.</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+            <li class="c-row" data-when="pause"><div class="r-main"><p class="r-title"><a class="cover" href="proto-campagne-marque.html#pause">Routine éclat d'hiver : sérum à la vitamine C</a></p></div>
+              <div class="st"><span class="badge badge--warning"><svg class="i"><use href="#i-clock"/></svg>En pause</span><span class="sub">candidatures suspendues</span></div><span class="date">23 nov.</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+          </ul>
+        </section>
+
+        <section class="grp" aria-labelledby="g-done" data-when="liste pause" data-h="3">
+          <details><summary id="g-done"><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Terminées <span class="n">1</span></summary>
+            <ul class="rows">
+              <li class="c-row is-done"><div class="r-main"><p class="r-title"><a class="cover" href="proto-campagne-marque.html#close">Ambassadeurs soin du corps 2026</a></p></div>
+                <div class="st"><span class="badge">Clôturée</span></div><span class="date">22 nov.</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-right"/></svg></li>
+            </ul></details>
+        </section>
+
+        <p class="sm c2" data-when="un-brouillon" data-h="3">Un brouillon n'est vu de personne d'autre que vous tant que vous ne l'avez pas envoyé à INFLUX.</p>
+
+        <!-- Marque neuve -->
+        <div class="notice notice--info" data-when="neuve" data-h="2"><svg class="i"><use href="#i-info"/></svg><div class="stack g2"><p>Vous pouvez préparer votre campagne dès maintenant. Vous l'enverrez à INFLUX une fois votre profil de marque publié, sous 1 jour ouvré après son envoi.</p><a class="go sm" href="proto-profil-marque.html#etape-1" style="min-height: auto">Compléter mon profil de marque <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+        <section class="empty" data-when="neuve" data-h="2" aria-labelledby="e-t">
+          <h2 id="e-t">Votre première campagne</h2>
+          <p class="sm c2">Une campagne décrit ce que vous proposez à des créateurs. Elle s'enregistre au fil de la saisie ; un commercial INFLUX la relit avant de l'ouvrir.</p>
+          <ol><li>L'offre et le travail attendu</li><li>Les créateurs visés et votre budget, qui reste entre vous et INFLUX</li><li>Le calendrier, puis l'envoi à INFLUX</li></ol>
+          <p class="sm c2">Environ 15 minutes.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("proto:state", function (e) {
+    P.$("#n-todo").textContent = e.detail.st === "un-brouillon" ? "1" : "2";
+  });
+});
+</script>
+</body>
+</html>

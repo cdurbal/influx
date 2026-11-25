@@ -10,10 +10,13 @@
 //   The screen lists through it: the instants of a period are no plain query characters (EC-62).
 // - GET /v1/bo/accounts/counters: the head banner of the day (RG105).
 // - GET /v1/bo/accounts/:id: the record, its state per destination with the cause in clear (RG99,
-//   RG100), the responsible salespersons (RG49), the "mes données" requests that an admin executes
-//   from here under 2V + R (15 §G, J8 commit 8: their state, never an export's content) and the
-//   history (EC-31), whose read is the journal of the opening (RG40, EC-J8-24). Unknown,
-//   malformed-free but internal, or own: the same 404 (18 T14.3, T14.4).
+//   RG100), the responsible salespersons (RG49), the contact person and the profile of a brand (15
+//   RG41 blocks 2 and 3; L2C-18: its read is covered by the line of the opening), the exact figures of
+//   a creator's network lines and the counts of the portfolio (L2G-17, same cover), the "mes
+//   données" requests that an admin executes from here under 2V + R (15 §G, J8 commit 8: their
+//   state, never an export's content) and the history (EC-31), whose read is the journal of the
+//   opening (RG40, EC-J8-24). Unknown, malformed-free but internal, or own: the same 404 (18
+//   T14.3, T14.4).
 // - Every answer is `Cache-Control: no-store`: it carries personal data.
 import {
   ACCOUNT_HISTORY_PAGE_SIZE,
@@ -55,6 +58,8 @@ import {
   type AccountDataRequestRow,
   type HistoryRow,
 } from "./account-history/repository.ts";
+import { brandRecordOf } from "./account-brand/repository.ts";
+import { creatorRecordOf } from "./account-creator/repository.ts";
 import {
   listMemberAccounts,
   memberAccountDetail,
@@ -347,6 +352,18 @@ export function registerBackofficeAccountRoutes(
           throw new ApiError("not_found");
         }
         const ownership = await ownershipOf(tx, accountId);
+        // blocks 2 and 3 of a brand (L2C-18, L2BS-7): read before the history, whose line is the
+        // journal of this opening, contact person included, once (RG40)
+        const brand =
+          account.role === "advertiser"
+            ? await brandRecordOf(tx, accountId)
+            : null;
+        // blocks 2 to 4 of a creator (L2G-17, modele point 13): the exact figures and the counts of the
+        // portfolio, covered by the same line of the opening
+        const creator =
+          account.role === "creator"
+            ? await creatorRecordOf(tx, accountId)
+            : null;
         const dataRequests = (await dataRequestsOf(tx, accountId)).map(
           dataRequestOf,
         );
@@ -369,6 +386,8 @@ export function registerBackofficeAccountRoutes(
             deletedAt: account.deletedAt,
           },
           ownership,
+          brand,
+          creator,
           dataRequests,
           history: {
             events: events.map(historyEventOf),

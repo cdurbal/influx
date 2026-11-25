@@ -4,5 +4,11 @@
 export * as auditSchema from "./audit.ts";
 export * as backofficeSchema from "./backoffice.ts";
 export * as billingSchema from "./billing.ts";
+export * as campaignsSchema from "./campaigns.ts";
 export * as identitySchema from "./identity.ts";
+export * as matchingSchema from "./matching.ts";
+export * as profilesSchema from "./profiles.ts";
+export * as profilesCreatorIdentitySchema from "./profiles-creator-identity.ts";
 export * as referenceSchema from "./reference.ts";
+export * as searchSchema from "./search.ts";
+export * as verificationSchema from "./verification.ts";

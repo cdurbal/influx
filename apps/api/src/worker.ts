@@ -41,7 +41,17 @@ import {
 import {
   createWorkerQueue,
   readApolloSubjectOf,
+  readBrandProfileAttributesOf,
+  readBrevoCampaignDecisionOf,
+  readBrevoCreatorProfileDecisionOf,
+  readCampaignAttributesOf,
+  readBrevoPortfolioDecisionOf,
+  readCreatorProfileAttributesOf,
+  readBrevoBadgeEmailOf,
+  readBrevoVerificationEmailOf,
+  readVerifiedBadgeOf,
   readBrevoErasureSubjectOf,
+  readBrevoProfileDecisionOf,
   readBrevoSubjectOf,
   startWorker,
 } from "./domains/leads/queue.ts";
@@ -63,17 +73,23 @@ import {
   createOpsRetention,
   createPeriodicScheduler,
   createPeriodicStore,
+  createBadgeLifecycle,
+  createCampaignClosure,
+  createSupplyCounters,
+  createVerificationExpiry,
   type PeriodicLogger,
   type PeriodicScheduler,
   type PeriodicTask,
   type PeriodicTaskRunner,
 } from "./domains/maintenance/periodic.ts";
+import { createStoragePurge } from "./domains/maintenance/storage-purge.ts";
 import {
   createPrivacyExecutor,
   readErasureNotificationSubjectOf,
 } from "./domains/privacy/execution.ts";
 import { createTransactionalSender } from "./platform/brevo-transactional.ts";
 import { createLogger } from "./platform/logger.ts";
+import { createObjectStore, type ObjectStore } from "./platform/storage.ts";
 import {
   createGoTrueUserDirectory,
   type GoTrueUserDirectory,
@@ -104,12 +120,36 @@ function connectorsOf(
         readBrevoErasureSubjectOf(database, randomUUID(), line, worker),
       readErasureNotificationSubject: (requestId) =>
         readErasureNotificationSubjectOf(database, requestId),
+      readProfileDecision: (line) =>
+        readBrevoProfileDecisionOf(database, randomUUID(), line, worker),
+      readBrandProfile: (line) =>
+        readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+      readCreatorProfileDecision: (line) =>
+        readBrevoCreatorProfileDecisionOf(database, randomUUID(), line, worker),
+      readPortfolioDecision: (line) =>
+        readBrevoPortfolioDecisionOf(database, randomUUID(), line, worker),
+      readCreatorProfile: (line) =>
+        readCreatorProfileAttributesOf(database, randomUUID(), line, worker),
+      readVerificationEmail: (line) =>
+        readBrevoVerificationEmailOf(database, randomUUID(), line, worker),
+      readBadgeEmail: (line) =>
+        readBrevoBadgeEmailOf(database, randomUUID(), line, worker),
+      readVerifiedBadge: (line) =>
+        readVerifiedBadgeOf(database, randomUUID(), line, worker),
+      readCampaignDecision: (line) =>
+        readBrevoCampaignDecisionOf(database, randomUUID(), line, worker),
+      readCampaignAttributes: (line) =>
+        readCampaignAttributesOf(database, randomUUID(), line, worker),
       logger,
     },
   );
   const apollo = createApolloConnector(config.apollo, {
     readSubject: (line) =>
       readApolloSubjectOf(database, randomUUID(), line, worker),
+    readBrandProfile: (line) =>
+      readBrandProfileAttributesOf(database, randomUUID(), line, worker),
+    readCampaignAttributes: (line) =>
+      readCampaignAttributesOf(database, randomUUID(), line, worker),
     logger,
   });
   return {
@@ -120,14 +160,18 @@ function connectorsOf(
 }
 
 /**
- * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue with
- * its own secret key; a task without its key is never claimed. The 30-day purge, the purge of the
- * exports (J8 commit 8) and the retention of ops (J9 commit 8) need neither.
+ * E-4 (decision 3 of J7): the reconciliation with the worker's Brevo key, the purge of GoTrue and
+ * the purge of Storage (0205, D80) with the secret key of the project; a task without its key is
+ * never claimed. The 30-day purge, the purge of the
+ * exports (J8 commit 8), the retention of ops (J9 commit 8), the expiry of the verification
+ * codes (L2E commit 07), the closure of the ended campaigns (L3C commit 06) and the counters of
+ * critical mass (L3G commit 07) need neither.
  */
 function periodicSchedulerOf(
   config: WorkerConfig,
   database: WorkerDatabase,
   directory: GoTrueUserDirectory | null,
+  objects: ObjectStore | null,
   logger: PeriodicLogger,
 ): PeriodicScheduler {
   const store = createPeriodicStore(database);
@@ -137,6 +181,14 @@ function periodicSchedulerOf(
     data_export_purge: createDataExportPurge(store),
     // 0147: the roll-up and the purges of the monitoring of D60 (02 §20.5, §20.8)
     ops_retention: createOpsRetention(store),
+    // 0223: the draft verification requests whose code expired (08 edge case 1)
+    verification_expiry: createVerificationExpiry(store),
+    // 0230: the cycle of the badges, then the retention of their findings (08 RG69 to RG71)
+    badge_lifecycle: createBadgeLifecycle(store),
+    // 0309: the campaigns whose period ended campaign_auto_close_days ago (09 RG9)
+    campaign_closure: createCampaignClosure(store),
+    // 0331: the counters of critical mass of the day, which propose the opening (10 RG2, D38)
+    supply_counters: createSupplyCounters(store),
   };
   if (config.brevoTransport.apiKey !== null) {
     runners.brevo_reconciliation = createBrevoReconciliation({
@@ -154,6 +206,9 @@ function periodicSchedulerOf(
       store,
       now,
     });
+  }
+  if (objects !== null) {
+    runners.storage_purge = createStoragePurge({ store, objects });
   }
   logger.info(
     { periodicTasks: Object.keys(runners).sort() },
@@ -350,7 +405,15 @@ async function main(): Promise<void> {
     config.supabase === null
       ? null
       : createGoTrueUserDirectory(config.supabase);
-  const periodic = periodicSchedulerOf(config, database, directory, logger);
+  const objects =
+    config.supabase === null ? null : createObjectStore(config.supabase);
+  const periodic = periodicSchedulerOf(
+    config,
+    database,
+    directory,
+    objects,
+    logger,
+  );
   // E-5 between two turns, after the periodic tasks: an approved request waits a minute at most.
   const privacy =
     database.elevated.privacy === undefined

@@ -7,6 +7,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { demoAccounts } from "../scripts/demo-accounts.ts";
 import {
+  productionProjectRefOfMigrationUrl,
   refuseProduction,
   requiredStagingUrl,
   stagingGoTrue,
@@ -132,5 +133,25 @@ describe("script guards (staging operator scripts)", () => {
     expect(() => stagingGoTrue()).toThrow(
       "https origin of the staging project",
     );
+  });
+
+  it("productionProjectRefOfMigrationUrl extracts the ref of a pooler or direct URL and refuses non-Supabase URLs", () => {
+    expect(
+      productionProjectRefOfMigrationUrl(
+        () =>
+          "postgresql://postgres.abcdefghijklmnopqrst:secret@aws-0-eu-west-3.pooler.supabase.com:5432/postgres",
+      ),
+    ).toBe("abcdefghijklmnopqrst");
+    expect(
+      productionProjectRefOfMigrationUrl(
+        () =>
+          "postgresql://postgres:secret@db.abcdefghijklmnopqrst.supabase.co:5432/postgres",
+      ),
+    ).toBe("abcdefghijklmnopqrst");
+    expect(() =>
+      productionProjectRefOfMigrationUrl(
+        () => "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      ),
+    ).toThrow(/must name a hosted Supabase project/);
   });
 });

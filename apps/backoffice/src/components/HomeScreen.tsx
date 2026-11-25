@@ -5,7 +5,7 @@
 // colour alone (15 RG66). The "new browser" sign-ins (B-7, RG145) and the `admin` roles granted
 // (J8S-4, RG101) reach the admins only: apps/api returns empty lists to an agent. For the admins,
 // the weekly review of the confirmations made alone (PD6, J8S-1); apps/api refuses it to an agent,
-// so the screen does not ask.
+// so the screen does not ask. The queue counters (15 RG28, 06 RG72) come from QueueSummary.
 import type { AccountCountersResponse } from "@influx/contracts/backoffice-accounts";
 import type {
   AlertsResponse,
@@ -28,7 +28,10 @@ import {
   SECTION_TITLE,
   TABULAR_CLASSES,
 } from "./bo-classes";
+import { alertLink, alertText } from "./alert-words";
 import { useTeamNames } from "./DualControlScreens";
+import { QueueSummary } from "./QueueSummary";
+import { accountHref } from "./campaign-record-view";
 import { ServicesLink } from "./ServicesLink";
 import { useMe } from "./Shell";
 import {
@@ -115,30 +118,26 @@ function Alerts({ data }: { data: AlertsResponse }) {
   return (
     <ul className="flex flex-col gap-2">
       {data.alerts.map((alert) => {
-        const destination =
-          alert.destination === null
-            ? ""
-            : messages.destinations[alert.destination];
-        const words = t.cause[alert.cause];
+        const link = alertLink(alert);
         return (
           <li
-            key={`${alert.code}-${alert.cause}-${alert.destination ?? ""}-${alert.setting ?? ""}`}
+            key={`${alert.code}-${alert.cause}-${alert.destination ?? ""}-${alert.setting ?? ""}-${alert.accountId ?? ""}`}
             className={WARNING_CLASSES}
           >
-            {t.line(
-              alert.code,
-              words === undefined
-                ? alert.cause
-                : words(
-                    destination,
-                    alert.count,
-                    alert.setting === null
-                      ? undefined
-                      : messages.syncSetting[alert.setting],
-                  ),
-              alert.since === null ? null : formatDateTime(alert.since),
-            )}{" "}
-            {alert.code === "AL25" ? <ServicesLink /> : null}
+            {alertText(alert)} {alert.code === "AL25" ? <ServicesLink /> : null}
+            {link === null ? null : (
+              <Link href={link.href} className={LINK_CLASSES}>
+                {link.label}
+              </Link>
+            )}
+            {alert.accountId === undefined ? null : (
+              <Link
+                href={accountHref(alert.accountId)}
+                className={LINK_CLASSES}
+              >
+                {t.openAccount}
+              </Link>
+            )}
           </li>
         );
       })}
@@ -307,6 +306,7 @@ export function HomeScreen() {
           <Counters counters={counters.data} />
         )}
       </section>
+      <QueueSummary />
       <section aria-labelledby="alerts-title" className={SECTION_CLASSES}>
         <h2 id="alerts-title" className={SECTION_TITLE}>
           {messages.home.alertsTitle}

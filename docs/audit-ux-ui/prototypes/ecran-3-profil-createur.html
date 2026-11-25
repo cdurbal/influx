@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 3 · Profil créateur</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+<style>
+  .fmt { display: grid; gap: var(--spacing-6); }
+  @media (width >= 900px) { .fmt { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .fmt figure { display: flex; flex-direction: column; gap: var(--spacing-3); align-items: center; text-align: center; }
+  .fmt figcaption { display: flex; flex-direction: column; gap: var(--spacing-1); }
+  .ph { position: relative; display: flex; flex-direction: column; gap: 0.375rem; width: 12rem; height: 21rem; overflow: hidden; border-radius: 1.25rem; border: var(--border-width-thin) solid var(--color-border-strong); background: var(--color-surface-page); padding: 0.75rem; text-align: left; font-size: 0.5625rem; line-height: 1.3; color: var(--color-text-secondary); }
+  .ph .b { flex-shrink: 0; border-radius: 0.25rem; background: var(--color-surface-raised); }
+  .ph .t { flex-shrink: 0; font-family: var(--font-display); font-weight: var(--font-weight-bold); color: var(--color-text-primary); font-size: 0.625rem; }
+  .ph .pill { flex-shrink: 0; border-radius: var(--radius-pill); background: var(--color-action-primary-bg); color: var(--color-text-on-action); font-family: var(--font-display); font-weight: var(--font-weight-bold); text-align: center; padding: 0.25rem 0.5rem; }
+  .ph .fade { position: absolute; inset: auto 0 0; height: 4rem; background: linear-gradient(transparent, var(--color-surface-page)); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 0.5rem; color: var(--color-feedback-warning-text); font-weight: var(--font-weight-bold); }
+  .ph .acc { flex-shrink: 0; display: flex; justify-content: space-between; border-bottom: var(--border-width-thin) solid var(--color-border-default); padding: 0.4rem 0; color: var(--color-text-primary); }
+  .ph .acc i { font-style: normal; color: var(--color-text-tertiary); }
+  .ph .acc .todo { color: var(--color-feedback-warning-text); }
+  .ph .foot { position: absolute; inset: auto 0 0; display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border-top: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-page); color: var(--color-text-primary); }
+  .ph .seg5 { display: flex; gap: 0.2rem; } .ph .seg5 span { flex: 1; height: 0.25rem; border-radius: var(--radius-pill); background: var(--color-surface-active); } .ph .seg5 .on { background: var(--color-brand-primary); }
+  .retained { color: var(--color-text-brand); font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-sm); }
+  .signup { display: grid; gap: var(--spacing-6); align-items: start; }
+  @media (width >= 1000px) { .signup { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+  .signup-mock { padding: var(--spacing-6); max-height: 46rem; overflow: auto; }
+</style>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html" aria-current="page">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 3 sur 5 · Créateur · version 2, après vos retours du 23 novembre</p>
+    <h1 class="d-h1">Profil créateur</h1>
+    <p class="d-lead">La longue page unique disparaît. À la création, un assistant en cinq étapes, un sujet par étape, avec la progression, le temps restant et la reprise. Après la publication, « Mon profil » devient une liste de tâches qui rouvre une étape à la fois.</p>
+    <div class="d-ids"><span class="u u--crit">U02 critique</span><span class="u u--crit">U03 critique</span><span class="u u--imp">U21</span><span class="u u--imp">U28</span><span class="u u--imp">U22</span><span class="u u--imp">U30</span><span class="u u--imp">U26</span><span class="u u--imp">U27</span><span class="u u--imp">U31</span><span class="u u--imp">U32</span><span class="u">U58</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Ordinateur 1 440 px</button><button class="d-toggle" type="button" data-mode="phone" aria-pressed="false"><svg class="i i--sm"><use href="#i-smartphone"/></svg>Téléphone 390 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="etape-1" data-cap="m07-profil-createur.jpg" data-cap-m="m09-profil-createur-mobile.jpg" aria-pressed="true">Étape 1</button>
+        <button type="button" data-st="etape-3" data-cap="m08-profil-createur-reseau.jpg" data-cap-m="m09-profil-createur-mobile.jpg" aria-pressed="false">Étape 3 · réseaux</button>
+        <button type="button" data-st="verifier" data-cap="m07-profil-createur.jpg" data-cap-m="m09-profil-createur-mobile.jpg" aria-pressed="false">Vérifier et publier</button>
+        <button type="button" data-st="profil" data-cap="m07-profil-createur.jpg" data-cap-m="m09-profil-createur-mobile.jpg" aria-pressed="false">Après publication</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>Pas de capture à cette largeur.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-profil.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-profil.html" title="Prototype du profil créateur" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran : « Continuer » jusqu'à « Vérifier mes réponses », puis « Publier mon profil » (résumé des manques). Corrigez le lien TikTok (tiktok.com), saisissez un âge et une répartition, déposez un visuel : la publication passe et l'on arrive sur « Mon profil ». Les segments de la barre ramènent aux étapes déjà vues.</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Vos retours</h2>
+    <ul class="d-list">
+      <li>La colonne de pilotage s'ajoutait à la navigation : deux colonnes côte à côte.</li>
+      <li>Le défilement d'une seule page pour toutes les informations est le plus gros problème.</li>
+      <li>Vos principes : une étape par sujet, progression et temps estimé, sauvegarde et reprise, indispensable séparé du complémentaire, profil complétable après l'inscription. Un formulaire de trois champs reste une page.</li>
+    </ul>
+  </section>
+
+  <section class="d-sec" style="max-width: none"><h2><span class="n">2</span>Le format retenu</h2>
+    <div class="fmt">
+      <figure>
+        <div class="ph" aria-hidden="true"><span class="t">Mon profil</span><span class="b" style="height: 2rem"></span><span class="t">1. Présentation</span><span class="b" style="height: 1rem"></span><span class="b" style="height: 2.5rem"></span><span class="b" style="height: 1rem"></span><span class="t">2. Ligne éditoriale</span><span class="b" style="height: 1rem"></span><span class="b" style="height: 1rem"></span><span class="t">3. Réseaux sociaux</span><span class="b" style="height: 3rem"></span><span class="fade">… 32 écrans · « Publier » tout en bas</span></div>
+        <figcaption><b>Page unique</b><span class="sm c2">Aujourd'hui</span></figcaption>
+      </figure>
+      <figure>
+        <div class="ph" aria-hidden="true"><span class="t" style="display: flex; justify-content: space-between">Création de votre profil <i style="font-style: normal; font-weight: 400">3 sur 5</i></span><span class="seg5"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></span><span style="flex-shrink: 0">Environ 8 min restantes</span><span class="t" style="margin-top: 0.4rem">Vos réseaux et vos chiffres</span><span class="acc">Instagram <i>✓ Complet</i></span><span class="b" style="height: 1.5rem"></span><span class="b" style="height: 1.5rem"></span><span class="acc">TikTok <i class="todo">Lien à corriger</i></span><span class="foot"><span>‹ Précédent</span><span class="pill">Continuer →</span></span></div>
+        <figcaption><b>Assistant en cinq étapes</b><span class="retained">À la création</span></figcaption>
+      </figure>
+      <figure>
+        <div class="ph" aria-hidden="true"><span class="t">Mon profil · Publié</span><span class="acc" style="margin-top: 0.5rem">1. Vous présenter <i>✓ Complet</i></span><span class="acc">2. Ligne éditoriale <i>À enrichir</i></span><span class="acc">3. Réseaux et chiffres <i class="todo">À mettre à jour</i></span><span class="acc">4. Audience <i>✓ Complet</i></span><span class="acc">5. Offre et travail <i>À enrichir</i></span></div>
+        <figcaption><b>Liste de tâches</b><span class="retained">Après la publication</span></figcaption>
+      </figure>
+    </div>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Étape</th><th>Sujet</th><th>Indispensable pour publier</th><th>Facultatif, plus tard</th><th>Temps</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Vous présenter</td><td>Titre court, bio, collaborations ; identité légale dans la zone privée</td><td>E-mail de contact, ville</td><td>3 min</td></tr>
+        <tr><td>2</td><td>Votre ligne éditoriale</td><td>Thématique principale, langues</td><td>Thématiques secondaires, ton</td><td>1 min</td></tr>
+        <tr><td>3</td><td>Vos réseaux et vos chiffres</td><td>Un réseau au moins : pseudo, lien, trois chiffres</td><td>Portée, taux d'engagement</td><td>3 min</td></tr>
+        <tr><td>4</td><td>Votre audience</td><td>Pays, âges, répartition, par réseau</td><td>—</td><td>2 min</td></tr>
+        <tr><td>5</td><td>Votre offre et votre travail</td><td>Formats, disponibilité, trois visuels</td><td>Droits d'usage, délai, secteurs refusés</td><td>3 min</td></tr>
+        <tr><td>—</td><td>Vérifier et publier</td><td colspan="3">Récapitulatif par étape avec « Modifier » ; les manques sont listés et ne bloquent que la publication.</td></tr>
+      </tbody></table></div>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Ce que montre le prototype</th><th>Comment</th></tr></thead>
+      <tbody>
+        <tr><td>Progression et temps</td><td>« Étape 3 sur 5 », barre en cinq segments (vert : faite ou en cours ; orange : à compléter), « Environ 8 min restantes ».</td></tr>
+        <tr><td>Étapes</td><td>Un sujet par écran ; « Continuer » n'est jamais bloquant ; « Précédent » et les segments ramènent aux étapes déjà vues.</td></tr>
+        <tr><td>Indispensable et complémentaire</td><td>Les champs indispensables d'abord ; le reste replié sous « Facultatif, à compléter plus tard ».</td></tr>
+        <tr><td>Validations et erreurs</td><td>Retours positifs en temps réel (compteurs, tranche « Les marques voient… », totaux) ; erreur sous le champ, effacée à la correction ; résumé des manques au clic sur « Publier ».</td></tr>
+        <tr><td>Sauvegarde et reprise</td><td>Enregistrement automatique (échec simulable) ; « Enregistrer et reprendre plus tard » ; reprise à l'étape en cours depuis l'accueil.</td></tr>
+        <tr><td>Après la publication</td><td>« Mon profil » en liste de tâches ; chaque ligne rouvre son étape seule, avec « Revenir à mon profil ».</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec" style="max-width: none"><h2><span class="n">2 bis</span>L'écran 3 de l'inscription</h2>
+    <p class="measure">Formulaire court : il reste une page (votre principe). Les mêmes champs, regroupés par sujet (C12) ; les trois engagements juridiques ensemble ; la question facultative en dernier.</p>
+    <div class="signup">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span>capture m14</span></figcaption><div class="d-screen" style="max-height: 46rem; overflow: auto"><img src="captures/m14-inscription-createur-etape-3.jpg" onerror="if(!this.dataset.r){this.dataset.r=1;this.src='../captures/m14-inscription-createur-etape-3.jpg'}" alt="Capture de l'écran 3 de l'inscription créateur"></div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>maquette statique, composants réels</span></figcaption>
+        <div class="d-screen signup-mock"><form class="stack g6" onsubmit="return false" aria-label="Maquette de l'écran 3 de l'inscription">
+          <fieldset class="stack g5"><legend class="t-card" style="margin-bottom: var(--spacing-4)">Vous</legend>
+            <div class="field"><div class="field__top"><label class="label" for="su-c">Pays de résidence <span class="req">(obligatoire)</span></label><p class="help">L'inscription est ouverte partout ; les mises en relation s'ouvrent pays par pays.</p></div><span class="select"><select class="control" id="su-c"><option>Belgique</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Langue de communication <span class="req">(obligatoire)</span></legend><span class="seg"><label><input type="radio" name="su-l" checked>Français</label><label><input type="radio" name="su-l">English</label></span></fieldset>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Vous vous inscrivez en tant que <span class="req">(obligatoire)</span></legend><div class="choices"><label class="choice"><input type="radio" name="su-s" checked>Particulier</label><label class="choice"><input type="radio" name="su-s">Professionnel (société, entreprise individuelle, agence)</label></div></fieldset>
+          </fieldset>
+          <fieldset class="subgroup" style="gap: var(--spacing-1)"><legend class="t-card" style="margin-bottom: var(--spacing-2)">Vos engagements</legend>
+            <label class="choice"><input type="checkbox"><span>Je certifie avoir 18 ans ou plus. <span class="req">(obligatoire)</span></span></label>
+            <label class="choice"><input type="checkbox"><span>J'accepte les conditions générales d'utilisation. <span class="req">(obligatoire)</span> <a class="link sm" href="#">Lire les CGU</a></span></label>
+            <label class="choice"><input type="checkbox"><span class="sm">J'accepte que mes coordonnées soient enregistrées dans Brevo et Apollo.io, les outils d'INFLUX, pour recevoir les e-mails commerciaux d'INFLUX destinés aux créateurs et être contacté à des fins de prospection commerciale. Cet accord est requis pour créer un compte ; je pourrai le retirer à tout moment depuis mon espace. <span class="req">(obligatoire)</span></span></label>
+          </fieldset>
+          <div class="field subgroup"><label class="label" for="su-h">Comment avez-vous connu INFLUX ? <span class="req">(facultatif)</span></label><span class="select"><select class="control" id="su-h"><option>— Sélectionnez —</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+          <button class="btn btn--primary" type="button">Créer mon compte</button>
+        </form></div></figure>
+    </div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>Composition : plus de cartes imbriquées</h2>
+    <p>Une seule colonne d'environ 48 rem à côté de la navigation. L'assistant est la seule carte de la page sur ordinateur, et occupe tout l'écran sur téléphone, sans cadre. Les réseaux deviennent des lignes séparées par un filet, comme sur votre capture de référence. Une ligne ouverte se pose sur un fond surélevé (bloc intérieur, sans bordure) : même avec tous les réseaux ouverts, on voit où s'arrête chaque saisie. Le compte principal est signalé par une étoile jaune pleine (alias proposé <code>--color-network-primary</code>, sur la teinte existante <code>data-3</code>), un réseau complet par un badge vert « Complet ». Les quatre niveaux de boîtes d'aujourd'hui (section, ligne réseau, « chiffres clés », « vérification ») tombent à un seul.</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">4</span>Hiérarchie de l'information</h2>
+    <ol class="d-hier">
+      <li><span><b>Où j'en suis</b> : titre, « Étape 3 sur 5 », barre, temps restant, « Enregistrer et reprendre plus tard ».</span></li>
+      <li><span><b>L'étape</b> : son sujet, sa consigne et son temps, les champs indispensables, puis le facultatif replié.</span></li>
+      <li><span><b>Le pied</b> : « Précédent », état d'enregistrement, « Continuer » (seule pilule verte).</span></li>
+    </ol>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">5</span>Interactions</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Élément</th><th>Déclencheur</th><th>Réponse</th><th>Propriétés et durée</th><th>Téléphone</th></tr></thead>
+      <tbody>
+        <tr><td>Continuer, Précédent</td><td>Clic</td><td>Étape suivante en fondu, retour en haut, focus sur le titre de l'étape, annonce « Étape 4 sur 5 : Votre audience »</td><td><code>opacity</code>, 120 ms</td><td>Pied collant au-dessus de la navigation</td></tr>
+        <tr><td>Segment de la barre</td><td>Clic</td><td>Revient à une étape déjà vue ; segment orange si l'étape a un manque</td><td>Couleur, 320 ms</td><td>Zone de clic agrandie</td></tr>
+        <tr><td>Ligne de réseau</td><td>Clic</td><td>S'ouvre sur ses champs, posée sur un fond surélevé qui délimite sa saisie ; plusieurs réseaux ouverts restent distincts</td><td>Chevron 200 ms, contenu en fondu et −4 px, fond 200 ms</td><td>Identique</td></tr>
+        <tr><td>Étoile jaune</td><td>Clic sur l'étoile d'un autre réseau</td><td>Ce réseau devient le compte principal (étoile pleine), l'autre perd la sienne (étoile vide) ; annonce « TikTok est maintenant votre compte principal ; Instagram ne l'est plus »</td><td>Remplissage 120 ms, apparition de l'étoile 320 ms</td><td>Cible de 36 px dans une ligne de 60 px</td></tr>
+        <tr><td>Réseau complété</td><td>Dernier champ indispensable juste</td><td>Badge vert « Complet » qui apparaît avec un léger rebond, fond de réussite bref sur la ligne, annonce « TikTok est complet »</td><td><code>scale</code> 0,6 → 1,15 → 1 en 320 ms ; fond qui s'estompe en 900 ms ; rien sous mouvement réduit, le badge reste</td><td>Identique</td></tr>
+        <tr><td>Facultatif</td><td>Clic</td><td>Déplie les champs complémentaires</td><td>200 ms</td><td>Identique</td></tr>
+        <tr><td>Publier mon profil</td><td>Clic avec des manques</td><td>Résumé focalisé ; chaque lien rouvre l'étape et place le focus sur le champ, puis « Revenir à la vérification »</td><td>Aucune animation propre</td><td>Identique</td></tr>
+        <tr><td>Enregistrer et reprendre plus tard</td><td>Clic</td><td>Confirmation écrite et annonce ; l'accueil proposera « Reprendre »</td><td>Notice en fondu, 200 ms</td><td>Identique</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">6</span>Changements de composants</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Aujourd'hui</th><th>Proposition</th></tr></thead>
+      <tbody>
+        <tr><td>Sept sections sur une page, sommaire et jauge en colonnes</td><td>Assistant : en-tête de progression, une étape, pied d'actions (composant nouveau, réutilisable)</td></tr>
+        <tr><td>Profil publié : la même longue page</td><td>Liste de tâches avec états écrits</td></tr>
+        <tr><td>Section en carte, ligne réseau en carte, cadres intérieurs</td><td>Lignes séparées par un filet, champs sans cadre</td></tr>
+        <tr><td>Tous les champs au même niveau</td><td>Indispensables d'abord, facultatifs repliés</td></tr>
+        <tr><td>Liste qui agit au changement</td><td>« Choisir… » puis « Ajouter » (C2)</td></tr>
+        <tr><td>Badge de visibilité sur chaque champ</td><td>Une phrase par étape quand c'est utile (alias, tranches)</td></tr>
+        <tr><td>Quatre façons de dire « ce qui manque »</td><td>Un récapitulatif et un résumé uniques</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">7</span>Références</h2>
+    <ul class="d-list">
+      <li><b>GOV.UK, « Complete multiple tasks »</b> : réservé aux démarches longues que l'on remplit en plusieurs sessions ; état écrit par tâche ; tâches dans l'ordre voulu quand c'est possible ; on reprend là où l'on s'était arrêté ; toujours possible de revenir modifier. C'est « Mon profil » après la publication.</li>
+      <li><b>GOV.UK, « Question pages » et « Check answers »</b> : une chose par page, puis un récapitulatif avec « Modifier ». C'est l'écran « Vérifier et publier ».</li>
+      <li><b>Stripe Connect</b> distingue la collecte complète dès l'inscription de la collecte progressive, qui ne demande que ce qui est nécessaire maintenant. C'est la séparation entre indispensable et facultatif.</li>
+      <li><b>Airbnb</b> (création d'une annonce hôte, étapes et « save &amp; exit ») : connu seulement par une analyse tierce, écrans non vus.</li>
+    </ul>
+    <div class="d-refs"><span class="overline">Sources consultées</span>
+      <a href="https://design-system.service.gov.uk/patterns/complete-multiple-tasks/" target="_blank" rel="noopener">GOV.UK, Complete multiple tasks</a> · <a href="https://design-system.service.gov.uk/components/task-list/" target="_blank" rel="noopener">GOV.UK, Task list</a> · <a href="https://design-system.service.gov.uk/patterns/check-answers/" target="_blank" rel="noopener">GOV.UK, Check answers</a>
+      <a href="https://docs.stripe.com/connect/embedded-onboarding" target="_blank" rel="noopener">Stripe, Embedded onboarding</a>
+      <span>Guide interne <code>docs/good-practice-ux/01.md</code></span></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">8</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La version 2 dans son ensemble (assistant, vérification, liste de tâches).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les temps estimés sont des ordres de grandeur, à mesurer après la mise en ligne.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Ce choix remplace la collecte progressive de <code>03</code> §C pour le profil créateur ; le profil marque garde son accordéon, sauf avis contraire.</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-2b-profil-anonyme.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 2 bis · Profil anonyme</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a class="go" href="ecran-4-bo-tableau-de-bord.html">Écran 4 · Tableau de bord BO <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

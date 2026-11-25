@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Décision d'une entrée de file</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  .d-grid { display: flex; flex-direction: column; gap: var(--spacing-6); }
+  @media (width >= 1024px) { .d-grid { display: grid; grid-template-columns: minmax(0, 1fr) var(--spacing-bo-panel-w); gap: var(--spacing-8); align-items: start; } }
+  .dossier { display: flex; flex-direction: column; }
+  .dsect { display: flex; flex-direction: column; gap: var(--spacing-3); padding: var(--spacing-5) 0; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .dsect:first-child { border-top: 0; padding-top: 0; }
+  .dsect h2 { display: flex; align-items: center; gap: var(--spacing-1); font-family: var(--font-display); font-size: var(--text-md); font-weight: var(--font-weight-bold); }
+  .panel { display: flex; flex-direction: column; gap: var(--spacing-4); border-radius: var(--radius-card); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-card); padding: var(--spacing-5); }
+  @media (width >= 1024px) { .panel { position: sticky; top: calc(var(--spacing-bo-row-h) + var(--spacing-6)); } }
+  .panel .inner { gap: var(--spacing-3); padding: var(--spacing-3); }
+  .reasons-list { display: flex; flex-direction: column; }
+  .reasons-list .choice { min-height: var(--size-bo-control); padding: var(--spacing-1) 0; font-size: var(--text-sm); }
+  .reasons-list .choice input { width: 1.125rem; height: 1.125rem; margin-top: 0.125rem; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); color: var(--color-text-secondary); }
+  .skip { display: none; }
+  @media (width < 1024px) { .skip { display: inline-flex; } }
+  .keys { display: flex; flex-wrap: wrap; gap: var(--spacing-1) var(--spacing-3); font-size: var(--text-xs); color: var(--color-text-secondary); }
+  .quote { max-width: var(--size-measure); color: var(--color-text-primary); }
+  .dossier .props-2 { display: flex; flex-direction: column; gap: var(--spacing-2); }
+  .dsect__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .dsect__bar .layer { margin-left: var(--spacing-2); font-family: var(--font-base); font-weight: var(--font-weight-semibold); }
+  /* Points de contrôle : l'élément, sa valeur, les motifs de refus qu'il concerne */
+  .checks { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .check { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr) 12rem; gap: var(--spacing-1) var(--spacing-5); align-items: start; padding: var(--spacing-3) 0; border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .check__k { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-1); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
+  .check__v { display: flex; flex-direction: column; gap: var(--spacing-1); min-width: 0; }
+  .check__v .big { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-md); }
+  .check__v .txt { max-width: var(--size-measure); font-size: var(--text-md); line-height: var(--leading-body); }
+  .check__meta { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .check__near { display: flex; align-items: flex-start; gap: var(--spacing-2); font-size: var(--text-xs); color: var(--color-text-secondary); }
+  .check__near .i { width: var(--size-icon-sm); height: var(--size-icon-sm); margin-top: 0.125rem; }
+  .check__q { font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .check__q b { display: block; font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); }
+  .was { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-2); font-size: var(--text-xs); color: var(--color-text-tertiary); }
+  .was s { color: var(--color-text-secondary); }
+  .nologo { display: inline-flex; align-items: center; justify-content: center; width: 3rem; height: 3rem; border-radius: var(--radius-md); border: var(--border-width-thin) dashed var(--color-border-strong); color: var(--color-text-tertiary); }
+  .emptyline { font-size: var(--text-sm); color: var(--color-text-tertiary); }
+  @media (width < 1280px) { .check { grid-template-columns: minmax(0, 1fr); } .check__k { flex-direction: row; align-items: center; gap: var(--spacing-2); } }
+</style>
+</head>
+<body class="bo" data-default="decision">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État <select id="demo-state"><option value="decision">Entrée prise en charge</option><option value="modification">Modification d'un profil publié</option><option value="refus">Refus : choix du motif</option><option value="publie">Décision enregistrée</option></select></label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <span>Essayez <span class="kbd">v</span> <span class="kbd">r</span> <span class="kbd">l</span> <span class="kbd">Échap</span> <span class="kbd">?</span></span>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="bo-frame">
+  <div class="bo-band"><div class="bo-env"><span><b>LOCAL</b> — development — envois : redirigés vers les adresses internes</span><span>Camille D. · Commercial</span></div></div>
+  <aside class="bo-rail" aria-label="Navigation du backoffice">
+    <div class="bo-rail__head">INFLUX<span>Backoffice</span></div>
+    <nav class="bo-nav" aria-label="Rubriques">
+      <a href="proto-bo-accueil.html"><svg class="i"><use href="#i-layout-grid"/></svg>Tableau de bord</a>
+      <a class="is-ancestor" href="#"><svg class="i"><use href="#i-inbox"/></svg>Files<span class="n">46</span><span class="n n--late" aria-label="4 hors délai"><svg class="i i--sm"><use href="#i-flag"/></svg>4</span></a>
+      <span class="overline grp">Profils et visuels</span>
+      <a class="sub is-current" aria-current="page" href="#">Profils marque<span class="n">6</span></a>
+      <a class="sub" href="#">Profils créateur<span class="n">5</span></a>
+      <a class="sub" href="#">Visuels de portfolio<span class="n">12</span></a>
+      <span class="overline grp">Vérifications</span>
+      <a class="sub" href="#">Vérifications créateurs<span class="n">7</span></a>
+      <a class="sub" href="#">Vérifications marques<span class="n">3</span></a>
+      <a class="sub" href="#">Contestations<span class="n">4</span></a>
+      <a class="sub" href="#">Identifiants modifiés<span class="n ok"><svg class="i i--sm"><use href="#i-check"/></svg><span class="sr-only">vide</span></span></a>
+      <span class="overline grp">Campagnes et sélections</span>
+      <a class="sub" href="#">Campagnes<span class="n">3</span></a>
+      <a class="sub" href="#">Sélections par l'équipe<span class="n">1</span></a>
+      <a href="#"><svg class="i"><use href="#i-users"/></svg>Comptes</a>
+      <a href="#"><svg class="i"><use href="#i-search"/></svg>Créateurs</a>
+      <a href="#"><svg class="i"><use href="#i-settings"/></svg>Administration</a>
+    </nav>
+    <div class="bo-rail__foot stack g2"><button class="btn btn--text" type="button" data-dialog="keys"><span class="kbd">?</span>Raccourcis</button><button class="btn btn--secondary" type="button"><svg class="i i--sm"><use href="#i-log-out"/></svg>Se déconnecter</button></div>
+  </aside>
+
+  <main class="bo-main" id="contenu">
+    <header class="stack g2" data-h="1">
+      <nav class="crumbs" aria-label="Fil d'Ariane"><a href="#">Files</a><svg class="i"><use href="#i-chevron-right"/></svg><a href="#">Profils marque à valider</a><svg class="i"><use href="#i-chevron-right"/></svg><span aria-current="page">Terre &amp; Thé</span></nav>
+      <div class="row between g3">
+        <h1 class="t-page" tabindex="-1">Terre &amp; Thé</h1>
+        <div class="row g2"><button class="btn btn--secondary" type="button" id="release">Rendre la main <span class="kbd">l</span></button><a class="btn btn--secondary" href="proto-bo-fiche-compte.html" title="Ouvre la fiche : lecture enregistrée">Fiche du compte<span class="mark" aria-label="lecture enregistrée"></span></a></div>
+      </div>
+      <p class="meta"><span data-unless="modification">Première soumission</span><span data-when="modification">Modification d'un profil publié</span><span>· déposée le 22/11 à 00 h 53</span><span>· échéance 08 h 53</span><span class="late"><svg class="i i--sm"><use href="#i-flag"/></svg>Hors délai depuis 49 min</span><span>· prise en charge par vous à 09 h 41</span></p>
+      <a class="go sm skip" href="#decision-panel">Aller à la décision <svg class="i i--sm"><use href="#i-arrow-right"/></svg></a>
+    </header>
+
+    <div class="d-grid">
+      <div class="dossier" data-h="2">
+        <section class="dsect" aria-labelledby="h-know">
+          <h2 id="h-know">À savoir</h2>
+          <p class="row g2 sm c2"><svg class="i i--sm" style="color: var(--color-feedback-success-icon)"><use href="#i-circle-check"/></svg>Aucune alerte sur cette entrée.</p>
+          <p class="row g2 sm c2" data-unless="modification"><svg class="i i--sm"><use href="#i-info"/></svg>Première soumission : tout le profil est à examiner, aucune version validée n'existe encore.</p>
+          <p class="row g2 sm c2" data-when="modification"><svg class="i i--sm"><use href="#i-info"/></svg>Modification d'un profil publié : 2 champs modifiés, la présentation et le secteur principal. Le reste est déjà validé.</p>
+        </section>
+
+        <section class="dsect" aria-labelledby="h-check">
+          <div class="dsect__bar"><h2 id="h-check">À contrôler<span class="layer"><svg class="i"><use href="#i-globe"/></svg>public</span></h2>
+            <a class="go sm" href="proto-marque.html#soumise" id="pub-link" target="_blank" rel="noopener" style="min-height: auto">Voir la page publique (version soumise) <svg class="i i--sm"><use href="#i-external-link"/></svg></a></div>
+          <p class="xs c2">Ce que les créateurs liront si vous publiez. À droite, les motifs de refus que chaque élément peut appeler : des questions, jamais un verdict.</p>
+          <dl class="checks">
+            <div class="check"><dt class="check__k">Nom commercial</dt>
+              <dd class="check__v"><span class="big">Terre &amp; Thé</span></dd>
+              <dd class="check__q"><b>Motifs possibles</b>Nom commercial trompeur ? Doublon d'une marque inscrite ?</dd></div>
+            <div class="check"><dt class="check__k">Logo</dt>
+              <dd class="check__v"><span class="row g3"><span class="nologo" aria-hidden="true"><svg class="i"><use href="#i-image"/></svg></span><span class="sm c3">Aucun logo déposé</span></span></dd>
+              <dd class="check__q"><b>Motif possible</b>Logo non conforme ?</dd></div>
+            <div class="check"><dt class="check__k">Présentation<span class="badge badge--info" data-when="modification" style="margin-top: var(--spacing-1)">Modifié</span></dt>
+              <dd class="check__v"><p class="txt">We design durable outdoor gear for people who spend their weekends on the trails.</p>
+                <span class="check__meta tab">81 caractères · langue du compte : français</span>
+                <span class="was" data-when="modification">Avant : <s>Thés et infusions bio, cultivés en Belgique, pour les moments calmes de la journée.</s></span></dd>
+              <dd class="check__q"><b>Motifs possibles</b>Présentation trop courte ou incompréhensible ? Coordonnée directe ? Contenu illicite ?</dd></div>
+            <div class="check"><dt class="check__k">Secteur principal<span class="badge badge--info" data-when="modification" style="margin-top: var(--spacing-1)">Modifié</span></dt>
+              <dd class="check__v"><span class="big">Sport et loisirs</span><span class="check__meta">Secteurs secondaires : aucun</span>
+                <span class="was" data-when="modification">Avant : <s>Alimentation et boissons</s></span>
+                <span class="check__near"><svg class="i"><use href="#i-arrow-right"/></svg>À rapprocher : thèmes recherchés « Mode » et la présentation ci-dessus.</span></dd>
+              <dd class="check__q"><b>Motif possible</b>Secteur manifestement incohérent ?</dd></div>
+          </dl>
+        </section>
+
+        <section class="dsect" aria-labelledby="h-look">
+          <h2 id="h-look">Ce qu'elle recherche<span class="layer" style="margin-left: var(--spacing-2); font-family: var(--font-base); font-weight: var(--font-weight-semibold)"><svg class="i"><use href="#i-globe"/></svg>public</span></h2>
+          <dl class="props"><dt>Thèmes recherchés</dt><dd>Mode</dd><dt>Réseaux et formats</dt><dd>Instagram : publication</dd><dt>Pays d'audience visés</dt><dd>France</dd><dt>Marchés visés</dt><dd>France</dd><dt>Langues de travail</dt><dd>français</dd></dl>
+        </section>
+
+        <section class="dsect" aria-labelledby="h-cond">
+          <h2 id="h-cond">Entreprise et conditions<span class="layer" style="margin-left: var(--spacing-2); font-family: var(--font-base); font-weight: var(--font-weight-semibold)"><svg class="i"><use href="#i-globe"/></svg>public</span></h2>
+          <dl class="props"><dt>Taille de l'entreprise</dt><dd>11 à 50 personnes</dd><dt>Droits d'usage</dt><dd>aucun</dd></dl>
+          <p class="emptyline">Non renseignés : site web, secteurs secondaires, exclusivité, rythme de collaboration, contreparties non monétaires.</p>
+        </section>
+
+        <section class="dsect" aria-labelledby="h-acc">
+          <h2 id="h-acc">Compte<span class="layer layer--internal" style="margin-left: var(--spacing-2); font-family: var(--font-base); font-weight: var(--font-weight-semibold)"><svg class="i"><use href="#i-eye-off"/></svg>interne</span></h2>
+          <p class="sm">Belgique · compte en français · responsable : Julien · fonction de l'interlocuteur : Marketing · profil complet à <span class="tab">80 %</span></p>
+        </section>
+        <section class="dsect" aria-labelledby="h-contact">
+          <h2 id="h-contact">Interlocuteur de la marque<span class="mark" aria-label="donnée identifiée"></span></h2>
+          <div class="idv">
+            <p class="idv__hat"><svg class="i i--sm"><use href="#i-eye"/></svg>Vue identifiée · lecture enregistrée à 09 h 41</p>
+            <dl class="props"><dt>Prénom</dt><dd>Inès</dd><dt>Adresse e-mail</dt><dd>ines@terre-et-the.example</dd><dt>Téléphone</dt><dd class="tab">+32 2 555 01 23</dd></dl>
+            <p class="xs c2">Visible des agents INFLUX seuls, jamais d'une marque ni d'un créateur (D45, D46).</p>
+          </div>
+        </section>
+        <section class="dsect" aria-labelledby="h-hist">
+          <details class="stack"><summary class="row g2" style="cursor: pointer; list-style: none"><h2 id="h-hist">Historique de l'entrée</h2><span class="sm c2">2 événements</span></summary>
+            <ul class="sm c2 stack g1" style="padding-top: var(--spacing-2)"><li>22/11 00 h 53 · Déposée par la marque</li><li>22/11 09 h 41 · Prise en charge par Camille D.</li></ul></details>
+        </section>
+      </div>
+
+      <section class="panel" id="decision-panel" aria-labelledby="h-dec" tabindex="-1" data-h="3">
+        <h2 class="t-card" id="h-dec">Décision</h2>
+        <!-- Repos -->
+        <div class="stack g4" id="p-idle">
+          <p class="sm c2">Deux issues : publier, ou refuser avec un motif. La décision porte sur la version affichée.</p>
+          <div class="field"><div class="field__top"><label class="label sm" for="note">Commentaire interne <span class="req">(facultatif)</span></label><p class="help xs">Visible des seuls agents INFLUX : jamais de la marque, ni dans l'e-mail.</p></div>
+            <textarea class="control" id="note" rows="3" maxlength="1000"></textarea><span class="count xs" id="note-c">0 / 1 000 caractères</span></div>
+          <div class="actions"><button class="btn btn--primary" type="button" id="b-pub">Valider <span class="kbd" style="border-color: currentColor; color: inherit">v</span></button><button class="btn btn--secondary" type="button" id="b-rej">Refuser avec motif <span class="kbd">r</span></button></div>
+        </div>
+        <!-- Confirmation de publication : dans la colonne, jamais en modale -->
+        <div class="inner is-entering" id="p-pub" hidden>
+          <p class="t-block">Publier ce profil ?</p>
+          <p class="sm">Le profil de Terre &amp; Thé sera publié tel qu'affiché ici, et la marque en sera informée par e-mail, en français.</p>
+          <p class="sm c2" id="pub-note" hidden></p>
+          <div class="actions"><button class="btn btn--primary" type="button" id="c-pub">Confirmer la publication</button><button class="btn btn--text" type="button" data-cancel>Annuler</button></div>
+        </div>
+        <!-- Choix du motif -->
+        <div class="inner is-entering" id="p-rej" hidden>
+          <fieldset class="stack g1"><legend class="t-block" style="margin-bottom: var(--spacing-2)">Motif du refus (liste fermée)</legend>
+            <div class="reasons-list">
+              <label class="choice"><input type="radio" name="why" value="Coordonnée directe dans un champ public">Coordonnée directe dans un champ public</label>
+              <label class="choice"><input type="radio" name="why" value="Présentation trop courte ou incompréhensible">Présentation trop courte ou incompréhensible</label>
+              <label class="choice"><input type="radio" name="why" value="Logo non conforme">Logo non conforme</label>
+              <label class="choice"><input type="radio" name="why" value="Nom commercial trompeur">Nom commercial trompeur</label>
+              <label class="choice"><input type="radio" name="why" value="Secteur manifestement incohérent">Secteur manifestement incohérent</label>
+              <label class="choice"><input type="radio" name="why" value="Doublon d'une marque déjà inscrite">Doublon d'une marque déjà inscrite</label>
+            </div></fieldset>
+          <p class="fmsg fmsg--error" id="why-err" hidden><svg class="i"><use href="#i-circle-alert"/></svg><span>Choisissez un motif avant de refuser.</span></p>
+          <p class="sm c2" id="why-msg">Message envoyé à la marque : choisissez un motif pour le voir.</p>
+          <div class="actions"><button class="btn btn--primary" type="button" id="c-rej">Refuser</button><button class="btn btn--text" type="button" data-cancel>Annuler</button></div>
+        </div>
+        <!-- Rendre la main avec un brouillon -->
+        <div class="inner is-entering" id="p-rel" hidden>
+          <p class="t-block">Rendre la main et revenir à la file ?</p>
+          <p class="sm">Votre commentaire interne sera perdu. L'entrée redevient libre pour vos collègues.</p>
+          <div class="actions"><button class="btn btn--primary" type="button" id="c-rel">Rendre la main</button><button class="btn btn--text" type="button" data-cancel>Garder la main</button></div>
+        </div>
+        <!-- Décision enregistrée -->
+        <div class="stack g3" id="p-done" hidden>
+          <div class="notice notice--success"><svg class="i"><use href="#i-circle-check"/></svg><p id="done-text">Profil publié à 09 h 47. La marque est prévenue par e-mail.</p></div>
+          <a class="btn btn--primary" href="#" id="next">Entrée suivante : Vélo Urbain Bruxelles</a>
+          <a class="go sm" href="#">Revenir à la file <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a>
+        </div>
+        <p class="keys" id="keys-line"><span><span class="kbd">v</span> valider</span><span><span class="kbd">r</span> refuser</span><span><span class="kbd">l</span> rendre la main</span><span><span class="kbd">Échap</span> annuler sans perdre la saisie</span></p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<dialog class="dlg" id="keys" aria-labelledby="keys-t">
+  <div class="stack g4">
+    <div class="row between"><h2 class="t-section" id="keys-t">Raccourcis de la décision</h2><button class="btn btn--text" type="button" data-close aria-label="Fermer"><svg class="i"><use href="#i-x"/></svg></button></div>
+    <dl class="props" style="--size-property-label: 8rem">
+      <dt><span class="kbd">v</span></dt><dd>Valider (ouvre le récapitulatif)</dd>
+      <dt><span class="kbd">r</span></dt><dd>Ouvrir le choix du motif (ne refuse jamais seul)</dd>
+      <dt><span class="kbd">l</span></dt><dd>Rendre la main et revenir à la file</dd>
+      <dt><span class="kbd">Ctrl</span> <span class="kbd">Entrée</span></dt><dd>Confirmer depuis le commentaire</dd>
+      <dt><span class="kbd">Échap</span></dt><dd>Fermer sans perdre la saisie</dd>
+    </dl>
+    <button class="btn btn--secondary" type="button" data-close autofocus>Fermer</button>
+  </div>
+</dialog>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var panes = ["p-idle", "p-pub", "p-rej", "p-rel", "p-done"];
+  function show(id, focus) {
+    panes.forEach(function (p) { document.getElementById(p).hidden = p !== id; });
+    $("#keys-line").hidden = id === "p-done";
+    var el = document.getElementById(id);
+    el.classList.remove("is-entering"); void el.offsetWidth; if (id !== "p-idle") el.classList.add("is-entering");
+    if (focus) { var f = typeof focus === "string" ? el.querySelector(focus) : focus; if (f) f.focus(); }
+  }
+  var note = $("#note");
+  // La page publique de la marque (version soumise) sera conçue à l'étape suivante.
+  note.addEventListener("input", function () { $("#note-c").textContent = note.value.length + " / 1 000 caractères"; });
+  function askPublish() {
+    var pn = $("#pub-note"); pn.hidden = !note.value; pn.textContent = "Commentaire interne joint : « " + note.value + " »";
+    show("p-pub", "#c-pub");
+  }
+  function askReject() { show("p-rej", "input[name=why]"); }
+  function askRelease() { if (note.value.trim()) show("p-rel", "#c-rel"); else P.announce("Vous avez rendu la main. Retour à la file (simulé)."); }
+  function done(text) { $("#done-text").textContent = text; show("p-done", "#next"); $("#release").hidden = true; P.announce(text + " Entrée suivante proposée : Vélo Urbain Bruxelles."); }
+  $("#b-pub").addEventListener("click", askPublish);
+  $("#b-rej").addEventListener("click", askReject);
+  $("#release").addEventListener("click", askRelease);
+  $("#c-pub").addEventListener("click", function () { done("Profil publié à " + P.time() + ". La marque est prévenue par e-mail."); });
+  $("#c-rel").addEventListener("click", function () { note.value = ""; show("p-idle"); P.announce("Vous avez rendu la main. Retour à la file (simulé)."); });
+  document.querySelectorAll("input[name=why]").forEach(function (r) {
+    r.addEventListener("change", function () {
+      $("#why-err").hidden = true;
+      $("#why-msg").innerHTML = "Message envoyé à la marque : « Votre profil n'a pas été publié. Motif : " + r.value.toLowerCase() + ". » Elle pourra le corriger, puis le soumettre à nouveau.";
+    });
+  });
+  $("#c-rej").addEventListener("click", function () {
+    var r = document.querySelector("input[name=why]:checked");
+    if (!r) { $("#why-err").hidden = false; document.querySelector("input[name=why]").focus(); P.announce("Choisissez un motif avant de refuser."); return; }
+    done("Profil refusé à " + P.time() + ", motif : " + r.value.toLowerCase() + ". La marque est prévenue par e-mail.");
+  });
+  document.querySelectorAll("[data-cancel]").forEach(function (b) { b.addEventListener("click", function () { show("p-idle", note.value ? note : "#b-pub"); }); });
+  document.addEventListener("keydown", function (e) {
+    if (document.querySelector("dialog[open]")) return;
+    var typing = e.target.closest("input[type=text], textarea");
+    if (e.key === "Escape" && document.getElementById("p-idle").hidden && document.getElementById("p-done").hidden) { e.preventDefault(); show("p-idle", note.value ? note : "#b-pub"); return; }
+    if (typing && e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); askPublish(); return; }
+    if (typing || e.ctrlKey || e.metaKey || e.altKey || document.getElementById("p-idle").hidden) return;
+    if (e.key === "v") { e.preventDefault(); askPublish(); }
+    if (e.key === "r") { e.preventDefault(); askReject(); }
+    if (e.key === "l") { e.preventDefault(); askRelease(); }
+    if (e.key === "?") { e.preventDefault(); P.openDialog("keys"); }
+  });
+  document.addEventListener("proto:state", function (e) {
+    $("#release").hidden = false;
+    if (e.detail.st === "refus") show("p-rej");
+    else if (e.detail.st === "publie") { $("#done-text").textContent = "Profil publié à 09 h 47. La marque est prévenue par e-mail."; show("p-done"); $("#release").hidden = true; }
+    else show("p-idle");
+  });
+});
+</script>
+</body>
+</html>

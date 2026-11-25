@@ -399,6 +399,8 @@ export type OwnProfile = {
   declaredStatus: string;
   /** The advertiser's company name (0106); null for a creator, who reads nothing of it. */
   companyName: string | null;
+  /** A new trading name of a published brand waiting for review (06 RG9), else null. */
+  companyNamePending: string | null;
 };
 
 /**
@@ -424,12 +426,23 @@ export async function ownProfile(
     return null;
   }
   let companyName: string | null = null;
+  let companyNamePending: string | null = null;
   if (role === "advertiser") {
-    const profiles = await tx.execute<{ legal_name: string }>(
-      sql`select legal_name from profiles.advertiser_profiles
-           where account_id = (select influx.current_account_id())`,
+    const profiles = await tx.execute<{
+      legal_name: string;
+      pending_name: string | null;
+    }>(
+      sql`select p.legal_name,
+                 (select r.proposed_value #>> '{}'
+                    from profiles.profile_field_revisions r
+                   where r.account_id = p.account_id
+                     and r.field_code = 'advertiser.brand_name'
+                     and r.status = 'pending_review') as pending_name
+            from profiles.advertiser_profiles p
+           where p.account_id = (select influx.current_account_id())`,
     );
     companyName = profiles[0]?.legal_name ?? null;
+    companyNamePending = profiles[0]?.pending_name ?? null;
   }
   return {
     email: row.email,
@@ -437,6 +450,7 @@ export async function ownProfile(
     countryCode: row.country_code,
     declaredStatus: row.declared_status,
     companyName,
+    companyNamePending,
   };
 }
 

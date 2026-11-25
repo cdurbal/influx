@@ -68,7 +68,165 @@ import {
   type OpsTrafficResponse,
   type OpsTrafficWindow,
 } from "@influx/contracts/backoffice-ops";
+import {
+  closeTeamSelectionResponseSchema,
+  entriesResponseSchema,
+  entryLogoResponseSchema,
+  extendEntryResponseSchema,
+  forceReleaseResponseSchema,
+  openEntryResponseSchema,
+  openTeamSelectionResponseSchema,
+  publishEntryResponseSchema,
+  queueCountersResponseSchema,
+  rejectEntryResponseSchema,
+  releaseEntryResponseSchema,
+  teamSelectionEntriesResponseSchema,
+  type CloseTeamSelectionRequest,
+  type CloseTeamSelectionResponse,
+  type EntriesResponse,
+  type EntriesSearchBody,
+  type EntryLogoResponse,
+  type ExtendEntryResponse,
+  type ForceReleaseRequest,
+  type ForceReleaseResponse,
+  type OpenEntryResponse,
+  type OpenTeamSelectionResponse,
+  type PublishEntryRequest,
+  type PublishEntryResponse,
+  type QueueCountersResponse,
+  type RejectEntryRequest,
+  type RejectEntryResponse,
+  type ReleaseEntryResponse,
+  type TeamSelectionEntriesResponse,
+  type TeamSelectionEntriesSearchBody,
+} from "@influx/contracts/backoffice-queues";
+import {
+  campaignEntriesResponseSchema,
+  campaignPassageResponseSchema,
+  campaignRecordResponseSchema,
+  correctCampaignFieldResponseSchema,
+  createCampaignForBrandResponseSchema,
+  firstReviewCampaignEntryResponseSchema,
+  openCampaignEntryResponseSchema,
+  publishCampaignEntryResponseSchema,
+  rejectCampaignEntryResponseSchema,
+  type CampaignEntriesResponse,
+  type CampaignEntriesSearchBody,
+  type CampaignPassageRequest,
+  type CampaignPassageResponse,
+  type CampaignRecordResponse,
+  type CorrectCampaignFieldRequest,
+  type CorrectCampaignFieldResponse,
+  type CreateCampaignForBrandRequest,
+  type CreateCampaignForBrandResponse,
+  type FirstReviewCampaignEntryRequest,
+  type FirstReviewCampaignEntryResponse,
+  type OpenCampaignEntryResponse,
+  type PublishCampaignEntryRequest,
+  type PublishCampaignEntryResponse,
+  type RejectCampaignEntryRequest,
+  type RejectCampaignEntryResponse,
+} from "@influx/contracts/campaign-review";
+import {
+  campaignPrefillResponseSchema,
+  identifiedCreatorSearchResponseSchema,
+  type CampaignPrefillResponse,
+  type IdentifiedCreatorSearchBody,
+  type IdentifiedCreatorSearchResponse,
+} from "@influx/contracts/identified-creator-search";
+import {
+  searchSettingsResponseSchema,
+  type SearchSettingsResponse,
+} from "@influx/contracts/search-settings";
+import {
+  creatorEntriesResponseSchema,
+  decidedEntryResponseSchema,
+  openCreatorEntryResponseSchema,
+  openPortfolioItemResponseSchema,
+  portfolioEntriesResponseSchema,
+  publishCreatorEntryResponseSchema,
+  reviewImageResponseSchema,
+  type ApprovePortfolioItemRequest,
+  type CreatorEntriesResponse,
+  type CreatorEntriesSearchBody,
+  type DecidedEntryResponse,
+  type OpenCreatorEntryResponse,
+  type PortfolioEntriesResponse,
+  type PortfolioEntriesSearchBody,
+  type PublishCreatorEntryRequest,
+  type PublishCreatorEntryResponse,
+  type RejectCreatorEntryRequest,
+  type RejectPortfolioItemRequest,
+  type ReviewImageResponse,
+} from "@influx/contracts/creator-queues";
+import {
+  accountBadgesResponseSchema,
+  accountOpeningsResponseSchema,
+  openVerificationForMemberResponseSchema,
+  compareFiguresResponseSchema,
+  confirmIdentifierChangeResponseSchema,
+  decideDisputeResponseSchema,
+  disputeEntriesResponseSchema,
+  disputeOpenResponseSchema,
+  identifierChangeEntriesResponseSchema,
+  identifierChangeOpenResponseSchema,
+  requestBadgeRevocationResponseSchema,
+  requireIdentifierProofResponseSchema,
+  grantVerificationResponseSchema,
+  reexamineVerificationResponseSchema,
+  rejectVerificationResponseSchema,
+  addVerificationRegistrySourceResponseSchema,
+  updateVerificationRegistrySourceResponseSchema,
+  verificationEntriesResponseSchema,
+  verificationEvidenceReadResponseSchema,
+  verificationOpenResponseSchema,
+  verificationRegistrySourcesResponseSchema,
+  type AccountBadgesResponse,
+  type AccountOpeningsResponse,
+  type GrantBrandByLoginRequest,
+  type OpenVerificationForMemberBody,
+  type OpenVerificationForMemberResponse,
+  type CompareFiguresRequest,
+  type CompareFiguresResponse,
+  type ConfirmIdentifierChangeRequest,
+  type ConfirmIdentifierChangeResponse,
+  type DecideDisputeResponse,
+  type DisputeEntriesResponse,
+  type DisputeEntriesSearchBody,
+  type DisputeOpenResponse,
+  type IdentifierChangeEntriesResponse,
+  type IdentifierChangeEntriesSearchBody,
+  type IdentifierChangeOpenResponse,
+  type OverturnDisputeRequest,
+  type RequireIdentifierProofRequest,
+  type RequireIdentifierProofResponse,
+  type UpholdDisputeRequest,
+  type GrantAccountRequest,
+  type GrantAudienceRequest,
+  type GrantBrandRequest,
+  type GrantVerificationResponse,
+  type ReexamineVerificationRequest,
+  type RequestBadgeRevocationBody,
+  type RequestBadgeRevocationResponse,
+  type ReexamineVerificationResponse,
+  type RejectVerificationRequest,
+  type RejectVerificationResponse,
+  type AddVerificationRegistrySourceBody,
+  type AddVerificationRegistrySourceResponse,
+  type UpdateVerificationRegistrySourceBody,
+  type UpdateVerificationRegistrySourceResponse,
+  type VerificationEntriesResponse,
+  type VerificationEntriesSearchBody,
+  type VerificationEvidenceReadResponse,
+  type VerificationOpenResponse,
+  type VerificationQueueView,
+  type VerificationRegistrySourcesResponse,
+} from "@influx/contracts/verification";
 import { callRelay, type RelayResult } from "@influx/web-platform/relay-client";
+import {
+  portfolioViewOf,
+  type PortfolioReviewView,
+} from "./portfolio-review-view";
 
 /** A path segment from a server-issued id: a UUID, or nothing is called. */
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -163,6 +321,58 @@ export function readApolloSettings(): Promise<
     "GET",
     "/v1/bo/settings/apollo",
     apolloSettingsResponseSchema,
+  );
+}
+
+// --- Badges of an account and the ask for a withdrawal (08 RG73 to RG76; L2F-18) ----------------
+
+export function readAccountBadges(
+  id: string,
+): Promise<RelayResult<AccountBadgesResponse>> {
+  return callRelay(
+    "GET",
+    `/v1/bo/accounts/${idSegment(id)}/badges`,
+    accountBadgesResponseSchema,
+  );
+}
+
+/** Opens the 2V of the withdrawal: nothing is withdrawn here, an administrator confirms elsewhere. */
+export function requestBadgeRevocation(
+  accountId: string,
+  badgeId: string,
+  body: RequestBadgeRevocationBody,
+): Promise<RelayResult<RequestBadgeRevocationResponse>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/accounts/${idSegment(accountId)}/badges/${idSegment(badgeId)}/revocation`,
+    requestBadgeRevocationResponseSchema,
+    body,
+  );
+}
+
+// --- « Lancer la vérification » (D83 A; 06 RG51; L2F-20) --------------------------------------------
+
+/** What the opening offers on an account: its lines of network, or its brand, and the request already open. */
+export function readAccountOpenings(
+  id: string,
+): Promise<RelayResult<AccountOpeningsResponse>> {
+  return callRelay(
+    "GET",
+    `/v1/bo/accounts/${idSegment(id)}/verification-requests`,
+    accountOpeningsResponseSchema,
+  );
+}
+
+/** The verification of a member opened by an agent: the request waits in queue 4, the member is told by e-mail. */
+export function openVerificationForMember(
+  accountId: string,
+  body: OpenVerificationForMemberBody,
+): Promise<RelayResult<OpenVerificationForMemberResponse>> {
+  return callRelay(
+    "POST",
+    `/v1/bo/accounts/${idSegment(accountId)}/verification-requests`,
+    openVerificationForMemberResponseSchema,
+    body,
   );
 }
 
@@ -347,4 +557,1032 @@ export function readOpsTraffic(
 
 export function readOpsProcesses(): Promise<RelayResult<OpsProcessesResponse>> {
   return callRelay("GET", "/v1/bo/ops/processes", opsProcessesResponseSchema);
+}
+
+const ENTRIES = "/v1/bo/queues/profiles-advertiser/entries";
+
+// --- Queues (15 RG26 to RG28, RG33, RG34; 17b §2.2; L2C-16) -------------------------------------
+
+/** The counters of every queue (15 RG28), as the caller may see them (RG36). */
+export function readQueueCounters(): Promise<
+  RelayResult<QueueCountersResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/queues/counters",
+    queueCountersResponseSchema,
+  );
+}
+
+/**
+ * One page of the entries of queue 1 (L2C 18c, EC-L2C-16-1): the filters, the period and the cursor
+ * travel in the BODY of a POST that writes nothing, because the relay carries query values of 64
+ * plain characters only, which an instant and a cursor are not.
+ */
+export function searchBrandReviewEntries(
+  body: EntriesSearchBody,
+): Promise<RelayResult<EntriesResponse>> {
+  return callRelay("POST", `${ENTRIES}/search`, entriesResponseSchema, body);
+}
+
+/**
+ * The entries of queue 1, first page, from a query of plain characters: the dashboard only asks for
+ * the overdue ones.
+ */
+export function readBrandReviewEntries(
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<EntriesResponse>> {
+  return callRelay("GET", ENTRIES, entriesResponseSchema, undefined, query);
+}
+
+// --- Queue 4, two views of one table (08 RG61 to RG67; l2e/modele.md §6; L2E-21) ---------------------
+
+const VERIFICATION_ENTRIES = {
+  creators: "/v1/bo/queues/verification-creators/entries",
+  brands: "/v1/bo/queues/verification-brands/entries",
+} as const satisfies Record<VerificationQueueView, string>;
+
+/** One page of a view, filters, period, sort and cursor in the BODY, as queue 1 (the relay refuses an instant in a query). */
+export function searchVerificationCreators(
+  body: VerificationEntriesSearchBody,
+): Promise<RelayResult<VerificationEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${VERIFICATION_ENTRIES.creators}/search`,
+    verificationEntriesResponseSchema,
+    body,
+  );
+}
+
+export function searchVerificationBrands(
+  body: VerificationEntriesSearchBody,
+): Promise<RelayResult<VerificationEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${VERIFICATION_ENTRIES.brands}/search`,
+    verificationEntriesResponseSchema,
+    body,
+  );
+}
+
+/** The first page of a view from a query of plain characters: the dashboard only asks for the overdue ones. */
+export function readVerificationEntries(
+  view: VerificationQueueView,
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<VerificationEntriesResponse>> {
+  return callRelay(
+    "GET",
+    VERIFICATION_ENTRIES[view],
+    verificationEntriesResponseSchema,
+    undefined,
+    query,
+  );
+}
+
+// --- Queue 1, one entry (06 RG6, RG65; 15 C1 to C4, C6; L2C-17) -----------------------------------
+
+/** Opening is claiming (15 C1): the decision view, its version token, and the register line. */
+export function openBrandReviewEntry(
+  id: string,
+): Promise<RelayResult<OpenEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/open`,
+    openEntryResponseSchema,
+  );
+}
+
+export function publishBrandReviewEntry(
+  id: string,
+  body: PublishEntryRequest,
+): Promise<RelayResult<PublishEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/publish`,
+    publishEntryResponseSchema,
+    body,
+  );
+}
+
+export function rejectBrandReviewEntry(
+  id: string,
+  body: RejectEntryRequest,
+): Promise<RelayResult<RejectEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/reject`,
+    rejectEntryResponseSchema,
+    body,
+  );
+}
+
+/** 15 C3, "je rends la main". */
+export function releaseBrandReviewEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+/** File.md A9: the claim of the caller takes its delay again. */
+export function extendBrandReviewClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+/** 15 C4: an administrator lifts a live claim, with a typed reason. */
+export function forceReleaseBrandReviewClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/**
+ * The image of a logo of an entry, by the id the decision view served (0213, stockage.md §4). Each
+ * call is one line of the register, nominative: the screen asks once per logo, when it is shown.
+ */
+export function readBrandReviewLogo(
+  id: string,
+  logoId: string,
+): Promise<RelayResult<EntryLogoResponse>> {
+  return callRelay(
+    "GET",
+    `${ENTRIES}/${idSegment(id)}/logo`,
+    entryLogoResponseSchema,
+    undefined,
+    { logo: idSegment(logoId) },
+  );
+}
+
+// --- Queue 4, one request of either view (08 RG43 to RG55; l2e/modele.md §4, §6; L2E-22, L2E-23) ----------
+
+const CREATOR_ENTRIES = VERIFICATION_ENTRIES.creators;
+
+function entryPath(view: VerificationQueueView, id: string): string {
+  return `${VERIFICATION_ENTRIES[view]}/${idSegment(id)}`;
+}
+
+/** Opening is claiming (08 RG43): the dossier of RG55, the version token, the closed reasons and what the member reads. */
+export function openVerificationEntry(
+  view: VerificationQueueView,
+  id: string,
+): Promise<RelayResult<VerificationOpenResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath(view, id)}/open`,
+    verificationOpenResponseSchema,
+  );
+}
+
+/** Modele -19: the figures typed first, then the declared ones and the verdict of the gap come back. */
+export function compareVerificationFigures(
+  id: string,
+  body: CompareFiguresRequest,
+): Promise<RelayResult<CompareFiguresResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/compare`,
+    compareFiguresResponseSchema,
+    body,
+  );
+}
+
+export function grantVerificationAccount(
+  id: string,
+  body: GrantAccountRequest,
+): Promise<RelayResult<GrantVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/grant-account`,
+    grantVerificationResponseSchema,
+    body,
+  );
+}
+
+export function grantVerificationAudience(
+  id: string,
+  body: GrantAudienceRequest,
+): Promise<RelayResult<GrantVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/grant-audience`,
+    grantVerificationResponseSchema,
+    body,
+  );
+}
+
+/** 06 RG49 to RG52: « Marque vérifiée », the code found at the domain and the register consulted. */
+export function grantVerificationBrand(
+  id: string,
+  body: GrantBrandRequest,
+): Promise<RelayResult<GrantVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath("brands", id)}/grant`,
+    grantVerificationResponseSchema,
+    body,
+  );
+}
+
+/** D83 A-bis: the same grant, the domain proven by the verified login address (nothing typed about it). */
+export function grantVerificationBrandByLogin(
+  id: string,
+  body: GrantBrandByLoginRequest,
+): Promise<RelayResult<GrantVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath("brands", id)}/grant-by-login`,
+    grantVerificationResponseSchema,
+    body,
+  );
+}
+
+export function rejectVerificationEntry(
+  view: VerificationQueueView,
+  id: string,
+  body: RejectVerificationRequest,
+): Promise<RelayResult<RejectVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath(view, id)}/reject`,
+    rejectVerificationResponseSchema,
+    body,
+  );
+}
+
+/** « À réexaminer » (RG50): an internal reason, the request stays in the queue. */
+export function reexamineVerificationEntry(
+  view: VerificationQueueView,
+  id: string,
+  body: ReexamineVerificationRequest,
+): Promise<RelayResult<ReexamineVerificationResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath(view, id)}/reexamine`,
+    reexamineVerificationResponseSchema,
+    body,
+  );
+}
+
+export function releaseVerificationEntry(
+  view: VerificationQueueView,
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath(view, id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendVerificationEntryClaim(
+  view: VerificationQueueView,
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath(view, id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseVerificationEntryClaim(
+  view: VerificationQueueView,
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${entryPath(view, id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/**
+ * One piece of a request, by the id the dossier served (D82 (5), RG46, RG84): JSON (base64) drawn from a
+ * `blob:` URL. Each call is one nominative line of the register: the screen asks once per opening.
+ */
+export function readVerificationEvidence(
+  id: string,
+  evidenceId: string,
+): Promise<RelayResult<VerificationEvidenceReadResponse>> {
+  return callRelay(
+    "GET",
+    `${CREATOR_ENTRIES}/${idSegment(id)}/evidence/${idSegment(evidenceId)}`,
+    verificationEvidenceReadResponseSchema,
+  );
+}
+
+// --- The registry sources of the brand's registration (06 RG52, RG101; D79 (12); L2E-23) -----------------
+
+const REGISTRY_SOURCES = "/v1/bo/verification/registry-sources";
+
+/** Every source, the inactive ones too: read by an agent and by an administrator. */
+export function readRegistrySources(): Promise<
+  RelayResult<VerificationRegistrySourcesResponse>
+> {
+  return callRelay(
+    "GET",
+    REGISTRY_SOURCES,
+    verificationRegistrySourcesResponseSchema,
+  );
+}
+
+/** An administrator adds the register of a country or of one of its States (0229, L2F-21), journaled by the database. */
+export function addRegistrySource(
+  body: AddVerificationRegistrySourceBody,
+): Promise<RelayResult<AddVerificationRegistrySourceResponse>> {
+  return callRelay(
+    "POST",
+    REGISTRY_SOURCES,
+    addVerificationRegistrySourceResponseSchema,
+    body,
+  );
+}
+
+/** An administrator's change (RG101): the former and the new value are journaled by the database. */
+export function saveRegistrySource(
+  id: string,
+  body: UpdateVerificationRegistrySourceBody,
+): Promise<RelayResult<UpdateVerificationRegistrySourceResponse>> {
+  return callRelay(
+    "PUT",
+    `${REGISTRY_SOURCES}/${idSegment(id)}`,
+    updateVerificationRegistrySourceResponseSchema,
+    body,
+  );
+}
+
+// --- Queue 5, the contests of a badge decision (08 RG77; 15 RG27 C1 to C8; l2f/modele.md §5; L2F-19) ----
+
+const DISPUTE_ENTRIES = "/v1/bo/queues/verification-disputes/entries";
+
+/** One page, filters, period, sort and cursor in the BODY (the relay refuses an instant in a query). */
+export function searchDisputeEntries(
+  body: DisputeEntriesSearchBody,
+): Promise<RelayResult<DisputeEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/search`,
+    disputeEntriesResponseSchema,
+    body,
+  );
+}
+
+/** The first page from a query of plain characters: the dashboard only asks for the overdue ones. */
+export function readDisputeEntries(
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<DisputeEntriesResponse>> {
+  return callRelay(
+    "GET",
+    DISPUTE_ENTRIES,
+    disputeEntriesResponseSchema,
+    undefined,
+    query,
+  );
+}
+
+/** Opening is claiming (15 C1): the dossier, the version token and the motives of the outcome. */
+export function openDisputeEntry(
+  id: string,
+): Promise<RelayResult<DisputeOpenResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/open`,
+    disputeOpenResponseSchema,
+  );
+}
+
+export function releaseDisputeEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendDisputeEntryClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseDisputeEntryClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/** « Confirmer la décision » (CA52): a motive of the upheld ones, the team's own text for `other`. */
+export function upholdDisputeEntry(
+  id: string,
+  body: UpholdDisputeRequest,
+): Promise<RelayResult<DecideDisputeResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/uphold`,
+    decideDisputeResponseSchema,
+    body,
+  );
+}
+
+/** « Infirmer » (CA53): by what was contested, with the identifier and the figures typed again. */
+export function overturnDisputeEntry(
+  id: string,
+  body: OverturnDisputeRequest,
+): Promise<RelayResult<DecideDisputeResponse>> {
+  return callRelay(
+    "POST",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/overturn`,
+    decideDisputeResponseSchema,
+    body,
+  );
+}
+
+/** One piece of the dossier of a refusal, by the id the dossier served: a nominative line of the register. */
+export function readDisputeEvidence(
+  id: string,
+  evidenceId: string,
+): Promise<RelayResult<VerificationEvidenceReadResponse>> {
+  return callRelay(
+    "GET",
+    `${DISPUTE_ENTRIES}/${idSegment(id)}/evidence/${idSegment(evidenceId)}`,
+    verificationEvidenceReadResponseSchema,
+  );
+}
+
+// --- Queue 6, the identifiers changed after a verification (08 RG78; 15 RG29; L2F-19) -----------------
+
+const IDENTIFIER_ENTRIES = "/v1/bo/queues/identifier-changes/entries";
+
+export function searchIdentifierChangeEntries(
+  body: IdentifierChangeEntriesSearchBody,
+): Promise<RelayResult<IdentifierChangeEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/search`,
+    identifierChangeEntriesResponseSchema,
+    body,
+  );
+}
+
+export function readIdentifierChangeEntries(
+  query: Readonly<Record<string, string>>,
+): Promise<RelayResult<IdentifierChangeEntriesResponse>> {
+  return callRelay(
+    "GET",
+    IDENTIFIER_ENTRIES,
+    identifierChangeEntriesResponseSchema,
+    undefined,
+    query,
+  );
+}
+
+/** Opening is claiming: the former and the new identifier come to the holder of the live claim only. */
+export function openIdentifierChangeEntry(
+  id: string,
+): Promise<RelayResult<IdentifierChangeOpenResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/open`,
+    identifierChangeOpenResponseSchema,
+  );
+}
+
+export function releaseIdentifierChangeEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendIdentifierChangeClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseIdentifierChangeClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/** « Même compte »: the handle typed must be the one declared; the badge is never rewritten. */
+export function confirmIdentifierChangeEntry(
+  id: string,
+  body: ConfirmIdentifierChangeRequest,
+): Promise<RelayResult<ConfirmIdentifierChangeResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/confirm`,
+    confirmIdentifierChangeResponseSchema,
+    body,
+  );
+}
+
+/** « Exiger une nouvelle preuve »: the badge goes to « à reconfirmer », the proof is asked in the member's space. */
+export function requireIdentifierProofEntry(
+  id: string,
+  body: RequireIdentifierProofRequest,
+): Promise<RelayResult<RequireIdentifierProofResponse>> {
+  return callRelay(
+    "POST",
+    `${IDENTIFIER_ENTRIES}/${idSegment(id)}/require-proof`,
+    requireIdentifierProofResponseSchema,
+    body,
+  );
+}
+
+// --- Queue 2, the creator profiles to validate (07 RG4 to RG10, RG93 to RG99; 15 RG27; l2g/modele.md §6; L2G-15) ---
+
+const CREATOR_REVIEW_ENTRIES = "/v1/bo/queues/profiles-creator/entries";
+
+/** One page: filters, period and cursor in the BODY, as queue 1; the counters ride on the answer. */
+export function searchCreatorEntries(
+  body: CreatorEntriesSearchBody,
+): Promise<RelayResult<CreatorEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/search`,
+    creatorEntriesResponseSchema,
+    body,
+  );
+}
+
+/** Opening is claiming (15 C1): the decision view, its version token and the closed reasons with their messages. */
+export function openCreatorEntry(
+  id: string,
+): Promise<RelayResult<OpenCreatorEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/open`,
+    openCreatorEntryResponseSchema,
+  );
+}
+
+export function publishCreatorEntry(
+  id: string,
+  body: PublishCreatorEntryRequest,
+): Promise<RelayResult<PublishCreatorEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/publish`,
+    publishCreatorEntryResponseSchema,
+    body,
+  );
+}
+
+export function rejectCreatorEntry(
+  id: string,
+  body: RejectCreatorEntryRequest,
+): Promise<RelayResult<DecidedEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/reject`,
+    decidedEntryResponseSchema,
+    body,
+  );
+}
+
+export function releaseCreatorEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendCreatorEntryClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseCreatorEntryClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/**
+ * A visual of the profile, by the id the decision view served (D82 (7)): to the holder of the live claim
+ * only, one line of the register per read, so the screen asks when the agent asks, never on its own.
+ */
+export function readCreatorEntryVisual(
+  id: string,
+  itemId: string,
+): Promise<RelayResult<ReviewImageResponse>> {
+  return callRelay(
+    "GET",
+    `${CREATOR_REVIEW_ENTRIES}/${idSegment(id)}/portfolio/${idSegment(itemId)}/image`,
+    reviewImageResponseSchema,
+  );
+}
+
+// --- Queue 7, the campaigns to validate (09 RG5, RG85, RG87 to RG95; 15 RG27; 17b §3.8; l3c/modele.md; L3C-08) ---
+
+const CAMPAIGN_REVIEW_ENTRIES = "/v1/bo/campaigns/entries";
+
+/** One page: filters, period and cursor in the BODY, as queues 1 and 2; the counters ride on the answer. */
+export function searchCampaignEntries(
+  body: CampaignEntriesSearchBody,
+): Promise<RelayResult<CampaignEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/search`,
+    campaignEntriesResponseSchema,
+    body,
+  );
+}
+
+/** Opening is claiming (15 C1): the decision view, its token, the phase of the review and the closed reasons. */
+export function openCampaignEntry(
+  id: string,
+): Promise<RelayResult<OpenCampaignEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/open`,
+    openCampaignEntryResponseSchema,
+  );
+}
+
+/** Time 1 of an enhanced review: a reasoned opinion, the entry goes back to the queue for a second person. */
+export function firstReviewCampaignEntry(
+  id: string,
+  body: FirstReviewCampaignEntryRequest,
+): Promise<RelayResult<FirstReviewCampaignEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/first-review`,
+    firstReviewCampaignEntryResponseSchema,
+    body,
+  );
+}
+
+export function publishCampaignEntry(
+  id: string,
+  body: PublishCampaignEntryRequest,
+): Promise<RelayResult<PublishCampaignEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/publish`,
+    publishCampaignEntryResponseSchema,
+    body,
+  );
+}
+
+export function rejectCampaignEntry(
+  id: string,
+  body: RejectCampaignEntryRequest,
+): Promise<RelayResult<RejectCampaignEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/reject`,
+    rejectCampaignEntryResponseSchema,
+    body,
+  );
+}
+
+export function releaseCampaignEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendCampaignEntryClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleaseCampaignEntryClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGN_REVIEW_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+// --- The record of a campaign and the acts of an agent on it (09 RG1, RG8, RG9, RG94; l3c/modele.md §5, §6; L3C-09) ---
+
+const CAMPAIGNS = "/v1/bo/campaigns";
+
+/** The record of a campaign: a GET with an effect, the reading is journaled by apps/api (`campaign.record_read`). */
+export function readCampaignRecord(
+  id: string,
+): Promise<RelayResult<CampaignRecordResponse>> {
+  return callRelay(
+    "GET",
+    `${CAMPAIGNS}/${idSegment(id)}`,
+    campaignRecordResponseSchema,
+  );
+}
+
+/** ONE field, a typed reason (RG94): the old and the new value are kept by the base, the brand is told. */
+export function correctCampaignField(
+  id: string,
+  body: CorrectCampaignFieldRequest,
+): Promise<RelayResult<CorrectCampaignFieldResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGNS}/${idSegment(id)}/corrections`,
+    correctCampaignFieldResponseSchema,
+    body,
+  );
+}
+
+/** A draft opened for a brand that called (RG1, Q2): the brand completes and submits it, never INFLUX. */
+export function createCampaignForBrand(
+  body: CreateCampaignForBrandRequest,
+): Promise<RelayResult<CreateCampaignForBrandResponse>> {
+  return callRelay(
+    "POST",
+    CAMPAIGNS,
+    createCampaignForBrandResponseSchema,
+    body,
+  );
+}
+
+/** The passages of an agent with authority (RG8, RG9): a reason of the closed list, a closing is irreversible. */
+export function passCampaign(
+  id: string,
+  passage: "pause" | "resume" | "close",
+  body: CampaignPassageRequest,
+): Promise<RelayResult<CampaignPassageResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGNS}/${idSegment(id)}/${passage}`,
+    campaignPassageResponseSchema,
+    body,
+  );
+}
+
+// --- Queue 3, the visuals of the portfolio to moderate (07 RG77 to RG85, RG95 to RG97; l2g/modele.md §6; L2G-16) ---
+
+const PORTFOLIO_REVIEW_ENTRIES = "/v1/bo/queues/portfolio-moderation/entries";
+
+/** One page: filters, period and cursor in the BODY, as queue 2; the counters ride on the answer. */
+export function searchPortfolioEntries(
+  body: PortfolioEntriesSearchBody,
+): Promise<RelayResult<PortfolioEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/search`,
+    portfolioEntriesResponseSchema,
+    body,
+  );
+}
+
+/**
+ * Opening is claiming (15 C1): the decision view of ONE visual (the entry IS the visual), its version token
+ * and the grid of RG79 with the message of the e-mail of each reason. The answer is given the shape of the
+ * other claimed screens (`entry`), by `portfolioViewOf`; the bytes are not in it (see `readPortfolioEntryImage`).
+ */
+export async function openPortfolioItem(
+  id: string,
+): Promise<RelayResult<PortfolioReviewView>> {
+  const result = await callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/open`,
+    openPortfolioItemResponseSchema,
+  );
+  return result.kind === "ok"
+    ? { kind: "ok", data: portfolioViewOf(result.data) }
+    : result;
+}
+
+export function approvePortfolioItem(
+  id: string,
+  body: ApprovePortfolioItemRequest,
+): Promise<RelayResult<DecidedEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/approve`,
+    decidedEntryResponseSchema,
+    body,
+  );
+}
+
+export function rejectPortfolioItem(
+  id: string,
+  body: RejectPortfolioItemRequest,
+): Promise<RelayResult<DecidedEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/reject`,
+    decidedEntryResponseSchema,
+    body,
+  );
+}
+
+export function releasePortfolioItem(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendPortfolioItemClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+export function forceReleasePortfolioItemClaim(
+  id: string,
+  body: ForceReleaseRequest,
+): Promise<RelayResult<ForceReleaseResponse>> {
+  return callRelay(
+    "POST",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/force-release`,
+    forceReleaseResponseSchema,
+    body,
+  );
+}
+
+/**
+ * The visual of the entry (D82 (7)): to the holder of the live claim only, one line of the register per
+ * read, so the screen asks when the agent asks, never on its own. No thumbnail in the list.
+ */
+export function readPortfolioEntryImage(
+  id: string,
+): Promise<RelayResult<ReviewImageResponse>> {
+  return callRelay(
+    "GET",
+    `${PORTFOLIO_REVIEW_ENTRIES}/${idSegment(id)}/image`,
+    reviewImageResponseSchema,
+  );
+}
+
+// --- The identified creator search and the prefill of a campaign (10 RG71, RG73, RG78; 17b §3.3; l3g/modele.md §8; L3G-12) ---
+
+/**
+ * One page of the identified view: filters, sort, page, campaign and prefill in the BODY, never in a URL (CA58).
+ * A POST that serves and journals; no size of page exists (RG76), the base holds it.
+ */
+export function searchIdentifiedCreators(
+  body: IdentifiedCreatorSearchBody,
+): Promise<RelayResult<IdentifiedCreatorSearchResponse>> {
+  return callRelay(
+    "POST",
+    "/v1/bo/creator-search",
+    identifiedCreatorSearchResponseSchema,
+    body,
+  );
+}
+
+/** The filters the brief of an admitted campaign proposes, journaled as proposed (RG73, CA56). */
+export function readCampaignPrefill(
+  campaignId: string,
+): Promise<RelayResult<CampaignPrefillResponse>> {
+  return callRelay(
+    "POST",
+    `${CAMPAIGNS}/${idSegment(campaignId)}/creator-prefill`,
+    campaignPrefillResponseSchema,
+  );
+}
+
+// --- Queue 9, the requests for a selection by the team (10 RG61; 15 C1 to C3, AL23; 17b I13; l3g/modele.md §5, §8; L3G-13) ---
+
+const TEAM_SELECTION_ENTRIES = "/v1/bo/team-selection/entries";
+
+/** One page: the filters, the period and the cursor in the BODY, as the other queues; the counters ride on the answer. */
+export function searchTeamSelectionEntries(
+  body: TeamSelectionEntriesSearchBody,
+): Promise<RelayResult<TeamSelectionEntriesResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/search`,
+    teamSelectionEntriesResponseSchema,
+    body,
+  );
+}
+
+/** Opening is claiming (15 C1): the request, its criteria and its message as plain text, and the claim. */
+export function openTeamSelectionEntry(
+  id: string,
+): Promise<RelayResult<OpenTeamSelectionResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/${idSegment(id)}/open`,
+    openTeamSelectionResponseSchema,
+  );
+}
+
+export function releaseTeamSelectionEntry(
+  id: string,
+): Promise<RelayResult<ReleaseEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/${idSegment(id)}/release`,
+    releaseEntryResponseSchema,
+  );
+}
+
+export function extendTeamSelectionEntryClaim(
+  id: string,
+): Promise<RelayResult<ExtendEntryResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/${idSegment(id)}/extend`,
+    extendEntryResponseSchema,
+  );
+}
+
+/** The closure by a reason of the closed list (17b I13); the answer carries the request to open next (§2.6). */
+export function closeTeamSelectionEntry(
+  id: string,
+  body: CloseTeamSelectionRequest,
+): Promise<RelayResult<CloseTeamSelectionResponse>> {
+  return callRelay(
+    "POST",
+    `${TEAM_SELECTION_ENTRIES}/${idSegment(id)}/close`,
+    closeTeamSelectionResponseSchema,
+    body,
+  );
+}
+
+// --- The settings of the creator search, admin only (10 RG2; l3g/modele.md §7, §8; 0333; L3G-13) ---
+
+/** The ten keys as the base holds them and the counters of the last snapshot; a change goes through the dual control. */
+export function readSearchSettings(): Promise<
+  RelayResult<SearchSettingsResponse>
+> {
+  return callRelay(
+    "GET",
+    "/v1/bo/settings/search",
+    searchSettingsResponseSchema,
+  );
 }

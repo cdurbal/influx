@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Prototype · Profil créateur</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/proto.js" defer></script>
+<style>
+  /* Assistant : une colonne à côté de la navigation, en carte dès 768 px, plein écran sur téléphone */
+  .wz { display: flex; flex-direction: column; gap: var(--spacing-5); width: 100%; max-width: var(--container-narrow); }
+  @media (width >= 768px) { .wz { border: var(--border-width-thin) solid var(--color-border-default); border-radius: var(--radius-card); background: var(--color-surface-card); padding: var(--spacing-inset-card); } }
+  .wz-head { display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .wz-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .wz-top h1 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .wz-count { font-size: var(--text-sm); color: var(--color-text-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .segs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--spacing-1); }
+  .segs button { position: relative; height: 0.375rem; border-radius: var(--radius-pill); background: var(--color-surface-active); transition: background-color var(--duration-slow) var(--ease-standard); }
+  .segs button::before { content: ""; position: absolute; inset: -0.625rem 0; }
+  .segs button.done, .segs button.cur { background: var(--color-brand-primary); }
+  .segs button.gap { background: var(--color-feedback-warning-icon); }
+  .segs button:disabled { cursor: default; }
+  .wz-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-1) var(--spacing-4); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .wz-meta .link { font-weight: var(--font-weight-semibold); }
+  .wz-step { display: flex; flex-direction: column; gap: var(--spacing-5); }
+  .wz-step.is-in { animation: fade-in var(--duration-fast) var(--ease-standard); }
+  .wz-step > header { display: flex; flex-direction: column; gap: var(--spacing-1); }
+  .wz-step h2 { font-family: var(--font-display); font-size: var(--text-title-section); font-weight: var(--font-weight-bold); letter-spacing: var(--tracking-heading); }
+  .wz-foot { display: flex; align-items: center; gap: var(--spacing-3); border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-4); }
+  .wz-foot .save { flex: 1; justify-content: center; }
+  .save { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .save .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .save[data-kind="failed"] { color: var(--color-feedback-error-text); font-weight: var(--font-weight-semibold); }
+  @media (prefers-reduced-motion: no-preference) { .save[data-kind="saving"] .i { animation: spin 1s linear infinite; } }
+  @keyframes spin { to { rotate: 360deg; } }
+  .save--meta { display: none; }
+  @media (width < 768px) {
+    .m-page { padding-bottom: calc(var(--spacing-section-header) + 4.5rem); }
+    .wz-foot { position: fixed; left: 0; right: 0; bottom: var(--size-nav-bottom-height); z-index: var(--z-raised); background: var(--color-surface-page); padding: var(--spacing-2) var(--spacing-page-gutter); }
+    .wz-foot .save { display: none; }
+    .wz-foot .btn--primary { margin-left: auto; }
+    .save--meta { display: inline-flex; }
+  }
+  .fgrid { display: grid; gap: var(--spacing-5); }
+  @media (width >= 640px) { .fgrid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .fgrid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .fgrid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  details.opt { border-top: var(--border-width-thin) solid var(--color-border-default); padding-top: var(--spacing-2); }
+  details.opt > summary { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-target); cursor: pointer; list-style: none; font-weight: var(--font-weight-semibold); }
+  details.opt > summary::-webkit-details-marker { display: none; }
+  details.opt > summary .i { transition: rotate var(--duration-base) var(--ease-standard); color: var(--color-text-secondary); }
+  details.opt[open] > summary .i { rotate: 90deg; }
+  details.opt > div { display: flex; flex-direction: column; gap: var(--spacing-5); padding: var(--spacing-3) 0 var(--spacing-2); }
+  details.opt[open] > div { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .pct { display: inline-flex; align-items: center; gap: var(--spacing-2); }
+  .tags { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+  .tag { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: 2.25rem; border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-raised); padding: 0 var(--spacing-2) 0 var(--spacing-3); font-size: var(--text-sm); }
+  .tag button { display: inline-flex; padding: var(--spacing-1); border-radius: var(--radius-pill); color: var(--color-text-secondary); }
+  .adder { display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center; }
+  .adder .select { flex: 1 1 13rem; max-width: 20rem; }
+  /* Réseaux : des lignes, pas des cartes (comme la capture de référence) */
+  /* Réseaux : une ligne fermée est séparée par un filet ; une ligne ouverte devient un bloc
+     intérieur sur fond surélevé, qui délimite nettement sa saisie (bloc intérieur, 04 §4). */
+  .nets { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .net { border-bottom: var(--border-width-thin) solid var(--color-border-default); transition: background-color var(--duration-base) var(--ease-standard); }
+  .net.is-open { margin: var(--spacing-2) 0; padding: 0 var(--spacing-4); border-radius: var(--radius-md); border-bottom-color: transparent; background: var(--color-surface-raised); }
+  .net__head { position: relative; display: flex; align-items: center; gap: var(--spacing-2); min-height: calc(var(--size-touch-target) + var(--spacing-4)); padding: var(--spacing-2) 0; border-radius: var(--radius-md); }
+  .net__toggle { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-md); text-align: left; }
+  .net__toggle::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+  .net__toggle:focus-visible { outline: none; }
+  .net__head:has(.net__toggle:focus-visible) { outline: var(--focus-ring-width) solid var(--color-focus-ring); outline-offset: var(--focus-ring-offset); }
+  .net__head .badge { align-self: center; }
+  .net__head .chev { color: var(--color-text-secondary); transition: rotate var(--duration-base) var(--ease-standard); }
+  .net.is-open .chev { rotate: 180deg; }
+  .net__head.is-celebrate { animation: done-flash 900ms var(--ease-standard); }
+  @keyframes done-flash { from { background-color: var(--color-feedback-success-bg); } to { background-color: transparent; } }
+  .star { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; border-radius: var(--radius-round); color: var(--color-text-tertiary); transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard); }
+  .star svg { width: 1.375rem; height: 1.375rem; fill: transparent; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; transition: fill var(--duration-fast) var(--ease-standard); }
+  .star:hover { color: var(--color-network-primary); background: var(--color-surface-hover); }
+  .star[aria-pressed="true"] { color: var(--color-network-primary); }
+  .star[aria-pressed="true"] svg { fill: currentColor; }
+  .done { align-self: center; }
+  @media (prefers-reduced-motion: no-preference) { .star.is-pop svg, .done.is-pop { animation: pop-in var(--duration-slow) var(--ease-standard); } }
+  @keyframes pop-in { 0% { scale: 0.6; opacity: 0; } 60% { scale: 1.15; opacity: 1; } 100% { scale: 1; } }
+  .legend-star { display: flex; align-items: flex-start; gap: var(--spacing-2); }
+  .legend-star svg { flex-shrink: 0; margin-top: 0.1875rem; width: var(--size-icon-sm); height: var(--size-icon-sm); fill: var(--color-network-primary); stroke: var(--color-network-primary); stroke-width: 2; stroke-linejoin: round; }
+  .net__body { display: flex; flex-direction: column; gap: var(--spacing-5); padding: 0 0 var(--spacing-5); }
+  .net__body[hidden] { display: none; }
+  .net__body.is-in { animation: rise-in var(--duration-base) var(--ease-standard); }
+  .pf { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-3); }
+  .pf figure { display: flex; flex-direction: column; gap: var(--spacing-1); min-width: 0; }
+  .pf .visual { aspect-ratio: 4 / 3; }
+  .pf-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--spacing-2); aspect-ratio: 4 / 3; border-radius: var(--radius-md); border: var(--border-width-thin) dashed var(--color-border-strong); color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: var(--font-weight-semibold); text-align: center; padding: var(--spacing-2); transition: background-color var(--duration-fast) var(--ease-standard); }
+  .pf-add:hover { background: var(--color-surface-raised); color: var(--color-text-primary); }
+  .right-row { display: grid; gap: var(--spacing-2) var(--spacing-4); align-items: center; padding: var(--spacing-3) 0; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  @media (width >= 640px) { .right-row { grid-template-columns: minmax(0, 1fr) auto; } }
+  /* Vérifier et publier, liste de tâches */
+  .recap { display: flex; flex-direction: column; }
+  .recap section { display: flex; flex-direction: column; gap: var(--spacing-2); padding: var(--spacing-4) 0; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .recap h3 { font-family: var(--font-display); font-weight: var(--font-weight-bold); }
+  .recap .props { --size-property-label: 11rem; }
+  .missing { display: flex; align-items: flex-start; gap: var(--spacing-2); color: var(--color-feedback-warning-text); font-size: var(--text-sm); }
+  .missing .i { width: var(--size-icon-sm); height: var(--size-icon-sm); margin-top: 0.1875rem; }
+  .tasks { display: flex; flex-direction: column; border-top: var(--border-width-thin) solid var(--color-border-default); }
+  .tasks li { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--spacing-1) var(--spacing-4); min-height: calc(var(--size-touch-target) + var(--spacing-4)); padding: var(--spacing-3) var(--spacing-2); border-bottom: var(--border-width-thin) solid var(--color-border-default); transition: background-color var(--duration-fast) var(--ease-standard); }
+  .tasks li:hover { background: var(--color-surface-raised); }
+  .tasks a { font-family: var(--font-display); font-weight: var(--font-weight-bold); text-decoration: none; }
+  .tasks a::after { content: ""; position: absolute; inset: 0; }
+  .tasks li:has(a:focus-visible) { outline: var(--focus-ring-width) solid var(--color-focus-ring); outline-offset: calc(-1 * var(--focus-ring-width)); }
+  .tasks a:focus-visible { outline: none; }
+  .tstat { display: inline-flex; align-items: center; gap: var(--spacing-1); font-size: var(--text-sm); color: var(--color-text-secondary); white-space: nowrap; }
+  .tstat .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .tstat--todo { color: var(--color-feedback-warning-text); font-weight: var(--font-weight-semibold); }
+</style>
+</head>
+<body data-default="etape-1">
+<div class="demo" role="region" aria-label="Commandes du prototype">
+  <b>Prototype</b><span>pas un écran de production</span>
+  <label>État
+    <select id="demo-state">
+      <option value="etape-1">Étape 1 · Vous présenter</option>
+      <option value="etape-3">Étape 3 · Réseaux et chiffres</option><option value="etape-3-tout">Étape 3 · tous les réseaux ouverts</option>
+      <option value="etape-5">Étape 5 · Offre et travail</option>
+      <option value="verifier">Vérifier et publier</option>
+      <option value="profil">Après publication · Mon profil</option>
+      <option value="modif-3">Modifier une étape depuis Mon profil</option>
+    </select>
+  </label>
+  <button id="demo-h" type="button" aria-pressed="false">Hiérarchie</button>
+  <button id="demo-fail" type="button" aria-pressed="false">Simuler un échec d'enregistrement</button>
+  <span class="demo__say"><svg class="i i--sm"><use href="#i-volume-2"/></svg><span id="demo-say">aucune annonce</span></span>
+</div>
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+
+<div class="m-shell">
+  <div class="m-col">
+    <header class="m-head"><a class="m-brand" href="#contenu">INFLUX</a><span class="role role--creator">Espace créateur</span><button class="btn btn--secondary lg-hide" type="button">English</button></header>
+    <nav class="m-nav" aria-label="Navigation principale"><ul class="m-nav__list">
+      <li class="m-nav__cell"><a class="m-nav__link" href="#contenu"><svg class="i"><use href="#i-house"/></svg><span>Accueil</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link" href="#contenu"><svg class="i"><use href="#i-megaphone"/></svg><span>Campagnes</span></a></li>
+      <li class="m-nav__cell"><a class="m-nav__link is-ancestor" href="#contenu"><svg class="i"><use href="#i-user-round"/></svg><span>Compte</span></a>
+        <div class="m-sub"><a class="is-current" aria-current="page" href="#contenu">Mon profil</a><a href="#contenu">Mes informations</a><a href="#contenu">Mes préférences</a><a href="#contenu">Mes sessions</a><a href="#contenu">Mes données</a></div></li>
+    </ul></nav>
+    <div class="m-state"><b id="rail-state">Profil : En cours de saisie</b></div>
+    <footer class="m-foot"><button class="btn btn--secondary" type="button">English</button><p class="sm c2">Connecté avec lea.dumont@example.test</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-log-out"/></svg>Se déconnecter</button></footer>
+  </div>
+
+  <main class="m-main" id="contenu">
+    <div class="m-page">
+
+      <!-- ===================== ASSISTANT ===================== -->
+      <form class="wz" id="wz" data-autosave novalidate onsubmit="return false">
+        <div class="wz-head" data-h="1">
+          <a class="go sm c2" href="#profil" id="back-profile" hidden style="min-height: auto"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Mon profil</a>
+          <div class="wz-top"><h1 tabindex="-1" id="wz-title">Création de votre profil</h1><span class="wz-count" id="wz-count">Étape 1 sur 5</span></div>
+          <div class="segs" role="group" aria-label="Étapes" id="segs">
+            <button type="button" data-go="1"></button><button type="button" data-go="2"></button><button type="button" data-go="3"></button><button type="button" data-go="4"></button><button type="button" data-go="5"></button>
+          </div>
+          <div class="wz-meta"><span id="wz-time">Environ 12 min au total</span><span class="row g3"><p class="save save--meta" data-save data-kind="saved"><svg class="i"><use href="#i-check"/></svg><span data-save-text>Enregistré</span><button class="link" type="button" data-retry hidden>Réessayer</button></p><button class="link sm c2" type="button" id="later">Enregistrer et reprendre plus tard</button></span></div>
+          <div class="notice notice--success" id="later-note" hidden><svg class="i"><use href="#i-circle-check"/></svg><p>C'est enregistré. Vous reprendrez à cette étape depuis votre accueil ou depuis « Mon profil ».</p></div>
+        </div>
+
+        <!-- Étape 1 -->
+        <section class="wz-step" data-step="1" aria-labelledby="h1s" data-h="2">
+          <header><h2 tabindex="-1" id="h1s">Vous présenter</h2><p class="c2">Ce que les marques lisent en premier. Environ 3 min.</p></header>
+          <p class="row row--top g2 sm c2" style="flex-wrap: nowrap"><svg class="i i--sm" style="color: var(--color-feedback-info-icon); margin-top: 0.1875rem"><use href="#i-info"/></svg><span>Les marques vous voient sous le nom <b style="color: var(--color-text-primary)">Profil 93JMS4</b> : jamais votre nom avant une mise en relation.</span></p>
+          <div class="field"><div class="field__top"><label class="label" for="f-head">Titre court</label><p class="help">Votre activité en une ligne, de 20 à 120 caractères. Sans pseudo, sans lien, sans nom de marque.</p></div>
+            <input class="control" id="f-head" maxlength="120" value="Cuisine végétale de saison, recettes simples pour toute la famille" data-count="f-head-c"><span class="count" id="f-head-c">66 / 120 caractères</span></div>
+          <div class="field"><div class="field__top"><label class="label" for="f-bio">Bio</label><p class="help">De 150 à 800 caractères, sans coordonnées.</p></div>
+            <textarea class="control" id="f-bio" rows="4" maxlength="800" data-count="f-bio-c">Je partage chaque semaine des recettes végétales de saison, testées dans ma cuisine bruxelloise avec mes deux enfants. Je travaille avec des marques qui partagent mes valeurs, en privilégiant des contenus sincères, soignés et utiles à ma communauté.</textarea><span class="count" id="f-bio-c">265 / 800 caractères</span></div>
+          <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Collaborations avec des marques</legend>
+            <div class="choices"><label class="choice"><input type="radio" name="exp">Aucune</label><label class="choice"><input type="radio" name="exp">De 1 à 5</label><label class="choice"><input type="radio" name="exp" checked>De 6 à 20</label><label class="choice"><input type="radio" name="exp">Plus de 20</label></div></fieldset>
+          <div class="zone-int">
+            <p class="zone-int__head"><svg class="i i--sm"><use href="#i-eye-off"/></svg>Visible uniquement par vous et l'équipe INFLUX</p>
+            <div class="fgrid fgrid--2">
+              <div class="field"><label class="label" for="f-fn">Prénom légal</label><input class="control" id="f-fn" value="Léa" autocomplete="given-name"></div>
+              <div class="field"><label class="label" for="f-ln">Nom légal</label><input class="control" id="f-ln" value="Dumont" autocomplete="family-name"></div>
+              <div class="field"><div class="field__top"><label class="label" for="f-tel">Téléphone</label><p class="help">Format international.</p></div><input class="control" id="f-tel" type="tel" inputmode="tel" value="+32 470 12 34 56"></div>
+            </div>
+          </div>
+          <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (2)</summary><div>
+            <div class="field"><div class="field__top"><label class="label" for="f-mail">E-mail de contact</label><p class="help">Sinon, votre adresse de connexion est utilisée.</p></div><input class="control" id="f-mail" type="email" inputmode="email"></div>
+            <div class="field"><label class="label" for="f-city">Ville de résidence</label><input class="control" id="f-city" value="Bruxelles"></div></div></details>
+        </section>
+
+        <!-- Étape 2 -->
+        <section class="wz-step" data-step="2" aria-labelledby="h2s" hidden data-h="2">
+          <header><h2 tabindex="-1" id="h2s">Votre ligne éditoriale</h2><p class="c2">Ce dont vous parlez, et dans quelle langue. Environ 1 min.</p></header>
+          <div class="field"><label class="label" for="f-top">Thématique principale</label><span class="select" style="max-width: 22rem"><select class="control" id="f-top"><option>Cuisine et gastronomie</option><option>Beauté</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+          <div class="field"><span class="label" id="l-lang">Langues de publication</span><div class="tags"><span class="tag">Français <button type="button" aria-label="Retirer français"><svg class="i i--sm"><use href="#i-x"/></svg></button></span><span class="tag">Néerlandais <button type="button" aria-label="Retirer néerlandais"><svg class="i i--sm"><use href="#i-x"/></svg></button></span></div>
+            <div class="adder"><span class="select"><select class="control" id="f-lang" aria-labelledby="l-lang"><option>Choisir une langue…</option><option>Anglais</option><option>Allemand</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-lang"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+          <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (2)</summary><div>
+            <div class="field"><span class="label" id="l-sec">Thématiques secondaires</span><div class="tags"><span class="tag">Famille et parentalité <button type="button" aria-label="Retirer Famille et parentalité"><svg class="i i--sm"><use href="#i-x"/></svg></button></span></div>
+              <div class="adder"><span class="select"><select class="control" id="f-sec" aria-labelledby="l-sec"><option>Choisir une thématique…</option><option>Bien-être et santé</option><option>Voyage</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button" data-add-tag="f-sec"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Ton éditorial</legend><div class="choices"><label class="choice"><input type="checkbox" checked>Inspirant</label><label class="choice"><input type="checkbox" checked>Familial</label><label class="choice"><input type="checkbox">Humoristique</label><label class="choice"><input type="checkbox">Expert</label></div></fieldset></div></details>
+        </section>
+
+        <!-- Étape 3 -->
+        <section class="wz-step" data-step="3" aria-labelledby="h3s" hidden data-h="2">
+          <header><h2 tabindex="-1" id="h3s">Vos réseaux et vos chiffres</h2><p class="c2">Les comptes sur lesquels vous publiez, et trois chiffres par compte. Environ 3 min.</p></header>
+          <p class="row row--top g2 sm c2" style="flex-wrap: nowrap"><svg class="i i--sm" style="color: var(--color-text-brand-strong); margin-top: 0.1875rem"><use href="#i-lock"/></svg><span>Les marques voient le réseau et des tranches. Pseudo, lien et chiffres exacts : seulement après une mise en relation.</span></p>
+          <p class="sm c2 legend-star"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg>Compte principal : le premier que lisent les marques. Touchez l'étoile d'un autre réseau pour le changer.</p>
+          <ul class="nets">
+            <li class="net is-open" data-net="Instagram">
+              <div class="net__head"><button class="net__toggle" type="button" aria-expanded="true" aria-controls="n-ig">Instagram</button><button class="star" type="button" aria-pressed="true" aria-label="Compte principal : Instagram" title="Compte principal"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg></button><span class="grow"></span><span class="badge badge--success done"><svg class="i"><use href="#i-circle-check"/></svg>Complet</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+              <div class="net__body" id="n-ig">
+                <div class="fgrid fgrid--2">
+                  <div class="field"><label class="label" for="ig-h">Pseudo sur le réseau</label><input class="control" id="ig-h" value="@lea.cuisine.vegetale"></div>
+                  <div class="field"><label class="label" for="ig-u">Lien de votre profil</label><input class="control" id="ig-u" type="url" value="https://www.instagram.com/lea.cuisine.vegetale"></div>
+                </div>
+                <div class="fgrid fgrid--3">
+                  <div class="field"><label class="label" for="ig-f">Abonnés</label><input class="control control--num" id="ig-f" inputmode="numeric" value="48 200" data-band="ig-f-b"><p class="fmsg fmsg--seen" id="ig-f-b">Les marques voient : <strong>Micro (10 000 à 49 999)</strong></p></div>
+                  <div class="field"><label class="label" for="ig-p">Publications (30 j)</label><input class="control control--num" id="ig-p" inputmode="numeric" value="14"><p class="fmsg fmsg--seen">Les marques voient : <strong>Plusieurs fois par semaine</strong></p></div>
+                  <div class="field"><label class="label" for="ig-c">Commentaires moyens</label><input class="control control--num" id="ig-c" inputmode="numeric" value="62"><p class="fmsg fmsg--seen">Les marques voient : <strong>De 50 à 199</strong></p></div>
+                </div>
+                <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (2)</summary><div><div class="fgrid fgrid--2"><div class="field"><label class="label" for="ig-r">Portée moyenne par publication</label><input class="control control--num" id="ig-r" inputmode="numeric"></div><div class="field"><label class="label" for="ig-e">Taux d'engagement</label><span class="pct"><input class="control control--num" id="ig-e" inputmode="decimal"><span class="suffix">%</span></span></div></div></div></details>
+              </div>
+            </li>
+            <li class="net" data-net="TikTok">
+              <div class="net__head" id="tt-head"><button class="net__toggle" type="button" aria-expanded="false" aria-controls="n-tt">TikTok</button><button class="star" type="button" aria-pressed="false" aria-label="Faire de TikTok le compte principal" title="Faire de ce compte le compte principal"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg></button><span class="grow"></span><span class="tstat tstat--todo" id="tt-stat"><svg class="i"><use href="#i-triangle-alert"/></svg>Lien à corriger</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+              <div class="net__body" id="n-tt" hidden>
+                <div class="fgrid fgrid--2">
+                  <div class="field"><label class="label" for="tt-h">Pseudo sur le réseau</label><input class="control" id="tt-h" value="@lea.cuisine"></div>
+                  <div class="field"><label class="label" for="tt-u">Lien de votre profil</label><input class="control" id="tt-u" type="url" value="https://www.instagram.com/lea.cuisine" aria-invalid="true" aria-describedby="tt-u-e"><p class="fmsg fmsg--error" id="tt-u-e"><svg class="i"><use href="#i-circle-alert"/></svg><span>Ce lien doit mener à tiktok.com.</span></p></div>
+                </div>
+                <div class="fgrid fgrid--3">
+                  <div class="field"><label class="label" for="tt-f">Abonnés</label><input class="control control--num" id="tt-f" inputmode="numeric" value="6 300" data-band="tt-f-b"><p class="fmsg fmsg--seen" id="tt-f-b">Les marques voient : <strong>Nano (moins de 10 000)</strong></p></div>
+                  <div class="field"><label class="label" for="tt-p">Publications (30 j)</label><input class="control control--num" id="tt-p" inputmode="numeric" value="5"></div>
+                  <div class="field"><label class="label" for="tt-c">Commentaires moyens</label><input class="control control--num" id="tt-c" inputmode="numeric" value="18"></div>
+                </div>
+              </div>
+            </li>
+            <li class="net" data-net="YouTube">
+              <div class="net__head"><button class="net__toggle" type="button" aria-expanded="false" aria-controls="n-yt">YouTube</button><button class="star" type="button" aria-pressed="false" aria-label="Faire de YouTube le compte principal" title="Faire de ce compte le compte principal"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#i-star"/></svg></button><span class="grow"></span><span class="badge badge--success done"><svg class="i"><use href="#i-circle-check"/></svg>Complet</span><svg class="i chev" aria-hidden="true"><use href="#i-chevron-down"/></svg></div>
+              <div class="net__body" id="n-yt" hidden>
+                <div class="fgrid fgrid--2">
+                  <div class="field"><label class="label" for="yt-h">Pseudo sur le réseau</label><input class="control" id="yt-h" value="@leacuisine"></div>
+                  <div class="field"><label class="label" for="yt-u">Lien de votre profil</label><input class="control" id="yt-u" type="url" value="https://www.youtube.com/@leacuisine"></div>
+                </div>
+                <div class="fgrid fgrid--3">
+                  <div class="field"><label class="label" for="yt-f">Abonnés</label><input class="control control--num" id="yt-f" inputmode="numeric" value="12 400"><p class="fmsg fmsg--seen">Les marques voient : <strong>Micro (10 000 à 49 999)</strong></p></div>
+                  <div class="field"><label class="label" for="yt-p">Publications (30 j)</label><input class="control control--num" id="yt-p" inputmode="numeric" value="4"><p class="fmsg fmsg--seen">Les marques voient : <strong>Environ une fois par semaine</strong></p></div>
+                  <div class="field"><label class="label" for="yt-c">Commentaires moyens</label><input class="control control--num" id="yt-c" inputmode="numeric" value="35"><p class="fmsg fmsg--seen">Les marques voient : <strong>De 10 à 49</strong></p></div>
+                </div>
+              </div>
+            </li>
+          </ul>
+          <div class="field"><label class="label" for="add-net">Ajouter un réseau</label><div class="adder"><span class="select"><select class="control" id="add-net"><option>Choisir un réseau…</option><option>YouTube</option><option>Pinterest</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-plus"/></svg>Ajouter</button></div></div>
+        </section>
+
+        <!-- Étape 4 -->
+        <section class="wz-step" data-step="4" aria-labelledby="h4s" hidden data-h="2">
+          <header><h2 tabindex="-1" id="h4s">Votre audience</h2><p class="c2">Qui vous suit, réseau par réseau. Les marques n'en voient que des tranches. Environ 2 min.</p></header>
+          <div class="seg" role="radiogroup" aria-label="Réseau"><label><input type="radio" name="aud-net" checked>Instagram</label><label><input type="radio" name="aud-net">TikTok</label></div>
+          <fieldset class="stack g3"><legend class="t-card" style="margin-bottom: var(--spacing-3)">Pays de votre audience</legend>
+            <div class="fgrid fgrid--2">
+              <div class="field"><label class="label sm" for="a-c1">Pays principal</label><span class="select"><select class="control" id="a-c1"><option>Belgique</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+              <div class="field"><label class="label sm" for="a-s1">Part dans ce pays</label><span class="pct"><input class="control control--num" id="a-s1" inputmode="numeric" value="42" data-sum="c"><span class="suffix">%</span></span></div>
+            </div><p class="sm c2 tab" id="sum-c">Total saisi : 42 % · Autres : 58 %</p></fieldset>
+          <fieldset class="stack g3 subgroup"><legend class="t-card" style="margin-bottom: var(--spacing-3)">Âges de votre audience</legend>
+            <div class="fgrid fgrid--4">
+              <div class="field"><label class="label sm" for="age1">18 à 24 ans</label><span class="pct"><input class="control control--num" id="age1" inputmode="numeric" data-sum="a" data-need="age"><span class="suffix">%</span></span></div>
+              <div class="field"><label class="label sm" for="age2">25 à 34 ans</label><span class="pct"><input class="control control--num" id="age2" inputmode="numeric" data-sum="a" data-need="age"><span class="suffix">%</span></span></div>
+              <div class="field"><label class="label sm" for="age3">35 à 44 ans</label><span class="pct"><input class="control control--num" id="age3" inputmode="numeric" data-sum="a" data-need="age"><span class="suffix">%</span></span></div>
+              <div class="field"><label class="label sm" for="age4">45 ans et plus</label><span class="pct"><input class="control control--num" id="age4" inputmode="numeric" data-sum="a" data-need="age"><span class="suffix">%</span></span></div>
+            </div><p class="sm c2 tab" id="sum-a">Total saisi : 0 %</p></fieldset>
+          <fieldset class="stack g3 subgroup"><legend class="t-card" style="margin-bottom: var(--spacing-3)">Femmes, hommes et autres</legend>
+            <div class="fgrid fgrid--3">
+              <div class="field"><label class="label sm" for="g1">Femmes</label><span class="pct"><input class="control control--num" id="g1" inputmode="numeric" data-sum="g" data-need="gen"><span class="suffix">%</span></span></div>
+              <div class="field"><label class="label sm" for="g2">Hommes</label><span class="pct"><input class="control control--num" id="g2" inputmode="numeric" data-sum="g" data-need="gen"><span class="suffix">%</span></span></div>
+              <div class="field"><label class="label sm" for="g3">Autres ou non déclaré</label><span class="pct"><input class="control control--num" id="g3" inputmode="numeric" data-sum="g" data-need="gen"><span class="suffix">%</span></span></div>
+            </div><p class="sm c2 tab" id="sum-g">Total saisi : 0 %</p></fieldset>
+        </section>
+
+        <!-- Étape 5 -->
+        <section class="wz-step" data-step="5" aria-labelledby="h5s" hidden data-h="2">
+          <header><h2 tabindex="-1" id="h5s">Votre offre et votre travail</h2><p class="c2">Ce que vous proposez, quand, et trois exemples de vos contenus. Environ 3 min.</p></header>
+          <fieldset class="stack g2"><legend class="t-card" style="margin-bottom: var(--spacing-2)">Formats proposés</legend>
+            <p class="overline">Instagram</p><div class="choices"><label class="choice"><input type="checkbox" checked>Reel</label><label class="choice"><input type="checkbox" checked>Publication</label><label class="choice"><input type="checkbox" checked>Story</label></div>
+            <p class="overline">TikTok</p><div class="choices"><label class="choice"><input type="checkbox" checked>Vidéo courte</label><label class="choice"><input type="checkbox">Live</label></div></fieldset>
+          <fieldset class="field subgroup"><legend class="t-card" style="margin-bottom: var(--spacing-2)">Disponibilité</legend><div class="choices"><label class="choice"><input type="radio" name="av" checked>Sous moins de 2 semaines</label><label class="choice"><input type="radio" name="av">Sous moins d'un mois</label><label class="choice"><input type="radio" name="av">Agenda plein</label></div></fieldset>
+          <div class="stack g3 subgroup"><div class="stack g1"><h3 class="t-card">Portfolio</h3><p class="sm c2" id="pf-count">2 visuels sur 3 au minimum. Visibles de toutes les marques une fois approuvés.</p></div>
+            <div class="pf" id="pf">
+              <figure><div class="visual" role="img" aria-label="Buddha bowl d'automne" style="--v1: var(--color-data-1); --v2: var(--color-data-3)"></div><figcaption class="xs c2">Buddha bowl d'automne</figcaption></figure>
+              <figure><div class="visual" role="img" aria-label="Soupe potimarron" style="--v1: var(--color-data-3); --v2: var(--color-role-creator)"></div><figcaption class="xs c2">Soupe potimarron</figcaption></figure>
+              <button class="pf-add" type="button" id="pf-add"><svg class="i i--lg"><use href="#i-plus"/></svg>Déposer un visuel</button>
+            </div></div>
+          <p class="sm c2">Les coûts se négocient avec votre commercial.</p>
+          <details class="opt"><summary><svg class="i i--sm"><use href="#i-chevron-right"/></svg>Facultatif, à compléter plus tard (3)</summary><div>
+            <div class="stack"><p class="label">Droits d'usage</p>
+              <div class="right-row"><span>Republication sur les réseaux de la marque</span><span class="seg"><label><input type="radio" name="r1">Non proposé</label><label><input type="radio" name="r1" checked>Inclus</label><label><input type="radio" name="r1">En option</label></span></div>
+              <div class="right-row"><span>Publicité sponsorisée</span><span class="seg"><label><input type="radio" name="r2" checked>Non proposé</label><label><input type="radio" name="r2">Inclus</label><label><input type="radio" name="r2">En option</label></span></div></div>
+            <div class="field" style="max-width: 20rem"><label class="label" for="f-del">Délai de livraison habituel</label><span class="select"><select class="control" id="f-del"><option>De 7 à 14 jours</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+            <fieldset class="field"><legend class="label" style="margin-bottom: var(--spacing-2)">Secteurs refusés</legend><div class="choices"><label class="choice"><input type="checkbox">Alcool</label><label class="choice"><input type="checkbox">Jeux d'argent</label></div></fieldset></div></details>
+        </section>
+
+        <!-- Vérifier et publier -->
+        <section class="wz-step" data-step="verifier" aria-labelledby="hvs" hidden data-h="2">
+          <header><h2 tabindex="-1" id="hvs">Vérifier et publier</h2><p class="c2">Relisez vos réponses. Un commercial INFLUX relit votre profil avant de le publier, sous 1 jour ouvré.</p></header>
+          <div class="errsum" id="errsum" tabindex="-1" hidden><p class="errsum__title"><svg class="i"><use href="#i-circle-alert"/></svg><span id="errsum-title"></span></p><ul id="errsum-list"></ul></div>
+          <div class="recap" id="recap"></div>
+          <div class="actions"><button class="btn btn--primary" type="button" id="publish">Publier mon profil</button></div>
+        </section>
+
+        <div class="wz-foot" id="wz-foot" data-h="3">
+          <button class="btn btn--text" type="button" id="prev"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Précédent</button>
+          <p class="save" data-save data-kind="saved"><svg class="i"><use href="#i-check"/></svg><span data-save-text>Enregistré automatiquement</span><button class="link" type="button" data-retry hidden>Réessayer</button></p>
+          <button class="btn btn--primary" type="button" id="next">Continuer <svg class="i i--sm"><use href="#i-arrow-right"/></svg></button>
+        </div>
+      </form>
+
+      <!-- ===================== APRÈS PUBLICATION : LISTE DE TÂCHES ===================== -->
+      <div class="stack g6 narrow" id="hub" hidden>
+        <header class="page-head" data-h="1">
+          <div class="page-head__row"><h1 class="t-page" tabindex="-1">Mon profil</h1><a class="btn btn--secondary" href="#contenu"><svg class="i"><use href="#i-eye"/></svg>Ce que voit une marque</a></div>
+          <p class="row g2"><span class="fig">Profil 93JMS4</span><span class="badge badge--success" id="hub-badge"><svg class="i"><use href="#i-circle-check"/></svg>Publié</span></p>
+          <div class="notice notice--success" id="hub-note" hidden><svg class="i"><use href="#i-circle-check"/></svg><p>Profil envoyé. Un commercial INFLUX le relit, réponse sous 1 jour ouvré.</p></div>
+        </header>
+        <ol class="tasks" data-h="2">
+          <li><a href="#modif-1">1. Vous présenter</a><span class="tstat"><svg class="i"><use href="#i-check"/></svg>Complet</span></li>
+          <li><a href="#modif-2">2. Votre ligne éditoriale</a><span class="tstat">À enrichir : thématiques secondaires</span></li>
+          <li><a href="#modif-3">3. Vos réseaux et vos chiffres</a><span class="tstat tstat--todo"><svg class="i"><use href="#i-triangle-alert"/></svg>Chiffres Instagram du 22 août</span></li>
+          <li><a href="#modif-4">4. Votre audience</a><span class="tstat"><svg class="i"><use href="#i-check"/></svg>Complet</span></li>
+          <li><a href="#modif-5">5. Votre offre et votre travail</a><span class="tstat">À enrichir : droits d'usage</span></li>
+        </ol>
+        <p class="sm c2">Chaque ligne rouvre son étape seule ; vos modifications s'enregistrent au fil de la saisie.</p>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  var $ = P.$, $$ = P.$$;
+  var STEPS = [null, { t: "Vous présenter", min: 3 }, { t: "Votre ligne éditoriale", min: 1 }, { t: "Vos réseaux et vos chiffres", min: 3 }, { t: "Votre audience", min: 2 }, { t: "Votre offre et votre travail", min: 3 }];
+  var missing = {
+    tt: { step: 3, label: "Le lien TikTok ne mène pas à tiktok.com", field: "tt-u" },
+    age: { step: 4, label: "Les âges de votre audience", field: "age1" },
+    gen: { step: 4, label: "La répartition femmes, hommes et autres", field: "g1" },
+    pf: { step: 5, label: "Un troisième visuel du portfolio", field: "pf-add" }
+  };
+  var RECAP = {
+    1: [["Titre court", "Cuisine végétale de saison, recettes simples pour toute la famille"], ["Collaborations", "De 6 à 20"], ["Identité légale", "Léa Dumont · +32 470 12 34 56 (privé)"]],
+    2: [["Thématique principale", "Cuisine et gastronomie"], ["Langues", "Français, néerlandais"]],
+    3: [["Instagram (principal)", "Micro · plusieurs fois par semaine · 50 à 199 commentaires"], ["TikTok", "Nano · environ une fois par semaine"]],
+    4: [["Pays principal", "Belgique, 42 %"]],
+    5: [["Formats", "Reel, publication, story, vidéo courte"], ["Disponibilité", "Sous moins de 2 semaines"]]
+  };
+  var cur = 1, mode = "create", userMoved = false;
+
+  function gaps(n) { return Object.keys(missing).filter(function (k) { return missing[k].step === n; }); }
+  function render() {
+    var edit = mode === "edit", isStep = typeof cur === "number";
+    $("#wz").hidden = cur === "profil"; $("#hub").hidden = cur !== "profil";
+    $("#rail-state").textContent = cur === "profil" || edit ? "Profil : Publié" : "Profil : En cours de saisie";
+    if (cur === "profil") return;
+    $$(".wz-step").forEach(function (s) { s.hidden = String(s.getAttribute("data-step")) !== String(cur); });
+    $("#wz-title").textContent = edit ? "Modifier votre profil" : "Création de votre profil";
+    $("#back-profile").hidden = !edit;
+    $("#segs").hidden = edit; $("#later").hidden = edit;
+    $("#wz-count").textContent = edit ? STEPS[cur].t : isStep ? "Étape " + cur + " sur 5" : "Vérification";
+    $$("#segs button").forEach(function (b) {
+      var n = +b.getAttribute("data-go"), past = cur === "verifier" || n < cur;
+      b.className = n === cur ? "cur" : past ? (gaps(n).length ? "gap" : "done") : "";
+      b.disabled = !past && n !== cur;
+      b.setAttribute("aria-label", "Étape " + n + " : " + STEPS[n].t + (n === cur ? ", en cours" : past ? (gaps(n).length ? ", à compléter" : ", faite") : ", à venir"));
+      if (n === cur) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+    });
+    var left = 0; for (var k = isStep ? cur : 6; k <= 5; k++) left += STEPS[k].min;
+    $("#wz-time").textContent = cur === 1 ? "Environ 12 min au total" : left ? "Environ " + left + " min restantes" : "Plus que la relecture";
+    $("#wz-foot").hidden = cur === "verifier";
+    $("#prev").style.visibility = edit || cur === 1 ? "hidden" : "visible";
+    $("#next").innerHTML = edit ? "Revenir à mon profil" : mode === "fix" ? "Revenir à la vérification" : cur === 5 ? "Vérifier mes réponses <svg class=\"i i--sm\"><use href=\"#i-arrow-right\"/></svg>" : "Continuer <svg class=\"i i--sm\"><use href=\"#i-arrow-right\"/></svg>";
+    if (cur === "verifier") buildRecap();
+  }
+  function go(n, how) {
+    cur = n; render();
+    var s = $('.wz-step[data-step="' + n + '"]');
+    if (s) { s.classList.remove("is-in"); void s.offsetWidth; s.classList.add("is-in"); }
+    if (how !== "silent") {
+      window.scrollTo(0, 0);
+      var h = n === "profil" ? $("#hub h1") : s.querySelector("h2"); if (h) h.focus({ preventScroll: true });
+      P.announce(n === "profil" ? "Mon profil." : typeof n === "number" ? "Étape " + n + " sur 5 : " + STEPS[n].t + "." : "Vérifier et publier.");
+    }
+  }
+  function buildRecap() {
+    var r = $("#recap"); r.innerHTML = "";
+    [1, 2, 3, 4, 5].forEach(function (n) {
+      var g = gaps(n), sec = document.createElement("section");
+      sec.innerHTML = '<div class="row between g3"><h3>' + n + ". " + STEPS[n].t + '</h3><button class="link sm" type="button" data-fix="' + n + '">Modifier<span class="sr-only"> : ' + STEPS[n].t + "</span></button></div>" +
+        '<dl class="props">' + RECAP[n].map(function (p) { return "<dt>" + p[0] + "</dt><dd>" + p[1] + "</dd>"; }).join("") + "</dl>" +
+        g.map(function (k) { return '<p class="missing"><svg class="i"><use href="#i-triangle-alert"/></svg><span>À compléter : ' + missing[k].label.charAt(0).toLowerCase() + missing[k].label.slice(1) + "</span></p>"; }).join("");
+      r.appendChild(sec);
+    });
+    $$("[data-fix]", r).forEach(function (b) { b.addEventListener("click", function () { mode = "fix"; go(+b.getAttribute("data-fix")); }); });
+    var n = Object.keys(missing).length, list = $("#errsum-list"); list.innerHTML = "";
+    Object.keys(missing).forEach(function (k) {
+      var li = document.createElement("li"), a = document.createElement("a");
+      a.href = "#" + missing[k].field; a.className = "link"; a.textContent = "Étape " + missing[k].step + " — " + missing[k].label;
+      a.addEventListener("click", function (e) { e.preventDefault(); mode = "fix"; go(missing[k].step, "silent"); openFor(missing[k].field); var f = document.getElementById(missing[k].field); f.scrollIntoView({ block: "center" }); f.focus({ preventScroll: true }); });
+      li.appendChild(a); list.appendChild(li);
+    });
+    $("#errsum-title").textContent = "Il manque " + n + (n > 1 ? " informations" : " information") + " pour publier votre profil";
+    if (!n) $("#errsum").hidden = true;
+  }
+  function openFor(id) { var body = document.getElementById(id).closest(".net__body"); if (body && body.hidden) body.previousElementSibling.querySelector(".net__toggle").click(); }
+  function resolve(k) { if (missing[k]) { delete missing[k]; render(); } }
+
+  $("#next").addEventListener("click", function () {
+    if (mode === "edit") { mode = "create"; location.hash = "profil"; return; }
+    if (mode === "fix") { mode = "create"; go("verifier"); return; }
+    var g = gaps(cur);
+    if (g.length) P.announce("Il reste " + g.length + " information" + (g.length > 1 ? "s" : "") + " indispensable" + (g.length > 1 ? "s" : "") + " à cette étape : vous pourrez y revenir.");
+    go(cur === 5 ? "verifier" : cur + 1, g.length ? "quiet" : undefined);
+  });
+  $("#prev").addEventListener("click", function () { go(cur === "verifier" ? 5 : cur - 1); });
+  $$("#segs button").forEach(function (b) { b.addEventListener("click", function () { if (!b.disabled) go(+b.getAttribute("data-go")); }); });
+  $("#later").addEventListener("click", function () { var n = $("#later-note"); n.hidden = false; n.classList.remove("is-entering"); void n.offsetWidth; n.classList.add("is-entering"); P.announce("Votre profil est enregistré. Vous reprendrez à l'étape " + cur + "."); });
+  $("#publish").addEventListener("click", function () {
+    var n = Object.keys(missing).length;
+    if (n) { buildRecap(); var es = $("#errsum"); es.hidden = false; es.scrollIntoView({ block: "start" }); es.focus({ preventScroll: true }); P.announce("Il manque " + n + " informations pour publier votre profil."); return; }
+    $("#hub-badge").className = "badge badge--info"; $("#hub-badge").innerHTML = '<svg class="i"><use href="#i-hourglass"/></svg>En cours de validation';
+    $("#hub-note").hidden = false; location.hash = "profil"; P.announce("Profil envoyé. Réponse sous 1 jour ouvré.");
+  });
+
+  // Réseaux : une ligne s'ouvre pour sa saisie.
+  $$(".net__toggle").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var body = document.getElementById(b.getAttribute("aria-controls")), open = b.getAttribute("aria-expanded") === "true";
+      b.setAttribute("aria-expanded", String(!open)); body.hidden = open; b.closest(".net").classList.toggle("is-open", !open);
+      if (!open) { body.classList.remove("is-in"); void body.offsetWidth; body.classList.add("is-in"); }
+    });
+  });
+  // Étoile : un seul compte principal ; toucher l'étoile d'un autre réseau le désigne.
+  $$(".star").forEach(function (s) {
+    s.addEventListener("click", function () {
+      var net = s.closest(".net").getAttribute("data-net");
+      if (s.getAttribute("aria-pressed") === "true") { P.announce(net + " est déjà votre compte principal."); return; }
+      var prev = $('.star[aria-pressed="true"]'), prevNet = prev.closest(".net").getAttribute("data-net");
+      prev.setAttribute("aria-pressed", "false"); prev.setAttribute("aria-label", "Faire de " + prevNet + " le compte principal"); prev.title = "Faire de ce compte le compte principal";
+      s.setAttribute("aria-pressed", "true"); s.setAttribute("aria-label", "Compte principal : " + net); s.title = "Compte principal";
+      s.classList.remove("is-pop"); void s.offsetWidth; s.classList.add("is-pop");
+      P.announce(net + " est maintenant votre compte principal ; " + prevNet + " ne l'est plus.");
+    });
+  });
+  // Réseau entièrement complété : badge « Complet » qui apparaît avec un léger rebond, fond de réussite bref, annonce.
+  function celebrate(head, statId, net) {
+    var st = document.getElementById(statId);
+    st.className = "badge badge--success done is-pop"; st.innerHTML = '<svg class="i"><use href="#i-circle-check"/></svg>Complet';
+    head.classList.remove("is-celebrate"); void head.offsetWidth; head.classList.add("is-celebrate");
+    P.announce(net + " est complet. Bravo !");
+  }
+  // Retours positifs en temps réel, erreurs effacées à la correction.
+  $$("[data-count]").forEach(function (f) { var o = document.getElementById(f.getAttribute("data-count")); f.addEventListener("input", function () { o.textContent = f.value.length + " / " + f.maxLength + " caractères"; }); });
+  $$("[data-band]").forEach(function (f) {
+    var o = document.getElementById(f.getAttribute("data-band"));
+    f.addEventListener("input", function () {
+      var v = parseInt(f.value.replace(/\D/g, ""), 10);
+      if (isNaN(v)) { o.textContent = "Les marques ne voient encore aucune tranche."; return; }
+      o.innerHTML = "Les marques voient : <strong>" + (v < 10000 ? "Nano (moins de 10 000)" : v < 50000 ? "Micro (10 000 à 49 999)" : v < 500000 ? "Intermédiaire (50 000 à 499 999)" : "Macro (500 000 et plus)") + "</strong>";
+    });
+  });
+  function sum(g) { return $$('[data-sum="' + g + '"]').reduce(function (s, i) { return s + (parseFloat(i.value) || 0); }, 0); }
+  $$("[data-sum]").forEach(function (f) {
+    f.addEventListener("input", function () {
+      var g = f.getAttribute("data-sum"), s = sum(g);
+      $("#sum-" + g).textContent = "Total saisi : " + s + " %" + (g === "c" ? " · Autres : " + Math.max(0, 100 - s) + " %" : "");
+      if (f.getAttribute("data-need") && s > 0) resolve(f.getAttribute("data-need"));
+    });
+  });
+  var tt = $("#tt-u"), ttErr = $("#tt-u-e");
+  function checkTT() { var ok = /tiktok\.com/i.test(tt.value); tt.setAttribute("aria-invalid", String(!ok)); ttErr.hidden = ok; if (ok && missing.tt) { resolve("tt"); celebrate($("#tt-head"), "tt-stat", "TikTok"); } }
+  tt.addEventListener("input", function () { if (/tiktok\.com/i.test(tt.value)) checkTT(); });
+  tt.addEventListener("blur", checkTT);
+  $("#pf-add").addEventListener("click", function () {
+    var fig = document.createElement("figure"); fig.className = "is-entering";
+    fig.innerHTML = '<div class="visual" role="img" aria-label="Tarte fine aux pommes" style="--v1: var(--color-data-2); --v2: var(--color-data-3)"></div><figcaption class="xs c2">Tarte fine aux pommes · en modération</figcaption>';
+    $("#pf").insertBefore(fig, this); this.remove(); $("#pf-count").textContent = "3 visuels déposés. Ils seront visibles une fois approuvés.";
+    P.announce("Visuel déposé, en cours de modération."); resolve("pf");
+  });
+  $$("[data-add-tag]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var s = document.getElementById(b.getAttribute("data-add-tag")); if (s.selectedIndex < 1) return;
+      var name = s.options[s.selectedIndex].text, tag = document.createElement("span");
+      tag.className = "tag is-entering"; tag.innerHTML = name + ' <button type="button" aria-label="Retirer ' + name + '"><svg class="i i--sm"><use href="#i-x"/></svg></button>';
+      b.closest(".field").querySelector(".tags").appendChild(tag); s.remove(s.selectedIndex); s.selectedIndex = 0; s.focus();
+      P.announce("Ajouté : " + name + ".");
+    });
+  });
+
+  document.addEventListener("proto:state", function (e) {
+    var st = e.detail.st, m;
+    $("#later-note").hidden = true;
+    if ((m = /^etape-(\d)$/.exec(st))) { mode = "create"; go(+m[1], "silent"); }
+    else if ((m = /^modif-(\d)$/.exec(st))) { mode = "edit"; go(+m[1], "silent"); }
+    else if (st === "etape-3-tout") { mode = "create"; go(3, "silent"); setTimeout(function () { $$('.net__toggle[aria-expanded="false"]').forEach(function (b) { b.click(); }); }, 0); }
+    else if (st === "verifier") { mode = "create"; go("verifier", "silent"); }
+    else if (st === "profil") { mode = "create"; go("profil", "silent"); }
+  });
+  render();
+});
+</script>
+</body>
+</html>

@@ -322,10 +322,10 @@ for (const route of inventaireDesRoutesDuRôleAnnonceur()) {   // dérivé du ro
 | Cas | Ce qu'il vérifie |
 |---|---|
 | **T1.1** | Balayage de **toutes** les routes accessibles au rôle `advertiser`, base peuplée de marqueurs : aucun marqueur dans le corps, les en-têtes, ni une URL renvoyée |
-| **T1.2** | **L'inventaire des routes est dérivé du routeur Fastify**, jamais écrit à la main. Une route ajoutée au Lot 5 est balayée d'office. Un inventaire manuel pourrit en trois semaines et donne un faux sentiment de sécurité |
+| **T1.2** | **L'inventaire des routes est dérivé du routeur Fastify**, jamais écrit à la main. Une route ajoutée au Lot 5 est balayée d'office. Un inventaire manuel pourrit en trois semaines et donne un faux sentiment de sécurité. *Emplacement réel (L2D-10) : `apps/api/db-tests/t1-anonymisation.test.ts`, inventaire lu du crochet `onRoute` (`routeInventoryOf`), `/health` seul exclu.* |
 | **T1.3** | **Le contre-test** : après création d'une mise en relation avec `identity_revealed_at` non nul, le champ attendu **apparaît**. Sans lui, un test qui passe pourrait simplement signifier que la route est cassée |
 | **T1.4** | Les réponses **d'erreur** (403, 404, 409, 422, 500 provoquée) ne contiennent aucun marqueur. C'est le chemin qu'on oublie de regarder |
-| **T1.5** | Aucun marqueur dans une **URL signée** émise pour un annonceur (portfolio), ni dans le chemin d'objet du Storage |
+| **T1.5** | Aucun marqueur dans une **URL signée** émise pour un annonceur (portfolio), ni dans le chemin d'objet du Storage *(au L3F (09), `l3f/modele.md` §3 : aucune URL n'est émise, signée ni publique ; le cas devient « aucune URL, aucun hôte, aucune clé ni jeton dans une carte, un profil, un visuel relayé en JSON ou une sélection », le Storage n'étant lu que pour les objets des visuels approuvés, et le chemin d'objet écrit étant `<compte>/<visuel>.webp`, sans le nom du fichier d'origine)* |
 | **T1.6** | Symétrie D40, précisée par D46 (2026-09-24) : **aucune coordonnée directe** d'une marque (e-mail, téléphone, page de contact) n'apparaît pour un rôle `creator`, **ni avant ni après** la révélation ; seul le prénom de l'interlocuteur est servi après révélation. Même contrôle dans l'autre sens : aucune coordonnée directe d'un créateur pour un rôle `advertiser` |
 
 ---
@@ -652,12 +652,12 @@ s'exécutent donc aussi sur un dossier de fichiers témoins en infraction (hors 
 | Cas | Ce qu'il vérifie |
 |---|---|
 | **T9.1** | `storage.buckets.public = false` pour **tous** les compartiments, sans exception |
-| **T9.2** | URL signée expirée ⇒ refus ; durée émise ≤ 5 min |
+| **T9.2** | URL signée expirée ⇒ refus ; durée émise ≤ 5 min. *Au L2B (D80) : aucune réponse du logo ne porte d'hôte Supabase ni de jeton. Au L2E (D82) : aucune URL signée n'est émise pour les pièces de vérification, aucune réponse ne porte d'hôte Supabase ni de jeton ; le cas devient « aucune URL émise ». Au L3F (09) : même cas pour les visuels du portfolio servis à une marque, relayés en JSON par `apps/api`, et aucun code de `apps/api` ne peut émettre d'adresse de Storage (balayage du source)* |
 | **T9.3** | Clé d'objet avec traversée (`../`) ⇒ refus |
 | **T9.4** | Fichier dont les **octets d'en-tête** contredisent le type déclaré ⇒ rejet ; PDF refusé (E1-9) |
 | **T9.5** | **EXIF absent après traitement** : image de test portant une géolocalisation connue ⇒ après ré-encodage, la donnée a disparu. Le test lit les octets, il ne fait pas confiance à un booléen |
-| **T9.6** | **Une pièce de vérification n'est atteignable par aucune route ni aucun schéma du rôle annonceur, y compris en devinant un identifiant** et y compris après révélation d'identité (C(13)). Ce cas est bloquant à lui seul |
-| **T9.7** | Toute émission d'URL signée est journalisée ; la lecture d'une pièce de vérification passe par `apps/api` et non par une URL signée (E1-7) |
+| **T9.6** | **Une pièce de vérification n'est atteignable par aucune route ni aucun schéma du rôle annonceur, y compris en devinant un identifiant** et y compris après révélation d'identité (C(13)). Ce cas est bloquant à lui seul. *Précisé au L2E (EC-L2E-18) : l'annonceur n'a aucun droit sur le schéma `verification`, `USAGE` compris, ni sur `storage` ; toute fonction qu'il exécute, tous schémas, ne nomme ni `verification.evidence_files` ni `storage.` (`prosrc`, corps SQL standard, `pg_depend`) ; les propriétaires atteints de proche en proche n'ont aucun droit sur la pièce ni sur Storage ; une pièce réelle portée dans chaque route donne la même réponse qu'un identifiant inconnu ; témoins rouges et mutation (`USAGE` accordé) vus rouges. Au L3F (09) : le créateur qui porte la pièce, publié et cherchable avec un visuel approuvé, un en attente et un refusé, est servi à une marque (profil, visuel) : son visuel approuvé seul, ses autres visuels, ceux d'un autre créateur, la pièce, sa demande et une clé d'objet devinés donnant la réponse d'un identifiant jamais émis, sans lecture du compartiment des pièces* |
+| **T9.7** | Toute émission d'URL signée est journalisée *(au L2B, D80 : aucune URL signée n'est émise)* ; la lecture d'une pièce de vérification passe par `apps/api` et non par une URL signée (E1-7) *(au L2E : aucune réponse ne porte d'hôte Supabase ni de jeton, et chaque ouverture écrit `verification.evidence_viewed` (agent, demande, pièce) dans la transaction qui rend la clé ; au L3F (09), côté annonceur : le visuel d'une marque est lu par `apps/api` dans l'objet du seul visuel `approved`, jamais dans le compartiment des pièces, et un identifiant deviné donne la réponse d'un identifiant jamais émis)* |
 | **T9.8** | Quotas par compte (nombre et volume par jour) appliqués côté serveur |
 | **T9.9** | Le chemin d'objet est calculé par le serveur et **ne contient jamais le nom de fichier d'origine** |
 | **T9.10** | Contrainte de base : un visuel de portfolio dont les métadonnées n'ont pas été retirées **ne peut pas** passer en `approved` ; un remplacement de fichier repasse la modération à `pending` |
@@ -734,7 +734,7 @@ l'enveloppe `404` / `500` et T13.5 à T13.7 ; Lot 1 pour le reste. À chaque ex�
 |---|---|
 | **T14.1** | Pour chaque type d'objet exposé, un utilisateur de chaque rôle tente de **lire** un objet d'autrui en changeant l'identifiant ⇒ refus |
 | **T14.2** | Idem en **modification** |
-| **T14.3** | **Le code de réponse est identique** à celui d'un objet inexistant : ne pas divulguer l'existence d'une ressource par l'écart entre 403 et 404 |
+| **T14.3** | **Le code de réponse est identique** à celui d'un objet inexistant : ne pas divulguer l'existence d'une ressource par l'écart entre 403 et 404. *Précisé à la clôture de L2D (L2DT-4, EC-L2D-10-1) : un corps refusé par le schéma répond 400 avant la session, pour tout rôle et toute route ; « code identique à l'inconnu » vaut pour l'objet visé, que le schéma ne lit pas (T1 : rien ne sort, seule l'existence de la route se devine).* |
 | **T14.4** | Le corps de la réponse est identique lui aussi (même `code`, même message) |
 | **T14.5** | Cas particulier C(18) : un créateur interrogeant l'identifiant d'une demande de contact **refusée** obtient la même réponse que pour une demande inexistante. Il ne doit jamais apprendre qu'une marque s'est intéressée à lui |
 
@@ -1429,7 +1429,7 @@ par le fondateur** vaut cochée : c'est la différence entre un risque accepté 
 - [ ] **B3** — Aucune table métier dans `public` ; aucun schéma exposé à PostgREST ; `REVOKE ALL` sur `PUBLIC`, `anon`, `authenticated` et `service_role` → **T2.2, T2.4, T2.8**
 - [ ] **B4** — Session opaque révocable, ligne en base avec `revoked_at` → **T8.7, T8.12**
 - [ ] **B5** — `REVOKE SELECT` sur `messaging.messages` et `conversations` pour les rôles internes *(préparé au Lot 0, vérifié au Lot 4)* → **T5.1, T5.5**
-- [ ] **B6** — Aucun droit, aucune route, aucun champ de pièce de vérification pour le rôle annonceur *(préparé, vérifié au Lot 2)* → **T9.6**
+- [ ] **B6** — Aucun droit, aucune route, aucun champ de pièce de vérification pour le rôle annonceur *(vérifié au L2E, clôture du 2026-11-08 : T9.6, 12 cas, vert trois fois ; l'annonceur sans aucun droit sur `verification`)* → **T9.6**
 - [ ] **B7** — Compte administrateur de secours « bris de glace » créé, codes scellés, alerte à chaque connexion → **vérification humaine + T8.11**
 - [ ] **B8** — Codes à usage unique : un seul valide, limitation à trois niveaux, réponse identique *(préparé, vérifié au Lot 1)* → **T8.1 à T8.6**
 - [ ] **B9** — `staging` alimenté exclusivement par `supabase/seed`, interdiction écrite de toute restauration de production → **T17.4 + procédure**
@@ -1549,14 +1549,15 @@ e2e **56** (7 fichiers) ; `apps/api` (unitaire et base) inchangé. Aucun planche
 
 **Tests exigibles :** T1, T9, T14 + TM5 (partiel), TM11 — **5 familles, 31 cas.**
 
-- [ ] **T1 passe intégralement** : c'est le lot où l'anonymisation devient réelle, et le lot où elle peut fuir pour la première fois
-- [ ] **T9.6 passe** : aucune pièce de vérification atteignable par un annonceur, y compris en devinant un identifiant
-- [ ] T9.5 : métadonnées EXIF effectivement absentes après traitement (I-1)
-- [ ] TM12.6 : l'alias public est aléatoire (I-2)
-- [ ] I-10 : écran « mes sessions actives » livré
-- [ ] **Non automatisable** : `expert-conformite-rgpd` a tranché **R-4** (vocabulaire : un profil « anonymisé » reste une donnée personnelle) et **R-5** (pièces de vérification contenant des données de tiers)
+- [x] **T1 passe intégralement** : c'est le lot où l'anonymisation devient réelle, et le lot où elle peut fuir pour la première fois *(L2G clos le 2026-11-13, adapté : T1.1, T1.2, T1.4, T1.5, T1.6 rejoués sur l'inventaire du routeur, `t1-anonymisation.test.ts:1361-1510`, vert en local ; **T1.3 et la partie « après » de T1.6 au Lot 4**, contre-test sur la vue identifiée de l'agent, L2GT-3 ; CI GitHub bloquée par la facturation, dérogation du fondateur du 2026-11-12, à rejouer avant l'attestation)*
+- [x] **T9.6 passe** : aucune pièce de vérification atteignable par un annonceur, y compris en devinant un identifiant *(L2E, étendu à L2G : six tables neuves sans droit de l'annonceur ni des rôles atteints, `t9-evidence-unreachable.test.ts:116-121`, mutation `SELECT` accordé vue rouge ; vert en local)*
+- [x] T9.5 : métadonnées EXIF effectivement absentes après traitement (I-1) *(L2G, octets relus : `profiles-portfolio-route.test.ts:325-351, 442-449`, `images.test.ts:413` ; vert en local)*
+- [x] TM12.6 : l'alias public est aléatoire (I-2) *(`profiles-creator-public.test.ts:537-560`, vert en local)*
+- [x] I-10 : écran « mes sessions actives » livré *(`e2e/account-screens.spec.ts:50`)*
+- [ ] **Non automatisable, reporté** : `expert-conformite-rgpd` a tranché **R-4** (vocabulaire : un profil « anonymisé » reste une donnée personnelle) et **R-5** (pièces de vérification contenant des données de tiers) *(reporté : arbitrage D79, revue `expert-conformite-rgpd` au Lot 6)*
 - [x] **Non automatisable** : le fondateur a tranché **D40** (2026-09-18) et sa portée après l'ouverture, **D46** (2026-09-24) : aucune coordonnée directe servie à un membre, testée par T1.6
-- [ ] **Non automatisable** : revue visuelle de dix visuels de portfolio modérés — la modération est la fuite d'anonymisation la plus probable du produit
+- [ ] **Non automatisable, réserve (L2GT-3)** : revue visuelle de dix visuels de portfolio modérés — la modération est la fuite d'anonymisation la plus probable du produit *(le fondateur a validé la recette le 2026-11-12, « je valide la recette », sans tracer dix visuels ; `staging` non préparé par un agent ; case cochée seulement à la revue des dix visuels, avant `production`)*
+- [x] **TM5 (partiel) : TM5.3 et TM5.4 tenus au L2F**, cochés à la clôture de L2F le 2026-11-11 (verts trois fois, CI réelle `success` sur `988388e`) ; le reste de TM5 suit son lot *(noté le 2026-11-10, L2F-16)*. *L2G (2026-11-13) : TM5.5 tenu au niveau base et projection (`profiles-creator-decisions.test.ts:393-477`, `profiles-creator-preview-route.test.ts:344-400`), vert en local ; le texte en révision absent de l'aperçu reste L2GT-4, avant production.* TM5.3 : `db-tests/verification-lifecycle.test.ts` (la tâche seule, événement système ; aucune autre main, écriture directe d'un agent, d'un administrateur ou d'un membre et appel de la tâche par un agent refusés). TM5.4 : `db-tests/verification-revocation.test.ts`, et par route `t14-verification-badges-route.test.ts`. Deux mutations vues rouges : la tâche exécutée par un agent (ligne du registre `agent`), le retrait sans consommation de la 2V. TM5.5 (modération du profil) reste à L2G ; TM5.1, TM5.2 et TM5.6 au Lot 3. Au même commit : T9.6 nomme les sept tables du L2F ; T1 porte quatre marqueurs de plus (ancien et nouveau handle, texte de contestation, message de retrait) et cherche ces marqueurs dans `audit`, `ops` et `leads` (C-2) ; TM11 vérifie que les déclarations Drizzle dont il dérive sa liste sont celles de la base (`db-tests/tm11-drizzle-parity.test.ts`)
 
 ---
 
@@ -1565,10 +1566,13 @@ e2e **56** (7 fichiers) ; `apps/api` (unitaire et base) inchangé. Aucun planche
 **Tests exigibles :** T1 (rejoué sur les routes de recherche), T14, T15 + TM5, TM12 — **5 familles,
 28 cas.**
 
-- [ ] TM12.1 à TM12.5 : k-anonymat, pagination plafonnée, **export interdit à tout le monde**, recherches journalisées, vue identifiée refusée aux membres
-- [ ] I-9 : alerte sur un volume anormal de profils distincts consultés par un même compte sur 24 h
-- [ ] **Non automatisable** : le fondateur a tranché **D38** (masse critique de profils avant d'ouvrir la recherche)
-- [ ] **Non automatisable** : la recherche en vue identifiée permet au commercial de trouver les bons créateurs d'une campagne **en moins de 30 secondes** — mesuré à la main, sur trois campagnes réelles. C'est la valeur annoncée du lot ; si elle n'est pas là, le lot n'est pas livré
+- [x] TM5.1 et TM5.6 **au niveau base** (L3C, `0307` à `0313`) : TM5.1 par `campaigns-publication.test.ts` (L3C-T3 ; seul écrivain de `published` : la porte de décision d'un agent ou d'un admin, la reprise n'étant pas une publication, `modele.md` §5), TM5.6 par l'instantané égal à la vue créateur et son `CHECK` sans clé interne ; une campagne de secteur sensible est publiée par une seule personne, déclaration exigée (D84). TM5.2 **tenu au L3D (2026-11-18)** : `campaigns-creator-feed.test.ts` (L3D-T2), une campagne non publiée n'apparaît dans aucune réponse du fil ; TM5.6 **côté créateur tenu** : aucune clé interne dans le fil ni la fiche (L3D-T3, L3D-T6) et aucun droit `influx_creator` sur `campaigns.*` (EC-L3D-1 : `0314`, la recherche côté marque passe à `0315`)
+- [x] TM12.1 à TM12.4 **au niveau base et route** (L3E, `0315` à `0321`) : k-anonymat à 5 (L3E-T6), pagination plafonnée, **export interdit à tout le monde** (aucune route, L3E-T8), recherches journalisées (L3E-T6, T7) ; CI verte sur `5c98bb8` (run 44595411008) ; T15.2 tenu (31e recherche de l'heure : 429, `Retry-After`, refus borné, L3E-T6, T8) *(2026-11-19)*
+- [x] TM12.5 : vue identifiée refusée aux membres, en base et en route *(L3G, `0328`, 2026-11-21)* : 42501 pour `influx_advertiser` et `influx_creator` sur les 13 portes, 9 routes en 404 pour un membre et 401 sans session, aucun export (L3G-T4 `35c474e`, L3G-T11 `tm12-identified-view.test.ts` `a137862`) ; CI verte sur `a747548` (run 44955936546), « Migrate staging » vert
+- [x] I-9 : alerte AL21 sur un volume anormal de profils distincts servis à un même compte sur 24 h *(L3E, `0321`, L3E-T10 ; seuils hypothétiques `{150, 8000}`, à fixer par le fondateur : L3ES-3 ; agrégation multi-comptes au L3F)*
+- [x] **L3F** (`0322` à `0326`, `archives/jalons/l3f/modele.md`) : T1.5 et T9 côté annonceur (profil, visuels relayés en JSON sans URL, seuls les visuels `approved` : L3F-T3, T7, T9) ; T15.2 sur l'ouverture de profil (60 par jour par compte, 429 après COMMIT, `Retry-After` : L3F-T3, T7) ; CA45 (affinage) et CA46 (aspiration, retombée après sélection ou demande) levées, ouvertures comptées dans AL21 (L3F-T6) ; sélections sans notification ni export, demande sans mise en relation ni lead (L3F-T4, T5, T8) ; E2E L3F-E1 (4 cas) et L3F-E2 (3 cas) ; CI verte, « Migrate staging » vert *(2026-11-20)*
+- [x] **Non automatisable** : le fondateur a tranché **D38** (masse critique de profils avant d'ouvrir la recherche) : « oui aux 4 questions » le 2026-11-20 (ouverture globale, seuils de départ 30 profils publiés et 5 par thématique principale, en table, atteinte = alerte seule, ouverture par un admin sous contrôle d'un pair, interrupteur fermé) ; `decisions-detail.md` § D38, `run.md` ligne D38
+- [x] **Non automatisable** : la recherche en vue identifiée permet au commercial de trouver les bons créateurs d'une campagne **en moins de 30 secondes** — mesuré à la main, sur trois campagnes réelles. C'est la valeur annoncée du lot ; si elle n'est pas là, le lot n'est pas livré *(2026-11-21, réserve de preuve)* : première passe du fondateur sur trois campagnes de `staging`, **moins de 15 s** chacune, mais avec 1, 0 et 0 créateur compatible (préremplissage trop strict et données synthétiques qui ne couvrent pas les briefs, `21` §8) ; semis de recette (option A, 8 créateurs synthétiques, marqueur `seed-fake-profiles`), recette rejouée puis validée par le fondateur : « je valide la recette » ; les durées de la rejouée, sur des campagnes fictives semées, n'ont pas été données (L3GT-3) ; `archives/jalons/l3g/run.md` ligne F, `0fc5eef`
 
 ---
 
@@ -1798,19 +1802,27 @@ absent ou trop faible = échec), borne haute **25/255** (au-delà de 15 % plus l
 28,5 = échec). Écart entre lignes à ± 4 px du bas de l'en-tête : attendu 0,74/255 pour un seuil de
 2/255. Le tramage des dégradés de Chromium se neutralise en moyennant chaque ligne sur 16 px de large.
 
-### 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30)*
+### 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30, relu phrase à phrase le 2026-11-01, L2A-01)*
 
 Chaque règle de `20` §11.1 à §11.8 renvoie à un cas (TK, TD, TN, T, TM), à une garde (G, ESLint,
 annexe) ou à la recette humaine (§12.4, recette de fin du jalon RK). §11.9 (points soumis au fondateur)
 ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la charte.
 
+Relecture du 2026-11-01 : toute phrase de §11.1 à §11.8 portant « jamais », « toujours », « seul »,
+« au plus » ou un impératif a sa ligne (une ligne peut en couvrir plusieurs, qu'elle nomme). Chaque
+identifiant cité (TK, TD, TN, TM, T, G, DS) a été retrouvé dans `apps/*/e2e`, `apps/*/tests`,
+`packages/test-kit` ou dans les familles de ce plan (T1, T16 et TM11 : cas du plan, écrits au lot de
+leur objet ; RK-17 : décision de `decisions-detail.md`, non un cas). Là où un cas ne mesure qu'une partie
+de la phrase, la ligne le dit et renvoie le reste à la recette humaine, avec son motif.
+
 | § | Règle | Preuve |
 |---|---|---|
 | 11 | Aucune valeur de couleur ajustée, sauf `badge-error-bg` (RK-B) ; `keo-emerald.css` jamais importé | G3, G3c, G3e |
-| 11.1 | Frontière par le groupe `(member)` ; pages légales publiques en vitrine ; CGU du parcours en KEO | TD4.4, G8, TD3.6 |
+| 11.1 | Frontière par le groupe `(member)` ; pages légales publiques en vitrine ; CGU du parcours en KEO ; inscription, connexion et écrans hors session en KEO ; 404 et erreurs de niveau `[locale]` et bandeau cookies en vitrine | TD4.4, TD3.1, G8, TD3.6 |
+| 11.1 | Vitrine : valeurs de `tokens.css` et direction D59 gardées ; revue visuelle de la page avant sa mise en ligne | G3e, TD4.1, TD4.2 ; revue visuelle D59 : recette humaine (porte de production, `21` §5.8) |
 | 11.1 | Un seul `tokens.css`, dans `packages/ui`, importé par les deux fronts ; attribut posé à deux endroits | G3, G8, TD3.1, TD3.2 |
 | 11.1 | Le bloc KEO redéfinit tout `--color-*` hors `KEO_INHERITS`, familles, rayons, graisses d'action, contour secondaire | G3c, TD3.1, TD3.2 |
-| 11.1 | Échelles d'espacement et de texte, durées, points de rupture inchangés sous KEO | G3i (a) (points de rupture, conteneurs), TK7.3 (texte), TD5.7 (durées) ; espacement : recette humaine |
+| 11.1 | Échelles d'espacement et de texte, durées, points de rupture inchangés sous KEO | G3i (a) (points de rupture, conteneurs), TK7.3 (texte), TD5.7 (durées, sous mouvement réduit seulement) ; espacement, et valeur des durées (120 ms, `ease-standard`) sous KEO, qu'aucune garde ne lit : recette humaine (revue de code) |
 | 11.1 | Un seul vert `#1dd68a` sur toute la plateforme (F2) | G3e, TD3.3, TD4.2 |
 | 11.2 | Succès en sarcelle, à au moins 20° de l'action et de l'information | G3d, TD1.7 |
 | 11.2 | Rouge « danger » opaque, inchangé, aucun rouge translucide | G3b, `account-data.spec` |
@@ -1822,7 +1834,9 @@ ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la 
 | 11.3 | Valeurs de chaque token par charte | G3c, TD3.1, TD3.2, G3e |
 | 11.3 | Alias redéclarés quand leur cible l'est (fermeture), nouveaux rôles déclarés dans `@theme` d'abord | G3c (TD1.3, TD1.6) |
 | 11.3 | Couleurs de rôle : liste fermée, toujours suivies du rôle écrit | G3g, TD5.8 |
-| 11.3 | Badge vérifié bleu, jamais une coche seule ni collé à un nom, texte « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » | TK4.2 (texte présent) ; forme et place : recette humaine (Lot 2) |
+| 11.3, 11.7 | Le vert reste rare : `text-brand` jamais en texte courant ni sur un montant, jamais seul porteur d'un état ; montant jamais en vert (K7) | G3d (contraste de `text-brand` seulement) ; usage : recette humaine (§12.4, fondateur, K1 à K23) : aucune garde ne lit l'emploi d'un jeton |
+| 11.3, 11.8 | Bouton désactivé (`action-disabled-bg`) toujours expliqué à côté | TK1.1, TK1.2 (ni ombre ni transformation) ; explication adjacente : recette humaine (§12.4, fondateur) : dépend du texte de chaque écran |
+| 11.3 | Badge vérifié bleu, jamais une coche seule ni collé à un nom, texte « Vérifié · ⟨réseau⟩ · ⟨date complète⟩ » (D88 : exception de la carte photo seule, sous réserve du juriste, §12.8) | TK4.2 (texte présent) ; forme et place : recette humaine (Lot 2) |
 | 11.3 | `badge-error-bg` confiné au badge d'erreur, jamais une notice ; `verified-bg`, `border-hover` | TK7.5, TK4.2, TK4.1 |
 | 11.3 | Couleurs de données réservées aux graphiques étiquetés | Recette humaine (aucun graphique avant le Lot 5) |
 | 11.3 | Ligne survolée du tableau dense : `surface-raised` + filet `effect-bo-row-indicator` | TK6.2 |
@@ -1836,23 +1850,25 @@ ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la 
 | 11.4 | (7) halo d'en-tête à 15 % au plus | G3i (a), TK2.2 (borne haute) |
 | 11.5 | Familles : Manrope pour tous les titres `h1`–`h4`, chiffres, boutons, surtitres, badges ; Source Sans 3 pour le corps | TK3.1, TD3.1, TK4.2, TK6.1 |
 | 11.5 | Aucun token fluide sous KEO, `LegalMarkdown` compris ; tailles inchangées | TK7.3, TK3.1 |
-| 11.5 | Graisses et approche : `h1` 800 et `h2` 700 serrés, `h3`/`h4` 700, chiffre clé 800 | TK3.3 |
+| 11.5 | Graisses et approche : `h1` 800 et `h2` 700 serrés, `h3`/`h4` 700, chiffre clé 800 | TK3.3 ; `h3`/`h4` sans approche serrée : recette humaine (TK3.3 ne mesure que leur graisse) |
 | 11.5 | Surtitre : `text-xs`, Manrope 700, capitales, `tracking-overline` | TK3.2, TK7.2 |
-| 11.5 | Plancher de 12 px | TK3.2 ; ailleurs : recette humaine |
+| 11.5 | Plancher de 12 px ; tailles inchangées (16 px membres, 14 px backoffice) | TK3.2, TK3.1 (taille dans l'ensemble des `--text-*`, identique à 375 et 1 440 px) ; plancher ailleurs, 16 px et 14 px : recette humaine |
+| 11.5 | Rayons `radius-md`, `radius-sm`, `radius-pill` (boutons, badges, pastilles) | TK1.5 (carte seule) ; les autres : recette humaine (§12.4, fondateur, K1 à K23) |
 | 11.5 | Boutons : 700 (principal, danger), 600 (secondaire, texte) | TK1.3 |
 | 11.5 | Item de navigation : actif en 600 | TD5.8 |
-| 11.5 | Polices par `next/font/local`, aucun appel à Google Fonts, `latin` seul câblé, budget | G4f, ESLint, TD3.4, TD8.1 |
-| 11.5 | Chiffres tabulaires de Manrope | TD3.5 |
+| 11.5 | Polices par `next/font/local`, aucun appel à Google Fonts, `latin` seul câblé, budget ; chargées par les deux seules mises en page KEO, jamais par la vitrine | G4f, TD1.10 (G8), ESLint, TD3.4, TD8.1 ; écritures non couvertes en repli système : recette humaine (§12.4, glyphes hors police) |
+| 11.5 | Chiffres tabulaires de Manrope | TD3.5 ; emploi sur les montants : recette humaine (Lot 5, premier montant affiché) |
 | 11.5 | Lissage sous KEO seulement, rien dans `:root`, `html`, `body` | TK3.4, TK7.5 ; rendu : recette sur Mac |
 | 11.5 | Rayon des cartes 16 px ; contour secondaire 1 px sous KEO, 2 px en vitrine | TK1.5, TD4.2 ; contour sous KEO : recette humaine |
 | 11.5 | Anneau intérieur de la barre du bas | TD5.4 |
-| 11.5 | Cartes plates au repos ; `shadow-lg` réservé aux couches | Recette humaine |
+| 11.5 | Cartes plates au repos ; `shadow-lg` réservé aux couches (D88 : `shadow-md` au repos sur le seul encadré collant, §12.8) | Recette humaine |
 | 11.5 | Ombre lumineuse : valeurs, plus forte au survol, absente si désactivé, jamais `none` en neutre | TK1.1, G3i (a) (b) |
 | 11.5 | Petits boutons BO sans effet ; boutons de connexion BO avec | TK1.4 |
 | 11.5 | Halo : fond du conteneur, sans bord, pic `#0d291d`, nul avant la barre du bas, `--size-header-glow` 16 rem | TK2.1, TK2.2, TK2.3 |
 | 11.5 | Borne de `color-mix`, jamais de `/NN` sur une couleur | G3i (a), G3c |
 | 11.5 | Transitions nommées, jamais `transition: all` | G8 (TD1.10) |
 | 11.5 | Agrandissement 1,03 et réduction 0,98 sous `motion-safe:`, jamais désactivé | TK1.2, TK7.4 |
+| 11.5 | Bouton texte sans agrandissement ; ombre lumineuse jamais substituée à l'anneau `focus-ring` | TK1.2 (bouton principal et bouton indisponible), TK5.2 (anneau au `Tab`) ; bouton texte et secondaire survolés : recette humaine (aucun cas ne les mesure) |
 | 11.5 | Soulèvement des cartes sous `motion-safe:` ; transformation sans décalage de mise en page | G8, TD5.7, TK2.3 (et mesure de RK-4 à 320 px) |
 | 11.5 | Mouvement réduit : aucune transformation, durées nulles, squelette sans balayage | TD5.7, TK1.2 |
 | 11.6 | K1, K2, K3 (succès sarcelle, rouge opaque, aucun `rgba`) | G3d, G3b, G3c |
@@ -1867,28 +1883,101 @@ ne porte aucune règle. Une ligne sans preuve est un défaut du plan, pas de la 
 | 11.6 | K18 (anneau `focus-ring`, contour des champs) | TD5.4, TK5.2 |
 | 11.6 | K19 (polices et CSS servis par l'origine) | G4f, TD3.4, TD8.1 |
 | 11.6 | K20, K23 (tokens par rôle, valeurs non reprises) | G3, G3c |
-| 11.7 | Test du logo ; parades (pas de bouton vert rond à icône seule, halo jamais sur une carte, surtitre jamais vert, commercial nommé et statuts datés au premier écran) | Recette humaine (§12.4, fin du jalon RK) ; halo : TK2.1 |
-| 11.8 | Gabarits par largeur, un seul `<nav>` restylé par le CSS | TD5.1, TD5.2, TD6.1, TD6.2 |
+| 11.7 | Test du logo ; parades (pas de bouton vert rond à icône seule, une seule action principale par écran en libellé verbe + objet, halo jamais sur une carte, surtitre jamais vert, commercial nommé et statuts datés au premier écran) | Recette humaine (§12.4, fin du jalon RK) ; halo : TK2.1 ; surtitre : TK3.2 |
+| 11.8 | Gabarits par largeur (membres sous et dès 1 024 px ; backoffice dès 1 024 px, de 768 à 1 023 px en navigation compacte, sous 768 px de large ou 500 px de haut en écran « poste de travail »), un seul `<nav>` restylé par le CSS | TD5.1, TD5.2, TD6.1, TD6.2 ; absence de détection de largeur en JavaScript : recette humaine (revue de code, TD5.1 ne voit que le DOM) |
+| 11.8 | Page autonome KEO (inscription, connexion, déconnecté, compte supprimé, CGU à ré-accepter) : INFLUX et langue en tête, une colonne, aucune navigation ; pages légales publiques en gabarit de vitrine | TD5.6 (c), TD6.4, `account.spec` (écran des CGU sans navigation, §12.5 point 7), TD4.4 ; en-tête et colonne `container-narrow` : recette humaine (§12.4, fondateur) |
 | 11.8 | Entrées sans écran masquées, jamais retirées une fois apparues | TD2.3 |
 | 11.8 | Aucun repli de colonne, rien de persisté | Garde annexe 2 (stockage) |
 | 11.8 | Lien d'évitement en premier ; focus au `h1` après navigation | TD5.3, TD5.5, TD6.1 |
 | 11.8 | Anneau sur tout élément interactif ; aucun anneau sur un `h1`–`h4` ou `main` focalisé par programme | TK5.2, TD5.4 ; TK5.1 |
+| 11.8 | Règle du focus : sélecteur fermé `:where(h1, h2, h3, h4, main)[tabindex="-1"]`, jamais un `[tabindex="-1"]` générique ; le tabindex itinérant des onglets de canaux garde son anneau | TK5.1, TK5.2 (effets sur les pages existantes) ; forme du sélecteur : recette humaine (revue de code, aucune garde ne le lit) ; onglets : recette humaine (Lot 4) |
 | 11.8 | Bouton principal, secondaire, texte (états R, S, A, D) | TK1.1 à TK1.4, G3d |
 | 11.8 | Boutons : chargement (`aria-busy`, largeur figée), erreur portée par le formulaire | Recette humaine |
-| 11.8 | Bouton danger D72 | G3b, `account-data.spec` |
+| 11.8 | Bouton danger D72 | G3b, `account-data.spec` ; au backoffice, jamais par raccourci (`20` §5 niveau 3) : recette humaine (Lot 5, premières actions destructives) |
 | 11.8 | Carte : rayon, carte cliquable seule réactive, contour éclairci | TK1.5, TK4.1 |
+| 11.8 | Carte : anneau autour de la carte à lien étiré, squelette de même hauteur, notice dans la carte, bloc intérieur `surface-raised` | TD5.4 (anneau, pages existantes) ; le reste : recette humaine (au lot de chaque carte, Lot 2 pour la première) |
 | 11.8 | Badges de rôle, vérifié, de statut | G3g, TD5.8, TK4.2, TK7.5, TD6.5 |
 | 11.8 | Onglets segmentés (canaux, Lot 4) | Recette humaine (Lot 4) |
 | 11.8 | Sous-entrée de navigation, page-menu (D74) | TN1 à TN9 |
 | 11.8 | Champ : contour `border-strong`, erreur 2 px reliée par `aria-describedby` | G3d, TD7 (état d'erreur) |
+| 11.8 | Champ : libellé au-dessus en 600, aide en `text-secondary`, exemple en `text-tertiary` jamais seul libellé, état désactivé | Recette humaine (§12.4, fondateur) : aucun cas ne mesure le libellé ni l'état désactivé |
 | 11.8 | Notice : fonds de famille, erreur sans fond teinté | G3b, TK7.5, TD7 |
+| 11.8 | Notice : `role="status"` ou `role="alert"`, icône du couple de la famille, non refermable pour un état permanent | `error-notice.test.ts` (web et backoffice : erreur en `role="alert"` avec icône) ; succès, alerte et information, non refermable : recette humaine (au lot du premier écran qui en porte) |
 | 11.8 | Tableau dense : en-tête `surface-hover` Manrope 700, filet de ligne, région défilante | TK6.1, TK6.2, TD6.2, TD6.5 |
+| 11.8 | Tableau dense : en-tête collant, lignes de hauteur fixe en squelette, deux états vides de `17b` §2.3, chiffres tabulaires | Recette humaine (§12.4, backoffice : densité) |
 | 11.8 | État vide (pas de « 0 » ni d'illustration) | Recette humaine (DS-8 : accueil neuf sans « 0 ») |
-| 11.8 | Squelette sans balayage sous mouvement réduit | TD5.7 |
-| 11.8 | Item de navigation, pastille de compteur | TD5.1, TD5.4, TD5.8 ; pastille « 9+ » : recette humaine (§12.4) |
+| 11.8 | Squelette sans balayage sous mouvement réduit | TD5.7 ; `aria-busy` sur le conteneur et « Chargement… » masqué : recette humaine (§12.4, lecteur d'écran) |
+| 11.8 | Item de navigation, pastille de compteur | TD5.1, TD5.4, TD5.8 ; pastille « 9+ » : recette humaine (§12.4) ; cible tactile, barre du bas en icône sur libellé : recette humaine (§12.4, iPhone) ; retard écrit « ⚑ ⟨n⟩ hors délai » au backoffice : recette humaine (Lot 5) |
 | 11.8 | En-tête de page : `h1` Manrope 800 serré, halo du conteneur, un seul par page | TK3.1, TK3.3, TK2.1 |
+| 11.8 | En-tête de page : fil d'Ariane `text-sm` à partir du niveau 2, action principale à droite (desktop) ou sous le titre en pleine largeur (mobile) | Recette humaine (Lot 2, première page de niveau 2) |
 | 11.8 | Surtitre | TK3.2 |
 | 11.8 | Dialogue : voile, focus piégé, `Échap` | TD3.6, DS-7 (e2e du dialogue des CGU) |
+
+### 12.8 Les tests du Lot 3bis, refonte UX/UI (D87, D88) *(ajouté le 2026-11-25)*
+
+**Sources :** `22-refonte-ux-ui/05-recette-visuelle.md` (recette, procédure et critères de fin, **fait foi**) et
+`04-animations.md` (catalogue et critères AN) ; ce plan n'en reprend que les identifiants et les gardes. Tests du
+jalon RUA : `jalons/rua/annexe.md` (RUA-T1 à RUA-T8). Planchers (`case-floors.ts`, `artifact-floors.ts`,
+`packages/test-kit/tests`) relevés avec les cas livrés, jamais baissés ; **+20 s au plus pour le lot** en e2e,
+éclats ≤ 7 min 30, job ≤ 8 min.
+
+**Familles `E..-T..`.** Chaque écran a, dans sa fiche `22-refonte-ux-ui/ecrans/E…`, des cas `E<écran>.<n>-T<nn>`
+rattachés à ses lignes `S` et à ses critères `CA` : états montrés ou non par la maquette (chargement, vide, vide filtré,
+erreur serveur, refus, limitation, conflit, hors ligne, session expirée, lecture seule, textes longs, **EN**), clavier,
+focus, axe (0 règle à 375 et 1 440 px). Une spec existante est adaptée **dans le même commit** que la structure qu'elle
+lit, sans perdre d'assertion. `testeur` en tient la liste ; `E..-T..` vient avec l'écran, pas avec RUA.
+
+**Comparaison à la maquette (N1 à N3, `22-refonte-ux-ui/05` §3).** La maquette (`docs/audit-ux-ui/prototypes/proto-*.html`,
+figée au commit `954e009`) se rend dans le même Chromium que l'application :
+
+| Niveau | Mesure | Tolérance |
+|---|---|---|
+| **N1**, structure et textes | Ordre des zones, titres, libellés FR (hors `{variable}`), icônes, rôles et noms accessibles (`ariaSnapshot()`) | Aucun écart |
+| **N2**, styles calculés et géométrie | Couleurs, famille, graisse, taille, rayon, épaisseur, interligne, espacements : 0 ; position et largeur : 1 px ; hauteur : multiple exact de l'interligne, sinon 1 px | Matrice de la fiche |
+| **N3**, captures | `toHaveScreenshot` de la maquette rendue dans la même exécution : `maxDiffPixelRatio` 0,005 par zone, `threshold` 0,1 ; masques fermés (photos et logos réels, dates et heures courantes, adresse du compte connecté, bandeau d'environnement) | Toute zone au-delà est classée : corrigée, ou écart inscrit dans `06b` §7 |
+
+Une image de référence n'est **jamais** mise à jour pour faire passer un test (`updateSnapshots: "none"`, l'outil
+s'arrête si `-u` le change). Backoffice de 768 à 1 023 px : **hors N1 à N3** (RU-19, refusé par les données et l'auto-test).
+Outil (RUA-03) : `apps/web/e2e/visual/`, comparateurs purs dans `packages/test-kit/src/visual.ts`, projet Playwright
+`visual` défini **seulement** sous `E2E_VISUAL` ; **exécution locale** (+0 s en CI) ; preuve de l'outil : la maquette
+contre elle-même rend 0 écart à N1, N2 et N3, et un écart volontaire est vu à chaque niveau.
+
+**Mouvement (AN-1 à AN-4, `22-refonte-ux-ui/04` §5).** AN-1 : sous mouvement réduit, aucune propriété `scale`,
+`translate` ou `rotate` calculée ne change et chaque durée calculée vaut 0 s (squelette : `animation-name: none`).
+AN-2 : chaque ligne « À créer » du catalogue a un cas Playwright qui lit durée, courbe et propriété calculées (avec
+l'écran). AN-3 : aucune dépendance ajoutée, `package.json` inchangé. AN-4 : aucune transition sur `all`, `height` ni
+`max-height`.
+
+**Gardes amendées par RUA** (chacune avec son cas négatif, TD1 ; une garde ne s'assouplit pas sans être nommée,
+motivée et prouvée par son cas négatif) :
+
+| Garde | Amendement | Cas négatifs |
+|---|---|---|
+| **G3c**, **G3f** | Nouveaux rôles (`logo-plate`, `skeleton-*`, `network-primary`) ; `-bo-` dans `tokens-backoffice.css` seul, aucun dans `apps/web` | Alias non redéclaré ; `-bo-` dans `apps/web` |
+| **G3d** | `withMixOver` ; `PHOTO_SCRIM_PAIRS` (`text-primary` sur voiles de 82 et 75 %) ; paires de `20` §11.4 (Lot 3bis) | Voile trop clair |
+| **G3i** | `ColorMixAllowance` avec `base` et `percent` exact ; quatre `--effect-photo-*` dans le bloc KEO seulement ; `rgba(`, `hsla(`, `#rrggbbaa` refusés dans un `--effect-*` (`02` §21.3) | Voile en vert ; 80 % ; valorisé dans `@theme` ; `surface-page` dans le halo ; `--color-*` listé |
+| **G8** | `PHOTO_EFFECT_READERS` ; planche d'états : aucun module ordinaire n'importe un `*.board.*`, aucun n'importe `@influx/web-platform`, le client d'API ni `useMember` | Lecteur hors liste ; import de la planche |
+| **Variantes `bo-*`** | Exactement deux `@custom-variant`, dans `tokens-backoffice.css`, `bo-wide` avant `bo-small` ; ni `innerWidth` ni `innerHeight` ; `matchMedia` dans `small-window.ts` seul (RUC-08) ; `--query-bo-small` égale à `bo-small` | Troisième variante ; ordre inversé ; seuil changé d'un côté |
+| **`SHARED_CATALOGUE`** (RU-18, au premier composant commun) | Par nom, deux modules et le même texte normalisé de `NomProps` ; `exports` de `packages/ui` sans `.tsx` | Prop d'un côté ; module absent ; `.tsx` dans `packages/ui` |
+| **Artefact** (`test:artifacts`) | Aucune route `state-board` ni marqueur `data-state-board` dans `.next/` (chaque combinaison de `INFLUX_ENV` et du drapeau, testée seule) | Construction avec le drapeau |
+| **Outil de comparaison** (`check`) | Comparateurs purs auto-testés, manifeste des maquettes (SHA-256), aucune image sous `apps/web/e2e` | Image committée ; manifeste périmé |
+
+**Traçabilité des phrases de `20` §11 amendées par D88** (R3 : chaque phrase a sa preuve) :
+
+| § | Règle | Preuve |
+|---|---|---|
+| 11.3 | `logo-plate`, `skeleton-*`, `network-primary` : valeurs et fermeture des alias ; `network-primary` seule couleur `data-*` hors graphique | G3c, G3d (RUA-T1, RUA-T2) ; emploi (toujours « compte principal » écrit) : recette humaine, avec l'écran |
+| 11.3 | Badge vérifié : fiche complète et datée, icône seule admise sur la carte photo avec texte accessible, sous réserve du juriste | Axe et nom accessible de la carte, avec `RUB-09` ; part juridique : D34, recette humaine |
+| 11.4 | Paires du Lot 3bis | G3d (`CONTRAST_MATRIX.keo`, `PHOTO_SCRIM_PAIRS`) |
+| 11.5 | Quatre paliers fixes (RU-01), sans `clamp(` ni `vw` | TK7.3, TK3.1 ; RUA-T1 (valeurs) |
+| 11.5 | `shadow-md` au repos sur le seul encadré collant (RU-05) | Recette humaine, avec les écrans 2b, 5b, 8, 15, 18 |
+| 11.5 | Effets sur photo bornés aux éléments posés sur une photo (RU-04) | G3i, G3d, G8 (`PHOTO_EFFECT_READERS`) |
+| 11.5 | Mouvements, `--animate-*`, mouvement réduit (RU-06) | AN-1 (RUA-T5), AN-3, AN-4 (RUA-T4), AN-2 avec l'écran |
+| 11.5 | `--breakpoint-form` 640 px, `bo-wide` 1 536 px (RU-03) | G3e (ajout), G3i (a), garde des variantes, RUA-T4 |
+| 11.5, 11.8 | Titres de compte, vérifications, assistants (RU-17) | TK3.1, TK3.3 ; N2 avec l'écran |
+| 11.8 | Onglets segmentés élargis (RU-10), `surface-active` et compteur (RU-11) | G3h, G3d ; emploi : recette humaine, avec l'écran |
+| 11.8 | Avatar uni (RU-07), cases du code (RU-08), désactivé sans opacité (RU-09), accessibilité sans effet visuel (RU-12) | axe à 0 (TD7) ; N1 à N3 avec l'écran |
+| 11.8 | Petite fenêtre du backoffice : aucune page montée, page tenue masquée (RU-20) | Garde de `small-window.ts`, `mountDecision` testée seule, e2e avec `RUC-08` |
 
 ---
 

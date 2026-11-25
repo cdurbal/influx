@@ -4,11 +4,14 @@
 import {
   backofficeEnrollConfirmResponseSchema,
   backofficeEnrollResponseSchema,
+  backofficeInvitationAcceptResponseSchema,
   backofficeLoginResponseSchema,
   backofficeLogoutResponseSchema,
   backofficeMeResponseSchema,
   type BackofficeEnrollConfirmResponse,
   type BackofficeEnrollResponse,
+  type BackofficeInvitationAcceptBody,
+  type BackofficeInvitationAcceptResponse,
   type BackofficeLoginResponse,
   type BackofficeMeResponse,
 } from "@influx/contracts/backoffice-auth";
@@ -45,6 +48,18 @@ export function startEnrollment(
       password,
       enrollmentToken,
     },
+  );
+}
+
+/** The activation link of a team invitation: the account, then the factor (15 RG99, J8 c7). */
+export function acceptInvitation(
+  body: BackofficeInvitationAcceptBody,
+): Promise<RelayResult<BackofficeInvitationAcceptResponse>> {
+  return callRelay(
+    "POST",
+    "/v1/bo/auth/invitation/accept",
+    backofficeInvitationAcceptResponseSchema,
+    body,
   );
 }
 

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 17 · Fiche campagne</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html" aria-current="page">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 17 · Backoffice</p>
+    <h1 class="d-h1">Fiche campagne</h1>
+    <p class="d-lead">La fiche d'une campagne pour le commercial, sur le gabarit de la fiche de compte (écran 6) : en-tête d'identité, contenu de la campagne dans l'ordre du formulaire de l'écran 7, historique, et une colonne de propriétés (cycle de vie, bloc interne, gestes). Elle s'ouvre désormais depuis la liste des campagnes de la fiche du compte et depuis l'entrée « Campagne à valider » ; elle mène à la recherche identifiée pré-remplie (« Créateurs compatibles », <code>10</code> RG73) et à la marque.</p>
+    <div class="d-ids"><span class="u u--imp">U06</span><span class="u">U37</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Poste 1 440 px</button><button class="d-toggle" type="button" data-mode="narrow" aria-pressed="false"><svg class="i i--sm"><use href="#i-monitor"/></svg>Demi-écran 1 180 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="ouverte" data-cap="" aria-pressed="true">Ouverte</button>
+        <button type="button" data-st="validation" data-cap="" aria-pressed="false">En validation</button>
+        <button type="button" data-st="pause" data-cap="" aria-pressed="false">En pause</button>
+        <button type="button" data-st="close" data-cap="" aria-pressed="false">Close</button>
+        <button type="button" data-st="corriger" data-cap="" aria-pressed="false">Corriger un champ</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>Pas de capture de la fiche campagne dans l'audit.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-bo-campagne.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-bo-campagne.html" title="Prototype de la fiche campagne" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran : « Créateurs compatibles » (recherche de l'écran 13 pré-remplie), le nom de la marque (fiche de l'écran 6), « Corriger un champ » sans motif puis complet, « Mettre en pause », « Clore la campagne » avec sa confirmation.</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Problèmes relevés</h2>
+    <ul class="d-list">
+      <li><b>La fiche campagne n'est atteignable que depuis le message de succès de sa création</b> ; « Trouver une campagne par sa marque » tourne en boucle (U06).</li>
+      <li><b>Le pont « campagne → créateurs compatibles »</b>, départ de la proposition INFLUX (<code>10</code> RG73), ne fonctionne que depuis la file 9 (U06).</li>
+      <li><b>Des sections dans des sections</b>, comme ailleurs dans le backoffice (U37).</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Composition cible</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Zone</th><th>Contenu</th></tr></thead>
+      <tbody>
+        <tr><td>En-tête</td><td>Fil d'Ariane (inscrits, marque, campagne), logo, titre, état, marque en lien vers sa fiche, référence, type, langue, responsable ; « Créateurs compatibles » (action principale, sauf campagne close) et « Voir ce que voit un créateur » ; consultation journalisée</td></tr>
+        <tr><td>Colonne principale</td><td>À traiter (l'entrée de file s'il y en a une, sinon l'état en une phrase) ; puis l'offre, le travail attendu, pour qui, le calendrier, dans l'ordre de l'écran 7, avec la version lue des créateurs ; historique des décisions et des interventions</td></tr>
+        <tr><td>Propriétés</td><td>État et cycle de vie (dates, version, responsable) ; bloc interne (contrepartie, budget par tranche, créateurs recherchés, budget total non communiqué, référence de la marque ; D78) ; gestes repliés : corriger un champ avec motif, mettre en pause ou reprendre, clore avec confirmation</td></tr>
+        <tr><td>Accès</td><td>Liste « Campagnes » de la fiche du compte et « À traiter » de cette fiche (écran 6, liens ajoutés), entrée de la file des campagnes</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La fiche dans ses quatre états, sur poste et en demi-écran.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>« Créateurs compatibles » en action principale de l'en-tête : c'est le départ de la proposition INFLUX. La sélection et « Proposer » restent au Lot 4 (écran 13, état cible).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>L'état « brouillon » d'une campagne n'est pas prototypé : la ligne « Coffret de fin d'année » de l'écran 6 ne mène pas encore à la fiche.</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-16-bo-listes.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 16 · Files et inscrits</a><a class="go" href="ecran-18-campagne-marque.html">Écran 18 · Campagne côté marque <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

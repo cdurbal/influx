@@ -64,12 +64,12 @@ le périmètre fonctionnel (→ `product-owner`, qui valide tes règles).
 |---|---|
 | **Pertinence thématique** | Secteur de l'annonceur vs thématiques de l'influenceur |
 | **Audience** | Volume, démographie, zone géographique, réseaux couverts |
-| **Compatibilité économique** | Budget de la campagne vs tarifs indicatifs de l'influenceur |
+| **Compatibilité économique** *(V2, D78)* | Budget de la campagne vs tarifs indicatifs de l'influenceur : renvoyé en V2, aucun tarif n'étant saisi ni affiché au pilote |
 | **Format** | Formats demandés vs formats proposés |
 | **Disponibilité** | Période de campagne, charge en cours de l'influenceur |
 | **Qualité** | Complétude et vérification du profil, historique de campagnes réussies, respect des délais |
 | **Signal comportemental** | Taux de réponse, taux d'acceptation, rapidité de réponse |
-| **Exclusions** | Concurrence directe, blocage mutuel, profil suspendu, tarif hors budget |
+| **Exclusions** | Concurrence directe, blocage mutuel, profil suspendu ; « tarif hors budget » renvoyé en V2 (D78) |
 
 Les pondérations exactes ne sont pas figées : tu les proposes, tu les justifies, `product-owner`
 les valide, et tu les fais évoluer au vu des résultats mesurés.

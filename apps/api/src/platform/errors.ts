@@ -6,6 +6,7 @@ import {
   type ErrorEnvelope,
   type ValidationIssue,
 } from "@influx/contracts/errors";
+import { sqlMessageOf, sqlStateOf } from "../db/sql-state.ts";
 
 export const HTTP_STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   validation_failed: 400,
@@ -23,6 +24,8 @@ export const HTTP_STATUS_BY_CODE: Readonly<Record<ErrorCode, number>> = {
   reauthentication_required: 403,
   email_change_unavailable: 503,
   export_unavailable: 410,
+  upload_quota_exceeded: 429,
+  image_rejected: 422,
 };
 
 /** Technical English, never displayed as is: the front translates the code (02 §9.2). */
@@ -44,6 +47,8 @@ const DEFAULT_MESSAGES: Readonly<Record<ErrorCode, string>> = {
     "A fresh code is required for this action on this session",
   email_change_unavailable: "The address cannot be changed right now",
   export_unavailable: "This export can no longer be downloaded",
+  upload_quota_exceeded: "The daily upload quota is reached",
+  image_rejected: "The image is refused",
 };
 
 /** An error that the API answers on purpose, with a code of the closed union. */
@@ -59,12 +64,20 @@ export class ApiError extends Error {
   }
 }
 
-/** An ApiError answered with a Retry-After header: a 503 the client may try again (21 EC-62 (D)). */
+/**
+ * An ApiError answered with a Retry-After header: a 503 the client may try again (21 EC-62 (D)), or
+ * a refusal that names the delay left (L2E 12, 08 RG60: a request again less than 24 hours after a
+ * refusal). The seconds travel in the header only, never in the body.
+ */
 export class RetryLaterError extends ApiError {
   readonly retryAfterSeconds: number;
 
-  constructor(code: ErrorCode, retryAfterSeconds: number) {
-    super(code);
+  constructor(
+    code: ErrorCode,
+    retryAfterSeconds: number,
+    details?: readonly ValidationIssue[],
+  ) {
+    super(code, details);
     this.name = "RetryLaterError";
     this.retryAfterSeconds = retryAfterSeconds;
   }
@@ -96,7 +109,15 @@ export class UnserializedResponseError extends Error {
 export type ClassifiedError = {
   code: ErrorCode;
   details?: readonly ValidationIssue[];
+  /** Set when the classification itself asks the client to come back (a lock timeout, D85 (1)). */
+  retryAfterSeconds?: number;
 };
+
+/** The message PostgreSQL gives to a statement cancelled by `lock_timeout` (SQLSTATE 55P03). */
+const LOCK_TIMEOUT_MESSAGE = "canceling statement due to lock timeout";
+
+/** Seconds a client is asked to wait after a lock timeout (0327: the lock of an account, 1 s at most). */
+const LOCK_TIMEOUT_RETRY_AFTER_SECONDS = 1;
 
 function statusCodeOf(error: unknown): number | undefined {
   if (
@@ -119,6 +140,18 @@ export function classifyError(error: unknown): ClassifiedError {
   }
   if (error instanceof RequestValidationError) {
     return { code: "validation_failed", details: error.issues };
+  }
+  // D85 (1), 0327: a door that waited more than its `lock_timeout` behind another call of the same
+  // account is asked to come back, never a fault. Only the engine's own message: the 55P03 of a queue
+  // without a live claim (0330) and of any other cause keep their own path.
+  if (
+    sqlStateOf(error) === "55P03" &&
+    sqlMessageOf(error) === LOCK_TIMEOUT_MESSAGE
+  ) {
+    return {
+      code: "rate_limited",
+      retryAfterSeconds: LOCK_TIMEOUT_RETRY_AFTER_SECONDS,
+    };
   }
   // Errors raised by Fastify itself before the handler (body parsing, body size, media type).
   const statusCode = statusCodeOf(error);

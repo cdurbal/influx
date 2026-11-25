@@ -1,0 +1,6 @@
+// A rate, a price and an amount are named in a comment only; engagementRateBp is not `rate`.
+export const creatorOfferClean = {
+  headline: "",
+  engagementRateBp: 1,
+  pricing: "negotiated with the sales agent",
+};

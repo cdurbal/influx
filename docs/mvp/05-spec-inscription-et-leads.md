@@ -496,6 +496,7 @@ nommés au passé :
 |---|---|---|---|
 | `lead.created` | Compte créé (validation de l'écran 3) | E-mail de bienvenue (toujours) · contact Brevo (si consentement) · contact Apollo (si périmètre et qualification) | Normale |
 | `lead.updated` | Modification du pays, de la langue, du statut déclaré, du nom d'entreprise, ou correction par un agent | Contact Brevo · contact Apollo | Normale |
+| `profile.completed` | *(L2C, `06` RG78)* Première publication d'un profil de marque, une seule fois par compte (clé `profile.completed:<compte>`) ; les modifications suivantes émettent `lead.updated` | Contact Brevo · contact Apollo, traités comme `lead.updated`, enrichis du profil vivant (`06` RG79 ; `16` §M4) ; sans consentement : ignoré, non compté en échec (`06` CA41) | Normale |
 | `email.changed` | Changement d'adresse confirmé des deux côtés | Contact Brevo · contact Apollo | Normale |
 | `consent.granted` | Consentement accordé (inscription ou espace membre) | Contact Brevo · contact Apollo | Normale |
 | `consent.revoked` | Consentement retiré (espace membre, backoffice, retour Brevo) | Contact Brevo · contact Apollo | **Prioritaire** |

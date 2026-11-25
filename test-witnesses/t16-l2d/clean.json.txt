@@ -1,0 +1,1 @@
+{ "creatorProfile": { "offer": { "title": "Mon offre", "negotiated": "Vos conditions se discutent avec votre commercial." } } }

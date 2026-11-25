@@ -203,6 +203,42 @@ export function assertMatchesManifest(
   }
 }
 
+const DRAFT_NOTICE_PATTERN = /Projet non contractuel|Draft,\s*not contractual/i;
+const PLACEHOLDER_MARKER_PATTERN = /\[[A-Z][A-Z0-9 -]{2,}\]/;
+
+/**
+ * EC-62, runbook production §12: a version published on production is never a `draft-*`, never
+ * carries the draft notice, never keeps a `[COMPANY NAME]` placeholder (D25), and must already be
+ * recorded in legal/published.json with the same SHA-256.
+ */
+export function assertReadyForProduction(
+  request: PublicationRequest,
+  published: PublishedFile,
+  manifest: Manifest,
+): void {
+  if (/^draft(?:-|$)/i.test(request.label)) {
+    throw new Error(
+      `${published.uri}: draft-* version labels are refused in production (EC-62)`,
+    );
+  }
+  if (DRAFT_NOTICE_PATTERN.test(published.content)) {
+    throw new Error(
+      `${published.uri} still carries the draft notice: refused in production (EC-62)`,
+    );
+  }
+  const placeholder = PLACEHOLDER_MARKER_PATTERN.exec(published.content);
+  if (placeholder !== null) {
+    throw new Error(
+      `${published.uri} still holds an unreplaced ${placeholder[0]} marker (D25): refused in production`,
+    );
+  }
+  if (manifest[published.uri] !== published.sha256) {
+    throw new Error(
+      `${published.uri} must be recorded in legal/published.json before publishing on production`,
+    );
+  }
+}
+
 /** Appends the file to the manifest (2 spaces, LF); a no-op when it is already there. */
 export function recordInManifest(
   published: PublishedFile,

@@ -15,21 +15,24 @@ type RoleBadgeProps = {
 };
 
 /**
- * The role of a member: a dot of its color, then the role in words. The only consumer of
- * `role-advertiser` and `role-creator` (G3g, 20 §11.3): a visual mark, never a text, a fill or a
- * contour. The label is required by the type; the dot is decorative.
+ * The role of a member: a neutral pill holding a dot of its color, then the role in words (20
+ * §11.8, L2AU-2). The only consumer of `role-advertiser` and `role-creator` (G3g, 20 §11.3): a
+ * visual mark, never a text, a fill or a contour. The label is required by the type; the dot is
+ * decorative.
  */
 export function RoleBadge({ role, label, className }: RoleBadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-2 text-sm text-text-secondary",
+        "inline-flex items-center gap-2 rounded-pill px-3 py-1",
+        "border-(length:--border-width-thin) border-border-default bg-surface-raised",
+        "text-sm text-text-secondary",
         className,
       )}
     >
       <span
         aria-hidden="true"
-        className={cn("size-2 shrink-0 rounded-round", ROLE_DOT_CLASSES[role])}
+        className={cn("size-3 shrink-0 rounded-round", ROLE_DOT_CLASSES[role])}
       />
       {label}
     </span>

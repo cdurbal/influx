@@ -189,17 +189,25 @@ test("the resume gives up for screen 1 when apps/api stays silent over 3 s or ca
 }) => {
   const t = AUTH_LABELS.en;
   const address = mailboxAddress("resume-gives-up");
+  // The 3 s of RESUME_TIMEOUT_MS are the browser's clock, moved forward below rather than waited.
+  await page.clock.install();
   await open(page, "/en/signup/creator");
   await requestCode(page, t, address);
 
-  // Silent: the answer comes after the 3 s of RESUME_TIMEOUT_MS, too late to be used.
+  // Silent: the answer is held back past the 3 s of RESUME_TIMEOUT_MS, too late to be used.
+  let answer: () => void = () => undefined;
+  const answerHeld = new Promise<void>((resolve) => {
+    answer = resolve;
+  });
   await page.route("**/api/v1/auth/journey", async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 6_000));
+    await answerHeld;
     await route.continue().catch(() => undefined);
   });
   await reload(page);
   await expect(page.getByText(t.journey.loading)).toBeVisible();
+  await page.clock.fastForward(3_500);
   await expect(title(page)).toContainText(t.step1.title, { timeout: 5_000 });
+  answer();
   await page.unrouteAll({ behavior: "ignoreErrors" });
 
   // Unreachable: the relay call fails at once.

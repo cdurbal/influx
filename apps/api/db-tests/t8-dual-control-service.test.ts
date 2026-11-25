@@ -24,7 +24,7 @@ import {
   dualControlExecutor,
   dualControlView,
   requestDualControl,
-  type DualControlAction,
+  type RequestableDualControlAction,
 } from "../src/domains/backoffice/dual-control.ts";
 import { peerAdminExists } from "../src/domains/backoffice/dual-control/repository.ts";
 import {
@@ -148,11 +148,14 @@ function confirm(
   );
 }
 
-function grantOf(accountId: string): DualControlAction {
+function grantOf(accountId: string): RequestableDualControlAction {
   return { code: "identity.grant_role", accountId, role: "advertiser" };
 }
 
-function request(token: Buffer, action: DualControlAction): Promise<string> {
+function request(
+  token: Buffer,
+  action: RequestableDualControlAction,
+): Promise<string> {
   return inSession(token)((tx) =>
     requestDualControl(tx, { action, reasonCode: "test_j8", reasonNote: null }),
   );

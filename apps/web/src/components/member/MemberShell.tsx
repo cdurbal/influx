@@ -23,6 +23,16 @@ import {
   type RefObject,
 } from "react";
 import { TermsGate } from "@/components/account/TermsGate";
+import { AccountStateBlock } from "@/components/brand-profile/AccountStateBlock";
+import {
+  useBrandSummary,
+  type BrandSummary,
+} from "@/components/brand-profile/use-brand-summary";
+import { CreatorAccountStateBlock } from "@/components/creator-profile/CreatorAccountStateBlock";
+import {
+  useCreatorSummary,
+  type CreatorSummary,
+} from "@/components/creator-profile/use-creator-summary";
 import {
   HEADER_CLASSES as SCREEN_HEADER_CLASSES,
   HELP_CLASSES,
@@ -31,7 +41,7 @@ import {
   SCREEN_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   SPACE_SCREEN_CLASSES,
-  TEXT_BUTTON_CLASSES,
+  TEXT_LINK_CLASSES,
   TITLE_CLASSES,
 } from "@/components/auth/auth-classes";
 import { readMe, signOut as closeSession } from "@/components/auth/member-auth";
@@ -44,12 +54,13 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { activePlaceOf, navItemsOf, subEntriesOf } from "@/lib/member-nav";
 import {
+  accountLabelKeyOf,
   homePageOf,
   isTermsExempt,
   memberPageHref,
   memberPageOfPath,
   spaceRedirectOf,
-  type AccountPage,
+  type AccountSubPage,
   type MemberPage,
 } from "@/lib/member-paths";
 import { installErrorCollector } from "@influx/web-platform/error-collector";
@@ -83,6 +94,9 @@ type State =
 /** The labels of member.json: only the entries whose screen exists have one (TD2.2, TD2.3). */
 type EntryWithLabel = keyof Messages["member"]["shell"]["nav"]["entries"];
 
+/** The labels of the sub-entries of the rubrics other than "Compte" (L3F, commit 11: « Créateurs »). */
+type SubPageWithLabel = keyof Messages["member"]["shell"]["nav"]["sub"];
+
 export function MemberShell({ children }: { children: ReactNode }) {
   const locale = useLocale();
   const router = useRouter();
@@ -91,6 +105,18 @@ export function MemberShell({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   // Signed out or deleted: the page ends there, no later read brings the space back.
   const ended = useRef(false);
+
+  // The state of a brand's profile, for the column and the home (17 §2.3, §2.4): read with the
+  // session, at each page; the profile screen tells it every save.
+  const brandProfile = useBrandSummary(
+    state.kind === "ready" && state.me.role === "advertiser",
+    pathname,
+  );
+  // The same for a creator (L2D, commit 15): the alias, the state and what is missing.
+  const creatorProfile = useCreatorSummary(
+    state.kind === "ready" && state.me.role === "creator",
+    pathname,
+  );
 
   // Browser errors of the connected space (D60, 02 §20.5); never on the landing.
   useEffect(() => installErrorCollector(), []);
@@ -207,6 +233,8 @@ export function MemberShell({ children }: { children: ReactNode }) {
       onSignOut={signOut}
       mainRef={mainRef}
       busy={state.kind === "loading"}
+      brandProfile={brandProfile}
+      creatorProfile={creatorProfile}
     >
       {state.kind === "ready" ? (
         <SpaceContext
@@ -215,6 +243,8 @@ export function MemberShell({ children }: { children: ReactNode }) {
           signOut={signOut}
           signedOut={signedOut}
           accountDeleted={accountDeleted}
+          brandProfile={brandProfile}
+          creatorProfile={creatorProfile}
         >
           {children}
         </SpaceContext>
@@ -237,10 +267,34 @@ function SpaceContext({
   children,
   ...member
 }: MemberContextValue & { children: ReactNode }) {
-  const { me, refresh, signOut, signedOut, accountDeleted } = member;
+  const {
+    me,
+    refresh,
+    signOut,
+    signedOut,
+    accountDeleted,
+    brandProfile,
+    creatorProfile,
+  } = member;
   const value = useMemo(
-    () => ({ me, refresh, signOut, signedOut, accountDeleted }),
-    [me, refresh, signOut, signedOut, accountDeleted],
+    () => ({
+      me,
+      refresh,
+      signOut,
+      signedOut,
+      accountDeleted,
+      brandProfile,
+      creatorProfile,
+    }),
+    [
+      me,
+      refresh,
+      signOut,
+      signedOut,
+      accountDeleted,
+      brandProfile,
+      creatorProfile,
+    ],
   );
   return <MemberContext value={value}>{children}</MemberContext>;
 }
@@ -256,6 +310,8 @@ function Frame({
   onSignOut,
   mainRef,
   busy,
+  brandProfile,
+  creatorProfile,
   children,
 }: {
   me: MeResponse | null;
@@ -263,6 +319,8 @@ function Frame({
   onSignOut: () => Promise<void>;
   mainRef: RefObject<HTMLElement | null>;
   busy: boolean;
+  brandProfile: BrandSummary;
+  creatorProfile: CreatorSummary;
   children: ReactNode;
 }) {
   const t = useTranslations("member.shell");
@@ -271,7 +329,7 @@ function Frame({
   const locale = useLocale();
   const [signingOut, setSigningOut] = useState(false);
 
-  // "Compte" is the one rubric with sub-entries today: their labels are those of its pages.
+  // "Compte" and "Créateurs" have sub-entries: those of "Compte" are labelled by its pages, the others by nav.sub.
   const entries: MemberNavEntry[] =
     me === null
       ? []
@@ -279,10 +337,15 @@ function Frame({
           entry: item.entry,
           href: memberPageHref(item.page, locale),
           label: t(`nav.entries.${item.entry as EntryWithLabel}`),
-          subEntries: subEntriesOf(item.entry).map((sub) => ({
+          subEntries: subEntriesOf(item.entry, me.role).map((sub) => ({
             page: sub,
             href: memberPageHref(sub, locale),
-            label: tAccount(`nav.${sub as AccountPage}`),
+            label:
+              item.entry === "account"
+                ? tAccount(
+                    `nav.${accountLabelKeyOf(sub as AccountSubPage, me.role)}`,
+                  )
+                : t(`nav.sub.${sub as SubPageWithLabel}`),
           })),
         }));
 
@@ -341,6 +404,10 @@ function Frame({
             place={activePlaceOf(page)}
             LinkComponent={Link}
           />
+        )}
+        {me === null ? null : <AccountStateBlock state={brandProfile.state} />}
+        {me === null ? null : (
+          <CreatorAccountStateBlock state={creatorProfile.state} />
         )}
         {me === null ? null : (
           <div className={FOOTER_CLASSES}>
@@ -475,7 +542,7 @@ function SignedOutPage({ message }: { message: string | null }) {
       )}
       <Link
         href={memberPageHref("signIn", locale)}
-        className={TEXT_BUTTON_CLASSES}
+        className={TEXT_LINK_CLASSES}
       >
         {t("signInAgain")}
       </Link>
@@ -491,7 +558,7 @@ function DeletedPage() {
       <p role="status" className={INFO_CLASSES}>
         {t("text")}
       </p>
-      <Link href="/" className={TEXT_BUTTON_CLASSES}>
+      <Link href="/" className={TEXT_LINK_CLASSES}>
         {t("home")}
       </Link>
     </StandalonePage>

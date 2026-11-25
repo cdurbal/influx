@@ -30,7 +30,7 @@
 > **`campaigns`** — type de campagne, quatre textes distincts et messages clés, dotation, droits
 > d'usage remontés au niveau de la campagne avec durée et territoires, **quatre dates nommées**
 > et ordonnées, nature de la rémunération, nombre de créateurs, tranches de budget dérivées,
-> éléments demandés, ciblage d'audience détaillé, revue renforcée à deux validateurs, six états
+> éléments demandés, ciblage d'audience détaillé, revue renforcée (une personne publie, second avis facultatif, D84), six états
 > (`09`).
 > **`search`** — **table de blocage entre parties** (`matching.party_blocks`, le manque le plus
 > important de la liste), réglages et facettes en table, tri et version des facettes journalisés,
@@ -313,7 +313,7 @@ C'est un choix qui se paie longtemps. La règle retenue :
 | **Taxonomie destinée à durer et à servir de critère de score demain** | Table de référence **versionnée** : on **n'écrase jamais un code utilisé**, on le désactive (`retired_at`) | Exigence explicite de `matching-spec` A1 : deux vocabulaires divergents rendraient tout rapprochement impossible |
 
 Les motifs de refus sont **une table par file** (`matching.rejection_reasons`,
-`verification.rejection_reasons`, `campaigns.rejection_reasons`, `messaging.closure_reasons`,
+`verification.rejection_reasons`, `profiles.advertiser_rejection_reasons`, `campaigns.rejection_reasons`, `messaging.closure_reasons`,
 `messaging.report_reasons`, `billing.lost_reasons`) plutôt qu'une table unique à colonne `scope`.
 Raison : cela permet une vraie clé étrangère sans artifice, et `backoffice-ops` exige des listes
 **distinctes par file** — « les motifs de refus d'une campagne n'ont rien à voir avec ceux d'une
@@ -470,7 +470,7 @@ $$;
 
 Toutes ces tables ont la même forme : un **code** comme clé primaire, une clé de traduction, un
 indicateur d'activité, et des dates d'introduction et de retrait. **Aucun libellé français ou
-anglais n'est stocké** (R8) : la colonne `label_key` pointe vers les fichiers de traduction.
+anglais n'est stocké** (R8) : la colonne `label_key` pointe vers les fichiers de traduction. **Forme des codes (0201)** : `^[a-z0-9]+(_[a-z0-9]+)*$`, 63 caractères au plus (région : ISO 3166-2 complet, `FR-IDF`) ; `label_key` = `<table au singulier>.<code>` sous contrainte (`usage_right.none`, `region.FR-IDF`) ; un code servi n'est jamais renommé ni réutilisé (`retired_at`).
 
 | Table | Clé | Colonnes notables | Lot |
 |---|---|---|---|
@@ -487,7 +487,8 @@ anglais n'est stocké** (R8) : la colonne `label_key` pointe vers les fichiers d
 | `reference.age_bands` | `code text` | `min_age smallint not null`, `max_age smallint` nullable — `18_24`, `25_34`, `35_44`, `45_plus`. **`check (min_age >= 18)` : aucune tranche mineure n'est modélisable** (D15) | 2 |
 | `reference.audience_genders` | `code text` | `female_majority` (≥ 60 %), `mixed`, `male_majority` (≥ 60 %) — **tranches, jamais un pourcentage** | 2 |
 | `reference.editorial_tones` | `code text` | Les sept tons de `07` RG34, `label_key`, `introduced_at`, `retired_at` | 2 |
-| `reference.publication_frequencies` | `code text` | `daily` · `several_per_week` · `weekly` · `biweekly` · `monthly_or_less`, `sort_order` | 2 |
+| `reference.publication_frequencies` | `code text` | `daily` · `several_per_week` · `weekly` · `biweekly` · `monthly_or_less`, `sort_order`, **`min_posts_30d smallint not null`, `max_posts_30d smallint` nullable** (`07` RG114 : 25+ · 8-24 · 4-7 · 2-3 · 0-1 publications sur 30 jours) | 2 |
+| `reference.comment_bands` | `code text` | `min_comments bigint not null`, `max_comments bigint` nullable, `label_key`, `introduced_at`, `retired_at` ; `0_9` · `10_49` · `50_199` · `200_999` · `1000_plus` (`07` RG115, §12.12 point 4) | 2 |
 | `reference.regions` | `(country_code, code)` | Niveau administratif 1 (ISO 3166-2), `label_key`, `is_active`. **Chargée pays par pays**, à la demande : charger le monde entier au Lot 2 serait 4 000 lignes inutilisées | 2 |
 | `reference.price_bands` | `(currency, code)` | `min_amount_minor`, `max_amount_minor`, **`net_min_amount_minor`, `net_max_amount_minor`**, `net_basis_label`, `net_computed_at`, `introduced_at`, `retired_at` (ci-dessous) | 2 |
 | `reference.campaign_types` | `code text` | Les **sept** types de `09` RG18, **sans valeur `other`**, `label_key`, `introduced_at`, `retired_at` | 3 |
@@ -578,96 +579,135 @@ C'est la table la plus contrainte du modèle. Elle porte **M2 et M4** de
 | `subject_type` | `text` | `not null` — le type d'objet attendu, contrôlé à l'écriture |
 | `severity` | `text` | `not null check (severity in ('info','sensitive','critical'))` |
 | `is_active` | `boolean` | `not null default true` |
+| `export_class` | `text` | `not null`, **sans défaut**, `check (export_class in ('exported','excluded_security','excluded_third_party'))` — F3, `0302` |
 
 Pourquoi une table plutôt qu'un `enum` : ajouter un type d'événement au Lot 5 ne doit pas exiger un
 `ALTER TYPE` (non utilisable dans la même transaction que son usage), et l'on veut pouvoir compter
 les événements par domaine et par gravité par simple jointure.
 
-**Codes ajoutés au Lot 3** (`09`, Impacts ; `10` RG28). Ce sont des **données**, chargées par la
-migration `0301` : les ajouter n'exige aucun changement de schéma.
+**Classification d'export (F3, `archives/jalons/l3a/f3.md`).** Le journal d'activité de l'export « mes
+données » ne sert que les codes `exported`. Exporté par défaut (art. 15) ; exclu seulement un code
+qui révèle une mesure de sécurité interne (détection, signal de fraude, garde déclenchée) ou la
+donnée d'un tiers. Toute migration qui ajoute un code nomme `export_class` ; une exclusion s'inscrit
+au tableau de F3 avec son motif (codes chargés à `0302`), ou en note sous le tableau de son lot
+ci-dessous (codes des Lots 3 à 5, colonne `export_class`, L3B-01) ; la liste nominative des exclus
+en base est épinglée par L3A-T5 (`t8-privacy-execution.test.ts`).
 
-| Code | `domain` | `subject_type` | `severity` | Fait relaté |
-|---|---|---|---|---|
-| `campaign.submitted` | `campaigns` | `campaign` | `info` | La marque soumet sa campagne à validation |
-| **`campaign.published`** | `campaigns` | `campaign` | `sensitive` | Décision humaine de publication (`09` RG5), avec le ou **les deux** validateurs |
-| **`campaign.updated`** | `campaigns` | `campaign` | `info` | Modification d'une campagne publiée, avec le régime appliqué (re-validation ou effet immédiat, `09` RG7) |
-| `campaign.rejected` | `campaigns` | `campaign` | `sensitive` | Refus avec motif typé |
-| `campaign.paused` · `campaign.closed` | `campaigns` | `campaign` | `info` | Mise en pause, clôture (y compris automatique) |
-| `block.created` · `block.lifted` | `matching` | `party_block` | `sensitive` | Blocage entre deux parties, posé ou retiré (`10` RG28) |
-| `search.settings_changed` | `search` | `search_setting` | `sensitive` | Modification d'un réglage de recherche ou d'une facette (`10` RG2, RG11) |
+**Codes ajoutés au Lot 3** (`09`, Impacts ; `10` RG28). Ce sont des **données**, chargées par la
+migration `0303` : les ajouter n'exige aucun changement de schéma.
+
+| Code | `domain` | `subject_type` | `severity` | `export_class` | Fait relaté |
+|---|---|---|---|---|---|
+| `campaign.submitted` | `campaigns` | `campaign` | `info` | `exported` | La marque soumet sa campagne à validation |
+| **`campaign.published`** | `campaigns` | `campaign` | `sensitive` | `exported` | Décision humaine de publication (`09` RG5) par **une seule personne** (D84), `review_mode` dans la charge (`single`, ou avec second avis facultatif) |
+| **`campaign.updated`** | `campaigns` | `campaign` | `info` | `exported` | Modification d'une campagne publiée, avec le régime appliqué (re-validation ou effet immédiat, `09` RG7) |
+| `campaign.rejected` | `campaigns` | `campaign` | `sensitive` | `exported` | Refus avec motif typé |
+| `campaign.paused` · `campaign.closed` | `campaigns` | `campaign` | `info` | `exported` | Mise en pause, clôture (y compris automatique) |
+| `block.created` · `block.lifted` | `matching` | `party_block` | `sensitive` | **`excluded_third_party`** | Blocage entre deux parties, posé ou retiré (`10` RG28) |
+| `search.settings_changed` | `search` | `search_setting` | `sensitive` | `exported` | Modification d'un réglage de recherche ou d'une facette (`10` RG2, RG11) |
+| `search.selection_requested` | `search` | `selection_request` | `info` | `exported` | *`0325` (L3F) :* la marque demande une sélection à l'équipe INFLUX (`10` RG61, CA39) ; charge utile : `campaign_id` seul |
 
 Les deux premiers étaient explicitement manquants (`09`, Impacts) ; les autres sont leurs frères de
 la même migration — un cycle de vie dont seuls deux événements sur six seraient journalisés ne
 prouve rien.
 
+> **Exclusions (F3).** `block.created` · `block.lifted` : `excluded_third_party` — la déclaration
+> d'une partie contre une autre, silencieuse pour la partie bloquée (`10` RG28, RG29, Q11) ; servie,
+> elle dirait à l'une l'acte de l'autre (art. 15(4)) : c'est le « blocage » que F3 (« Portée »)
+> range parmi les codes auxquels le filtre ferme la porte. Le fait annoncé aux deux parties dans le
+> fil reste exporté (`conversation.write_closed_by_block`, ci-dessous).
+
 **Codes ajoutés au Lot 4, cycle de la file et de la mise en relation** (`13`, Impacts, écart 9 —
 **18 codes**). Mêmes remarques : ce sont des **données**, chargées par la migration `0401`, et
 l'ajout d'un code n'exige aucun changement de schéma.
 
-| Code | `domain` | `subject_type` | `severity` | Fait relaté |
-|---|---|---|---|---|
-| `introduction.created` | `matching` | `introduction` | `info` | Entrée en file, quel que soit le déclencheur (`13` RG100, état 1) |
-| `introduction.claimed` | `matching` | `introduction` | `info` | Prise en charge par un commercial : le verrou est posé (`13` RG102) |
-| `introduction.claim_released` | `matching` | `introduction` | `info` | Le titulaire rend la main sans décider |
-| `introduction.claim_expired` | `matching` | `introduction` | `info` | Verrou expiré (`claim_expiry_minutes`, alerte A3) |
-| **`introduction.reviewed`** | `matching` | `introduction` | **`sensitive`** | **Ouverture de l'écran de décision : un rôle interne a vu deux identités non révélées** (`13` RG109, point 10). C'est le pendant de `conversation.read` pour l'amont |
-| `introduction.approved` | `matching` | `introduction` | `sensitive` | Validation par le commercial titulaire (état 3) |
-| `introduction.rejected` | `matching` | `introduction` | `sensitive` | **Refus A**, par INFLUX, avec le motif typé de la liste A (`13` RG83) |
-| `introduction.party_accepted` | `matching` | `introduction` | `sensitive` | Acceptation d'une partie, avec son côté et sa version de CGU |
-| `introduction.party_declined` | `matching` | `introduction` | `sensitive` | **Refus B**, par une partie, avec le côté et le motif de la **liste B** (`13` RG90). **Le motif n'est jamais restitué à l'autre partie, y compris depuis ce registre** |
-| **`introduction.identity_revealed`** | `matching` | `introduction` | **`critical`** | La révélation simultanée (état 4). Le code existait déjà en exemple au §4.3 ; il est ici **inscrit dans le référentiel** |
-| `introduction.withdrawn` | `matching` | `introduction` | `info` | Retrait par l'initiateur, ou par le commercial pour une proposition |
-| `introduction.expired` | `matching` | `introduction` | `info` | Clôture sans suite, **avec son sous-motif** (`13` RG95) |
-| `introduction.reassigned` | `matching` | `introduction` | `sensitive` | Changement de commercial responsable, motif typé (`backoffice-ops` règle 18) |
-| `introduction.reminder_sent` | `matching` | `introduction` | `info` | Relance J+3 ou J+6, avec la partie relancée (`13` RG92) |
-| `introduction.email_delivered` | `matching` | `introduction` | `info` | Accusé du prestataire d'envoi, **avec le `messageId`** (`13` RG79) |
-| `introduction.email_failed` | `matching` | `introduction` | `sensitive` | Échec définitif après rejeux : **une mise en relation sans preuve externe** (alerte A8) |
-| `introduction.batch_created` | `matching` | `introduction_batch` | `info` | Envoi groupé d'une proposition INFLUX, avec le nombre de créateurs (`13` RG54) |
-| `introduction.cap_reached` | `matching` | `account` | `info` | Plafond atteint : sélection de 20, 60 propositions par jour, plafonds de candidature (`13` RG53) |
+| Code | `domain` | `subject_type` | `severity` | `export_class` | Fait relaté |
+|---|---|---|---|---|---|
+| `introduction.created` | `matching` | `introduction` | `info` | `exported` | Entrée en file, quel que soit le déclencheur (`13` RG100, état 1) |
+| `introduction.claimed` | `matching` | `introduction` | `info` | `exported` | Prise en charge par un commercial : le verrou est posé (`13` RG102) |
+| `introduction.claim_released` | `matching` | `introduction` | `info` | `exported` | Le titulaire rend la main sans décider |
+| `introduction.claim_expired` | `matching` | `introduction` | `info` | `exported` | Verrou expiré (`claim_expiry_minutes`, alerte A3) |
+| **`introduction.reviewed`** | `matching` | `introduction` | **`sensitive`** | `exported` | **Ouverture de l'écran de décision : un rôle interne a vu deux identités non révélées** (`13` RG109, point 10). C'est le pendant de `conversation.read` pour l'amont |
+| `introduction.approved` | `matching` | `introduction` | `sensitive` | `exported` | Validation par le commercial titulaire (état 3) |
+| `introduction.rejected` | `matching` | `introduction` | `sensitive` | `exported` | **Refus A**, par INFLUX, avec le motif typé de la liste A (`13` RG83) |
+| `introduction.party_accepted` | `matching` | `introduction` | `sensitive` | `exported` | Acceptation d'une partie, avec son côté et sa version de CGU |
+| `introduction.party_declined` | `matching` | `introduction` | `sensitive` | `exported` | **Refus B**, par une partie, avec le côté et le motif de la **liste B** (`13` RG90). **Le motif n'est jamais restitué à l'autre partie, y compris depuis ce registre** |
+| **`introduction.identity_revealed`** | `matching` | `introduction` | **`critical`** | `exported` | La révélation simultanée (état 4). Le code existait déjà en exemple au §4.3 ; il est ici **inscrit dans le référentiel** |
+| `introduction.withdrawn` | `matching` | `introduction` | `info` | `exported` | Retrait par l'initiateur, ou par le commercial pour une proposition |
+| `introduction.expired` | `matching` | `introduction` | `info` | `exported` | Clôture sans suite, **avec son sous-motif** (`13` RG95) |
+| `introduction.reassigned` | `matching` | `introduction` | `sensitive` | `exported` | Changement de commercial responsable, motif typé (`backoffice-ops` règle 18) |
+| `introduction.reminder_sent` | `matching` | `introduction` | `info` | `exported` | Relance J+3 ou J+6, avec la partie relancée (`13` RG92) |
+| `introduction.email_delivered` | `matching` | `introduction` | `info` | `exported` | Accusé du prestataire d'envoi, **avec le `messageId`** (`13` RG79) |
+| `introduction.email_failed` | `matching` | `introduction` | `sensitive` | `exported` | Échec définitif après rejeux : **une mise en relation sans preuve externe** (alerte A8) |
+| `introduction.batch_created` | `matching` | `introduction_batch` | `info` | `exported` | Envoi groupé d'une proposition INFLUX, avec le nombre de créateurs (`13` RG54) |
+| `introduction.cap_reached` | `matching` | `account` | `info` | `exported` | Plafond atteint : sélection de 20, 60 propositions par jour, plafonds de candidature (`13` RG53) |
 
 > **`introduction.batch_created` porte `subject_type = 'introduction_batch'` et
 > `subject_id = proposal_batch_id`.** C'est le seul sujet du registre qui ne corresponde pas à une
 > table : le lot n'a **pas** de table à lui (§5.6), et le registre n'a jamais eu de clé étrangère
 > vers ses sujets — c'est précisément ce qui l'autorise.
 
+> **Exclusions (F3) : aucune.** `introduction.reviewed` est une lecture privilégiée, due (CJUE
+> C-579/21) ; `introduction.party_declined` est exporté, code et date seulement : le motif de la
+> liste B est dans la charge utile, jamais servie (`0245` l. 730).
+
 **Codes ajoutés au Lot 4, messagerie** (`12`, Impacts, manque 6 — **17 codes**, chargés par les
 migrations `0403` et `0405`).
 
-| Code | `domain` | `subject_type` | `severity` | Fait relaté |
-|---|---|---|---|---|
-| `conversation.opened` | `messaging` | `conversation` | `info` | Ouverture du fil et de ses trois participants (`12` RG1, RG2) |
-| `conversation.paused` · `conversation.resumed` | `messaging` | `conversation` | `info` | Pause et reprise, **avec le motif typé et l'auteur** (`12` RG17, RG19) |
-| `conversation.closed` | `messaging` | `conversation` | `sensitive` | Clôture, avec son motif typé (`12` RG20) |
-| `conversation.reopened` | `messaging` | `conversation` | `sensitive` | **Réouverture**, avec son motif (`12` RG22). C'est le registre, et non une colonne écrasée, qui porte la suite des clôtures et des réouvertures |
-| `conversation.archived` | `messaging` | `conversation` | `info` | Archivage, automatique à 90 jours ou manuel (`12` RG23) |
-| `conversation.agent_joined` · `conversation.agent_left` | `messaging` | `conversation` | `sensitive` | Entrée et sortie d'un agent, nommé et horodaté. **Jamais un ajout silencieux** (`12` RG8, RG9) |
-| `conversation.write_closed_by_block` | `messaging` | `conversation` | `sensitive` | Fermeture de l'écriture des deux parties à la suite d'un blocage (`12` RG87). Le blocage lui-même reste journalisé par `block.created` / `block.lifted`, créés au Lot 3 |
-| `conversation.read` | `messaging` | `conversation` | `sensitive` | Lecture par un rôle interne, **avec son motif typé** (`12` RG55, A10). Doublon assumé avec `messaging.conversation_access_log` : le journal détaillé sert l'exploitation, le registre sert la preuve |
-| `report.created` · `report.decided` | `messaging` | `report` | `sensitive` | Signalement émis, puis issue typée (`12` RG82, RG84) |
-| `detection.reviewed` | `messaging` | `contact_detection` | `sensitive` | Classement d'une détection par un commercial (`12` RG50) |
-| `document.uploaded` | `messaging` | `document` | `info` | Dépôt d'un document *(conditionnel au canal de documents)* |
-| `document.reviewed` | `messaging` | `document` | `sensitive` | Contrôle par un agent, accepté ou refusé avec motif (`12` RG73) |
-| `document.available` | `messaging` | `document` | `info` | **Mise à disposition de l'autre partie** — distincte du contrôle (`12` RG74) |
-| `document.downloaded` | `messaging` | `document` | `info` | Téléchargement, avec son auteur (`12` RG75) |
+| Code | `domain` | `subject_type` | `severity` | `export_class` | Fait relaté |
+|---|---|---|---|---|---|
+| `conversation.opened` | `messaging` | `conversation` | `info` | `exported` | Ouverture du fil et de ses trois participants (`12` RG1, RG2) |
+| `conversation.paused` · `conversation.resumed` | `messaging` | `conversation` | `info` | `exported` | Pause et reprise, **avec le motif typé et l'auteur** (`12` RG17, RG19) |
+| `conversation.closed` | `messaging` | `conversation` | `sensitive` | `exported` | Clôture, avec son motif typé (`12` RG20) |
+| `conversation.reopened` | `messaging` | `conversation` | `sensitive` | `exported` | **Réouverture**, avec son motif (`12` RG22). C'est le registre, et non une colonne écrasée, qui porte la suite des clôtures et des réouvertures |
+| `conversation.archived` | `messaging` | `conversation` | `info` | `exported` | Archivage, automatique à 90 jours ou manuel (`12` RG23) |
+| `conversation.agent_joined` · `conversation.agent_left` | `messaging` | `conversation` | `sensitive` | `exported` | Entrée et sortie d'un agent, nommé et horodaté. **Jamais un ajout silencieux** (`12` RG8, RG9) |
+| `conversation.write_closed_by_block` | `messaging` | `conversation` | `sensitive` | `exported` | Fermeture de l'écriture des deux parties à la suite d'un blocage (`12` RG87). Le blocage lui-même reste journalisé par `block.created` / `block.lifted`, créés au Lot 3 |
+| `conversation.read` | `messaging` | `conversation` | `sensitive` | `exported` | Lecture par un rôle interne, **avec son motif typé** (`12` RG55, A10). Doublon assumé avec `messaging.conversation_access_log` : le journal détaillé sert l'exploitation, le registre sert la preuve |
+| `report.created` · `report.decided` | `messaging` | `report` | `sensitive` | **`excluded_third_party`** | Signalement émis, puis issue typée (`12` RG82, RG84) |
+| `detection.reviewed` | `messaging` | `contact_detection` | `sensitive` | **`excluded_security`** | Classement d'une détection par un commercial (`12` RG50) |
+| `document.uploaded` | `messaging` | `document` | `info` | `exported` | Dépôt d'un document *(conditionnel au canal de documents)* |
+| `document.reviewed` | `messaging` | `document` | `sensitive` | `exported` | Contrôle par un agent, accepté ou refusé avec motif (`12` RG73) |
+| `document.available` | `messaging` | `document` | `info` | `exported` | **Mise à disposition de l'autre partie** — distincte du contrôle (`12` RG74) |
+| `document.downloaded` | `messaging` | `document` | `info` | `exported` | Téléchargement, avec son auteur (`12` RG75) |
+
+> **Exclusions (F3).** `report.created` · `report.decided` : `excluded_third_party` — un
+> signalement porte sur un tiers qui n'en est pas informé (`12` RG83), et son issue est une mesure
+> prise à l'égard de l'autre personne, tue au signalant (RG84) : le « signalement » de F3
+> (« Portée »). `detection.reviewed` : `excluded_security` — classement d'une détection de
+> coordonnées (`suspicion de contournement`, signal de fraude), dont le destinataire n'est jamais
+> informé (RG50). `conversation.write_closed_by_block` reste exporté : message système vu des deux
+> parties (RG87).
 
 **Codes ajoutés au Lot 5, backoffice et vie du compte** (`15`, écart 12 — **23 codes**). Certains
 sont chargés plus tôt, avec le lot qui crée le fait : la colonne « Lot » le dit.
 
-| Code | `domain` | `subject_type` | `severity` | Lot | Fait relaté |
-|---|---|---|---|---|---|
-| `account.suspended` · `account.suspension_lifted` | `backoffice` | `account` | `critical` | 5 | Suspension et levée, **avec leur motif typé** (`15` RG52, RG55) |
-| `account.note_added` | `backoffice` | `account` | `info` | 5 | Note interne ajoutée — **immuable**, donc jamais de `note_edited` |
-| `account.field_corrected` | `backoffice` | `account` | `sensitive` | 5 | Correction d'une donnée de compte par un interne (`15`, `09` RG94) |
-| `ownership.reassigned` | `backoffice` | `account` | `sensitive` | 1 | Changement de commercial responsable, motif typé |
-| `ownership.bulk_transferred` | `backoffice` | `account` | `critical` | 5 | Transfert **en masse** d'un portefeuille — rare, donc d'autant plus à tracer |
-| `queue.claim_forced_release` | `backoffice` | `queue_entry` | `sensitive` | 4 | Verrou orphelin levé par un administrateur : **le titulaire dépossédé en est informé** (`15` C4, `03` C(20)) |
-| `alert.acknowledged` · `alert.closed` | `backoffice` | `alert_instance` | `info` | 4 | Prise en charge et classement d'une alerte d'événement (`15` RG69) |
-| `dual_control.requested` · `dual_control.confirmed` · `dual_control.expired` | `backoffice` | `dual_control_request` | `critical` | 1 | Le contrôle à quatre yeux, de bout en bout (`03` PD4, `15` RG31) |
-| `export.produced` | `backoffice` | `export` | `critical` | 5 | Export produit, **avec ses filtres exacts et l'empreinte du fichier** (`15` RG94) |
-| `privacy.request_received` · `privacy.identity_verified` · `privacy.request_executed` · `privacy.request_closed` | `backoffice` | `data_subject_request` | `critical` | 5 | Les quatre moments d'une demande relative aux données personnelles (`15` §G). **`identity_verified` est un code à part** : exécuter un effacement sans avoir vérifié qui demande est le pire des scénarios |
-| `agent.invited` · `agent.role_changed` · `agent.deactivated` · `agent.mfa_reset` | `identity` | `account` | `critical` | 0 | Cycle de vie d'un compte interne. **`mfa_reset` est `critical`** : c'est une primitive de prise de contrôle |
-| **`agent.break_glass_login`** | `identity` | `account` | **`critical`** | **0** | **Connexion du compte de secours** (`15` RG103, AL33). Alerte immédiate au fondateur, justification écrite sous 24 h |
-| `settings.changed` | `backoffice` | `setting` | `sensitive` | 1 | Modification d'un paramètre d'exploitation, d'un plafond ou d'un SLA, **nominativement** |
+| Code | `domain` | `subject_type` | `severity` | `export_class` | Lot | Fait relaté |
+|---|---|---|---|---|---|---|
+| `account.suspended` · `account.suspension_lifted` | `backoffice` | `account` | `critical` | `exported` | 5 | Suspension et levée, **avec leur motif typé** (`15` RG52, RG55) |
+| `account.note_added` | `backoffice` | `account` | `info` | `exported` | 5 | Note interne ajoutée — **immuable**, donc jamais de `note_edited` |
+| `account.field_corrected` | `backoffice` | `account` | `sensitive` | `exported` | 5 | Correction d'une donnée de compte par un interne (`15`, `09` RG94) |
+| `ownership.reassigned` | `backoffice` | `account` | `sensitive` | `exported` | 1 | Changement de commercial responsable, motif typé |
+| `ownership.bulk_transferred` | `backoffice` | `account` | `critical` | `exported` | 5 | Transfert **en masse** d'un portefeuille — rare, donc d'autant plus à tracer |
+| `queue.claim_forced_release` | `backoffice` | `queue_entry` | `sensitive` | `exported` | 2 (L2C, `0210`) | Verrou orphelin levé par un administrateur : **le titulaire dépossédé en est informé** (`15` C4, `03` C(20)) |
+| `queue.entry_opened` | `backoffice` | `queue_entry` | `sensitive` | `exported` | 2 (L2C, `0210`) | Ouverture d'une entrée de file avec son issue (`claimed`, `held`, `read_only`, `closed`) : la vue de décision montre l'interlocuteur (`15` RG35, L2BS-7) |
+| `queue.claim_released` · `queue.claim_extended` · `queue.claim_expired` | `backoffice` | `queue_entry` | `info` | `exported` | 2 (L2C, `0210`) | Relâche, prolongation, abandon d'un verrou, avec son titulaire et ses instants, sans texte libre (`15` C3, `l2c/file.md` A9) |
+| `queue.logo_read` | `backoffice` | `queue_entry` | `sensitive` | `exported` | 2 (L2C, `0213`) | Lecture d'un logo de marque (`active`, `in_review`) par un interne, titulaire du verrou ou non : une ligne par lecture, charge `queue_code`, `logo_id`, `state`, jamais la clé de l'objet (décision du fondateur, 2026-11-05) |
+| `profile.published` · `profile.rejected` | `profiles` | `advertiser_profile` | `sensitive` | `exported` | 2 (L2C, `0210`) | Décision de la file 1 (`06` RG69) : entrée, nature, champs ou motif, retard |
+| `profile.completed` · `profile.decision` | `leads` · `profiles` | `account` · `queue_entry` | `info` | `exported` | 2 (L2C, `0210`) | Codes de la file de synchronisation seulement (`06` RG78, RG69), jamais une ligne du registre |
+| `alert.acknowledged` · `alert.closed` | `backoffice` | `alert_instance` | `info` | **`excluded_security`** | 4 | Prise en charge et classement d'une alerte d'événement (`15` RG69) |
+| `dual_control.requested` · `dual_control.confirmed` · `dual_control.expired` | `backoffice` | `dual_control_request` | `critical` | `exported` | 1 | Le contrôle à quatre yeux, de bout en bout (`03` PD4, `15` RG31) |
+| `export.produced` | `backoffice` | `export` | `critical` | `exported` | 5 | Export produit, **avec ses filtres exacts et l'empreinte du fichier** (`15` RG94) |
+| `privacy.request_received` · `privacy.identity_verified` · `privacy.request_executed` · `privacy.request_closed` | `backoffice` | `data_subject_request` | `critical` | `exported` | 5 | Les quatre moments d'une demande relative aux données personnelles (`15` §G). **`identity_verified` est un code à part** : exécuter un effacement sans avoir vérifié qui demande est le pire des scénarios |
+| `agent.invited` · `agent.role_changed` · `agent.deactivated` · `agent.mfa_reset` | `identity` | `account` | `critical` | `exported` | 0 | Cycle de vie d'un compte interne. **`mfa_reset` est `critical`** : c'est une primitive de prise de contrôle |
+| **`agent.break_glass_login`** | `identity` | `account` | **`critical`** | `exported` | **0** | **Connexion du compte de secours** (`15` RG103, AL33). Alerte immédiate au fondateur, justification écrite sous 24 h |
+| `settings.changed` | `backoffice` | `setting` | `sensitive` | `exported` | 1 | Modification d'un paramètre d'exploitation, d'un plafond ou d'un SLA, **nominativement** |
+
+> **Exclusions (F3).** `alert.acknowledged` · `alert.closed` : `excluded_security` — le classement
+> d'une alerte d'événement, dont des détections (AL34 code de secours, AL35 connexion interne
+> inhabituelle, AL39 refus pour droit insuffisant) : sa survenue dirait quelle détection a sonné.
+> Les codes déjà en base (Lots 0 à 2) gardent la classe de `0302` (`exported`) ; la suspension
+> (`account.suspended`), décision annoncée au membre avec son motif, est exportée.
 
 > **`agent.*` et `dual_control.*` arrivent aux Lots 0 et 1, pas au Lot 5**, alors que le reste du
 > backoffice arrive au Lot 5 : les comptes internes et le compte de secours existent **dès le premier
@@ -1290,6 +1330,10 @@ exacte ajoutée ici par inadvertance détruit l'anonymisation **sans erreur visi
 revue : *toute colonne ajoutée à `creator_public_*` doit être une tranche, un code de liste fermée,
 une date ou un booléen. Jamais un nombre brut, jamais un texte non modéré.*
 
+*Amendé à la clôture de L2G (`0242` à `0245`) : `portfolio_items` porte cinq états (`pending`, `approved`, `rejected`, `purging`, `purged`) ; un remplacement est une ligne neuve (`replaces_item_id`), l'ancien visuel `approved` restant servi jusqu'à l'approbation du nouveau ; un refusé ou retiré est gardé 30 jours puis purgé, jamais `purging` direct. Les entrées de la file 2 sont `profiles.creator_review_entries` (`submission`, `revision`), les motifs de refus `profiles.creator_rejection_reasons` ; les portes (`submit_own_creator_profile`, décisions, verrou) appartiennent à `influx_creator_profile_definer` et `influx_moderation_definer`, qui n'ont aucun droit atteignable par l'annonceur. La complétude stockée est recalculée par la base (`creator_completeness_percent()`), non écrivable par le créateur.*
+
+> **Amendé à la clôture de L2D (`0216` à `0219`, `jalons/l2d/modele.md`).** Vitrine : `alias` sur 6 signes `^[2-9BCDFGHJKLMNPQRSTVWXZ]{6}$` tiré de `gen_random_uuid()` sans entrée ; `headline` ≤ 120 ; colonnes ajoutées `bio` (≤ 800), `public_ref` (uuid, jamais servi) ; `primary_topic_code` nullable (brouillon, effacement) ; `figures_updated_at` et `completeness_percent` retirées de la vitrine (la complétude vit sur `creator_identities`, hors vitrine, RG86). `creator_public_networks` : clé `social_account_id` (RG42 permet deux comptes sur un réseau), jamais servi, plus `comment_band`, `figures_source`, `figures_measured_at` ; `engagement_band` nul au L2D (RG48). `creator_public_audience` : `(account_id, dimension 'country'|'age', bucket, share_band)` de la seule ligne principale, part < 10 % non servie. `creator_public_rates` et `creator_rate_cards` non créées (D78, EC-L2D-2) ; `creator_formats` garde son nom, le format porte son réseau. `creator_social_accounts` : `account_id` (non `creator_account_id`), `handle` nullable, `engagement_rate_bp` entier 0-10000 (EC-L2D-8), `posts_last_30_days`, `avg_comments_per_post`, `pseudonym` ; `creator_audience_breakdowns` remplacée par trois tables `creator_audience_countries`, `_ages`, `_genders` ; `date_of_birth` non créée (EC-L2D-7). Aucun droit de `influx_advertiser` sur aucun objet `creator_%` au Lot 2.
+
 #### `profiles.creator_social_accounts` — l'objet révélable
 
 | Colonne | Type | Contrainte |
@@ -1387,11 +1431,11 @@ exactement la même mécanique que les réseaux d'un créateur — **deux objets
 > colonnes nullables.
 
 - `profiles.advertiser_profiles` — **public** *(forme complète au Lot 2)* : `brand_name`, `legal_name`, `sector_code`,
-  `company_size_band`, `website_domain`, `description` (modérée), `logo_path`, `budget_band`,
+  `company_size_band`, `website_domain`, `description` (modérée), `budget_band`,
   `objectives`, `completeness_percent`, `status`, `published_at`.
   *Nom, logo, site et secteur restent visibles de tous : une marque n'est pas anonyme, c'est son
-  interlocuteur qui l'est.*
-- `profiles.advertiser_contact_details` — **révélable** : `contact_first_name`, `contact_role`,
+  interlocuteur qui l'est. `contact_role` est une colonne publique de cette table (`06` RG35, EC-L2B-4) ; le logo est une ligne de `profiles.brand_logo_objects` (D80), non une colonne `logo_path`.*
+- `profiles.advertiser_contact_details` — **révélable** : `contact_first_name`,
   `contact_email`, `contact_phone`, `contact_url`. **Aucun `GRANT` au rôle créateur avant
   révélation** ; après, un `GRANT` de colonnes doublé d'une politique testant `identity_revealed_at`,
   **strictement symétrique de celle de `creator_social_accounts`** (§6.2 e).
@@ -1453,10 +1497,8 @@ et le backoffice doit pouvoir en désactiver un sans migration (§3.1).
 | `proposed_value` | `jsonb` | `not null check (pg_column_size(proposed_value) <= 8000)` | **La valeur soumise, pas la valeur publiée** |
 | `status` | `profiles.revision_status` | `not null default 'pending_review'` | `pending_review` · `approved` · `rejected` · `withdrawn` · `superseded` |
 | `submitted_at` | `timestamptz` | `not null default now()` | — |
-| `claimed_by_agent_id`, `claimed_at` | — | — | Même verrou de file qu'ailleurs (§5.6) |
-| `decided_by_agent_id`, `decided_at` | — | `check (status not in ('approved','rejected') or decided_by_agent_id is not null)` | Décision humaine obligatoire |
-| `rejection_reason_code` | `text` | FK, `check (status <> 'rejected' or rejection_reason_code is not null)` | Motif **typé**, jamais muet |
-| `sla_due_at` | `timestamptz` | `not null` | Calculé une fois, depuis `backoffice.sla_policies` (D39) |
+| `advertiser_review_entry_id` | `uuid` | `not null`, FK `(advertiser_review_entry_id, account_id)` : une entrée du même compte | Verrou, échéances, décision et motif sont ceux de l'entrée (L2C, `l2c/file.md` A1, D81) |
+| `closed_at` | `timestamptz` | `check ((status = 'pending_review') = (closed_at is null))` | Clôture par la décision, un remplacement ou un retrait |
 | `created_at`, `updated_at` | `timestamptz` | `not null` | — |
 
 ```sql
@@ -1474,9 +1516,15 @@ comment on table profiles.profile_field_revisions is
 
 **Le profil ne change pas d'état pour une re-validation partielle.** `status` reste `published` ; ce
 qui est « en attente de validation » est **la révision**, pas le profil. C'est la seule lecture
-compatible avec « la dernière version validée reste affichée » — et elle a l'avantage de rendre la
-file de validation lisible : le backoffice liste des **révisions**, avec leur champ et leur
-ancienneté, pas des profils entiers à relire.
+compatible avec « la dernière version validée reste affichée » (L2C, A2). La file liste des **entrées**,
+une ouverte au plus par compte, première soumission (sans révision) ou révision, avec les champs
+modifiés et leur ancienneté, et une décision globale (`06` RG63, RG65 ; `l2c/file.md` A1, D81).
+
+**`profiles.advertiser_review_entries` (L2C, `0207`).** `kind` (`submission`, `revision`), `state` (`open`, `published`, `rejected`, `withdrawn`), `closed_at` ; index unique partiel d'une entrée `open` par compte ; verrou (`claimed_by_account_id`, `claimed_at`, `claim_expires_at`), dernière levée forcée (`forced_release_*`), échéances figées à la création par un déclencheur (`sla_due_at`, `escalate_at`, §5.6, jamais écrites par l'appelant), décision (`decided_by_account_id`, `decided_at`, `rejection_reason_code` vers `profiles.advertiser_rejection_reasons`, huit motifs de `06` RG66 ; `member_message` de 20 à 500 caractères sur un refus ; `internal_comment` d'au plus 1 000, jamais au membre, à l'e-mail, au registre ni à l'export), `sla_breached` générée, index de file `(sla_due_at, created_at) where state = 'open'`. La marque lit ses entrées sans verrou, agent, échéances ni commentaire, et ses révisions ; `agent`, `admin` en `aal2`, jamais leur propre compte (`15` RG36) ; aucune écriture directe. Jeton de version : `profiles.advertiser_review_token(account)`, SHA-256 hexadécimal du contenu examiné (profil, pays du compte, huit listes dans leur ordre, interlocuteur, logos `active` et `in_review`, révisions en attente), jamais stocké, comparé à la décision (A3).
+
+**Gel et porte membre (L2C, `0209`, `l2c/file.md` A3, A4).** Déclencheur `profiles.guard_advertiser_member_write()` (SECURITY INVOKER) sur le profil, les huit listes, l'interlocuteur et les logos : si `current_user` est `influx_advertiser` ou `influx_identity_definer`, `suspended` refuse toute écriture, `published` refuse le changement d'une colonne modérée active et tout mouvement d'un logo vers ou depuis `active` (55000, le code du champ en DETAIL) ; sur une liste, l'interlocuteur et un logo, il tient la ligne du profil `FOR SHARE`, de sorte qu'une décision relit après l'écriture. Porte : `profiles.submit_own_advertiser_revision(p_field_code, p_value)` → `(revision_status, entry_id)` ; valeur texte ou JSON `null`, logo `{"logo_object_id": uuid|null}` ; type et obligatoire contrôlés à la porte (22023, 23514), contraintes de la colonne à l'approbation ; remplacée : `superseded` ; égale à la validée : `withdrawn`, et l'entrée `revision` aussi s'il n'y a plus rien en attente ; rien à faire : `(NULL, NULL)`. Logo : état `in_review` (un par compte, stocké, jamais activé, `0208`) ; en `published`, `activate_brand_logo()` et `remove_own_brand_logo()` déposent une révision, l'actif reste servi, aucune purge avant décision. `identity.update_own_account()` passe le nom par la porte en `published`, sans `lead.updated`. `profiles.record_own_advertiser_profile_change()` : `lead.updated` si `published`. Pays : immédiat (RG13), y compris sur un profil suspendu, il vit sur le compte.
+
+**Décisions (L2C, `0210`, `l2c/file.md` A3, A5, A7 à A9).** Propriétaire `influx_moderation_definer` (`NOLOGIN NOINHERIT`, sans membre, `03` P7), `EXECUTE` à `agent` et `admin` en `aal2`, jamais sur leur propre compte. `profiles.open_advertiser_review_entry(entry)` → `(outcome, holder_account_id, claimed_at, claim_expires_at, review_token)` : `claimed` (transition conditionnelle de §5.6, verrou de `claim_expiry_minutes`), `held` (verrou vivant de l'appelant, inchangé), `read_only` (titulaire nommé), `closed` ; chaque ouverture écrit `queue.entry_opened`, la prise d'un verrou expiré écrit d'abord `queue.claim_expired`. `release_advertiser_review_entry()`, `extend_advertiser_review_claim()`, `force_release_advertiser_review_claim(entry, reason)` (admin, `backoffice.claim_release_reasons`). `publish_advertiser_review_entry(entry, token, comment)` et `reject_advertiser_review_entry(entry, token, reason, message, comment)` : titulaire d'un verrou vivant, ligne du profil verrouillée `FOR UPDATE` **avant** le calcul du jeton, révisions appliquées (logo `in_review` → `active`, l'ancien `active` → `purging`) ou refusées, obligatoires recontrôlés, `first_published_at` écrit une fois ; `profile.decision` (`brevo_transactional`, charge `{event_id, account_id, entry_id, email_code}`, `email_code` = `profile.decision` depuis `0211`), `profile.completed` à la première publication, `lead.updated` ensuite. Refus : 42501, 55P03 (DETAIL titulaire ou `none`), 55000 (`entry_closed`, `stale_token`, `profile_state`), 23514, 22023. **Depuis `0215` (L2C fix-2)** : l'ouverture verrouille aussi la ligne du profil `FOR UPDATE` avant l'entrée (aucune écriture membre entre le jeton et la vue lue ensuite) ; ouvrir une entrée ouverte, publier, refuser, prolonger et lire un logo refusent en 42501 un compte dont `owner_agent_id` est l'appelant (`15` RG36), `apps/api` journalisant la tentative d'un agent par `backoffice.record_refused_action('queue.conflict_of_interest')` (`backoffice.action_refused`, charge `{action_code, reason}`, `15` CA19) ; le déclencheur `guard_advertiser_member_write()` refuse (55000, DETAIL `status`) tout changement de `status` écrit sous `influx_advertiser` ou `influx_identity_definer` vers une autre valeur que `pending_review`. Doublons (`06` RG25, RG70) : `profiles.normalized_brand_name()`, `profiles.advertiser_duplicate_candidates()`, invoker, calculés à la lecture. **Lecture d'un logo (L2C, `0213`).** `profiles.read_advertiser_review_logo(entry, logo)`, même propriétaire, même `EXECUTE` : un interne actif en `aal2`, titulaire du verrou ou non, entrée ouverte ou close, jamais sur son propre compte, pour un logo `active` ou `in_review` du compte de l'entrée : écrit `queue.logo_read`, rend `(state, object_key, byte_size, width, height, updated_at)` ; tout autre cas : 42501, sans détail ni ligne. `apps/api` relaie l'objet, aucun rôle n'a de droit sur Storage. **E-mail de décision (L2C, `0211`).** `leads.read_brevo_profile_decision(outbox, worker)`, propriétaire `influx_leads_definer`, `EXECUTE` à `influx_worker` seul : sur la ligne `profile.decision` en traitement pour ce worker, `(decision, reason_code, member_message, preferred_language)` de l'entrée nommée par la charge, si elle appartient au compte de la ligne, est décidée et que le compte n'est pas effacé ; jamais `internal_comment`, l'agent ni le verrou. **Attributs des contacts (L2C, `0212`).** `leads.read_brand_profile_attributes(outbox, worker)`, propriétaire `influx_leads_definer`, `EXECUTE` à `influx_worker` seul : sur une ligne `brevo_contact` ou `apollo_contact` en traitement pour ce worker, `(profile_status, completeness_percent, primary_sector_code, company_size_band, website_domain, main_topic_code, target_markets, ever_published)` de la ligne vivante du profil de marque (`06` RG9, RG79) ; aucune ligne pour un créateur, un compte sans profil ou effacé ; jamais la raison sociale, la présentation, l'interlocuteur ni une note.
 
 **Les visuels de portfolio gardent leur mécanique propre** (`portfolio_items.moderation_status` et
 le déclencheur qui repasse à `pending` quand `storage_path` change) : un visuel est un objet, pas un
@@ -1486,6 +1534,10 @@ champ, et son ancienne version reste affichée tant que la nouvelle n'est pas ap
 ---
 
 ### 5.3 `verification` — preuves, badge, péremption (Lot 2)
+
+> **Amendé à la clôture de L2E (2026-11-08 ; `0220` à `0227`, modèle arbitré en `archives/jalons/l2e/modele.md`).** Le schéma réel prime sur les blocs ci-dessous : **états** `draft` · `pending` · `approved` · `rejected` · `cancelled` · `expired` · `closed` (aucun état `in_review` : le verrou est porté par les colonnes de prise, et « à réexaminer » est un motif interne qui garde `pending`) ; **index de prise** : un seul `draft` ou `pending` par `(account_id, social_account_id, level)`, et non plus l'index `where status = 'in_review'` ci-dessous, qui est retiré ; `level` : `account_verified` · `audience_verified` · `brand_verified` ; acteur de décision par compte (`decided_by_account_id`) ; `badges` : `network_code`, `request_id`, `registry_source_id`, constat et déclaré à la décision, `observed_engagement_bp`, `evidence_source`, état `replaced`. Propriétaires des fonctions : `influx_verification_definer`, `influx_creator_verification_definer` (neufs), `influx_identity_definer` (portes marque, sans droit sur les pièces). L'annonceur n'a aucun droit sur le schéma `verification`, `USAGE` compris (T9.6).
+>
+> **Amendé à la clôture de L2F (2026-11-11 ; `0228` à `0241`, modèle arbitré en `archives/jalons/l2f/modele.md`).** `badges` : `reminder_sent_at`, `ended_at` (⇔ `expired`, `revoked`, `replaced`, posé par `stamp_badge_end()`), `findings_erased_at`, `revocation_request_id`, `dispute_id`. Tables neuves : `badge_revocation_requests` (2V `verification.revoke_badge`), `disputes` (remplace le bloc de la l. 1656 : cible `request_id` ou `badge_id`, exactement une, chacune unique), `dispute_reasons`, `dispute_outcome_reasons`, `identifier_change_reviews` (file 6), `opening_reasons`, `consumer_email_domains` ; `verification_requests` + `opened_by`, `opened_by_account_id`, `opening_reason_code`, `opening_comment` (D83) ; `registry_sources.subdivision_code` ; `revocation_reasons` + `levels`. États de contestation : `open`, `upheld`, `overturned`, `withdrawn`. Handle constaté comparé au déclaré par `verification.normalize_handle()` (`0228`). Même règle : l'annonceur n'a aucun droit sur `verification`.
 
 #### `verification.verification_requests`
 
@@ -1509,6 +1561,7 @@ alter table verification.verification_requests
       check (status not in ('approved','rejected') or decided_by_agent_id is not null);
 
 -- verrou anti-double-traitement : un seul agent par entrée en cours
+-- (retiré à L2E : ni état `in_review`, ni cet index ; voir l'amendement ci-dessus)
 create unique index verification_requests_claim_idx
   on verification.verification_requests (id)
   where status = 'in_review';
@@ -1549,7 +1602,7 @@ obligatoire pour qu'une demande de propriété soit approuvée.
 #### `verification.evidence_files`
 
 `id`, `verification_request_id`, `storage_path` (compartiment **privé** `verification-evidence`),
-`content_type check (content_type in ('image/png','image/jpeg'))`, `byte_size`,
+`content_type check (content_type in ('image/png','image/jpeg'))` *(amendé à L2E, D82 : la pièce stockée est un WebP ré-encodé sans métadonnée, sans colonne `content_type` ; clé calculée `<account_id>/<request_id>/<id>.webp`, `request_id`, `checksum` sha256 du WebP)*, `byte_size`,
 `checksum bytea`, `capture_period_start date`, `capture_period_end date`,
 `uploaded_by_account_id`, `uploaded_at`, `retention_due_at not null`, `deleted_at`.
 
@@ -1643,6 +1696,8 @@ publié : c'est un signal interne pour le commercial (règle 5 de l'étape 4 de 
 (**différent du décideur initial** — contrôlé applicativement dès que l'équipe compte deux
 personnes), `decided_at`, `outcome`.
 
+> *Amendé à la clôture de L2F (`0232`) : voir la note de §5.3. Aucune pièce jointe à la contestation ; issue `upheld` ou `overturned` avec motif fermé ; décideurs figés au dépôt.*
+
 ---
 
 ### 5.4 `campaigns` — campagnes et blocs (Lot 3)
@@ -1665,6 +1720,17 @@ est la plus largement corrigée de cette version.
 | Calendrier | **`applications_close_on`**, **`content_due_on`**, `starts_on`, `ends_on` — **quatre dates civiles nommées** |
 | Candidature | `verified_only boolean`, `max_applications smallint`, **`active_applications_count`** + table `campaigns.campaign_requested_items` |
 | Interne | `owner_agent_id`, `internal_note`, `reviewed_by_agent_id`, `review_decided_at`, `rejection_reason_code`, **`second_reviewed_by_agent_id`**, **`second_review_decided_at`**, **`authorizations_declared_at`**, **`authorizations_declared_by_account_id`**, **`authorizations_declaration_locale`**, **`authorizations_declaration_hash`** |
+
+> **Amendement L3B (EC-L3B-3, `archives/jalons/l3b/modele.md`, qui prime sur ce paragraphe pour tout nom).**
+> Sous D78 la tranche de budget est **une colonne** `per_creator_budget_band_code`, clé étrangère
+> `(currency, code)` vers `reference.price_bands` ; `campaign_price_bands` n'est pas créée tant que D78
+> tient, et la fourchette exacte (`per_creator_amount_min_minor`, `…_max_minor`) reste vide
+> (`campaigns_exact_range_suspended_d78`). Colonnes ajoutées : `audience_gender_code`,
+> `content_review_delay` (`48h`, `5bd`, `10bd`), `submitted_at`, `erased_at`. `product_value_currency`
+> est supprimée (devise unique de la campagne, RG58) ; `campaign_audience_targets` est remplacée par
+> `campaign_audience_{countries,languages,bands,age_bands}` ; `campaign_deliverables.notes` n'existe
+> pas (RG13). Motifs de refus : les 14 codes de `09` RG90, non les 8 listés plus bas. Les écritures de la
+> marque sont gelées hors `draft` et `rejected` (55000 `campaign_not_editable`).
 
 > **Note de modélisation.** Une colonne générée ne peut pas lire une autre table ; le caractère
 > sensible du secteur se lit donc par jointure sur `reference.sectors.is_sensitive`. C'est une
@@ -1913,7 +1979,9 @@ comment on table campaigns.campaign_requested_items is
 **`active_applications_count`** (`integer not null default 0`) est maintenue par déclencheur sur
 `matching.introductions` : c'est le compteur que `max_applications` contraint (§5.6, `11` écart 2).
 
-#### La revue renforcée à deux validateurs
+#### La revue renforcée — une personne publie, second avis facultatif (D84)
+
+> *Amendé à la clôture de L3C (`archives/jalons/l3c/modele.md`, § Amendement D84) : aucune double validation obligatoire. Le second validateur, la contrainte `campaigns_second_reviewer_is_distinct` et les colonnes `second_*` ci-dessous ne sont pas réalisés ; le premier examen vit sur l'entrée de file (`campaigns.campaign_review_entries`), le demandeur d'un second avis facultatif est nommé, la déclaration RG85 reste exigée. Le texte qui suit garde l'historique de la conception.*
 
 `reviewed_by_agent_id` était **unique** : il n'y avait aucune place pour le second décideur qu'exige
 `09` RG85 sur un secteur sensible, ni pour la déclaration d'autorisations.
@@ -1942,7 +2010,7 @@ alter table campaigns.campaigns
 ```
 
 **Le reste ne peut pas être déclaratif, et c'est assumé** : « une campagne de secteur sensible exige
-un second validateur et une déclaration » suppose de lire `reference.sectors.is_sensitive`, ce qu'un
+une déclaration » (D84 : plus de second validateur obligatoire) suppose de lire `reference.sectors.is_sensitive`, ce qu'un
 `CHECK` ne sait pas faire — et `09` RG84 interdit de recopier ce caractère sur la campagne. Un
 déclencheur `BEFORE UPDATE` `campaigns.assert_enhanced_review()` fait la jointure et refuse le
 passage à `published` si le second validateur ou la déclaration manque. C'est le **seul** endroit du
@@ -1962,8 +2030,8 @@ version est en examen.*
 | `payload` | `jsonb` | `not null check (pg_column_size(payload) <= 32000)` — **la projection publiée**, codes et montants uniquement |
 | `content_hash` | `bytea` | `not null` — empreinte de ce qui a été montré aux créateurs |
 | `published_at` | `timestamptz` | `not null` |
-| `published_by_agent_id` | `uuid` | `not null` FK interne |
-| `second_published_by_agent_id` | `uuid` | FK interne — revue renforcée |
+| `published_by_account_id` | `uuid` | `not null` FK interne (réalisé en L3C, `0308`) |
+| `first_reviewed_by_account_id` | `uuid` | FK interne — demandeur d'un second avis facultatif (D84, remplace `second_published_by_agent_id`) |
 | `created_at` | `timestamptz` | `not null` |
 
 Et sur la campagne : `current_snapshot_id uuid references campaigns.campaign_published_snapshots(id)`.
@@ -1982,6 +2050,16 @@ Et sur la campagne : `current_snapshot_id uuid references campaigns.campaign_pub
 > divergerait à la première évolution du schéma. Ici, l'instantané n'est pas une source de vérité :
 > **c'est une copie datée de ce qui a été montré**, dont la forme est validée par un schéma zod dans
 > `packages/contracts` et dont l'empreinte est conservée. La vérité reste la ligne vivante.
+
+**La lecture du créateur (L3D, `0314` ; `archives/jalons/l3d/modele.md` §1 à §4, §8).** Le rôle créateur ne
+lit ni la ligne vivante ni l'instantané par un droit : trois portes `search.*` (`03` C(39)) servent
+l'instantané **courant** d'une campagne que le prédicat `search.visible_campaigns()` déclare visible,
+sur les colonnes **vivantes** (état, date limite, fin de période, secteur) ; la charge, elle, est
+toujours l'instantané. Le fil se trie par `first_published_at` (stable : une re-validation ne la
+remonte pas, `09` RG103) ou par date limite, l'identifiant départageant, d'où l'index :
+
+`campaigns_feed_idx on campaigns.campaigns (first_published_at desc, id) where status = 'published'`
+— le fil ne lit que les campagnes publiées, les autres états croissent.
 
 #### Les tables filles du ciblage et des livrables
 
@@ -2041,6 +2119,68 @@ vivante**.
 
 ### 5.5 `search` — journal de recherche et sélections (Lot 3)
 
+> **Livré par `0316` (L3E, `archives/jalons/l3e/modele.md` §7, §9, qui prime pour tout nom).** Écarts au
+> texte ci-dessous : `search_queries.outcome` (`served`, `page_cap`, `rate_limited` ; hors `served`
+> nombre 0 et pas de blocage k ; `rate_limited` sans filtre), index `(account_id, created_at desc)`
+> complet et partiel hors `rate_limited` ; `search_impressions.cold_quota`, `vigilance_code` (une
+> note au plus, code de type `vigilance`), `was_opened` vrai une seule fois ;
+> `explanation_reasons.kind` (`reason`, `vigilance`) et `param_keys` (clés exactes de
+> `reason_params`, tenues par un déclencheur), 13 raisons et 4 notes ; `reason_params` : chaînes
+> seules, jamais un nombre, ≤ 500 o ; **`search.creator_exposures`** (`creator_account_id` PK,
+> `first_page_at`, insérée une fois) ; `facet_settings` : 24 codes, **ouverte ⇒ socle**, F12 fermée
+> tant que D78 tient ; `search_settings` **sans `alert_thresholds`** (seuils d'AL21 dans
+> `backoffice.alert_definitions`) ; `search.result_count_band()` (`5_9`, `10_24`, `25_49`,
+> `50_plus`) ; écriture par `search.write_search_setting()` et `write_facet_setting()`, propriétaire
+> `influx_search_admin_definer`, `EXECUTE` à `influx_admin` seul (`aal2`), version à chaque
+> changement de facette, de k ou du quota froid. *`0332` (L3G-08, D84, D38 Q2) : les deux écrivains
+> prennent `(p_session_id, p_dual_control_request_id, …, p_reason_code)` et consomment une double
+> validation `search.change_setting` `{key, value}` ou `search.change_facet` `{facet_code, is_open,
+> display_order}` confirmée par un autre admin, exécutée par lui avec R
+> (`backoffice.consume_dual_control_for()`) ; mode dégradé refusé (pair seul) ; motifs
+> `critical_mass_reached`, `founder_decision`, `abuse_response`, `configuration_error` ;
+> `search.settings_changed` porte en plus `dual_control_request_id` et `dual_control`.* *`0333`
+> (L3G-08b) : lecture par `search.read_search_settings()` seule (`STABLE SECURITY DEFINER`,
+> propriétaire `influx_search_admin_definer`, `EXECUTE` à `influx_admin` seul, `aal2`) : `(key, value)`
+> des dix clés, triées par clé ; qui et quand restent dans `audit.*` (EC-L3G-08b-1) ; aucun droit de
+> table ni de colonne à `influx_admin`, aucune facette.* Journal, impressions, raisons, expositions et
+> versions en ajout seul hors effacement (`0318`) ; **aucun droit membre** sur aucune table du
+> schéma, sélections comprises (politique restrictive `*_no_member_access`), portes par alias au
+> L3F. Bornes des réglages : `0316` EC-L3E-03-1.
+>
+> **Écrit par `0319` (L3E, `archives/jalons/l3e/modele.md` §1 à §5, §8).** La porte de la marque
+> `search.search_creators(filtres, tri, page, campagne)` (propriétaire `influx_creator_search_definer`,
+> `EXECUTE` à `influx_advertiser` seul, `03` C(42)) écrit, dans la transaction qui sert, une ligne de
+> `search_queries` par appel hors `closed` et `brand_not_published` : `served` (nombre exact après
+> exclusions, blocage k s'il y a lieu), `page_cap` (page au-delà de `max_pages`, nombre 0),
+> `rate_limited` (au plus une par compte et fenêtre d'1 h ou de 24 h, ni filtre ni campagne) ;
+> `facet_config_version` = la dernière version ; `request_id` = `influx.request_id`. Une page servie
+> écrit une impression par carte (rang dans l'ordre entier, `cold_quota` faux et sans note jusqu'à
+> `0320`) et, en page 1, l'exposition des créateurs servis (une fois, `ON CONFLICT DO NOTHING`). Le
+> seau du compte compte `served` et `page_cap` sur 1 h et 24 h glissantes (`rate_limits`, index
+> partiel `search_queries_bucket_idx`). La carte sort de `profiles.creator_layer_a()`, seule source
+> de la couche A, partagée avec l'aperçu du créateur (`readProjectionLayerA()`).
+>
+> **Écrit par `0320` (L3E, `archives/jalons/l3e/modele.md` §6, §7).** L'ordre sort de l'aide invoker
+> `search.creator_order()` (paliers 1 à 8 de `10` RG35 en clés d'`ORDER BY`, aucun score ; tris
+> `default`, `audience`, `verified_first`, `new_profiles` ; jour UTC de la porte). Le quota froid
+> (`cold_profile_quota`, tri par défaut, page 1) donne les dernières places aux froids les mieux
+> classés et marque leur impression `cold_quota` ; chaque impression porte sa note de vigilance (une
+> au plus) et ses 2 à 4 raisons dans `impression_reasons` (codes et tranches, F6 en tranche, jamais
+> un chiffre exact). `0320` insère une version de `facet_config_versions` (RG88, ordre des paliers).
+>
+> **Écrit par `0328` (L3G, `archives/jalons/l3g/modele.md` §1 à §3).** La porte de la vue identifiée
+> `search.search_creators_identified(filtres, tri, page, campagne, pré-remplissage)` (propriétaire
+> `influx_agent_search_definer`, `EXECUTE` à `influx_agent` et `influx_admin` seuls) écrit, dans la
+> transaction qui sert, une ligne de `search_queries` par appel servi ou `page_cap` : `actor_role`
+> `agent` ou `admin` (le rôle de la session), `view_mode` `agent_identified`, campagne, filtres (socle
+> et G1, G2, G8, G9, G10), tri, version, **nombre exact** (servi ici), page ; jamais `rate_limited`
+> (ni seau ni verrou), jamais de blocage k. Une page servie écrit une impression par ligne (rang,
+> `cold_quota`, note) et ses raisons, comme la vue marque ; **jamais** `creator_exposures` (RG87).
+> `search_settings` gagne sa dixième clé, `identified_view` `{pageSize: 20, maxPages: 10}` (CHECK 10 à
+> 50 et 1 à 20, zod de `search-settings.ts`), lue à chaque appel. Le moteur `creator_candidates()`
+> recréé à signature égale porte le mode `agent_identified` (seconde requête, exécutée par le seul
+> propriétaire agent) ; AL21 ne compte plus que `advertiser_anonymous` (EC-L3G-5).
+
 #### `search.search_queries`
 
 *Chaque recherche lancée, par qui, avec quels filtres, et ce qu'elle a renvoyé.* C'est à la fois un
@@ -2063,6 +2203,28 @@ garde-fou anti-aspiration et **le jeu de données qui permettra de régler D11**
 > est le seul au Lot 3, mais le jour où un second tri apparaît, les recherches passées restent
 > lisibles.
 
+*Amendé par L3G-05 (`0329`, `archives/jalons/l3g/modele.md` §4).* `prefill_id` (→
+`search.campaign_prefills`, nul permis) : le pré-remplissage « Créateurs compatibles » dont part une
+recherche identifiée ; **nul hors `agent_identified` et sans campagne** (CHECK
+`search_queries_prefill_identified`). Écrit par la porte identifiée, appel servi ou `page_cap` ;
+« Vider » (filtres vidés) garde le lien.
+
+#### `search.campaign_prefills` — le pré-remplissage depuis le brief (L3G, `0329`)
+
+*Les filtres proposés à un agent depuis le brief d'une campagne admise* (`archives/jalons/l3g/modele.md` §4 ;
+`10` RG73, CA56). `id uuid` PK, `account_id` (l'agent ou l'administrateur appelant), `campaign_id`
+(→ `campaigns.campaigns`), `proposed jsonb` (la forme de `p_filters`, **codes seuls** : clés F1, F3,
+F4, F6 `{country}`, F8, F11 par CHECK ; jamais F12, F17, G, une tranche ni un budget, D78),
+`created_at`. Écrite par la seule porte `search.prefill_campaign_filters(campagne)` (propriétaire
+`influx_agent_search_definer`, `EXECUTE` à `influx_agent` et `influx_admin` seuls) : F1 la thématique
+du rang 1, F3 et F11 réseaux et formats des livrables, F4 tranches d'audience visées, F6 le pays
+d'audience du rang 1, F8 les langues (20 au plus) ; facette fermée ou champ vide omis. Retenus,
+retirés et ajoutés ne sont pas stockés : `search.prefill_diff(proposed, filtres)` (IMMUTABLE, sans
+droit) les lit depuis les recherches qui citent la ligne (`search_queries.prefill_id`). Index
+`(account_id, created_at desc)`. **Ajout seul** (`guard_search_journal_write()` de `0316`), RLS
+forcée, politique restrictive, **aucun droit membre ni d'exécution** ; ni exportée ni effacée (codes
+seuls, auteur interne) ; 12 mois (§9, purge au Lot 6).
+
 #### `search.search_impressions`
 
 `search_query_id`, `creator_account_id`, `rank smallint not null`, `was_opened boolean not null
@@ -2072,10 +2234,61 @@ default false`, `opened_at`. PK `(search_query_id, creator_account_id)`.
 manquante bloquante pour D11. Volume : 12 lignes par recherche — négligeable, et irremplaçable plus
 tard.
 
+#### `search.profile_openings` — les ouvertures de profil (L3F, `0323`)
+
+*Chaque ouverture d'un profil anonyme par une marque, servie ou refusée* (`archives/jalons/l3f/modele.md` §2 ;
+`10` RG63, RG66, CA48 ; `18` T15.2). `id uuid` PK, `account_id` (la marque), `outcome`
+(`served` · `rate_limited`), `creator_account_id` (nul **si et seulement si** `rate_limited`),
+`search_query_id` (la recherche d'origine : la plus récente de l'appelant, servie depuis moins de
+24 h, qui a affiché ce créateur ; nulle sinon et pour un refus ; `on delete cascade`), `request_id`,
+`created_at`. Index du seau `(account_id, created_at desc)`, de la date, du créateur. **Ajout seul**
+(`guard_search_journal_write()` de `0316`), RLS forcée, politique restrictive, **aucun droit membre**
+ni d'exécution : écrite par `search.open_creator_profile()` dans la transaction qui sert (avec
+l'ouverture unique de l'impression d'origine, `was_opened`, `opened_at`), comptée contre
+`rate_limits.profileOpensPerDay` (réouverture comprise, une ligne `rate_limited` par 24 h, L3DS-1).
+Jamais servie ni exportée, comme les impressions (-7) ; effacée par `0325` ; 12 mois (`04` §9).
+
 `search.shortlists` (`id`, `advertiser_account_id`, `name`, `campaign_id`) et
 `search.shortlist_items` (`shortlist_id`, `creator_account_id`, `added_at`, `note`) : la sélection
 privée de la marque. **Aucune notification au créateur** : l'ajout à une sélection n'est pas un acte
-de mise en relation.
+de mise en relation. *Amendé par L3F-04 (`0324`, `archives/jalons/l3f/modele.md` §5) :* aucun droit membre ;
+huit portes de la marque, **par alias** (créer, renommer ou rattacher, supprimer, ajouter, noter,
+retirer, lister, lire), dont le propriétaire `influx_creator_search_definer` lit et écrit les seules
+listes de l'appelant. Un ajout exige un alias que le moteur liste avec la campagne de la liste (admise,
+sinon aucune) **et déjà servi à l'appelant** (impression ou ouverture) ; idempotent. Bornes
+`selection_limits` : `listsPerAccount` (10) et `itemsPerList` (25, toutes lignes comprises) ; nom de 1 à
+80 caractères sur une ligne, note de 1 à 500. Lecture : les cartes de `creator_layer_a()`, les
+créateurs masqués depuis (E1 à E6) sans trace ni compte, revenus s'ils redeviennent visibles ; une
+campagne refusée depuis garde le rattachement, son secteur ignoré. Aucune ligne de
+`leads.outbox_events`, de `matching.*` ni d'audit.
+
+#### `search.selection_requests` — la demande de sélection à l'équipe (L3F, `0325`)
+
+*La demande d'une marque à l'équipe INFLUX* (`archives/jalons/l3f/modele.md` §6 ; `10` RG61, CA39 ; file 9
+`team_selection`). `id uuid` PK, `advertiser_account_id` (→ `profiles.advertiser_profiles`),
+`campaign_id` (nul permis ; admise au dépôt par `search.is_admitted_campaign()`), `filters` (la forme
+de `p_filters`, **tous les critères saisis**), `language` (`preferred_language` au dépôt), `message`
+(nul ou 1 à 1 000 caractères, lu des seuls agents, D46), `state` (`open` ; `closed` et son motif au
+L3G), `sla_due_at` (figé au dépôt par `backoffice.business_deadline('team_selection', …)`),
+`created_at`. RLS forcée, politique restrictive, **aucun droit membre** : écrite par la seule porte
+`search.request_team_selection(p_filters, p_campaign_id, p_message)` de la marque (interrupteur et
+seuil ignorés, RG61 ; plafond `selection_limits.requestsPerDay` sur 24 h glissantes, refus sans
+écriture), avec une ligne `search.selection_requested` (`exported`, identifiants seuls). **Ni
+créateur, ni `matching.*`, ni outbox, ni e-mail** (D45, CA64). Exportée à la marque, effacée avec
+elle ; 12 mois après la clôture (§9).
+*Amendé par L3G-06 (`0330`, `archives/jalons/l3g/modele.md` §5) :* + `claimed_by_account_id`, `claimed_at`,
+`claim_expires_at` (prise entière, verrou de `claim_expiry_minutes`), `closed_at`,
+`closed_by_account_id`, `close_reason_code`, `close_note` ; `state` `open` ou `closed`, `closed` ⇔
+date, agent et motif ; motifs `off_brief`, `motive_insufficient`, `contact_details_in_text`,
+`campaign_closed`, `duplicate`, `other` ; note de 10 à 500 caractères imprimables ssi `other`. Lue en
+`aal2` par `influx_agent` et `influx_admin` (toutes colonnes, message en texte) ; écrite par les portes
+de la file 9 (propriétaire `influx_agent_search_definer`, `EXECUTE` aux agents et admins seuls) :
+`open_team_selection_request(id)` (`claimed`, `held`, `read_only`, `closed`),
+`release_team_selection_request(id)`, `extend_team_selection_claim(id)`,
+`close_team_selection_request(id, reason, note)` (prise vivante, sinon 55P03 ; 22023 `reason`,
+`note`) ; registre `queue.*` (`queue_code` `team_selection`) et `search.selection_request_closed`
+`{reason_code}` (`exported`). Demande inconnue ou d'une marque détenue par l'appelant : 42501 (`15`
+RG36). Sans reprise forcée ; rien à la marque (e-mail au Lot 5).
 
 #### `search.impression_reasons` — l'explication affichée, rejouable et mesurable
 
@@ -2124,9 +2337,13 @@ constantes**.
 
 Clés de `search.search_settings`, fermées par `CHECK` (`10` RG2, RG57, RG63) :
 `is_open_to_advertisers`, `k_anonymity_threshold` (5), `page_size` (12), `max_pages` (5),
-`rate_limits` (30/h, 200/j, 60 profils ouverts/j), `cold_profile_quota`,
-`critical_mass_thresholds` (30 profils publiés, 5 par thématique), `alert_thresholds`,
-`region_display_threshold` (5, lu par `profiles.creator_public_profiles.residence_region_code`).
+`rate_limits` (30/h, 200/j, 60 profils ouverts/j), `cold_profile_quota` (2 places, 30 jours),
+`critical_mass_thresholds` (30 profils publiés, 5 par thématique),
+`region_display_threshold` (5, lu par `profiles.creator_public_profiles.residence_region_code`),
+`selection_limits` (*`0324`* : 10 sélections par compte, 25 créateurs par sélection, 5 demandes de
+sélection par jour ; bornes 1–100, 1–100, 1–50 ; hypothèse `staging`, à fixer par le fondateur avant
+`production`).
+*`alert_thresholds` retirée par `0316` (`archives/jalons/l3e/modele.md` §9, §10).*
 
 Trois garanties, calquées sur `leads.sync_settings` (§5.8) : l'écriture est réservée à
 `influx_admin` par une fonction `SECURITY DEFINER` qui **écrit un événement chaîné
@@ -2158,6 +2375,51 @@ Pourquoi stocker plutôt que compter à la demande : ce qu'on veut savoir n'est 
 aujourd'hui », c'est **« la courbe monte-t-elle ? »**. Une série datée répond aux deux ; un `count(*)`
 ne répond qu'à la première, et jamais rétrospectivement. L'index partiel
 `creator_public_profiles (status, is_searchable)` du §10.3 sert exactement à alimenter cette tâche.
+
+*Écrit par `0331` (L3G-07, `archives/jalons/l3g/modele.md` §6).* Tâche périodique `supply_counters`,
+quotidienne dès 00:00 UTC : `ops.compute_supply_counters(run, attempt)` (propriétaire
+`influx_maintenance_definer`, `EXECUTE` à `influx_worker` seul) **remplace les lignes du jour UTC**
+(rejeu idempotent, jours précédents intacts) : `global`, `topic` (thématique principale), `country`
+(pays principal d'audience) ; publié = vitrine `published`, compte `active`, majorité attestée (E1,
+E3, E4) ; cherchable = publié et `is_searchable` (E2). Couche A et compte seuls, jamais la couche I
+ni `search_settings`. Échec : la veille reste, AL65 `counters_stale`. Lecteurs de l'admin
+(`influx_search_admin_definer`, `EXECUTE` à `influx_admin`) : `search.critical_mass_alerts()` (AL65 :
+`thresholds_reached` si fermée et global cherchable ≥ `publishedProfiles` avec une thématique ≥
+`perTopic`, `below_while_open`, `counters_stale` ; AL22 : part des recherches marque de page 1
+bloquées par k) et `search.read_supply_counters()` (dernier instantané, courbe globale de 29 jours).
+
+#### `search.creator_campaign_reads` — les lectures du fil et des fiches par un créateur (L3D, `0314`)
+
+*Chaque appel du fil des campagnes ouvertes ou d'une fiche, par quel créateur, avec quelle issue*
+(`11` RG22, CA18 ; `archives/jalons/l3d/modele.md` §6). **Un journal propre, pas le registre** : `11` Q12
+veut une purge, que le registre n'a pas, et un sujet « campagne » entrerait dans l'export de la
+marque (`0310`), contre `11` RG40 et `09` RG101.
+
+| Colonne | Type | Contrainte |
+|---|---|---|
+| `id` | `bigint` | identité, PK |
+| `creator_account_id` | `uuid` | `not null` FK `identity.accounts` |
+| `kind` | `text` | `feed` · `record` |
+| `campaign_id` | `uuid` | la campagne demandée d'une fiche, **sans FK** (un refus garde l'identifiant demandé) ; nulle pour le fil |
+| `feed_sort` | `text` | `recent` · `deadline`, pour le fil seul |
+| `feed_page` | `smallint` | 1 à 50, pour le fil seul |
+| `outcome` | `text` | `served` · `refused` (fiche) · `page_cap` (fil) · `rate_limited` |
+| `read_at` | `timestamptz` | `not null default now()` |
+
+Un `CHECK` de cohérence lie le genre à ses colonnes et à ses issues ; RLS forcée ; **immuable** hors
+l'effacement (déclencheur) ; index `(creator_account_id, read_at desc)`, qui sert l'export et
+l'effacement, et index partiel `creator_campaign_reads_bucket_idx` (mêmes colonnes,
+`where outcome <> 'rate_limited'`, `0315`, L3DS-1), qui sert seul le débit par compte (lignes hors
+`rate_limited` comptées sur 60 s et 24 h glissantes). **Une ligne `rate_limited` au plus par compte
+dans la fenêtre qui refuse** (24 h si la journée est pleine, 60 s sinon, fil et fiche confondus) : le
+refus suivant de la même fenêtre répond pareil (`rate_limited`, `retryAfterSeconds`) sans rien
+écrire (EC-L3E-01-1, -2) ; le verrou consultatif par compte est gardé. Écrit par les seules
+portes de `influx_campaign_feed_definer` ; aucun rôle d'exécution n'y a de droit ; la marque n'en voit
+jamais rien ; l'agent et l'administrateur au Lot 5 (alerte I-9). Le logo n'est pas journalisé.
+Export : `creator_profile.campaign_reads` (colonnes sauf `id`) ; effacement : lignes du compte
+supprimées (§9). Réglages du fil et du débit : `backoffice.operational_settings`
+(`campaign_feed_page_size`, `campaign_feed_max_pages`, `campaign_feed_closed_days`,
+`creator_campaign_reads_per_minute`, `creator_campaign_reads_per_day`, §5.10).
 
 **Ce qui rend ces tables sensibles :** `filters` décrit ce qu'une marque cherche — une information
 commerciale. Et le journal sert **deux finalités** (sécurité anti-aspiration, amélioration produit),
@@ -2479,6 +2741,8 @@ returning id;
 
 Zéro ligne renvoyée ⇒ un autre commercial a pris la main : `apps/api` répond `409` avec le nom du
 titulaire, jamais un écran d'erreur (`intermediation-tracking` étape 3, point 2).
+
+**File 1 (L2C, `0210`).** Même motif sur `profiles.advertiser_review_entries` : la ligne de l'entrée est d'abord verrouillée, puis la transition `where state = 'open' and (claimed_by_account_id is null or claim_expires_at <= now())` prend la main ; zéro ligne : `read_only` et le nom du titulaire. Expiration calculée à la lecture, sans tâche du worker (`l2c/file.md` A9) ; levée forcée par un admin avec un motif de `backoffice.claim_release_reasons`, le titulaire informé à sa prochaine ouverture ou action (A8).
 
 #### Les deux refus ne sont pas le même objet — `matching.decline_reasons` (`13` écart 2)
 
@@ -2995,6 +3259,21 @@ tenable sous concurrence. C'est exactement le critère de R10 — une mesure, pa
 *Bien que le reste du schéma `matching` arrive au Lot 4, ces deux tables arrivent au **Lot 3** : la
 recherche de créateurs en dépend dès son ouverture. Le schéma, lui, existe depuis la migration
 `0001`.*
+
+> **Livré par `0317` (L3E, `archives/jalons/l3e/modele.md` §9, qui prime pour tout nom).** Écarts et
+> précisions au texte ci-dessous : `block_reasons` **vide** (motifs avec le geste, Lot 4, `10` Q11),
+> `label_key = 'block.reason.' || code` ; un blocage **naît actif**, sa levée est la seule
+> modification, une fois (`guard_party_block_write()`, 55000 pour tout rôle `influx_%` hors levée
+> et hors effacement par `influx_privacy_definer`, `0318`) ; `lift_reason_code` est un code sans
+> clé étrangère, nul tant que le blocage est actif ; `blocked_by_account_id` s'accorde au côté
+> (`CHECK`) et `check_party_block()` vérifie les rôles des trois comptes, le motif actif et du côté
+> qui bloque (ou `any`), le commentaire quand le motif l'exige (23514) ; index inverse
+> `party_blocks_creator_active_idx`. **Aucun droit membre, agent ni administrateur au Lot 3**
+> (politique restrictive `*_no_member_access`) ; `influx_campaign_feed_definer` lit la paire et
+> `lifted_at` des seuls blocages actifs de l'appelant, jamais le motif, le commentaire ni l'auteur
+> (RG30) ; `search.visible_campaigns()` exclut la paire bloquée, quel que soit le sens, en
+> silence. `block.created` et `block.lifted` (chargés par `0303`) n'ont pas d'écrivain au Lot 3.
+> Micro-écarts : `0317` EC-L3E-04-1 à -4.
 
 | Colonne | Type | Contrainte |
 |---|---|---|
@@ -4832,8 +5111,8 @@ comment on column billing.deal_field_changes.reason is
 | **`backoffice.alert_definitions`** | **Le catalogue des 41 alertes AL1 à AL41** (`15` §F) : `code` **PK**, `label_key`, `nature` (`etat` · `evenement`, `15` RG64), `threshold_value jsonb`, `recipient_role`, `source_document`, `is_active`. Les seuils sont des **données** : les 41 alertes vivaient jusqu'ici en requêtes éparpillées dans dix documents | **1** |
 | **`backoffice.alert_closure_reasons`** | Motifs de classement d'une alerte d'événement (`15` RG69) : `traitee` · `sans_suite` · `faux_positif` · `doublon` · `other` (commentaire obligatoire). `code` PK, `label_key`, `requires_comment`, `is_active` | **4** |
 | **`backoffice.alert_instances`** | **Les alertes d'événement**, celles qui doivent être classées par un humain (`15` RG64, RG69) : `id`, `alert_code` FK, `subject_type`, `subject_id`, `opened_at`, `acknowledged_by_account_id`, `acknowledged_at`, `closed_at`, `closure_reason_code` FK, `closure_comment`. **Les alertes d'état n'ont pas de ligne** : elles se lèvent et se referment seules | **4** |
-| **`backoffice.dual_control_requests`** | **Les demandes de seconde validation** (`03` PD4, `15` RG31, file 15) : `id`, `action_code` (liste fermée), `payload jsonb`, `requested_by_account_id`, `requested_at`, `expires_at`, `state` (`pending` · `confirmed` · `expired` · `cancelled` · `degraded`), `confirmed_by_account_id`, `confirmed_at`, `degraded_justification`. `03` en décrivait les colonnes ; **aucune table ne les portait** | **1** |
-| **`backoffice.operational_settings`** | **Les plafonds et délais d'exploitation qui ne sont ni des SLA ni des réglages de recherche**, en clé/valeur à liste fermée (`key text PK check (key in (…))`, `value jsonb`, `updated_by_account_id`, `updated_at`), même régime que `leads.sync_settings` : écriture par fonction `SECURITY DEFINER` réservée à `influx_admin`, chaque modification journalisée. Clés du Lot 3 : `application_caps` (P1 = 10, P2 = 5/jour, P3 = 30, P4 = 1 seconde chance), `campaign_caps` (10 campagnes simultanées, 50 créateurs recherchés), `claim_expiry_minutes` (30), `ownership_code_ttl_days` (7), `badge_grace_days`, `verified_only_enabled` (**faux au lancement**, D38), `campaign_autoclose_days` (30), `application_draft_ttl_days` (30), `unanswered_application_days` (7). **Les six documents de spécification exigent tous la même chose : ces valeurs sont des données, pas des constantes** | 3 |
+| **`backoffice.dual_control_requests`** | **Les demandes de seconde validation** (`03` PD4, `15` RG31, file 15) : `id`, `action_code` (liste fermée ; *`0332` : huit actions, dont `search.change_setting` et `search.change_facet`, sans mode dégradé*), `payload jsonb`, `requested_by_account_id`, `requested_at`, `expires_at`, `state` (`pending` · `confirmed` · `expired` · `cancelled` · `degraded`), `confirmed_by_account_id`, `confirmed_at`, `degraded_justification`. `03` en décrivait les colonnes ; **aucune table ne les portait** | **1** |
+| **`backoffice.operational_settings`** | **Les plafonds et délais d'exploitation qui ne sont ni des SLA ni des réglages de recherche**, en clé/valeur à liste fermée (`key text PK check (key in (…))`, `value jsonb`, `updated_by_account_id`, `updated_at`), même régime que `leads.sync_settings` : écriture par fonction `SECURITY DEFINER` réservée à `influx_admin`, chaque modification journalisée. Clés du Lot 3 : `application_caps` (P1 = 10, P2 = 5/jour, P3 = 30, P4 = 1 seconde chance), `campaign_caps` (10 campagnes simultanées, 50 créateurs recherchés), `claim_expiry_minutes` (30), `ownership_code_ttl_days` (7), `badge_grace_days`, `verified_only_enabled` (**faux au lancement**, D38), `campaign_autoclose_days` (30), `application_draft_ttl_days` (30), `unanswered_application_days` (7). **Les six documents de spécification exigent tous la même chose : ces valeurs sont des données, pas des constantes**. **Créée au L2C (`0206`, EC-L2C-2)** avec la seule clé `claim_expiry_minutes` (30), lue par `agent` et `admin` en `aal2`, écrite par les seules migrations jusqu'à la fonction d'administration du Lot 5 ; chaque clé suivante élargit la liste fermée et porte son `CHECK` | **2** (L2C) |
 | `backoffice.internal_notes` | Notes internes **immuables** (on ajoute, on ne corrige pas), rattachées à exactement un sujet. **Complétée (`15`, écart 3) :** **`subject_type`** (`backoffice.note_subject` : `account` · `introduction` · `deal` · `campaign` · `data_subject_request`), `subject_id`, **`author_account_id not null`**, `body` borné, `created_at` — et **`REVOKE UPDATE, DELETE` + `influx.assert_append_only()`** : « immuable » est désormais garanti en base, pas par convention | 5 |
 | **`backoffice.suspension_reasons`** | Les **huit** motifs de `15` RG52 : `code` PK, `label_key`, **`message_key`** (le message envoyé au titulaire — **il n'existe aucune suspension muette**), **`requires_admin_escalation boolean`** (vrai sur `suspected_circumvention`), **`discloses_real_reason boolean`** (**faux** sur `suspected_circumvention`, `15` RG53), `requires_comment`, `is_active` | **5** |
 | **`backoffice.suspension_lift_reasons`** | Les cinq motifs de `15` RG55 : `erreur_interne` (message avec excuses explicites) · `situation_regularisee` · `decision_revue` · `fin_de_la_mesure` · `other`. `code` PK, `label_key`, `message_key`, `requires_comment`, `is_active` | **5** |
@@ -5088,7 +5367,7 @@ d'attente non validées**, chargées comme telles :
 | `queue_code` | Délai de décision | Statut |
 |---|---|---|
 | `verification_disputes` | **5 jours ouvrés** | **Proposition `15` Q2 — non validée** |
-| `team_selection` | **1 jour ouvré** | **Proposition `15` Q3 — non validée** |
+| `team_selection` | **1 jour ouvré** | **Proposition `15` Q3 — non validée** · *chargée par `0325` (L3F) : 480 min ouvrées, prise 240, `is_provisional`* |
 | `lead_sync_failures` | **2 jours ouvrés**, **aucun verrou** (`15` RG30 : le rejeu est idempotent) | **Proposition `15` Q4 — non validée** |
 | `email_delivery_incidents` | **2 jours ouvrés** | **Proposition `15` Q4 — non validée** |
 | `data_subject_requests` | **30 jours calendaires** (délai légal), objectif interne 10 jours ouvrés | Délai **légal**, pas une proposition |
@@ -5218,21 +5497,21 @@ responsable, **30 j** vers l'administrateur — `14` Q13, valeurs d'attente),
 
 ### 5.11 Le stockage de fichiers (Supabase Storage)
 
-Quatre compartiments, **tous privés**, sans exception.
+Cinq compartiments, **tous privés**, sans exception.
 
 | Compartiment | Contenu | Écriture | Lecture |
 |---|---|---|---|
-| `verification-evidence` | Captures et pièces de vérification | Le créateur (URL signée, ≤ 5 min) | **Agents seulement.** Jamais un annonceur, jamais un autre créateur |
-| `portfolio` | Visuels de portfolio | Le créateur | Agents ; annonceurs **uniquement** si `moderation_status = 'approved'` |
+| `verification-evidence` | Captures et pièces de vérification | `apps/api` seul, par le passe-plat (≤ 8 Mio sur la seule route de dépôt d'une pièce, D82), WebP ré-encodé, jamais d'URL signée | **Agents seulement**, octets relayés par l'API, chaque ouverture journalisée (`verification.evidence_viewed`). Jamais un annonceur, jamais un autre créateur |
+| `portfolio` | Visuels de portfolio | `apps/api` seul, par le passe-plat (≤ 8 Mio sur la seule route de dépôt, D82 (7)), WebP ré-encodé sans métadonnée, clé `portfolio/<account_id>/<item_id>.webp`, jamais d'URL signée *(amendé à la clôture de L2G)* | Le créateur (ses visuels) et les agents (ceux de leur entrée), octets relayés par l'API et lecture d'agent journalisée ; **l'annonceur : aucun droit au Lot 2**, sa lecture des visuels `approved` arrive avec la recherche du Lot 3 |
 | `introduction-documents` | Canal de documents (si D30/Q4 le retient) | Participants d'une mise en relation | Contrepartie **après** modération |
 | `legal-documents` | Versions publiées des CGU et politiques | Administrateur | Tout le monde, par URL signée longue |
+| `brand-logo` | Logo de marque, WebP carré 512 px ≤ 1 Mio, ré-encodé sans métadonnée (D80, EC-L2B-6) | `apps/api` seul, par le passe-plat (≤ 2 Mio), jamais d'URL signée | `apps/api` seul, octets servis par l'API |
 
 Règles communes, alignées sur les RLS des tables correspondantes :
 
-1. **Le chemin encode le propriétaire** : `verification-evidence/<account_id>/<request_id>/<uuid>.png`.
+1. **Le chemin encode le propriétaire** : `verification-evidence/<account_id>/<request_id>/<uuid>.webp` *(amendé à L2E, D82 ; `.png` à l'origine)*.
    Les politiques du Storage comparent le premier segment à `influx.current_account_id()`.
-2. **Aucune lecture directe** : toute lecture passe par une URL signée émise par `apps/api` après
-   contrôle, de durée courte, **dont l'émission est journalisée** (exception E1 du document `02`).
+2. **Aucune lecture directe** : toute lecture passe par `apps/api` après contrôle. *(Amendé à L2E, D82 : aucune URL signée n'est émise pour `verification-evidence` ni `brand-logo` ; l'exception E1 du document `02` n'est pas utilisée ; la lecture est journalisée par la base dans la transaction qui rend la clé.)* Les autres compartiments gardent l'URL signée courte journalisée.
 3. **Une ligne en base pour chaque objet stocké.** Un fichier sans ligne est un orphelin : une tâche
    hebdomadaire les liste et alerte.
 4. **La suppression d'un fichier suit la rétention de sa ligne**, jamais l'inverse.
@@ -5279,7 +5558,7 @@ create policy social_accounts_revealed_to_advertiser
 Adossée à l'index du §10.5. C'est la formulation annoncée par `architecte` au §2.5 du document `02`,
 appliquée à l'**objet révélable** et non à l'objet identifiant.
 
-**(b) La vitrine anonymisée.**
+**(b) La vitrine anonymisée.** *(Lot 3 : au Lot 2 (`0216`) `influx_advertiser` n'a aucun droit sur la vitrine ni sur ses listes, EC-L2D-1 ; la politique ci-dessous et le droit de colonnes, sans `account_id`, `completeness_percent` ni `status`, arrivent au Lot 3 avec C(10).)*
 
 ```sql
 create policy public_profiles_visible_to_advertisers
@@ -5371,14 +5650,14 @@ create trigger audit_events_no_truncate
 | `identity.accounts` | L (sa ligne) | L (sa ligne) | L | L / E | L / E |
 | `identity.terms_acceptances` | L (les siennes) + E | idem | L | L | E |
 | `identity.consent_events` | L + E | L + E | L | L + E | L + E |
-| `profiles.creator_public_*` | **L** | L + E (les siennes) | L | L | L |
+| `profiles.creator_public_*` | **F** *(L3E, `0319` : la couche A des vitrines publiées et cherchables, par la seule porte `search.search_creators()` ; aucun droit sur les tables)* | L + E (les siennes) | L | L | L |
 | `profiles.creator_social_accounts` | **L après révélation, colonnes limitées** | L + E | L | L | L |
 | `profiles.creator_identities` | **—** | L + E | L | L | L |
 | `profiles.advertiser_contact_details` | L + E (la sienne) | **L après révélation, prénom seulement** (D40, précisée par D46 le 2026-09-24 : e-mail, téléphone et page de contact jamais servis à un membre) | L | L | L |
 | `verification.evidence_files` | **—** | L (les siennes) | L (journalisé) | L | — |
 | `campaigns.campaigns` | L + E (les siennes) | **—** *(le créateur lit l'instantané, jamais la ligne vivante)* | L | L | L |
 | `campaigns.campaign_published_snapshots` | L | **L** | L | L | L |
-| `matching.party_blocks` | L + E (les siens) | L + E (les siens) | L + E | L + E | L |
+| `matching.party_blocks` | L + E (les siens) *(Lot 4 ; **—** au Lot 3, `0317`)* | L + E (les siens) *(Lot 4 ; **—** au Lot 3)* | L + E *(Lot 4 ; **—** au Lot 3)* | L + E *(Lot 4 ; **—** au Lot 3)* | L *(au Lot 3 : la paire et `lifted_at` des blocages actifs de l'appelant, par `influx_campaign_feed_definer` (le créateur) et par `influx_creator_search_definer` (la marque, `0319`), chacun sa politique)* |
 | `matching.application_drafts` | **—** | L + E (les siens) | **—** | **—** | — |
 | `reference.price_bands` (bornes nettes comprises) | L | L | L | L | L |
 | `matching.introductions` | L (les siennes) | L (les siennes) | L + E | L + E | F |
@@ -5694,6 +5973,8 @@ revoke all on all tables in schema verification from influx_advertiser;
 alter default privileges in schema verification revoke all on tables from influx_advertiser;
 ```
 
+*(Amendé à L2E : pour `verification`, la garantie va plus loin, l'annonceur n'a **aucun** droit sur le schéma, `USAGE` compris, assertion de fin de `0221` et T9.6.)*
+
 La seconde ligne est celle qui compte : **toute table créée plus tard dans ce schéma sera
 inaccessible au rôle annonceur, sans que personne n'ait à y penser.** Dans un schéma unique, la même
 garantie exigerait de se souvenir d'un `REVOKE` à chaque `CREATE TABLE` — et c'est exactement le type
@@ -5775,8 +6056,8 @@ les préparer serait inventer.
 |---|---|---|---|---|
 | Compte actif | `identity.accounts`, `profiles.*` | Vie du compte + **3 ans** d'inactivité | `last_seen_at` | Un créateur inactif 3 ans n'est plus une offre commerciale |
 | Preuves d'acceptation | `identity.terms_acceptances`, `identity.consent_events` | **5 ans** après la fin de la relation | `deleted_at` du compte | Preuve du consentement et de l'acceptation des CGU (durée usuelle de prescription) |
-| Pièces de vérification | `verification.evidence_files` | **90 jours** après la décision | `decided_at` | La pièce n'a plus de raison d'être une fois le constat saisi. C'est le constat qui vaut, pas la pièce (`profile-verification` règle 27) |
-| Badges et décisions | `verification.badges`, `verification_requests` | **3 ans** | `decided_at` | Historique de responsabilité : INFLUX répond de ce qu'il a affirmé |
+| Pièces de vérification | `verification.evidence_files` | **45 jours** après la décision *(fondateur, 2026-11-01, `08` Q2)* | `decided_at` | La pièce n'a plus de raison d'être une fois le constat saisi. C'est le constat qui vaut, pas la pièce (`profile-verification` règle 27) |
+| Badges et décisions | `verification.badges`, `verification_requests` | **3 ans** | `decided_at` ; *depuis L2F (`0230`), pour un badge fini (`expired`, `revoked`, `replaced`), `ended_at`* | Historique de responsabilité : INFLUX répond de ce qu'il a affirmé. *L2F : à `findings_retention_days`, la ligne du badge fini est gardée, ses chiffres, valeurs déclarées, période et référence sont effacés (handle `[deleted]`, `findings_erased_at`) ; pièces `purged` et codes supprimés ; textes des contestations, retraits et entrées de la file 6 vidés sur lignes closes (`ops.purge_verification_findings()`)* |
 | Messages | `messaging.messages` | **3 ans** après la clôture de la conversation | `closed_at` | Preuve d'une négociation d'où peut naître une créance V2 (D29) |
 | Journal des lectures | `messaging.conversation_access_log` | **3 ans** | `accessed_at` | Contrepartie de la supervision annoncée (A10) : elle doit être vérifiable aussi longtemps que les échanges |
 | **Documents et téléchargements** | `messaging.documents`, **`messaging.document_downloads`** | **3 ans** après la clôture de la conversation | `closed_at` du fil | **Même durée que les messages** : un brief transmis fait partie de la négociation. Les octets sortent du Storage à la même échéance, le journal des téléchargements reste pendant la même durée |
@@ -5795,7 +6076,12 @@ les préparer serait inventer.
 | **Journal transactionnel** | **`leads.transactional_sends`** | **13 mois** pour une ligne **avec compte** ; **ligne entière supprimée après 30 jours** si elle n'a **pas de compte** (adresse en clair, RG-J3-6) | `created_at` | Diagnostic d'exploitation, pas preuve : assez pour couvrir une saisonnalité complète de délivrabilité, et bien moins que les envois marketing. Ne contient **ni corps, ni code** |
 | **Suspensions** | `backoffice.account_suspensions` | **5 ans** après la levée | `ended_at` | Une suspension est une décision opposable : le titulaire peut la contester, et INFLUX doit pouvoir l'expliquer |
 | Incidents de délivrance | `identity.email_delivery_incidents` | **24 mois** | `occurred_at` | Diagnostic d'un compte fermé et suivi de la réputation d'envoi ; au-delà, sans usage |
-| Journal des recherches | `search.search_queries`, `search_impressions` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite |
+| Journal des recherches | `search.search_queries`, `search_impressions`, `impression_reasons`, `creator_exposures` | **12 mois** | `created_at` | Double finalité (anti-aspiration, amélioration produit) ; au-delà, l'intérêt décroît vite. *L3E (`0318`, `archives/jalons/l3e/modele.md` §9) : export de la marque `advertiser_profile.creator_searches` (instant, filtres, tri, page, issue, tranche du nombre ou nul, blocage k, titre de la campagne), jamais le nombre exact, une impression, une raison, une exposition ni un créateur servi ; le créateur ne reçoit aucune impression (RG8). À l'effacement, **supprimés** : recherches de la marque avec leurs impressions et raisons, impressions et raisons d'un créateur dans toute recherche, son exposition. Purge au Lot 6 avec L3DS-2* |
+| Sélections d'une marque | `search.shortlists`, `shortlist_items` | *Non fixée : Lot 6, veto RGPD* | — | *`0318` : exportées à la marque (nom, titre de la campagne, date, créateurs par alias avec date et note, seuls alias de son export) ; supprimées avec la marque effacée, la place d'un créateur effacé retirée de toute sélection* |
+| Ouvertures de profil | `search.profile_openings` (L3F, `0323`) | **12 mois** (hypothèse, comme le journal des recherches) | `created_at` | *`0325` : jamais exportées (comme les impressions) ; à l'effacement, **supprimées** pour la marque qui a ouvert comme pour le créateur ouvert. Purge au Lot 6* |
+| Demandes de sélection à l'équipe | `search.selection_requests` (L3F, `0325`) | **12 mois après la clôture** (hypothèse, veto RGPD du Lot 6) | clôture (L3G) | *Exportées à la marque `advertiser_profile.selection_requests` (instant, filtres, titre de la campagne, langue, message, état ; jamais l'identifiant ni le délai) ; supprimées avec la marque effacée. Purge au Lot 6* |
+| Blocages entre parties | `matching.party_blocks` | *Non fixée : Lot 6, veto RGPD* | — | *`0318` : à l'export, les seuls blocages **posés par le membre** (l'autre partie par alias ou nom de marque, motif, commentaire, dates), jamais un blocage posé contre lui, par INFLUX, ni qui l'a levé (RG30) ; `block.*` hors journal d'activité (`excluded_third_party`). À l'effacement, tout blocage d'une paire du compte est **supprimé**, quel qu'en soit l'auteur (EC-L3E-05-3)* |
+| Lectures du fil et des fiches de campagne | `search.creator_campaign_reads` (L3D, `0314`) | **12 mois** (hypothèse, comme le journal des recherches) | `read_at` | Contrepartie de l'ouverture du fil (`11` RG22) et anti-aspiration (CA18). Purge livrée avec celle du journal des recherches, **au plus tard au Lot 6** (aucune ligne n'a 12 mois avant) ; à l'effacement, les lignes du compte sont **supprimées**, aucune survie pseudonymisée ; durée soumise au veto RGPD du Lot 6 |
 | File de synchronisation | `leads.outbox_events` | `succeeded` : **30 jours** · `failed` : jusqu'à traitement | `completed_at` | Document `02` §6 |
 | Affaires | `billing.deals`, `deal_field_changes` | **10 ans** | `created_at` | Obligation comptable dans la plupart des pays visés. **Aucune suppression physique** (R6) |
 | **Registre chaîné** | `audit.audit_events`, `chain_checks` | **Aucune purge** | — | Une chaîne trouée n'est plus une chaîne. Pseudonyme par construction (aucun nom, aucun contenu) |
@@ -5810,7 +6096,7 @@ les préparer serait inventer.
    `accounts.email` remplacé par `deleted+<id>@invalid`, `display_name` par un libellé neutre ;
    `profiles.creator_identities` et `profiles.advertiser_contact_details` **vidées** (les lignes
    restent, les colonnes passent à `null`) ; `creator_social_accounts.handle` et `profile_url`
-   effacés ; portfolio et pièces supprimés du Storage.
+   effacés (L2D, `0219` : vitrine gardée `suspended` et non cherchable, textes vidés ; listes, publics, audience, secteurs refusés et historique des métriques supprimés ; identités vidées ; lignes de réseau gardées, handle, pseudo, URL, chiffres et date vidés) ; portfolio et pièces supprimés du Storage ; `profiles.profile_field_revisions` supprimées, textes de `advertiser_review_entries` vidés, entrée ouverte `withdrawn` (L2C, `0207`).
 3. `accounts.anonymized_at = now()`.
 4. Un événement `account.anonymized` est écrit **dans le registre**, et un événement
    `account.deleted` part dans `outbox_events` en **priorité 0** vers Brevo et Apollo — la
@@ -5834,6 +6120,7 @@ confidentialité dès le Lot 1** :
 | Ce qui survit | Sous quelle forme | Pourquoi |
 |---|---|---|
 | **La mise en relation** (`matching.introductions`) | Identifiants de comptes, pays au jour des faits, dates, référence `MER-…`. **Aucun nom** | Preuve d'intermédiation : elle fonde la créance éventuelle de la V2 et la défense d'INFLUX en cas de litige |
+| **L'examen du profil** (`profiles.advertiser_review_entries`) | Identifiants, type, état, dates, code du motif ; **aucun texte** (L2C, `0207`, `l2c/file.md` A1) | Trace d'une décision humaine (`06` RG6) ; à l'export : jamais le commentaire interne, un agent ni le verrou |
 | **L'affaire** (`billing.deals`) | Montants, devise, dates, commercial responsable | Obligation comptable. Un euro encaissé doit rester rattaché à un acte |
 | **Le registre** (`audit.audit_events`) | Identifiants et codes | Intégrité de la chaîne. Retirer une ligne casse toutes les suivantes |
 | **La conversation** (`messaging.*`) | Les messages restent, l'auteur devient « Compte supprimé » pour l'autre partie | `messaging-spec` règle 35 : conservation au titre de la constatation et de la défense de droits |
@@ -5936,7 +6223,7 @@ planificateur**.
 | `verification.badges (expires_at) where state = 'active'` | **Tâche quotidienne de péremption à 90 jours** (D34) : sans cet index, elle balaie toute la table chaque nuit |
 | `search_queries (account_id, created_at desc)` | Limitation de débit (30/h, 200/j) et détection d'affinage — lecture à **chaque** recherche |
 | `party_blocks (advertiser_account_id, creator_account_id)` **unique partiel**, `where lifted_at is null` | **Exclusion de premier rang de la recherche** (`10` RG28), évaluée pour chaque résultat. L'unicité **est** la contrainte ; l'index n'en est que l'effet |
-| `party_blocks (creator_account_id) where lifted_at is null` | Le sens inverse : « ce créateur est-il bloqué par quelqu'un ? », lu par la recherche de campagnes et par `open_introduction()` |
+| `party_blocks (creator_account_id) where lifted_at is null` (`party_blocks_creator_active_idx`, `0317`) | Le sens inverse : « ce créateur est-il bloqué par quelqu'un ? », lu par la recherche de campagnes et par `open_introduction()` |
 | `profile_field_revisions (sla_due_at) where status = 'pending_review'` | **File de validation des révisions**, triée par échéance. Index partiel : il ne contient que ce qui est en attente |
 | `campaigns (status, applications_close_on) where status = 'published'` | Le fil de campagnes côté créateur : publiées, non encore fermées aux candidatures, triées par échéance |
 | `campaigns (advertiser_account_id, status)` | « Mes campagnes » côté marque, et le plafond de 10 campagnes simultanées (`09` RG15) |
@@ -6121,15 +6408,79 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | 0203 | `profiles_creator_public` | Vitrine anonymisée et ses satellites, **les sept champs ajoutés par `07`**, `creator_tones`, `creator_usage_rights`, **`profile_status` à cinq valeurs** | Oui |
 | 0204 | `profiles_creator_identity` | Objets révélable et identifiant, `avg_reach_per_post`, **`GRANT` de révélation élargi aux chiffres exacts** (§5.2), `REVOKE` au rôle annonceur sur l'objet identifiant | Oui |
 | 0205 | `profiles_portfolio` | `portfolio_items`, compartiment `portfolio`, politiques Storage | Oui |
-| 0206 | `verification_core` | Demandes, codes, pièces (**images uniquement**), badges, contestations, motifs de refus, **`revocation_reasons`**, **état `to_reconfirm`**, **identifiant observé au constat** | Oui |
-| 0207 | `profiles_revisions` | `moderated_fields`, `profile_field_revisions`, index de file, fonction d'application d'une révision approuvée | Oui |
+| 0206 | `verification_core` | *(nom du plan d'origine ; réalisé en migrations `0221` à `0227`, voir ci-dessous)* Demandes, codes, pièces (**images uniquement**), badges, contestations, motifs de refus, **`revocation_reasons`**, **état `to_reconfirm`**, **identifiant observé au constat** | Oui |
+| 0207 | `profiles_revisions_and_review_entries` (L2C) | `moderated_fields`, `profile_field_revisions`, `advertiser_review_entries`, `advertiser_rejection_reasons`, index de file, jeton de version ; l'application d'une révision approuvée vient avec les décisions (L2C, commit 07) | Oui |
+| 0208 | `profiles_brand_logo_in_review_state` (L2C) | État `in_review` de `brand_logo_state`, seul dans son fichier : une valeur ajoutée à une énumération est inutilisable avant `COMMIT` | Oui |
+| 0209 | `profiles_brand_freeze_and_revision_door` (L2C) | Gel de `published` et `suspended`, porte membre de `06` RG9, logo en examen, `update_own_account()` recréée (§5.2) | Oui |
+| 0210 | `profiles_brand_review_decisions` (L2C) | `influx_moderation_definer` ; prise, relâche, prolongation, levée forcée, publication et refus de la file 1 ; `claim_release_reasons`, `first_published_at`, codes du registre et de la file, doublons RG25, RG70 (§5.2) | Oui |
+| 0211 | `profiles_brand_decision_email_read` (L2C) | Charge de `profile.decision` portant `email_code` (publier et refuser recréées), `leads.read_brevo_profile_decision()` du worker (§5.2) | Oui |
+| 0212 | `leads_brand_profile_attributes_read` (L2C) | `leads.read_brand_profile_attributes()` du worker : attributs de la marque pour Brevo et Apollo, droits colonne par colonne de `influx_leads_definer` (§5.2) | Oui |
+| 0213 | `profiles_brand_logo_agent_read` (L2C) | `profiles.read_advertiser_review_logo()` : lecture d'un logo par un interne, journalisée (`queue.logo_read`), clé et métadonnées pour `influx_moderation_definer` (§4.3, §5.2) | Oui |
+| 0214 | `profiles_brand_review_entries_backfill` (L2C) | Une entrée `submission` de la file 1 pour chaque profil `pending_review` soumis avant `0207` et resté sans entrée ouverte, échéances par le déclencheur ; compte supprimé exclu ; ni droit, ni fonction, ni changement d'état | Oui |
+| 0215 | `profiles_brand_review_owner_and_lock` (L2C fix-2) | L2CS-1 : l'ouverture verrouille le profil avant l'entrée ; L2CS-2 : compte détenu refusé en base (42501) par ouvrir, publier, refuser, prolonger, lire un logo, `owner_agent_id` lu par `influx_moderation_definer`, code `queue.conflict_of_interest` de `record_refused_action()` ; L2CS-3 : un membre ne change `status` que vers `pending_review` (§5.2) | Oui |
+
+| 0216 | `profiles_creator_public` (L2D) | Vitrine `creator_public_profiles` et ses cinq listes, alias tiré sans entrée, `provision_account()` recréée, reprise des comptes créateur ; aucun droit annonceur | Oui |
+| 0217 | `profiles_creator_identity` (L2D) | `creator_identities`, `creator_social_accounts`, audience exacte (trois tables), secteurs refusés, historique des métriques en ajout seul, `reference.network_url_hosts` et sa garde ; `REVOKE` explicite de `influx_advertiser` | Non |
+| 0218 | `profiles_creator_bands_and_history` (L2D) | `creator_public_networks`, `creator_public_audience`, dérivations en tranches (`SECURITY DEFINER`, `influx_identity_definer`), porte `confirm_own_creator_figures()` | Non |
+| 0219 | `privacy_creator_profile` (L2D) | Catégorie `creator_profile` de l'export et effacement dans la même transaction | Non |
+| 0220 | `profiles_network_url_authority` (L2E) | L2DS-1 : autorité stricte de `profile_url` (`^[A-Za-z0-9.-]+(:[0-9]{1,5})?$`), contrainte `_profile_url_shape` | Oui |
+| 0221 | `verification_core` (L2E) | Schéma `verification` : demandes, codes de propriété, pièces, badges, motifs fermés, sources de registre, file 4, paramètres de RG100 ; RLS forcée, aucun droit à `influx_advertiser` | Non |
+| 0222 | `verification_member_doors` (L2E) | Portes créateur et marque bornées au compte de la session, code `INFLUX-` + 8, bloc interne `profiles.advertiser_internal_details` | Non |
+| 0223 | `verification_evidence_storage` (L2E) | Compartiment `verification-evidence`, quotas, cycle de la ligne de pièce, purge, tâche `verification_expiry` | Non |
+| 0224 | `verification_claims_and_decisions` (L2E) | `influx_verification_definer` : prise, relâche, décisions, lecture de pièce journalisée | Non |
+| 0225 | `profiles_observed_figures_bands` (L2E) | Tranches publiques dérivées du badge d'audience tenant, engagement, historique `agent_observed`, L2DS-2 | Non |
+| 0226 | `privacy_verification` (L2E) | Catégorie `verification` de l'export et effacement dans la même transaction | Non |
+| 0227 | `leads_verification_email_reads` (L2E) | Lectures du worker `read_brevo_verification_email` et `read_verified_badge` | Non |
+| 0228 | `verification_observed_handle_match` (L2F) | `verification.normalize_handle()` (IMMUTABLE) ; les deux octrois comparent constaté et déclaré, 22023 `observed_handle_mismatch` (L2ES-2) | Non |
+| 0229 | `verification_registry_sources_by_subdivision` (L2F) | `registry_sources.subdivision_code`, `verification.add_registry_source()` (admin), codes refusés de `record_refused_action()` (L2E-US, L2ES-3, EC-L2C-fix-2-2) | Non |
+| 0230 | `verification_badge_lifecycle` (L2F) | TM5.3 : `ops.run_badge_lifecycle()`, `ops.purge_verification_findings()`, `reminder_sent_at`, `ended_at`, `badge_reminder_days` | Non |
+| 0231 | `verification_badge_revocation` (L2F) | TM5.4 : `badge_revocation_requests`, `request_badge_revocation()`, `revoke_badge()`, enveloppes 2V `backoffice.*_for`, `revocation_reasons.levels` ; PLT-5, PLS-5, PLS-6 | Non |
+| 0232 | `verification_badge_disputes` (L2F) | File 5 : `disputes`, `dispute_reasons`, `dispute_outcome_reasons`, `badges.dispute_id`, `dispute_reflection_hours` | Non |
+| 0233 | `verification_identifier_changes` (L2F) | File 6 : `identifier_change_reviews`, déclencheurs sur `handle` et sur la suppression de ligne | Non |
+| 0234 | `verification_agent_opening` (L2F) | D83 : `opened_by`, `opening_reasons`, `open_request_for_member()`, A-bis (`login_domain_of()`, `consumer_email_domains`, `grant_brand_verified_by_login()`) | Non |
+| 0235 | `privacy_verification_l2f` (L2F) | Export et effacement des tables neuves, purge recréée | Non |
+| 0236 | `leads_badge_email_reads` (L2F) | Lectures du worker `read_brevo_badge_email()` et `read_brevo_verification_email()` recréée | Non |
+| 0237 | `profiles_badge_grace_read` (L2F) | `profiles.read_badge_grace_days()` (rôles membres, un entier de réglage) | Non |
+| 0238 | `verification_contestable_read` (L2F) | `verification.read_own_contestable_decisions()` (créateur) | Non |
+| 0239 | `verification_account_openings_read` (L2F) | `verification.read_account_openings()` (agent, admin) | Non |
+| 0240 | `profiles_badge_reminder_read` (L2F) | `profiles.read_badge_reminder_days()` | Non |
+| 0241 | `verification_decision_origin` (L2F) | `verification.granted`, `rejected` et `closed` portent `channel`, `agent_opened`, `responsible_agent` (L2FS-1) | Non |
+
+> **Numéros réels du L2B (EC-L2B-1).** `check-migrations.ts` impose l'ordre des noms : L2B a pris `0202` `profiles_advertiser_full`, `0203` `profiles_advertiser_submission` (soumission gardée par la base), `0204` `profiles_brand_logo_storage` (compartiment `brand-logo`, quotas, politiques Storage) et `0205` `ops_storage_purge`. Les lignes `0203` à `0207` ci-dessus prennent les numéros libres suivants au jalon qui les livre. **L2C** prend `0206` `backoffice_profiles_advertiser_queue` : file 1 et son délai (escalade 960, `15` RG29), `backoffice.operational_settings` (EC-L2C-2), `backoffice.business_deadline()` (§5.6), puis `0207` ci-dessus.
 | **Lot 3** | | | |
-| 0301 | `campaigns_core` | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** | Oui |
-| 0302 | `campaigns_publication` | `campaign_published_snapshots`, `campaign_price_bands`, fonction de publication (dérivation des tranches, contrôle des dates, revue renforcée à deux validateurs) | Oui |
-| 0303 | `search_journal` | `search_queries` (**tri et version des facettes compris**), `search_impressions`, `explanation_reasons`, `impression_reasons`, `shortlists` | Oui |
-| 0304 | `search_settings` | `search_settings`, `facet_settings`, `facet_config_versions`, `supply_counters`, fonction d'écriture réservée à `influx_admin` | Oui |
-| 0305 | `matching_party_blocks` | **`block_reasons`, `party_blocks`** et leurs politiques — au Lot 3, parce que la recherche en dépend | Oui |
-| 0306 | `backoffice_operational_settings` | Table clé/valeur des plafonds et délais d'exploitation + valeurs de départ (`11` P1 à P4, `09` RG15, RG88, `08` RG100) | Oui |
+| 0301 | `profiles_lot2_carry_over` (L3A, EC-L3A-1) | `profiles.publish_creator_review_entry()` refuse en 55000 un compte non `active` ; deux index partiels sur `advertiser_duplicate_candidates()` ; `normalized_brand_name` accordée aux quatre écrivains | Non |
+| 0302 | `audit_export_allowlist` (L3A, F3) | `audit.event_types.export_class` (`not null`, sans défaut) ; `activity_log` de l'export « mes données » filtré sur `exported` | Oui |
+| 0303 | `campaigns_core` (L3B) | `reference.campaign_types`, campagnes (**six états, quatre textes, dotation, droits d'usage, quatre dates, nature de la rémunération, tranche de budget par créateur en colonne**), livrables, ciblage détaillé, messages clés, territoires, éléments demandés, motifs de refus, **types d'événements `campaign.*`** ; RLS forcée, gel hors `draft` et `rejected` | Oui |
+| 0304 | `reference_price_bands_grid` (L3B) | Grille de `reference.price_bands` : cinq devises × dix tranches contiguës (`archives/jalons/l3b/tranches.md`), nets nuls | Oui |
+| 0305 | `campaigns_submission` (L3B) | `influx_campaign_definer`, `campaigns.submit_own_campaign()`, règle de parité des obligatoires, déclaration RG85, vue créateur `campaign_creator_view()`, `campaign.submitted` | Oui |
+| 0306 | `privacy_campaigns` (L3B) | Campagnes dans l'export « mes données » et l'effacement (`privacy.*` recréées depuis `0302`) | Non |
+| 0307 | `campaigns_review_queue` (L3C) | File 7 `campaign_review_entries`, délais et réglages (`campaign_enhanced_review_minutes`, `campaign_live_cap`, `campaign_auto_close_days`), `influx_campaign_review_definer`, verrou, plafond RG15, alerte RG95, garde de gel en liste fermée de rôles (L3BS-2) ; ajoute ces clés à `operational_settings` (`0206`, EC-L3C-1) : le `0311` initial de ce tableau (plafonds d'exploitation) est absorbé pour les clés des campagnes, les autres clés restent à ajouter à leur lot | Oui |
+| 0308 | `campaigns_publication` (L3C) | `campaign_published_snapshots` (= vue créateur, version, empreinte), portes de publication et de refus (CA48, TM5.1, TM5.6), `campaign.published` ; **`campaign_price_bands` n'est pas créée tant que D78 tient** (`archives/jalons/l3b/modele.md` §1) | Oui |
+| 0309 | `campaigns_lifecycle` (L3C) | Pause, reprise, clôture (marque, agent, système), `campaigns.agent_interventions`, création et correction par un agent (RG94) | Oui |
+| 0310 | `privacy_and_leads_campaigns` (L3C) | Campagnes dans l'export et l'effacement, journal d'activité des décisions d'agent (L3BS-5), lectures `leads.*` | Non |
+| 0311 | `leads_campaign_decision_journal` (L3C) | `campaign.decision` journalisé sous son code de catalogue (arbitrage A2) | Oui |
+| 0312 | `campaign_review_entries_read_policy` (L3C) | Politique de lecture de la file 7 : une entrée ouverte sans avis est visible (arbitrage A3) | Oui |
+| 0313 | `campaign_one_person_review` (L3C) | D84 : un secteur sensible est publié par une seule personne, second avis facultatif, `review_mode` au registre | Oui |
+| 0314 | `search_open_campaigns` (L3D, EC-L3D-1) | `influx_campaign_feed_definer`, portes `search.read_open_campaigns()`, `read_open_campaign()`, `read_open_campaign_brand_logo()` (`EXECUTE` créateur seul), prédicat `visible_campaigns()`, journal `creator_campaign_reads`, cinq réglages du fil et du débit, `campaigns_feed_idx` ; export et effacement (`privacy.*` recréées depuis `0310`) | Oui tant qu'aucune ligne n'est journalisée |
+| 0315 | `search_campaign_read_bucket_bounded` (L3E, EC-L3E-1) | Dette L3DS-1 : index partiel `creator_campaign_reads_bucket_idx` hors `rate_limited`, une ligne `rate_limited` au plus par compte et fenêtre ; `campaign_read_retry_after()` recréée (mêmes entrées, deux colonnes de sortie), `read_open_campaigns()` et `read_open_campaign()` recréées à signature égale | Oui |
+| 0316 | `search_journal_and_settings` (L3E, EC-L3E-1) | `search_queries` (**tri, version des facettes et issue compris**), `search_impressions`, `explanation_reasons` (`kind`), `impression_reasons`, `creator_exposures`, `shortlists`, `shortlist_items` (aucun droit membre) ; et les réglages : `search_settings` (huit clés), `facet_settings`, `facet_config_versions` (version 1), `supply_counters`, `result_count_band()` ; `influx_search_admin_definer`, `write_search_setting()` et `write_facet_setting()` (`EXECUTE` à `influx_admin` seul, `search.settings_changed`) | Oui tant qu'aucune recherche n'est journalisée |
+| 0317 | `matching_party_blocks` (L3E) | **`block_reasons`** (vide), **`party_blocks`** (un actif par paire, levée conservée, né actif), `check_party_block()` et `guard_party_block_write()`, RLS forcée sans droit membre, agent ni administrateur ; lecture de la paire par `influx_campaign_feed_definer` ; `search.visible_campaigns()` recréée à signature égale, la paire bloquée exclue dans les deux sens | Oui tant qu'aucun blocage n'est posé |
+| 0318 | `privacy_search_and_blocks` (L3E) | `privacy.export_document()` et `execute_request()` recréées depuis `0314` à signature égale : recherches, sélections et blocages posés par le membre à l'export, recherche et blocages du compte supprimés à l'effacement ; droits de `influx_privacy_definer` (colonnes lues, `DELETE` sur un compte `deleted`, `result_count_band()`) | Oui tant qu'aucune recherche, sélection ni blocage n'est écrit et aucun compte effacé |
+| 0319 | `search_creator_search_door` (L3E) | `influx_creator_search_definer`, porte `search.search_creators()` (`EXECUTE` marque seule), aides invoker `require_creator_searcher()`, `creator_search_retry_after()`, `check_creator_search_filters()`, moteur `creator_candidates()` (E1 à E6, filtres du socle, vue identifiée 0A000) ; `profiles.creator_layer_a()`, source unique de la couche A (aperçu et carte) ; droits colonne par colonne et politiques du propriétaire (couche A publiée et cherchable, paire des blocages actifs, journal en insertion) ; `USAGE` sur `search` à `influx_advertiser` | Oui tant qu'aucune recherche n'est journalisée |
+| 0320 | `search_creator_order_and_reasons` (L3E) | Aide invoker `search.creator_order()` (paliers 1 à 8, tris du pilote, quota froid en page 1, raisons et note de la page) ; porte `search_creators()` recréée à signature égale (impressions avec `cold_quota` et note, `impression_reasons` écrites dans la transaction qui sert) ; droits du propriétaire : `cold_profile_quota`, `first_page_at`, livrables et pays visés de ses campagnes, insertion des raisons ; une version de `facet_config_versions` (RG88) | Oui tant qu'aucune recherche n'est journalisée |
+| 0321 | `search_creator_search_volume_alert` (L3E, AL21, I-9) | Seuils d'AL21 en table (`alert_definitions`, hypothèse `{150, 8000}`, à fixer par le fondateur : L3ES-3), `search.creator_search_volume_alerts()` (`SECURITY DEFINER`, `EXECUTE` à `influx_admin` seul) : compte, cause, nombre et date, sans filtre ni profil ; état dérivé ; propriétaire `influx_search_admin_definer` en lecture seule |
+| 0322 | `search_creator_search_admitted_campaign` (L3F, L3ES-1) | Aide invoker `search.is_admitted_campaign()` (`l3f/modele.md` §1) : campagne d'origine admise si de la marque, non effacée, `pending_review`, `published`, `paused` ou `closed` ; `draft` et `rejected` répondent comme une campagne inconnue (P0002, rien écrit ni décompté) ; moteur `creator_candidates()` (E6 : secteur d'une campagne admise seule) et porte `search_creators()` recréés à signature égale ; `SELECT (status)` sur `campaigns.campaigns` au propriétaire | Oui tant qu'aucune recherche n'est journalisée |
+| 0323 | `search_creator_profile_door` (L3F, signalé I-4) | Table `search.profile_openings` (§5.5 ; ajout seul, RLS forcée, aucun droit membre) ; portes `search.open_creator_profile(alias)` (RG1, interrupteur, seau `profileOpensPerDay`, alias membre du moteur avec la campagne d'origine admise, sinon P0002 `creator` unique ; ouverture journalisée et impression d'origine ouverte une fois dans la transaction qui sert ; carte de `creator_layer_a()` et région) et `search.read_creator_visual(alias, visuel)` (objet d'un visuel approuvé relu par `apps/api`, jamais servi), `EXECUTE` à `influx_advertiser` seul ; aides invoker `displayed_region()` (seuil sur E1 à E4) et `creator_open_retry_after()` ; droits du propriétaire : région, clé et côtés des visuels approuvés, `region_display_threshold`, filtres et campagne de ses recherches, ouverture de leurs impressions | Oui tant qu'aucun profil n'est ouvert |
+| 0324 | `search_brand_shortlists` (L3F, signalé I-4) | Clé `selection_limits` de `search_settings` (neuvième, `CHECK` et zod) ; huit portes des sélections par alias (`create_shortlist`, `update_shortlist`, `delete_shortlist`, `add_to_shortlist`, `set_shortlist_note`, `remove_from_shortlist`, `list_shortlists`, `read_shortlist`), `EXECUTE` à `influx_advertiser` seul, derrière la garde (42501, RG1, interrupteur) ; ajout d'un alias listé par le moteur avec la campagne de la liste et déjà servi à l'appelant, sinon P0002 `creator` unique ; liste d'autrui P0002 `shortlist` ; bornes 54000 ; masqués sans trace ; six aides invoker ; droits du propriétaire sur les seules listes de l'appelant, le créateur de ses ouvertures, `selection_limits` ; rien vers l'outbox, `matching.*` ni l'audit | Oui tant qu'aucune sélection n'est écrite par une porte |
+| 0325 | `search_selection_requests` (L3F, signalé I-4) | Table `search.selection_requests` (§5.5 ; RLS forcée, aucun droit membre) ; porte `search.request_team_selection(p_filters, p_campaign_id, p_message)`, `EXECUTE` à `influx_advertiser` seul : RG1, interrupteur et seuil ignorés (RG61), `requestsPerDay` sur 24 h (`rate_limited`, rien écrit), filtres (22023), campagne admise (P0002 `campaign`), message 1 à 1 000 (22023), langue de la marque, `sla_due_at` par `business_deadline()` ; code `search.selection_requested` (`exported`) ; file 9 `team_selection` et son délai provisoire (480, prise 240) ; garde du journal étendue aux ouvertures ; E-5 : export `advertiser_profile.selection_requests`, effacement des ouvertures et des demandes. Ni `matching.*`, ni outbox, ni e-mail (D45, CA64) |
+| 0326 | `search_abuse_alerts` (L3F, AL21, signalé I-4) | Causes d'AL21 ajoutées (`l3f/modele.md` §7) : `refinement` (CA45 : 6 dernières recherches neuves, une facette d'écart par paire, 2 sous k), `aspiration` (CA46 : créateurs ouverts distincts des comptes sans ajout ni demande sur 24 h, ensemble, au seuil 150 ; une ligne par compte), `open_cap_share_day` ; ouvertures comptées dans `distinct_profiles_served` et `rate_limited` ; trois seuils ajoutés à `alert_definitions` sans écraser ; `creator_search_volume_alerts()` recréée à signature égale ; propriétaire `influx_search_admin_definer` en lecture seule (filtres comparés jamais servis, ouvertures, date d'ajout d'une sélection, date d'une demande ; ni nom, note, message ni créateur listé) | Oui (alerte dérivée, rien à migrer) |
+| 0327 | `search_doors_hide_an_exclusion` (L3G, L3FS-1 à L3FS-3, D85, signalé I-4) | Portes recréées à signature, propriétaire et `EXECUTE` égaux : `open_creator_profile()` et `read_creator_visual()` lancent le moteur (et la recherche de l'impression d'origine) que l'alias désigne une vitrine ou non (remplaçant qui ne désigne personne) ; `remove_from_shortlist()` retire par `shortlist_creator()`, un masqué reste (EC-D85-1), réponse `removed` inchangée ; tout verrou consultatif par compte de `search` (`campaign_read_retry_after`, `creator_search_retry_after`, `creator_open_retry_after`, six écritures des sélections, `request_team_selection`) attendu 1 s au plus (`lock_timeout` posé pour le seul verrou, 55P03) ; moteur avant le verrou dans le profil (seau lu d'abord sans verrou, recompté sous lui), `add_to_shortlist`, `set_shortlist_note`, `remove_from_shortlist` (liste relue sous le verrou, moteur relancé si la campagne a changé) | Oui |
+| 0328 | `search_identified_creator_search_door` (L3G, signalé I-4) | Rôle `influx_agent_search_definer` (P7) ; porte `search.search_creators_identified(p_filters, p_sort, p_page, p_campaign_id, p_prefill_id)`, `EXECUTE` à `influx_agent` et `influx_admin` seuls (`influx_advertiser`, `influx_creator` : 42501) : appelant agent ou admin actif en `aal2` (42501), tri, page 1 à 50, filtres du socle et G1, G2, G8, G9, G10 (22023), campagne admise de toute marque (P0002 `campaign`), pré-remplissage 0A000 jusqu'à `0329`, `page_cap` au-delà de `identified_view.maxPages` ; moteur `creator_candidates()` recréé à signature égale avec la seconde requête `agent_identified` (E1 levée, E2 à E4, E5 affichée, E6 pour la marque de la campagne), ordre `creator_order()` tel quel ; ni interrupteur, ni k, ni seau, ni verrou ; réponse `{state, total (exact), page, nextPage, capReached, rows}` (identités, états, résidence, responsable, secteurs refusés, blocage sans motif, lignes de réseau aux chiffres exacts de la fiche, part exacte de l'audience ; jamais coordonnée, adresse, tarif ni budget) ; journal nominatif (ligne, impressions, raisons), jamais `creator_exposures` ; clé `identified_view` ; AL21 recréée à signature égale, vue marque seule (EC-L3G-5) | Oui tant qu'aucune recherche identifiée n'est journalisée |
+| 0329 | `search_campaign_brief_prefill` (L3G, signalé I-4) | Table `search.campaign_prefills` (§5.5 ; RLS forcée, aucun droit membre ni d'exécution, ajout seul, codes seuls par CHECK) ; `search_queries.prefill_id` (nul hors vue identifiée et sans campagne) ; porte `search.prefill_campaign_filters(p_campaign_id)`, `EXECUTE` à `influx_agent` et `influx_admin` seuls : appelant de la vue identifiée (42501), campagne admise de toute marque (P0002 `campaign`), F1, F3, F4, F6 `{country}`, F8, F11 tirées du brief (facette fermée omise ; jamais F17, droits, exclusivité, âges, tranche ni budget), entrée fermée du socle, ligne proposée ; réponse `{prefillId, campaign: {id, title}, filters}` ; `search.prefill_diff()` (IMMUTABLE, sans droit) ; porte identifiée recréée à signature égale : le 0A000 devient P0002 `prefill` (de l'appelant, de la campagne, moins de 24 h), `prefill_id` journalisé ; propriétaire agent : titre, rangs des pays, thématiques, tranches et langues des campagnes admises | Oui tant qu'aucun pré-remplissage n'est proposé |
+| 0330 | `search_team_selection_queue` (L3G, signalé I-4) | File 9 : `search.selection_requests` + prise (`claimed_by_account_id`, `claimed_at`, `claim_expires_at`) et clôture (`closed_at`, `closed_by_account_id`, `close_reason_code` parmi six motifs de la liste A, `close_note` 10 à 500 ssi `other`), `state` `open` ou `closed` ; `SELECT` de toutes les colonnes à `influx_agent` et `influx_admin` en `aal2` ; portes `open_team_selection_request`, `release_team_selection_request`, `extend_team_selection_claim`, `close_team_selection_request` (propriétaire `influx_agent_search_definer`, `EXECUTE` aux agents et admins seuls ; verrou `claim_expiry_minutes` ; 42501 inconnue ou marque détenue, 55000 `entry_closed`, 55P03 `no_live_claim`, 22023 `reason`, `note`) ; registre `queue.*` et `search.selection_request_closed` (`exported`) ; AL23 (`etat`, agents et admins, `sla_due_at`) ; ni outbox, ni `matching.*`, rien à la marque | Oui tant qu'aucune demande n'est prise |
+| 0331 | `search_supply_counters_and_alerts` (L3G, signalé I-4) | Tâche `supply_counters` (`ops.periodic_task`, quotidienne) ; `ops.compute_supply_counters(run, attempt)` (propriétaire `influx_maintenance_definer`, `EXECUTE` à `influx_worker` seul ; 55000 hors exécution ouverte) remplace les lignes du jour de `search.supply_counters` (`global`, `topic`, `country` ; publié E1, E3, E4, cherchable + E2), jamais `search_settings` ni la couche I ; AL65 (`etat`, `{admin}`, `staleAfterHours` 26) et AL22 (`etat`, `{admin}`, `blockedShareBp` 2000, `windowDays` 7, `minSearches` 20) en catalogue ; lecteurs `search.critical_mass_alerts()` et `search.read_supply_counters()` (propriétaire `influx_search_admin_definer`, `EXECUTE` à `influx_admin` seul, `aal2`) ; seuils d'ouverture de `critical_mass_thresholds` seuls (D38 Q2) | Oui (dérivé) ; la valeur `supply_counters` de l'énumération reste |
+| 0332 | `search_settings_dual_control` (L3G, signalé I-4) | D84, L3ES-2 soldé : `search.change_setting` et `search.change_facet` dans la liste fermée de `dual_control_requests` ; `canonical_dual_control_payload()` les forme (`{key, value}`, `{facet_code, is_open, display_order}`, formes seules, la ligne vérifiée par l'écrivain) et les refuse sans pair (`has_peer_admin`) ; `consume_dual_control_for()` les accepte, `EXECUTE` en plus à `influx_search_admin_definer` ; `write_search_setting(p_session_id, p_dual_control_request_id, p_key, p_value, p_reason_code)` et `write_facet_setting(…, p_code, p_is_open, p_display_order, p_reason_code, p_note)` remplacent les signatures de `0316` : 42501 appelant, 22023 entrées, ligne et motif, puis 2V consommée par son confirmateur avec R, `degraded_single_operator` refusé (42501) ; version et `search.settings_changed` inchangés, plus `dual_control_request_id` et `dual_control` | Oui tant qu'aucun réglage n'est écrit sous 2V |
+| 0333 | `search_settings_reader` (L3G, signalé I-4) | `search.read_search_settings()` : `STABLE SECURITY DEFINER`, `search_path = ''`, propriétaire `influx_search_admin_definer`, `require_search_admin()` en tête (42501 hors admin actif en `aal2`), `EXECUTE` à `influx_admin` seul ; rend `(key, value)` des dix clés, triées par clé (le propriétaire n'a que `SELECT (key, value)` depuis `0316` ; qui et quand dans `audit.*`, EC-L3G-08b-1) ; aucun droit de table ni de colonne, aucune facette, aucune écriture | Oui (rien de stocké) |
 | **Lot 4** | | | |
 | 0401 | `matching_introductions` | `introductions` (**`expiry_reason` à sept valeurs**, **`proposal_batch_id`**, **les cinq colonnes de refus de partie**), `rejection_reasons` (**`is_correctable`**, + le code `declined_by_party`), **`decline_reasons` (liste B)**, **`introduction_transitions` et son déclencheur**, `interest_submissions` et leurs formats, compteur de référence, contraintes, write-once, **les 18 codes `introduction.*` de `audit.event_types`** | **Partiellement** : le schéma s'annule, la preuve non |
 | 0402b | `matching_quotas_and_drafts` | `application_quotas`, `application_drafts` et leurs formats, déclencheurs de comptage, contraintes de plafond, purge | Oui |
@@ -6143,10 +6494,12 @@ La ligne vivante reste la source de vérité ; l'instantané est une preuve.
 | **Lot 5** | | | |
 | ~~0501~~ | ~~`billing_deals`~~ | **Supprimée le 2026-09-19 : son contenu est passé en `0402a`** (Lot 4). Le Lot 5 n'apporte **aucune table `billing` nouvelle** — seulement les écrans de saisie du pipeline | — |
 | 0501 | **`billing_commission_receipts`** | **`commission_receipts`** append-only, ses contraintes, son index, le déclencheur qui maintient `deals.commission_received_total_minor` (`14` E1) | Oui tant qu'aucun règlement réel n'existe ; **non** ensuite |
-| **0503** | **`backoffice_email_sending`** | **`email_templates`**, **`brevo_allowed_segments`**, **`email_send_transitions`** et son déclencheur, les **onze colonnes** de `email_sends`, la **réécriture de l'unicité** de `email_send_recipients` et ses deux index, les **trois plafonds** de `email_send_limits`, la clé `email_kill_switch` | Oui |
+| **0503** | **`backoffice_email_sending`** | **`email_templates`**, **`brevo_allowed_segments`**, **`email_send_transitions`** et son déclencheur, les **onze colonnes** de `email_sends`, la **réécriture de l'unicité** de `email_send_recipients` et ses deux index, les **trois plafonds** de `email_send_limits`, la clé `email_kill_switch` (ajoutée à `backoffice.operational_settings` de `0206`, jamais recréée) | Oui |
 | 0502 | `backoffice_operations` | Notes **avec `subject_type`, auteur et ajout seul**, **`suspension_reasons`** et **`suspension_lift_reasons`**, suspensions, **`exports`**, plafonds et envois d'e-mails, demandes RGPD **complétées** (`15`, écart 4), **les 14 codes `account.*`, `ownership.bulk_transferred`, `export.produced` et `privacy.*`** | Oui |
 | **Lot 6** | | | |
 | 0601 | `retention_jobs` | Fonctions de purge, index de purge manquants | Oui |
+
+> **Numéros réels du L3E (EC-L3E-1).** `0315` est prise par la dette L3DS-1, en tête du jalon : le journal de recherche et les réglages (anciens `0315` et `0316`) passent ensemble en `0316`, `0317` reste aux blocages ; suivent `0318` (export et effacement), `0319` (porte de recherche anonymisée) et `0320` (tri explicable) et `0321` (alerte AL21, I-9), décrits par `archives/jalons/l3e-fiche.md`.
 
 > **Numérotation (EC-37, tranché le 2026-09-28).** Un numéro est un **ordre d'application** : la CLI Supabase n'applique pas une migration plus ancienne que la dernière appliquée. Les migrations du J3 prennent donc `0010` à `0015` (suite du Lot 0) ; **l'ancien `0108` du J3 n'existe plus** (son contenu est dans `0014` et `0015`) ; le numéro sert à `0108_identity_terms_public_read` (J5, EC-62) et la série du Lot 1 s'applique dans l'ordre de ses numéros ; **`0102` et `0107`, écrites après `0128`, sont devenues `0129` et `0130`** (J8). **`0101` ajoute la clé étrangère** `leads.transactional_sends.outbox_event_id → leads.outbox_events(id)`. Même règle au Lot 4 pour `0402a`, `0402b`, `0402c` (EC-32).
 
@@ -6260,7 +6613,7 @@ comporte pas de manque ; chacun peut être rouvert par son arbitre.
 | 7 | **`search.impression_reasons`** | Raisons **conservées** avec leurs paramètres en codes et tranches, jamais en valeurs exactes. Double finalité déjà signalée au §12.2 point 5 : cette table l'étend | `expert-conformite-rgpd` — **veto** |
 | 8 | **`reach_band` réutilise `reference.audience_bands`** | Réutilisé plutôt que créer un référentiel de portée : un vocabulaire unique pour deux comptages de personnes. **À confirmer** — une portée moyenne et un nombre d'abonnés n'ont pas les mêmes ordres de grandeur, et des bornes mal calibrées rendraient la facette inutile | `expert-matching` + `product-owner` |
 | 9 | **Bornes de `reference.engagement_bands`** | Un référentiel **global**, en points de base. Un taux d'engagement « bon » n'a pourtant pas la même valeur selon le réseau : la calibration par réseau est possible sans changement de schéma (colonne `network_code` à ajouter) | `expert-matching` |
-| 10 | **Second validateur de la revue renforcée** | `09` RG85 autorise « un admin, ou un agent approuvé par un second rôle interne distinct » ; `03` §3.2 impose la double validation administrateur. La base exige seulement **deux personnes distinctes**, la règle plus stricte est appliquée par la fonction de publication | `expert-cybersecurite` — **veto** |
+| 10 | **Second validateur de la revue renforcée** | *Amendé par D84 (2026-11-16) : une personne publie, second avis facultatif, déclaration de la marque exigée ; aucune double validation obligatoire. La base n'exige plus deux personnes (`0313`). **Levée du veto : à écrire par le fondateur dans D84 (6) avant `production`** ; l'expert sécurité y est favorable sous deux conditions : contrôle a posteriori en place (requête de runbook sur les `campaign.published` de secteur sensible en `review_mode='single'` et les `campaign.corrected` de `product_sector` sur une campagne `pending_review`, revue hebdomadaire par un administrateur) et levée écrite.* Historique : `09` RG85 autorisait « un admin, ou un agent approuvé par un second rôle interne distinct » ; `03` §3.2 imposait la double validation administrateur | `expert-cybersecurite` — **veto** |
 | 11 | **Emplacement des paramètres d'exploitation** | `backoffice.operational_settings` (§5.10), clé/valeur à liste fermée, sur le modèle éprouvé de `leads.sync_settings`. Les SLA restent dans `backoffice.sla_policies`, les réglages de recherche dans `search.search_settings` | `architecte` + `chef-de-projet` |
 
 **Écarts signalés par les spécifications et *non* traités dans cette version**, parce qu'ils
@@ -6343,6 +6696,8 @@ Ajoutés par la revue de cohérence (`archives/19-revue-de-coherence-2026-09-24.
 | 10 | **D55** — source d'acquisition (`05` RG120 à RG122) | Colonnes figées à la création du compte : `utm_source`, `utm_medium`, `utm_campaign`, domaine d'origine, code d'invitation, réponse déclarative (liste fermée en référentiel) ; jamais modifiées | `expert-database` + `expert-conformite-rgpd` |
 
 ### 12.12 Points ouverts par l'arbitrage du fondateur du 2026-09-25 — D61, métriques prioritaires des créateurs
+
+> **Réalisé au L2D (`0217`, `0218`) :** les points 1, 2, 6 et 7 sont en base (colonnes nullables en brouillon sous Q15, `comment_band` nullable, historique `creator_network_metrics_history`, date posée par la seule porte `confirm_own_creator_figures()`, non par `packages/domain`) ; les points 3 et 4 sont en référentiel depuis `0201` ; le point 5 est réalisé à L2E (`0221`, `0224`, `0225`).
 
 Décision **prise** : pour chaque réseau, INFLUX suit en priorité la **taille de la communauté**, le
 **rythme de publication** et le **nombre moyen de commentaires par publication** (`07` §E bis, RG113

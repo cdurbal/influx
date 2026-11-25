@@ -70,6 +70,22 @@
     );
   }
 
+  /*
+   * The action bar of a long form on a phone (17 §4.2, "barre d'action collante"): it sticks just
+   * above the bottom navigation, gesture zone included, and a focused field is never scrolled under
+   * it (WCAG 2.4.11). From lg the bar is hidden by its own classes.
+   */
+  [data-action-bar] {
+    bottom: calc(var(--size-nav-bottom-height) + env(safe-area-inset-bottom));
+  }
+
+  html:has([data-action-bar]) {
+    scroll-padding-bottom: calc(
+      var(--size-nav-bottom-height) + var(--size-button-md) + var(--spacing-8) +
+        env(safe-area-inset-bottom)
+    );
+  }
+
   /* Page scroll is locked while the mobile menu is open (02 §3.2). */
   html[data-mobile-menu="open"] {
     overflow: hidden;

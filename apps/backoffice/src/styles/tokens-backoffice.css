@@ -3,8 +3,9 @@
  * rail, the dense table row, its cells and the in-row control. Names carry `-bo-` and nothing else
  * is declared here (G3f); none of them exists in apps/web. They hold lengths, and one effect
  * derived from the brand green (the row line), so there is no new color to compute against the KEO
- * surfaces: the colors of the backoffice (§6.2 to §6.4) are added with the screens that consume them. Cell padding is an alias of the shared scale, which
- * tokens.css declares first.
+ * surfaces: the colors of the backoffice (§6.2 to §6.4) are added with the screens that consume them (the
+ * identified view's two, with L3G-12). Cell padding is an alias of the shared scale, which tokens.css
+ * declares first.
  */
 @theme static {
   /* Dense table row: 36 px (17b §6.1). Never outside a table of the backoffice. */
@@ -29,6 +30,62 @@
    */
   --effect-bo-row-indicator: inset var(--border-width-thick) 0 0
     var(--color-brand-primary);
+
+  /*
+   * The identified view (17b §4.9, §6.2; 20 §11.3, values validated at 17b V1): the fifth hue, with no
+   * other use, never an action, a success or an alert, and never in apps/web. Contrasts computed in 17b §6.2
+   * (the accent on the page 7.24, on the card 6.80, on the soft ground 6.75; the primary text on it 16.93).
+   * The bar is 4 px, a form that survives a cropped capture: the width of the thick border is 2 px, so
+   * the bar has its own length, an alias of the shared scale.
+   */
+  --color-bo-identified-accent: #a78bfa;
+  --color-bo-identified-bg: #17121f;
+  --spacing-bo-identified-bar: var(--spacing-1);
+
+  /*
+   * The Lot 3bis (D88, RUA-01; 20 §11.5): the panel of a record (6, 17) and of a decision (5), the grids of
+   * its checks, its timeline and its synchronisation, the dense choice, the code of an alert, the key,
+   * the thumbnail of a record, the labels of a list of properties by role (RU-16). Lengths only, no color.
+   */
+  --spacing-bo-panel-w: 22rem;
+  --grid-bo-panel: minmax(0, 1fr) var(--spacing-bo-panel-w);
+  --grid-bo-check: 9.5rem minmax(0, 1fr) 12rem;
+  --grid-bo-timeline: 7.5rem minmax(0, 1fr);
+  --grid-bo-sync: 4rem minmax(0, 1fr);
+  --size-bo-choice-dense: 1.125rem;
+  --size-bo-alert-code: 3.25rem;
+  --size-bo-kbd: 1.375rem;
+  --size-bo-thumb-min: 7rem;
+  --size-bo-label-identified: 6rem;
+  --size-bo-label-compact: 7rem;
+  --size-bo-label-side: 7.5rem;
+  --size-bo-label-decision: 8rem;
+  --size-bo-label-dual-control: 10rem;
+
+  /* The identified search: the column of the facets, then the results (17b §3.3); one column below `lg`. */
+  --spacing-bo-facets-w: 18rem;
+  --grid-bo-identified: var(--spacing-bo-facets-w) minmax(0, 1fr);
+}
+
+/*
+ * The widths of the backoffice's forms and pages (D88): in :root, like every --container-* (container-max,
+ * G3i a: a Tailwind namespace that Tailwind would inscribe, so never in @theme here and never under KEO).
+ */
+:root {
+  --container-bo-form: 52rem;
+  --container-bo-page: 60rem;
+}
+
+/*
+ * The wide window of the backoffice (RU-03, D88): from 1536 px, where the panel of a record sits beside its
+ * content. Declared here, not in the --breakpoint-* list of tokens.css (CA22: that list is the shared one).
+ * Tailwind emits the custom variants after the breakpoints, in file order: `bo-wide:` follows `2xl:`, and
+ * `bo-small:` below it wins in a window that is wide and low. Declared before `bo-small`, and used by no screen yet.
+ */
+@custom-variant bo-wide {
+  @media (width >= 1536px) {
+    @slot;
+  }
 }
 
 /*

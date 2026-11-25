@@ -236,6 +236,11 @@ export async function seedDemoAccounts(
       }
       await tx`insert into identity.account_roles (account_id, role)
                values (${accountId}, ${account.role}::identity.account_role)`;
+      // Like a real sign-up (05 RG11): a brand always holds its profile, else M2 answers 404.
+      if (account.role === "advertiser") {
+        await tx`insert into profiles.advertiser_profiles (account_id, legal_name)
+                 values (${accountId}, ${account.displayName})`;
+      }
       if (account.enrollmentToken === null) {
         const terms = termsOf.get(account.role);
         if (terms === undefined) {

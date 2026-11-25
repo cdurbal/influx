@@ -1,6 +1,7 @@
 ---
 name: contract-commission
 description: Appliquer la commission INFLUX de 35 % (part annonceur 20 % + part créateur 15 %) — calcul, arrondi, historisation des taux, net créateur, devise, pays ouverts, structure du contrat d'intermédiation, facturation, encaissement et reversement via le prestataire de paiement. À utiliser pour toute fonctionnalité touchant un montant, un contrat, une facture, un paiement ou un reversement.
+disable-model-invocation: true
 ---
 
 # Commission 35 % et contractualisation

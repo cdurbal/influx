@@ -2,7 +2,14 @@
 // which entries a role sees, in which order, and which one is active. Pure functions, tested alone
 // (tests/member-nav.test.ts); the shell (src/components/member/MemberShell.tsx) only draws them.
 import type { SignupDoor } from "@influx/contracts/auth";
-import { ACCOUNT_PAGES, type MemberPage } from "./member-paths";
+import {
+  ACCOUNT_PAGES,
+  accountPagesOf,
+  CAMPAIGNS_PAGE,
+  CREATORS_PAGES,
+  PARENT_PAGES,
+  type MemberPage,
+} from "./member-paths";
 
 /** Every entry a space will have (17 §2.1); "relations" is the fourth entry of both spaces. */
 export type NavEntry =
@@ -21,14 +28,14 @@ export const SPACE_ENTRIES: Readonly<
 > = {
   advertiser: [
     { entry: "home", page: "advertiserHome" },
-    { entry: "campaigns", page: null }, // Lot 3, "Mes campagnes"
-    { entry: "creators", page: null }, // Lot 3, the anonymised search
+    { entry: "campaigns", page: CAMPAIGNS_PAGE }, // Lot 3 (L3B), "Mes campagnes"
+    { entry: "creators", page: "advertiserCreators" }, // Lot 3 (L3F), M4, the anonymised search
     { entry: "relations", page: null }, // Lot 4, "Mises en relation"
     { entry: "account", page: "accountHub" },
   ],
   creator: [
     { entry: "home", page: "creatorHome" },
-    { entry: "campaigns", page: null }, // Lot 3, the feed of open campaigns
+    { entry: "campaigns", page: CAMPAIGNS_PAGE }, // Lot 3 (L3D), the feed of open campaigns, same page as the brand's
     { entry: "applications", page: null }, // Lot 3, "Mes candidatures"
     { entry: "relations", page: null }, // Lot 4, "Mes relations"
     { entry: "account", page: "accountHub" },
@@ -64,11 +71,22 @@ export function navItemsOf(role: SignupDoor): NavItem[] {
  */
 const SUB_PAGES: Readonly<Partial<Record<NavEntry, readonly MemberPage[]>>> = {
   account: ACCOUNT_PAGES,
+  // "Créateurs" (L3F, commit 11): the search, then the brand's private lists
+  creators: CREATORS_PAGES,
 };
 
-/** The sub-entries of a rubric, in order; none for a rubric of a single page. */
-export function subEntriesOf(entry: NavEntry): readonly MemberPage[] {
-  const pages = SUB_PAGES[entry] ?? [];
+/**
+ * The sub-entries of a rubric, in order; none for a rubric of a single page. `role` adds the profile
+ * page that leads "Compte" (a brand's or a creator's, L2D); without it, the pages common to both.
+ */
+export function subEntriesOf(
+  entry: NavEntry,
+  role?: SignupDoor,
+): readonly MemberPage[] {
+  const pages =
+    entry === "account" && role !== undefined
+      ? accountPagesOf()
+      : (SUB_PAGES[entry] ?? []);
   return pages.length > 1 ? pages : [];
 }
 
@@ -79,15 +97,22 @@ export type ActivePlace = { entry: NavEntry; sub: MemberPage | null };
  * The place of a page (17 §2.3, D74): a page of a rubric marks the rubric as its ancestor and
  * itself as the current sub-entry ({ account, accountData }); the page of an entry, page-menu
  * included, marks the entry itself ({ account, null }, { home, null }); null for the journey and
- * an unknown path.
+ * an unknown path. A page that hangs below another one (PARENT_PAGES: the verification of a network
+ * below the profile, L2E) takes the place of its parent.
  */
-export function activePlaceOf(page: MemberPage | null): ActivePlace | null {
-  if (page === null) {
+export function activePlaceOf(
+  pageOrChild: MemberPage | null,
+): ActivePlace | null {
+  if (pageOrChild === null) {
     return null;
   }
+  const page = PARENT_PAGES[pageOrChild] ?? pageOrChild;
   const entries = Object.values(SPACE_ENTRIES).flat();
   for (const { entry } of entries) {
-    if (subEntriesOf(entry).includes(page)) {
+    // Every page a role may have counts (the profile included).
+    const pages: readonly MemberPage[] =
+      entry === "account" ? accountPagesOf() : subEntriesOf(entry);
+    if (pages.includes(page)) {
       return { entry, sub: page };
     }
   }

@@ -14,14 +14,25 @@ import {
   findFluidKeoTypography,
   findInscribedKeoTokens,
   findKeoTrapViolations,
+  findPhotoEffectUse,
+  findTokenPairFailures,
   findTokenUseOutside,
   findUnreadKeoTokens,
   fluidTypographyClasses,
   selectorClasses,
   utilityOf,
+  withMixOver,
   type ColorMixAllowance,
 } from "../src/guards.ts";
-import { CONTRAST_MATRIX, KEO_COLOR_MIX } from "../src/charter-data.ts";
+import {
+  CONTRAST_MATRIX,
+  KEO_COLOR_MIX,
+  PHOTO_EFFECT_READERS,
+  PHOTO_SCRIM,
+  PHOTO_SCRIM_PAIRS,
+  PHOTO_SCRIM_STRONG,
+  PHOTO_WORST,
+} from "../src/charter-data.ts";
 
 const TEMP_ROOT = mkdtempSync(path.join(tmpdir(), "influx-rendering-guards-"));
 
@@ -133,12 +144,190 @@ describe("TK7.1 G3i (a): no KEO token in a namespace that Tailwind inscribes, co
     }
   });
 
-  it("holds the three tokens of RK-A, the header glow at 15 % at most (charter-data)", () => {
+  it("holds the three tokens of RK-A, the header glow at 15 % at most, and the four of RU-04, exact base and share (charter-data)", () => {
     expect(KEO_COLOR_MIX).toEqual([
       { name: "--effect-action-glow" },
       { name: "--effect-action-glow-hover" },
       { name: "--background-image-header-glow", maxPercent: 15 },
+      {
+        name: "--effect-photo-scrim-strong",
+        base: "var(--color-surface-page)",
+        percent: 82,
+      },
+      {
+        name: "--effect-photo-scrim",
+        base: "var(--color-surface-page)",
+        percent: 75,
+      },
+      {
+        name: "--effect-photo-scrim-soft",
+        base: "var(--color-surface-page)",
+        percent: 45,
+      },
+      { name: "--effect-photo-shadow", base: "#000000", percent: 50 },
     ]);
+  });
+});
+
+const PHOTO_ALLOWANCES: readonly ColorMixAllowance[] = [
+  ...ALLOWANCES,
+  {
+    name: "--effect-photo-scrim",
+    base: "var(--color-surface-page)",
+    percent: 75,
+  },
+  {
+    name: "--effect-photo-scrim-soft",
+    base: "var(--color-surface-page)",
+    percent: 45,
+  },
+  { name: "--effect-photo-shadow", base: "#000000", percent: 50 },
+];
+
+const SCRIM_75 =
+  "color-mix(in srgb, var(--color-surface-page) 75%, transparent)";
+const SHADOW_50 =
+  "drop-shadow(0 1px 2px color-mix(in srgb, #000000 50%, transparent))";
+
+describe("TK7.1 G3i (a) extended (RU-04, D88): the effects on a photo, exact base and share, in the KEO block alone", () => {
+  it("accepts the scrim and the shadow in the form of the table, whatever the layout of the sheet", () => {
+    const css = tokensWith(
+      "--color-surface-page: #0a0b0a;",
+      `--effect-photo-scrim: ${SCRIM_75};`,
+      `--effect-photo-shadow: ${SHADOW_50};`,
+    );
+    for (const [shape, sheet] of Object.entries(variants(css))) {
+      expect(findKeoTrapViolations(sheet, PHOTO_ALLOWANCES), shape).toEqual([]);
+    }
+    // A mix split over several lines is the same value.
+    const split = tokensWith(
+      "--effect-photo-scrim: color-mix(\n in srgb,\n var(--color-surface-page) 75%,\n transparent\n );",
+    );
+    expect(findKeoTrapViolations(split, PHOTO_ALLOWANCES)).toEqual([]);
+  });
+
+  it("detects a scrim in green, a shadow or a scrim at another share, the page surface in the halo of the button, a scrim valued outside the KEO block", () => {
+    const css = [
+      tokensWith(
+        "--effect-photo-scrim: color-mix(in srgb, var(--color-brand-primary) 75%, transparent);",
+        "--effect-photo-shadow: drop-shadow(0 1px 2px color-mix(in srgb, #000000 40%, transparent));",
+        "--effect-photo-scrim-soft: color-mix(in srgb, var(--color-surface-page) 80%, transparent);",
+        "--effect-action-glow: 0 0 1rem color-mix(in srgb, var(--color-surface-page) 25%, transparent);",
+      ),
+      `:root { --effect-photo-scrim-strong: ${SCRIM_75}; }`,
+    ].join("\n");
+    for (const [shape, sheet] of Object.entries(variants(css))) {
+      expect(findKeoTrapViolations(sheet, PHOTO_ALLOWANCES), shape).toEqual([
+        '--effect-photo-scrim: "color-mix(in srgb, var(--color-brand-primary) 75%, transparent)" is not the page surface mixed with transparency',
+        "--effect-photo-shadow: 40% instead of the 50% allowed",
+        "--effect-photo-scrim-soft: 80% instead of the 45% allowed",
+        '--effect-action-glow: "color-mix(in srgb, var(--color-surface-page) 25%, transparent)" is not the brand green mixed with transparency',
+        `--effect-photo-scrim-strong: "${SCRIM_75}" outside the tokens of RK-A (not in the KEO block)`,
+      ]);
+    }
+  });
+
+  it("refuses a rgba(, hsla( or #rrggbbaa in any --effect-*, in the KEO block or not, and a --color-* given an allowance", () => {
+    const css = [
+      tokensWith(
+        "--effect-photo-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));",
+        "--effect-photo-scrim: hsla(0, 0%, 4%, 0.75);",
+      ),
+      ":root { --effect-media-hover: #0a0b0abf; --effect-other: brightness(0.85); }",
+    ].join("\n");
+    for (const [shape, sheet] of Object.entries(variants(css))) {
+      expect(findKeoTrapViolations(sheet, PHOTO_ALLOWANCES), shape).toEqual([
+        '--effect-photo-shadow: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))" holds an alpha color, a color-mix over transparency replaces it',
+        '--effect-photo-scrim: "hsla(0, 0%, 4%, 0.75)" holds an alpha color, a color-mix over transparency replaces it',
+        '--effect-media-hover: "#0a0b0abf" holds an alpha color, a color-mix over transparency replaces it',
+      ]);
+    }
+    expect(
+      findKeoTrapViolations(tokensWith(), [
+        { name: "--color-surface-card", percent: 50 },
+      ]),
+    ).toEqual(["--color-surface-card: a --color-* never holds a color-mix"]);
+  });
+});
+
+describe("TK7.1 G3d and G8 (RU-04, D88): a scrim read over the lightest photo, the text held on it, the four tokens confined", () => {
+  const scrims = (strong: number, scrim: number): Map<string, string> =>
+    new Map([
+      ["--color-text-primary", "#f4f6f5"],
+      ["--color-surface-page", "#0a0b0a"],
+      [
+        "--effect-photo-scrim-strong",
+        `color-mix(in srgb, #0a0b0a ${strong}%, transparent)`,
+      ],
+      [
+        "--effect-photo-scrim",
+        `color-mix(in srgb, #0a0b0a ${scrim}%, transparent)`,
+      ],
+    ]);
+  const derived = (tokens: ReadonlyMap<string, string>) =>
+    withMixOver(
+      withMixOver(
+        tokens,
+        "--effect-photo-scrim-strong",
+        PHOTO_WORST,
+        PHOTO_SCRIM_STRONG,
+      ),
+      "--effect-photo-scrim",
+      PHOTO_WORST,
+      PHOTO_SCRIM,
+    );
+
+  it("lays the mix over a hex or over a token, and throws on a token without a mix or a ground it cannot read", () => {
+    const over = (ground: string) =>
+      withMixOver(
+        scrims(82, 75),
+        "--effect-photo-scrim-strong",
+        ground,
+        "--derived",
+      ).get("--derived");
+    expect(over(PHOTO_WORST)).toBe("#363736");
+    expect(over("--color-surface-page")).toBe("#0a0b0a");
+    expect(() =>
+      withMixOver(scrims(82, 75), "--color-text-primary", PHOTO_WORST, "--x"),
+    ).toThrow("--color-text-primary: no color-mix over transparency");
+    expect(() =>
+      withMixOver(scrims(82, 75), "--effect-photo-scrim", "--missing", "--x"),
+    ).toThrow("--missing: not a 6-digit hex color nor a token holding one");
+  });
+
+  it("holds the primary text on the scrims of 82 and 75 % over white at 4.5:1, and fails on a scrim read at 45 %", () => {
+    expect(
+      findTokenPairFailures(derived(scrims(82, 75)), PHOTO_SCRIM_PAIRS),
+    ).toEqual([]);
+    expect(
+      findTokenPairFailures(derived(scrims(82, 45)), PHOTO_SCRIM_PAIRS),
+    ).toHaveLength(1);
+  });
+
+  it("confines the four tokens to PHOTO_EFFECT_READERS, empty in RUA: a read elsewhere is reported, a comment is not (G8)", () => {
+    expect(PHOTO_EFFECT_READERS).toEqual([]);
+    const front = path.join(TEMP_ROOT, "photo-front");
+    const write = (relative: string, content: string) => {
+      const file = path.join(front, relative);
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, content);
+    };
+    const reader = "src/components/member/ui/PhotoBadge.tsx";
+    write(reader, 'export const BADGE = "bg-(--effect-photo-scrim-strong)";\n');
+    write(
+      "src/components/member/ui/Card.tsx",
+      [
+        "// never bg-(--effect-photo-scrim) on a card (RU-04)",
+        'export const CARD = "bg-surface-card";',
+        'export const WRONG = "filter-(--effect-photo-shadow)";',
+        'export const SOFT = "bg-(--effect-photo-scrim-soft)";',
+      ].join("\n"),
+    );
+    expect(findPhotoEffectUse(front, [reader])).toEqual([
+      'src/components/member/ui/Card.tsx:4: export const SOFT = "bg-(--effect-photo-scrim-soft)";',
+      'src/components/member/ui/Card.tsx:3: export const WRONG = "filter-(--effect-photo-shadow)";',
+    ]);
+    expect(findPhotoEffectUse(front, [])).toHaveLength(3);
   });
 });
 

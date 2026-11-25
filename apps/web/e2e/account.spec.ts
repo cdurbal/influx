@@ -272,7 +272,9 @@ function languageLink(page: Page, to: "fr" | "en") {
   return page.locator(`a[hreflang="${to}"]:visible`);
 }
 
+// The creator's profile leads the four pages common to both spaces (L2D, commit 12).
 const HUB_ROWS = [
+  "accountProfileCreator",
   "accountDetails",
   "accountPreferences",
   "accountSessions",
@@ -281,12 +283,14 @@ const HUB_ROWS = [
 
 const HUB_PATHS = {
   fr: {
+    accountProfileCreator: "/fr/compte/profil",
     accountDetails: "/fr/compte/informations",
     accountPreferences: "/fr/compte/preferences",
     accountSessions: "/fr/compte/sessions",
     accountData: "/fr/compte/donnees",
   },
   en: {
+    accountProfileCreator: "/en/account/profile",
     accountDetails: "/en/account/details",
     accountPreferences: "/en/account/preferences",
     accountSessions: "/en/account/sessions",
@@ -294,7 +298,7 @@ const HUB_PATHS = {
   },
 } as const;
 
-test("the page-menu lists the four pages of mon compte, in French then in English (17 §6.0, D74)", async ({
+test("the page-menu lists the five pages of mon compte of a creator, its profile first, in French then in English (17 §6.0, D74)", async ({
   page,
 }) => {
   await seedMember(page, {

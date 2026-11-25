@@ -162,6 +162,200 @@ export type BrevoErasureSubject = {
   email: string | null;
 };
 
+/**
+ * What the worker reads of a profile.decision line (0211): the decision of the entry, its reason, the
+ * message of the agent to the brand (reason `other` only) and the account's language. Never the
+ * internal comment (06 RG68).
+ */
+export type BrevoProfileDecision = {
+  decision: string;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  preferredLanguage: string;
+};
+
+/**
+ * What the worker reads of a verification e-mail line (0227; 08 RG94; modele §4 "Outbox"): the
+ * request the line names and the facts of its e-mail. Never the code, the handle, a figure, the
+ * period, the agent nor the internal comment. `memberMessage` is the text written by the agent
+ * (a refusal for `other` or `terms_breach`); the text of any other reason comes from the
+ * translation files by the reason code.
+ */
+export type BrevoVerificationEmail = {
+  /** account_verified, audience_verified or brand_verified. */
+  level: string;
+  /** The network line (reference.networks), null for a brand. */
+  networkCode: string | null;
+  /** draft, pending, approved, rejected, cancelled, expired or closed. */
+  requestStatus: string;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  /** A decision that granted a badge: its date (ISO 8601) and expiry (null: none). */
+  grantedAt: string | null;
+  badgeExpiresAt: string | null;
+  /** A code_issued line: the kind (network or domain), expiry (ISO 8601) and revocation of ITS code. */
+  codeKind: string | null;
+  codeExpiresAt: string | null;
+  codeRevoked: boolean;
+  /** 0236: the days an appeal stays open (a refusal of a creator says it), null if unset. */
+  disputeWindowDays: number | null;
+  preferredLanguage: string;
+};
+
+/**
+ * What the worker reads of an e-mail of the life of the badge (0236; 08 RG94; modele §4 "Outbox"):
+ * the object the line names (a badge, a request, a dispute or a review) and the facts of its e-mail.
+ * Never a figure, a handle, the text of a dispute, the agent nor an internal comment.
+ */
+export type BrevoBadgeEmail = {
+  /** account_verified, audience_verified or brand_verified. */
+  level: string;
+  /** The network line (reference.networks), null for a brand. */
+  networkCode: string | null;
+  /** The state of the object: a badge, a request, a dispute or a review. */
+  objectState: string;
+  /** A dispute outcome: which decision it contested, `refusal` or `revocation`. */
+  contestedDecision: string | null;
+  /** ISO 8601: the badge's expiry, and the end of its grace period (expires_at + grace). */
+  badgeExpiresAt: string | null;
+  graceEndsAt: string | null;
+  /** The reason of the withdrawal, or of the decision a dispute contested. */
+  reasonCode: string | null;
+  /** The text written for the member by an agent (a withdrawal, an outcome). */
+  memberMessage: string | null;
+  outcomeReasonCode: string | null;
+  /** ISO 8601: the grant date of the badge a successful dispute handed back. */
+  restoredAt: string | null;
+  disputeWindowDays: number | null;
+  preferredLanguage: string;
+};
+
+/**
+ * What the Brevo contact connector reads of the badges of an account (0227; 16 §M4, 08 RG92): the
+ * level it holds (none, n1 account or brand, n2 audience) and the date of the badge that fixes it.
+ */
+export type VerifiedBadge = {
+  level: "none" | "n1" | "n2";
+  /** ISO 8601; null for none. */
+  at: string | null;
+};
+
+/**
+ * What the contact connectors read of a brand profile (0212; 06 RG79 to RG81): the live row of the
+ * profile, never its legal name, presentation, contact person, registration number nor a note. A
+ * field the brand has not filled is null (sent empty, RG81), never a guess.
+ */
+export type BrandProfileAttributes = {
+  /** The state as stored: draft, pending_review, published, rejected or suspended. */
+  status: string;
+  /** The stored completeness (06 RG83), 0 to 100; null when never computed. */
+  completenessPercent: number | null;
+  /** Code of reference.sectors. */
+  primarySector: string | null;
+  /** 1_10, 11_50, 51_250, 251_1000 or 1001_plus: a band, never a headcount (06 RG22). */
+  companySizeBand: string | null;
+  /** A domain only, lower case (06 RG17). */
+  websiteDomain: string | null;
+  /** The first topic (slot 1), a code of reference.topics. */
+  mainTopic: string | null;
+  /** ISO 3166-1 alpha-2, in the order of the brand's slots. */
+  targetMarkets: readonly string[];
+  /** The profile was published once at least (first_published_at): the funnel stage. */
+  everPublished: boolean;
+};
+
+/**
+ * What the worker reads of a creator_profile.decision line (0245; 07 RG96, RG99): the kind of the
+ * entry (submission or revision), its decision, its reason, the message of the agent to the creator
+ * (reason `other` only) and the account's language. Never the internal comment, the agent nor a
+ * value of the profile.
+ */
+export type BrevoCreatorProfileDecision = {
+  kind: string;
+  decision: string;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  preferredLanguage: string;
+};
+
+/**
+ * What the worker reads of a portfolio.decision line (0245; 07 RG78, RG79, RG99): the decision of
+ * the visual (approved or rejected), its reason of the grid of RG79, whether it replaces another
+ * visual, the day of its deposit in the account's time zone (`YYYY-MM-DD`) and the account's
+ * language. Never the caption, the statement, the key, the file nor the agent.
+ */
+export type BrevoPortfolioDecision = {
+  decision: string;
+  reasonCode: string | null;
+  replacement: boolean;
+  depositedOn: string;
+  preferredLanguage: string;
+};
+
+/**
+ * What the Brevo contact connector reads of a creator profile (0245; 07 RG107 to RG110): the live
+ * row of the storefront, as codes, bands, a score and a boolean only, never a handle, a pseudonym,
+ * a URL, an exact figure, a caption nor a file name (RG108). A field the creator has not filled is
+ * null (sent empty, RG110), never a guess. Brevo only: Apollo receives nothing more than at Lot 1
+ * (RG109), and the base refuses its line.
+ */
+export type CreatorProfileAttributes = {
+  /** The state as stored: draft, pending_review, published, rejected or suspended. */
+  status: string;
+  /** The stored completeness (07 RG88), 0 to 100; null when never computed. */
+  completenessPercent: number | null;
+  /** Code of reference.topics. */
+  mainTopic: string | null;
+  /** Codes of reference.networks of the listed lines, in code order. */
+  networks: readonly string[];
+  /** The audience band of the listed primary line (a band, never a figure). */
+  mainAudienceBand: string | null;
+  /** ISO 3166-1 alpha-2. */
+  mainAudienceCountry: string | null;
+  /** The profile was published once at least (published_at): the funnel stage. */
+  everPublished: boolean;
+};
+
+/**
+ * What the contact connectors read of the campaigns of a brand (0310; 09 RG104, RG105): codes, dates and
+ * a counter, never a text, a band, a budget nor a note (RG106, D78). The base serves a row to an
+ * advertiser with a brand profile only. On an Apollo line (RG105, CA70) it holds the boolean and the
+ * date ONLY: every other column is null. `campaignsPublished` counts the campaigns ever published,
+ * closed ones included; the "last" is the latest first publication. Countries and networks are
+ * empty when the last campaign names none, null without a published campaign.
+ */
+export type CampaignAttributes = {
+  hasPublished: boolean;
+  campaignsPublished: number | null;
+  /** ISO 8601 UTC; null without a published campaign. */
+  lastPublishedAt: string | null;
+  /** Code of reference.sectors. */
+  lastSector: string | null;
+  /** ISO 4217. */
+  lastCurrency: string | null;
+  /** ISO 3166-1 alpha-2, in the order of the audience slots. */
+  lastCountries: readonly string[] | null;
+  /** Codes of reference.networks, in the order of the first slot of their deliverables. */
+  lastNetworks: readonly string[] | null;
+};
+
+/**
+ * What the worker reads of a campaign.decision line (0310; 09 RG93, RG94; modele §8): the e-mail code of
+ * the payload, the type of the campaign, the day of the act in the account's time zone (`YYYY-MM-DD`),
+ * the reason (of RG90 for a refusal, of RG94 for an intervention), the message of a refusal to the
+ * brand, the field of a correction and the account's language. Never a title, a text of the
+ * campaign, a value, an amount, the internal comment, the opinion nor an agent.
+ */
+export type BrevoCampaignDecision = {
+  emailCode: string;
+  campaignType: string | null;
+  occurredOn: string;
+  reasonCode: string | null;
+  memberMessage: string | null;
+  fieldCode: string | null;
+  preferredLanguage: string;
+};
+
 /** What the Apollo connector reads of a subject, besides the account state of the attempt (0113). */
 export type ApolloSubject = {
   email: string;
@@ -456,6 +650,405 @@ export async function readBrevoErasureSubject(
   return row === undefined
     ? null
     : { externalContactId: row.external_contact_id, email: row.email };
+}
+
+/**
+ * The decision of a profile.decision line to brevo_transactional in processing for this worker
+ * (0211): published or rejected, the reason code, the message of the agent (`other` only) and the
+ * account's language. null: no decided entry of the line's account, or the account is erased.
+ */
+export async function readBrevoProfileDecision(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoProfileDecision | null> {
+  const rows = await tx.execute<{
+    decision: string;
+    reason_code: string | null;
+    member_message: string | null;
+    preferred_language: string;
+  }>(
+    sql`select decision, reason_code, member_message, preferred_language
+          from leads.read_brevo_profile_decision(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        decision: row.decision,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The decision of a creator_profile.decision line to brevo_transactional in processing for this
+ * worker (0245): the kind of the entry, published or rejected, the reason code, the message of the
+ * agent (`other` only) and the account's language. null: no decided entry of the line's account, or
+ * the account is erased.
+ */
+export async function readBrevoCreatorProfileDecision(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoCreatorProfileDecision | null> {
+  const rows = await tx.execute<{
+    kind: string;
+    decision: string;
+    reason_code: string | null;
+    member_message: string | null;
+    preferred_language: string;
+  }>(
+    sql`select kind, decision, reason_code, member_message, preferred_language
+          from leads.read_brevo_creator_profile_decision(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        kind: row.kind,
+        decision: row.decision,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The decision of a portfolio.decision line to brevo_transactional in processing for this worker
+ * (0245): approved or rejected, the reason code, whether the visual replaces another, the day of its
+ * deposit and the account's language. null: no decided visual of the line's account, or the account
+ * is erased. The day is cast to `YYYY-MM-DD` by the base: the driver never builds a Date from it.
+ */
+export async function readBrevoPortfolioDecision(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoPortfolioDecision | null> {
+  const rows = await tx.execute<{
+    decision: string;
+    reason_code: string | null;
+    replacement: boolean;
+    deposited_on: string;
+    preferred_language: string;
+  }>(
+    sql`select decision, reason_code, replacement,
+               to_char(deposited_on, 'YYYY-MM-DD') as deposited_on, preferred_language
+          from leads.read_brevo_portfolio_decision(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        decision: row.decision,
+        reasonCode: row.reason_code,
+        replacement: row.replacement,
+        depositedOn: row.deposited_on,
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The creator attributes of a Brevo contact line in processing for this worker (0245): the live
+ * storefront of the line's account. The base refuses an Apollo line (22023, RG109): this is called
+ * for a Brevo contact only. null: no storefront (an advertiser, an account without one, or an
+ * erased account).
+ */
+export async function readCreatorProfileAttributes(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<CreatorProfileAttributes | null> {
+  const rows = await tx.execute<{
+    profile_status: string;
+    completeness_percent: number | null;
+    primary_topic_code: string | null;
+    network_codes: string;
+    main_audience_band: string | null;
+    main_audience_country: string | null;
+    ever_published: boolean;
+  }>(
+    sql`select profile_status, completeness_percent, primary_topic_code, network_codes,
+                main_audience_band, main_audience_country, ever_published
+          from leads.read_creator_profile_attributes(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        status: row.profile_status,
+        completenessPercent: row.completeness_percent,
+        mainTopic: row.primary_topic_code,
+        networks: row.network_codes === "" ? [] : row.network_codes.split(","),
+        mainAudienceBand: row.main_audience_band,
+        mainAudienceCountry: row.main_audience_country,
+        everPublished: row.ever_published,
+      };
+}
+
+/**
+ * The facts of a verification e-mail line to brevo_transactional in processing for this worker
+ * (0227): null when the request is not the line's account's, the code not the request's, or the
+ * account is erased.
+ */
+export async function readBrevoVerificationEmail(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoVerificationEmail | null> {
+  const rows = await tx.execute<{
+    level: string;
+    network_code: string | null;
+    request_status: string;
+    reason_code: string | null;
+    member_message: string | null;
+    granted_at: string | null;
+    badge_expires_at: string | null;
+    code_kind: string | null;
+    code_expires_at: string | null;
+    code_revoked: boolean;
+    preferred_language: string;
+    dispute_window_days: number | null;
+  }>(
+    sql`select level, network_code, request_status, reason_code, member_message,
+               to_char(granted_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as granted_at,
+               to_char(badge_expires_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as badge_expires_at,
+               code_kind,
+               to_char(code_expires_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as code_expires_at,
+               code_revoked, preferred_language, dispute_window_days
+          from leads.read_brevo_verification_email(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        level: row.level,
+        networkCode: row.network_code,
+        requestStatus: row.request_status,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        grantedAt: row.granted_at,
+        badgeExpiresAt: row.badge_expires_at,
+        codeKind: row.code_kind,
+        codeExpiresAt: row.code_expires_at,
+        codeRevoked: row.code_revoked,
+        disputeWindowDays:
+          row.dispute_window_days === null
+            ? null
+            : Number(row.dispute_window_days),
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The facts of an e-mail of the life of the badge, on a line to brevo_transactional in processing
+ * for this worker (0236): null when the object is not the line's account's or the account is erased.
+ */
+export async function readBrevoBadgeEmail(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoBadgeEmail | null> {
+  const rows = await tx.execute<{
+    level: string;
+    network_code: string | null;
+    object_state: string;
+    contested_decision: string | null;
+    badge_expires_at: string | null;
+    grace_ends_at: string | null;
+    reason_code: string | null;
+    member_message: string | null;
+    outcome_reason_code: string | null;
+    restored_at: string | null;
+    dispute_window_days: number | null;
+    preferred_language: string;
+  }>(
+    sql`select level, network_code, object_state, contested_decision,
+               to_char(badge_expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as badge_expires_at,
+               to_char(grace_ends_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as grace_ends_at,
+               reason_code, member_message, outcome_reason_code,
+               to_char(restored_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as restored_at,
+               dispute_window_days, preferred_language
+          from leads.read_brevo_badge_email(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        level: row.level,
+        networkCode: row.network_code,
+        objectState: row.object_state,
+        contestedDecision: row.contested_decision,
+        badgeExpiresAt: row.badge_expires_at,
+        graceEndsAt: row.grace_ends_at,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        outcomeReasonCode: row.outcome_reason_code,
+        restoredAt: row.restored_at,
+        disputeWindowDays:
+          row.dispute_window_days === null
+            ? null
+            : Number(row.dispute_window_days),
+        preferredLanguage: row.preferred_language,
+      };
+}
+
+/**
+ * The badge level of a Brevo contact line in processing for this worker (0227): never Apollo.
+ * null: no such account (unknown or erased).
+ */
+export async function readVerifiedBadge(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<VerifiedBadge | null> {
+  const rows = await tx.execute<{
+    verified_level: string;
+    verified_at: string | null;
+  }>(
+    sql`select verified_level,
+               to_char(verified_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as verified_at
+          from leads.read_verified_badge(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  if (row === undefined) {
+    return null;
+  }
+  return {
+    level:
+      row.verified_level === "n1" || row.verified_level === "n2"
+        ? row.verified_level
+        : "none",
+    at: row.verified_at,
+  };
+}
+
+/**
+ * The brand attributes of a Brevo or Apollo contact line in processing for this worker (0212): the
+ * live profile of the line's account. null: no brand profile (a creator, an account without one, or
+ * an erased account).
+ */
+export async function readBrandProfileAttributes(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrandProfileAttributes | null> {
+  const rows = await tx.execute<{
+    profile_status: string;
+    completeness_percent: number | null;
+    primary_sector_code: string | null;
+    company_size_band: string | null;
+    website_domain: string | null;
+    main_topic_code: string | null;
+    target_markets: string;
+    ever_published: boolean;
+  }>(
+    sql`select profile_status, completeness_percent, primary_sector_code, company_size_band,
+                website_domain, main_topic_code, target_markets, ever_published
+          from leads.read_brand_profile_attributes(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        status: row.profile_status,
+        completenessPercent: row.completeness_percent,
+        primarySector: row.primary_sector_code,
+        companySizeBand: row.company_size_band,
+        websiteDomain: row.website_domain,
+        mainTopic: row.main_topic_code,
+        targetMarkets:
+          row.target_markets === "" ? [] : row.target_markets.split(","),
+        everPublished: row.ever_published,
+      };
+}
+
+/**
+ * The campaign attributes of a Brevo or Apollo contact line in processing for this worker (0310): the
+ * campaigns of the line's account. On an Apollo line the base nulls every column but the boolean and
+ * the date (RG105, CA70). null: no brand profile (a creator, or an erased account).
+ */
+export async function readCampaignAttributes(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<CampaignAttributes | null> {
+  const rows = await tx.execute<{
+    has_published: boolean;
+    campaigns_published: number | null;
+    last_published_at: string | null;
+    last_sector_code: string | null;
+    last_currency: string | null;
+    last_countries: string | null;
+    last_networks: string | null;
+  }>(
+    sql`select has_published, campaigns_published,
+               to_char(last_published_at at time zone 'UTC',
+                       'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as last_published_at,
+               last_sector_code, last_currency, last_countries, last_networks
+          from leads.read_campaign_attributes(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  const listOf = (value: string | null): readonly string[] | null =>
+    value === null ? null : value === "" ? [] : value.split(",");
+  return row === undefined
+    ? null
+    : {
+        hasPublished: row.has_published,
+        campaignsPublished:
+          row.campaigns_published === null
+            ? null
+            : Number(row.campaigns_published),
+        lastPublishedAt: row.last_published_at,
+        lastSector: row.last_sector_code,
+        lastCurrency: row.last_currency,
+        lastCountries: listOf(row.last_countries),
+        lastNetworks: listOf(row.last_networks),
+      };
+}
+
+/**
+ * The facts of a campaign.decision line to brevo_transactional in processing for this worker (0310):
+ * null when the act is not the line's account's or campaign's, the code does not match its act, or the
+ * account is erased. The day is cast to text (`YYYY-MM-DD`) here: the driver would return a JS
+ * Date for a SQL `date`, which this code never builds.
+ */
+export async function readBrevoCampaignDecision(
+  tx: Transaction,
+  lineId: string,
+  worker: string,
+): Promise<BrevoCampaignDecision | null> {
+  const rows = await tx.execute<{
+    email_code: string;
+    campaign_type_code: string | null;
+    occurred_on: string;
+    reason_code: string | null;
+    member_message: string | null;
+    field_code: string | null;
+    preferred_language: string;
+  }>(
+    sql`select email_code, campaign_type_code,
+               to_char(occurred_on, 'YYYY-MM-DD') as occurred_on,
+               reason_code, member_message, field_code, preferred_language
+          from leads.read_brevo_campaign_decision(${lineId}::bigint, ${worker}::text)`,
+  );
+  const row = rows[0];
+  return row === undefined
+    ? null
+    : {
+        emailCode: row.email_code,
+        campaignType: row.campaign_type_code,
+        occurredOn: row.occurred_on,
+        reasonCode: row.reason_code,
+        memberMessage: row.member_message,
+        fieldCode: row.field_code,
+        preferredLanguage: row.preferred_language,
+      };
 }
 
 /**

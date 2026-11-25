@@ -3,5 +3,6 @@ export * from "./commission.ts";
 export * from "./elevated-calls.ts";
 export * from "./forbidden-packages.ts";
 export * from "./import-graph.ts";
+export * from "./price-keys.ts";
 export * from "./session-state.ts";
 export * from "./source-files.ts";

@@ -13,17 +13,35 @@
     "./user-agent": "./src/user-agent.ts",
     "./auth": "./src/auth.ts",
     "./account": "./src/account.ts",
+    "./brand-profile": "./src/brand-profile.ts",
+    "./campaign": "./src/campaign.ts",
+    "./campaign-creator-view": "./src/campaign-creator-view.ts",
+    "./campaign-review": "./src/campaign-review.ts",
+    "./open-campaigns": "./src/open-campaigns.ts",
+    "./search-settings": "./src/search-settings.ts",
+    "./creator-profile": "./src/creator-profile.ts",
+    "./creator-portfolio": "./src/creator-portfolio.ts",
+    "./creator-projection": "./src/creator-projection.ts",
+    "./creator-search": "./src/creator-search.ts",
+    "./identified-creator-search": "./src/identified-creator-search.ts",
+    "./creator-search-profile": "./src/creator-search-profile.ts",
+    "./shortlists": "./src/shortlists.ts",
+    "./selection-requests": "./src/selection-requests.ts",
+    "./verification": "./src/verification.ts",
     "./backoffice-auth": "./src/backoffice-auth.ts",
     "./backoffice-accounts": "./src/backoffice-accounts.ts",
     "./backoffice-actions": "./src/backoffice-actions.ts",
     "./backoffice-invitations": "./src/backoffice-invitations.ts",
+    "./backoffice-queues": "./src/backoffice-queues.ts",
+    "./creator-queues": "./src/creator-queues.ts",
     "./backoffice-ops": "./src/backoffice-ops.ts",
     "./ops": "./src/ops.ts",
     "./terms": "./src/terms.ts",
     "./countries": "./src/countries.ts",
     "./signup": "./src/signup.ts",
     "./brevo-webhook": "./src/brevo-webhook.ts",
-    "./support": "./src/support.ts"
+    "./support": "./src/support.ts",
+    "./route-models": "./src/route-models.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",
@@ -31,7 +49,7 @@
     "test": "vitest run --reporter=default --reporter=json --outputFile.json=test-results/vitest-report.json && node ../../packages/test-kit/scripts/check-case-floors.ts tests/case-floors.ts test-results/vitest-report.json"
   },
   "dependencies": {
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",

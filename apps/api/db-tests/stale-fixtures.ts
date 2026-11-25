@@ -4,6 +4,7 @@
 // rows: privacy.pending_work (oldest authorisation first, PENDING_WORK_LIMIT per tick) and
 // GET /v1/bo/internal-accounts (INTERNAL_ACCOUNT_LIST_CAP). An interrupted run leaves them too, its
 // afterAll never ran. Local stack only (disposable); the data set of T2 is kept.
+import { closeStalePublishedCampaigns } from "@influx/test-kit/db";
 import type postgres from "postgres";
 
 export async function sweepStaleFixtures(
@@ -25,5 +26,25 @@ export async function sweepStaleFixtures(
          set is_active = false, deactivated_at = now(), deactivated_by_account_id = account_id
        where is_active and not is_break_glass
          and coalesce(first_name, '') not like 'T2%'`;
+    // Dual control requests still pending past their delay (24 h): the guard refuses to cancel or
+    // confirm one that has expired, but admits pending to expired once the delay is over. Left
+    // pending, such a row is a trap for any case that acts on every pending request. Only the
+    // rows past their delay move, to the state the guard itself allows; none is deleted.
+    await tx`
+      update backoffice.dual_control_requests
+         set state = 'expired'
+       where state = 'pending' and expires_at <= pg_catalog.now()`;
+    // Creator review entries still open from an earlier day: the queue reads the oldest deadline
+    // first, so a leftover whose deadline fell behind the 3 hours the cases give their own late
+    // entry takes the front of the queue (t14-creator-queue-route, "the next entry to open") from
+    // the day after. Withdrawn, the state the cases themselves use; none is deleted, and nothing
+    // runs yet, the sweep being before any file.
+    await tx`
+      update profiles.creator_review_entries
+         set state = 'withdrawn', closed_at = pg_catalog.now()
+       where state = 'open' and sla_due_at < pg_catalog.now() - interval '1 hour'`;
+    // Campaigns still published or paused from an earlier run: the creator's feed (L3D) reads every
+    // one of them. Closed, none deleted, no trigger disabled (@influx/test-kit/db).
+    await closeStalePublishedCampaigns(tx);
   });
 }

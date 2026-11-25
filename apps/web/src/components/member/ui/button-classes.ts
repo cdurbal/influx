@@ -10,10 +10,13 @@ export type MemberButtonVariant = "primary" | "secondary" | "danger" | "text";
 export type MemberButtonSize = "md" | "lg";
 
 export const MEMBER_BUTTON_BASE_CLASSES = cn(
-  "inline-flex items-center justify-center gap-2 text-center text-md font-display leading-snug",
+  "inline-flex items-center gap-2 text-md font-display leading-snug",
   "transition-lift",
   "aria-disabled:cursor-not-allowed aria-disabled:bg-action-disabled-bg aria-disabled:text-text-disabled",
 );
+
+/** A button centres its label; a link with the look of a text button does not (L2AU-3). */
+const MEMBER_BUTTON_CENTRED_CLASSES = "justify-center text-center";
 
 const MEMBER_BUTTON_ZOOM_CLASSES = cn(
   "motion-safe:not-aria-disabled:hover:scale-(--scale-hover)",
@@ -57,8 +60,21 @@ export function memberButtonClasses(
 ): string {
   return cn(
     MEMBER_BUTTON_BASE_CLASSES,
+    MEMBER_BUTTON_CENTRED_CLASSES,
     MEMBER_BUTTON_VARIANT_CLASSES[variant],
     variant !== "text" && MEMBER_BUTTON_ZOOM_CLASSES,
     variant !== "text" && MEMBER_BUTTON_SIZE_CLASSES[size],
+  );
+}
+
+/**
+ * A link with the look of a text button (20 §11.8, L2AU-3): underlined, so that it is never told
+ * by its weight alone (WCAG 1.4.1), its text aligned to the left; the weight of 600 is kept (TK1.3).
+ */
+export function memberTextLinkClasses(): string {
+  return cn(
+    MEMBER_BUTTON_BASE_CLASSES,
+    MEMBER_BUTTON_VARIANT_CLASSES.text,
+    "justify-start text-left underline",
   );
 }

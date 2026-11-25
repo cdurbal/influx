@@ -1,0 +1,516 @@
+"use client";
+
+// "Mon profil" of a creator (docs/mvp/17 §5.2, C2; 07 RG1, RG86 to RG91, RG111, RG112; jalons/l2d,
+// commit 12): a summary of seven sections whose anchors work at every width, blocks 1 and 2 saved by
+// themselves, the completeness and what is still to fill in by name in a sticky column. Blocks 3 to 5
+// came with L2D (commits 13 and 14); block 6, the portfolio, block 7, the trust and the switch of
+// visibility, and the card of the publication (« Publier mon profil », the states, the refusal with
+// its reason) came with L2G (commit 13). This file draws; the state is use-creator-profile.ts,
+// use-creator-portfolio.ts and use-creator-publication.ts, the rules creator-profile-view.ts and
+// apps/api. The page of a creator: a brand reaches its own screen, whatever the address. No amount,
+// rate, net or price (D78, D48).
+import { notFound } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { Fragment, useEffect, useMemo, type ReactNode } from "react";
+import { useOnline } from "@/components/auth/use-online";
+import {
+  BACK_ICON_CLASSES,
+  BACK_LINK_CLASSES,
+} from "@/components/account/account-classes";
+import {
+  ACTION_BAR_CLASSES,
+  PROFILE_CARD_CLASSES,
+  PROFILE_PAGE_CLASSES,
+  SAVE_STATUS_CLASSES,
+  SECTION_FIELDSET_CLASSES,
+  SECTION_TITLE_CLASSES,
+} from "@/components/brand-profile/brand-profile-classes";
+import { formatSavedTime } from "@/components/brand-profile/brand-profile-view";
+import type { SaveState } from "@/components/brand-profile/use-brand-profile";
+import { useMember } from "@/components/member/member-context";
+import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Notice } from "@/components/member/ui/Notice";
+import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
+import { ScoreGauge } from "@/components/member/ui/ScoreGauge";
+import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { cn } from "@/components/ui/class-names";
+import { ErrorNotice } from "@/components/ui/ErrorNotice";
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  CheckIcon,
+  CircleAlertIcon,
+  EyeIcon,
+} from "@/components/ui/icons";
+import { Link } from "@/i18n/navigation";
+import { memberPageHref } from "@/lib/member-paths";
+import { FOLD_SUMMARY_CLASSES } from "./creator-profile-classes";
+import { AudienceFields } from "./CreatorAudienceFields";
+import { NetworksFields } from "./CreatorNetworksFields";
+import { OfferFields } from "./CreatorOfferFields";
+import {
+  EditorialFields,
+  PresentationFields,
+  type CreatorFieldsProps,
+} from "./CreatorProfileFields";
+import {
+  bandLabelOf,
+  creatorOptionsOf,
+  networkOptionsOf,
+} from "./creator-profile-options";
+import {
+  creatorSummaryOf,
+  isEditable,
+  isSectionComplete,
+  sectionAnchorOf,
+  SUMMARY_SECTION_IDS,
+  type RequiredCode,
+  type SectionId,
+} from "./creator-profile-view";
+import { PortfolioFields } from "./CreatorPortfolioBlock";
+import {
+  PublicationCard,
+  PublicationNotices,
+  PublicationRefusal,
+} from "./CreatorPublicationCard";
+import { TrustFields } from "./CreatorTrustBlock";
+import {
+  accountVerifiedOf,
+  firstMissingAnchorOf,
+  frozenNoticeKeyOf,
+  PROFILE_PARTS_ORDER,
+  type ProfilePart,
+} from "./creator-publication-view";
+import { useCreatorAudience } from "./use-creator-audience";
+import { useCreatorNetworks } from "./use-creator-networks";
+import { useCreatorPortfolio } from "./use-creator-portfolio";
+import { useCreatorPublication } from "./use-creator-publication";
+import {
+  useCreatorProfile,
+  type CreatorProfileState,
+} from "./use-creator-profile";
+
+/**
+ * The three columns of a wide screen: the summary, the form, the completeness and the action (17 §5.2).
+ * The document keeps its own order (PROFILE_PARTS_ORDER, L2GU-1): the places are given here, row by
+ * row. Rows 1 and 2 are the refusal and the notices that wait, across the page; they have no gap of
+ * their own (a margin under each), so that an empty row costs nothing. Row 4 is the flexible one: the
+ * action card sits under the completeness and sticks within the height of the form.
+ */
+const GRID_CLASSES =
+  "flex flex-col gap-6 lg:grid lg:grid-cols-(--grid-creator-profile) lg:grid-rows-[auto_auto_auto_1fr] lg:items-start lg:gap-x-6 lg:gap-y-0 xl:gap-x-8";
+const SUMMARY_CLASSES =
+  "flex flex-col gap-3 lg:col-start-1 lg:row-span-2 lg:row-start-3 lg:sticky lg:top-(--spacing-6)";
+const FORM_CLASSES =
+  "flex flex-col gap-6 lg:col-start-2 lg:row-span-2 lg:row-start-3";
+const PROGRESS_CLASSES =
+  "flex flex-col gap-4 lg:col-start-3 lg:row-start-3 lg:mb-6";
+const ACTION_COLUMN_CLASSES =
+  "lg:col-start-3 lg:row-start-4 lg:sticky lg:top-(--spacing-6)";
+const REFUSAL_BAND_CLASSES = "lg:col-span-3 lg:row-start-1 lg:mb-6";
+const NOTICES_BAND_CLASSES = "lg:col-span-3 lg:row-start-2 lg:mb-6";
+const SECTION_CLASSES = cn(PROFILE_CARD_CLASSES, "scroll-mt-(--spacing-6)");
+/** From lg the state always sits under the title, so that the summary column can stay narrow. */
+const SUMMARY_LINK_CLASSES =
+  "flex min-h-(--size-touch-target) flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-md px-3 py-2 text-text-primary hover:bg-surface-raised lg:flex-col lg:flex-nowrap lg:items-start lg:justify-start";
+const SUMMARY_STATE_CLASSES =
+  "inline-flex items-center gap-1 text-sm text-text-secondary";
+
+/** The page of a creator; any other role finds a page that does not exist (18 T14.3, T14.4). */
+export function CreatorProfileScreen() {
+  const { me } = useMember();
+  if (me.role !== "creator") {
+    notFound();
+  }
+  return <CreatorProfileView />;
+}
+
+function CreatorProfileView() {
+  const t = useTranslations("creatorProfile");
+  const tAccount = useTranslations("account");
+  const locale = useLocale();
+  const online = useOnline();
+  const { signedOut, creatorProfile } = useMember();
+  const { adopt } = creatorProfile;
+  const state = useCreatorProfile({ onSignedOut: () => signedOut(null) });
+  // Each profile the API gives goes to the shell too: its column and the home write the same state.
+  const held = state.profile;
+  useEffect(() => {
+    if (held !== null) {
+      adopt(creatorSummaryOf(held));
+    }
+  }, [held, adopt]);
+
+  const back = (
+    <Link
+      href={memberPageHref("accountHub", locale)}
+      className={BACK_LINK_CLASSES}
+    >
+      <span className="sr-only">{tAccount("hub.backPrefix")} </span>
+      <ChevronLeftIcon aria-hidden="true" className={BACK_ICON_CLASSES} />
+      {tAccount("hub.back")}
+    </Link>
+  );
+
+  const { phase, profile, draft } = state;
+  if (phase === "gone") {
+    notFound();
+  }
+
+  let body: ReactNode;
+  if (phase === "loading" || profile === null || draft === null) {
+    body =
+      phase === "unavailable" ? (
+        <div className="flex flex-col gap-4">
+          <ErrorNotice>{t("page.unavailable")}</ErrorNotice>
+          <MemberButton variant="secondary" onClick={state.reload}>
+            {t("page.retry")}
+          </MemberButton>
+        </div>
+      ) : (
+        <p role="status" className="text-sm text-text-secondary">
+          {t("page.loading")}
+        </p>
+      );
+  } else {
+    body = (
+      <LoadedProfile
+        state={state}
+        profile={profile}
+        draft={draft}
+        locale={locale}
+      />
+    );
+  }
+
+  return (
+    <PageBackContext value={back}>
+      <div className={PROFILE_PAGE_CLASSES}>
+        {online ? null : <Notice tone="warning">{tAccount("offline")}</Notice>}
+        <PageHeader title={t("page.title")} />
+        {body}
+      </div>
+    </PageBackContext>
+  );
+}
+
+function LoadedProfile({
+  state,
+  profile,
+  draft,
+  locale,
+}: {
+  state: CreatorProfileState;
+  profile: NonNullable<CreatorProfileState["profile"]>;
+  draft: NonNullable<CreatorProfileState["draft"]>;
+  locale: string;
+}) {
+  const t = useTranslations("creatorProfile");
+  const tBrand = useTranslations("brandProfile");
+  const options = useMemo(
+    () => creatorOptionsOf(t, tBrand, locale, profile.references),
+    [t, tBrand, locale, profile.references],
+  );
+  const { signedOut } = useMember();
+  const networkOptions = useMemo(
+    () => networkOptionsOf(tBrand, profile.references),
+    [tBrand, profile.references],
+  );
+  const networks = useCreatorNetworks({
+    onSignedOut: () => signedOut(null),
+    report: state.reportSave,
+    onProgress: state.applyProgress,
+  });
+  const audience = useCreatorAudience({
+    networks,
+    onSignedOut: () => signedOut(null),
+    report: state.reportSave,
+  });
+  const editable = isEditable(profile);
+  // Block 6 and the card of the publication change what the profile says (its count, its state, what
+  // is missing): the profile is read again after each gesture, the draft left alone.
+  const portfolio = useCreatorPortfolio({
+    onSignedOut: () => signedOut(null),
+    onChanged: () => void state.refresh(),
+  });
+  const publication = useCreatorPublication({
+    onSignedOut: () => signedOut(null),
+    onChanged: state.refresh,
+    onSearchable: state.applyVisibility,
+    onMissing: (missing) => {
+      // "Publier mon profil" leads to the first field that is missing, the list being in the order of the form.
+      const anchor = firstMissingAnchorOf(missing);
+      if (anchor !== null) {
+        window.location.hash = anchor;
+      }
+    },
+  });
+  const labelOf = (code: string) =>
+    networkOptions.find((option) => option.code === code)?.label ?? code;
+  const fields: CreatorFieldsProps = {
+    profile,
+    draft,
+    errors: state.fieldErrors,
+    options,
+    change: state.change,
+  };
+
+  const frozenKey = frozenNoticeKeyOf(profile.status);
+  const parts: Record<ProfilePart, ReactNode> = {
+    refusal: (
+      <PublicationRefusal profile={profile} className={REFUSAL_BAND_CLASSES} />
+    ),
+    progress: (
+      <div className={PROGRESS_CLASSES}>
+        <ProfileProgress profile={profile} save={state.save} locale={locale} />
+      </div>
+    ),
+    summary: <Summary missing={profile.missingRequired} />,
+    form: (
+      <div className={FORM_CLASSES}>
+        {/* L2GU-3: a frozen form says why, in the form (never greyed out without a word). */}
+        {frozenKey === null ? null : (
+          <Notice tone="info" announce={false}>
+            {t(frozenKey)}
+          </Notice>
+        )}
+        <ProfileSection id="presentation" disabled={!editable}>
+          <PresentationFields {...fields} />
+        </ProfileSection>
+        <ProfileSection id="editorial" disabled={!editable}>
+          <EditorialFields {...fields} />
+        </ProfileSection>
+        <ProfileSection id="networks" disabled={!editable}>
+          <NetworksFields
+            state={networks}
+            networks={networkOptions}
+            labelOf={labelOf}
+            bandLabelOf={(group, code) => bandLabelOf(t, group, code)}
+          />
+        </ProfileSection>
+        <ProfileSection id="audience" disabled={!editable}>
+          <AudienceFields
+            networks={networks}
+            audience={audience}
+            labelOf={labelOf}
+          />
+        </ProfileSection>
+        <ProfileSection id="offer" disabled={!editable}>
+          <OfferFields
+            {...fields}
+            networkCodes={
+              networks.phase === "ready"
+                ? new Set(networks.lines.map((line) => line.networkCode))
+                : null
+            }
+          />
+        </ProfileSection>
+        <ProfileSection id="portfolio" disabled={!editable}>
+          <PortfolioFields state={portfolio} editable={editable} />
+        </ProfileSection>
+        <ProfileSection
+          id="trust"
+          disabled={profile.alias === null || profile.status === "suspended"}
+        >
+          <TrustFields
+            accountVerified={accountVerifiedOf(profile.missingRequired)}
+            isSearchable={profile.isSearchable}
+            publication={publication}
+            disabled={profile.alias === null || profile.status === "suspended"}
+          />
+        </ProfileSection>
+      </div>
+    ),
+    notices: (
+      <PublicationNotices profile={profile} className={NOTICES_BAND_CLASSES} />
+    ),
+    action: (
+      <PublicationCard
+        profile={profile}
+        publication={publication}
+        className={ACTION_COLUMN_CLASSES}
+      />
+    ),
+  };
+
+  return (
+    <>
+      {profile.alias === null ? (
+        <Notice tone="info">{t("page.noStorefront")}</Notice>
+      ) : null}
+      <div className={GRID_CLASSES}>
+        {PROFILE_PARTS_ORDER.map((part) => (
+          <Fragment key={part}>{parts[part]}</Fragment>
+        ))}
+      </div>
+      <div data-action-bar="" className={ACTION_BAR_CLASSES}>
+        <SaveStatus save={state.save} locale={locale} />
+      </div>
+    </>
+  );
+}
+
+/** The five sections and where each stands, as anchors (17 §5.2): text AND icon, never the icon alone. */
+function Summary({ missing }: { missing: readonly RequiredCode[] }) {
+  const t = useTranslations("creatorProfile");
+  const locale = useLocale();
+  return (
+    <nav aria-label={t("summary.title")} className={SUMMARY_CLASSES}>
+      <ol className="flex flex-col gap-1">
+        {SUMMARY_SECTION_IDS.map((id, index) => {
+          const name = `${index + 1}. ${t(`sections.${id}`)}`;
+          const complete = isSectionComplete(id, missing);
+          const StateIcon = complete ? CheckIcon : CircleAlertIcon;
+          return (
+            <li key={id}>
+              <a
+                href={`#${sectionAnchorOf(id)}`}
+                className={SUMMARY_LINK_CLASSES}
+              >
+                <span>{name}</span>
+                <span className={SUMMARY_STATE_CLASSES}>
+                  <StateIcon
+                    aria-hidden="true"
+                    className="size-(--size-icon-sm) shrink-0"
+                  />
+                  {complete ? t("summary.complete") : t("summary.incomplete")}
+                </span>
+              </a>
+            </li>
+          );
+        })}
+      </ol>
+      {/* The way to the card as a brand reads it (07 RG104): a page of its own, below the profile. */}
+      <Link
+        href={memberPageHref("accountProfilePreview", locale)}
+        data-preview-link=""
+        className={memberButtonClasses("secondary")}
+      >
+        <EyeIcon
+          aria-hidden="true"
+          className="size-(--size-icon-md) shrink-0"
+        />
+        {t("preview.title")}
+      </Link>
+    </nav>
+  );
+}
+
+/** A block of the form: a card with its anchor and its title; the fields stop answering when it cannot be edited. */
+function ProfileSection({
+  id,
+  disabled,
+  children,
+}: {
+  id: SectionId;
+  disabled: boolean;
+  children: ReactNode;
+}) {
+  const t = useTranslations("creatorProfile");
+  const titleId = `${sectionAnchorOf(id)}-title`;
+  const heading = `${SUMMARY_SECTION_IDS.indexOf(id) + 1}. ${t(`sections.${id}`)}`;
+  return (
+    <section
+      id={sectionAnchorOf(id)}
+      aria-labelledby={titleId}
+      data-section={id}
+      className={SECTION_CLASSES}
+    >
+      <h2 id={titleId} className={cn(SECTION_TITLE_CLASSES, "mb-5")}>
+        {heading}
+      </h2>
+      <fieldset disabled={disabled} className={SECTION_FIELDSET_CLASSES}>
+        {children}
+      </fieldset>
+    </section>
+  );
+}
+
+/** The score and what is missing by name (07 RG89, RG90); not a goal, nothing is submitted (EC-L2D-5). */
+function ProfileProgress({
+  profile,
+  save,
+  locale,
+}: {
+  profile: NonNullable<CreatorProfileState["profile"]>;
+  save: SaveState;
+  locale: string;
+}) {
+  const t = useTranslations("creatorProfile");
+  const missing = profile.missingRequired;
+  const names = new Intl.ListFormat(locale, {
+    style: "long",
+    type: "conjunction",
+  }).format(missing.map((code) => t(`required.${code}`)));
+  return (
+    <div className={PROFILE_CARD_CLASSES}>
+      <ScoreGauge
+        label={t("completeness.label")}
+        value={profile.completeness.score}
+        valueText={t("completeness.value", {
+          score: profile.completeness.score,
+        })}
+      />
+      {missing.length === 0 ? (
+        <p className="text-sm text-text-primary">{t("blocks.allSet")}</p>
+      ) : (
+        <>
+          {/* From lg: the column has the room to name every field (RG90). */}
+          <p className="text-sm text-text-primary max-lg:hidden">
+            {t("blocks.missing", { fields: names })}
+          </p>
+          {/* Below lg (L2DU-2): the count, the names behind it, so that the summary and the alias stay in the first screen. */}
+          <details className="lg:hidden" data-missing-fold="">
+            <summary className={FOLD_SUMMARY_CLASSES}>
+              <ChevronDownIcon
+                aria-hidden="true"
+                className="size-(--size-icon-md) shrink-0 text-text-secondary"
+              />
+              {t("blocks.missingCount", { count: missing.length })}
+            </summary>
+            <p className="text-sm text-text-primary">{names}</p>
+          </details>
+        </>
+      )}
+      <SaveStatus save={save} locale={locale} className="max-lg:hidden" />
+    </div>
+  );
+}
+
+/** "Enregistré automatiquement à 14 h 07" (RG111), and the retry told when the save failed. */
+function SaveStatus({
+  save,
+  locale,
+  className,
+}: {
+  save: SaveState;
+  locale: string;
+  className?: string;
+}) {
+  const t = useTranslations("creatorProfile");
+  let text: string;
+  switch (save.kind) {
+    case "saving":
+      text = t("save.saving");
+      break;
+    case "saved":
+      text = t("save.saved", { time: formatSavedTime(save.at, locale) });
+      break;
+    case "retrying":
+      text = t("save.retry");
+      break;
+    default:
+      text = t("save.idle");
+  }
+  return (
+    <p role="status" className={cn(SAVE_STATUS_CLASSES, className)}>
+      {save.kind === "retrying" ? (
+        <CircleAlertIcon
+          aria-hidden="true"
+          className="size-(--size-icon-md) shrink-0 text-feedback-warning-icon"
+        />
+      ) : null}
+      {text}
+    </p>
+  );
+}

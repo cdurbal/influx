@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Écran 13 · Recherche identifiée</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<script src="assets/doc.js" defer></script>
+</head>
+<body class="doc">
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html" aria-current="page">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html">Micro-interactions</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Écran 13 · Backoffice</p>
+    <h1 class="d-h1">Recherche identifiée</h1>
+    <p class="d-lead">La recherche de créateurs du commercial, sur le moteur de la marque, en vue identifiée : barre violette sur toute la zone de travail, chapeau écrit, symbole ▮. La page reprend exactement la forme de la recherche marque (écran 2) : ligne de filtres, « Liée à » et « Tri », grille de cartes photo. La carte ajoute ce que seul le commercial voit : nom réel ▮ vers la fiche du compte (écran 6), <code>@handle</code>, état et responsable, chiffres exacts, « Ce que voit la marque » puis « Valeurs exactes ». Choix du 2026-11-24 : même forme que l'écran 2 (demande du fondateur), état cible du Lot 4 montré à part.</p>
+    <div class="d-ids"><span class="u u--imp">U06</span><span class="u">U42</span></div>
+  </div>
+
+  <section class="d-compare" data-compare aria-label="Comparer l'existant et la proposition">
+    <div class="d-bar">
+      <div class="d-states" role="group" aria-label="Largeur"><button class="d-toggle" type="button" data-mode="desktop" aria-pressed="true"><svg class="i i--sm"><use href="#i-monitor"/></svg>Poste 1 440 px</button><button class="d-toggle" type="button" data-mode="narrow" aria-pressed="false"><svg class="i i--sm"><use href="#i-monitor"/></svg>Demi-écran 1 180 px</button></div>
+      <div class="d-states" role="group" aria-label="État de l'écran">
+        <button type="button" data-st="prerempli" data-cap="" aria-pressed="true">Pré-rempli depuis une campagne</button>
+        <button type="button" data-st="libre" data-cap="" aria-pressed="false">Sans campagne</button>
+        <button type="button" data-st="vide" data-cap="" aria-pressed="false">Aucun résultat</button>
+        <button type="button" data-st="chargement" data-cap="" aria-pressed="false">Chargement</button>
+        <button type="button" data-st="lot4" data-cap="" aria-pressed="false">Cible Lot 4</button>
+      </div>
+      <button class="d-toggle" type="button" data-hier aria-pressed="false"><svg class="i i--sm"><use href="#i-layers"/></svg>Afficher la hiérarchie</button>
+    </div>
+    <div class="d-pair">
+      <figure class="d-fig"><figcaption><b>Aujourd'hui</b><span data-cap-label></span></figcaption>
+        <div class="d-screen d-shot"><img alt="" src="data:,"></div><div class="d-screen d-none" hidden>Pas de capture de la recherche identifiée dans l'audit.</div></figure>
+      <figure class="d-fig"><figcaption><b>Proposition</b><span>prototype interactif</span><a class="go sm" data-open href="proto-bo-recherche.html" target="_blank" rel="noopener" style="min-height: auto; margin-left: auto">Plein écran <svg class="i i--sm"><use href="#i-external-link"/></svg></a></figcaption>
+        <div class="d-screen d-frame"><iframe data-src="proto-bo-recherche.html" title="Prototype de la recherche identifiée" loading="lazy"></iframe></div></figure>
+    </div>
+    <p class="d-hint">À essayer en plein écran : un nom réel (il ouvre la fiche de l'écran 6), « Filtres » (filtres internes dans leur encadré), « Liée à » et « Vider le pré-remplissage » ; puis, en cible Lot 4, la case ronde à la place du cœur et « Proposer à la campagne » (un profil non publié est écarté à l'envoi, avec son nom).</p>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">1</span>Problèmes relevés</h2>
+    <ul class="d-list">
+      <li><b>Un résultat ne mène pas à la fiche du créateur</b> (U06) : le pont « campagne → créateurs compatibles » (<code>10</code> RG73) ne fonctionne que depuis la file 9.</li>
+      <li><b>Le cadre de vue identifiée</b> n'est pas porté de la même façon d'un écran à l'autre (U42) ; rien n'annonce, avant le clic, qu'une fiche ouverte est journalisée.</li>
+      <li><b>Les explications de tri</b> ne disent pas ce que voit la marque à côté des valeurs exactes (RG77).</li>
+    </ul>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">2</span>Composition cible</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Bloc</th><th>Contenu</th></tr></thead>
+      <tbody>
+        <tr><td>Cadre</td><td>Barre violette sur toute la zone, chapeau « Vue identifiée — … journalisées », symbole ▮ dans le titre (<code>17b</code> §3.3, §4.9)</td></tr>
+        <tr><td>Campagne</td><td>« Liée à » de l'écran 2, ici avec la campagne et sa marque, et « Vider le pré-remplissage » ; sans campagne : « la proposition sera indisponible »</td></tr>
+        <tr><td>Filtres</td><td>Ligne de l'écran 2 : « Filtres (n) », critères actifs retirables, puis « Internes » : état du profil, responsable. Le dialogue range les filtres internes (G1, G2, G8 à G10) dans un encadré « jamais côté marque » ; G3 à G7 au Lot 4</td></tr>
+        <tr><td>Cartes</td><td>La carte photo de l'écran 2 : sur la photo, l'état non publié (Brouillon, En attente, Suspendu) ou « Audience vérifiée » ; dessous, nom réel ▮ en lien vers la fiche, <code>@handle</code> ⧉, état et responsable, titre, thématiques, audience exacte, puis « Ce que voit la marque » et « Valeurs exactes » (RG77). Paire bloquée : photo atténuée et sa seule phrase, jamais le motif</td></tr>
+        <tr><td>Bas de page</td><td>Nombre exact, page 1 sur 2, 20 par page ; ni export ni défilement infini</td></tr>
+        <tr><td>Cible Lot 4</td><td>Une case ronde à la place du cœur (page affichée seulement, 20 au plus), barre « Proposer à la campagne « … » (n) », dialogue avec la liste, les profils écartés nommés et le motif obligatoire (RG74)</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <section class="d-sec"><h2><span class="n">3</span>À valider par vous</h2>
+    <ul class="d-ask">
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La page sur poste et en demi-écran ; pas de version téléphone, cet écran est hors des deux gestes mobiles (D58).</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>La sélection et « Proposer » relèvent du Lot 4 : l'état cible sert à valider la règle des trois clics.</span></li>
+      <li><svg class="i"><use href="#i-circle"/></svg><span>Les noms, pseudos et chiffres du prototype sont fictifs.</span></li>
+    </ul>
+  </section>
+
+  <nav class="d-pn" aria-label="Écrans voisins"><a class="go" href="ecran-12-mes-campagnes.html"><svg class="i i--sm"><use href="#i-chevron-left"/></svg>Écran 12 · Mes campagnes</a><a class="go" href="ecran-14-verifications.html">Écran 14 · Vérifications créateur <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></nav>
+</main>
+</body>
+</html>

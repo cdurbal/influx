@@ -12,6 +12,15 @@
 //                          (runbook demandes-rgpd §4, J8 commit 8), its digest kept
 //   ops_retention          daily: the hourly roll-up of the metrics of D60 and the purges of ops
 //                          (02 §20.5, §20.8; 0147, J9 commit 8), by bounded steps
+//   storage_purge          hourly: the objects of Storage of the logo and evidence rows to purge,
+//                          then the rows (0205, L2B commit 09; 0223, L2E commit 07; storage-purge.ts)
+//   verification_expiry    hourly: the draft verification requests whose code expired (0223)
+//   badge_lifecycle        daily: the reminder, « à rafraîchir » and expiry of the badges (a SYSTEM
+//                          event, no agent), then the retention of the findings (0230, L2F commit 12)
+//   campaign_closure       daily: the campaigns whose period ended campaign_auto_close_days ago are
+//                          closed by the system (09 RG9; 0309, L3C commit 06)
+//   supply_counters        daily: the counters of critical mass of the UTC day, replaced (10 RG2,
+//                          D38; 0331, L3G commit 07); they propose the opening, never flip it
 //
 // A task without its key in this process (no Brevo key, no GoTrue key) is never claimed. A task
 // that fails closes its run `failed` with the counts reached and a closed code in pino (D60): the
@@ -28,14 +37,24 @@ import {
 } from "../../db/index.ts";
 import { sqlStateOf } from "../../db/sql-state.ts";
 import {
+  CAMPAIGN_CLOSURE_BATCH,
   claimPeriodicRun,
+  closeEndedCampaigns,
+  computeSupplyCounters,
   filterAuthOrphans,
   finishPeriodicRun,
   gotrueRealignmentCandidates,
   PERIODIC_TASKS,
+  BADGE_LIFECYCLE_BATCH,
+  claimStoragePurges,
+  completeStoragePurges,
+  expireVerificationRequests,
   purgeBrevoInboundEvents,
   purgeDataExports,
+  purgeStorageUsage,
+  purgeVerificationFindings,
   recordAuthOrphanPurge,
+  runBadgeLifecycle,
   runOpsRetention,
   recordReconciliationEvent,
   type PeriodicCounts,
@@ -43,15 +62,21 @@ import {
   type PeriodicTask,
   type RealignmentCandidate,
   type ReconciliationFinding,
+  type StoragePurgeCandidate,
+  VERIFICATION_EXPIRY_BATCH,
 } from "./repository.ts";
 
 export {
+  BADGE_LIFECYCLE_BATCH,
+  CAMPAIGN_CLOSURE_BATCH,
   PERIODIC_TASKS,
   type PeriodicCounts,
   type PeriodicRun,
   type PeriodicTask,
   type RealignmentCandidate,
   type ReconciliationFinding,
+  type StoragePurgeCandidate,
+  VERIFICATION_EXPIRY_BATCH,
 } from "./repository.ts";
 
 /** How often the loop looks for a due period. */
@@ -70,6 +95,12 @@ export const EXPORT_PURGE_BATCH = 100;
 export const EXPORT_PURGE_MAX_BATCHES = 10;
 /** Bounded steps of the retention of ops per run; beyond, the next day goes on (0147). */
 export const OPS_RETENTION_MAX_STEPS = 50;
+/** Calls of ops.expire_verification_requests() per run at most; beyond, the next hour goes on. */
+export const VERIFICATION_EXPIRY_MAX_BATCHES = 10;
+/** Calls of the cycle of the badges, and of the retention of their findings, per run at most. */
+export const BADGE_LIFECYCLE_MAX_BATCHES = 20;
+/** Calls of ops.close_ended_campaigns() per run at most; beyond, the next day goes on. */
+export const CAMPAIGN_CLOSURE_MAX_BATCHES = 20;
 
 const INVALID_PARAMETER_VALUE = "22023";
 
@@ -100,6 +131,28 @@ export type PeriodicStore = {
   purgeDataExports(run: PeriodicRun, limit: number): Promise<number>;
   /** One bounded step of ops.run_ops_retention() (0147): its counts, `more` = 1 to go on. */
   opsRetentionStep(run: PeriodicRun): Promise<PeriodicCounts>;
+  /** 0205, 0223: logo and evidence rows whose object is to remove (their attempt counted). */
+  claimStoragePurges(
+    run: PeriodicRun,
+    limit: number,
+  ): Promise<StoragePurgeCandidate[]>;
+  /** 0205, 0223: the rows whose object is removed, forgotten (logo) or purged (evidence). */
+  completeStoragePurges(
+    run: PeriodicRun,
+    objectIds: readonly string[],
+  ): Promise<number>;
+  /** 0205: the daily usage older than 7 days, deleted; the count. */
+  purgeStorageUsage(run: PeriodicRun): Promise<number>;
+  /** 0223: the draft requests whose code expired, expired; the count (one call). */
+  expireVerificationRequests(run: PeriodicRun): Promise<number>;
+  /** 0230: one call of ops.run_badge_lifecycle() (at most BADGE_LIFECYCLE_BATCH badges); the count. */
+  runBadgeLifecycle(run: PeriodicRun): Promise<number>;
+  /** 0230: one call of ops.purge_verification_findings(); the count. */
+  purgeVerificationFindings(run: PeriodicRun): Promise<number>;
+  /** 0309: one call of ops.close_ended_campaigns() (at most CAMPAIGN_CLOSURE_BATCH campaigns); the count. */
+  closeEndedCampaigns(run: PeriodicRun): Promise<number>;
+  /** 0331: one call of ops.compute_supply_counters(), the day replaced; the rows written. */
+  computeSupplyCounters(run: PeriodicRun): Promise<number>;
 };
 
 export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
@@ -202,6 +255,60 @@ export function createPeriodicStore(database: WorkerDatabase): PeriodicStore {
         );
         return { value: counts, auditSubject: effect ? run.runId : null };
       }),
+
+    claimStoragePurges: (run, limit) =>
+      elevated(async (tx) => {
+        const claimed = await claimStoragePurges(tx, run, limit);
+        return {
+          value: claimed,
+          auditSubject: claimed.length > 0 ? run.runId : null,
+        };
+      }),
+
+    completeStoragePurges: (run, objectIds) =>
+      elevated(async (tx) => {
+        const count = await completeStoragePurges(tx, run, objectIds);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    purgeStorageUsage: (run) =>
+      elevated(async (tx) => {
+        const count = await purgeStorageUsage(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    expireVerificationRequests: (run) =>
+      elevated(async (tx) => {
+        const count = await expireVerificationRequests(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    // the database writes the register lines of the cycle itself (system events, no actor)
+    runBadgeLifecycle: (run) =>
+      elevated(async (tx) => {
+        const count = await runBadgeLifecycle(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    purgeVerificationFindings: (run) =>
+      elevated(async (tx) => {
+        const count = await purgeVerificationFindings(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    // the database writes the register lines of the closure itself (system events, no actor)
+    closeEndedCampaigns: (run) =>
+      elevated(async (tx) => {
+        const count = await closeEndedCampaigns(tx, run);
+        return { value: count, auditSubject: count > 0 ? run.runId : null };
+      }),
+
+    // the rows of the day are always rewritten (at least the global one): an effect on the run
+    computeSupplyCounters: (run) =>
+      elevated(async (tx) => {
+        const count = await computeSupplyCounters(tx, run);
+        return { value: count, auditSubject: run.runId };
+      }),
   };
 }
 
@@ -248,6 +355,8 @@ export type PeriodicTaskRunner = (
 const HOURLY_TASKS: ReadonlySet<PeriodicTask> = new Set([
   "auth_orphan_purge",
   "data_export_purge",
+  "storage_purge",
+  "verification_expiry",
 ]);
 
 /** The UTC period of a task at `now`: YYYY-MM-DD, or YYYY-MM-DDTHH for an hourly purge (0117). */
@@ -447,5 +556,90 @@ export function createBrevoInboundPurge(
         return;
       }
     }
+  };
+}
+
+/**
+ * 0223 (08 edge case 1): the draft verification requests whose code expired, by batches, each in
+ * its own transaction; their e-mail and register line written by the database.
+ */
+export function createVerificationExpiry(
+  store: PeriodicStore,
+): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    counts.expired = 0;
+    for (let batch = 0; batch < VERIFICATION_EXPIRY_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const expired = await store.expireVerificationRequests(run);
+      counts.expired += expired;
+      if (expired < VERIFICATION_EXPIRY_BATCH) {
+        return;
+      }
+    }
+  };
+}
+
+/**
+ * 0230 (08 RG69 to RG71, RG100): the cycle of the badges by batches, each in its own transaction
+ * (the reminder, « à rafraîchir », expiry, their e-mails and lead.updated written by the database),
+ * then the retention of the findings, by batches too; a stop requested leaves the run open for
+ * another instance to take back. The dates are the database's: nothing here reads a clock.
+ */
+export function createBadgeLifecycle(store: PeriodicStore): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    counts.moved = 0;
+    for (let batch = 0; batch < BADGE_LIFECYCLE_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const moved = await store.runBadgeLifecycle(run);
+      counts.moved += moved;
+      if (moved < BADGE_LIFECYCLE_BATCH) {
+        break;
+      }
+    }
+    counts.purged = 0;
+    for (let batch = 0; batch < BADGE_LIFECYCLE_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const purged = await store.purgeVerificationFindings(run);
+      counts.purged += purged;
+      if (purged < BADGE_LIFECYCLE_BATCH) {
+        return;
+      }
+    }
+  };
+}
+
+/**
+ * 0309 (09 RG9; modele §5): the campaigns whose period ended campaign_auto_close_days ago closed by
+ * the system, by batches, each in its own transaction (their e-mail and register line written by the
+ * database, the oldest end first, a campaign another transaction holds waiting for the next call); a
+ * stop requested leaves the run open for another instance to take back. The day and the delay are the
+ * database's: nothing here reads a clock.
+ */
+export function createCampaignClosure(
+  store: PeriodicStore,
+): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    counts.closed = 0;
+    for (let batch = 0; batch < CAMPAIGN_CLOSURE_MAX_BATCHES; batch += 1) {
+      checkNotStopped(signal);
+      const closed = await store.closeEndedCampaigns(run);
+      counts.closed += closed;
+      if (closed < CAMPAIGN_CLOSURE_BATCH) {
+        return;
+      }
+    }
+  };
+}
+
+/**
+ * 0331 (10 RG2, CA60, D38; l3g/modele.md §6): the counters of critical mass of the UTC day, in one
+ * transaction (the rows of the day replaced, a replay idempotent). A failure leaves the day before
+ * in place, and AL65 (counters_stale) says so. The day is the database's: nothing here reads a clock,
+ * nothing here touches the opening of the search.
+ */
+export function createSupplyCounters(store: PeriodicStore): PeriodicTaskRunner {
+  return async (run, counts, signal) => {
+    checkNotStopped(signal);
+    counts.rows = await store.computeSupplyCounters(run);
   };
 }

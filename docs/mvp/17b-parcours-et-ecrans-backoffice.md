@@ -513,10 +513,10 @@ et messages restent la propriété du document cité dans `15` RG29.
 
 | # | File | Colonnes de liste (après les 3 communes : état · échéance · verrou) | Filtres propres | Issues | Action de masse |
 |---|---|---|---|---|---|
-| 1 | Profils marque à valider | Raison sociale · pays · complétude · champs modifiés · responsable | Pays · première soumission / modification | Publier · Refuser (motifs `06`) | Non |
+| 1 | Profils marque à valider | Raison sociale *(depuis L2E, lue du bloc interne `profiles.advertiser_internal_details`, EC-L2C-3 ; le nom commercial reste le titre)* · pays · complétude · champs modifiés · responsable | Pays · première soumission / modification | Publier · Refuser (motifs `06`) | Non |
 | 2 | Profils créateur à valider | Alias · pays · réseaux déclarés · complétude · badges | Pays · réseau · avec/sans badge | Publier · Refuser (motifs `07`) | Non |
 | 3 | Visuels de portfolio à modérer | Vignette · alias · date de dépôt · nb de visuels du profil | Profil · type | Approuver · Refuser (motifs `07` RG97) | **Oui** — un seul profil, **20 max**, motif commun (M4) |
-| 4 | Demandes de vérification et badge | **Deux sous-entrées : Vérifications créateurs · Vérifications marques** (D74) · niveau demandé · réseau · pièces | Niveau · réseau · population | Accorder · Refuser (motifs `08`) | Non |
+| 4 | Demandes de vérification et badge | **Deux sous-entrées : Vérifications créateurs · Vérifications marques** (D74) · niveau demandé · réseau · nombre de pièces *(L2E : aucun identifiant, chiffre ni code dans la liste, RG47)* | Niveau · réseau · population | Accorder · Refuser (motifs `08`) | Non |
 | 5 | Contestations de badge | Alias · décision contestée · date · **décideur d'origine** | Type de décision | Confirmer · Infirmer (motifs `08` RG77) | Non |
 | 6 | Identifiants modifiés à contrôler | Alias · ancien `@` · nouveau `@` · réseau · badge en cours | Réseau | Constater · Exiger une nouvelle preuve | Non |
 | 7 | Campagnes à valider | Titre · marque · catégorie de produit · budget + devise · **⚑ revue renforcée** | Secteur sensible · marque · budget | Publier · Refuser (motifs `09` RG90) | Non |
@@ -1160,6 +1160,9 @@ Même gabarit, **contenu et vocabulaire propres** (`15` RG42). Les différences 
 | **Pièces de vérification** | **Relayées par l'API, jamais par une URL signée remise au navigateur** (`03` C(13), C(14), BO-5). **Chaque consultation est journalisée séparément** — pas une fois pour la fiche : le bouton porte donc « (consultation journalisée) » sur **chaque** pièce |
 | **Badge à échéance** | `⚑` + libellé écrit « expire le 19/11 » ; à J-15, AL14 s'ouvre |
 | **Aucun blanchiment de chiffre** | Les tranches de la vue marque n'apparaissent pas ici : la fiche interne montre les valeurs exactes, avec leur source (`10` RG71) |
+| **Badges** *(L2F)* | Bloc « Badges » (`AccountBadgesBlock`) : niveau, réseau, état écrit, date (« expire le », « échéance dépassée », « retiré le », « sans échéance » pour Compte vérifié), motif d'un retrait exécuté, demande 2V vivante, contestation ; jamais un chiffre ni un identifiant de réseau. `[· Demander le retrait]` : motif du niveau, message au membre exigé pour `terms_breach`, récapitulatif ; l'envoi n'ouvre que la 2V. `[· Lancer la vérification]` (D83) : motif fermé, commentaire interne, niveaux « Compte vérifié » et « Marque vérifiée » seuls ; le membre est prévenu par e-mail |
+
+*Amendé à la clôture de L2G : blocs ②, ③ et ④ en service. ② lit les chiffres exacts du badge d'audience tenant, sinon déclarés, avec date et source (jamais pseudo, lien ni tranche) ; ③ dit « aucun tarif » (D78) ; ④ donne le compte de visuels, ceux en attente et le lien `/files/visuels?account=`. Toute lecture de la fiche est couverte par la ligne `history.account_read`.*
 
 **États communs aux deux fiches**
 
@@ -1213,7 +1216,7 @@ jamais un écran mixte** (`08` RG61 ; sous-entrées plutôt qu'onglets depuis D7
 ├────────────────────────────────────────────────────────────────────────────┤
 │ ④ DÉCISION                                                                 │
 │    [■ Accorder le badge Audience ‹v›]     [⚠ Refuser avec motif ‹r›]       │
-│    ⓘ Le badge Audience expire 90 jours après la date de mesure            │
+│    ⓘ Le badge Audience expire 90 jours après la date de décision          │
 │      (19/11/2026). Le créateur sera prévenu à J-15.                        │
 │    ⓘ Ce badge n'affirme ni l'authenticité des abonnés, ni la performance.  │
 └────────────────────────────────────────────────────────────────────────────┘
@@ -1245,7 +1248,7 @@ campagne. **Deux délais** : 1 jour ouvré, **2 jours en revue renforcée** (`09
 ```
 ┌ CMP-2026-0431 · « ⟨titre⟩ » · ⟨raison sociale⟩ ──────────────────────── ▮ ─┐
 │ ⏱ Échéance dans 1 j 3 h   ⚑⚑ REVUE RENFORCÉE — catégorie de produit sensible│
-│    Deux personnes sont requises. Vous êtes le 1ᵉʳ examinateur.              │
+│    Une personne publie ; un second avis est facultatif (D84).               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │ ① LA MARQUE   ⟨raison sociale⟩ · FR · ✓ vérifiée · 3 campagnes publiées    │
 │    ⚑ La même marque a déjà une campagne au titre proche, période qui se     │
@@ -1270,19 +1273,20 @@ campagne. **Deux délais** : 1 jour ouvré, **2 jours en revue renforcée** (`09
 │    Commercial responsable *  [▾ ⟨moi⟩]   ⓘ une campagne sans responsable    │
 │                                            est une campagne que personne ne │
 │                                            vendra (AL20)                    │
-│    [■ Transmettre au 2ᵉ examinateur]      [⚠ Refuser avec motif ‹r›]        │
+│    [■ Publier ‹v›]  [Demander un second avis]  [⚠ Refuser avec motif ‹r›]  │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**La revue renforcée en deux temps** (`09` RG85) — et la différence à ne pas manquer avec la
-double validation de §4.5 : ici, **deux examens**, pas une confirmation différée.
+**La revue renforcée (`09` RG85, amendée par D84)** — aucune double validation obligatoire : **une seule
+personne publie**, la déclaration de la marque étant exigée. Le **second avis est facultatif** et ne
+bloque jamais.
 
-| Temps | Écran | Qui |
+| Phase | Écran | Qui |
 |---|---|---|
-| 1 | Le bouton principal devient **« Transmettre au 2ᵉ examinateur »**, jamais « Publier ». Le 1ᵉʳ examinateur saisit un **avis motivé** obligatoire | `agent` ou `admin` |
-| 2 | L'entrée réapparaît en file, marquée « 2ᵉ examen — 1ᵉʳ avis de ⟨nom⟩ », **masquée au 1ᵉʳ examinateur** (`15` RG36 par analogie) ; le bouton devient **« Publier »** | `admin` ou un **second** agent |
+| Décision | Le bouton principal reste **« Publier »** ; le décideur peut aussi **« Demander un second avis »** (texte de 20 à 1 000 caractères), ce qui rend le verrou | `agent` ou `admin` |
+| Second avis (si demandé) | L'entrée réapparaît en file, marquée « Second avis demandé par ⟨nom⟩ », **lisible par tous**, y compris le demandeur, qui peut la reprendre ; un collègue la publie ou la refuse | `agent` ou `admin` |
 
-Hors revue renforcée, le bouton est directement `[■ Publier ‹v›]`.
+Hors revue renforcée, aucune demande de second avis n'est proposée.
 
 **États.** Aucune campagne en attente : état vide de §2.3. Marque suspendue en cours d'examen :
 bandeau bloquant « La marque a été suspendue. Cette campagne ne peut pas être publiée. » +
@@ -1596,6 +1600,8 @@ un. Ligne distincte, libellé « bris de glace », et un encadré permanent au-d
 
 #### 3.13.c La double validation — et sa forme dégradée
 
+*Amendé à la clôture de L2F (`0231`) : l'action `verification.revoke_badge` s'ajoute au catalogue ; elle est **demandée depuis la fiche du compte** par un agent ou un administrateur (jamais par la porte générique), cible `badge` (niveau, réseau, état, message au membre, nombre de badges emportés ; jamais un chiffre ni un identifiant), conséquences écrites : badge retiré, audience retirée avec lui, ligne publique recalculée, membre notifié, contestation possible. Seul un administrateur confirme ; l'agent reste sur la fiche.*
+
 Deux écrans, selon qu'il existe ou non un second `admin` actif. **La bascule est automatique**
 (`03` PD7, `15` CA72) : aucun changement de code, aucun réglage.
 
@@ -1750,6 +1756,27 @@ ne saisit jamais le jeton d'activation** (G-1 point 2) ; son mode de transmissio
 | Échec à l'étape 2 | Le code QR reste affiché ; seuls les deux champs sont vidés. Refaire l'étape 1 crée un **nouveau** code QR (l'ancien facteur non vérifié est supprimé, `21` J3-A c6) : `bo.auth.enroll.step2.restarted` le dit |
 | Clé manuelle | Affichée par groupes de quatre caractères, sélectionnable ; jamais dans le titre de la page ni dans son adresse |
 | Échec unique | `bo.auth.enroll.errors.generic` à l'étape 1, quelle que soit la cause (adresse, mot de passe, compte déjà activé, plafond) ; seul un jeton d'activation invalide a son message propre, qui ne dit rien des identifiants |
+
+**Invitation d'équipe (additif du 2026-11-24, correctif : l'API `POST /v1/bo/auth/invitation/accept`
+du J8 commit 7 avait été livrée sans écran).** Le lien est le même pour une invitation (aucun
+compte encore) et pour un compte qui a déjà un mot de passe (scripts d'amorçage) ; rien ne les
+distingue. L'étape 1 s'ouvre donc sur la création du compte, l'autre formulaire à un clic. Champs :
+adresse invitée, prénom (1 à 80 caractères), pays (liste par nom), langue (`fr`, `en`), mot de passe
+choisi (`bo.auth.password.rules`, refus par `bo.auth.password.errors.*` de §3.14.d). Les étapes 2 et 3
+sont inchangées.
+
+| Clé | Libellé |
+|---|---|
+| `bo.auth.enroll.invitation.title` | Créez votre compte |
+| `bo.auth.enroll.invitation.emailHelp` | L'adresse à laquelle votre invitation a été émise. |
+| `bo.auth.enroll.invitation.firstName` | Prénom |
+| `bo.auth.enroll.invitation.firstNameHelp` | Affiché à vos collègues de l'équipe INFLUX. |
+| `bo.auth.enroll.invitation.country` | Pays |
+| `bo.auth.enroll.invitation.countryPlaceholder` | Choisissez un pays |
+| `bo.auth.enroll.invitation.language` | Langue |
+| `bo.auth.enroll.invitation.newPassword` | Choisissez un mot de passe |
+| `bo.auth.enroll.invitation.toExisting` | Vous avez déjà un mot de passe INFLUX ? Confirmez votre identité |
+| `bo.auth.enroll.invitation.toInvitation` | Première activation après une invitation ? Créez votre compte |
 
 #### 3.14.c Les codes de secours — affichés une seule fois
 
@@ -2182,7 +2209,7 @@ l'hypothèse indiquée et la rend visible.
 | **I10** | **Nombre d'alertes.** Le catalogue `15` RG68 en compte 41 ; l'additif RG126 en ajoute 7 (AL42–AL48) | **48 alertes.** Le centre d'alertes et le compteur du rail les couvrent toutes | — |
 | **I11** | **Écrire à un seul membre inscrit est impossible.** `16` RG25 prévoit un plancher de volume et « suggère la fiche du compte » quand il y a moins de 2 destinataires — **mais aucun écran ne permet d'envoyer un e-mail depuis une fiche de compte**. La source 3 est de la *prospection* (adresse non inscrite, aucune base légale acquise), pas un message à un membre | **Manque fonctionnel.** En l'état, un commercial qui veut écrire à un membre sort de la plateforme — ce que `CLAUDE.md` §4 interdit. Proposition : un envoi transactionnel unitaire depuis la fiche, modèle validé, consentement non requis (exécution de la relation), journalisé | `expert-marketing` + **`expert-conformite-rgpd` (veto)** |
 | **I12** | **La file 11 `documents` est conditionnelle** (`12` Q5, canal non tranché ; PDF refusé par `03` E1-9) | L'écran est spécifié et **activable en configuration** (`is_active` de `backoffice.queues`). S'il est écarté, le catalogue passe à 15 files — **la file ne doit pas être retirée du code**, sinon la rouvrir coûte un chantier | Fondateur + `expert-cybersecurite` |
-| **I13** | **La file 9 `team_selection` n'a pas de motifs de refus.** `10` RG61 et RG84 créent la file et son délai, mais aucune liste fermée de motifs n'existe — or `15` RG7 l'exige pour toute décision | **Manque.** Liste à écrire avant le Lot 5. En attendant, l'écran de décision de la file 9 réutilise la **liste A** de `13` RG83, qui couvre les mêmes cas | `product-owner` |
+| **I13** | **La file 9 `team_selection` n'a pas de motifs de refus.** `10` RG61 et RG84 créent la file et son délai, mais aucune liste fermée de motifs n'existe — or `15` RG7 l'exige pour toute décision | **Manque.** Liste à écrire avant le Lot 5. En attendant, l'écran de décision de la file 9 réutilise la **liste A** de `13` RG83, qui couvre les mêmes cas. *Tranché par L3G-A (`archives/jalons/l3g/modele.md` §5), réalisé par `0330` : six motifs de la liste A sans créateur en cause (`off_brief`, `motive_insufficient`, `contact_details_in_text`, `campaign_closed`, `duplicate`, `other` avec une note de 10 à 500 caractères) ; `budget_mismatch` (D78) et `suspected_circumvention` (Lot 5) écartés* | `product-owner` |
 | **I14** | **La file 5 `verification_disputes` exige un « agent différent du décideur »** (`15` RG29). Aucune règle ne dit ce qui se passe quand l'équipe compte **une seule personne**, cas réel du pilote | L'écran **masque l'entrée à son décideur d'origine** (comme `15` RG36) et, s'il n'existe aucun autre agent, affiche « Aucun examinateur disponible — cette contestation doit attendre un second agent », **sans bloquer le délai**. C'est un cas où le produit doit dire qu'il ne peut pas, plutôt que simuler un réexamen | `product-owner` + Fondateur *(lié à Q13 de `15`)* |
 
 ### 7.2 Manques relevés dans les spécifications
@@ -2266,7 +2293,7 @@ l'hypothèse indiquée et la rend visible.
 | 17 | **Fiche de compte créateur** — 13 blocs | 3.6 | `agent` `admin` | 2 |
 | 18 | Vérification d'un profil et attribution du badge | 3.7 | `agent` `admin` | 2 |
 | 19 | Validation d'une campagne | 3.8 | `agent` `admin` | 3 |
-| 20 | Revue renforcée — deux examens | 3.8 | `agent` + `admin` | 3 |
+| 20 | Revue renforcée — publication par une personne, second avis facultatif (D84) | 3.8 | `agent` `admin` | 3 |
 | 21 | Liste des affaires et totaux par devise | 3.9.a | `agent` `admin` | 5 |
 | 22 | Fiche d'affaire — états, montants, encaissements | 3.9.b | responsable, `admin` | 5 |
 | 23 | E-mails — écran 1, « Mes envois » | 3.10 | `agent` `admin` | 5 |

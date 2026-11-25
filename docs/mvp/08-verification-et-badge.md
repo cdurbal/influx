@@ -193,6 +193,8 @@ aucun montant, et n'a aucun effet sur un montant.
 Aucune attribution automatique, aucune attribution par un connecteur d'API, aucune attribution par
 lot, aucune attribution par expiration d'un délai. Une attribution automatique est un défaut bloquant.
 
+*Amendé à la clôture de L2F (D83) : un agent peut ouvrir la demande d'un membre connu (motif fermé, origine `agent` figée) ; il ne lui accorde rien, le badge reste attribué à la main, sur constat. Une décision d'un commercial pour son propre client se relit au registre : `channel`, `agent_opened` et `responsible_agent` sur `verification.granted` (`0228`, `0234`, `0241`).*
+
 **RG10** — **Libellés proposés au titre de D34** (proposition du `product-owner`, à valider par le
 fondateur et relire par un juriste avant tout affichage — **Q1**) :
 
@@ -322,7 +324,7 @@ d'audience.** Cette règle n'a aucune exception.
 | **Instagram** | Statistiques du compte professionnel (« Insights ») | Identifiant du compte, nombre d'abonnés, couverture, **période affichée**, pays principaux |
 | **TikTok** | Espace analytique du compte | Identifiant, abonnés, vues, **période**, territoires |
 | **YouTube** | Espace créateur (« YouTube Studio ») | Nom de la chaîne, abonnés, vues, **période**, pays |
-| **Autre réseau** | Outil natif équivalent | Mêmes exigences, sans dérogation |
+| **Autre réseau** (un réseau de la liste `reference.networks`) | Outil natif équivalent | Mêmes exigences, sans dérogation |
 
 **RG33** — Sont **refusées d'office**, chacune avec son motif typé (§F) : capture issue d'un **outil
 tiers** (mesure d'audience, agence, tableur, capture d'un rapport PDF d'agence) ; **chiffres retapés**
@@ -334,6 +336,7 @@ instructions autorisent (RG87).
 **RG34** — Formats acceptés : **images uniquement** (PNG, JPEG, WebP), conformément à `03` §6.6
 règle **E1-9**. Le **PDF est refusé au MVP**. Taille maximale par fichier et nombre maximal de
 fichiers par demande : **paramètres en table** (valeurs de départ proposées : 8 Mo, 6 fichiers).
+*Amendé à la clôture de L2E (D82) : le fichier reçu est lu dans ses octets (PNG, JPEG, WebP), puis **ré-encodé en WebP sans aucune métadonnée** avant tout examen ; seul le WebP est stocké (pas de colonne `content_type`) ; 8 Mio (8 388 608 octets) sur la seule route de dépôt, un fichier par requête.*
 
 **RG35** — Les **métadonnées EXIF sont supprimées au dépôt**, avant tout examen, et le fichier est
 **re-encodé**. Une capture prise depuis un téléphone peut contenir une géolocalisation : c'est une
@@ -485,6 +488,8 @@ sont ceux de `06` RG66, distincts) :
 | `account_unavailable` | Compte suspendu ou en cours de suppression | « Votre demande ne peut pas être traitée tant que votre compte est suspendu. » | Contacter INFLUX |
 | `other` | Autre | Message rédigé par l'agent, **en complément** d'une explication | Contacter INFLUX |
 
+*Amendé à la clôture de L2E (ligne 25 ; écart signé par le fondateur le 2026-11-08) : la colonne « Ce qu'il peut faire » se lit **par niveau**, non du seul motif. Propriété : tout motif rouvre la preuve de propriété, sauf `account_not_public` (inchangé) et les motifs d'équipe sans bouton (`evidence_suspected_forgery`, `shared_account`, `terms_breach`, `account_unavailable`, `agency_managed`, `minor`). Audience, propriété établie : les cinq motifs de pièce, `ownership_not_proven` et `ownership_prerequisite` rouvrent le dépôt ; propriété non établie : aucun bouton, la phrase demande la propriété d'abord (RG12). `other` : la suite du niveau, puis « Contacter INFLUX ». Au backoffice, les six motifs de pièce ne sont ni proposés ni acceptés sur le niveau propriété.*
+
 **RG58** — Le motif **`other` est exceptionnel et surveillé** : s'il dépasse **10 % des refus sur un
 mois**, la liste est réputée incomplète et doit être étendue. Ce seuil est un indicateur du tableau de
 bord, pas une statistique de fin d'année.
@@ -554,6 +559,8 @@ dont INFLUX répond.
 | **Délai de grâce : 30 jours** (proposition, **Q5**) | « à rafraîchir » | Redépôt possible **sans refaire la preuve de propriété** | Idem |
 | **Fin du délai de grâce** | **Expiré** : le badge d'audience **disparaît** | Le profil reste publié, les chiffres repassent en « déclaré » | Plus aucun badge d'audience ; la tranche d'engagement redevient masquée |
 
+*Amendé à la clôture de L2F (`0230`, TM5.3) : une seule tâche quotidienne du worker, `badge_lifecycle` (`ops.run_badge_lifecycle()`, 500 par appel), écrit le rappel (à `expires_at` − `badge_reminder_days`, 15, une seule fois), « à rafraîchir » à `expires_at`, puis « expiré » à `expires_at` + `badge_grace_days` (« à reconfirmer » compris) ; événement système sans agent (sujet `verification_badge`), idempotent par période ; la marque suit le même cycle ; un badge tenu d'une ligne de réseau supprimée expire par la même tâche, sans e-mail (`line_deleted`) ; à l'expiration la ligne publique repasse au déclaré dans la transaction et `lead.updated` part en file.*
+
 **RG71** — **« Compte vérifié » n'est pas affecté par la péremption d'audience** (RG30). Un créateur
 dont le badge d'audience expire reste publié : il ne redevient pas un inconnu.
 
@@ -572,6 +579,8 @@ constaté est une friction sans contrepartie.
 | `terms_breach` | Manquement grave aux CGU | Oui | Administrateur |
 | `influx_error` | **Erreur d'INFLUX** : badge accordé à tort | Oui, avec excuses explicites | Administrateur |
 
+*Amendé à la clôture de L2F (`0231`, `06` RG55) : la liste vit en table `revocation_reasons`, avec une colonne `levels`. Côté créateur : les cinq codes ci-dessus, inchangés. Côté marque : `forged_evidence`, `terms_breach`, `influx_error` (communs) et deux codes neufs, `company_dissolved` et `domain_transferred` ; `account_closed` et `owner_changed` restent propres au créateur. `terms_breach` exige un message de l'agent au membre (20 à 500 caractères) ; `influx_error` présente les excuses d'INFLUX et n'accuse jamais le membre.*
+
 **RG74** — `influx_error` existe parce qu'un agent se trompe. Sans ce motif, une erreur interne se
 range sous un motif qui accuse le créateur — ce qui est à la fois faux et déloyal. Sa fréquence est
 suivie comme un indicateur de qualité de la procédure, pas comme une faute individuelle.
@@ -584,6 +593,8 @@ intégral, confirmation dans un second temps séparé du premier geste, trace no
 horodatages. **C'est un contrôle affaibli, et il est dit comme tel** : il protège contre l'erreur et la
 précipitation, pas contre la malveillance.
 
+*Amendé à la clôture de L2F (`0231`, TM5.4) : l'agent ou l'administrateur demande par `verification.request_badge_revocation()` ; la 2V `verification.revoke_badge` est ouverte et consommée par deux enveloppes `backoffice.*_for` (charge `{account_id, badge_id, reason_code}` comparée entière, une demande vivante par badge, expirée à 24 h sans effet) ; seul un administrateur distinct la confirme (forme dégradée : `degraded_single_operator`) ; le compte propre ou détenu par le confirmeur est refusé ; retirer un « Compte vérifié » emporte l'audience tenue de la même ligne, dite au récapitulatif. Aucun autre retrait que la péremption (RG70) et l'effacement du compte.*
+
 **RG76** — Un badge retiré **disparaît immédiatement de tous les écrans** : recherche, fiche, campagne,
 conversation, e-mail en préparation. **Aucun historique de badge n'est affiché à un annonceur** — ni
 « badge retiré le… », ni « anciennement vérifié ». L'historique est interne.
@@ -595,6 +606,8 @@ personnes ; tant qu'elle n'en compte qu'une, elle est réexaminée **après un d
 moins 24 heures**, et la décision est journalisée nominativement. **Toute contestation, son examen et
 son issue sont journalisés**, et le créateur est notifié de l'issue avec un motif.
 
+*Amendé à la clôture de L2F (`0232`, file 5 de `15` RG29) : table `verification.disputes`. Créateur seul ; cible : un refus `rejected` ou le retrait sous 2V d'un badge nommé ; fenêtre `dispute_window_days` (30) comptée depuis `decided_at` ou `revoked_at`, inclusive ; une contestation par décision ; motif fermé (`misread`, `evidence_valid`, `reason_wrong`, `other` avec texte), texte de 1 000 caractères au plus, ni lien ni contact, **aucune pièce jointe** (une pièce neuve passe par une demande, `17` l. 1768). Décideurs figés au dépôt ; « autre personne » = compte interne actif (profil actif, hors bris de glace) hors décideurs ; sinon décision au plus tôt `dispute_reflection_hours` (24) après le dépôt, `review_mode` `independent` ou `delayed`. Issues `upheld` et `overturned`, chacune avec un motif fermé notifié ; infirmation : refus tranché sur le dossier d'origine (pièces gardées 45 j), octroi à la nouvelle date, identifiant constaté retapé ; retrait : badge neuf, `expires_at` d'origine.*
+
 **RG78** — **Changement d'identifiant (pseudo) déclaré après vérification** : le badge **reste**,
 l'ancien et le nouvel identifiant sont **conservés en interne**, une entrée « identifiant modifié à
 contrôler » est créée dans la file et le commercial est alerté. L'agent décide sous le même SLA : soit
@@ -602,6 +615,8 @@ il constate que le compte est le même et enregistre son constat, soit il **exig
 propriété**, et le badge « Compte vérifié » passe alors en **« à reconfirmer »** (visible du créateur,
 **non affiché comme actif** à un annonceur) jusqu'au nouveau constat. Hypothèse retenue faute
 d'automatisme : INFLUX n'a aucun moyen de détecter seul un changement d'identifiant au MVP.
+
+*Amendé à la clôture de L2F (`0233`, file 6 `identity_change_review`) : un déclencheur sur la seule colonne `handle` d'une ligne dont « Compte vérifié » est `active` ouvre une entrée (une `open` par ligne, mise à jour à chaque changement, retour à l'ancien identifiant = `withdrawn`, `reverted`) ; ancien et nouvel identifiants restent internes, jamais au registre ni en file d'envoi. « Même compte » : constat tapé, égal au déclaré (22023 `observed_handle_mismatch`, comme tout octroi depuis `0228`), badge jamais réécrit ; « preuve exigée » : compte et audience tenue en `to_reconfirm`, ligne publique au déclaré, e-mail `reconfirm_required`. Une audience est refusée tant qu'une entrée est ouverte. Limite connue (L2FS-4, avant production) : l'unicité compare l'identifiant du constat, non l'identifiant confirmé en file 6.*
 
 **RG79** — **Chute brutale d'audience** : le badge **n'est pas retiré** — il constate une date passée,
 et il le dit. Une chute déclarée ou constatée de plus de **40 %** par rapport au dernier constat
@@ -617,7 +632,7 @@ RG10).
 
 ### I — Stockage des pièces, données de tiers, publication
 
-**RG81** — Les pièces vivent dans un **compartiment privé** dédié (`verification`), séparé des visuels
+**RG81** — Les pièces vivent dans un **compartiment privé** dédié (`verification-evidence`, EC-L2E-8 : nom réel, amendé à la clôture de L2E ; `verification` à l'origine), séparé des visuels
 de portfolio, avec ses propres limites de type et de taille (`03` §6.6, **E1-1** et **E1-2**).
 
 **RG82** — **Une pièce de vérification n'est jamais accessible à un annonceur, dans aucun cas** — y
@@ -634,13 +649,14 @@ historique de navigateur, un journal de serveur mandataire ou un message copié-
 **RG84** — **Tout accès d'un agent à une pièce est journalisé** : identité, demande concernée, pièce,
 date et heure. Une consultation non journalisée est un défaut bloquant.
 
-**RG85** — Le **dépôt** se fait par une URL signée de courte durée (≤ 5 minutes), émise après contrôle
-du rôle, du propriétaire, du type et de la taille (**C(12)**, **E1-3**). Le **nom d'origine du fichier
+**RG85** — Le **dépôt** se fait par le passe-plat et `apps/api`, après contrôle du rôle, du propriétaire,
+du type (lu dans les octets) et de la taille (**C(12)**) ; **aucune URL signée n'est émise** (D82, amendé à la
+clôture de L2E ; la rédaction d'origine prévoyait une URL de ≤ 5 minutes, **E1-3**). Le **nom d'origine du fichier
 n'est jamais conservé** : le chemin est calculé par l'API (**E1-4**). Un nom de fichier est un champ de
 texte libre, donc un vecteur de coordonnées.
 
 **RG86** — **Conservation bornée.** Chaque pièce porte une **date de purge obligatoire dès son dépôt**.
-Durée proposée : **90 jours après la décision** (alignée sur `04` §rétention). À l'échéance, la pièce
+Durée : **45 jours après la décision** (**Q2** tranchée le 2026-11-01 : délai de contestation de 30 jours et une marge ; `04` §9). À l'échéance, la pièce
 est supprimée ; **le constat, lui, est conservé 3 ans** — c'est le constat qui engage INFLUX, pas la
 pièce. Durées soumises à **`expert-conformite-rgpd` (veto)** — **Q2**.
 
@@ -722,7 +738,7 @@ d'appréciation exportée hors du périmètre qui la justifie.
 **RG94** — Notifications transactionnelles envoyées au créateur, toutes dans sa langue : demande reçue,
 code généré, **décision favorable**, **refus avec son message de motif**, rappel J-15, passage en « à
 rafraîchir », expiration, **retrait avec son motif**, contestation reçue, issue de la contestation,
-demande expirée. **Aucune de ces notifications n'est marketing** : elles ne dépendent d'aucun
+demande expirée. *(Amendé à la clôture de L2E, EC-L2E-3 : cinq notifications sont livrées au L2E, par le worker depuis `email.json`, sans lien ni chiffre : demande reçue, code généré, décision favorable, refus avec son message de motif, demande expirée ; les six autres sont livrées à la clôture de L2F, par le même worker et sans lien, chiffre, identifiant ni nom d'agent : rappel, « à rafraîchir », expiration (audience et marque), retrait avec son motif, contestation reçue, issue ; s'y ajoutent « preuve à reconfirmer » (RG78) et « votre commercial a lancé la vérification » (D83).)* **Aucune de ces notifications n'est marketing** : elles ne dépendent d'aucun
 consentement et ne passent par aucun scénario de nurturing.
 
 **RG95** — Chaque écran de ce périmètre possède **quatre états explicites** : repos, chargement,
@@ -752,7 +768,7 @@ redéploiement, chaque modification étant journalisée : validité du code (7 j
 (30 jours), péremption du badge d'audience (90 jours), délai de grâce (30 jours), SLA (1 jour ouvré),
 alerte SLA (3 jours ouvrés), expiration du verrou (30 minutes), délai entre deux demandes (24 heures),
 plafond de refus (3 par 30 jours), seuils d'alerte d'écart (30 %) et de chute (40 %), délai de
-contestation (30 jours), rétention des pièces (90 jours), rétention des constats (3 ans).
+contestation (30 jours), rétention des pièces (45 jours), rétention des constats (3 ans). *Amendé à la clôture de L2F : deux paramètres neufs, `badge_reminder_days` (15, de 1 à 90) et `dispute_reflection_hours` (24, de 24 à 168).*
 
 **RG101** — **Aucun de ces paramètres n'est modifiable par un agent** : la modification est réservée à
 un administrateur, journalisée nominativement, avec l'ancienne et la nouvelle valeur.
@@ -1189,6 +1205,10 @@ Tables prévues et utilisées telles quelles : `verification.verification_reques
 8. **Aucune colonne pour la version des instructions de capture** acceptée par le créateur au dépôt :
    utile en cas de contestation portant sur les données de tiers (**Q2**).
 
+**État à la clôture de L2E (2026-11-08) :** écart 1 levé (images, WebP, `0221`) ; 2 levé (`revocation_reasons`, `0221`) ; 3 levé (état `to_reconfirm`, `0221`) ; 4 **reporté à L2F** (`verification.disputes`, EC-L2E-2) ; 5 levé (`observed_handle` et colonnes d'observation de `ownership_codes`, `0221`) ; 6 levé (`reference.engagement_bands` existe depuis `0201`) ; 7 levé (RG60 calculé sur les demandes, aucune table de compteurs, `0222`) ; 8 **non traité** (version des instructions de capture, ouvert, Q2).
+
+**État à la clôture de L2F (2026-11-11) :** écart 4 levé (`verification.disputes`, `dispute_reasons`, `dispute_outcome_reasons`, file 5 aux délais de `15` RG29 ; `0232`) ; l'écart 8 reste ouvert.
+
 **Écart levé le 2026-09-24 (D51, arbitrage du fondateur ; `06` le disait déjà dans ses acteurs et cas limites).** *Texte d'origine :* `06` (cas limite « droit insuffisant ») dit
 que **seul un administrateur** peut retirer un badge, alors que `03` §3.2 autorise un **agent avec
 double validation** (`✔ · J · 2V`). **RG75 retient la matrice** : demande par un agent, approbation par
@@ -1252,14 +1272,14 @@ redéploiement, chaque modification étant journalisée.
 
 | # | Question | Hypothèse retenue en attendant | Arbitre | Échéance |
 |---|---|---|---|---|
-| **Q1** | **D34 — libellés définitifs des trois badges**, en français et en anglais, et **durée exacte de péremption**. Le libellé engage la responsabilité d'INFLUX : il doit être relu par un juriste **avant tout affichage** | Libellés de **RG10**, péremption **90 jours** pour l'audience, **aucune péremption calendaire** pour « Compte vérifié », **12 mois** pour « Marque vérifiée » (`06` RG54) | **Fondateur** + `product-owner` + `expert-conformite-rgpd` + juriste | Lot 2, **avant tout affichage** |
-| **Q2** | **Données de tiers dans les captures** : base légale du traitement, information des personnes concernées, suffisance des instructions de capture, **durée de conservation des pièces (90 jours après décision)** et **des constats (3 ans)**, conservation des constats après suppression du compte, délai de contestation (30 jours) | Durées ci-contre, suppression immédiate des pièces trop larges (RG88), constats conservés sous forme pseudonyme après suppression de compte | `expert-conformite-rgpd` (**veto**) | Lot 2, **bloquant avant mise en ligne** |
+| **Q1** | *Hypothèse validée pour `staging` le 2026-11-01 (fondateur, D34) : libellés de RG10, péremptions de la colonne suivante, en table ; relecture du juriste avant `production`.* **D34 — libellés définitifs des trois badges**, en français et en anglais, et **durée exacte de péremption**. Le libellé engage la responsabilité d'INFLUX : il doit être relu par un juriste **avant tout affichage** | Libellés de **RG10**, péremption **90 jours** pour l'audience, **aucune péremption calendaire** pour « Compte vérifié », **12 mois** pour « Marque vérifiée » (`06` RG54) | **Fondateur** + `product-owner` + `expert-conformite-rgpd` + juriste | Lot 2, **avant tout affichage** |
+| **Q2** | ✅ ***Tranchée le 2026-11-01 (fondateur) : pièces supprimées 45 jours après la décision (RG86) ; constats conservés 3 ans, sous forme pseudonyme après suppression du compte ; pièce trop large supprimée aussitôt (RG88) ; revue `expert-conformite-rgpd` au Lot 6.*** **Données de tiers dans les captures** : base légale du traitement, information des personnes concernées, suffisance des instructions de capture, **durée de conservation des pièces (90 jours après décision)** et **des constats (3 ans)**, conservation des constats après suppression du compte, délai de contestation (30 jours) | Durées ci-contre, suppression immédiate des pièces trop larges (RG88), constats conservés sous forme pseudonyme après suppression de compte | `expert-conformite-rgpd` (**veto**) | Lot 2, **bloquant avant mise en ligne** |
 | **Q3** | **Détection de faux abonnés** : acquérir un outil tiers, ou assumer durablement que le badge ne dit rien sur l'authenticité ? Tant que la réponse est « assumer », la mention de RG10 est obligatoire et non déplaçable | **Assumer** : aucun outil, aucune affirmation, mention explicite | **Fondateur** | Après le pilote |
 | **Q4** | **Campagnes réservées aux profils vérifiés** : levier de désirabilité du badge, en tension directe avec **D38** (masse critique). Activer trop tôt vide les campagnes ; activer trop tard rend le badge inutile | Option **présente en base, désactivée par paramètre** au lancement (RG18) | `chef-de-projet` + **Fondateur** | Avant le Lot 3 |
-| **Q5** | **Valeurs de départ des délais** : validité du code (7 jours), délai de grâce après péremption (30 jours), délai entre deux demandes (24 h), plafond de refus (3 / 30 jours) | Valeurs ci-contre, **toutes en table** (RG100) | `product-owner` + `expert-ux` | Lot 2 |
-| **Q6** | **SLA de la file de vérification : 1 jour ouvré comme la file de validation (D39) ?** La vérification est moins urgente commercialement qu'une mise en relation, mais un créateur non vérifié ne peut pas publier (RG16) — le délai bloque donc l'entrée dans le produit | **Oui, 1 jour ouvré**, valeur unique pour toutes les files, paramétrable par file (RG65) | `chef-de-projet` + **Fondateur** | Lot 2 |
+| **Q5** | ✅ ***Tranchée le 2026-11-01 (fondateur) : valeurs ci-contre, en table (RG100).*** **Valeurs de départ des délais** : validité du code (7 jours), délai de grâce après péremption (30 jours), délai entre deux demandes (24 h), plafond de refus (3 / 30 jours) | Valeurs ci-contre, **toutes en table** (RG100) | `product-owner` + `expert-ux` | Lot 2 |
+| **Q6** | ✅ ***Tranchée le 2026-11-01 (fondateur) : oui, 1 jour ouvré.*** **SLA de la file de vérification : 1 jour ouvré comme la file de validation (D39) ?** La vérification est moins urgente commercialement qu'une mise en relation, mais un créateur non vérifié ne peut pas publier (RG16) — le délai bloque donc l'entrée dans le produit | **Oui, 1 jour ouvré**, valeur unique pour toutes les files, paramétrable par file (RG65) | `chef-de-projet` + **Fondateur** | Lot 2 |
 | **Q7** | ✅ ***Tranchée le 2026-09-24 (D51) : la matrice — agent + approbation d'un administrateur distinct.*** **Qui peut retirer un badge** : `03` §3.2 autorise un agent avec double validation, `06` réserve le retrait à un administrateur. Les deux documents doivent dire la même chose | **La matrice** : agent + approbation d'un administrateur distinct, ou confirmation différée journalisée (RG75). `06` à aligner | `architecte` + `product-owner` | Lot 2 |
-| **Q8** | **Faut-il exiger « Compte vérifié » pour publier un profil créateur ?** C'est une friction réelle à l'entrée, au moment où la plateforme a le plus besoin de profils | **Oui** (RG16) : sans elle, une audience affichée peut appartenir à n'importe qui, et le produit ment dès la première recherche | **Fondateur** + `chef-de-projet` | **Avant le Lot 3** |
+| **Q8** | ✅ ***Tranchée le 2026-11-01 (fondateur) : oui, « Compte vérifié » requis pour publier (RG16).*** **Faut-il exiger « Compte vérifié » pour publier un profil créateur ?** C'est une friction réelle à l'entrée, au moment où la plateforme a le plus besoin de profils | **Oui** (RG16) : sans elle, une audience affichée peut appartenir à n'importe qui, et le produit ment dès la première recherche | **Fondateur** + `chef-de-projet` | **Avant le Lot 3** |
 | **Q9** | **Un créateur peut-il refuser que son badge soit affiché** tout en restant publié ? Cas d'un créateur discret, ou en désaccord avec la tranche publiée | **Non au MVP** : le badge est un constat d'INFLUX, pas une donnée du créateur. Le droit d'opposition s'exerce en se retirant de la recherche (`is_searchable`) | `expert-conformite-rgpd` + `product-owner` | Lot 3 |
-| **Q10** | **Bornes des tranches d'audience et d'engagement** publiées : elles doivent être **identiques** côté créateur, côté recherche et côté campagne, et il n'existe pas encore de référentiel d'engagement | Bornes à écrire dans `reference.audience_bands` et un nouveau `reference.engagement_bands` | `expert-matching` + `product-owner` | Avant le Lot 3 |
+| **Q10** | ✅ ***Tranchée le 2026-11-01 (fondateur) : audience : nano < 10 000 · micro 10 000 à 49 999 · mid 50 000 à 499 999 · macro 500 000 à 999 999 · méga ≥ 1 000 000 ; engagement : < 1 % · 1 à 3 % · 3 à 6 % · ≥ 6 % ; valeurs de départ en table, identiques partout.*** **Bornes des tranches d'audience et d'engagement** publiées : elles doivent être **identiques** côté créateur, côté recherche et côté campagne, et il n'existe pas encore de référentiel d'engagement | Bornes à écrire dans `reference.audience_bands` et un nouveau `reference.engagement_bands` | `expert-matching` + `product-owner` | Avant le Lot 3 |
 | **Q11** | **Conduite à tenir en cas de signalement de faux abonnés par une marque**, alors qu'INFLUX n'a aucun moyen de preuve : que répond-on, et que fait-on du badge ? | Note interne, aucune mention publique, aucun retrait sans pièce (RG80) ; réponse type à rédiger | `chef-de-projet` + `expert-conformite-rgpd` | Lot 3 |

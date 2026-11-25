@@ -3,11 +3,19 @@
 // publication of the public documents (publish-terms.ts; 21 EC-62). Each one refuses production
 // BEFORE anything is read; the local ones refuse any Supabase outside the loopback; the staging
 // ones refuse a database without the marker table of the runbook (docs/mvp/runbooks/staging.md).
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+import { parseEnv } from "node:util";
+import { fileURLToPath } from "node:url";
 // An operator script, outside the api process: the migration role of staging, which no pool of
 // src/db/ may ever reach (CI-5, J3S-2).
 // eslint-disable-next-line no-restricted-imports -- see the line above
 import postgres from "postgres";
+
+const API_ROOT = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+);
 
 /** `what` names the refused action in the message (« demo accounts », « terms publication »). */
 export function refuseProduction(what: string): void {
@@ -178,4 +186,84 @@ export async function carriesStagingMarker(
           select environment from influx_staging.environment_marker`
       : [];
   return markers.length === 1 && markers[0]?.environment === "staging";
+}
+
+/**
+ * The project ref of a hosted migration URL: `postgres.<ref>` on the Supavisor pooler, or
+ * `db.<ref>.supabase.co` on a direct connection. Refuses any other URL and the ref of staging
+ * recorded in apps/api/.env.local (when the file exists).
+ */
+export function productionProjectRefOfMigrationUrl(
+  source: VariableSource,
+  migrationUrlName: string = "INFLUX_PRODUCTION_MIGRATION_URL",
+): string {
+  const migrationUrl = urlOf(migrationUrlName, source(migrationUrlName));
+  const userMatch = /^postgres\.([a-z0-9]{20})$/.exec(
+    decodeURIComponent(migrationUrl.username),
+  );
+  const hostMatch = /^db\.([a-z0-9]{20})\.supabase\.co$/.exec(
+    migrationUrl.hostname,
+  );
+  const projectRef = userMatch?.[1] ?? hostMatch?.[1];
+  if (projectRef === undefined) {
+    throw new Error(
+      `${migrationUrlName} must name a hosted Supabase project (postgres.<ref> on the pooler, or db.<ref>.supabase.co)`,
+    );
+  }
+  const stagingEnv = path.join(API_ROOT, ".env.local");
+  if (existsSync(stagingEnv)) {
+    const stagingUrl = parseEnv(readFileSync(stagingEnv, "utf8")).SUPABASE_URL;
+    if (stagingUrl !== undefined && stagingUrl !== "") {
+      try {
+        if (new URL(stagingUrl).hostname === `${projectRef}.supabase.co`) {
+          throw new Error(
+            `${migrationUrlName} names the staging project of apps/api/.env.local: refused`,
+          );
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("refused")) {
+          throw error;
+        }
+      }
+    }
+  }
+  return projectRef;
+}
+
+/** connectAsHostedMigrationRole() of PRODUCTION (INFLUX_PRODUCTION_MIGRATION_URL, _DB_CA_FILE). */
+export function connectToProductionAsMigrationRole(
+  source: VariableSource = requiredShellVariable,
+): postgres.Sql {
+  return connectAsHostedMigrationRole(
+    source,
+    "INFLUX_PRODUCTION_MIGRATION_URL",
+    "INFLUX_PRODUCTION_DB_CA_FILE",
+  );
+}
+
+/**
+ * True when the database carries influx_production.environment_marker = production AND has no
+ * influx_staging.environment_marker table (runbook production §1 point 6, J9T-2).
+ */
+export async function carriesProductionMarker(
+  sql: postgres.Sql,
+): Promise<boolean> {
+  const [tables] = await sql<{ production: boolean; staging: boolean }[]>`
+    select to_regclass('influx_production.environment_marker') is not null as production,
+           to_regclass('influx_staging.environment_marker') is not null as staging`;
+  const markers =
+    tables?.production === true && tables.staging === false
+      ? await sql<{ environment: string }[]>`
+          select environment from influx_production.environment_marker`
+      : [];
+  return markers.length === 1 && markers[0]?.environment === "production";
+}
+
+/** Asserts carriesProductionMarker(), or throws before any write on production. */
+export async function assertProductionMarker(sql: postgres.Sql): Promise<void> {
+  if (!(await carriesProductionMarker(sql))) {
+    throw new Error(
+      "this database does not carry influx_production.environment_marker = production alone: refused",
+    );
+  }
 }
