@@ -13,6 +13,8 @@
 //    (on the founder's explicit confirmation, CLAUDE.md §7 rule 4) pushes both and opens the PR
 //    `release/vX.Y.Z → production`.
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
@@ -213,36 +215,45 @@ if (values["dry-run"]) {
   process.exit(0);
 }
 
-git("tag", "-a", next.tag, commitSha, "-m", notes);
-git("branch", "-f", branch, next.tag);
+// A large release note (400+ commits) exceeds the 32 KiB Windows command-line limit when passed
+// inline with `-m` or `--body`: pass it through a temporary file (`-F` and `--body-file`).
+const tempDir = mkdtempSync(path.join(tmpdir(), "influx-release-"));
+const notesFile = path.join(tempDir, `${next.tag}.md`);
+try {
+  writeFileSync(notesFile, `${notes}\n`, "utf8");
+  git("tag", "-a", next.tag, commitSha, "-F", notesFile);
+  git("branch", "-f", branch, next.tag);
 
-if (values.push) {
-  git("push", "origin", next.tag);
-  git("push", "-u", "origin", branch);
-  const prUrl = execFileSync(
-    "gh",
-    [
-      "pr",
-      "create",
-      "--base",
-      "production",
-      "--head",
-      branch,
-      "--title",
-      `release: ${next.tag}`,
-      "--body",
-      notes,
-    ],
-    { cwd: REPOSITORY_ROOT, encoding: "utf8" },
-  ).trim();
-  process.stdout.write(
-    `tag ${next.tag} and branch ${branch} pushed; PR opened: ${prUrl}\n`,
-  );
-} else {
-  process.stdout.write(
-    `annotated tag ${next.tag} and branch ${branch} created locally at ${commitSha.slice(0, 12)}.\n` +
-      "Next (founder confirmation, CLAUDE.md §7 rule 4):\n" +
-      `  git push origin ${next.tag} && git push -u origin ${branch}\n` +
-      `  gh pr create --base production --head ${branch} --title "release: ${next.tag}" --body-file <(git tag -l -n999 ${next.tag})\n`,
-  );
+  if (values.push) {
+    git("push", "origin", next.tag);
+    git("push", "-u", "origin", branch);
+    const prUrl = execFileSync(
+      "gh",
+      [
+        "pr",
+        "create",
+        "--base",
+        "production",
+        "--head",
+        branch,
+        "--title",
+        `release: ${next.tag}`,
+        "--body-file",
+        notesFile,
+      ],
+      { cwd: REPOSITORY_ROOT, encoding: "utf8" },
+    ).trim();
+    process.stdout.write(
+      `tag ${next.tag} and branch ${branch} pushed; PR opened: ${prUrl}\n`,
+    );
+  } else {
+    process.stdout.write(
+      `annotated tag ${next.tag} and branch ${branch} created locally at ${commitSha.slice(0, 12)}.\n` +
+        "Next (founder confirmation, CLAUDE.md §7 rule 4):\n" +
+        `  git push origin ${next.tag} && git push -u origin ${branch}\n` +
+        `  gh pr create --base production --head ${branch} --title "release: ${next.tag}" --body-file <(git tag -l -n999 ${next.tag})\n`,
+    );
+  }
+} finally {
+  rmSync(tempDir, { recursive: true, force: true });
 }
