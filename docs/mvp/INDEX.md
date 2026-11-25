@@ -100,17 +100,17 @@
 | 2287 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
 | 2296 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
 | 2309 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2316 | 387 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2316 | 398 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
 | 2329 | 7 | ↳ 21.1 Vocabulaire |  |
-| 2336 | 22 | ↳ 21.2 Frontière |  |
-| 2358 | 125 | ↳ 21.3 Tokens : un fichier, deux chartes, un attribut |  |
-| 2483 | 44 | ↳ 21.4 Polices |  |
-| 2527 | 109 | ↳ 21.5 Gabarits de page | RG28–RG107 |
-| 2636 | 23 | ↳ 21.6 Gardes et tests |  |
-| 2659 | 7 | ↳ 21.7 Découpage |  |
-| 2666 | 20 | ↳ 21.8 Risques et réversibilité | RG7 |
-| 2686 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
-| 2697 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
+| 2336 | 33 | ↳ 21.2 Frontière |  |
+| 2369 | 125 | ↳ 21.3 Tokens : un fichier, deux chartes, un attribut |  |
+| 2494 | 44 | ↳ 21.4 Polices |  |
+| 2538 | 109 | ↳ 21.5 Gabarits de page | RG28–RG107 |
+| 2647 | 23 | ↳ 21.6 Gardes et tests |  |
+| 2670 | 7 | ↳ 21.7 Découpage |  |
+| 2677 | 20 | ↳ 21.8 Risques et réversibilité | RG7 |
+| 2697 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
+| 2708 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
 
 ## 03-matrice-des-droits-et-rls.md (~67k tokens)
 
@@ -544,33 +544,33 @@
 |---|---|---|---|
 | 39 | 28 | 0. Conventions de lecture | RG16–RG73 |
 | 67 | 54 | 1. Cadrage : populations, tâches, enseignements du benchmark | RG2–RG117 |
-| 121 | 208 | 2. Architecture de l'information des deux espaces | RG1–RG140 |
-| 329 | 292 | 3. Le parcours d'inscription et de connexion | RG2–RG140 |
-| 621 | 640 | 4. Espace marque | RG1–RG116 |
-| 628 | 44 | ↳ 4.1 M1 — Accueil marque | RG57–RG101 |
-| 672 | 116 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
-| 788 | 88 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
-| 876 | 130 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG65 |
-| 1006 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
-| 1063 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
-| 1119 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
-| 1214 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
-| 1248 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
-| 1261 | 544 | 5. Espace créateur | RG1–RG117 |
-| 1272 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
-| 1322 | 107 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
-| 1429 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
-| 1505 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
-| 1575 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
-| 1630 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
-| 1726 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
-| 1782 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
-| 1805 | 172 | 6. Écrans transverses | RG14–RG143 |
-| 1977 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
-| 2248 | 105 | 8. Tokens |  |
-| 2353 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
-| 2389 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
-| 2435 | 51 | 11. Récapitulatif des écrans spécifiés |  |
+| 121 | 209 | 2. Architecture de l'information des deux espaces | RG1–RG140 |
+| 330 | 292 | 3. Le parcours d'inscription et de connexion | RG2–RG140 |
+| 622 | 640 | 4. Espace marque | RG1–RG116 |
+| 629 | 44 | ↳ 4.1 M1 — Accueil marque | RG57–RG101 |
+| 673 | 116 | ↳ 4.2 M2 — Profil marque : complétion progressive et couches visibles | RG2–RG102 |
+| 789 | 88 | ↳ 4.3 M3 — Créer une campagne : 8 blocs, 5 étapes, un brouillon permanent | RG4–RG79 |
+| 877 | 130 | ↳ 4.4 M4 — Recherche de créateurs anonymisée | RG1–RG65 |
+| 1007 | 57 | ↳ 4.5 M5 — Demander une mise en relation | RG15–RG116 |
+| 1064 | 56 | ↳ 4.6 M6 — Suivi des demandes et des mises en relation | RG73–RG111 |
+| 1120 | 95 | ↳ 4.7 M7 — La conversation à trois (spécification commune, vocabulaire par rôle) | RG7–RG104 |
+| 1215 | 34 | ↳ 4.8 M8 — Le canal de documents | RG65–RG74 |
+| 1249 | 13 | ↳ 4.9 Les autres écrans de l'espace marque | RG3–RG102 |
+| 1262 | 544 | 5. Espace créateur | RG1–RG117 |
+| 1273 | 50 | ↳ 5.1 C1 — Accueil créateur | RG13–RG99 |
+| 1323 | 107 | ↳ 5.2 C2 — Profil créateur : sept blocs, trois couches, une complétude honnête | RG8–RG112 |
+| 1430 | 76 | ↳ 5.3 C3 — Réseaux, preuves et badges | RG1–RG117 |
+| 1506 | 70 | ↳ 5.4 C4 — Mon offre et mes tarifs : l'écran de la transparence financière | RG22–RG73 |
+| 1576 | 55 | ↳ 5.5 C5 — Le fil des campagnes | RG15–RG60 |
+| 1631 | 96 | ↳ 5.6 C6 et C7 — Fiche de campagne et candidature | RG16–RG81 |
+| 1727 | 56 | ↳ 5.7 C8 — Mes candidatures : les huit états | RG67–RG78 |
+| 1783 | 23 | ↳ 5.8 C9 — Conversation, et les autres écrans créateur | RG5–RG102 |
+| 1806 | 172 | 6. Écrans transverses | RG14–RG143 |
+| 1978 | 271 | 7. Les deux écrans qui portent la valeur et le risque | RG4–RG113 |
+| 2249 | 105 | 8. Tokens |  |
+| 2354 | 36 | 9. Écarts et manques constatés | RG2–RG112 |
+| 2390 | 46 | 10. Ce qui reste à valider | RG6–RG109 |
+| 2436 | 51 | 11. Récapitulatif des écrans spécifiés |  |
 
 ## 17b-parcours-et-ecrans-backoffice.md (~62k tokens)
 
@@ -608,7 +608,7 @@
 | 2191 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
 | 2273 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
 
-## 18-plan-de-test-mvp.md (~66k tokens)
+## 18-plan-de-test-mvp.md (~67k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -642,7 +642,7 @@
 | 1341 | 60 | 9. Ce qui remonte |  |
 | 1401 | 229 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
 | 1630 | 21 | 11. Verdict |  |
-| 1651 | 337 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1651 | 362 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
 | 1660 | 13 | ↳ 12.1 Les familles TD1 à TD8, 44 cas | RG66 |
 | 1673 | 23 | ↳ 12.2 Matrice axe : largeurs par écran |  |
 | 1696 | 30 | ↳ 12.3 Plan par commit |  |
@@ -650,9 +650,9 @@
 | 1742 | 16 | ↳ 12.5 Points à arbitrer qui conditionnent des tests *(relevés le 2026-10-28)* |  |
 | 1758 | 47 | ↳ 12.6 Les familles TK1 à TK8 du jalon RK (D75) *(ajouté le 2026-10-30)* |  |
 | 1805 | 111 | ↳ 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30, relu phrase à phrase le 2026-11-01, L2A-01)* |  |
-| 1916 | 72 | ↳ 12.8 Les tests du Lot 3bis, refonte UX/UI (D87, D88) *(ajouté le 2026-11-25)* |  |
+| 1916 | 97 | ↳ 12.8 Les tests du Lot 3bis, refonte UX/UI (D87, D88) *(ajouté le 2026-11-25)* |  |
 
-## 20-direction-design.md (~32k tokens)
+## 20-direction-design.md (~33k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -666,7 +666,7 @@
 | 326 | 17 | 8. Angles morts du dark theme |  |
 | 343 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 356 | 24 | 10. Tokens proposés |  |
-| 380 | 677 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
+| 380 | 690 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
 | 393 | 40 | ↳ 11.1 Périmètre et frontière |  |
 | 433 | 14 | ↳ 11.2 Ce qui ne change pas |  |
 | 447 | 171 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
@@ -674,8 +674,8 @@
 | 698 | 191 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
 | 889 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
 | 922 | 32 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
-| 954 | 90 | ↳ 11.8 Gabarits et composants |  |
-| 1044 | 13 | ↳ 11.9 Points soumis au fondateur |  |
+| 954 | 103 | ↳ 11.8 Gabarits et composants |  |
+| 1057 | 13 | ↳ 11.9 Points soumis au fondateur |  |
 
 ## 21-plan-de-developpement.md (~20k tokens)
 

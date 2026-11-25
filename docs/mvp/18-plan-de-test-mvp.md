@@ -1918,8 +1918,8 @@ de la phrase, la ligne le dit et renvoie le reste à la recette humaine, avec so
 **Sources :** `22-refonte-ux-ui/05-recette-visuelle.md` (recette, procédure et critères de fin, **fait foi**) et
 `04-animations.md` (catalogue et critères AN) ; ce plan n'en reprend que les identifiants et les gardes. Tests du
 jalon RUA : `archives/jalons/rua/annexe.md` (RUA-T1 à RUA-T8). Planchers (`case-floors.ts`, `artifact-floors.ts`,
-`packages/test-kit/tests`) relevés avec les cas livrés, jamais baissés ; **+20 s au plus pour le lot** en e2e,
-éclats ≤ 7 min 30, job ≤ 8 min.
+`packages/test-kit/tests`) relevés avec les cas livrés, jamais baissés ; **+20 s au plus par jalon** en e2e (EC-RUB-6 : aligné sur `22-refonte-ux-ui/05` §7),
+éclats ≤ 7 min 30, job ≤ 8 min. Tests du jalon RUB : `jalons/rub/annexe.md` (RUB-T0 à RUB-T11, RUB-AN2, RUB-AX).
 
 **Familles `E..-T..`.** Chaque écran a, dans sa fiche `22-refonte-ux-ui/ecrans/E…`, des cas `E<écran>.<n>-T<nn>`
 rattachés à ses lignes `S` et à ses critères `CA` : états montrés ou non par la maquette (chargement, vide, vide filtré,
@@ -1958,7 +1958,12 @@ motivée et prouvée par son cas négatif) :
 | **G3i** | `ColorMixAllowance` avec `base` et `percent` exact ; quatre `--effect-photo-*` dans le bloc KEO seulement ; `rgba(`, `hsla(`, `#rrggbbaa` refusés dans un `--effect-*` (`02` §21.3) | Voile en vert ; 80 % ; valorisé dans `@theme` ; `surface-page` dans le halo ; `--color-*` listé |
 | **G8** | `PHOTO_EFFECT_READERS` ; planche d'états : aucun module ordinaire n'importe un `*.board.*`, aucun n'importe `@influx/web-platform`, le client d'API ni `useMember` | Lecteur hors liste ; import de la planche |
 | **Variantes `bo-*`** | Exactement deux `@custom-variant`, dans `tokens-backoffice.css`, `bo-wide` avant `bo-small` ; ni `innerWidth` ni `innerHeight` ; `matchMedia` dans `small-window.ts` seul (RUC-08) ; `--query-bo-small` égale à `bo-small` | Troisième variante ; ordre inversé ; seuil changé d'un côté |
-| **`SHARED_CATALOGUE`** (RU-18, au premier composant commun) | Par nom, deux modules et le même texte normalisé de `NomProps` ; `exports` de `packages/ui` sans `.tsx` | Prop d'un côté ; module absent ; `.tsx` dans `packages/ui` |
+| **`SHARED_CATALOGUE`** (RU-18, ligne 01 de RUB ; D89) | `{ name, backoffice: "pending" | "delivered" }` : `U/<name>.tsx` exporte `NomProps` autonome ; `pending` : jumeau du backoffice absent ; `delivered` : même texte normalisé ; `exports` de `packages/ui` sans `.tsx` ; aucune `pending` après RUC sauf report nommé | Prop d'un côté ; jumeau présent en `pending` ; module absent ; prop typée de `@influx/contracts` ; `.tsx` dans `packages/ui` |
+| **`findCatalogueProblems`** (RUB, D89) | Ensemble exact des `.tsx` de `member/ui/` (catalogue, contrôles de C18, exceptions datées), aucun `index.ts` ; règle `uncalled` : module de RUB sans appelant produit avant RUE | `MemberButton.tsx` rétabli ; module hors liste ; baril ; import depuis un écran |
+| **`findTransitionalCopies`** (RUB, D89) | Copies d'écran en sursis (`role="status"`, `SaveStatus`, `ErrorNotice` non annoncée, `<details`, `<dialog`) : un motif, des fichiers permis, commentaires ôtés | 40ᵉ fichier ; entrée périmée |
+| **Planche** (RUB, D89) | Une page, une section par composant (`data-board-component`), `expectedFiles` et `COMPONENTS` étendus par ligne ; RUA-T8 : exactement 1 `h1` hors des cellules `page-header` et 1 par cellule ; `effect-photo-*` lus par `PHOTO_EFFECT_READERS` seuls | `h1` en trop ; lecteur hors liste |
+| **Cadres de page** (RUB ligne 10, D89) | `pageFrameClasses` sans `mx-auto` ; `SPACE_SCREEN_CLASSES` = `narrow`, `PROFILE_PAGE_CLASSES` = `wide` ; `SCREEN_CLASSES` littéral ; même bord de `h1` à 1 024 et 1 440 (T10) | Cadre recentré |
+| **Outil de comparaison** (RUB ligne 11, D89) | Couple écran × état (`COUPLE_ID` : `E01.0:marque-neuve`), ligne `S` = `matrix[].name` ; `app.spec.ts` sous `E2E_VISUAL=app` seul ; plancher `app` de 4 dans un module à part | `E01.0-S02` en id ; état ou écran différent |
 | **Artefact** (`test:artifacts`) | Aucune route `state-board` ni marqueur `data-state-board` dans `.next/` (chaque combinaison de `INFLUX_ENV` et du drapeau, testée seule) | Construction avec le drapeau |
 | **Outil de comparaison** (`check`) | Comparateurs purs auto-testés, manifeste des maquettes (SHA-256), aucune image sous `apps/web/e2e` | Image committée ; manifeste périmé |
 
@@ -1978,6 +1983,26 @@ motivée et prouvée par son cas négatif) :
 | 11.8 | Onglets segmentés élargis (RU-10), `surface-active` et compteur (RU-11) | G3h, G3d ; emploi : recette humaine, avec l'écran |
 | 11.8 | Avatar uni (RU-07), cases du code (RU-08), désactivé sans opacité (RU-09), accessibilité sans effet visuel (RU-12) | axe à 0 (TD7) ; N1 à N3 avec l'écran |
 | 11.8 | Petite fenêtre du backoffice : aucune page montée, page tenue masquée (RU-20) | Garde de `small-window.ts`, `mountDecision` testée seule, e2e avec `RUC-08` |
+
+**Familles du jalon RUB (D89).** Détail, fichiers et planchers : `jalons/rub/annexe.md`. **RUB-T0** : garde de planche
+étendue et plancher `visual` lu (X1) · **T1** structure et annonceur (C01 à C03, C29) · **T2** surfaces et actions (C04, C05,
+C10 à C12) · **T3** badges, notices, plaque de logo (C13 à C17, C33, C38) · **T4** listes, propriétés, états (C06 à C09) ·
+**T5** champs et messages (C18 à C21) · **T6** choix, déroulant, état d'enregistrement, dates (C22 à C26, C47) · **T7**
+dialogues, filtres, pagination (C27, C28, C30, C32) · **T8** assistant, récapitulatif, champ de code (C41, C42, C49, C51) ·
+**T9** cartes et lecture (C31, C48, C34 à C37, C39, C40, C66, C68) · **T10** coquille, E01.0-CA01 à CA08, axe à 375, 768,
+1 024 et 1 440 · **T11** coquille contre sa maquette, N1 à N3, local sous `E2E_VISUAL=app` · **RUB-AN2** : par ligne « À
+créer » de `04` §3 portée, durée, courbe et propriété calculées à 1 440, puis AN-1 sous mouvement réduit · **RUB-AX** :
+axe 0 et aucun débordement par section à 375 et 1 440 ; `forcedColors: "active"` à 1 440 (AP1 : contour tracé sur l'état
+actif, `none` sur l'inactif). Budget e2e : 20 s au plus par jalon, 0 s pour T11 (local). Un écran non migré ne change que
+des effets listés par `jalons/rub/modele-archi.md` §1 : cas `RUB-E` (balisage statique d'un appel existant par variante
+employée, égal au littéral relevé avant la ligne).
+
+| § | Règle | Preuve |
+|---|---|---|
+| 11.8 | Couleurs forcées : contour transparent sur tout état porté par un fond (AP1) | RUB-AX ; rendu système : recette humaine |
+| 11.8 | Zone de toucher de 44 px par pseudo-élément (hors lien en phrase et segments de C41) | RUB-T2, T6, T8 (classes) ; RUB-AX (cible) |
+| 11.8 | Contrôles sur photo : ombre et anneau double | RUB-T9 (classes) ; cellule « photo claire » (capture, U) |
+| 17 §2.3 | Bloc d'état en texte, pied, langue en pilule dans un `aside` nommé | RUB-T10 (E01.0-CA04, CA06, CA07) ; axe `region` à 0 |
 
 ---
 

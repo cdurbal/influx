@@ -68,7 +68,7 @@ lues par une spec restent.
   `nav-item-active-bg` + filet gauche 2 px ; sous-entrées 14 px (D74) ; bloc d'état ; pied (langue,
   identité, « Se déconnecter »). Sinon : en-tête collant 64 px + barre du bas 56 px.
 - Entrées réelles : D74 fait foi, aucune entrée sans écran. Détail et écarts : `E01` §2.
-- A11y : `m-state` et pied dans un repère (X11) ; un seul `nav`.
+- A11y : un `aside` nommé « Votre compte » / « Your account » (`shell.accountState.label`) après la `nav`, qui porte le bloc d'état puis le pied, absent sans compte lu, masqué sous 1 024 px (RUB-B §1) ; un seul `nav`. Langue : lien (jamais un `button`) dessiné en pilule secondaire `md`, dans l'en-tête sous 1 024 px, dans le pied dès 1 024 px.
 
 **C57 BoShell** · E `Shell.tsx`, `BoNav.tsx`, `bo-nav.ts`
 - Rail 240 px, lignes 36, 14 px ; surtitres de groupe non cliquables ; nombre à droite en chiffres
@@ -85,7 +85,7 @@ lues par une spec restent.
   texte · chevron), `lists` (vignettes · texte · chevron ; vignettes masquées < 640), `tasks` (titre ·
   statut ; filets `border-default`), `hub` (titre, phrase, chevron), `sessions` (icône · texte · action ;
   pile < 480), `todo` (BO, hauteur libre, 14 px / 12 px), `mini` (36 px, filet de survol).
-- Props : `items[{ href?, title, meta?, sub?, end?, action?, tone? }]`, `variant`.
+- Props : `items[{ href?, title, meta?, sub?, end?, action?, tone? }]`, `variant`. Huit variantes (EC-RUB-2), sans en ajouter : les « 10 » formes de la maquette se rendent par les champs présents (`campaign` avec `meta` et `end`, sans `end`, avec `sub` seul ; `mini` avec `media` et `sub`) ; une forme qu'aucun champ ne rend : décision d'`architecte` (RUB-B §4). Ligne `current` : contour transparent (AP1, `20` §11.8).
 - Survol `surface-raised` ; focus : anneau intérieur sur la ligne ; lien étiré (`cover`) ; une action
   dans la ligne passe au-dessus (`z-raised`).
 
@@ -97,13 +97,13 @@ lues par une spec restent.
 
 **C08 EmptyState / StateMessage** · N (U18) : sans cadre ; icône 24 `text-tertiary`, titre
 `t-section`, phrase, **une action au plus** ; rembourrage vertical 32, max 40 rem, écart 12. Variantes
-`empty`, `filtered` (« Effacer » secondaire, jamais « Créer »), `error` (« Réessayer »), `closed`,
+`empty`, `filtered` (« Réinitialiser » secondaire, EC-RUA-06-3 ; jamais « Créer »), `error` (« Réessayer »), `closed`,
 `sent`, `inline` (une ligne : coche sarcelle + phrase). « Mes campagnes » vide est **en carte** dans la
-maquette 12 (**RU-15**).
+maquette 12 (**RU-15**). Titre : un `p` de style `t-section`, jamais un niveau de titre (la hiérarchie reste à C01 à C03, RU-12 ; RUB-B PT5).
 
 **C09 Skeleton** · N (U20) : `skeleton-base`, rayon 6, ligne 14 px, formes à la hauteur finale
 (photo 4/3 + trois lignes), conteneur `aria-busy`, texte « Chargement… » hors écran, rien avant 1 s
-(`interactions.html`). Dessiné pour 2 et 13 ; ailleurs : composition de C09 à valider écran par écran.
+(`interactions.html`). Dessiné pour 2 et 13 ; ailleurs : composition de C09 à valider écran par écran. Formes `aria-hidden`, conteneur `aria-busy`, `label` hors écran ; mouvement réduit : formes fixes ; nombre chargé annoncé par C29 (RUB-B PT6).
 
 **C13 StatusBadge** · E `status-badge-classes.ts` : pilule 28,6 px, 12 px 700, 4 × 12, **écart 8** (4
 aujourd'hui, U65), contour 1 px, fond opaque. Tons neutre, succès, alerte, erreur, info, vérifié.
@@ -114,7 +114,7 @@ Variante `text` (sans pilule : `late`, `ok`, `sync`, `st`) : icône 16 + mot, é
 
 **C15 RoleBadge** · R : 31,7 px, point 12 px. Dans la fiche BO (6) il hérite de 800 : **RU-15**.
 
-**C16 CounterBadge** · E : 18,6 px, min 24, 12 px 700, 0 × 8. Variante `dot` (20 px) dans une pastille.
+**C16 CounterBadge** · E : 18,6 px, min 24, 12 px 700, 0 × 8. Variante `dot` (20 px) dans une pastille. Contour fin transparent (AP1, `20` §11.8).
 
 **C17 Notice** · R : 14 px, 12 × 16, rayon 12, icône 16, écart 12 (8 aujourd'hui). Action à droite
 possible (1, 12). Jamais pour un état durable (U46).
@@ -137,9 +137,11 @@ résumé `lsum` sur une ligne (14 px, écart 4 × 16, chiffres tabulaires).
   (libellé en cours, `aria-busy`, largeur figée), « ajouté ». Opacité 0,45 de la maquette 21 remplacée
   par l'état désactivé de la charte (**RU-09**).
 - Libellé long au téléphone : deux lignes permises (65,6 px mesurés).
+- `sm` (36) et `bar` (40) : dessin gardé, zone de toucher étendue à `size-touch-target` en hauteur par un pseudo-élément transparent (RUB-B §3).
+- Module `Button.tsx` (ancien `MemberButton`), types `ButtonVariant` et `ButtonSize` (RUB-A §1).
 
 **C11 ActionLink** · N : `link` (souligné, 600) ; `go` (Manrope 600, 16 px, 14 en dense, chevron 16 ou
-20 à 4 px, 44 px de haut, souligné au survol) ; `save` (cœur + libellé souligné, `aria-pressed`).
+20 à 4 px, 44 px de haut, souligné au survol) ; `save` (cœur + libellé souligné, `aria-pressed`). Seul sur sa ligne (liens de tête et de retour, méta de C41), zone de 44 × 44 px par pseudo-élément, anneau sur l'élément dessiné ; pas pour un lien dans une phrase (RUB-B §3).
 
 ## 4. Formulaires
 
@@ -150,7 +152,7 @@ résumé `lsum` sur une ligne (14 px, écart 4 × 16, chiffres tabulaires).
   texte 48 px au moins, rembourrage 8) ; nombre court 128 px
   + unité. Écarts 8 (libellé-champ), 4 (libellé-aide).
 - Grille de champs `fgrid` : 1 colonne, puis 2, 3 ou 4 dès 640 (**RU-03**), écart 24.
-- Erreur : contour 2 px `border-error` sans décalage, message C19, `aria-invalid`, `aria-describedby`.
+- Erreur : contour 2 px `border-error` sans décalage (rembourrage horizontal compensé de l'écart de contour, hauteur fixe, seule la couleur transitionne : RUB-B PT1), message C19, `aria-invalid`, `aria-describedby`. `Field` rend C19 (`error`, `warning`) au lieu de l'encadré (RUB-A §1) ; « À vérifier : » seulement pour un `warning` passé par l'appelant.
 - Valider après soumission, puis au départ du champ signalé ; corriger efface (U25).
 
 **C19 FieldMessage** · N (remplace l'`ErrorNotice` encadrée sous un champ, U27) : icône 16 + texte 14 px,
@@ -166,10 +168,10 @@ la section (`flushSync`) puis focalise le champ. `missing` : ligne d'alerte, ic�
 **C22 SegmentedControl** · N : piste `surface-raised`, pilule, 4 px, écart 4, segments 36 px (BO 32),
 14 px 600 ; actif `surface-active` + `text-primary`. Variantes : `radio` (choix), `tabs` (15, `tablist`,
 flèches ; deux colonnes < 640, rayon 12), `views` (BO, liens `aria-current`). Compteur inactif
-`text-secondary` (X7). Hors conversation : **RU-10**.
+`text-secondary` (X7). Hors conversation : **RU-10**. Clavier (RUB-B §6) : `radio` = `fieldset` + `legend` et `input type="radio"` natifs, `Tab` au coché, flèches pour choisir ; `tabs` = `tablist` nommé, tabulation itinérante, `←` `→` bouclent et activent, `Début`, `Fin` ; `views` = liste de liens sans `nav`, courante `aria-current="true"`, jamais `"page"`. Actif : contour transparent (AP1).
 
 **C23 TagPicker** · E `PickListField` (U03) : liste déroulante + « Ajouter » secondaire ; étiquette 36 px
-(BO 32) avec ×, 14 px ; choix 13 à 20 rem. Retrait annoncé ; focus à l'étiquette suivante, sinon à la liste.
+(BO 32) avec ×, 14 px ; choix 13 à 20 rem. Retrait annoncé ; focus à l'étiquette suivante, sinon à la liste. « × » : zone de 44 × 44 px (RUB-B §3).
 
 **C24 InternalZone** · N (U30) : `surface-page`, tirets `border-strong`, rayon 12, 16, écart 24 ; titre
 14 px 700 avec icône `eye-off` et texte.
@@ -193,4 +195,4 @@ effacer » à gauche. BO : encadré interne violet.
 **C30 FilterBar** · N : pastilles 40 px (BO 36), 14 px, 16 (BO 12), contour `border-default` ; active :
 contour `text-primary` + `surface-active` 600, × pour retirer ; filet vertical 24 ; membres : une ligne
 défilante ; BO : à la ligne ; recherche BO 15 rem ; `inline-select` sans contour. Compteur de filtres.
-A11y : `aria-pressed`, groupe nommé, défilement au clavier (X8).
+A11y : groupe nommé, défilement au clavier (X8) ; pastille bascule : `aria-pressed`, sans chevron ; pastille à menu (`onOpen`) : `aria-expanded` et `aria-haspopup`, chevron pivoté de 180° à l'ouverture, au repos sans chevron (écart à F8 non appliqué, question au fondateur à l'ouverture de RUC ; RUB-B PT4).

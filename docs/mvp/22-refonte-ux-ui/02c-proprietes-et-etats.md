@@ -19,27 +19,27 @@
 | C07 PropertyList | `items: {label, value, empty?, sub?, mark?}[]`, `size?: "sm"｜"md"｜"xs"`, `labelWidth?` (palier de `03` §3.3), `columns?: 1｜2`, `emptyLabel?` | valeur vide, modifiée |
 | C08 EmptyState | `kind: "empty"｜"filtered"｜"error"｜"closed"｜"sent"｜"inline"`, `icon?`, `title`, `body?`, `action?`, `live?: boolean` | par `kind` ; `error` : nouvelle tentative en cours |
 | C09 Skeleton | `shape: "line"｜"row"｜"card"｜"photo"｜"field"`, `count?`, `label` (« Chargement… ») | visible après 1 s |
-| C10 Button | `variant: "primary"｜"secondary"｜"danger"｜"text"`, `size?: "sm" (36)｜"bar" (40)｜"md" (44)｜"lg" (52)` ; BO : `"bo" (28)｜"sm"`, `icon?`, `iconEnd?`, `href?`, `type?`, `busy?`, `busyLabel?`, `disabledReason?` (`id` décrit), `pressed?`, `added?`, `block?` | communs ; `busy` (largeur figée), `added` |
-| C11 ActionLink | `variant: "inline"｜"go"｜"save"`, `href?`, `onClick?`, `pressed?`, `dense?`, `external?` (texte « nouvel onglet ») | communs ; pressé |
+| C10 Button (types `ButtonVariant`, `ButtonSize` ; RUB-A : ancien `MemberButton`) | `variant: "primary"｜"secondary"｜"danger"｜"text"`, `size?: "sm" (36)｜"bar" (40)｜"md" (44)｜"lg" (52)` ; BO : `"bo" (28)｜"sm"`, `icon?`, `iconEnd?`, `href?`, `type?`, `busy?`, `busyLabel?`, `disabledReason?` (`id` décrit), `pressed?`, `added?`, `block?` ; `sm` et `bar` : zone de toucher de 44 px en hauteur par pseudo-élément (RUB-B §3) | communs ; `busy` (largeur figée), `added` |
+| C11 ActionLink | `variant: "inline"｜"go"｜"save"`, `href?`, `onClick?`, `pressed?`, `dense?`, `external?` (texte « nouvel onglet ») ; zone de toucher de 44 × 44 px par pseudo-élément quand il est seul sur sa ligne (RUB-B §3) | communs ; pressé |
 | C12 CardActions | `stretch?: boolean` (< 480), `children` | — |
 | C13 StatusBadge | `tone: "neutral"｜"success"｜"warning"｜"error"｜"info"｜"verified"`, `icon?`, `variant?: "pill"｜"text"`, `children` | — |
 | C14 LayerBadge | `layer: "public"｜"revealed"｜"internal"` (existant), `label`, `wrap?`, `iconOnly?` + nom accessible | — |
 | C15 RoleBadge | `role: "advertiser"｜"creator"`, `label` (existant) | — |
 | C16 CounterBadge | `count`, `label` (lu), `variant?: "pill"｜"dot"｜"rail"`, `late?` | changé (`flash-strong`) |
 | C17 Notice | `tone: "success"｜"warning"｜"info"`, `title?`, `action?`, `announce?` (existant) ; `size?: "md"｜"strip"` | — |
-| C18 Field | existant (`FieldTexts`, `FieldIds`) + `size?: "md"｜"bo"｜"dense"`, `width?: "full"｜"number"｜"xs"｜"sm"｜"md"｜"lg"｜"xl"`, `suffix?`, `counter?: {value,max}`, `layerShown?` (RU-30) ; `FieldGrid : columns 1 à 4` | vide, rempli, erreur, avertissement, lecture seule, désactivé |
-| C19 FieldMessage | `kind: "error"｜"warning"｜"seen"`, `id`, `children` | apparition sans animation |
+| C18 Field | existant (`FieldTexts`, `FieldIds`) + `size?: "md"｜"bo"｜"dense"`, `width?: "full"｜"number"｜"xs"｜"sm"｜"md"｜"lg"｜"xl"`, `suffix?`, `counter?: {value,max}`, `layerShown?` (RU-30) ; en erreur : contour `border-width-thick`, rembourrage horizontal compensé, hauteur fixe (RUB-B PT1) ; `FieldGrid : columns 1 à 4` | vide, rempli, erreur, avertissement, lecture seule, désactivé |
+| C19 FieldMessage (rendu par `Field` : `error`, `warning`, RUB-A §1) | `kind: "error"｜"warning"｜"seen"`, `id`, `children` | apparition sans animation |
 | C20 ErrorSummary | `title`, `items: {fieldId, label, reason, reveal?: () => void}[]`, `autoFocus?` ; `MissingList : items, actionLabel` | vide (absent), affiché, focalisé |
 | C21 ChoiceGroup | `legend`, `type: "checkbox"｜"radio"`, `options: {value,label,help?,disabled?,reason?}[]`, `value`, `onChange`, `dense?`, `invalid?`, `max?` | coché, non coché, désactivé expliqué, invalide |
 | C22 SegmentedControl | `kind: "radio"｜"tabs"｜"views"`, `label`, `options: {value,label,count?,href?,controls?}[]`, `value`, `onChange?` | actif, inactif, focus ; flèches (`radio`, `tabs`) |
-| C23 TagPicker | existant (`PickListField`) + `addLabel`, `max?`, `sortLocale`, `onAdd`, `onRemove` | vide, rempli, plafond, invalide |
+| C23 TagPicker | existant (`PickListField`) ; « × » de retrait : zone de 44 × 44 px (RUB-B §3) + `addLabel`, `max?`, `sortLocale`, `onAdd`, `onRemove` | vide, rempli, plafond, invalide |
 | C24 InternalZone | `title`, `children` | — |
 | C25 SaveStatus | `state: "idle"｜"saving"｜"saved"｜"failed"`, `savedAt?`, `retryInSeconds?`, `onRetry?`, `placement?: "foot"｜"meta"`, textes | les quatre |
 | C26 Disclosure | `variant: "optional"｜"fold"｜"danger"｜"rare"｜"group"｜"change"`, `summary`, `count?`, `defaultOpen?`, `forceOpen?` (erreur interne), `children` | fermé, ouvert |
 | C27 Dialog | `open`, `onClose`, `title`, `size?: "confirm" (30)｜"wide" (34)`, `children`, `actions`, `initialFocus?`, `dismissible?` (faux pendant l'envoi) ; `ShortcutsDialog : groups` | fermé, ouvert, en cours, erreur |
 | C28 FiltersDialog | `open`, `onClose`, `title`, `groups: ReactNode[]`, `internalGroup?` (BO), `activeCount`, `onApply`, `onClear`, `applyLabel` | brouillon, appliqué, en cours ; fermeture sans appliquer : brouillon perdu et dit par la fiche |
 | C29 Announcer | `useAnnouncer(): announce(message)` ; une région par page | — |
-| C30 FilterBar | `label`, `pills: {id,label,active?,onToggle?｜onOpen?,onClear?,expanded?}[]`, `filtersButton?: {count,onOpen}`, `search?: {value,onChange,onSubmit,label}`, `selects?: InlineSelect[]`, `density?: "md"｜"bo"` | pastille : repos, active, ouverte (non dessinée, RU-27) |
+| C30 FilterBar | `label`, `pills: {id,label,active?,onToggle?｜onOpen?,onClear?,expanded?}[]`, `filtersButton?: {count,onOpen}`, `search?: {value,onChange,onSubmit,label}`, `selects?: InlineSelect[]`, `density?: "md"｜"bo"` ; pastille à menu (`onOpen`) : `aria-expanded` et `aria-haspopup` toujours, chevron qui pivote de 180° à l'ouverture ; pastille bascule : `aria-pressed`, sans chevron (RUB-B PT4) | pastille : repos, active, ouverte (non dessinée, RU-27) |
 | C32 Pager | `kind: "pages"｜"cursor"`, `page?`, `hasPrevious`, `hasNext`, `onPrevious`, `onNext`, `summary?`, `total?` | en cours, dernière page, plafond |
 | C33 LogoPlate / Avatar | `src?`, `name`, `size: 32｜40｜48｜56｜64｜120`, `shape: "plate"｜"round"`, `missing?: "initials"｜"dashed"` | image, initiales, absent, erreur de chargement (= initiales) |
 | C56 MemberShell | existant ; `role`, `profileState`, `missingCount?`, `nav`, `identity`, `locale` | chargement, déconnecté, indisponible, CGU en attente (existants) |
@@ -50,20 +50,20 @@
 | ID | Propriétés | États |
 |---|---|---|
 | C31 PhotoCard | `href`, `media: {src?,alt}[]`, `badge?: {label,tone}`, `name`, `verified?: {label,date?}`, `lines: ReactNode[]`, `why?`, `saved?`, `onToggleSave?`, `saveLabel`, `note?`, `variant: "search"｜"shortlist"｜"identified"`, `blocked?: string` | sans visuel, ajout en cours, ajouté, refusé (plafond), bloquée, en sortie |
-| C34 MediaGallery | `items: {src,alt,caption?}[]`, `allLabel`, `title`, `emptyLabel` | aucun, 1 à 4 (RU-34), 5 et plus, ouverte |
+| C34 MediaGallery | `items: {src,alt,caption?}[]`, `allLabel`, `title`, `emptyLabel` (phrase `text-secondary`, sans cadre) ; chaque visuel est un bouton nommé par son `alt` | aucun, 1 à 4 (RU-34 : mosaïque 2/1 sans case vide ; un visuel : ni compteur ni points), 5 et plus, ouverte |
 | C35 KeyFigures | `variant: "figures"｜"essentials"｜"network"`, `items: {label,value,sub?,icon?,verified?}[]` | valeur absente (« Non renseigné » selon la fiche) |
 | C36 ReasonList | `items: {icon,title,body}[]`, `gap?: "md" (16)｜"lg" (24)` | liste vide : section absente |
 | C37 RangeBar | `items: {label,from,to,valueLabel}[]` | — |
 | C38 ChipList | `items: string[]`, `label` | — |
 | C39 StickyAside | `children`, `label` ; `MobileActionBar : label, text, action, hidden?` | collante, barre, absente |
 | C40 ReadingLayout | `main`, `aside`, `asideLabel` | une ou deux colonnes |
-| C41 Wizard | `title`, `name?`, `badge?`, `steps: {id,label,state:"todo"｜"current"｜"done"｜"gap",href}[]`, `remaining?`, `leave: {href,label}`, `save: SaveStatus`, `back?`, `next: {label,onClick,busy?}`, `children` | étape en fondu, envoi en cours, conflit de version, lecture seule |
+| C41 Wizard | `title`, `name?`, `badge?`, `steps: {id,label,state:"todo"｜"current"｜"done"｜"gap",href}[]` (`label` composé par l'appelant : « Étape {n} sur {N} : {nom}, {état} »), `remaining?`, `leave: {href,label}`, `save: SaveStatus`, `back?` (sous 480 px : chevron seul, nom conservé hors écran), `next: {label,onClick,busy?}`, `children` | étape en fondu, envoi en cours, conflit de version, lecture seule |
 | C42 Recap | `sections: {id,title,editHref,items,missing?}[]`, `editLabel` | complet, avec manques |
 | C43 ActivationChecklist | `title`, `done`, `total`, `items: {state:"todo"｜"done"｜"waiting"｜"locked",title,detail?,action?}[]` | quatre états de ligne ; terminée : absente |
 | C44 NetworkAccordion | `networks: {id,name,primary,complete,open,summary?,error?,children}[]`, `onToggle`, `onPrimary`, `labels` | fermé, ouvert, complet (fête une fois), en erreur, lecture seule |
 | C45 PortfolioGrid | `items`, `onAdd?`, `max`, `variant: "edit"｜"thumbs"｜"stack"` | vide, en envoi, refusé, plein |
 | C46 DeliverablesPicker | `networks: {id,name,formats:{code,label,quantity?}[]}[]`, `onChange`, `mode: "quantity"｜"choice"`, `max?` | zéro, choisi, plafond, réseau décoché |
-| C47 DateField | `label`, `value` (ISO), `onChange`, `locale`, `min?`, `max?`, `orderNote?` ; saisie JJ/MM/AAAA ou MM/DD/YYYY | vide, valide, format refusé, ordre à vérifier |
+| C47 DateField | `label`, `value` (ISO), `onChange`, `locale`, `min?`, `max?`, `orderNote?`, `orderKind?: "error"｜"warning"` (par l'appelant, défaut `error`) ; champ texte `inputmode="numeric"` : jour, mois, année pour `fr` et `en`, mois puis jour pour `en-US` seul ; valeur émise : ISO civile ou `null` (RUB-B §3) | vide, valide, format refusé, ordre à vérifier |
 | C48 FeedCard | `href`, `brand`, `logo?`, `verified?`, `title`, `due: {label,soon?}`, `meta` | survol, échéance proche, close |
 | C49 OtpField | `value`, `onChange`, `length` 6, `label`, `invalid?`, `busy?`, `variant: "boxes"｜"line"` | vide, partiel, complet, erreur, bloqué (essais) |
 | C50 AuthLayout | `width: "form"｜"wide"`, `card?`, `langSwitch`, `children` | hors ligne (notice) |

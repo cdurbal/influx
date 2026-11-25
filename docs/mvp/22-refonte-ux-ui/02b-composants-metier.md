@@ -17,12 +17,13 @@
   (13 : nom réel ▮, handle, état, valeurs exactes ; paire bloquée). `pick` (case ronde) = Lot 4.
 - Props : `href`, `media[]`, `badge?`, `name`, `verified?`, `lines[]`, `why?`, `saved`, `onToggleSave`, `note?`.
 - États : sans visuel, chargement (C09), ajout en cours, ajouté, plafond atteint, masqué.
+- Tout glyphe posé sur la photo sans fond propre porte `effect-photo-shadow` ; cœur, flèches et « Voir les n visuels » : anneau double, `focus-ring` sur un halo `surface-page` (AP2, `20` §11.8). Cœur `saved` : contour transparent (AP1).
 - A11y : `article` nommé ; cœur `aria-pressed` et nom « Ajouter ⟨alias⟩ à ⟨liste⟩ » ; piste atteignable au
   clavier (X8) ; cible du cœur 44 px ; texte de l'image : nature du visuel, jamais l'identité.
 
 **C34 MediaGallery** · N : mosaïque 2/1 (1 + 4, écart 8, rayon 16, 1 088 × 544) dès 768 ; carrousel 4/3 pleine
 largeur dessous, compteur « 1/5 » ; « Voir les n visuels » ; dialogue plein écran, grille 2 colonnes
-dès 768, max 56 rem. A11y : X8, retour du focus, `Échap`. Moins de 5 visuels : E02b-Q.
+dès 768, max 56 rem. A11y : X8, retour du focus, `Échap`. Moins de 5 visuels (RUB-B §4, part composant de RU-34) : 1 à 4 = cadre 2/1 sans case vide (le premier à gauche sur deux rangs ; à droite 2 = un sur deux rangs, 3 = un par rang, 4 = un en haut et deux en bas ; 1 = tout le cadre) ; 5 et plus = 1 + 4. Sous 768 : carrousel, sans compteur, points ni piste pour un seul visuel. « Voir les n visuels » dès 2 ; chaque visuel est un bouton nommé par son `alt`. Aucun visuel : `emptyLabel` en phrase. Un seul rendu par largeur, en CSS. Compteur et flèches : AP2.
 
 **C35 KeyFigures** · N : `figures` (4 colonnes séparées par des filets, 16 × 8, chiffre **18 à 20 px** 800 —
 taille fixe à fixer, RU-01, 2 colonnes < 640) ; `essentials` (2 × 2, icône 24, 16) avec `dl` valide (X9) ;
@@ -71,7 +72,7 @@ une colonne < 640.
 - Règles : « Continuer » **n'est jamais bloquant** ; segment fait ou manquant (alerte) cliquable ; focus
   au `h2` ; l'étape est dans l'URL ou l'état selon l'existant (`E03`, `E07`, `E10`) ; enregistrement
   automatique existant préservé (verrous de version, reprise).
-- A11y : segments = liste de boutons nommés « Étape n : ⟨libellé⟩, ⟨état⟩ », `aria-current="step"`.
+- A11y (RUB-B §2) : segments = `ol` de liens, tous suivis quel que soit l'état (navigation libre, RU-32), nommés « Étape {n} sur {N} : {nom}, {état} » (à faire, en cours, faite, à compléter), `aria-current="step"` ; `Tab` de segment en segment, aucune flèche ; zone de 26 px (exception aux 44 px, 2.5.8 tenue, chaque étape ayant un équivalent de 44 px) ; contour transparent sur tous, épais sur fait et courant (AP1). Pied sous 480 px : « Précédent » = chevron 16 seul de largeur `size-touch-target`, libellé conservé hors écran (RU-36).
 
 **C42 Recap** · N : sections par étape, filet, `h3` 16 px 700, « Modifier », propriétés 11 rem, manques en alerte.
 
@@ -88,7 +89,7 @@ min 7 rem ; pile de 3 (9) 56 px, chevauchement 24.
 (− / +, 36 px, `output`), zéro en `text-tertiary`. Boutons nommés, `aria-live` sur la quantité.
 
 **C47 DateField** · N (7, U52) : 12 rem, format de la langue, ordre des dates vérifié et dit sous le champ.
-Saisie au clavier : E07-Q.
+Saisie (RUB-B §3) : champ texte `size-date`, `inputmode="numeric"`, sans sélecteur natif ; ordre jour, mois, année pour `fr` et `en` (D25), mois puis jour pour `en-US` seul ; séparateurs `/`, `.`, `-` ou huit chiffres ; année à 4 chiffres ; mise en forme au départ du champ ; date impossible = format refusé ; valeur émise ISO civile ou `null` ; gabarit et exemple par les textes du champ ; `orderNote` en C19 sous la date la plus tardive, `kind` par l'appelant (une valeur non enregistrée est une erreur).
 
 **C49 OtpField / CodeField** · N (11, 20) : six cases 5/6 (352 px, écart 8), **un seul `input`**,
 `inputmode=numeric`, `autocomplete=one-time-code`, collage accepté ; erreur 2 px sur les six ; focus sur
@@ -97,7 +98,7 @@ la case courante. `code` (20) : champ 12 rem espacé.
 **C50 AuthLayout** · E `AuthScreen` : en-tête, colonne 28 rem (36 pour les informations), carte 32 dès 640,
 portes en 2 colonnes. Page autonome, sans navigation.
 
-**C51 NumberedSteps** · N : pastille 28 px, 14 px ; fait = ✓ sarcelle ; courant = `surface-active` 600.
+**C51 NumberedSteps** · N : pastille 28 px, 14 px ; fait = ✓ sarcelle ; courant = `surface-active` 600 (contour transparent, AP1).
 
 **C52 CodeBox / LinkBox** · E `CodeBox` : `surface-raised` 16, valeur 20 px 700 ; lien : contour fort,
 `surface-page`, « Copier » annoncé ; lien affiché **une seule fois** (21).

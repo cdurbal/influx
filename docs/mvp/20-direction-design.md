@@ -1019,9 +1019,9 @@ un état non cité est sans objet.
 | Liste de lignes | Membres, BO | `ul`, filet `border-subtle`, ligne ≥ `size-touch-target` + 16 px (BO : 36), titre Manrope 700, fin de ligne `text-secondary` + chevron ; S `surface-raised` ; F anneau intérieur ; lien étiré sur la ligne, une action dans la ligne passe au-dessus |
 | Liste de propriétés | Membres, BO | `dl` en paires `dt` / `dd`, libellé sur `size-property-label` (rôle, §11.5) `text-secondary` 600 ; valeur vide en `text-tertiary` |
 | Résumé d'erreurs | Membres, BO | Contour `feedback-error-border`, `radius-md`, titre Manrope 700 + icône ; focus sur le résumé après un refus ; chaque lien ouvre l'étape ou la section, puis focalise le champ. Pas de fond teinté (D72) |
-| Assistant | Membres | Boîte `container-narrow` (768 px), `radius-card`, sans boîte sous 768 px ; tête : `h1` (RU-17), « Étape n sur N », segments `size-segment-bar` (zone de toucher `inset-segment-hit`) ; « Continuer » jamais bloquant ; pied fixe au-dessus de la barre du bas sous 768 px (`size-mobile-space-wizard`) |
-| Carte photo | Membres | Photo `aspect-photo`, `radius-card`, sur `surface-raised` ; piste aimantée, points `text-secondary` (actif `text-primary`, plus large), flèches au survol ou au focus ; badge, compteur, cœur et case ronde posés sur la photo : `effect-photo-*` (§11.5) ; cœur rempli `text-primary`, **jamais vert** ; alias en lien étiré |
-| Galerie | Membres | Mosaïque `aspect-mosaic` (1 + 4, `radius-card`) dès 768 px, carrousel dessous ; dialogue plein écran, max `container-gallery` ; région défilante focalisable ; retour du focus, `Échap` |
+| Assistant | Membres | Boîte `container-narrow` (768 px), `radius-card`, sans boîte sous 768 px ; tête : `h1` (RU-17), « Étape n sur N », segments `size-segment-bar` en liste de liens (zone de toucher `inset-segment-hit`, 26 px), tous suivis, `aria-current="step"` ; sous 480 px, « Précédent » réduit à son chevron nommé (RU-36) ; « Continuer » jamais bloquant ; pied fixe au-dessus de la barre du bas sous 768 px (`size-mobile-space-wizard`) |
+| Carte photo | Membres | Photo `aspect-photo`, `radius-card`, sur `surface-raised` ; piste aimantée, points `text-secondary` (actif `text-primary`, plus large), flèches au survol ou au focus ; badge, compteur, cœur et case ronde posés sur la photo : `effect-photo-*` (§11.5), anneau double (règle « Contrôles sur photo » ci-dessous) ; cœur rempli `text-primary`, **jamais vert** ; alias en lien étiré |
+| Galerie | Membres | Mosaïque `aspect-mosaic` dès 768 px (1 à 4 visuels : cadre 2/1 sans case vide ; 5 et plus : 1 + 4 ; `radius-card`), carrousel dessous (un seul visuel : ni compteur ni points) ; dialogue plein écran, max `container-gallery` ; région défilante focalisable ; retour du focus, `Échap` |
 | Encadré collant | Membres | `surface-card` + `border-default` + `radius-card`, collant dès 1 024 px, **`shadow-md` au repos** (RU-05) ; sinon barre fixe au-dessus de la barre du bas ; une seule action verte ; repère nommé |
 | Avatar | Membres, BO | *(RU-07)* Disque `surface-active` uni, initiales `text-primary` Manrope 700 ; ni dégradé ni `data-*` |
 | Cases du code | Membres | *(RU-08)* Six cases `surface-raised`, contour `border-strong` 1 px, `radius-md`, `aspect-otp` ; courante : `focus-ring` 2 px ; erreur : `border-error` 2 px. **Seule exception au champ en `surface-page`** ; un seul `input`, collage accepté |
@@ -1039,6 +1039,19 @@ un état non cité est sans objet.
 - **Divergences entre maquettes (RU-15).** Chaque écran suit sa maquette (grilles de 18 et de 17 rem, réserves basses
   de `size-mobile-space-*`, vide de « Mes campagnes » en carte), **sauf** la densité `bo` de la recherche (13), oubli
   manifeste, et le badge de rôle de la fiche de compte (6), dont la graisse ne s'hérite jamais.
+- **Couleurs forcées (AP1, RUB-B, D89).** Sous `forced-colors`, les fonds tombent : tout état porté par un fond reçoit un
+  contour `transparent` (invisible hors de ce mode, tracé par le système) : `border-width-thick`, décalé vers l'intérieur,
+  remplacé par l'anneau au focus. Porteurs : onglet actif de C22, entrée, sous-entrée et cellule courantes de C56, ligne
+  `current` de C06, courant de C51, cœur `saved` de C31, segments de C41 (fin sur tous, épais sur fait et courant), C16.
+  Jamais `forced-color-adjust: none` ni mot-clé système. Preuve : RUB-AX (`forcedColors: "active"`).
+- **Zone de toucher de 44 px (RUB-B, D89).** Un élément dessiné sous `size-touch-target` garde son dessin ; sa zone est
+  étendue à 44 × 44 px par un pseudo-élément transparent centré (`min-h` et `min-w` `size-touch-target`), l'anneau restant sur
+  l'élément dessiné. Porteurs : C11 seul sur sa ligne, « × » de C23, C10 `sm` et `bar` (hauteur seule). Exclus : lien dans une
+  phrase (exception « en ligne » de 2.5.8) ; segments de C41 (26 px, 2.5.8 tenue, chaque étape ayant un équivalent de
+  44 px). Aucun chevauchement de cibles.
+- **Contrôles sur photo (RUB-B, D89).** Tout glyphe posé sur une photo sans fond propre (cœur, points, case ronde) porte
+  `effect-photo-shadow` ; tout contrôle sur photo (cœur, flèches, « Voir les n visuels ») a un anneau double : `focus-ring`
+  sur un halo `surface-page` (anneau contre halo 18,2:1). Cœur : remplissage `effect-photo-scrim-soft`, trait `text-primary`.
 - **Comparaison aux maquettes.** N1 à N3 et AN-1 à AN-4 : `22-refonte-ux-ui/05` et `04`, `18` §12.8.
 
 ### 11.9 Points soumis au fondateur

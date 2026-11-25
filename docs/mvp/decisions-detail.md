@@ -932,3 +932,23 @@
 **Conséquences** : `20`, `02`, `04-DIRECTION-ARTISTIQUE` §9, `18` §12.8 amendés avant tout code (règle d'or) ; `06a` : « État » de RU-01 et RU-03 à RU-20 (hors RU-02, RU-14) ; `17`, `17b` et specs de domaine amendées en tête de chaque jalon ; skill `design-system-influx` mis à jour en `RUA-07`
 
 **Échéance** : avant le Lot 4
+
+## D89 — Lot 3bis, jalon RUB : composants membres et coquille (accord de démarrage et arbitrages)
+
+**Sujet** : accord de démarrage du code de RUB (D87 : accord distinct par jalon) et arbitrages des composants membres et de la coquille ; arbitrages écrits dans `jalons/rub/modele-archi.md` (`architecte`) et `jalons/rub/modele-ux.md` (`expert-ux`), reportés dans `20` §11.8, `17` §2.3, `18` §12.8, `02` §21.2, `22-refonte-ux-ui/02a`, `02b`, `02c`, `06a`, `06b` §7
+
+**Arbitre** : fondateur (F0), `architecte` (mécanique), `expert-ux` (composants)
+
+**Statut** : **Tranchée le 2026-11-25** pour F0 et le 2026-11-26 pour les arbitrages, non réalisée (code : `RUB-01` à `RUB-11`)
+
+**Énoncé** :
+(1) **F0, réponse du fondateur, mot pour mot : « oui a toutes les questions » (2026-11-25)**, aux cinq questions : **Q1** accord de démarrage, le code de RUB est autorisé (D87 exigeant un accord distinct pour chaque jalon suivant) ; **Q2** un seul fil de développement, RUB sans RUC en parallèle, jusqu'à la vélocité mesurée (lu selon la recommandation) ; **Q3** RU-02 : la carte photo est livrée avec l'icône « vérifié » et son texte accessible (D88), sans écran qui l'emploie avant RUH, sous réserve du juriste (D34) ; **Q4** les seuls effets que `architecte` liste se voient sur les écrans actuels, revus en F1 ; **Q5** Supabase local démarré pour la ligne 11 (comparaison de la coquille à sa maquette)
+(2) **Architecture, `architecte`** : un composant du catalogue = un module au nom de `02c` dans `apps/web/src/components/member/ui/`, sans préfixe de front ; un écran non migré ne change que de mesures, de messages de champ (`Field` rend C19) et de coquille et cadres ; le reste passe par une prop facultative absente des appels actuels ou attend la migration ; garde `findCatalogueProblems` (ensemble exact des modules, règle `uncalled` : aucun appelant produit avant RUE) ; garde `findTransitionalCopies` (copies d'écran en sursis : `role="status"`, `SaveStatus`, `ErrorNotice` non annoncée, `<details`, `<dialog`) ; `SHARED_CATALOGUE` en `{ name, backoffice: "pending" | "delivered" }`, aucune `pending` après la clôture de RUC sauf report nommé ; Announcer par `AnnouncerProvider`, monté par la coquille et la planche ; une page de planche, une section par composant, une garde de `h1` exacte ; cadres `narrow` et `wide` portés par `pageFrameClasses`, aucun `mx-auto` ; outil de comparaison : couple écran × état de maquette, `E2E_VISUAL=app` seul, aucun échantillon en CI avant RUE ; mesure du JavaScript de première visite, +5 % au plus
+(3) **UX, `expert-ux`** : `aside` nommé « Votre compte » après la `nav` pour le bloc d'état et le pied, langue en lien dessiné en pilule ; assistant : « Précédent » réduit à son chevron nommé sous 480 px, segments en liste de liens (zone de 26 px, 2.5.8 tenue) ; date C47 en champ texte numérique, ordre jour, mois, année en `fr` et `en` ; zone de toucher de 44 px par pseudo-élément ; galerie C34 de 1 à 4 visuels sans case vide ; C06 à huit variantes ; **AP1** (`forced-colors` : contour transparent sur tout état porté par un fond), **AP2** (ombre et anneau double sur photo), clavier de C22, `aria-expanded` de C30, titre de C08 en `p`, squelette `aria-hidden`
+(4) **Écarts de rendu** accordés par F0 Q4 : inscrits dans `06b` §7
+
+**Ce qui reste ouvert** : **RU-02** (juriste D34, `product-owner`) ; **RU-14** ; chevron au repos de la pastille à menu (question au fondateur à l'ouverture de RUC) ; « à compléter » dit seulement par la couleur dans l'assistant (RUF, écart à inscrire en `06b` §7) ; erreur contre « À vérifier » pour l'ordre des dates (RUG, `product-owner`) ; CA01 de la coquille à 320 px (mesuré par la ligne 10, débordement = arrêt)
+
+**Conséquences** : `20` §11.8, `17` §2.3, `18` §12.8, `02` §21.2 et `02a`, `02b`, `02c` amendés avant tout code (règle d'or) ; `06a` : « État » de RU-32, RU-34 et RU-36 pour leur part composant ; `06b` §7 : une ligne
+
+**Échéance** : avant le Lot 4

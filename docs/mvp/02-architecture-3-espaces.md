@@ -2350,10 +2350,21 @@ mêmes noms : `apps/web/src/components/member/ui/` et `apps/backoffice/src/compo
 composants, mêmes `export type NomProps` (`22-refonte-ux-ui/02a` §0) ; **`packages/ui` garde `tokens.css` et
 `fonts`** et ne reçoit aucun composant. Les props sont autonomes, sans import propre à un front (§21.3 point 7).
 *Motif :* réversible (la fusion se réévalue après le Lot 5), alors qu'un paquet de composants partagerait deux
-registres sans vérification (`20` §2). *Garde*, au premier composant commun (RUB ou RUC) : `SHARED_CATALOGUE`
-(`charter-data.ts`) ; par nom, deux modules et le même texte normalisé de `NomProps` ; les `exports` de
-`packages/ui` valent `./tokens.css` et `./fonts`, aucun `.tsx`. Négatifs : une prop d'un côté seulement, un module
-absent, un `.tsx` dans `packages/ui`.
+registres sans vérification (`20` §2). *Garde*, dès le premier composant de RUB (ligne 01) : `SHARED_CATALOGUE`
+(`charter-data.ts`), une liste `{ name, backoffice: "pending" | "delivered" }` ; par nom, `U/<name>.tsx` exporte un
+`export type <name>Props` autonome ; `pending` : le module du backoffice est absent ; `delivered` : présent, même texte
+normalisé (commentaires ôtés, blancs réduits) ; les `exports` de `packages/ui` valent `./tokens.css` et `./fonts`, aucun
+`.tsx`. Aucune entrée `pending` après la clôture de RUC, sauf report nommé au reliquat. Négatifs : une prop d'un côté
+seulement, un jumeau présent en `pending`, un module absent, une prop typée de `@influx/contracts`, un `.tsx` dans
+`packages/ui`.
+
+**Gardes du catalogue des membres (RUB, D89, `architecte`, 2026-11-26).** `findCatalogueProblems` (test-kit) : ensemble
+exact des `.tsx` de `apps/web/src/components/member/ui/` (catalogue, contrôles de C18, exceptions datées), aucun
+`index.ts` ; règle `uncalled` : un module de RUB sans appelant avant RUE n'est importé que par `U` et les `*.board.*`.
+`findTransitionalCopies` : les copies d'écran en sursis (`role="status"`, `SaveStatus`, `ErrorNotice` non annoncée,
+`<details`, `<dialog`) ne se trouvent que dans les fichiers listés ; une entrée périmée est signalée, le jalon qui migre
+l'écran la retire. Un écran non migré ne change que de mesures, de messages de champ et de coquille (effets listés par
+`jalons/rub/modele-archi.md` §1).
 
 ### 21.3 Tokens : un fichier, deux chartes, un attribut
 
