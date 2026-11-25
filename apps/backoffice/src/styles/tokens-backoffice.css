@@ -77,6 +77,18 @@
 }
 
 /*
+ * The wide window of the backoffice (RU-03, D88): from 1536 px, where the panel of a record sits beside its
+ * content. Declared here, not in the --breakpoint-* list of tokens.css (CA22: that list is the shared one).
+ * Tailwind emits the custom variants after the breakpoints, in file order: `bo-wide:` follows `2xl:`, and
+ * `bo-small:` below it wins in a window that is wide and low. Declared before `bo-small`, and used by no screen yet.
+ */
+@custom-variant bo-wide {
+  @media (width >= 1536px) {
+    @slot;
+  }
+}
+
+/*
  * The window too small for the backoffice (17b §1.7, F7): narrower than `md` (--breakpoint-md of
  * tokens.css) or lower than 500 px, a phone held either way. Declared here once, in CSS: no width
  * nor height is ever detected in JavaScript. Used as `bo-small:` by the shell alone, until D58.

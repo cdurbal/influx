@@ -173,6 +173,86 @@ const SHARED: ReadonlyArray<readonly [string, string, string]> = [
   [ROOT, "--grid-verification-row", "7rem minmax(0, 1fr)"],
   [ROOT, "--grid-range", "6.5rem minmax(0, 1fr) 5.5rem"],
   [FROM_480, "--grid-range", "9rem minmax(0, 1fr) 6.5rem"],
+  // Breakpoint of the forms (RU-03), then the animations of the Lot 3bis (RU-06; 04 §2) and their keyframes.
+  [THEME, "--breakpoint-form", "640px"],
+  [
+    THEME,
+    "--animate-fade-in",
+    "fade-in var(--duration-fast) var(--ease-standard)",
+  ],
+  [
+    THEME,
+    "--animate-rise-in",
+    "rise-in var(--duration-base) var(--ease-standard)",
+  ],
+  [THEME, "--animate-flash", "flash var(--duration-slow) var(--ease-standard)"],
+  [
+    THEME,
+    "--animate-flash-strong",
+    "flash-strong var(--duration-slow) var(--ease-standard)",
+  ],
+  [THEME, "--animate-pop", "pop var(--duration-base) var(--ease-standard)"],
+  [
+    THEME,
+    "--animate-pop-in",
+    "pop-in var(--duration-slow) var(--ease-standard)",
+  ],
+  [
+    THEME,
+    "--animate-done-flash",
+    "done-flash var(--duration-celebrate) var(--ease-standard)",
+  ],
+  [THEME, "--animate-spin", "turn var(--duration-spin) linear infinite"],
+  [
+    THEME,
+    "--animate-skeleton",
+    "skeleton var(--duration-skeleton) linear infinite",
+  ],
+  [REDUCED, "--animate-skeleton", "none"],
+  [`${THEME} > @keyframes fade-in > from`, "opacity", "0"],
+  [`${THEME} > @keyframes fade-in > to`, "opacity", "1"],
+  [`${THEME} > @keyframes rise-in > from`, "opacity", "0"],
+  [
+    `${THEME} > @keyframes rise-in > from`,
+    "translate",
+    "0 calc(var(--spacing-1) * -1)",
+  ],
+  [`${THEME} > @keyframes rise-in > to`, "opacity", "1"],
+  [`${THEME} > @keyframes rise-in > to`, "translate", "0 0"],
+  [
+    `${THEME} > @keyframes flash > from`,
+    "background-color",
+    "var(--color-surface-raised)",
+  ],
+  [`${THEME} > @keyframes flash > to`, "background-color", "transparent"],
+  [
+    `${THEME} > @keyframes flash-strong > from`,
+    "background-color",
+    "var(--color-surface-active)",
+  ],
+  [
+    `${THEME} > @keyframes flash-strong > to`,
+    "background-color",
+    "transparent",
+  ],
+  [`${THEME} > @keyframes pop > 0%, 100%`, "scale", "1"],
+  [`${THEME} > @keyframes pop > 50%`, "scale", "1.2"],
+  [`${THEME} > @keyframes pop-in > from`, "scale", "0.6"],
+  [`${THEME} > @keyframes pop-in > from`, "opacity", "0"],
+  [`${THEME} > @keyframes pop-in > 60%`, "scale", "1.15"],
+  [`${THEME} > @keyframes pop-in > 60%`, "opacity", "1"],
+  [`${THEME} > @keyframes pop-in > to`, "scale", "1"],
+  [`${THEME} > @keyframes pop-in > to`, "opacity", "1"],
+  [
+    `${THEME} > @keyframes done-flash > from`,
+    "background-color",
+    "var(--color-feedback-success-bg)",
+  ],
+  [`${THEME} > @keyframes done-flash > to`, "background-color", "transparent"],
+  [`${THEME} > @keyframes turn > from`, "rotate", "0deg"],
+  [`${THEME} > @keyframes turn > to`, "rotate", "360deg"],
+  [`${THEME} > @keyframes skeleton > from`, "translate", "-100% 0"],
+  [`${THEME} > @keyframes skeleton > to`, "translate", "100% 0"],
 ];
 
 /** [name, value] the KEO block carries for the Lot 3bis, and nothing else of it. */
@@ -314,5 +394,97 @@ describe("RUA-T1: the tokens of the Lot 3bis equal the values of the mockups (D8
         BEFORE["tokens.css"].includes(`${scope} ${name}`),
       ),
     ).toEqual([]);
+  });
+});
+
+// RUA-T4 (D88, jalon RUA, line 02; 22-refonte-ux-ui/04 §1, §2; AN-3, AN-4): the animations are declared as
+// tokens, each from a duration and a curve of the scale, over keyframes that exist, and none animates a
+// height or reads `all`. The rendering under reduced motion is RUA-T5 (charter-rendering).
+describe("RUA-T4: the --animate-* tokens of the Lot 3bis (D88, 04 §2)", () => {
+  const THEMED = scoped(TOKENS)[THEME] ?? {};
+  const NAMES = [
+    "fade-in",
+    "rise-in",
+    "flash",
+    "flash-strong",
+    "pop",
+    "pop-in",
+    "done-flash",
+    "spin",
+    "skeleton",
+  ] as const;
+  const keyframeNames = [...TOKENS.matchAll(/@keyframes ([\w-]+)/g)].map(
+    (match) => match[1],
+  );
+
+  it("names the nine animations, each by a duration token and a curve token, over keyframes declared once", () => {
+    const wrong = NAMES.flatMap((name) => {
+      const value = THEMED[`--animate-${name}`] ?? "";
+      const parts = value.split(" ");
+      const frames = parts[0] ?? "";
+      const looping = /^(?:turn|skeleton)$/.test(frames);
+      return [
+        ...(/^var\(--duration-(?:fast|base|slow|celebrate|spin|skeleton)\)$/.test(
+          parts[1] ?? "",
+        )
+          ? []
+          : [`${name}: duration not a --duration-* token (${value})`]),
+        ...((
+          looping
+            ? parts[2] === "linear" && parts[3] === "infinite"
+            : parts[2] === "var(--ease-standard)" && parts.length === 3
+        )
+          ? []
+          : [`${name}: curve or repetition (${value})`]),
+        ...(keyframeNames.filter((declared) => declared === frames).length === 1
+          ? []
+          : [`${name}: keyframes "${frames}" not declared exactly once`]),
+      ];
+    });
+    expect(wrong).toEqual([]);
+    expect(
+      Object.keys(THEMED).filter((name) => name.startsWith("--animate-")),
+    ).toEqual([
+      "--animate-marquee",
+      ...NAMES.map((name) => `--animate-${name}`),
+    ]);
+  });
+
+  it("animates opacity, translate, scale, rotate and background color only: no height, no `all`, no literal color (AN-4)", () => {
+    const declared = scoped(TOKENS);
+    const properties = Object.entries(declared)
+      .filter(
+        ([scope]) =>
+          scope.includes("@keyframes") && !scope.includes("@keyframes marquee"),
+      )
+      .flatMap(([, declarations]) => Object.entries(declarations));
+    expect(properties.length).toBeGreaterThan(20);
+    expect(
+      [...new Set(properties.map(([property]) => property))].sort(),
+    ).toEqual(["background-color", "opacity", "rotate", "scale", "translate"]);
+    expect(
+      properties.filter(([, value]) =>
+        /#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(/i.test(value),
+      ),
+    ).toEqual([]);
+    expect(
+      Object.keys(THEMED)
+        .filter((name) => name.startsWith("--animate-"))
+        .map((name) => THEMED[name])
+        .filter((value) => /\ball\b|height/.test(value ?? "")),
+    ).toEqual([]);
+  });
+
+  it("removes only the repeating skeleton sweep under reduced motion, the others going to zero by their durations", () => {
+    const reduced = scoped(TOKENS)[REDUCED] ?? {};
+    expect(reduced["--animate-skeleton"]).toBe("none");
+    expect(
+      Object.keys(reduced).filter((name) => name.startsWith("--animate-")),
+    ).toEqual(["--animate-skeleton"]);
+    for (const name of ["fast", "base", "slow", "celebrate", "spin"]) {
+      expect(reduced[`--duration-${name}`]).toBe("var(--duration-instant)");
+    }
+    // The skeleton sweep is the one duration left alone: its animation is removed instead.
+    expect(reduced["--duration-skeleton"]).toBeUndefined();
   });
 });

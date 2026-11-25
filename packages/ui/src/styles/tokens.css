@@ -460,6 +460,8 @@
 
   /* ---------- Breakpoints, mobile-first (03 §6) ---------- */
   --breakpoint-sm: 480px;
+  /* Forms (RU-03, D88): `form:` falls between `sm:` and `md:`, `max-form:` is offered; never under KEO. */
+  --breakpoint-form: 640px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1280px;
@@ -488,6 +490,115 @@
     }
     to {
       transform: translateX(-50%);
+    }
+  }
+
+  /*
+   * Animations of the Lot 3bis (D88, 22-refonte-ux-ui/04 §2; AN-1, AN-4): durations by `--duration-*`
+   * (zero under reduced motion), curves by `--ease-*`, colors by role tokens, so that the KEO block
+   * re-values them. Only opacity, translate, scale, rotate and background-color move; never a height,
+   * never `all`. Nothing here is set on a component: a screen reads `animate-<name>` under `motion-safe:`.
+   * The skeleton sweep and the send icon repeat: the first is removed under reduced motion (below). The keyframes of
+   * the send icon are `turn`, not `spin`: Tailwind registers its own `spin`, which would be emitted twice.
+   */
+  --animate-fade-in: fade-in var(--duration-fast) var(--ease-standard);
+  --animate-rise-in: rise-in var(--duration-base) var(--ease-standard);
+  --animate-flash: flash var(--duration-slow) var(--ease-standard);
+  --animate-flash-strong: flash-strong var(--duration-slow) var(--ease-standard);
+  --animate-pop: pop var(--duration-base) var(--ease-standard);
+  --animate-pop-in: pop-in var(--duration-slow) var(--ease-standard);
+  --animate-done-flash: done-flash var(--duration-celebrate)
+    var(--ease-standard);
+  --animate-spin: turn var(--duration-spin) linear infinite;
+  --animate-skeleton: skeleton var(--duration-skeleton) linear infinite;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      translate: 0 calc(var(--spacing-1) * -1);
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes flash {
+    from {
+      background-color: var(--color-surface-raised);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes flash-strong {
+    from {
+      background-color: var(--color-surface-active);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes pop {
+    0%,
+    100% {
+      scale: 1;
+    }
+    50% {
+      scale: 1.2;
+    }
+  }
+
+  @keyframes pop-in {
+    from {
+      scale: 0.6;
+      opacity: 0;
+    }
+    60% {
+      scale: 1.15;
+      opacity: 1;
+    }
+    to {
+      scale: 1;
+      opacity: 1;
+    }
+  }
+
+  @keyframes done-flash {
+    from {
+      background-color: var(--color-feedback-success-bg);
+    }
+    to {
+      background-color: transparent;
+    }
+  }
+
+  @keyframes turn {
+    from {
+      rotate: 0deg;
+    }
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  @keyframes skeleton {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 100% 0;
     }
   }
 }
@@ -741,6 +852,8 @@
     /* The long ones of the Lot 3bis (RU-06); the skeleton sweep is removed by `animation: none` (AN-1). */
     --duration-celebrate: var(--duration-instant);
     --duration-spin: var(--duration-instant);
+    /* The one animation that would still move at zero duration (infinite): removed, the sheen stays still (AN-1). */
+    --animate-skeleton: none;
   }
 }
 

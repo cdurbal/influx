@@ -6,6 +6,6 @@
 // and why.
 export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/build.artifacts.ts": 1,
-  "tests/keo-tokens.artifacts.ts": 3,
+  "tests/keo-tokens.artifacts.ts": 5,
   "tests/relay-integration.artifacts.ts": 36,
 };

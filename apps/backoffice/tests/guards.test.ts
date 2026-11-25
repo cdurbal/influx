@@ -1,6 +1,7 @@
 // Guard tests of apps/backoffice (docs/mvp/18-plan-de-test-mvp.md §5, docs/mvp/21 §4 J1-C and
 // J1-E). File reading only: deterministic, no browser, no network. Detectors: @influx/test-kit.
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -51,6 +52,7 @@ import {
   KEO_COLOR_MIX,
   PHOTO_EFFECT_READERS,
 } from "@influx/test-kit/charter-data";
+import { compile } from "tailwindcss";
 import { describe, expect, it } from "vitest";
 import nextConfig, { NOINDEX, SECURITY_HEADERS } from "../next.config";
 import {
@@ -540,23 +542,146 @@ describe("G9: the session read confined to the backoffice shell", () => {
   });
 });
 
-// F7 (17b §1.7): the window too small is declared once, in CSS, beside the backoffice tokens.
+// F7 (17b §1.7) and RU-03, RU-20 (D88): the window thresholds are declared once, in CSS, beside the backoffice
+// tokens: `bo-wide` (1536 px) then `bo-small` (768 px wide, 500 px high), nothing else. The one pre-existing
+// guard counted one line per occurrence and expected a single declaring file; it now lists each file once
+// (RUA-02, TD1: the only relaxation, named here) and adds what the second variant needs. No width nor height
+// is read in JavaScript before RUC-08, whose `small-window.ts` will be the one file allowed `matchMedia`.
+const THRESHOLD_FILE = "src/styles/tokens-backoffice.css";
+const BO_WIDE =
+  /@custom-variant bo-wide \{\s*@media \(width >= 1536px\) \{\s*@slot;/;
+const BO_SMALL =
+  /@custom-variant bo-small \{\s*@media \(width < 768px\), \(height < 500px\) \{\s*@slot;/;
+
+/** Violations of the thresholds' declaration, over [file, text] pairs: pure, self-tested below. */
+function findThresholdViolations(
+  files: ReadonlyArray<readonly [string, string]>,
+): string[] {
+  const variants = files.flatMap(([file, text]) =>
+    [...text.matchAll(/@custom-variant ([\w-]+)/g)].map(
+      (match) => `${file}: ${match[1]}`,
+    ),
+  );
+  const declaring = files.find(([file]) => file === THRESHOLD_FILE)?.[1] ?? "";
+  return [
+    ...variants
+      .filter((entry) => !entry.startsWith(`${THRESHOLD_FILE}: `))
+      .map((entry) => `outside ${THRESHOLD_FILE}: ${entry}`),
+    ...(variants.join("|") ===
+    `${THRESHOLD_FILE}: bo-wide|${THRESHOLD_FILE}: bo-small`
+      ? []
+      : [
+          `expected exactly bo-wide then bo-small in ${THRESHOLD_FILE}, found [${variants.join(", ")}]`,
+        ]),
+    ...(BO_WIDE.test(declaring) ? [] : ["bo-wide is not at 1536 px wide"]),
+    ...(BO_SMALL.test(declaring)
+      ? []
+      : ["bo-small is not at 768 px wide or 500 px high"]),
+    ...files
+      .filter(([, text]) => /matchMedia|innerWidth|innerHeight/.test(text))
+      .map(([file]) => `${file}: a window size read in JavaScript (RU-20)`),
+  ];
+}
+
 describe("the workstation thresholds live in tokens-backoffice.css alone", () => {
-  it("declares bo-small there, at md wide and 500 px high, and nowhere else", () => {
-    const css = readFileSync(
-      path.join(SRC, "styles", "tokens-backoffice.css"),
-      "utf8",
+  const read = (files: readonly string[]) =>
+    files.map((file) => [relative(file), readFileSync(file, "utf8")] as const);
+  const real = read(SOURCE_FILES);
+  const declaring = real.find(([file]) => file === THRESHOLD_FILE)?.[1] ?? "";
+
+  it("declares bo-wide then bo-small there, at 1536 px wide and at md wide and 500 px high, and nowhere else", () => {
+    expect(real.length).toBeGreaterThan(10);
+    expect(findThresholdViolations(real)).toEqual([]);
+    // One file, listed once: the guard no longer counts a line per occurrence.
+    expect([
+      ...new Set(
+        findMatches(
+          /@custom-variant|matchMedia|innerWidth|innerHeight/,
+          SOURCE_FILES,
+          BACKOFFICE_ROOT,
+        ).map((match) => match.split(":")[0]),
+      ),
+    ]).toEqual([THRESHOLD_FILE]);
+  });
+
+  it("refuses a third variant, a variant elsewhere, a reversed order, a moved threshold and a window read in JavaScript", () => {
+    const others = real.filter(([file]) => file !== THRESHOLD_FILE);
+    const withDeclaring = (text: string) =>
+      [...others, [THRESHOLD_FILE, text] as const] as const;
+    const third = `${declaring}\n@custom-variant bo-tall {\n  @media (height >= 900px) {\n    @slot;\n  }\n}\n`;
+    expect(findThresholdViolations(withDeclaring(third))).toHaveLength(1);
+    const elsewhere: ReadonlyArray<readonly [string, string]> = [
+      ...real,
+      [
+        "src/app/globals.css",
+        "@custom-variant bo-aside { @media (width >= 1px) { @slot; } }",
+      ],
+    ];
+    expect(findThresholdViolations(elsewhere)).toEqual([
+      "outside src/styles/tokens-backoffice.css: src/app/globals.css: bo-aside",
+      expect.stringContaining("expected exactly bo-wide then bo-small"),
+    ]);
+    const reversed = declaring.replace(
+      /(@custom-variant bo-wide \{[\s\S]*?\n\}\n)([\s\S]*?)(@custom-variant bo-small \{[\s\S]*?\n\}\n)/,
+      "$3$2$1",
     );
-    expect(css).toMatch(
-      /@custom-variant bo-small \{\s*@media \(width < 768px\), \(height < 500px\) \{\s*@slot;/,
-    );
+    expect(reversed).not.toBe(declaring);
+    expect(findThresholdViolations(withDeclaring(reversed))).toEqual([
+      expect.stringContaining("expected exactly bo-wide then bo-small"),
+    ]);
     expect(
-      findMatches(
-        /@custom-variant|matchMedia|innerWidth|innerHeight/,
-        SOURCE_FILES,
-        BACKOFFICE_ROOT,
-      ).map((match) => match.split(":")[0]),
-    ).toEqual(["src/styles/tokens-backoffice.css"]);
+      findThresholdViolations(
+        withDeclaring(declaring.replace("width >= 1536px", "width >= 1440px")),
+      ),
+    ).toEqual(["bo-wide is not at 1536 px wide"]);
+    expect(
+      findThresholdViolations([
+        ...real,
+        ["src/lib/probe.ts", "window.matchMedia('(width < 768px)')"],
+      ]),
+    ).toEqual(["src/lib/probe.ts: a window size read in JavaScript (RU-20)"]);
+  });
+
+  it("serves bo-wide after 2xl and bo-small after bo-wide, form: between sm: and md: (the real stylesheet, compiled)", async () => {
+    const require = createRequire(import.meta.url);
+    const globals = readFileSync(path.join(BACKOFFICE_ROOT, GLOBALS), "utf8");
+    const compiler = await compile(globals, {
+      base: path.dirname(path.join(BACKOFFICE_ROOT, GLOBALS)),
+      loadStylesheet: async (id, base) => {
+        const file = id.startsWith(".")
+          ? path.resolve(base, id)
+          : require.resolve(
+              id === "tailwindcss" ? "tailwindcss/index.css" : id,
+            );
+        return {
+          path: file,
+          base: path.dirname(file),
+          content: readFileSync(file, "utf8"),
+        };
+      },
+    });
+    const css = compiler.build([
+      "bo-small:flex",
+      "bo-wide:flex",
+      "2xl:flex",
+      "md:flex",
+      "form:flex",
+      "sm:flex",
+      "max-form:flex",
+    ]);
+    const order = [
+      "max-form",
+      "sm",
+      "form",
+      "md",
+      "\\32 xl",
+      "bo-wide",
+      "bo-small",
+    ].map((variant) => css.indexOf(`.${variant}\\:flex`));
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(css).toContain("@media (width >= 1536px)");
+    expect(css).toContain("@media (width >= 640px)");
   });
 });
 

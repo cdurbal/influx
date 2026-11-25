@@ -23,7 +23,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/error-notice.test.ts": 3,
   "tests/guards.test.ts": 77,
   "tests/journey-memory.test.ts": 18,
-  "tests/lot3bis-tokens.test.ts": 4,
+  "tests/lot3bis-tokens.test.ts": 7,
   "tests/legal-markdown.test.ts": 21,
   "tests/member-nav-ui.test.ts": 6,
   "tests/member-nav.test.ts": 36,
