@@ -6,6 +6,9 @@
 > **Ne jamais lire une spécification en entier.** Repérer ici la section utile, puis la lire avec
 > `Read` (`offset` = ligne de départ, `limit` = nombre de lignes), ou chercher une règle précise
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
+>
+> **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
+> `jalons/rua-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -678,7 +681,7 @@
 | 94 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 118 | 9 | 6. Configuration des services externes |  |
 | 127 | 18 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 145 | 132 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 145 | 133 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
 
 ## 22-refonte-ux-ui.md (~2k tokens)
 
