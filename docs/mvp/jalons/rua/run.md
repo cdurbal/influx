@@ -8,7 +8,7 @@
 | 01 | 01.md | commit | sonnet | high | dev-react-node | fait | G3i : base+percent exacts, withMixOver, PHOTO_EFFECT_READERS vide ; EC-RUA-01-1 : marqueur « hero » de G8 vs text-title-hero (RUB) ; e2e local KO (pas de Supabase) |
 | 02 | 02.md | commit | sonnet | high | dev-react-node | fait | form 640, bo-wide avant bo-small, garde dédupliquée ; 9 animate-*, spin = keyframes turn (doublon Tailwind), skeleton none ; e2e T5 non lancé (pas de Supabase) |
 | 03 | 03.md | commit | opus | high | testeur | fait | maquette c. elle-même : 0 écart N1-N3 sur 588 captures (local, sans pile) ; projet visual sous E2E_VISUAL seul ; couples vides ; RU-19 refusé ; aucune image |
-| 04 | 04.md | commit | sonnet | high | testeur | à faire | |
+| 04 | 04.md | commit | sonnet | high | testeur | fait | 147 états = 134 créables + 13 NON_RECETTABLE (5 entrées) ; chargeurs sans SQL ni route propres ; e-mails example.test ; e2e T7 écrit, non lancé (pas de Supabase) |
 | 05 | 05.md | commit | sonnet | high | dev-react-node | à faire | |
 | 06 | 06.md | commit | sonnet | high | expert-ux | à faire | |
 | F1 | F1.md | fondateur | — | — | fondateur | à faire | |
