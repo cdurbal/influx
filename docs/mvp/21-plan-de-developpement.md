@@ -16,6 +16,7 @@
 | Hors jalon — suppression de compte en libre-service (D72) | ✅ Livré (`0150`) |
 | Extras **DS** (D73), **SN** (D74), **RK** (D75) | ✅ Clos les 2026-10-29, 2026-10-30 et 2026-10-30 ; reliquat RK au §8 |
 | **Lot 2** — profils, réseaux, badge | ✅ Clos le 2026-11-13. Découpé en sept jalons L2A à L2G (`archives/jalons/lot2-plan.md`, validé le 2026-11-01) ; L2A à L2G clos (L2F le 2026-11-11, D83 réalisée ; L2G le 2026-11-13, avec réserves L2GT-1, L2GT-3, L2GT-9 au §8) : **Lot 2 clos** |
+| **Lot 3bis** — refonte UX/UI des écrans existants (code RU) | **Validé par le fondateur le 2026-11-25 (D87)**, arbitrages partiels ; avant le Lot 4 ; démarrage non autorisé à ce jour. Spécification : `22-refonte-ux-ui.md` ; découpage : `jalons/lot3bis-plan.md` (12 jalons RUA à RUL). Aucun code commencé |
 
 **Deux niveaux de « prêt », à ne pas confondre :** *prêt en `staging`* (démontrable, `staging` iso-production depuis D70 : envois et contacts réels sur les comptes de `staging`, exploité par les agents) et *prêt en production* (ouvert au public : en plus, les portes non techniques de §5.8 et l'accord explicite du fondateur).
 
@@ -131,6 +132,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 |---|---|---|---|
 | **2 — Profils, réseaux, badge** | D34, D61 (`07` Q15 et Q16), D24 instruite, `03` R-4 et R-5 | Migrations `0201` à `0207` : trois objets créateur, compartiments Storage privés ; création de `packages/domain` (`packages/ui` et `packages/web-platform` : jalon PL, PL-08 et PL-09, arbitrage PL-07, `02` §21.3 point 7) ; écrans construits dans la charte KEO (D73) | **T1** (anonymisation sur la charge brute), T9, T14, TM5, TM11 |
 | **3 — Campagnes, recherche anonymisée** *(mode serré `00` §9)* | D38, facettes de `10` | Migrations `0303` à `0334` (`0301` et `0302` pris par L3A, EC-L3A-1 ; `0303` à `0306` par L3B, EC-L3B-1 ; `0307` à `0313` par L3C, EC-L3C-1 ; `0314` par L3D, EC-L3D-1 ; la recherche de L3E à `0315` à `0321` ; `0322` à `0326` par L3F ; `0327` à `0334` par L3G) ; domaine `search` avec k-anonymat, pagination plafonnée, journal ; fil chronologique côté créateur | T1 rejoué, T15, TM12 ; mesure manuelle des 30 secondes |
+| **3bis — Refonte UX/UI des écrans existants** *(D87)* | Décisions ouvertes de RU-01 à RU-44 (`22-refonte-ux-ui/06a-decisions.md`) | Spécifications amendées, tokens, outillage de comparaison aux maquettes (RUA), puis composants | N1 à N3 (`22-refonte-ux-ui/05-recette-visuelle.md`), axe, specs e2e existantes ; T1, T2, T14, T16 rejoués |
 | **4 — Mise en relation, messagerie à trois** | D30, apartés (`04` §5.7.1 A2), conditions mobiles de D58 | Migrations `0401` à `0406` ; `reveal_identity()` et affaire créée à la révélation | **T18**, T5, T19, TM2, TM3 |
 | **5 — Backoffice, pipeline, e-mails** *(mode serré `00` §9)* | D35, D36, `03` R-7 | Migrations `0501` à `0503` ; interrupteur d'urgence ; traitement unitaire et exports (`00` §9) | TM4, TM6, TM8, TM9 |
 | **6 — Recette, audit, ouverture** *(livraison mode serré fin oct.)* | Levée des deux vetos ; test d'intrusion (F-9) | Parcours de bout en bout en douze étapes (`18` §7) | Toutes les familles ; restauration répétée |

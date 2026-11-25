@@ -1,4 +1,4 @@
-# INFLUX — Registre des décisions (D1 à D85)
+# INFLUX — Registre des décisions (D1 à D87)
 
 > Déplacé depuis `CLAUDE.md` §13 le 2026-10-05. Registre résumé (sujet, statut) ; le texte intégral des colonnes d'origine est dans `decisions-detail.md` (§ Dxx), qui **fait foi en cas d'écart**. `CLAUDE.md` ne liste plus que les décisions ouvertes.
 
@@ -97,6 +97,7 @@ caractères au plus** (sujet, date, arbitre, l'essentiel du statut) : le reste v
 | D84 | Double validation dans les cas d'usage métier | Tranchée 2026-11-16 (fondateur) : jamais obligatoire ; second avis facultatif, non bloquant ; administration et sécurité gardent le contrôle d'un pair (`0130`). Amende RG85, CA56, CA57, D51. | § D84 |
 | D85 | Portes SQL à verrou consultatif par compte (L3FT-1, L3FS-1 à 3) | Tranchée 2026-11-20 (`architecte`, sur délégation du fondateur) : `lock_timeout` court, 55P03 → 429 `rate_limited` ; moteur hors verrou, recompte sous verrou ; débit par adresse sur toute écriture membre. | § D85 |
 | D86 | Brouillon de campagne avant la publication du profil de marque | Tranchée 2026-11-22 (fondateur, audit UX U59) : une marque crée et complète un brouillon dès l'inscription ; la soumission reste refusée tant que le profil n'est pas publié (CA2 inchangé). Ajoute CA2-bis à `09`. | § D86 |
+| D87 | Lot 3bis, refonte UX/UI (code RU), avant le Lot 4 | Tranchée 2026-11-25 (fondateur), non réalisée : lot, lectures d'API additives, écarts accordés aux maquettes ; 18 décisions ouvertes, aucun code sans accord distinct. | § D87 |
 
 > **Points ouverts de D72 (fiche de la zone de danger, close le 2026-10-28).** Défaut appliqué
 > entre parenthèses. **DZ-1** délai de grâce avant exécution (aucun ; fondateur après avis

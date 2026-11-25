@@ -1,4 +1,4 @@
-# INFLUX — Registre des décisions, texte intégral (D1 à D85)
+# INFLUX — Registre des décisions, texte intégral (D1 à D87)
 
 > Texte **mot pour mot** des colonnes Sujet, Arbitre, Statut et Échéance de chaque décision, déplacé de `decisions.md` le 2026-10-31 (PL-11, K10). **Fait foi en cas d'écart avec le registre** `decisions.md`, qui n'en garde qu'un résumé. Hors index des spécifications ; à lire par section (`Grep "^## D66 "`), jamais en entier.
 
@@ -893,3 +893,21 @@
 **Conséquences** : `09` gagne CA2-bis ; front : `CampaignListScreen` (bouton de création non conditionné), message propre à la liste au lieu de `submit.profileRequired` ; l'aperçu garde son avertissement de profil non publié ; aucune migration attendue (l'API ne conditionne que la soumission, `0305`), à confirmer par un test base de création avec un profil en brouillon ; specs `brand-campaign*.spec.ts` à adapter
 
 **Échéance** : avec la phase 1 du plan UX (`docs/audit-ux-ui/05-PLAN-DE-REFACTORING.md`, B7), après validation du plan par le fondateur
+
+## D87 — Lot 3bis : refonte UX/UI des écrans existants (code RU)
+
+**Sujet** : création d'un lot de refonte des 78 écrans existants, conforme aux maquettes validées les 2026-11-23 et 2026-11-24, et premiers arbitrages de `22-refonte-ux-ui/06a-decisions.md`
+
+**Arbitre** : fondateur
+
+**Statut** : **Tranchée le 2026-11-25** (« oui » aux six questions de la synthèse), non réalisée ; **aucun code avant un accord explicite distinct** (« ne code rien », même jour)
+
+**Énoncé** : (1) **RU-00** : Lot 3bis, code `RU`, jalons `RUA` à `RUL`, avant le Lot 4 ; (2) **RU-21, option B** : lectures d'API additives dans le lot (jalon `RUD`), aucun champ retiré ou renommé, aucune règle changée, droits et journal compris ; (3) **RU-26, RU-30, RU-31**, accord de principe : rien d'obligatoire, de réglementaire ou d'opérationnel ne disparaît ; les textes réglementaires en vigueur restent mot pour mot et visibles jusqu'à avis écrit ; les règles de visibilité passent avant la maquette (valeur du produit interne, nature et nombre de créateurs publics, fonction en liste fermée publique) ; (4) **RU-28** : les huit décisions et les huit listes de file sans maquette prennent le cadre commun, validées sur capture avant la clôture de leur jalon ; (5) **RU-23** : le site web de la marque est retiré de la réponse servie au créateur (seul retrait de contrat accordé) ; **RU-24** : page de la marque sous une campagne visible, campagnes ouvertes limitées à celles que ce créateur voit, aperçus internes au backoffice en lecture seule ; (6) **RU-37** : « Votre commercial INFLUX » sans nom avant l'attribution d'une relation ; **RU-20** : aucune page montée à l'arrivée dans une petite fenêtre, une page déjà montée avec verrou ou saisie reste montée et masquée
+
+**Complément du fondateur (2026-11-25)** : (a) **RU-35, filtres du fil** : laissés de côté dans ce lot, la ligne de filtres n'est pas rendue (Lot 6bis, EC-L3D-2) ; (b) accord sur les recommandations de `06a` signalées « Revient sur un point validé » : RU-01, RU-09, RU-12, RU-15, RU-19, RU-25, RU-29, RU-32, RU-33, RU-34, RU-36, RU-38, RU-41, RU-42, RU-43, et **RU-39** hors couleur des retards. L'accord vaut pour l'écart à la maquette ; la part technique, sécurité ou réglementaire de l'arbitre nommé demeure
+
+**Ce qui reste ouvert** : **RU-35** pour le tri, le contenu de la carte (deux options) et la fiche close (`expert-cybersecurite`) ; **RU-22** (sélection jointe et désactivation : deux options) ; **RU-39** pour la couleur des retards ; **RU-44** (une réponse par question) ; les décisions de `06a` sans écart à une maquette validée ; la part des arbitres techniques et réglementaires de RU-20, RU-24 (`architecte`, `expert-cybersecurite`) et de RU-30 (`expert-conformite-rgpd`, juriste D34) ; la place exacte de chaque contenu de RU-26, sur capture
+
+**Conséquences** : `06` RG15, RG17, RG74 et D40 (site web) à amender en tête de `RUD` ; `09`, `17`, `17b`, `20` §11.8 (petite fenêtre) selon `22-refonte-ux-ui/06b` §4 ; écarts accordés inscrits dans `06b` §7
+
+**Échéance** : avant le Lot 4

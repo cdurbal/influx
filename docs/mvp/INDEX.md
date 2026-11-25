@@ -666,16 +666,29 @@
 | 860 | 57 | ↳ 11.8 Gabarits et composants |  |
 | 917 | 12 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~19k tokens)
+## 21-plan-de-developpement.md (~20k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
-| 10 | 22 | 0. L'essentiel | RG148 |
-| 32 | 7 | 1. Point de départ & conventions d'environnement |  |
-| 39 | 42 | 2. Stratégie de développement | RG44–RG148 |
-| 81 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
-| 87 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 93 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
-| 117 | 9 | 6. Configuration des services externes |  |
-| 126 | 17 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 143 | 132 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 10 | 23 | 0. L'essentiel | RG148 |
+| 33 | 7 | 1. Point de départ & conventions d'environnement |  |
+| 40 | 42 | 2. Stratégie de développement | RG44–RG148 |
+| 82 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
+| 88 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
+| 94 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
+| 118 | 9 | 6. Configuration des services externes |  |
+| 127 | 18 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 145 | 132 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+
+## 22-refonte-ux-ui.md (~2k tokens)
+
+| Ligne | Lignes | Section | RG citées |
+|---|---|---|---|
+| 8 | 10 | 1. Objectif |  |
+| 18 | 19 | 2. Documents du lot |  |
+| 37 | 9 | 3. Périmètre |  |
+| 46 | 11 | 4. Fidélité aux maquettes |  |
+| 57 | 9 | 5. Invariants et non-régression |  |
+| 66 | 12 | 6. Dépendances | RG61 |
+| 78 | 6 | 7. Conditions de validation du lot |  |
+| 84 | 14 | 8. Risques |  |
