@@ -1,7 +1,7 @@
 # RUA-A — arbitrage `expert-ux` : `rua/modele-ux.md`
 Grille `expert-ux`. Skill : `design-system-influx` (SKILL.md, `references/identite-et-tokens.md`).
 **Lire :** fiche ; Lectures, ligne A ; F0 de `run.md` (note) ; `R03` §3.4 (l. 123-135).
-**Livrer :** `docs/mvp/jalons/rua/modele-ux.md`, 10 Ko au plus ; chaque point : choix, *M.* = motif, source ; prime
+**Livrer :** `docs/mvp/archives/jalons/rua/modele-ux.md`, 10 Ko au plus ; chaque point : choix, *M.* = motif, source ; prime
 sur `R03` §3.3 pour tout nom de token.
 1. Tokens : table finale nom · valeur (celle de la maquette) · fichier (`TS` ou `BO`) · espace `@theme`/`:root` ·
    emploi. Tout token du seul backoffice prend un nom `-bo-` (G3f) : `grid-record`, `grid-decision`, `grid-check`,

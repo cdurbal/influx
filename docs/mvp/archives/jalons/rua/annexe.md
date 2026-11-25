@@ -19,19 +19,19 @@ sous `E2E_VISUAL`, B §5 ; échantillon CI à rouvrir avec `integrateur` au prem
 T8 ≤ 4 s (11 s prévus en tout). Base : aucun test base. Éclats ≤ 7 min 30, job ≤ 8 min.
 
 ## Critère de fin
-- [ ] F0 : accord de démarrage et Q2 à Q6 répondus, mot pour mot dans la note (« oui partout », 2026-11-25)
-- [ ] D88 écrite ; chaque RU-01 à RU-20, hors RU-02 et RU-14, « Tranchée » ou « Écart accordé » dans `R06a`
-- [ ] `20`, `02`, `04-DIRECTION-ARTISTIQUE`, `18` amendés avant le premier commit de code (00 avant 01)
-- [ ] Tokens de `R03` §3 présents, valeurs égales aux maquettes (RUA-T1) ; G3c à G3i vertes (T2)
-- [ ] Vitrine inchangée : G3e, `vitrine-unchanged`, JSON intacts (T3)
-- [ ] Seuils et `--animate-*` livrés, AN-1, AN-3, AN-4 (T4, T5) ; `package.json` et `pnpm-lock.yaml` intacts
-- [ ] Maquette contre elle-même : 0 écart à N1, N2, N3 ; écart volontaire vu à chaque niveau (T6)
-- [ ] Jeu de recette par espace, `NON_RECETTABLE` écrit (T7) ; planche hors production (T8)
-- [ ] RU-27 : F1 répondue par famille, reportée dans `R06a` et D88 (07)
-- [ ] Skill `design-system-influx` à jour, `SKILL.md` ≤ 10 Ko (07)
-- [ ] U, R soldées ; `pnpm check` et `pnpm test:e2e` verts ; e2e ≤ +20 s
-- [ ] Aucun commit sur `apps/api`, `supabase`, `packages/contracts` ; 596c18c touche `.github/workflows/ci.yml` et
-  `apps/web/next.config.ts` (`SECURITY_PREFIXES`) : attestation requise, couverte par RUA-R (R)
+- [x] F0 : accord de démarrage et Q2 à Q6 répondus, mot pour mot dans la note (« oui partout », 2026-11-25) (run.md F0, 2026-11-25)
+- [x] D88 écrite ; chaque RU-01 à RU-20, hors RU-02 et RU-14, « Tranchée » ou « Écart accordé » dans `R06a` (ligne 00, `decisions-detail.md` D88 ; `06a` à jour, RU-02 et RU-14 hors liste)
+- [x] `20`, `02`, `04-DIRECTION-ARTISTIQUE`, `18` amendés avant le premier commit de code (00 avant 01) (ligne 00 avant 01 : `ad18a73` vient après)
+- [x] Tokens de `R03` §3 présents, valeurs égales aux maquettes (RUA-T1) ; G3c à G3i vertes (T2) (`ad18a73`, ligne 01 ; tests unitaires web 859 verts en local 2026-11-25, T1 et T2 compris)
+- [x] Vitrine inchangée : G3e, `vitrine-unchanged`, JSON intacts (T3) (G3e en unitaire local ; `vitrine-unchanged` en e2e : CI 45696366452 ; JSON `vitrine-*` hors diff)
+- [x] Seuils et `--animate-*` livrés, AN-1, AN-3, AN-4 (T4, T5) ; `package.json` et `pnpm-lock.yaml` intacts (`3191758`, ligne 02 ; T4 en artefact local vert ; T5 en CI 0,37 s ; `package.json` et `pnpm-lock.yaml` : diff vide depuis `a37a8ea`)
+- [x] Maquette contre elle-même : 0 écart à N1, N2, N3 ; écart volontaire vu à chaque niveau (T6) (ligne 03 `005aed5`, mesure de la revue `testeur` : 111/111, 588 captures, 0 écart, 3 écarts volontaires vus ; local seul, `E2E_VISUAL`)
+- [x] Jeu de recette par espace, `NON_RECETTABLE` écrit (T7) ; planche hors production (T8) (lignes 04 `d1355a1` et 05 `596c18c` ; T8 : `test:artifacts` vert en local, 0,96 s en CI ; T7 2,1 s en CI)
+- [x] RU-27 : F1 répondue par famille, reportée dans `R06a` et D88 (07) (F1 « oui à toutes les questions », ligne 07 ; `06a` RU-27 Tranchée, D88)
+- [x] Skill `design-system-influx` à jour, `SKILL.md` ≤ 10 Ko (07) (`f8138e6`, 10 064 octets)
+- [x] U, R soldées ; `pnpm check` et `pnpm test:e2e` verts ; e2e ≤ +20 s (U, R, fix-1 à fix-3 `fait` ; preuve des deux commandes : CI 45696366452, car la pile Supabase est absente en local — `pnpm check` local vert jusqu'aux tests base, build et artefacts verts ; e2e +3,4 s)
+- [x] Aucun commit sur `apps/api`, `supabase`, `packages/contracts` ; 596c18c touche `.github/workflows/ci.yml` et
+  `apps/web/next.config.ts` (`SECURITY_PREFIXES`) : attestation requise, couverte par RUA-R (R) (diff vide `a37a8ea..HEAD` sur `apps/api`, `supabase`, `packages/contracts` ; attestation `5d7b6df` couvre `596c18c`, RUAS-1)
 
 ## Écarts, décisions ouvertes, risques
 - **EC-RUA-1** (préparation) : RU-02 (juriste) et RU-14 (textes EN, par jalon) ne bloquent aucun commit de RUA ; le

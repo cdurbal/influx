@@ -914,7 +914,7 @@
 
 ## D88 — Lot 3bis, jalon RUA : décisions de charte et d'architecture du socle (RU-01 à RU-20)
 
-**Sujet** : accord de démarrage du code de RUA et arbitrages des décisions transverses de `22-refonte-ux-ui/06a-decisions.md` dont dépendent tous les écrans du Lot 3bis (D87) ; arbitrages écrits dans `jalons/rua/modele-ux.md` (`expert-ux`) et `jalons/rua/modele-archi.md` (`architecte`), reportés dans `20`, `02`, `18`, `audit-ux-ui/04-DIRECTION-ARTISTIQUE` §9, `06a` et `06b` §7
+**Sujet** : accord de démarrage du code de RUA et arbitrages des décisions transverses de `22-refonte-ux-ui/06a-decisions.md` dont dépendent tous les écrans du Lot 3bis (D87) ; arbitrages écrits dans `archives/jalons/rua/modele-ux.md` (`expert-ux`) et `archives/jalons/rua/modele-archi.md` (`architecte`), reportés dans `20`, `02`, `18`, `audit-ux-ui/04-DIRECTION-ARTISTIQUE` §9, `06a` et `06b` §7
 
 **Arbitre** : fondateur (F0), `expert-ux` (charte), `architecte` (mécanique)
 

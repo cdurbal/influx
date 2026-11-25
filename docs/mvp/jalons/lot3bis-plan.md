@@ -3,7 +3,8 @@
 
 Sources : `../22-refonte-ux-ui.md` et son dossier (fiches d'écran, composants, tokens, matrice, décisions).
 Détail des 105 tâches : `../22-refonte-ux-ui/08-plan-de-developpement.md` (une tâche = une ligne de jalon).
-Identifiants `RUA` à `RUL` (lot hors numérotation entière, comme DS, SN, RK) ; fiches `jalons/rua-fiche.md`…
+Identifiants `RUA` à `RUL` (lot hors numérotation entière, comme DS, SN, RK) ; fiches `archives/jalons/rua-fiche.md`…
+**Avancement** : RUA ✅ clos le 2026-11-25 (archivé : `archives/jalons/rua-fiche.md`) ; RUB suivant.
 
 ## Préalables
 | Décision ou question | Arbitre | Bloque quel jalon | État |

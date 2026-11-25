@@ -18,4 +18,11 @@
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | 0 bloquant, 2 jalon (RUAS-1 → fix-2, RUAT-1 → fix-3), 1 avant production, 10 plus tard ; 596c18c revu sain ; annexe § Revue |
 | fix-2 | fix-2.md | fix | sonnet | high | integrateur | fait | RUAS-1 : 5d7b6df, commit vide, security-reviewed: 2026-11-25 covers 596c18c ; check-security-review 1 puis 0 ; `valider` du fondateur (2026-11-25) |
 | fix-3 | fix-3.md | fix | sonnet | high | testeur | fait | RUAT-1 : recette-loaders.spec.ts sans role admin (défaut agent) ; commentaire J8T-8 ; check:fast vert ; e2e non lancé (pas de Supabase), la CI rejoue |
-| C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
+| C | cloture.md | cloture | sonnet | medium | testeur | fait | 12 cases cochées avec preuve ; base et e2e non rejoués en local (pas de Supabase), preuve = CI 45696366452 ; archivé ; RU-02 ouverte |
+
+## Mesures de clôture
+- Local (2026-11-25, sans Supabase) : `pnpm check` : format, typecheck, lint, tests unitaires verts (contracts 190, domain 217, test-kit 273, backoffice 458, web 859, api unitaires 2 012) ; la suite base échoue (ECONNREFUSED 54322, pas de Supabase local). `pnpm build` puis `pnpm -r run test:artifacts` verts (planche absente de la construction de production, RUA-T8). `pnpm test:e2e` non lancé (pile indisponible) : la preuve est la CI.
+- CI : `5e204fc` run 45696366452 vert ; `b3d20e2` run 45691224419 vert. Éclats e2e 4 min 32 à 4 min 55 (budget 7 min 30). Projet `visual` : absent de la CI par construction (B §5, `E2E_VISUAL` local seul) ; temps ajouté 0 s.
+- Budgets e2e (revue `testeur`, CI) : T5 0,37 s (≤ 2 s), T7 2,1 s (≤ 5 s), T8 0,96 s (≤ 4 s) ; total ≈ 3,4 s pour 20 s.
+- Outil complet (147 états, maquette contre elle-même) : 111/111 en 9 min 48 s en local, 588 captures, 0 écart, 3 écarts volontaires vus (mesuré par la revue `testeur`, non rejoué en clôture, pas de pile).
+- Écarts mineurs (EC) remontés : EC-RUA-A-1 ; EC-RUA-00-1, -2 ; EC-RUA-01-1, -2 ; EC-RUA-02-1 ; EC-RUA-03-1 à -3 ; EC-RUA-04-1 à -4 ; EC-RUA-05-1 (`ci.yml`, attesté) ; EC-RUA-06-1 à -5.

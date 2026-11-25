@@ -1917,7 +1917,7 @@ de la phrase, la ligne le dit et renvoie le reste à la recette humaine, avec so
 
 **Sources :** `22-refonte-ux-ui/05-recette-visuelle.md` (recette, procédure et critères de fin, **fait foi**) et
 `04-animations.md` (catalogue et critères AN) ; ce plan n'en reprend que les identifiants et les gardes. Tests du
-jalon RUA : `jalons/rua/annexe.md` (RUA-T1 à RUA-T8). Planchers (`case-floors.ts`, `artifact-floors.ts`,
+jalon RUA : `archives/jalons/rua/annexe.md` (RUA-T1 à RUA-T8). Planchers (`case-floors.ts`, `artifact-floors.ts`,
 `packages/test-kit/tests`) relevés avec les cas livrés, jamais baissés ; **+20 s au plus pour le lot** en e2e,
 éclats ≤ 7 min 30, job ≤ 8 min.
 

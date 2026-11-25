@@ -14,7 +14,7 @@
 > côté. Le reste de cette liste est ouvert. **Aucun code sans accord explicite distinct.**
 >
 > **Tranché le 2026-11-25 (D88 ; F0 « oui partout » de RUA)** : RU-01 et RU-03 à RU-20 (hors RU-02 et RU-14), colonne « État »
-> (arbitrages de `jalons/rua/modele-ux.md` et `modele-archi.md`). **RU-02** : part du fondateur tranchée, juriste (D34) à venir ;
+> (arbitrages de `archives/jalons/rua/modele-ux.md` et `modele-archi.md`). **RU-02** : part du fondateur tranchée, juriste (D34) à venir ;
 > **RU-14** reste ouverte. **RU-27 tranchée (D88 ; F1 de RUA, 2026-11-25)** : « oui à toutes les questions », les huit familles F1 à F8 de la planche de `RUA-06` sont acceptées telles que proposées, aucune ouverte ; écarts de la planche inscrits en `06b` §7.
 
 **RU-00** Identité du lot · **RU-01** Tailles fluides sous KEO (X1) · **RU-02** Marque « vérifié » (X2) · **RU-03** Seuils 640 et 1 536 px (X3) · **RU-04** Couleurs translucides et ombres portées (X4) · **RU-05** Ombre de l'encadré (X5) · **RU-10** Onglets segmentés hors conversation (X6) · **RU-17** Taille du `h1` des pages de compte · **RU-21** Lectures d'API ajoutées · **RU-22** Écritures et migrations demandées · **RU-23** Site web de la marque · **RU-24** Page publique de la marque · **RU-26** Contenus et gestes existants absents des maquettes · **RU-27** États non dessinés · **RU-28** Huit décisions et huit listes de file sans maquette · **RU-30** Textes et affichages réglementaires · **RU-31** Public ou interne · **RU-34** Contenu de la carte et du profil anonyme · **RU-35** Fil et fiche de campagne · **RU-37** Rôle du commercial avant la relation · **RU-39** Gestes des agents · **RU-42** Vignettes du portfolio au backoffice.

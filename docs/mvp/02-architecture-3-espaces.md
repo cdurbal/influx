@@ -2404,7 +2404,7 @@ absent, un `.tsx` dans `packages/ui`.
    `--background-image-header-glow` du bloc KEO (liste en données, `charter-data.ts`), N ≤ 15 pour le
    halo d'en-tête ; jamais dans un `--color-*`. Valeurs : `20` §11.5.
 
-   **Amendement du 2026-11-25 (D88, jalon RUA, `architecte`, détail : `jalons/rua/modele-archi.md`).**
+   **Amendement du 2026-11-25 (D88, jalon RUA, `architecte`, détail : `archives/jalons/rua/modele-archi.md`).**
    - **Seuils (RU-03).** `--breakpoint-form: 640px` dans `@theme static` de `tokens.css`, en px comme ses voisins :
      Tailwind trie les `--breakpoint-*` de même unité, `form:` tombe entre `sm:` et `md:` et `max-form:` est offert ;
      jamais redéfini sous KEO (G3i a) ; G3e permet l'ajout. Le seuil de 1 536 px est une variante du seul

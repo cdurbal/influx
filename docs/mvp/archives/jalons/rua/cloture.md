@@ -10,6 +10,6 @@ Grille `testeur`.
    ✅ et sa date ; `22-refonte-ux-ui/07` : aucune modification ; `06a` : « État » des RU tranchés à jour, RU-02
    laissée ouverte si Q6 n'a pas répondu.
 5. Proposer au fondateur, sans modifier `CLAUDE.md` : ligne D88 au §9, « Lot 3bis : RUA ✅ » au §10.
-6. Fiche et `rua/` déplacés dans `archives/jalons/` ; références mises à jour (`Grep "jalons/rua"` dans `docs/`, `.claude/`).
+6. Fiche et `rua/` déplacés dans `archives/jalons/` ; références mises à jour (`Grep "archives/jalons/rua"` dans `docs/`, `.claude/`).
    `lot3bis-plan.md` reste (pas le dernier jalon).
 **Arrêt si :** une case sans preuve ; CI rouge ; RU-27 sans réponse F1 ; écart non nul de l'outil sans explication.

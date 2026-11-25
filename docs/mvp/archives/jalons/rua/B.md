@@ -1,7 +1,7 @@
 # RUA-B — arbitrage `architecte` : `rua/modele-archi.md`
 Grilles `architecte`, `integrateur` (CI), `expert-cybersecurite` (§6).
 **Lire :** fiche ; Lectures, ligne B ; `20` §11.5 (l. 740-756, halo) ; `GK` l. 1186-1230, 1861-1960.
-**Livrer :** `docs/mvp/jalons/rua/modele-archi.md`, 10 Ko au plus ; par point : choix, *M.* = motif.
+**Livrer :** `docs/mvp/archives/jalons/rua/modele-archi.md`, 10 Ko au plus ; par point : choix, *M.* = motif.
 1. RU-03 : `--breakpoint-form` 640 (`@theme`, G3e permet l'ajout) et `bo-wide` 1536 (`@custom-variant` dans `BO`) ;
    ordre des variantes ; garde backoffice l. 515-538 (deux variantes dans un fichier).
 2. RU-18 : deux implantations, mêmes noms et props (`02a` §0) ; rien dans `packages/ui`.
