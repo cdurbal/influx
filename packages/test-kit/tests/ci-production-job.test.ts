@@ -1,11 +1,22 @@
-// J9T-2 (end-of-J9 review): the "Migrate production" job of .github/workflows/ci.yml stays inert
-// until the founder turns it on, never runs from another branch, never deploys, and only migrates a
-// base that carries the production marker and not the staging one (runbook production, sections 1
-// and 3; EC-J9-8). The workflow is read as text: no YAML library for a handful of checks.
+// J9T-2 (end-of-J9 review) and D71 (amended 2026-11-25): the "Migrate production" job of
+// .github/workflows/ci.yml stays inert until the founder turns it on, never runs from another
+// branch, never deploys, and only migrates a base that carries the production marker and not the
+// staging one (runbook production, sections 1 and 3; EC-J9-8); the frozen release workflow
+// (.github/workflows/release.yml) and `pnpm release:cut` enforce SemVer tags `vMAJOR.MINOR.PATCH`
+// on `main` promoted through `release/vX.Y.Z → production`.
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import {
+  assertNextReleaseTag,
+  buildReleaseNotes,
+  compareSemVer,
+  latestReleaseTag,
+  parseReleaseTag,
+  releaseBranchOf,
+} from "../src/release.ts";
 
 const ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -13,6 +24,11 @@ const ROOT = path.resolve(
 );
 const WORKFLOWS = path.join(ROOT, ".github/workflows");
 const CI = readFileSync(path.join(WORKFLOWS, "ci.yml"), "utf8");
+const RELEASE = readFileSync(path.join(WORKFLOWS, "release.yml"), "utf8");
+const CUT_RELEASE_SCRIPT = path.join(
+  ROOT,
+  "packages/test-kit/scripts/cut-release.ts",
+);
 
 /** The jobs of the workflow, by name: the lines from `  <name>:` to the next job. */
 function jobsOf(workflow: string): Map<string, string> {
@@ -87,10 +103,107 @@ describe("J9T-2: the Migrate production job", () => {
   });
 
   it("never deploys: no `railway` command in any workflow", () => {
-    for (const file of ["ci.yml", "weekly.yml"]) {
+    for (const file of ["ci.yml", "weekly.yml", "release.yml"]) {
       const text = code(readFileSync(path.join(WORKFLOWS, file), "utf8"));
       expect(text, file).not.toMatch(/\brailway\s+(up|deploy|redeploy)\b/);
     }
+  });
+});
+
+describe("D71 (amended 2026-11-25): SemVer release freezing and promotion to production", () => {
+  it("accepts strict vMAJOR.MINOR.PATCH tags and refuses malformed or v0.0.0 tags", () => {
+    expect(parseReleaseTag("v0.4.0")).toEqual({
+      tag: "v0.4.0",
+      major: 0,
+      minor: 4,
+      patch: 0,
+    });
+    for (const bad of ["0.4.0", "v0.4", "v01.2.3", "v0.4.0-rc.1", "v0.0.0"]) {
+      expect(() => parseReleaseTag(bad), bad).toThrow();
+    }
+  });
+
+  it("orders SemVer tags numerically and requires a strictly greater tag than the latest one", () => {
+    expect(
+      compareSemVer(parseReleaseTag("v0.10.0"), parseReleaseTag("v0.9.9")),
+    ).toBeGreaterThan(0);
+    expect(
+      latestReleaseTag(["v0.2.0", "v0.10.0", "v0.4.1", "not-a-tag"]),
+    ).toEqual(parseReleaseTag("v0.10.0"));
+    expect(() => assertNextReleaseTag("v0.4.0", ["v0.1.0", "v0.4.0"])).toThrow(
+      /strictly greater than the latest release tag v0\.4\.0/,
+    );
+    const { next, previous } = assertNextReleaseTag("v0.4.1", [
+      "v0.1.0",
+      "v0.4.0",
+    ]);
+    expect(next.tag).toBe("v0.4.1");
+    expect(previous?.tag).toBe("v0.4.0");
+    expect(releaseBranchOf(next)).toBe("release/v0.4.1");
+  });
+
+  it("formats release notes with the frozen main commit, promotion branch, migrations and attestations", () => {
+    const notes = buildReleaseNotes({
+      version: parseReleaseTag("v0.4.0"),
+      commitSha: "3455202000000000000000000000000000000000",
+      baseLabel: "v0.3.0",
+      migrations: [
+        "supabase/migrations/0334_identity_owner_agent_lookup_index.sql",
+      ],
+      attestations: ["cea3881 chore(security): attest the end-of-PL review"],
+      commits: [
+        "3455202 docs(mvp): charter and architecture amended for the Lot 3bis (D88)",
+      ],
+    });
+    expect(notes).toContain("# Release v0.4.0");
+    expect(notes).toContain("`release/v0.4.0 → production`");
+    expect(notes).toContain(
+      "`supabase/migrations/0334_identity_owner_agent_lookup_index.sql`",
+    );
+    expect(notes).toContain(
+      "cea3881 chore(security): attest the end-of-PL review",
+    );
+  });
+
+  it("release.yml verifies the tag is on main and passes I-4 before creating the GitHub Release, without touching any database", () => {
+    const releaseJob = code(jobsOf(RELEASE).get("publish-release") ?? "");
+    expect(releaseJob).not.toBe("");
+    expect(code(RELEASE)).toContain('- "v[0-9]+.[0-9]+.[0-9]+"');
+    expect(releaseJob).toContain(
+      'git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main',
+    );
+    expect(releaseJob).toContain(
+      'node packages/test-kit/scripts/check-security-review.ts "$base" "$GITHUB_SHA" "$I4_ANCHOR"',
+    );
+    expect(releaseJob).toContain("gh release create");
+    expect(releaseJob).not.toMatch(/\bsupabase\s+(db|start|config)\b/);
+    expect(releaseJob).not.toContain("DIRECT_DATABASE_URL");
+  });
+
+  it("release:cut refuses the CI and a missing or invalid --version", () => {
+    const inCi = spawnSync(
+      process.execPath,
+      [CUT_RELEASE_SCRIPT, "--version=v0.4.0", "--dry-run"],
+      {
+        cwd: ROOT,
+        env: { ...process.env, CI: "true" },
+        encoding: "utf8",
+      },
+    );
+    expect(inCi.status).toBe(1);
+    expect(inCi.stderr).toMatch(/never the CI/);
+
+    const badVersion = spawnSync(
+      process.execPath,
+      [CUT_RELEASE_SCRIPT, "--version=0.4.0", "--dry-run"],
+      {
+        cwd: ROOT,
+        env: { ...process.env, CI: "" },
+        encoding: "utf8",
+      },
+    );
+    expect(badVersion.status).toBe(1);
+    expect(badVersion.stderr).toMatch(/not a SemVer release tag/);
   });
 });
 

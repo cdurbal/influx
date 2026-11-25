@@ -242,8 +242,8 @@ est hors MVP).
   encaissé, D20 au premier litige.**
 - **Tranchées qui cadrent le travail courant** : D38 (masse critique : ouverture globale, seuils
   30 et 5 en table, alerte seule, interrupteur fermé, 2026-11-20) · D25 (société en Angleterre ; identité en
-  marqueurs dans `apps/api/legal/`) · D70 · D71 (`production` n'avance que par
-  `git merge --no-ff main`) · D73 à D75 · D76 · D77 · D78 (étendue au Lot 3) · D79 · D83 · D84
+  marqueurs dans `apps/api/legal/`) · D70 · D71 (version figée sur `main` par tag SemVer `vX.Y.Z`,
+  `production` n'avance que par PR `release/vX.Y.Z → production` en `--no-ff`) · D73 à D75 · D76 · D77 · D78 (étendue au Lot 3) · D79 · D83 · D84
   (aucune double validation obligatoire en métier ; administration et sécurité sous contrôle
   d'un pair).
 

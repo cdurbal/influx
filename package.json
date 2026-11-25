@@ -12,6 +12,8 @@
     "dev:worker": "pnpm --filter @influx/api dev:worker",
     "dev:backoffice": "pnpm --filter @influx/backoffice dev",
     "db:role-passwords": "pnpm --filter @influx/test-kit db:role-passwords",
+    "prod:role-passwords": "pnpm --filter @influx/test-kit prod:role-passwords",
+    "release:cut": "node packages/test-kit/scripts/cut-release.ts",
     "db:demo-accounts": "pnpm --filter @influx/api db:demo-accounts",
     "dev:brevo-double": "pnpm --filter @influx/test-kit dev:brevo-double",
     "start": "pnpm --filter @influx/web start",

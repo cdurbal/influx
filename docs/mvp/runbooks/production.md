@@ -18,10 +18,12 @@
 > jamais une valeur de production** (D70). Pas de capture du *Raw Editor* Railway. Aucun test
 > automatisé ne charge de valeur de production (`16` RG148).
 >
-> **Branche `production` (D71, EC-J9-6).** Elle n'avance que par `git merge --no-ff main`, **sur
-> l'accord explicite du fondateur**, jamais par un commit direct ni un `push --force`. Elle n'a pas
-> de protection GitHub : la discipline est la règle. Sur cette branche seule, la CI rend bloquants
-> le contrôle I-4 (`security-reviewed:`) ; les vetos de `expert-cybersecurite` et
+> **Branche `production` (D71 amendée le 2026-11-25, EC-J9-6).** Toute version candidate est d'abord
+> **figée sur `main` par un tag annoté immuable `vMAJOR.MINOR.PATCH`** (`pnpm release:cut --
+> --version=vX.Y.Z`), puis `production` n'avance que par une **Pull Request `release/vX.Y.Z →
+> production` fusionnée par commit de fusion (`--no-ff`)**, **sur l'accord explicite du fondateur**,
+> jamais par un commit direct ni un `push --force`. Sur cette branche et les PR qui la ciblent, la
+> CI rend bloquant le contrôle I-4 (`security-reviewed:`) ; les vetos de `expert-cybersecurite` et
 > `expert-conformite-rgpd` s'appliquent avant la fusion.
 >
 > **Interdits permanents.** `railway up` (le commit déployé ne serait plus traçable) ;
@@ -122,12 +124,13 @@ Création et réglages **par le fondateur** (création d'un projet = confirmatio
    poste ne voit que `staging`) :
 
    ```sh
-   pnpm exec supabase link --project-ref <ref-production>
-   INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT=30 INFLUX_LOCAL_AUTH_VERIFY_LIMIT=30 pnpm exec supabase config push
+   INFLUX_LOCAL_AUTH_SIGN_IN_LIMIT=30 INFLUX_LOCAL_AUTH_VERIFY_LIMIT=30 pnpm exec supabase config push --project-ref <ref-production>
    ```
 
-   Relire l'écran `security_sb_forwarded_for_enabled` (EC-38) : à activer s'il est proposé, sinon
-   noter l'écart.
+   Utiliser `--project-ref <ref-production>` évite de remplacer le lien `staging` du poste
+   (`supabase/.temp/project-ref`). Si `supabase link` a été utilisé, relier aussitôt le poste à
+   `staging` (`pnpm exec supabase link --project-ref pminhrwqepjzkyszgtwm`). Relire l'écran
+   `security_sb_forwarded_for_enabled` (EC-38) : à activer s'il est proposé, sinon noter l'écart.
 6. **Marqueur de production** (J9T-2), créé à la main comme celui de `staging`, **avant** toute
    activation du job (section 3) : le job exige ce marqueur **et** l'absence de celui de `staging`
    (`influx_staging.environment_marker`), sinon il refuse de migrer.
@@ -156,19 +159,27 @@ Les migrations passent **uniquement** par le job « Migrate production » : jama
 ## 2. Mots de passe des rôles de connexion
 
 Après la première exécution de « Migrate production » (les cinq rôles sont créés par les migrations
-`0001`, `0016`, `0136`). Le script `staging:role-passwords` lit `.env.local` (valeurs de `staging`)
-et **ne doit pas servir à la production** : les cinq mots de passe de production sont tirés **par le
-fondateur** (32 octets aléatoires chacun, **tous différents**, gestionnaire de mots de passe) et
-appliqués par SQL à la base de production (`alter role influx_app password '…'`, etc.), sous forme
-d'empreinte `SCRAM-SHA-256$…` si possible. Les cinq URL de connexion (multiplexeur, format
-`<rôle>.<référence du projet>`, `02` §12.3) vont **dans Railway uniquement** (section 5), chacune
-sur son service : `DATABASE_URL` (`influx_app`), `AUTH_DATABASE_URL` (`influx_auth_login`),
-`OPS_DATABASE_URL` (`influx_ops_login`) sur `api` ; `WORKER_DATABASE_URL`
-(`influx_worker_login`) et `PRIVACY_DATABASE_URL` (`influx_privacy_login`) sur `worker`.
+`0001`, `0016`, `0136`), **action du fondateur** (refusée en CI, ne lit rien dans `.env.local` et
+refuse la référence du projet de `staging`) :
 
-> **Point laissé ouvert :** un équivalent de production du script de rotation des mots de passe
-> (qui n'afficherait rien) n'existe pas ; le fondateur peut demander à `integrateur` de le
-> préparer, ce qui est un commit à part.
+```sh
+pnpm prod:role-passwords -- --ref=<ref-production> --host=<region>.pooler.supabase.com --confirm=<ref-production>
+```
+
+Le script tire cinq mots de passe aléatoires de 32 octets (tous distincts) et écrit une seule fois
+dans `.operator-secrets/production-role-passwords-<horodatage>.txt` (ignoré par Git, **jamais
+affiché**, à supprimer aussitôt appliqué) :
+
+1. **Partie 1 (SQL, empreintes `SCRAM-SHA-256$…` seulement)** : à exécuter dans l'éditeur SQL du
+   projet Supabase de production (aucun mot de passe en clair ne transite par les journaux SQL).
+2. **Partie 2 (cinq URL Supavisor, port 6543)** : à poser **dans Railway uniquement** (environnement
+   `production`, section 5, jamais dans `apps/api/.env.local`), chacune sur son seul service :
+   `DATABASE_URL` (`influx_app`), `AUTH_DATABASE_URL` (`influx_auth_login`), `OPS_DATABASE_URL`
+   (`influx_ops_login`) sur `api` ; `WORKER_DATABASE_URL` (`influx_worker_login`) et
+   `PRIVACY_DATABASE_URL` (`influx_privacy_login`) sur `worker`.
+
+Relancer la commande fait tourner les cinq mots de passe : réappliquer les deux parties puis
+redéployer `api` et `worker`.
 
 ## 3. GitHub : environnement `production` et job inerte (EC-J9-8)
 
@@ -304,27 +315,51 @@ Vérifier en outre, sans les afficher en entier : `INFLUX_ENV=production` partou
 (`api`, `worker`), `SYNC_MODE=live` (`worker`). Un équivalent automatisé pour la production est un
 commit à part, à demander à `integrateur`.
 
-## 6. Première fusion et déploiement
+## 6. Figer une version (tag SemVer) et promouvoir vers `production` (D71)
 
-Préalable : sections 0 à 5 terminées, retour à la version précédente relu (section 8).
+Préalable : sections 0 à 5 terminées, retour à la version précédente relu (section 8), commit
+candidat de `main` vert en CI et validé sur `staging` (même `RAILWAY_GIT_COMMIT_SHA`).
 
-1. Le fondateur donne son accord (date notée en section 0).
-2. Fusion, depuis un poste propre, **sans `--force`** :
+1. Le fondateur donne son accord (date et version `vMAJOR.MINOR.PATCH`, par exemple `v0.4.0`,
+   notées en section 0).
+2. **Aperçu sans écriture** (vérifie SemVer strictement croissant, ancêtre de `main`, descendant de
+   `production`, contrôle I-4 `security-reviewed:` depuis l'ancre `56b8046`, CI verte sur GitHub, et
+   affiche les migrations SQL et les commits de la version) :
 
    ```sh
-   git switch production
-   git merge --no-ff main
-   git push origin production
+   pnpm release:cut -- --version=v0.4.0 --dry-run
    ```
 
-   `production` n'avance que par cette commande. Les premières fusions sont lourdes : la CI y rejoue
-   I-4 sur toute la plage depuis l'ancre `56b8046` ; un commit non attesté laisse la CI rouge.
-3. Suivre : `gh run list --limit 5`, `gh run watch <id> --exit-status`. Enchaînement attendu : CI verte
-   → « Migrate production » vert → déploiement des quatre services (« Wait for CI »), même
-   `RAILWAY_GIT_COMMIT_SHA`.
-4. Mots de passe des rôles (section 2) à la première migration, puis redéploiement si les services
-   avaient démarré sans eux.
-5. Consigner le commit déployé, la date et l'auteur dans `21` §J9.
+3. **Figer la version et ouvrir la Pull Request `release/v0.4.0 → production`** (crée le tag annoté
+   `v0.4.0` et la branche `release/v0.4.0`, les pousse sur `origin` et ouvre la PR avec les notes
+   de version) :
+
+   ```sh
+   pnpm release:cut -- --version=v0.4.0 --push
+   ```
+
+   Le push du tag déclenche `.github/workflows/release.yml`, qui revérifie l'appartenance à `main`
+   et le contrôle I-4 puis publie la **GitHub Release** `v0.4.0`.
+4. **Vérification sur la PR** : la CI tourne sur la PR `release/v0.4.0 → production` avec le
+   contrôle I-4 bloquant (`check`, `db-merge`, `e2e-merge`, `relay-node-24`). `main` peut continuer
+   d'avancer pendant ce temps sans toucher au périmètre de `v0.4.0`.
+5. **Fusionner la PR par commit de fusion (`Merge pull request`, équivalent `--no-ff`)**, jamais en
+   *squash* ni en *rebase / fast-forward*. `production` n'avance que par cette PR.
+6. **Approuver et suivre la migration et le déploiement** :
+   - Dans GitHub › Actions, le job « Migrate production » attend l'approbation manuelle du fondateur
+     (environnement `production`, section 3).
+   - Suivre : `gh run list --limit 5`, `gh run watch <id> --exit-status`. Enchaînement attendu : CI
+     verte → approbation → « Migrate production » vert (`--dry-run` puis application, à la première
+     fusion toutes les migrations depuis `0001` sont appliquées dans l'ordre sur la base vide) →
+     déploiement des quatre services Railway (« Wait for CI »), même `RAILWAY_GIT_COMMIT_SHA`.
+7. **À la toute première migration seulement** :
+   - Appliquer les mots de passe des cinq rôles (`pnpm prod:role-passwords`, section 2), puis
+     redéployer `api` et `worker`.
+   - Pousser la configuration Auth (`supabase config push --project-ref <ref-production>`, section 1
+     point 5 : le hook `auth_hooks.refuse_native_email` créé par `0010` existe désormais).
+   - Amorcer le premier `admin` et le compte de bris de glace (`prod:bootstrap-admins`, section 0 bis).
+   - Publier les documents publics définitifs (`db:publish-terms -- --target=production`, section 12).
+8. Consigner la version `vX.Y.Z`, le commit déployé, la date et l'auteur dans `21` §J9.
 
 Ordre des migrations : toujours **avant** le code qui les lit, et additives (jamais de migration
 destructive simultanée à un déploiement applicatif, règle 7). Un renommage ou une suppression se fait
@@ -487,9 +522,10 @@ Pour les invitations de membres (agent et `admin`), le lien est copié par l'age
 
 ## 12. Publication des CGU sous libellé définitif (EC-62)
 
-**Action du fondateur** (avec le juriste), après les portes de la section 0. `draft-*` est **toujours
-refusé en production** ; le script `db:publish-terms` refuse la production sans exception (EC-45) et
-le job « Migrate production » ne publie rien.
+**Action du fondateur** (avec le juriste), après les portes de la section 0 et la première
+migration. `draft-*` est **toujours refusé en production**, ainsi que l'avertissement « Projet non
+contractuel / Draft, not contractual » et tout marqueur `[…]` non remplacé (D25) ; le job « Migrate
+production » ne publie rien.
 
 1. Remplacer, dans `apps/api/legal/<document>/<fr|en>/`, **les marqueurs de la société (D25)** :
    `[COMPANY NAME]`, `[COMPANY NUMBER]`, `[REGISTERED OFFICE ADDRESS]`, `[CONTACT EMAIL]`,
@@ -497,18 +533,26 @@ le job « Migrate production » ne publie rien.
    `[HOSTING REGION]`, `[RETENTION SCHEDULE]`, `[LIABILITY CAP]`, `[NON-CIRCUMVENTION PERIOD]`, et
    l'avertissement « projet de travail » de chaque brouillon ; texte validé par le juriste.
 2. Créer la version **non `draft-*`** (par exemple `1.0`, libellé de 1 à 40 caractères
-   `[0-9A-Za-z._-]`), pour les trois documents et les deux langues, ajoutée à
-   `apps/api/legal/published.json` (empreintes, ajout seul), commitée sur `main`
-   (octets exacts, UTF-8 strict, `-text`).
-3. Publier dans la base de production. **Écart connu : `db:publish-terms` n'a pas de cible
-   `production` (cibles : `local`, `staging`)** ; la publication de production demande un commit
-   dédié (cible `production` gardée par une confirmation, mêmes contrôles de manifeste, jamais de
-   `draft-*`), à décider avec `architecte`. Tant qu'elle n'existe pas, aucune publication de
-   production n'est possible, donc aucune inscription (une version en vigueur est exigée à
-   l'inscription, `05` RG23 à RG29).
-4. Vérifier : `GET /v1/terms/current?document=terms_of_service&locale=fr` (et `en`, et les deux
-   autres documents) renvoie le libellé définitif, `requiresAcceptance` attendu, empreinte égale à celle
-   du manifeste ; pages `/fr/cgu`, `/en/terms`, `/fr/confidentialite`, `/en/privacy`, `/fr/cookies`,
+   `[0-9A-Za-z._-]`), pour les trois documents et les deux langues, enregistrée dans
+   `apps/api/legal/published.json` (empreintes SHA-256, ajout seul via une publication locale
+   `pnpm --filter @influx/api db:publish-terms -- --document=<doc> --locale=<fr|en> --label=1.0`),
+   puis commitée sur `main` (octets exacts, UTF-8 strict, `-text`).
+3. Publier dans la base de production depuis le poste du fondateur (`INFLUX_PRODUCTION_MIGRATION_URL`
+   et au besoin `INFLUX_PRODUCTION_DB_CA_FILE` exportées dans le shell pour cette seule commande,
+   jamais dans `.env.local` ; le script refuse la CI, exige `--confirm=<ref-production>`, le
+   marqueur `influx_production.environment_marker = production` et l'absence de `influx_staging`) :
+
+   ```sh
+   pnpm --filter @influx/api db:publish-terms -- --latest --target=production --confirm=<ref-production>
+   ```
+
+   (Ou document par document avec `--document=<doc> --locale=<fr|en> --label=1.0
+   --target=production --confirm=<ref-production>`.) Tant qu'aucune version n'est publiée en
+   production, aucune inscription n'est possible (`05` RG23 à RG29).
+4. Désactiver `INFLUX_PRODUCTION_MIGRATION_URL` du shell (`unset`), puis vérifier :
+   `GET /v1/terms/current?document=terms_of_service&locale=fr` (et `en`, et les deux autres
+   documents) renvoie le libellé définitif, `requiresAcceptance` attendu, empreinte égale à celle du
+   manifeste ; pages `/fr/cgu`, `/en/terms`, `/fr/confidentialite`, `/en/privacy`, `/fr/cookies`,
    `/en/cookies` rendues sans `noindex` en production.
 
 ## 13. Relectures humaines du Lot 1 (`18` §10, l. 1401 à 1417)

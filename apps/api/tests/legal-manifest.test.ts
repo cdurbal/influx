@@ -2,17 +2,21 @@
 // apps/api/legal/published.json exists and keeps the SHA-256 recorded at its publication. A text
 // accepted by a member is the proof that founds INFLUX's remuneration: changing one byte of it, or
 // deleting it, would void the proof. A new text is a new label, appended to the manifest.
+import { spawnSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { sha256Hex } from "../src/domains/identity/terms.ts";
 import {
+  assertReadyForProduction,
   decodeLegalText,
   legalContentPath,
   LEGAL_CONTENT_ROOT,
   LEGAL_MANIFEST_FILE,
   LOCAL_SEED_DRAFTS,
   readManifest,
+  type PublicationRequest,
+  type PublishedFile,
 } from "../scripts/terms-publication.ts";
 
 const URI_PATTERN =
@@ -86,5 +90,90 @@ describe("the texts of the legal folder", () => {
       expect(text, uri).not.toContain("\r");
       expect(text, uri).not.toMatch(/<|\]\(|https?:|%/);
     }
+  });
+
+  it("refuses draft labels, draft notices, unreplaced [COMPANY NAME] placeholders and unrecorded files on production (EC-62)", () => {
+    const request: PublicationRequest = {
+      document: "terms_of_service",
+      locale: "fr",
+      label: "1.0",
+    };
+    const clean: PublishedFile = {
+      uri: "legal/terms_of_service/fr/1.0.md",
+      file: "/tmp/1.0.md",
+      sha256: "a".repeat(64),
+      content:
+        "# Conditions générales d'utilisation d'INFLUX\n\nTexte définitif.\n",
+    };
+    expect(() =>
+      assertReadyForProduction({ ...request, label: "draft-3" }, clean, {
+        [clean.uri]: clean.sha256,
+      }),
+    ).toThrow(/draft-\* version labels are refused in production/);
+    expect(() =>
+      assertReadyForProduction(
+        request,
+        {
+          ...clean,
+          content:
+            "**Projet non contractuel / Draft, not contractual**\n" +
+            clean.content,
+        },
+        { [clean.uri]: clean.sha256 },
+      ),
+    ).toThrow(/still carries the draft notice/);
+    expect(() =>
+      assertReadyForProduction(
+        request,
+        {
+          ...clean,
+          content: "Exploité par [COMPANY NAME] Ltd.\n",
+        },
+        { [clean.uri]: clean.sha256 },
+      ),
+    ).toThrow(/unreplaced \[COMPANY NAME\] marker/);
+    expect(() => assertReadyForProduction(request, clean, {})).toThrow(
+      /must be recorded in legal\/published\.json/,
+    );
+    expect(() =>
+      assertReadyForProduction(request, clean, { [clean.uri]: clean.sha256 }),
+    ).not.toThrow();
+  });
+
+  it("db:publish-terms --target=production refuses the CI and a mismatched --confirm before any connection", () => {
+    const script = path.join(LEGAL_CONTENT_ROOT, "scripts/publish-terms.ts");
+    const env = {
+      ...process.env,
+      INFLUX_PRODUCTION_MIGRATION_URL:
+        "postgresql://postgres.abcdefghijklmnopqrst:secret@aws-0-eu-west-3.pooler.supabase.com:5432/postgres",
+    };
+    const inCi = spawnSync(
+      process.execPath,
+      [
+        script,
+        "--latest",
+        "--target=production",
+        "--confirm=abcdefghijklmnopqrst",
+      ],
+      {
+        cwd: LEGAL_CONTENT_ROOT,
+        env: { ...env, CI: "true" },
+        encoding: "utf8",
+      },
+    );
+    expect(inCi.status).toBe(1);
+    expect(inCi.stderr).toMatch(/never the CI/);
+
+    const badConfirm = spawnSync(
+      process.execPath,
+      [script, "--latest", "--target=production", "--confirm=wrong"],
+      {
+        cwd: LEGAL_CONTENT_ROOT,
+        env: { ...env, CI: "" },
+        encoding: "utf8",
+      },
+    );
+    expect(badConfirm.status).toBe(1);
+    expect(badConfirm.stderr).toMatch(/--confirm must be the project ref/);
   });
 });
