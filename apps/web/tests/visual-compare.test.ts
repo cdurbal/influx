@@ -283,8 +283,15 @@ describe(`the frozen mockups (${MOCKUP_COMMIT}, 05 §1)`, () => {
   it("has the SHA-256 of 954e009 for every proto-*.html and every asset, nothing more", () => {
     expect(files).toEqual(Object.keys(MOCKUP_MANIFEST).sort());
     for (const file of files) {
+      // The manifest is computed on the committed blobs (LF): fold the CRLF of a Windows checkout.
+      const bytes = readFileSync(path.join(MOCKUP_DIRECTORY, file));
       const sha = createHash("sha256")
-        .update(readFileSync(path.join(MOCKUP_DIRECTORY, file)))
+        .update(
+          Buffer.from(
+            bytes.toString("latin1").replaceAll("\r\n", "\n"),
+            "latin1",
+          ),
+        )
         .digest("hex");
       expect(
         sha,

@@ -23,8 +23,9 @@ export const MOCKUP_DIRECTORY = path.resolve(
 );
 
 /**
- * The SHA-256 of each `proto-*.html` and of each file of `assets/`, at 954e009 (LF line endings,
- * `.gitattributes`). Never updated to make a run pass: a change of a mockup goes to the founder.
+ * The SHA-256 of each `proto-*.html` and of each file of `assets/`, at 954e009, computed on the
+ * committed blobs (`git show 954e009:<path> | sha256sum`, LF), not on a checkout. The test hashes the
+ * files with CRLF folded to LF. Never updated to make a run pass: a change of a mockup goes to the founder.
  */
 export const MOCKUP_MANIFEST: Readonly<Record<string, string>> = {
   "proto-accueils.html":
@@ -50,7 +51,7 @@ export const MOCKUP_MANIFEST: Readonly<Record<string, string>> = {
   "proto-campagne-marque.html":
     "902c86c3bb67b63f4e323514a051a1a5427b5bebe04eaaba50378a5a6c2156cd",
   "proto-campagne.html":
-    "f526f3d61ebd269b150b141a5e836f0527bc0e33f2bf60266ffcf9bf76907722",
+    "f6c3ee2c5861d0d2de51a0d671f30fb29ccd701c21c9063d8df7765533e905df",
   "proto-campagnes-createur.html":
     "9d77d3aec14ce03004c4b61b4a6400c9ae3cbf12d08802cd30fa51f3a0ce3808",
   "proto-compte.html":
@@ -76,7 +77,7 @@ export const MOCKUP_MANIFEST: Readonly<Record<string, string>> = {
   "assets/doc.css":
     "929340097f507f30416af232706d35770f995a99884b7e15294e6ee1d649ea27",
   "assets/doc.js":
-    "1d7aa428913568e2b8ecf14bd2ecf8a2379fa30066295447f27c2eb52ba49bdc",
+    "faeb5bd184d74c90f8f867379069050ab7c59092205b70328c8ef5451e95eddb",
   "assets/fonts.css":
     "1abf02a78d36a2f49f86314d815a53ff80c6d0a065afebeb4adb2a9ee80b29cc",
   "assets/icons.js":
