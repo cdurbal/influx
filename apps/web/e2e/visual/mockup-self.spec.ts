@@ -108,6 +108,37 @@ const DELIBERATE = {
   window: { width: 1280, height: 800 },
 } as const;
 
+test.describe("a request out of the disk is refused and counted (RUAS-5)", () => {
+  test("a WebSocket, like a request to http(s)", async ({ context }) => {
+    const page = await context.newPage();
+    const findings = await watchMockupPage(page);
+    await openMockupState(page, DELIBERATE.file, DELIBERATE.state);
+    const closed = await page.evaluate(
+      () =>
+        new Promise<boolean>((resolve) => {
+          const socket = new window.WebSocket("wss://example.test/socket");
+          socket.onclose = () => resolve(true);
+          socket.onerror = () => resolve(true);
+        }),
+    );
+    expect(closed, "the socket never opened").toBe(true);
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          const image = new Image();
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+          image.src = "https://example.test/data.png";
+        }),
+    );
+    expect(findings.networkRequests).toEqual([
+      "wss://example.test/socket",
+      "https://example.test/data.png",
+    ]);
+    expect(findings.scriptErrors).toEqual([]);
+  });
+});
+
 test.describe("a deliberate difference is seen", () => {
   test("a wording changed: N1 sees it", async ({ context }) => {
     const { reference, candidate } = await pair(

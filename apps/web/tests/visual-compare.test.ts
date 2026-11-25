@@ -16,6 +16,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { CASE_FLOORS as APP_CASE_FLOORS } from "../e2e/visual/app-case-floors";
+import { CASE_FLOORS as MOCKUP_CASE_FLOORS } from "../e2e/visual/case-floors";
 import {
   canonicalFamily,
   compareStructure,
@@ -547,5 +549,64 @@ describe("no image under apps/web/e2e (05 §3: a reference is never committed)",
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
+  });
+});
+
+// RUAT-4 (jalons/rub/modele-archi.md §6): the floors of the visual specs are read by a test, not only
+// by a script run by hand after a local run. A floor names a spec that exists, is a positive integer,
+// and every spec of e2e/visual has its floor (the mockups' or the `app` project's).
+function floorProblems(
+  floors: Readonly<Record<string, number>>,
+  specs: readonly string[],
+  mustExist: boolean,
+): string[] {
+  const problems: string[] = [];
+  for (const [file, floor] of Object.entries(floors)) {
+    if (!Number.isInteger(floor) || floor <= 0) {
+      problems.push(`${file}: the floor ${floor} is not a positive integer`);
+    }
+    if (mustExist && !specs.includes(file)) {
+      problems.push(`${file}: a floor without a spec`);
+    }
+  }
+  return problems;
+}
+
+describe("the floors of the visual specs (RUAT-4)", () => {
+  const specs = readdirSync(path.join(WEB_ROOT, "e2e", "visual"))
+    .filter((name) => name.endsWith(".spec.ts"))
+    .map((name) => `e2e/visual/${name}`)
+    .sort();
+
+  it("name existing specs, with a positive floor", () => {
+    expect(floorProblems(MOCKUP_CASE_FLOORS, specs, true)).toEqual([]);
+    expect(Object.keys(MOCKUP_CASE_FLOORS).sort()).toEqual(
+      specs.filter((file) => !(file in APP_CASE_FLOORS)),
+    );
+  });
+
+  it("hold the app floor of the mockup tool in a module of its own: 4 cases at least", () => {
+    // app.spec.ts is written by RUB line 11: its file is required from then on.
+    expect(Object.keys(APP_CASE_FLOORS)).toEqual(["e2e/visual/app.spec.ts"]);
+    expect(floorProblems(APP_CASE_FLOORS, specs, false)).toEqual([]);
+    expect(APP_CASE_FLOORS["e2e/visual/app.spec.ts"]).toBeGreaterThanOrEqual(4);
+  });
+
+  it("would refuse a floor without a spec and a floor that is not positive (negative case)", () => {
+    expect(
+      floorProblems(
+        { "e2e/visual/gone.spec.ts": 3, "e2e/visual/survey.spec.ts": 0 },
+        specs,
+        true,
+      ),
+    ).toEqual([
+      "e2e/visual/gone.spec.ts: a floor without a spec",
+      "e2e/visual/survey.spec.ts: the floor 0 is not a positive integer",
+    ]);
+    expect(
+      floorProblems({ "e2e/visual/survey.spec.ts": 1.5 }, specs, true),
+    ).toEqual([
+      "e2e/visual/survey.spec.ts: the floor 1.5 is not a positive integer",
+    ]);
   });
 });

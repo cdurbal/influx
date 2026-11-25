@@ -1666,6 +1666,22 @@ const STATE_BOARD_FILE = /\.board\.(?:ts|tsx)$/;
 /** What the board may not read: a session, the API, a translation (it holds data and texts of its own). */
 const STATE_BOARD_FORBIDDEN_IDENTIFIER = /\b(?:useMember|useMe)\b/;
 
+/**
+ * What the board never imports whatever the rules say (RUAT-2): the request of the server (a session
+ * by its cookies) and the API contracts. A rule that lists them too is not reported twice.
+ */
+const STATE_BOARD_ALWAYS_FORBIDDEN_PACKAGES = [
+  "next/headers",
+  "@influx/contracts",
+] as const;
+
+/** A network call of the board: `fetch(`, bare or on an object (`globalThis.fetch(`); not `prefetch(`. */
+const STATE_BOARD_FORBIDDEN_FETCH = /\bfetch\s*\(/;
+
+/** A read of the environment of the process, by a dot or a bracket. */
+const STATE_BOARD_FORBIDDEN_ENV =
+  /\bprocess\s*(?:\.\s*env\b|\[\s*["'`]env["'`]\s*\])/;
+
 export type StateBoardRules = {
   /** The `*.board.*` files that must exist, and none other, relative to the front root. */
   expectedFiles: readonly string[];
@@ -1678,8 +1694,10 @@ export type StateBoardRules = {
 /**
  * G8, state board: the `*.board.*` files are exactly the expected ones; no ordinary module imports
  * one (the board would then ride a production bundle); no board file imports a forbidden package
- * or module, nor names `useMember` or `useMe`: the board knows no session, no API client and no
- * translation, its texts and data come by props or from its own constants. Comments do not count.
+ * or module (and always not `next/headers`, nor `@influx/contracts`), nor names `useMember` or
+ * `useMe`, nor calls `fetch(`, nor reads `process.env`: the board knows no session, no API client,
+ * no environment and no translation, its texts and data come by props or from its own constants.
+ * Comments do not count.
  */
 export function findStateBoardViolations(
   frontRoot: string,
@@ -1693,6 +1711,12 @@ export function findStateBoardViolations(
     rules.expectedFiles,
   );
   const boardModules = boards.map((file) => file.replace(SOURCE_FILE, ""));
+  const forbiddenPackages = [
+    ...new Set([
+      ...rules.forbiddenPackages,
+      ...STATE_BOARD_ALWAYS_FORBIDDEN_PACKAGES,
+    ]),
+  ];
   const forbiddenModules = rules.forbiddenModules.map((module) =>
     path.join(frontRoot, module),
   );
@@ -1712,7 +1736,7 @@ export function findStateBoardViolations(
       continue;
     }
     for (const { specifier, resolved } of specifiers) {
-      const isForbiddenPackage = rules.forbiddenPackages.some(
+      const isForbiddenPackage = forbiddenPackages.some(
         (name) => specifier === name || specifier.startsWith(`${name}/`),
       );
       const isForbiddenModule =
@@ -1721,8 +1745,15 @@ export function findStateBoardViolations(
         findings.push(`${where}: a board file imports ${specifier}`);
       }
     }
-    if (STATE_BOARD_FORBIDDEN_IDENTIFIER.test(withoutComments(source))) {
+    const code = withoutComments(source);
+    if (STATE_BOARD_FORBIDDEN_IDENTIFIER.test(code)) {
       findings.push(`${where}: a board file reads the session`);
+    }
+    if (STATE_BOARD_FORBIDDEN_FETCH.test(code)) {
+      findings.push(`${where}: a board file calls fetch`);
+    }
+    if (STATE_BOARD_FORBIDDEN_ENV.test(code)) {
+      findings.push(`${where}: a board file reads process.env`);
     }
   }
   return findings;

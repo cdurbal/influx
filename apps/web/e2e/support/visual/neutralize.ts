@@ -2,11 +2,12 @@
 // survey of 2026-11-24. The prototype's band (`.demo`) is removed, which gives the columns their
 // 100 dvh back (keo.css, `body:has(> .demo)`); reduced motion and the fr-FR locale are the project's
 // (playwright.config.ts, E2E_VISUAL); the browser is Playwright's Chromium. The mockup is opened from
-// the disk (`file:`): a request to `http(s)` is refused and counted, a script error is collected,
-// and both fail the comparison. The page's clock is paused at a fixed instant before any document,
-// then run for a fixed delay once the page is loaded: the timers of zero delay (a scroll into view, a
-// section opened) fire, the countdowns of a second never do, and both renderings of a state are the
-// same (05 §3 masks the current dates and times; a frozen clock makes them equal instead).
+// the disk (`file:`): a request to `http(s)` and a WebSocket (`ws(s):`) are refused and counted, a
+// script error is collected, and all fail the comparison. The page's clock is paused at a fixed
+// instant before any document, then run for a fixed delay once the page is loaded: the timers of zero
+// delay (a scroll into view, a section opened) fire, the countdowns of a second never do, and both
+// renderings of a state are the same (05 §3 masks the current dates and times; a frozen clock makes
+// them equal instead).
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import type { Page } from "@playwright/test";
@@ -33,14 +34,19 @@ export function mockupUrl(file: string, state: string): string {
 }
 
 /**
- * Refuses every `http(s)` request of the page and collects its script errors, from now on. Call it
- * once per page, before the first navigation.
+ * Refuses every `http(s)` request and every WebSocket of the page and collects its script errors, from
+ * now on (RUAS-5: a socket is no `route`, `routeWebSocket` closes it unconnected, with no server
+ * behind it). Call it once per page, before the first navigation.
  */
 export async function watchMockupPage(page: Page): Promise<MockupFindings> {
   const findings: MockupFindings = { networkRequests: [], scriptErrors: [] };
   await page.route(/^https?:\/\//, async (route) => {
     findings.networkRequests.push(route.request().url());
     await route.abort("blockedbyclient");
+  });
+  await page.routeWebSocket(/^wss?:\/\//, (socket) => {
+    findings.networkRequests.push(socket.url());
+    void socket.close();
   });
   page.on("pageerror", (error) => {
     findings.scriptErrors.push(error.message);

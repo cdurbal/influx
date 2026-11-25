@@ -456,4 +456,75 @@ describe("RUA-T8: G8, the state board kept out of the product", () => {
       `${SECTION}: a board file reads the session`,
     ]);
   });
+
+  it("detects a board file that imports next/headers or @influx/contracts, whatever its rules (RUAT-2)", () => {
+    writeBoard();
+    write(
+      SECTION,
+      [
+        'import { cookies } from "next/headers";',
+        'import { memberSchema } from "@influx/contracts/member";',
+        'import type { Role } from "@influx/contracts";',
+        "export const ButtonBoard = () => { void [cookies, memberSchema]; return null as Role | null; };",
+      ].join("\n"),
+    );
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `${SECTION}: a board file imports next/headers`,
+      `${SECTION}: a board file imports @influx/contracts/member`,
+      `${SECTION}: a board file imports @influx/contracts`,
+    ]);
+    // A rule that already lists one of them does not report it twice.
+    expect(
+      findStateBoardViolations(front, {
+        ...RULES,
+        forbiddenPackages: [...RULES.forbiddenPackages, "next/headers"],
+      }),
+    ).toHaveLength(3);
+  });
+
+  it("detects a board file that calls fetch, bare or on an object, or reads process.env (RUAT-2)", () => {
+    writeBoard();
+    write(
+      SECTION,
+      "export const ButtonBoard = () => { void fetch('/v1/me'); return null; };\n",
+    );
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `${SECTION}: a board file calls fetch`,
+    ]);
+    write(
+      SECTION,
+      "export const ButtonBoard = () => { void globalThis.fetch ('/v1/me'); return null; };\n",
+    );
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `${SECTION}: a board file calls fetch`,
+    ]);
+    write(
+      SECTION,
+      "export const ButtonBoard = () => process.env.INFLUX_ENV ?? null;\n",
+    );
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `${SECTION}: a board file reads process.env`,
+    ]);
+    write(
+      SECTION,
+      "export const ButtonBoard = () => process['env'].INFLUX_ENV ?? null;\n",
+    );
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `${SECTION}: a board file reads process.env`,
+    ]);
+  });
+
+  it("admits what resembles them: prefetch, a comment, a name that only contains process or env (RUAT-2)", () => {
+    writeBoard();
+    write(
+      SECTION,
+      [
+        "// never fetch(url), process.env, nor next/headers: a comment names what the code must not do",
+        "/* process.env */",
+        "const preprocess = { envelope: 1, prefetch: (value: number) => value };",
+        "export const ButtonBoard = () => preprocess.prefetch(preprocess.envelope);",
+      ].join("\n"),
+    );
+    expect(findStateBoardViolations(front, RULES)).toEqual([]);
+  });
 });
