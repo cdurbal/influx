@@ -5,7 +5,7 @@
 // a file gains cases. LOWERING a floor is done in a commit whose message says which cases disappear
 // and why.
 export const CASE_FLOORS: Readonly<Record<string, number>> = {
-  "tests/build.artifacts.ts": 12,
+  "tests/build.artifacts.ts": 14,
   "tests/keo-tokens.artifacts.ts": 6,
   "tests/relay-integration.artifacts.ts": 36,
 };

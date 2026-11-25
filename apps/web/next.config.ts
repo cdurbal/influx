@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 import { NOINDEX, securityHeadersFor } from "./src/config/security-headers";
+import { stateBoardConfig } from "./src/config/state-board";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
@@ -29,6 +30,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: "/:path*", headers: [...SECURITY_HEADERS] }];
   },
+  // The component state board (RUA-05): a page extension, present only in development with the
+  // flag on, absent otherwise (src/config/state-board.ts).
+  ...stateBoardConfig(process.env),
 };
 
 export default withNextIntl(nextConfig);

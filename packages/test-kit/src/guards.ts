@@ -1657,6 +1657,78 @@ export function findStateTransforms(
 }
 
 // ---------------------------------------------------------------------------------------------
+// G8, the component state board kept out of the product (RUA-05; jalons/rua/modele-archi.md §6)
+// ---------------------------------------------------------------------------------------------
+
+/** A file of the state board: `page.board.tsx`, `button.board.tsx`, `texts.board.ts`. */
+const STATE_BOARD_FILE = /\.board\.(?:ts|tsx)$/;
+
+/** What the board may not read: a session, the API, a translation (it holds data and texts of its own). */
+const STATE_BOARD_FORBIDDEN_IDENTIFIER = /\b(?:useMember|useMe)\b/;
+
+export type StateBoardRules = {
+  /** The `*.board.*` files that must exist, and none other, relative to the front root. */
+  expectedFiles: readonly string[];
+  /** Packages (and their sub-paths) a board file never imports: the web platform, the translations. */
+  forbiddenPackages: readonly string[];
+  /** Modules of the front (relative to its root, without extension) a board file never imports. */
+  forbiddenModules: readonly string[];
+};
+
+/**
+ * G8, state board: the `*.board.*` files are exactly the expected ones; no ordinary module imports
+ * one (the board would then ride a production bundle); no board file imports a forbidden package
+ * or module, nor names `useMember` or `useMe`: the board knows no session, no API client and no
+ * translation, its texts and data come by props or from its own constants. Comments do not count.
+ */
+export function findStateBoardViolations(
+  frontRoot: string,
+  rules: StateBoardRules,
+): string[] {
+  const sources = sourceFilesUnder(frontRoot);
+  const boards = sources.filter((file) => STATE_BOARD_FILE.test(file));
+  const findings = exactSetFinding(
+    "the state board files",
+    boards.map((file) => relativePath(frontRoot, file)),
+    rules.expectedFiles,
+  );
+  const boardModules = boards.map((file) => file.replace(SOURCE_FILE, ""));
+  const forbiddenModules = rules.forbiddenModules.map((module) =>
+    path.join(frontRoot, module),
+  );
+  for (const file of sources) {
+    const source = readFileSync(file, "utf8");
+    const specifiers = importSpecifiers(source).map((specifier) => ({
+      specifier,
+      resolved: resolveLocalSpecifier(frontRoot, file, specifier),
+    }));
+    const where = relativePath(frontRoot, file);
+    if (!boards.includes(file)) {
+      for (const { specifier, resolved } of specifiers) {
+        if (resolved !== null && boardModules.includes(resolved)) {
+          findings.push(`${where}: imports the state board (${specifier})`);
+        }
+      }
+      continue;
+    }
+    for (const { specifier, resolved } of specifiers) {
+      const isForbiddenPackage = rules.forbiddenPackages.some(
+        (name) => specifier === name || specifier.startsWith(`${name}/`),
+      );
+      const isForbiddenModule =
+        resolved !== null && forbiddenModules.includes(resolved);
+      if (isForbiddenPackage || isForbiddenModule) {
+        findings.push(`${where}: a board file imports ${specifier}`);
+      }
+    }
+    if (STATE_BOARD_FORBIDDEN_IDENTIFIER.test(withoutComments(source))) {
+      findings.push(`${where}: a board file reads the session`);
+    }
+  }
+  return findings;
+}
+
+// ---------------------------------------------------------------------------------------------
 // G3g and G3h: the role colors confined, the forbidden pairs of classes (D73; 20 §11.3, §11.4)
 // ---------------------------------------------------------------------------------------------
 

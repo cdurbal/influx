@@ -5,7 +5,9 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   API_RUNTIME_DIRECTORIES,
+  findStateBoardInBuild,
   readBuiltStylesheets,
+  STATE_BOARD_MARKER,
   scanApiRuntimeFiles,
   scanBuildArtifacts,
 } from "../src/artifacts.ts";
@@ -57,6 +59,37 @@ describe("readBuiltStylesheets (G3i b)", () => {
     expect(css).toContain(".a{color:red}");
     expect(css).toContain(".b{color:blue}");
     expect(css).not.toContain(".c{");
+  });
+});
+
+describe("findStateBoardInBuild (RUA-T8)", () => {
+  it("throws when there is no build output", () => {
+    expect(() => findStateBoardInBuild(nextDirectory)).toThrow(/run the build/);
+  });
+
+  it("accepts a build without the board, and leaves its cache alone", () => {
+    writeArtifact("static/chunks/app.js", "console.log('hello');");
+    writeArtifact(
+      "server/app-paths-manifest.json",
+      '{"/[locale]/connexion/page":"app/[locale]/connexion/page.js"}',
+    );
+    writeArtifact("cache/turbopack/a.bin", `x ${STATE_BOARD_MARKER} x`);
+    expect(findStateBoardInBuild(nextDirectory)).toEqual([]);
+  });
+
+  it("finds the marker in a bundle, a path of the board and its route in a manifest", () => {
+    writeArtifact("static/chunks/board.js", `<main ${STATE_BOARD_MARKER}="">`);
+    writeArtifact("server/app/fr/state-board/page.js", "export {};");
+    writeArtifact(
+      "server/app-paths-manifest.json",
+      '{"/[locale]/state-board/page":"app/[locale]/state-board/page.js"}',
+    );
+    writeArtifact("server/other.json", '{"/state-board":1}');
+    expect(findStateBoardInBuild(nextDirectory).sort()).toEqual([
+      ".next/server/app-paths-manifest.json: the route state-board in a manifest",
+      ".next/server/app/fr/state-board/page.js: a path of the state board",
+      ".next/static/chunks/board.js: the marker data-state-board",
+    ]);
   });
 });
 

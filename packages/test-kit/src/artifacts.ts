@@ -103,6 +103,49 @@ export function readBuiltStylesheets(nextDirectory: string): string {
   return sheets.map((file) => readFileSync(file, "utf8")).join("\n");
 }
 
+/** The name of the component state board in a route, a file or a manifest (RUA-05). */
+export const STATE_BOARD_ROUTE = "state-board";
+
+/** The attribute the page of the board carries on its root: the mark of its modules in a bundle. */
+export const STATE_BOARD_MARKER = "data-state-board";
+
+/**
+ * RUA-T8 (jalons/rua/modele-archi.md §6): what a build holds of the component state board, which a
+ * deployed build must not hold at all. One finding per file whose path names the board, whose
+ * content carries its marker, or, for a manifest, names its route. `.next/cache` is the build's
+ * own working memory, kept from one build to the next and never served: it is left out, so that a
+ * workstation that built once with the board open can still check a build without it. Throws when
+ * the build output is missing, so that a skipped build can never pass for a clean one.
+ */
+export function findStateBoardInBuild(nextDirectory: string): string[] {
+  if (!existsSync(path.join(nextDirectory, "static"))) {
+    throw new Error(
+      `No build output in ${nextDirectory}: run the build before test:artifacts.`,
+    );
+  }
+  const root = path.dirname(nextDirectory);
+  const cacheDirectory = path.join(nextDirectory, "cache") + path.sep;
+  const findings: string[] = [];
+  for (const file of listFiles(nextDirectory)) {
+    if (file.startsWith(cacheDirectory)) continue;
+    const where = relativePath(root, file);
+    if (path.relative(nextDirectory, file).includes(STATE_BOARD_ROUTE)) {
+      findings.push(`${where}: a path of the state board`);
+    }
+    // latin1 maps every byte to one character: binary files are read safely.
+    const content = readFileSync(file, "latin1");
+    if (content.includes(STATE_BOARD_MARKER)) {
+      findings.push(`${where}: the marker ${STATE_BOARD_MARKER}`);
+    } else if (
+      /manifest[^\\/]*\.json$/.test(file) &&
+      content.includes(STATE_BOARD_ROUTE)
+    ) {
+      findings.push(`${where}: the route ${STATE_BOARD_ROUTE} in a manifest`);
+    }
+  }
+  return findings;
+}
+
 /**
  * The files apps/api runs, its third deployed artifact (J9 commit 7, T11): apps/api has no build,
  * Railway runs its sources with Node (deploy/railway/api.json, worker.json). Its code, its legal

@@ -352,7 +352,13 @@ jobs:
           nohup bash -c 'pnpm exec supabase start -x realtime,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > "$RUNNER_TEMP/supabase-start.log" 2>&1; echo $? > "$RUNNER_TEMP/supabase-start.exit"' > /dev/null 2>&1 &
 
       # The journeys start both fronts without building them under CI (apps/web/playwright.config.ts).
+      # RUA-05: the e2e build of apps/web opens the component state board, a page extension decided
+      # at build time (apps/web/src/config/state-board.ts: development and the flag, never a
+      # deployed build). The `build` job above builds without the flag and proves its absence.
       - name: Build both fronts
+        env:
+          INFLUX_ENV: development
+          INFLUX_STATE_BOARD: "on"
         run: pnpm --filter @influx/web --filter @influx/backoffice run build
 
       - name: Install the Chromium of Playwright

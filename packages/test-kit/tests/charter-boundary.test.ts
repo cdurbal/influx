@@ -11,6 +11,7 @@ import {
   findPortalUse,
   findRoleColorUse,
   findSessionReadViolations,
+  findStateBoardViolations,
   findStateTransforms,
   findVitrineImportsUnder,
   findVitrineTokenUse,
@@ -372,6 +373,87 @@ describe("TD1.12: G9, the session read by the shells alone", () => {
       "src/components/auth/member-auth.ts: does not export readMe",
       "src/components/account/Peek.tsx: reads GET /v1/me itself",
       "src/components/auth/member-auth.ts readMe is imported in [src/components/account/AccountShell.tsx, src/components/auth/Probe.tsx], expected [src/components/member/MemberShell.tsx]",
+    ]);
+  });
+});
+
+describe("RUA-T8: G8, the state board kept out of the product", () => {
+  const BOARD_DIRECTORY = "src/app/[locale]/(member)/state-board";
+  const PAGE = `${BOARD_DIRECTORY}/page.board.tsx`;
+  const SECTION = `${BOARD_DIRECTORY}/button.board.tsx`;
+  const RULES = {
+    expectedFiles: [PAGE, SECTION],
+    forbiddenPackages: ["@influx/web-platform", "next-intl"],
+    forbiddenModules: [
+      "src/components/auth/member-auth",
+      "src/components/member/member-context",
+    ],
+  };
+
+  function writeBoard(): void {
+    write(
+      PAGE,
+      'import { ButtonBoard } from "./button.board";\nexport default ButtonBoard;\n',
+    );
+    write(
+      SECTION,
+      [
+        'import { cn } from "@/components/ui/class-names";',
+        "// never useMember(), nor next-intl: a comment names what the code must not do",
+        "export const ButtonBoard = () => cn('a');",
+      ].join("\n"),
+    );
+  }
+
+  it("accepts the expected files, imported by the page of the board alone", () => {
+    writeBoard();
+    expect(findStateBoardViolations(front, RULES)).toEqual([]);
+  });
+
+  it("detects a missing board file and an unexpected one", () => {
+    writeBoard();
+    write(`${BOARD_DIRECTORY}/extra.board.ts`, "export const X = 1;\n");
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `the state board files in [${SECTION}, ${BOARD_DIRECTORY}/extra.board.ts, ${PAGE}], expected [${SECTION}, ${PAGE}]`,
+    ]);
+    rmSync(path.join(front, SECTION));
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `the state board files in [${BOARD_DIRECTORY}/extra.board.ts, ${PAGE}], expected [${SECTION}, ${PAGE}]`,
+    ]);
+  });
+
+  it("detects an ordinary module that imports a board file, by alias or relative path", () => {
+    writeBoard();
+    write(
+      "src/components/auth/Peek.tsx",
+      'import { ButtonBoard } from "@/app/[locale]/(member)/state-board/button.board";\nvoid ButtonBoard;\n',
+    );
+    write(
+      "src/components/landing/Peek.tsx",
+      'export * from "../../app/[locale]/(member)/state-board/page.board";\n',
+    );
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      "src/components/auth/Peek.tsx: imports the state board (@/app/[locale]/(member)/state-board/button.board)",
+      "src/components/landing/Peek.tsx: imports the state board (../../app/[locale]/(member)/state-board/page.board)",
+    ]);
+  });
+
+  it("detects a board file that reads the session, calls the platform or translates", () => {
+    writeBoard();
+    write(
+      SECTION,
+      [
+        'import { callRelay } from "@influx/web-platform/relay-client";',
+        'import { useTranslations } from "next-intl";',
+        'import { readMe } from "@/components/auth/member-auth";',
+        "export const ButtonBoard = () => { void [callRelay, useTranslations, readMe]; return useMember(); };",
+      ].join("\n"),
+    );
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `${SECTION}: a board file imports @influx/web-platform/relay-client`,
+      `${SECTION}: a board file imports next-intl`,
+      `${SECTION}: a board file imports @/components/auth/member-auth`,
+      `${SECTION}: a board file reads the session`,
     ]);
   });
 });

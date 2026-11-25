@@ -160,6 +160,11 @@ export default defineConfig({
           url: `${WEB_ORIGIN}/fr/connexion`,
           env: {
             INFLUX_ENV: "development",
+            // RUA-05: the component state board (e2e/state-board.spec.ts) is a page extension of
+            // the BUILD, open only with this flag in development (src/config/state-board.ts). The
+            // build of a workstation run takes it from here; in CI, the "Build both fronts" step of
+            // ci.yml sets the same two variables.
+            INFLUX_STATE_BOARD: "on",
             INFLUX_API_INTERNAL_URL: API_ORIGIN,
             INFLUX_API_INTERNAL_SECRET: WEB_SECRET,
           },

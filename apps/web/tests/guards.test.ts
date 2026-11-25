@@ -36,6 +36,7 @@ import {
   findKeoActivationViolations,
   findMemberGroupMismatches,
   findPortalUse,
+  findStateBoardViolations,
   findStateTransforms,
   findVitrineImportsUnder,
   findVitrineTokenUse,
@@ -631,6 +632,31 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
   it("uses no class of the vitrine's fluid typography under the KEO scopes (TK7.3)", () => {
     expect(
       findVitrineTokenUse(WEB_ROOT, KEO_SCOPES, fluidTypographyClasses(tokens)),
+    ).toEqual([]);
+  });
+
+  // RUA-T8 (jalons/rua/modele-archi.md §6): the board is the set of its files, imported by none of the
+  // product, and knows no session, no API client, no translation; the detector is self-tested in the test-kit.
+  it("keeps the state board to its own files, with no session, API client or translation", () => {
+    const board = "src/app/[locale]/(member)/state-board";
+    const files = [
+      "badge.board.tsx",
+      "board-section.board.tsx",
+      "button.board.tsx",
+      "field.board.tsx",
+      "notice.board.tsx",
+      "page.board.tsx",
+    ];
+    expect(
+      findStateBoardViolations(WEB_ROOT, {
+        expectedFiles: files.map((file) => `${board}/${file}`),
+        forbiddenPackages: ["@influx/web-platform", "next-intl"],
+        forbiddenModules: [
+          "src/components/auth/member-auth",
+          "src/components/member/member-context",
+          "src/components/member/MemberShell",
+        ],
+      }),
     ).toEqual([]);
   });
 

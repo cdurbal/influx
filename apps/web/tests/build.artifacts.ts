@@ -4,7 +4,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { scanBuildArtifacts } from "@influx/test-kit/artifacts";
+import {
+  findStateBoardInBuild,
+  scanBuildArtifacts,
+} from "@influx/test-kit/artifacts";
 import { describe, expect, it } from "vitest";
 
 const NEXT_DIR = path.resolve(
@@ -70,4 +73,24 @@ describe("T7.10: the compiled proxy matcher (21 J1-C point 3, J1-J T-3)", () => 
       expect(proxyRunsOn(pathname)).toBe(true);
     },
   );
+});
+
+describe("RUA-T8: the component state board is not in the production build", () => {
+  it("leaves no path, marker or manifest entry of the board in .next", () => {
+    expect(findStateBoardInBuild(NEXT_DIR)).toEqual([]);
+  });
+
+  it("lists the member pages in its route manifest, so that the scan above is not vacuous", () => {
+    const manifestFile = path.join(
+      NEXT_DIR,
+      "server",
+      "app-paths-manifest.json",
+    );
+    expect(existsSync(manifestFile), manifestFile).toBe(true);
+    const routes = Object.keys(
+      JSON.parse(readFileSync(manifestFile, "utf8")) as Record<string, string>,
+    );
+    expect(routes).toContain("/[locale]/(member)/connexion/page");
+    expect(routes.filter((route) => route.includes("state-board"))).toEqual([]);
+  });
 });
