@@ -67,7 +67,7 @@ const { values } = parseArgs({
   args: process.argv.slice(2).filter((argument) => argument !== "--"),
   options: {
     version: { type: "string" },
-    commit: { type: "string", default: "HEAD" },
+    commit: { type: "string" },
     "dry-run": { type: "boolean", default: false },
     "skip-ci-check": { type: "boolean", default: false },
     push: { type: "boolean", default: false },
@@ -79,9 +79,13 @@ if (values.version === undefined || values.version.trim() === "") {
     "usage: pnpm release:cut -- --version=vX.Y.Z [--commit=<sha>] [--dry-run] [--skip-ci-check] [--push]",
   );
 }
-if (!values["dry-run"] && git("status", "--porcelain") !== "") {
+if (
+  !values["dry-run"] &&
+  values.commit === undefined &&
+  git("status", "--porcelain") !== ""
+) {
   throw new Error(
-    "working tree is not clean: commit or stash every change before cutting a release",
+    "working tree is not clean: commit or stash every change, or pass --commit=<sha> explicitly",
   );
 }
 
@@ -91,7 +95,7 @@ const existingTags = git("tag", "--list", "v*")
 const { next, previous } = assertNextReleaseTag(values.version, existingTags);
 const branch = releaseBranchOf(next);
 
-const commitSha = resolveRef([values.commit]);
+const commitSha = resolveRef([values.commit ?? "HEAD"]);
 const mainSha = resolveRef(["refs/heads/main", "refs/remotes/origin/main"]);
 const productionSha = resolveRef([
   "refs/remotes/origin/production",
@@ -103,14 +107,23 @@ if (!isAncestor(commitSha, mainSha)) {
     `commit ${commitSha.slice(0, 12)} is not on main: a release is only cut from main`,
   );
 }
-if (!isAncestor(productionSha, commitSha)) {
+// `production` advances by `--no-ff` merge commits from `main`, so `productionSha` itself is a
+// merge commit on `production`; every non-merge commit of `production` must be an ancestor of
+// `commitSha`, and `commitSha` must bring at least one new commit over `production`.
+const orphanOnProduction = Number(
+  git("rev-list", "--no-merges", "--count", `${commitSha}..${productionSha}`),
+);
+if (orphanOnProduction > 0) {
   throw new Error(
-    `commit ${commitSha.slice(0, 12)} does not descend from production (${productionSha.slice(0, 12)})`,
+    `production (${productionSha.slice(0, 12)}) holds ${orphanOnProduction} non-merge commit(s) not in ${commitSha.slice(0, 12)}`,
   );
 }
-if (commitSha === productionSha) {
+const aheadOfProduction = Number(
+  git("rev-list", "--count", `${productionSha}..${commitSha}`),
+);
+if (aheadOfProduction === 0) {
   throw new Error(
-    `commit ${commitSha.slice(0, 12)} is already the head of production: nothing to release`,
+    `commit ${commitSha.slice(0, 12)} is already in production: nothing to release`,
   );
 }
 
