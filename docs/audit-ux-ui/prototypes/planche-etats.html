@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Planche des états non dessinés INFLUX</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/keo.css">
+<link rel="stylesheet" href="assets/doc.css">
+<script src="assets/icons.js" defer></script>
+<style>
+  /* Planche RU-27 : mise en page propre à cette page, tokens des feuilles ci-dessus seulement. */
+  .fam { max-width: none; }
+  .fam__meta { display: grid; gap: var(--spacing-2) var(--spacing-5); font-size: var(--text-sm); max-width: 66rem; }
+  @media (width >= 760px) { .fam__meta { grid-template-columns: 9rem minmax(0, 1fr); } }
+  .fam__meta dt { font-family: var(--font-display); font-weight: var(--font-weight-bold); color: var(--color-text-secondary); }
+  .fam__meta dd { max-width: 56rem; }
+  .fam__meta dd + dt { margin-top: var(--spacing-1); }
+  .ids { display: flex; flex-wrap: wrap; gap: var(--spacing-2); }
+  .tag { display: inline-flex; align-items: center; border-radius: var(--radius-sm); border: var(--border-width-thin) solid var(--color-border-default); padding: 0 var(--spacing-2); font-size: var(--text-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-secondary); white-space: nowrap; }
+  .tag--new { border-color: var(--color-feedback-info-border); color: var(--color-feedback-info-text); }
+
+  .frames { display: flex; flex-direction: column; gap: var(--spacing-6); }
+  .fr { display: flex; flex-direction: column; gap: var(--spacing-2); min-width: 0; }
+  .fr > figcaption { font-family: var(--font-display); font-weight: var(--font-weight-bold); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .fr__in { container-type: inline-size; border-radius: var(--radius-md); border: var(--border-width-thin) solid var(--color-border-default); background: var(--color-surface-page); padding: var(--spacing-5) var(--spacing-page-gutter); }
+  .fr--wide { max-width: 90rem; }
+  .fr--narrow { width: min(100%, 23.4375rem); }
+  .fr--narrow .fr__in { padding-inline: var(--spacing-4); }
+  /* Les requêtes de média de keo.css suivent la fenêtre : le cadre 375 reprend la disposition téléphone de la liste de tâches. */
+  .fr--narrow .todo > li { grid-template-columns: var(--size-icon-lg) minmax(0, 1fr); align-items: start; }
+  .fr--narrow .todo .t-act { grid-column: 1 / -1; justify-content: flex-start; }
+  .fr__grid { display: grid; gap: var(--spacing-6); align-items: start; }
+  @container (width >= 60rem) { .fr__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--spacing-6) var(--spacing-8); } }
+  .fr__off { display: flex; gap: var(--spacing-3); align-items: flex-start; font-size: var(--text-sm); color: var(--color-text-secondary); }
+
+  .st { display: flex; flex-direction: column; gap: var(--spacing-3); min-width: 0; }
+  .st__cap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-1) var(--spacing-3); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .st__cap b { font-family: var(--font-display); color: var(--color-text-primary); }
+  .st__body { display: flex; flex-direction: column; gap: var(--spacing-3); max-width: 48rem; }
+  .st__body .notice { align-items: flex-start; }
+  .st__body .notice .row { flex: 1 1 auto; justify-content: space-between; gap: var(--spacing-2) var(--spacing-4); }
+  .st__body .notice p + p { margin-top: var(--spacing-1); }
+  .st__body h3 { font-family: var(--font-display); font-weight: var(--font-weight-extrabold); line-height: var(--leading-tight); font-size: var(--text-title-section); letter-spacing: var(--tracking-heading); }
+  .st__body .hd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-2) var(--spacing-3); }
+  .st__body .empty-state { padding: var(--spacing-2) 0; }
+  .st__body .empty-state h4, .st__body .errsum li { font-family: var(--font-display); font-weight: var(--font-weight-bold); }
+  .st__body .errsum { background: var(--color-surface-page); }
+  .st__body .errsum li { font-weight: var(--font-weight-regular); list-style: disc; }
+  .prow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--spacing-1) var(--spacing-4); align-items: center; padding: var(--spacing-3) var(--spacing-2); border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+  .prow .r-title { font-family: var(--font-display); font-weight: var(--font-weight-bold); }
+  .prow .why { grid-column: 1 / -1; font-size: var(--text-sm); color: var(--color-feedback-warning-text); }
+  .pl { display: grid; gap: var(--spacing-1) var(--spacing-4); grid-template-columns: minmax(0, 8rem) minmax(0, 1fr); font-size: var(--text-sm); }
+  .pl dt { color: var(--color-text-secondary); font-weight: var(--font-weight-semibold); }
+  .pl dd { min-width: 0; overflow-wrap: anywhere; }
+  .save { display: inline-flex; align-items: center; gap: var(--spacing-2); font-size: var(--text-sm); color: var(--color-text-secondary); flex-wrap: wrap; }
+  .save .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .save--failed { color: var(--color-feedback-error-text); font-weight: var(--font-weight-semibold); }
+  .save--warn { color: var(--color-feedback-warning-text); }
+  .pill { display: inline-flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-target); border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); padding: 0 var(--spacing-4); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .pill--active { background: var(--color-surface-active); border-color: var(--color-border-strong); color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+  .pill--open { border-color: var(--color-border-hover); color: var(--color-text-primary); }
+  .pill .i { width: var(--size-icon-sm); height: var(--size-icon-sm); }
+  .menu { display: flex; flex-direction: column; border-radius: var(--radius-md); border: var(--border-width-thin) solid var(--color-border-strong); background: var(--color-surface-raised); padding: var(--spacing-1); max-width: 16rem; font-size: var(--text-sm); }
+  .menu span { display: flex; align-items: center; gap: var(--spacing-2); min-height: var(--size-touch-target); padding: 0 var(--spacing-3); border-radius: var(--radius-sm); }
+  .menu .is-on { background: var(--color-surface-active); font-weight: var(--font-weight-semibold); }
+  .box { border-radius: var(--radius-md); border: var(--border-width-thin) solid var(--color-border-strong); background: var(--color-surface-raised); padding: var(--spacing-4); display: flex; flex-direction: column; gap: var(--spacing-3); }
+  .q { display: flex; flex-direction: column; gap: var(--spacing-3); max-width: 62rem; border-radius: var(--radius-md); border: var(--border-width-thin) solid var(--color-border-strong); background: var(--color-surface-card); padding: var(--spacing-4) var(--spacing-5); }
+  .q .t-block { color: var(--color-text-brand); }
+  .q p { max-width: 56rem; }
+  .ans { display: inline-flex; align-items: center; gap: var(--spacing-3); font-size: var(--text-sm); color: var(--color-text-secondary); }
+  .ans span { border-radius: var(--radius-pill); border: var(--border-width-thin) solid var(--color-border-default); padding: 0 var(--spacing-4); min-height: 2rem; display: inline-flex; align-items: center; font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+  .sum td:first-child { white-space: nowrap; }
+  .src { display: grid; gap: var(--spacing-6); }
+  textarea.control { min-height: var(--size-textarea); }
+</style>
+</head>
+<body class="doc">
+<div id="announcer" class="sr-only" role="status" aria-live="polite"></div>
+<header class="d-top">
+  <a class="d-brand" href="index.html">INFLUX <span>· refonte, prototypes</span></a>
+  <nav class="d-nav" aria-label="Écrans"><a href="ecran-1-accueils.html">1 · Accueils</a><a href="ecran-2-recherche.html">2 · Recherche</a><a href="ecran-2b-profil-anonyme.html">2 bis · Profil anonyme</a><a href="ecran-3-profil-createur.html">3 · Profil créateur</a><a href="ecran-4-bo-tableau-de-bord.html">4 · Tableau de bord BO</a><a href="ecran-5-bo-decision.html">5 · Décision BO</a><a href="ecran-5b-marque.html">5 bis · Page de la marque</a><a href="ecran-6-bo-fiche-compte.html">6 · Fiche de compte</a><a href="ecran-7-campagne.html">7 · Formulaire de campagne</a><a href="ecran-8-campagnes-createur.html">8 · Campagnes créateur</a><a href="ecran-9-selections.html">9 · Sélections</a><a href="ecran-10-profil-marque.html">10 · Profil de marque</a><a href="ecran-11-entree.html">11 · Inscription et connexion</a><a href="ecran-12-mes-campagnes.html">12 · Mes campagnes</a><a href="ecran-13-bo-recherche.html">13 · Recherche identifiée</a><a href="ecran-14-verifications.html">14 · Vérifications créateur</a><a href="ecran-15-apercu.html">15 · Aperçu créateur</a><a href="ecran-16-bo-listes.html">16 · Files et inscrits</a><a href="ecran-17-bo-campagne.html">17 · Fiche campagne</a><a href="ecran-18-campagne-marque.html">18 · Campagne côté marque</a><a href="ecran-19-bo-mobile.html">19 · Backoffice sur téléphone</a><a href="ecran-20-compte.html">20 · Mon compte</a><a href="ecran-21-bo-admin.html">21 · Administration</a><a href="interactions.html">Micro-interactions</a><a href="planche-etats.html" aria-current="page">Planche des états</a></nav>
+</header>
+<main class="d-main">
+  <div class="d-intro">
+    <p class="overline">Lot 3bis · RUA-06 · RU-27</p>
+    <h1 class="d-h1">Planche des états non dessinés</h1>
+    <p class="d-lead">Les maquettes montrent le cas nominal. Cette planche propose, pour les 21 états que la mission a repérés sans dessin, une représentation faite des seuls composants du catalogue (C08, C09, C13, C17, C20) et des tokens existants : aucun composant ni aucune couleur nouvelle.</p>
+    <div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><div><p><b>À valider par famille (F1).</b> Huit familles, 21 questions. Réponse attendue : oui ou non par famille, sous chaque bloc « Question fermée ». Un non renvoie la famille à <code>expert-ux</code>. Aucun état n'est accepté, ni construit par les écrans de RUB et suivants, sans cette réponse (RUA, invariant 12).</p></div></div>
+    <ul class="d-list">
+      <li>Chaque rendu est montré à <b>1 440 px</b> et à <b>375 px</b> : la mise en page suit la largeur du cadre, pas celle de la fenêtre. Backoffice : sous 768 px aucune page n'est montée (E19.1, RU-20), donc pas de rendu à 375 px.</li>
+      <li><span class="tag">existant</span> : texte d'une clé en vigueur (<code>apps/web/src/locales/fr/</code>). <span class="tag tag--new">à écrire</span> : texte proposé, à relire par <code>expert-marketing</code> avant l'écran. Textes anglais : hors planche (RU-14, par jalon). Délais : jamais de chiffre en dur (RU-29), d'où {délai}.</li>
+      <li>« C17 alerte » des fiches se lit <b>ton <code>warning</code></b> : le catalogue (<code>02c</code>) ne donne à C17 que <code>success</code>, <code>warning</code>, <code>info</code>, et l'icône et le mot portent l'état, jamais la couleur seule. Un état « neutre » prend le ton <code>info</code>.</li>
+      <li>Rien ne s'enregistre ici : la réponse F1 se donne dans la conversation, pas dans cette page.</li>
+    </ul>
+  </div>
+
+  <section class="d-sec" style="max-width: none" aria-labelledby="t-sum"><h2 id="t-sum"><span class="n">0</span>Les huit familles</h2>
+    <div class="d-wrap"><table class="d-table sum">
+      <thead><tr><th>Famille</th><th>Questions</th><th>Composants</th><th>Écrans</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><a href="#f1">F1 · Première visite et bascule de l'accueil</a></th><td>E01-Q1, E01-Q11, E12-Q4</td><td>C43 (dessiné), C13, C17, C08</td><td>1, 12</td></tr>
+        <tr><th scope="row"><a href="#f2">F2 · État durable du profil, hors accueil</a></th><td>E03-Q13, E03-Q14, E10-Q14, E10-Q15, E07-Q16</td><td>C13, C17, C07, C20</td><td>3, 10, 7</td></tr>
+        <tr><th scope="row"><a href="#f3">F3 · Campagne : à corriger, pause d'INFLUX, clôture</a></th><td>E07-Q18, E12-Q3, E18-Q7, E18-Q10, E17-Q07</td><td>C13, C17, C10, C08</td><td>7, 12, 17, 18</td></tr>
+        <tr><th scope="row"><a href="#f4">F4 · Vérification de compte et d'audience</a></th><td>E14-Q8, E14-Q9</td><td>C13, C17, C08, C11</td><td>14, 3</td></tr>
+        <tr><th scope="row"><a href="#f5">F5 · Sélections : zéro liste, choix, création</a></th><td>E02-Q10, E02b-Q6</td><td>C08, C18, C10</td><td>2, 2 bis, 9</td></tr>
+        <tr><th scope="row"><a href="#f6">F6 · Note qui s'enregistre : échec, hors ligne, limite</a></th><td>E09-Q4</td><td>C25, C17, C19</td><td>9</td></tr>
+        <tr><th scope="row"><a href="#f7">F7 · Backoffice : verrou, alertes, lecture seule, second avis</a></th><td>E05-Q11, E05c-Q08</td><td>C17, C13, C07, C33</td><td>5</td></tr>
+        <tr><th scope="row"><a href="#f8">F8 · Backoffice : pastille ouverte, filtre actif, pages</a></th><td>E16-Q01</td><td>C30, C28, C32, C08</td><td>16 (puis 2, 13, 21)</td></tr>
+      </tbody></table></div>
+  </section>
+
+  <!-- ========== F1 ========== -->
+  <section class="d-sec fam" style="max-width: none" id="f1" aria-labelledby="f1-t"><h2 id="f1-t"><span class="n">F1</span>Première visite et bascule de l'accueil</h2>
+    <dl class="fam__meta">
+      <dt>Questions</dt><dd class="ids"><span class="u">E01-Q1</span><span class="u">E01-Q11</span><span class="u">E12-Q4</span></dd>
+      <dt>Composants</dt><dd>C43 liste de tâches (dessinée), C13 badge d'état, C17 notice, C08 état vide, C10 bouton.</dd>
+      <dt>Aujourd'hui</dt><dd>L'accueil marque affiche l'état par <code>ProfileStateNotice</code> (<code>BrandHome.tsx:106</code>) ; aucune liste de tâches n'existe, la maquette l'introduit. Créateur : <code>CreatorHomeCard.tsx:41,50</code>. « Mes campagnes » sans campagne : <code>CampaignListScreen.tsx:134-147</code>.</dd>
+      <dt>Proposition</dt><dd>Règle de bascule : la liste « Bien démarrer » reste affichée tant que les cinq tâches ne sont pas faites ; la tâche 3 suit l'état du profil (envoyer, en examen, à corriger) ; la vue active commence à la publication et la liste disparaît. Un profil suspendu ne voit que la notice neutre, sans liste ni geste.</dd>
+    </dl>
+    <div class="src">
+      <div class="st"><p class="st__cap"><b>Profil complet, pas encore envoyé</b><span class="u">E01-Q1</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="card card--compact"><div class="sect__bar"><h3 class="t-card">Bien démarrer</h3><span class="sm">3 sur 5</span></div><div class="bar" aria-hidden="true"><span style="width: 60%"></span></div>
+          <ol class="todo">
+            <li class="is-done"><svg class="t-ico i"><use href="#i-circle-check"/></svg><div class="t-body"><span class="t-label">Compléter votre profil de marque</span><span class="sm c2">Fait</span></div></li>
+            <li><svg class="t-ico i"><use href="#i-circle"/></svg><div class="t-body"><span class="t-label">Faire valider votre profil</span><span class="sm c2">Votre profil est complet. L'équipe INFLUX l'examine sous {délai} après l'envoi.</span></div><div class="t-act"><button class="btn btn--primary" type="button">Envoyer mon profil</button></div></li>
+            <li class="is-locked"><svg class="t-ico i"><use href="#i-lock"/></svg><div class="t-body"><span class="t-label">Rechercher des créateurs</span><span class="sm c2">Après la validation de votre profil.</span></div></li>
+          </ol></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Profil envoyé, en examen</b><span class="u">E01-Q1</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="card card--compact"><div class="sect__bar"><h3 class="t-card">Bien démarrer</h3><span class="sm">3 sur 5</span></div><div class="bar" aria-hidden="true"><span style="width: 60%"></span></div>
+          <ol class="todo">
+            <li><svg class="t-ico i"><use href="#i-hourglass"/></svg><div class="t-body"><span class="t-label">Faire valider votre profil</span><span><span class="badge badge--info"><svg class="i"><use href="#i-hourglass"/></svg>En cours d'examen</span></span><span class="sm c2">Soumis le 22 novembre. Réponse sous {délai}. Vous pouvez encore modifier votre profil.</span></div></li>
+            <li class="is-locked"><svg class="t-ico i"><use href="#i-lock"/></svg><div class="t-body"><span class="t-label">Rechercher des créateurs</span><span class="sm c2">Après la validation de votre profil.</span></div></li>
+          </ol></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Profil refusé</b><span class="u">E01-Q1</span><span class="u">E01-Q11</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="card card--compact"><div class="sect__bar"><h3 class="t-card">Bien démarrer</h3><span class="sm">2 sur 5</span></div><div class="bar" aria-hidden="true"><span style="width: 40%"></span></div>
+          <ol class="todo">
+            <li><svg class="t-ico i"><use href="#i-triangle-alert"/></svg><div class="t-body"><span class="t-label">Faire valider votre profil</span><span><span class="badge badge--warning"><svg class="i"><use href="#i-triangle-alert"/></svg>À corriger</span></span><span class="sm c2">Votre profil n'a pas été publié : {motif}. Corrigez-le puis soumettez-le de nouveau.</span></div><div class="t-act"><button class="btn btn--primary" type="button">Corriger mon profil</button></div></li>
+          </ol></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Profil suspendu : notice neutre seule</b><span class="u">E01-Q1</span><span class="u">E01-Q11</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p>Votre profil est suspendu : il ne peut plus être modifié. Contactez l'équipe INFLUX pour en savoir plus.</p></div>
+          <p class="sm c2">Ni liste « Bien démarrer », ni bouton. Créateur : même notice (« Votre profil est suspendu : il ne peut pas être modifié pour le moment. »), le fil de campagnes n'est pas affiché.</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>Créateur, tâche 4 : profil envoyé, puis refusé</b><span class="u">E01-Q11</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="card card--compact"><ol class="todo">
+            <li><svg class="t-ico i"><use href="#i-hourglass"/></svg><div class="t-body"><span class="t-label">Publier votre profil</span><span><span class="badge badge--info"><svg class="i"><use href="#i-hourglass"/></svg>En cours d'examen</span></span><span class="sm c2">Réponse sous {délai}.</span></div></li>
+            <li><svg class="t-ico i"><use href="#i-triangle-alert"/></svg><div class="t-body"><span class="t-label">Publier votre profil</span><span><span class="badge badge--warning"><svg class="i"><use href="#i-triangle-alert"/></svg>À corriger</span></span><span class="sm c2">Votre profil n'a pas été publié : {motif}</span></div><div class="t-act"><button class="btn btn--primary" type="button">Corriger mon profil</button></div></li>
+          </ol></div><p class="sm c2">Les deux lignes montrent les deux états successifs de la même tâche.</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>« Mes campagnes » : profil publié, aucune campagne</b><span class="u">E12-Q4</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="card"><div class="empty-state"><svg class="i i--lg"><use href="#i-inbox"/></svg><h4>Votre première campagne</h4><p class="sm c2">Une campagne INFLUX décrit ce que vous proposez à des créateurs : l'offre, le travail attendu, l'audience visée, le budget et le calendrier. Elle s'enregistre au fur et à mesure, et un commercial INFLUX la relit avant de l'ouvrir.</p><button class="btn btn--primary" type="button"><svg class="i"><use href="#i-plus"/></svg>Créer une campagne</button></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>« Mes campagnes » : notice selon l'état du profil</b><span class="u">E12-Q4</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body">
+          <div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><div class="row"><p><b>Profil en brouillon.</b> Vous pouvez préparer votre campagne dès maintenant. Vous l'enverrez à INFLUX une fois votre profil de marque publié.</p><a class="go" href="#">Compléter mon profil de marque <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-hourglass"/></svg><p><b>Profil en cours d'examen.</b> Vos brouillons sont gardés. Vous pourrez les envoyer dès que votre profil sera publié.</p></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><div class="row"><p><b>Profil à corriger.</b> Votre profil doit être corrigé avant l'envoi d'une campagne.</p><a class="go" href="#">Corriger mon profil <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p><b>Profil suspendu.</b> Contactez l'équipe INFLUX pour en savoir plus.</p></div></div></div>
+    </div>
+    <div class="q"><p class="t-block">Question fermée F1</p><p>La liste « Bien démarrer » reste affichée tant que les cinq tâches ne sont pas faites, la tâche 3 suit l'état du profil (envoyer, en examen, à corriger), un profil suspendu ne voit que la notice neutre, et « Mes campagnes » porte la notice ci-dessus selon l'état du profil : oui ou non ?</p><p class="ans">Réponse attendue <span>oui</span> <span>non</span></p></div>
+  </section>
+
+  <!-- ========== F2 ========== -->
+  <section class="d-sec fam" style="max-width: none" id="f2" aria-labelledby="f2-t"><h2 id="f2-t"><span class="n">F2</span>État durable du profil, hors accueil</h2>
+    <dl class="fam__meta">
+      <dt>Questions</dt><dd class="ids"><span class="u">E03-Q13</span><span class="u">E03-Q14</span><span class="u">E10-Q14</span><span class="u">E10-Q15</span><span class="u">E07-Q16</span></dd>
+      <dt>Composants</dt><dd>C13 badge (l'état durable), C17 notice (motif et geste suivant), C07 lignes en lecture seule, C20 liste des manques (<code>MissingList</code>), C08.</dd>
+      <dt>Aujourd'hui</dt><dd>Créateur : <code>CreatorPublicationCard.tsx:81</code> (refus), <code>:140-152</code> (modifications en attente), <code>frozen.*</code>. Marque : <code>ProfileStateNotice.tsx</code>, <code>brand-profile-view.ts:468-488</code>. Envoi de campagne : <code>CampaignSubmitPanel.tsx:11</code>.</dd>
+      <dt>Proposition</dt><dd>Même patron pour les deux espaces : le badge C13 dit l'état, la notice C17 sous la tête dit le motif et le geste suivant. Entrée de <code>/compte/profil</code> : brouillon et refusé reprennent l'assistant à l'étape de reprise ; en attente, publié et suspendu ouvrent le récapitulatif. <b>Écart à relever :</b> <code>02a</code> écrit « C17 jamais pour un état durable » (U46) ; ici la notice accompagne un état durable tant qu'il dure, le badge restant la source de l'état.</dd>
+    </dl>
+    <div class="src">
+      <div class="st"><p class="st__cap"><b>Refusé</b><span class="u">E03-Q14</span><span class="u">E10-Q14</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="hd"><h3>Mon profil</h3><span class="badge badge--error"><svg class="i"><use href="#i-circle-alert"/></svg>Refusé</span></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><div class="row"><p>Votre profil n'a pas été publié : {motif}</p><button class="btn btn--primary" type="button">Corriger mon profil</button></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Refusé sans motif (marque)</b><span class="u">E10-Q14</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="hd"><h3>Mon profil de marque</h3><span class="badge badge--error"><svg class="i"><use href="#i-circle-alert"/></svg>Refusé</span></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><div class="row"><p>Le motif vous est précisé par l'équipe INFLUX. Corrigez votre profil puis soumettez-le de nouveau.</p><button class="btn btn--primary" type="button">Corriger mon profil</button></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Profil publié, modification refusée</b><span class="u">E03-Q14</span><span class="u">E10-Q14</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="hd"><h3>Mon profil</h3><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Publié</span></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><p>Vos modifications n'ont pas été publiées : {motif} Votre profil reste visible dans sa version précédente.</p></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Profil publié, modifications en attente</b><span class="u">E03-Q14</span><span class="u">E10-Q14</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="hd"><h3>Mon profil</h3><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Publié</span></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-hourglass"/></svg><div><p>Vos modifications sont en cours de validation. Votre profil reste visible dans sa version précédente.</p><p class="sm">En cours de validation : présentation, site web.</p></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Profil publié : règle de validation</b><span class="u">E10-Q15</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="hd"><h3>Mon profil de marque</h3><span class="badge badge--success"><svg class="i"><use href="#i-circle-check"/></svg>Publié</span></div>
+          <p class="sm c2">Votre profil est publié. Vous pouvez le modifier ici : le nom, le logo, la présentation, le site, la fonction de l'interlocuteur et le secteur principal sont examinés par l'équipe INFLUX avant d'être visibles ; le reste s'applique tout de suite.</p>
+          <p class="sm c2">Remplace la ligne « Brouillon · personne d'autre que vous ne le voit avant la publication », fausse pour un profil publié.</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>En attente de validation : lignes en lecture seule</b><span class="u">E03-Q13</span><span class="u">E03-Q14</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="hd"><h3>Mon profil</h3><span class="badge badge--info"><svg class="i"><use href="#i-hourglass"/></svg>En attente de validation</span></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p>Votre profil est en cours de validation : il ne peut pas être modifié avant la réponse de l'équipe INFLUX.</p></div>
+          <dl class="pl"><dt>Présentation</dt><dd>Cuisine végétale de saison, recettes simples pour toute la famille.</dd><dt>Réseaux</dt><dd>2 réseaux</dd></dl></div></div>
+
+      <div class="st"><p class="st__cap"><b>Suspendu</b><span class="u">E03-Q14</span><span class="u">E10-Q14</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="hd"><h3>Mon profil</h3><span class="badge"><svg class="i"><use href="#i-lock"/></svg>Suspendu</span></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p>Votre profil est suspendu : il ne peut pas être modifié pour le moment. Contactez l'équipe INFLUX pour en savoir plus.</p></div>
+          <p class="sm c2">Lignes ouvertes en lecture seule, comme ci-dessus ; badge neutre (ni vert, ni rouge : la suspension n'est pas une faute de l'utilisateur).</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>Sans alias</b><span class="u">E03-Q14</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="card"><div class="empty-state"><svg class="i i--lg"><use href="#i-circle-dashed"/></svg><h4>Votre profil n'est pas encore ouvert</h4><p class="sm c2">Votre profil n'est pas encore ouvert à la saisie. Revenez plus tard : rien ne vous est demandé pour l'instant.</p></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Envoi d'une campagne : profil en brouillon ou refusé</b><span class="u">E07-Q16</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p>Vous pourrez faire valider cette campagne une fois votre profil publié.</p></div>
+          <div class="errsum"><p class="errsum__title"><svg class="i"><use href="#i-circle-alert"/></svg><span>Il manque 2 informations pour publier votre profil.</span></p><ul><li><a class="link" href="#">Secteur principal</a></li><li><a class="link" href="#">Marchés visés</a></li></ul></div>
+          <div><button class="btn btn--secondary" type="button">Compléter mon profil</button></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Envoi d'une campagne : profil suspendu</b><span class="u">E07-Q16</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p>Votre profil est suspendu : vous ne pouvez pas faire valider de campagne pour le moment. Contactez l'équipe INFLUX pour en savoir plus.</p></div><p class="sm c2">Ni liste des manques, ni bouton.</p></div></div>
+    </div>
+    <div class="q"><p class="t-block">Question fermée F2</p><p>Pour les états ci-dessus, le badge C13 donne l'état et une notice C17 sous la tête donne le motif et le geste suivant (écart à « jamais C17 pour un état durable », U46), l'entrée de <code>/compte/profil</code> suit la règle brouillon et refusé vers l'assistant, autres états vers le récapitulatif, et l'envoi d'une campagne affiche le texte D86 selon l'état : oui ou non ?</p><p class="ans">Réponse attendue <span>oui</span> <span>non</span></p></div>
+  </section>
+
+  <!-- ========== F3 ========== -->
+  <section class="d-sec fam" style="max-width: none" id="f3" aria-labelledby="f3-t"><h2 id="f3-t"><span class="n">F3</span>Campagne : à corriger, pause d'INFLUX, clôture</h2>
+    <dl class="fam__meta">
+      <dt>Questions</dt><dd class="ids"><span class="u">E07-Q18</span><span class="u">E12-Q3</span><span class="u">E18-Q7</span><span class="u">E18-Q10</span><span class="u">E17-Q07</span></dd>
+      <dt>Composants</dt><dd>C13 badge, C17 notice, C10 bouton, C11 lien, C07 (cycle de vie).</dd>
+      <dt>Aujourd'hui</dt><dd><code>CampaignStatusText.tsx</code> (« Corriger » pour tout refus), <code>CampaignLifecyclePanel.tsx:24-28,57-61,80-84</code> (gestes, échec, focus), <code>CampaignRecordScreen.tsx:91-106</code> (backoffice).</dd>
+      <dt>Proposition</dt><dd>Une campagne refusée rouverte porte le badge « À corriger », le titre « Corriger votre campagne » et son motif. « Corriger » n'apparaît que si la marque peut corriger (suite <code>contact</code> : phrase à la place). « Reprendre » disparaît quand INFLUX a mis la pause. La clôture garde sa case et son texte complet à toutes les largeurs. Backoffice : brouillon et refusée ont un badge et une phrase « À traiter ».</dd>
+    </dl>
+    <div class="src">
+      <div class="st"><p class="st__cap"><b>Campagne à corriger rouverte (marque)</b><span class="u">E07-Q18</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="hd"><h3>Corriger votre campagne</h3><span class="badge badge--warning"><svg class="i"><use href="#i-triangle-alert"/></svg>À corriger</span></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><p>Votre campagne n'a pas été publiée : {motif}</p></div>
+          <p class="sm c2">Sans motif : « Votre campagne n'a pas été publiée. Corrigez-la, puis soumettez-la à nouveau. »</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>« Mes campagnes » : refus avec et sans correction possible</b><span class="u">E12-Q3</span><span class="tag">existant</span></p>
+        <div class="st__body"><div>
+          <div class="prow"><p class="r-title">Coffret de fêtes</p><span class="badge badge--warning"><svg class="i"><use href="#i-triangle-alert"/></svg>À corriger</span><p class="why">Motif de votre commercial : {motif}. <a class="link" href="#">Corriger<span class="sr-only"> : Coffret de fêtes</span></a></p></div>
+          <div class="prow"><p class="r-title">Calendrier de l'Avent</p><span class="badge badge--warning"><svg class="i"><use href="#i-triangle-alert"/></svg>À corriger</span><p class="why">Pour en discuter, contactez INFLUX depuis l'aide de l'écran de connexion.</p></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Pause : décidée par la marque, puis par INFLUX</b><span class="u">E18-Q7</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="box"><p class="t-block">Vie de la campagne</p><p class="sm">Votre campagne est en pause : elle n'accepte plus de candidature. Reprenez-la quand vous voulez, sans nouvelle validation.</p><div><button class="btn btn--secondary" type="button">Reprendre</button></div></div>
+          <div class="box"><p class="t-block">Vie de la campagne</p><div class="notice notice--warning"><svg class="i"><use href="#i-clock"/></svg><p>Cette campagne a été mise en pause par l'équipe INFLUX : elle seule peut la reprendre. Contactez-la depuis l'aide de l'écran de connexion.</p></div><p class="sm c2">Aucun bouton « Reprendre » : la phrase est dite avant le clic, pas après un refus.</p></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Clôture : même garde-fou à toutes les largeurs</b><span class="u">E18-Q10</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="box"><p class="t-block">Clôturer la campagne</p><div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><p>Clôturer est définitif : la campagne ne pourra plus être rouverte, vous pourrez seulement en créer une nouvelle. Aucune donnée n'est effacée et les échanges déjà ouverts ne sont pas touchés.</p></div>
+          <div class="actions"><button class="btn btn--danger" type="button">Oui, clôturer définitivement</button><button class="btn btn--text" type="button">Annuler</button></div></div>
+          <p class="sm c2">À 375 px : ni texte abrégé, ni lien à la place du bouton ; le bouton est <code>danger</code>, en pleine largeur sous 480 px (C12).</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>Backoffice : campagne brouillon, campagne refusée</b><span class="u">E17-Q07</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="box"><div class="hd"><span class="badge">Brouillon</span></div><p class="t-block">À traiter</p><p class="sm">Brouillon de la marque : elle le complète et le soumet.</p><div><button class="btn btn--secondary" type="button">Corriger un champ</button></div></div>
+          <div class="box"><div class="hd"><span class="badge badge--error"><svg class="i"><use href="#i-circle-alert"/></svg>Refusée</span></div><p class="t-block">À traiter</p><p class="sm">Refusée le 21 novembre : {motif}. La marque corrige et soumet de nouveau.</p><div><button class="btn btn--secondary" type="button">Corriger un champ</button></div></div>
+          <p class="sm c2">Ni « Valider », ni « Refuser », ni « Mettre en pause » : seule la correction d'un champ reste offerte.</p></div></div>
+    </div>
+    <div class="q"><p class="t-block">Question fermée F3</p><p>Une campagne refusée rouverte porte le badge « À corriger » et son motif, « Corriger » est remplacé par la phrase de contact quand le suivi est <code>contact</code>, « Reprendre » est masqué quand INFLUX a mis la pause, la clôture garde sa case et son texte complet à toutes les largeurs, et le backoffice montre brouillon et refusée avec le seul geste « Corriger un champ » : oui ou non ?</p><p class="ans">Réponse attendue <span>oui</span> <span>non</span></p></div>
+  </section>
+
+  <!-- ========== F4 ========== -->
+  <section class="d-sec fam" style="max-width: none" id="f4" aria-labelledby="f4-t"><h2 id="f4-t"><span class="n">F4</span>Vérification de compte et d'audience</h2>
+    <dl class="fam__meta">
+      <dt>Questions</dt><dd class="ids"><span class="u">E14-Q8</span><span class="u">E14-Q9</span></dd>
+      <dt>Composants</dt><dd>C13 badge, C17 notice, C08, C11 lien d'action, C09 pour le chargement.</dd>
+      <dt>Aujourd'hui</dt><dd><code>RequestState.tsx</code>, <code>DisputeNotice.tsx</code>, <code>VerificationLineState.tsx:63-80</code>, <code>OwnershipScreen.tsx:131-148</code> ; clés <code>verification.json</code> (<code>line.*</code>, <code>verif.*</code>, <code>appeal.*</code>, <code>audience.locked.*</code>).</dd>
+      <dt>Proposition</dt><dd>Chaque état d'une ligne de réseau suit trois formes : demande en cours en <b>info</b> (horloge) avec une action secondaire ; à reconfirmer, à rafraîchir, retiré, en <b>avertissement</b> avec sa date ; issue d'une contestation en notice. Dans le profil (E03.3), la ligne d'état du réseau donne le texte d'état puis le lien « Mes vérifications ». Aucun mot ne promet ce que le badge n'affirme pas.</dd>
+    </dl>
+    <div class="src">
+      <div class="st"><p class="st__cap"><b>Demande commencée, en cours, code expiré</b><span class="u">E14-Q8</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="notice notice--info"><svg class="i"><use href="#i-clock"/></svg><div class="row"><p>Demande commencée pour TikTok : le code est prêt, il reste à le publier sur votre profil.</p><a class="go" href="#">Reprendre la vérification <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-clock"/></svg><div class="row"><p>Demande en cours : un agent INFLUX lit le code sur votre profil public.</p><a class="go" href="#">Voir la demande <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><div class="row"><p>Le code de votre demande a expiré.</p><a class="go" href="#">Générer un nouveau code <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>À reconfirmer, renouvelable, retiré</b><span class="u">E14-Q8</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><div class="row"><p>Compte vérifié le 3 septembre — à reconfirmer après un changement d'identifiant.</p><a class="go" href="#">Reconfirmer ce compte <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-clock"/></svg><div class="row"><p>Votre audience vérifiée arrive à échéance le 12 décembre. Déposez une capture récente pour la conserver.</p><a class="go" href="#">Rafraîchir mon audience <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><div class="row"><p>Votre audience vérifiée a expiré. Vos chiffres sont de nouveau affichés comme déclarés.</p><a class="go" href="#">Redéposer une capture <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Contestation : en cours, tranchée, sans objet</b><span class="u">E14-Q8</span><span class="tag">existant</span></p>
+        <div class="st__body"><div>
+          <div class="prow"><p class="r-title">Contestation envoyée le 24 novembre. Elle est en cours d'examen.</p><a class="go" href="#">Voir ma contestation <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+          <div class="prow"><p class="r-title">Contestation tranchée le 25 novembre.</p><a class="go" href="#">Voir ma contestation <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p>Après réexamen, la décision est maintenue pour son motif initial : {motif}</p></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p>Après réexamen, votre contestation ne peut aboutir en l'état : vous pouvez déposer une nouvelle demande depuis votre espace INFLUX.</p></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-info"/></svg><p>Cette contestation n'a plus d'objet : votre situation a changé depuis.</p></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Décision non contestable, audience sans propriété</b><span class="u">E14-Q8</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="card"><div class="empty-state"><svg class="i i--lg"><use href="#i-circle-alert"/></svg><h4>Contestation impossible</h4><p class="sm c2">Cette décision ne peut plus être contestée : le délai est écoulé, ou elle a déjà été contestée.</p><a class="go" href="#">Retour à mes vérifications <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div>
+          <div class="notice notice--info"><svg class="i"><use href="#i-lock"/></svg><div class="row"><div><p><b>Faites d'abord vérifier la propriété du compte</b></p><p>La propriété de votre compte TikTok doit être vérifiée avant son audience.</p></div><a class="go" href="#">Faire vérifier mon compte TikTok <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Dans le profil : ligne d'état du réseau</b><span class="u">E14-Q9</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="box"><div class="hd"><b>TikTok</b><span class="badge badge--info"><svg class="i"><use href="#i-clock"/></svg>Vérification en cours</span></div><p class="sm c2">Un agent INFLUX lit le code sur votre profil public.</p><a class="go" href="#">Mes vérifications <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+          <div class="box"><div class="hd"><b>Instagram</b><span class="badge badge--verified"><svg class="i"><use href="#i-badge-check"/></svg>Compte vérifié</span></div><p class="sm c2">Compte vérifié le 3 septembre.</p><a class="go" href="#">Mes vérifications <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+          <div class="box"><div class="hd"><b>YouTube</b></div><p class="sm c2">Pas encore vérifié.</p><a class="go" href="#">Faire vérifier ce compte <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div></div></div>
+    </div>
+    <div class="q"><p class="q__t t-block">Question fermée F4</p><p>Les états de vérification ci-dessus prennent ces formes (info avec action secondaire, avertissement daté, issues en notice, ligne d'état du réseau dans le profil suivie de « Mes vérifications »), avec les textes existants gardés mot pour mot : oui ou non ?</p><p class="ans">Réponse attendue <span>oui</span> <span>non</span></p></div>
+  </section>
+
+  <!-- ========== F5 ========== -->
+  <section class="d-sec fam" style="max-width: none" id="f5" aria-labelledby="f5-t"><h2 id="f5-t"><span class="n">F5</span>Sélections : zéro liste, choix, création</h2>
+    <dl class="fam__meta">
+      <dt>Questions</dt><dd class="ids"><span class="u">E02-Q10</span><span class="u">E02b-Q6</span></dd>
+      <dt>Composants</dt><dd>C08 état vide, C18 champ (nom), C10 bouton, C19 message de champ, C11 lien.</dd>
+      <dt>Aujourd'hui</dt><dd><code>SelectionPanel.tsx</code> : choix et création d'une liste dans le panneau de la recherche (retirés de E02) ; texte « Vous n'avez pas encore de sélection » (<code>lists.empty</code>).</dd>
+      <dt>Proposition</dt><dd>Recherche : « Ma sélection privée » mène à la sélection active, et à « Mes sélections » quand il n'y en a pas. Profil anonyme : le choix de la liste active se fait dans l'encadré ; « Nouvelle sélection… » ouvre un champ de nom et « Créer la sélection » ; l'état du bouton suit la liste choisie.</dd>
+    </dl>
+    <div class="src">
+      <div class="st"><p class="st__cap"><b>Recherche : aucune sélection</b><span class="u">E02-Q10</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="box"><div class="sect__bar"><p class="t-block">Ma sélection privée <span class="counter">0</span></p></div><p class="sm c2">Aucun créateur pour le moment : ajoutez-en depuis les résultats, un par un.</p><a class="go" href="#">Mes sélections <svg class="i i--sm"><use href="#i-chevron-right"/></svg></a></div>
+          <p class="sm c2">Avec une sélection active : le lien devient « Voir ma sélection » et mène à elle.</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>Mes sélections : aucune liste</b><span class="u">E02-Q10</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="card"><div class="empty-state"><svg class="i i--lg"><use href="#i-heart"/></svg><h4>Aucune sélection</h4><p class="sm c2">Vous n'avez pas encore de sélection. Ajoutez des créateurs depuis la recherche, ou créez une sélection ci-dessous.</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-plus"/></svg>Créer une sélection</button></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Profil anonyme : choisir ou créer la liste</b><span class="u">E02b-Q6</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="box"><p class="t-block">Ma sélection</p>
+          <div class="field"><span class="label sm">Liste</span><span class="select"><select class="control" aria-label="Liste"><option>Été 2026</option><option>Nouvelle sélection…</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+          <button class="btn btn--primary" type="button"><svg class="i"><use href="#i-plus"/></svg>Ajouter à « Été 2026 »</button></div>
+          <div class="box"><p class="t-block">Ma sélection</p>
+          <div class="field"><span class="label sm">Nom de la nouvelle sélection</span><input class="control" type="text" value="Rentrée" aria-label="Nom de la nouvelle sélection"></div>
+          <div class="actions"><button class="btn btn--primary" type="button">Créer la sélection</button><button class="btn btn--text" type="button">Annuler</button></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Profil déjà dans une autre liste</b><span class="u">E02b-Q6</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="box"><p class="t-block">Ma sélection</p><div class="field"><span class="label sm">Liste</span><span class="select"><select class="control" aria-label="Liste"><option>Rentrée</option></select><svg class="i"><use href="#i-chevron-down"/></svg></span></div>
+          <p class="sm c2"><svg class="i i--sm" style="vertical-align: middle"><use href="#i-check"/></svg> Ce profil est déjà dans « Été 2026 ».</p>
+          <button class="btn btn--primary" type="button"><svg class="i"><use href="#i-plus"/></svg>Ajouter à « Rentrée »</button></div>
+          <div class="fmsg fmsg--error"><svg class="i"><use href="#i-circle-alert"/></svg><span>Donnez un nom à la sélection.</span></div><p class="sm c2">Message de champ (C19) quand le nom est vide : texte existant.</p></div></div>
+    </div>
+    <div class="q"><p class="t-block">Question fermée F5</p><p>« Ma sélection privée » mène à la sélection active, ou à « Mes sélections » sans liste (état vide ci-dessus) ; sur le profil anonyme, le choix et la création de la liste se font dans l'encadré, et l'état du bouton suit la liste choisie : oui ou non ?</p><p class="ans">Réponse attendue <span>oui</span> <span>non</span></p></div>
+  </section>
+
+  <!-- ========== F6 ========== -->
+  <section class="d-sec fam" style="max-width: none" id="f6" aria-labelledby="f6-t"><h2 id="f6-t"><span class="n">F6</span>Note qui s'enregistre : échec, hors ligne, limite</h2>
+    <dl class="fam__meta">
+      <dt>Questions</dt><dd class="ids"><span class="u">E09-Q4</span></dd>
+      <dt>Composants</dt><dd>C25 statut d'enregistrement (<code>saving</code>, <code>saved</code>, <code>failed</code>), C17 notice, C19 message de champ.</dd>
+      <dt>Aujourd'hui</dt><dd>Bouton « Enregistrer la note » et « Note enregistrée » (<code>list.note.*</code>) ; l'enregistrement au fil de la frappe, 600 ms après la dernière touche, est la proposition de la maquette ; plafond par adresse : <code>member-rate.ts</code>.</dd>
+      <dt>Proposition</dt><dd>Le texte saisi reste dans le champ dans tous les cas. L'échec, le hors-ligne et la limite se disent dans la ligne de statut sous le champ, avec « Réessayer maintenant » ; une annonce vocale seulement en cas d'échec, jamais à chaque enregistrement.</dd>
+    </dl>
+    <div class="src">
+      <div class="st"><p class="st__cap"><b>Les quatre états du statut</b><span class="u">E09-Q4</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="field"><label class="label sm" for="n1">Votre note (privée)</label><textarea class="control" id="n1" rows="3">Ton très posé, à contacter en janvier pour la gamme hiver.</textarea><p class="help">Lue par vous seul. 56 / 500 caractères</p></div>
+          <p class="save"><svg class="i"><use href="#i-rotate-ccw"/></svg><span>Enregistrement…</span></p>
+          <p class="save"><svg class="i"><use href="#i-check"/></svg><span>Enregistrée à 14 h 07</span></p>
+          <p class="save save--failed"><svg class="i"><use href="#i-circle-alert"/></svg><span>Modifications non enregistrées. Nouvelle tentative dans 5 s.</span><button class="link" type="button">Réessayer maintenant</button></p></div></div>
+
+      <div class="st"><p class="st__cap"><b>Hors ligne, limite atteinte</b><span class="u">E09-Q4</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="field"><label class="label sm" for="n2">Votre note (privée)</label><textarea class="control" id="n2" rows="3">Ton très posé, à contacter en janvier pour la gamme hiver.</textarea></div>
+          <p class="save save--warn"><svg class="i"><use href="#i-triangle-alert"/></svg><span>Vous êtes hors ligne. Reconnectez-vous à Internet pour enregistrer vos modifications.</span></p>
+          <p class="save save--warn"><svg class="i"><use href="#i-clock"/></svg><span>Vous enregistrez très souvent. Réessayez dans 12 secondes : votre texte est gardé.</span><button class="link" type="button">Réessayer</button></p>
+          <p class="sm c2">Texte hors ligne : existant (<code>account.offline</code>). La phrase de limite suit celle du fil de campagnes (<code>feed.rateLimitedWait</code>), avec le délai servi.</p></div></div>
+    </div>
+    <div class="q"><p class="t-block">Question fermée F6</p><p>La note s'enregistre 600 ms après la dernière frappe, le texte reste dans le champ en cas d'échec, de hors-ligne ou de limite, l'état est dit dans la ligne de statut avec « Réessayer », et l'annonce vocale n'a lieu qu'en cas d'échec : oui ou non ?</p><p class="ans">Réponse attendue <span>oui</span> <span>non</span></p></div>
+  </section>
+
+  <!-- ========== F7 ========== -->
+  <section class="d-sec fam" style="max-width: none" id="f7" aria-labelledby="f7-t"><h2 id="f7-t"><span class="n">F7</span>Backoffice : verrou, alertes, lecture seule, second avis</h2>
+    <dl class="fam__meta">
+      <dt>Questions</dt><dd class="ids"><span class="u">E05-Q11</span><span class="u">E05c-Q08</span></dd>
+      <dt>Composants</dt><dd>C17 notice en tête de colonne, C13 badge, C07 lignes de faits, C33 logo, C10 boutons ; densité <code>bo</code>. Texte en français seul (D36).</dd>
+      <dt>Aujourd'hui</dt><dd><code>BrandReviewEntryScreen.tsx:144-177</code> (chargement, erreur, lecture seule, clos) ; verrou de 30 minutes gardé quand on quitte l'entrée ; <code>alerts.*</code>, <code>logo.line</code>, <code>logo.failed</code>, <code>decision.readOnly</code>.</dd>
+      <dt>Proposition</dt><dd>Tout ce qui menace la décision se dit en C17 <b>en tête de la colonne de décision</b>, avec son geste ; tout ce qui concerne un champ se dit sur la ligne du champ. L'alerte au champ est un badge « Alerte » (triangle et mot). Un second avis ou un réexamen ne décide pas : le volet « décidé » le dit.</dd>
+    </dl>
+    <div class="src" data-bo>
+      <div class="st"><p class="st__cap"><b>Verrou : bientôt expiré, expiré</b><span class="u">E05-Q11</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="notice notice--warning"><svg class="i"><use href="#i-clock"/></svg><div class="row"><p>Votre verrou sur cette entrée expire dans 2 minutes.</p><button class="btn btn--secondary" type="button">Prolonger</button></div></div>
+          <div class="notice notice--warning"><svg class="i"><use href="#i-lock"/></svg><div class="row"><p>Votre verrou a expiré : un collègue peut prendre l'entrée.</p><button class="btn btn--secondary" type="button">Reprendre l'entrée</button></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Lecture seule (entrée prise par un collègue)</b><span class="u">E05-Q11</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="notice notice--info"><svg class="i"><use href="#i-eye"/></svg><p>Cette entrée est prise en charge par Claire Morel. Vous la lisez sans pouvoir décider.</p></div>
+          <div class="box"><p class="t-block">Décision</p><p class="sm c2">Lecture seule.</p><div><button class="btn btn--secondary" type="button">Lever le verrou</button></div><p class="sm c2">« Lever le verrou » : administrateur seulement, à la place de « Rendre la main ».</p></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Version périmée, modifié après examen</b><span class="u">E05-Q11</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="notice notice--warning"><svg class="i"><use href="#i-triangle-alert"/></svg><div class="row"><p>La marque a modifié ce dossier depuis votre ouverture. Relisez-le avant de décider.</p><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-refresh-cw"/></svg>Recharger le dossier</button></div></div>
+          <dl class="pl"><dt>Présentation</dt><dd>Atelier de soins naturels. <span class="badge badge--warning"><svg class="i"><use href="#i-pen-line"/></svg>modifié après examen</span></dd></dl></div></div>
+
+      <div class="st"><p class="st__cap"><b>Alertes présentes</b><span class="u">E05-Q11</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="box"><p class="t-block">Points d'attention</p><p class="sm c2">Ces alertes sont automatiques : elles n'empêchent pas la décision.</p><ul class="stack g2"><li class="row g2"><svg class="i i--sm"><use href="#i-triangle-alert"/></svg><span class="sm">Le site indiqué n'a pas répondu à la dernière lecture.</span></li></ul></div>
+          <dl class="pl"><dt>Site web</dt><dd>https://atelier-seve.example.test <span class="badge badge--warning"><svg class="i"><use href="#i-triangle-alert"/></svg>Alerte</span></dd></dl></div></div>
+
+      <div class="st"><p class="st__cap"><b>Logo présent, en examen, en échec</b><span class="u">E05-Q11</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="row g3"><span class="logo-plate" aria-hidden="true">AS</span><div><p class="sm">Logo : PNG, 512 × 512, 84 Ko.</p><p class="sm c2">En examen par vous.</p></div></div>
+          <div class="fmsg fmsg--error"><svg class="i"><use href="#i-circle-alert"/></svg><span>Le logo n'a pas pu être lu. Rechargez le dossier.</span></div>
+          <p class="sm c2">Image existante sur la plaque C33 ; aucun état de ligne propre à écrire.</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>Fiche de décision : lien du contact et état du profil</b><span class="u">E05-Q11</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><dl class="pl"><dt>Lien</dt><dd><a class="link" href="#">Page publique du contact <svg class="i i--sm" style="vertical-align: middle"><use href="#i-external-link"/></svg><span class="sr-only"> (nouvel onglet)</span></a></dd><dt>État du profil</dt><dd><span class="badge badge--info"><svg class="i"><use href="#i-hourglass"/></svg>En attente de validation</span></dd></dl></div></div>
+
+      <div class="st"><p class="st__cap"><b>Entrée close</b><span class="u">E05-Q11</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="box"><p class="t-block">Décision</p><div class="notice notice--success"><svg class="i"><use href="#i-circle-check"/></svg><p>Entrée close : profil publié par Claire Morel le 22 novembre. Elle ne se rouvre pas ici.</p></div></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Volet « décidé » : second avis, réexamen</b><span class="u">E05c-Q08</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="notice notice--success"><svg class="i"><use href="#i-circle-check"/></svg><div><p><b>Avis enregistré.</b></p><p>Votre avis n'est pas la décision : l'agent qui a pris cette entrée décide.</p></div></div>
+          <div class="notice notice--success"><svg class="i"><use href="#i-circle-check"/></svg><div><p><b>Réexamen enregistré.</b></p><p>Décision : profil maintenu publié. La marque en est informée par e-mail, dans sa langue.</p></div></div>
+          <p class="sm c2">Même volet que la décision finale (focus sur « Entrée suivante », annonce C29), phrase propre à l'acte.</p></div></div>
+    </div>
+    <div class="q"><p class="t-block">Question fermée F7</p><p>Verrou à échéance, verrou expiré, version périmée et lecture seule se disent en C17 en tête de la colonne de décision avec leur geste ; les alertes se doublent d'un badge sur le champ visé ; « Lien » et « État du profil » prennent la forme ci-dessus ; un second avis ou un réexamen enregistre sans décider et le dit : oui ou non ?</p><p class="ans">Réponse attendue <span>oui</span> <span>non</span></p></div>
+  </section>
+
+  <!-- ========== F8 ========== -->
+  <section class="d-sec fam" style="max-width: none" id="f8" aria-labelledby="f8-t"><h2 id="f8-t"><span class="n">F8</span>Backoffice : pastille ouverte, filtre actif, pages</h2>
+    <dl class="fam__meta">
+      <dt>Questions</dt><dd class="ids"><span class="u">E16-Q01</span></dd>
+      <dt>Composants</dt><dd>C30 barre de filtres (pastille : repos, active, ouverte), C28 dialogue de filtres, C32 pagination, C08 <code>filtered</code>, C09 pour le chargement.</dd>
+      <dt>Aujourd'hui</dt><dd><code>QueueTemplate.tsx:123-141</code> (squelette de cinq lignes, sans animation), <code>AccountsScreen.tsx:224-242</code> (clavier) ; <code>queueList.noMatch</code>, <code>pageEmpty</code>. Mêmes formes pour E02, E13 et E21.</dd>
+      <dt>Proposition</dt><dd>Liste fermée : liste native sous la pastille ; période : dialogue à deux dates avec « Appliquer ». Un filtre actif donne une pastille active avec sa croix, et « Réinitialiser » dès le premier filtre. <b>Écart à relever :</b> le libellé de C08 <code>filtered</code> dit « Effacer » (<code>02a</code>), la fiche et <code>17b</code> §4.2 disent « Réinitialiser » ; la planche garde « Réinitialiser » pour la barre et pour l'état vide.</dd>
+    </dl>
+    <div class="src" data-bo>
+      <div class="st"><p class="st__cap"><b>Pastille ouverte : liste fermée</b><span class="u">E16-Q01</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="row g2"><span class="pill">Statut</span><span class="pill pill--open">Motif <svg class="i"><use href="#i-chevron-down"/></svg></span><span class="pill">Période</span></div>
+          <div class="menu" role="presentation"><span class="is-on"><svg class="i i--sm"><use href="#i-check"/></svg>Tous les motifs</span><span>Identité à vérifier</span><span>Contenu illicite</span><span>Autre</span></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Pastille ouverte : période (dialogue C28)</b><span class="u">E16-Q01</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="box"><p class="t-block">Période</p>
+          <div class="row g4"><div class="field"><label class="label sm" for="d1">Du</label><input class="control" id="d1" type="text" value="1 nov. 2026"></div><div class="field"><label class="label sm" for="d2">Au</label><input class="control" id="d2" type="text" value="25 nov. 2026"></div></div>
+          <div class="actions"><button class="btn btn--primary" type="button">Appliquer</button><button class="btn btn--text" type="button">Annuler</button></div></div>
+          <p class="sm c2">Fermer sans appliquer perd le brouillon, et la fiche le dit (<code>02c</code>, C28).</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>Filtre actif et « Réinitialiser »</b><span class="u">E16-Q01</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="row g2"><span class="pill pill--active">Motif : Autre <svg class="i"><use href="#i-x"/></svg><span class="sr-only">Retirer ce filtre</span></span><span class="pill">Période</span><button class="btn btn--text" type="button"><svg class="i"><use href="#i-rotate-ccw"/></svg>Réinitialiser</button></div>
+          <p class="sm c2">Le résumé des compteurs reste celui de la file entière ; « Réinitialiser » n'apparaît qu'avec un filtre actif.</p></div></div>
+
+      <div class="st"><p class="st__cap"><b>Aucun résultat, page vide</b><span class="u">E16-Q01</span><span class="tag">existant</span></p>
+        <div class="st__body"><div class="empty-state"><svg class="i i--lg"><use href="#i-search"/></svg><h4>Aucune entrée ne correspond</h4><p class="sm c2">Aucune entrée ne correspond à ces filtres.</p><button class="btn btn--secondary" type="button">Réinitialiser</button></div>
+          <div class="empty-state"><svg class="i i--lg"><use href="#i-inbox"/></svg><h4>Cette page est vide</h4><p class="sm c2">Il n'y a plus d'entrée à cette page.</p><button class="btn btn--secondary" type="button">Première page</button></div></div></div>
+
+      <div class="st"><p class="st__cap"><b>Pagination</b><span class="u">E16-Q01</span><span class="tag tag--new">à écrire</span></p>
+        <div class="st__body"><div class="row between g3"><p class="sm c2">Entrées 26 à 50 sur 137</p><div class="actions"><button class="btn btn--secondary" type="button">Première page</button><button class="btn btn--secondary" type="button"><svg class="i"><use href="#i-chevron-left"/></svg>Précédente</button><button class="btn btn--secondary" type="button">Suivante<svg class="i"><use href="#i-chevron-right"/></svg></button></div></div>
+          <p class="sm c2">Focus sur le <code>h1</code> au changement de page, annonce du nombre d'entrées (C29). Comptes : « Première » et « Suivante » seulement (curseur).</p></div></div>
+    </div>
+    <div class="q"><p class="t-block">Question fermée F8</p><p>Une pastille s'ouvre en liste native (listes fermées) ou en dialogue à deux dates (période), un filtre actif devient une pastille active à croix avec « Réinitialiser » dès le premier filtre, et la pagination suit la forme ci-dessus, communes à E02, E13, E16 et E21 : oui ou non ?</p><p class="ans">Réponse attendue <span>oui</span> <span>non</span></p></div>
+  </section>
+
+  <section class="d-sec" style="max-width: none" aria-labelledby="t-end"><h2 id="t-end"><span class="n">9</span>Écarts relevés</h2>
+    <div class="d-wrap"><table class="d-table">
+      <thead><tr><th>Où</th><th>Écart</th><th>Famille</th></tr></thead>
+      <tbody>
+        <tr><td>C17, <code>02a</code> (U46)</td><td>« Jamais pour un état durable » : les fiches posent une notice sous un badge d'état durable.</td><td>F2</td></tr>
+        <tr><td>C17, <code>02c</code></td><td>Trois tons seulement : « alerte » se lit <code>warning</code>, « neutre » se lit <code>info</code>.</td><td>toutes</td></tr>
+        <tr><td>C08 <code>filtered</code>, <code>02a</code></td><td>« Effacer » au catalogue, « Réinitialiser » dans la fiche et <code>17b</code> §4.2.</td><td>F8</td></tr>
+        <tr><td>Backoffice à 375 px</td><td>Aucun rendu : sous 768 px aucune page n'est montée (E19.1, RU-20).</td><td>F7, F8</td></tr>
+      </tbody></table></div>
+  </section>
+</main>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // Chaque bloc .src (source unique) est rendu deux fois : 1 440 px, puis 375 px (copie inerte, sauf backoffice).
+  document.querySelectorAll(".src").forEach(function (src) {
+    var bo = src.hasAttribute("data-bo");
+    var frames = document.createElement("div");
+    frames.className = "frames";
+    function frame(label, kind, off) {
+      var fig = document.createElement("figure");
+      fig.className = "fr fr--" + kind;
+      var cap = document.createElement("figcaption");
+      cap.textContent = label;
+      var box = document.createElement("div");
+      box.className = "fr__in";
+      box.innerHTML = '<div class="fr__grid">' + src.innerHTML + "</div>";
+      if (off) {
+        box.setAttribute("inert", "");
+        box.querySelectorAll("[id]").forEach(function (n) { n.removeAttribute("id"); });
+        box.querySelectorAll("[for]").forEach(function (n) { n.removeAttribute("for"); });
+      }
+      fig.appendChild(cap); fig.appendChild(box);
+      return fig;
+    }
+    frames.appendChild(frame("1 440 px", "wide", false));
+    if (bo) {
+      var fig = document.createElement("figure");
+      fig.className = "fr fr--narrow";
+      fig.innerHTML = '<figcaption>375 px</figcaption><div class="fr__in"><p class="fr__off"><svg class="i"><use href="#i-smartphone"/></svg><span>Aucun rendu : sous 768 px aucune page du backoffice n\'est montée (E19.1, RU-20). Seuls la file et la conversation existent sur téléphone (D58).</span></p></div>';
+      frames.appendChild(fig);
+    } else {
+      frames.appendChild(frame("375 px (même contenu)", "narrow", true));
+    }
+    src.replaceWith(frames);
+  });
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest('a[href="#"]');
+    if (a) { e.preventDefault(); }
+  });
+});
+</script>
+</body>
+</html>
