@@ -224,7 +224,8 @@ export type BackofficeSpace = {
  * The backoffice space: an agent (or an administrator) signed in on `page`'s backoffice origin, and what
  * waits in the queues: brand profiles (queue 1, `overdue` past their deadline), campaigns (queue 7, one
  * held by the agent when `heldCampaign`), the signups of the list of members. The campaign queue writes a
- * brand and signs it in on this page's member origin: load it on a page of its own.
+ * brand and signs it in on this page's member origin: load it on a page of its own. An `admin` call lives in
+ * `backoffice.spec.ts` alone (J8T-8): a second administrator destabilises its `onlyAdmin` degraded double control.
  */
 export async function loadBackofficeSpace(
   page: Page,

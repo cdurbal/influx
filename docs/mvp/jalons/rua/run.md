@@ -17,5 +17,5 @@
 | fix-1 | fix-1.md | fix | sonnet | high | testeur | fait | J1 : axe + scrollWidth de la planche à 375 et 1 440, un seul cas (plancher 1) ; focus facultatif non fait ; e2e non lancé (pas de Supabase) |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | 0 bloquant, 2 jalon (RUAS-1 → fix-2, RUAT-1 → fix-3), 1 avant production, 10 plus tard ; 596c18c revu sain ; annexe § Revue |
 | fix-2 | fix-2.md | fix | sonnet | high | integrateur | fait | RUAS-1 : 5d7b6df, commit vide, security-reviewed: 2026-11-25 covers 596c18c ; check-security-review 1 puis 0 ; `valider` du fondateur (2026-11-25) |
-| fix-3 | fix-3.md | fix | sonnet | high | testeur | à faire | RUAT-1 : recette-loaders.spec.ts:35 admin → agent (J8T-8, onlyAdmin de backoffice.spec.ts) ; option admin gardée pour RUB ; `valider` du fondateur (2026-11-25) |
+| fix-3 | fix-3.md | fix | sonnet | high | testeur | fait | RUAT-1 : recette-loaders.spec.ts sans role admin (défaut agent) ; commentaire J8T-8 ; check:fast vert ; e2e non lancé (pas de Supabase), la CI rejoue |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |

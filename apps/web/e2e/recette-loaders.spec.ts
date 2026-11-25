@@ -32,7 +32,6 @@ test("RUA-T7: the brand space and the backoffice space load their data (Maison A
   expect(brand.creators).toHaveLength(BRAND_DATA.searchableCreators.length);
 
   const backoffice = await loadBackofficeSpace(page, {
-    role: "admin",
     brandEntries: 1,
     signups: 2,
   });
