@@ -13,6 +13,7 @@
 | 06 | 06.md | commit | sonnet | high | expert-ux | fait | 21 questions en 8 familles, aucun composant ni couleur nouvelle ; C17 sans ton erreur (warning), U46 et C08 « Effacer » en écarts ; BO sans rendu à 375 |
 | F1 | F1.md | fondateur | — | — | fondateur | fait | « oui à toutes les questions » (2026-11-25) : les 8 familles de la planche, RU-27 tranchée |
 | 07 | 07.md | commit | sonnet | medium | expert-ux | fait | SKILL.md 10 064 o, references/tokens-lot3bis.md ; RU-27 tranchée (06a, D88, 06b §7 : 4 écarts) par F1 « oui à toutes les questions » ; aucune famille ouverte |
-| U | ux.md | ux | sonnet | high | expert-ux | à faire | |
+| U | ux.md | ux | sonnet | high | expert-ux | fait | 0 bloquant ; J1 (axe de la planche à 375 px) → fix-1 ; AP1-5, PT1-7 au reliquat ; sans preuve rendue (pas de navigateur) |
+| fix-1 | fix-1.md | fix | sonnet | high | testeur | à faire | `valider fix-1` du fondateur (2026-11-25) : axe de la planche à 375 et 1 440 (RUAU-J1) |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
