@@ -3,7 +3,7 @@
 |---|---|---|---|---|---|---|---|
 | F0 | F0.md | fondateur | — | — | fondateur | fait | « oui a toutes les questions » (2026-11-25) : Q1 à Q5 ; Q2 lu selon la recommandation : un seul fil ; Q5 : Supabase local promis |
 | A | A.md | arbitrage | opus | xhigh | architecte | fait | `modele-archi.md` : écran non migré = mesures seules ; un nom 02c par module de U ; SHARED_CATALOGUE pending/delivered ; une planche |
-| B | B.md | arbitrage | opus | xhigh | expert-ux | à faire | |
+| B | B.md | arbitrage | opus | xhigh | expert-ux | fait | `modele-ux.md` : aside nommé ; C06 = 8 ; C47 j/m/a en EN ; cibles 44 par pseudo-élément ; AP1 contour transparent ; anneau double sur photo ; 4 renvois |
 | 00 | 00.md | commit | sonnet | medium | expert-ux | à faire | |
 | X1 | X1.md | commit | sonnet | high | testeur | à faire | |
 | 01 | 01.md | commit | sonnet | high | dev-react-node | à faire | |
