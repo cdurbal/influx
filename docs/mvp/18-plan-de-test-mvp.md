@@ -1836,7 +1836,7 @@ de la phrase, la ligne le dit et renvoie le reste à la recette humaine, avec so
 | 11.3 | Couleurs de rôle : liste fermée, toujours suivies du rôle écrit | G3g, TD5.8 |
 | 11.3, 11.7 | Le vert reste rare : `text-brand` jamais en texte courant ni sur un montant, jamais seul porteur d'un état ; montant jamais en vert (K7) | G3d (contraste de `text-brand` seulement) ; usage : recette humaine (§12.4, fondateur, K1 à K23) : aucune garde ne lit l'emploi d'un jeton |
 | 11.3, 11.8 | Bouton désactivé (`action-disabled-bg`) toujours expliqué à côté | TK1.1, TK1.2 (ni ombre ni transformation) ; explication adjacente : recette humaine (§12.4, fondateur) : dépend du texte de chaque écran |
-| 11.3 | Badge vérifié bleu, jamais une coche seule ni collé à un nom, texte « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » | TK4.2 (texte présent) ; forme et place : recette humaine (Lot 2) |
+| 11.3 | Badge vérifié bleu, jamais une coche seule ni collé à un nom, texte « Vérifié · ⟨réseau⟩ · ⟨date complète⟩ » (D88 : exception de la carte photo seule, sous réserve du juriste, §12.8) | TK4.2 (texte présent) ; forme et place : recette humaine (Lot 2) |
 | 11.3 | `badge-error-bg` confiné au badge d'erreur, jamais une notice ; `verified-bg`, `border-hover` | TK7.5, TK4.2, TK4.1 |
 | 11.3 | Couleurs de données réservées aux graphiques étiquetés | Recette humaine (aucun graphique avant le Lot 5) |
 | 11.3 | Ligne survolée du tableau dense : `surface-raised` + filet `effect-bo-row-indicator` | TK6.2 |
@@ -1861,7 +1861,7 @@ de la phrase, la ligne le dit et renvoie le reste à la recette humaine, avec so
 | 11.5 | Lissage sous KEO seulement, rien dans `:root`, `html`, `body` | TK3.4, TK7.5 ; rendu : recette sur Mac |
 | 11.5 | Rayon des cartes 16 px ; contour secondaire 1 px sous KEO, 2 px en vitrine | TK1.5, TD4.2 ; contour sous KEO : recette humaine |
 | 11.5 | Anneau intérieur de la barre du bas | TD5.4 |
-| 11.5 | Cartes plates au repos ; `shadow-lg` réservé aux couches | Recette humaine |
+| 11.5 | Cartes plates au repos ; `shadow-lg` réservé aux couches (D88 : `shadow-md` au repos sur le seul encadré collant, §12.8) | Recette humaine |
 | 11.5 | Ombre lumineuse : valeurs, plus forte au survol, absente si désactivé, jamais `none` en neutre | TK1.1, G3i (a) (b) |
 | 11.5 | Petits boutons BO sans effet ; boutons de connexion BO avec | TK1.4 |
 | 11.5 | Halo : fond du conteneur, sans bord, pic `#0d291d`, nul avant la barre du bas, `--size-header-glow` 16 rem | TK2.1, TK2.2, TK2.3 |
@@ -1912,6 +1912,72 @@ de la phrase, la ligne le dit et renvoie le reste à la recette humaine, avec so
 | 11.8 | En-tête de page : fil d'Ariane `text-sm` à partir du niveau 2, action principale à droite (desktop) ou sous le titre en pleine largeur (mobile) | Recette humaine (Lot 2, première page de niveau 2) |
 | 11.8 | Surtitre | TK3.2 |
 | 11.8 | Dialogue : voile, focus piégé, `Échap` | TD3.6, DS-7 (e2e du dialogue des CGU) |
+
+### 12.8 Les tests du Lot 3bis, refonte UX/UI (D87, D88) *(ajouté le 2026-11-25)*
+
+**Sources :** `22-refonte-ux-ui/05-recette-visuelle.md` (recette, procédure et critères de fin, **fait foi**) et
+`04-animations.md` (catalogue et critères AN) ; ce plan n'en reprend que les identifiants et les gardes. Tests du
+jalon RUA : `jalons/rua/annexe.md` (RUA-T1 à RUA-T8). Planchers (`case-floors.ts`, `artifact-floors.ts`,
+`packages/test-kit/tests`) relevés avec les cas livrés, jamais baissés ; **+20 s au plus pour le lot** en e2e,
+éclats ≤ 7 min 30, job ≤ 8 min.
+
+**Familles `E..-T..`.** Chaque écran a, dans sa fiche `22-refonte-ux-ui/ecrans/E…`, des cas `E<écran>.<n>-T<nn>`
+rattachés à ses lignes `S` et à ses critères `CA` : états montrés ou non par la maquette (chargement, vide, vide filtré,
+erreur serveur, refus, limitation, conflit, hors ligne, session expirée, lecture seule, textes longs, **EN**), clavier,
+focus, axe (0 règle à 375 et 1 440 px). Une spec existante est adaptée **dans le même commit** que la structure qu'elle
+lit, sans perdre d'assertion. `testeur` en tient la liste ; `E..-T..` vient avec l'écran, pas avec RUA.
+
+**Comparaison à la maquette (N1 à N3, `22-refonte-ux-ui/05` §3).** La maquette (`docs/audit-ux-ui/prototypes/proto-*.html`,
+figée au commit `954e009`) se rend dans le même Chromium que l'application :
+
+| Niveau | Mesure | Tolérance |
+|---|---|---|
+| **N1**, structure et textes | Ordre des zones, titres, libellés FR (hors `{variable}`), icônes, rôles et noms accessibles (`ariaSnapshot()`) | Aucun écart |
+| **N2**, styles calculés et géométrie | Couleurs, famille, graisse, taille, rayon, épaisseur, interligne, espacements : 0 ; position et largeur : 1 px ; hauteur : multiple exact de l'interligne, sinon 1 px | Matrice de la fiche |
+| **N3**, captures | `toHaveScreenshot` de la maquette rendue dans la même exécution : `maxDiffPixelRatio` 0,005 par zone, `threshold` 0,1 ; masques fermés (photos et logos réels, dates et heures courantes, adresse du compte connecté, bandeau d'environnement) | Toute zone au-delà est classée : corrigée, ou écart inscrit dans `06b` §7 |
+
+Une image de référence n'est **jamais** mise à jour pour faire passer un test (`updateSnapshots: "none"`, l'outil
+s'arrête si `-u` le change). Backoffice de 768 à 1 023 px : **hors N1 à N3** (RU-19, refusé par les données et l'auto-test).
+Outil (RUA-03) : `apps/web/e2e/visual/`, comparateurs purs dans `packages/test-kit/src/visual.ts`, projet Playwright
+`visual` défini **seulement** sous `E2E_VISUAL` ; **exécution locale** (+0 s en CI) ; preuve de l'outil : la maquette
+contre elle-même rend 0 écart à N1, N2 et N3, et un écart volontaire est vu à chaque niveau.
+
+**Mouvement (AN-1 à AN-4, `22-refonte-ux-ui/04` §5).** AN-1 : sous mouvement réduit, aucune propriété `scale`,
+`translate` ou `rotate` calculée ne change et chaque durée calculée vaut 0 s (squelette : `animation-name: none`).
+AN-2 : chaque ligne « À créer » du catalogue a un cas Playwright qui lit durée, courbe et propriété calculées (avec
+l'écran). AN-3 : aucune dépendance ajoutée, `package.json` inchangé. AN-4 : aucune transition sur `all`, `height` ni
+`max-height`.
+
+**Gardes amendées par RUA** (chacune avec son cas négatif, TD1 ; une garde ne s'assouplit pas sans être nommée,
+motivée et prouvée par son cas négatif) :
+
+| Garde | Amendement | Cas négatifs |
+|---|---|---|
+| **G3c**, **G3f** | Nouveaux rôles (`logo-plate`, `skeleton-*`, `network-primary`) ; `-bo-` dans `tokens-backoffice.css` seul, aucun dans `apps/web` | Alias non redéclaré ; `-bo-` dans `apps/web` |
+| **G3d** | `withMixOver` ; `PHOTO_SCRIM_PAIRS` (`text-primary` sur voiles de 82 et 75 %) ; paires de `20` §11.4 (Lot 3bis) | Voile trop clair |
+| **G3i** | `ColorMixAllowance` avec `base` et `percent` exact ; quatre `--effect-photo-*` dans le bloc KEO seulement ; `rgba(`, `hsla(`, `#rrggbbaa` refusés dans un `--effect-*` (`02` §21.3) | Voile en vert ; 80 % ; valorisé dans `@theme` ; `surface-page` dans le halo ; `--color-*` listé |
+| **G8** | `PHOTO_EFFECT_READERS` ; planche d'états : aucun module ordinaire n'importe un `*.board.*`, aucun n'importe `@influx/web-platform`, le client d'API ni `useMember` | Lecteur hors liste ; import de la planche |
+| **Variantes `bo-*`** | Exactement deux `@custom-variant`, dans `tokens-backoffice.css`, `bo-wide` avant `bo-small` ; ni `innerWidth` ni `innerHeight` ; `matchMedia` dans `small-window.ts` seul (RUC-08) ; `--query-bo-small` égale à `bo-small` | Troisième variante ; ordre inversé ; seuil changé d'un côté |
+| **`SHARED_CATALOGUE`** (RU-18, au premier composant commun) | Par nom, deux modules et le même texte normalisé de `NomProps` ; `exports` de `packages/ui` sans `.tsx` | Prop d'un côté ; module absent ; `.tsx` dans `packages/ui` |
+| **Artefact** (`test:artifacts`) | Aucune route `state-board` ni marqueur `data-state-board` dans `.next/` (chaque combinaison de `INFLUX_ENV` et du drapeau, testée seule) | Construction avec le drapeau |
+| **Outil de comparaison** (`check`) | Comparateurs purs auto-testés, manifeste des maquettes (SHA-256), aucune image sous `apps/web/e2e` | Image committée ; manifeste périmé |
+
+**Traçabilité des phrases de `20` §11 amendées par D88** (R3 : chaque phrase a sa preuve) :
+
+| § | Règle | Preuve |
+|---|---|---|
+| 11.3 | `logo-plate`, `skeleton-*`, `network-primary` : valeurs et fermeture des alias ; `network-primary` seule couleur `data-*` hors graphique | G3c, G3d (RUA-T1, RUA-T2) ; emploi (toujours « compte principal » écrit) : recette humaine, avec l'écran |
+| 11.3 | Badge vérifié : fiche complète et datée, icône seule admise sur la carte photo avec texte accessible, sous réserve du juriste | Axe et nom accessible de la carte, avec `RUB-09` ; part juridique : D34, recette humaine |
+| 11.4 | Paires du Lot 3bis | G3d (`CONTRAST_MATRIX.keo`, `PHOTO_SCRIM_PAIRS`) |
+| 11.5 | Quatre paliers fixes (RU-01), sans `clamp(` ni `vw` | TK7.3, TK3.1 ; RUA-T1 (valeurs) |
+| 11.5 | `shadow-md` au repos sur le seul encadré collant (RU-05) | Recette humaine, avec les écrans 2b, 5b, 8, 15, 18 |
+| 11.5 | Effets sur photo bornés aux éléments posés sur une photo (RU-04) | G3i, G3d, G8 (`PHOTO_EFFECT_READERS`) |
+| 11.5 | Mouvements, `--animate-*`, mouvement réduit (RU-06) | AN-1 (RUA-T5), AN-3, AN-4 (RUA-T4), AN-2 avec l'écran |
+| 11.5 | `--breakpoint-form` 640 px, `bo-wide` 1 536 px (RU-03) | G3e (ajout), G3i (a), garde des variantes, RUA-T4 |
+| 11.5, 11.8 | Titres de compte, vérifications, assistants (RU-17) | TK3.1, TK3.3 ; N2 avec l'écran |
+| 11.8 | Onglets segmentés élargis (RU-10), `surface-active` et compteur (RU-11) | G3h, G3d ; emploi : recette humaine, avec l'écran |
+| 11.8 | Avatar uni (RU-07), cases du code (RU-08), désactivé sans opacité (RU-09), accessibilité sans effet visuel (RU-12) | axe à 0 (TD7) ; N1 à N3 avec l'écran |
+| 11.8 | Petite fenêtre du backoffice : aucune page montée, page tenue masquée (RU-20) | Garde de `small-window.ts`, `mountDecision` testée seule, e2e avec `RUC-08` |
 
 ---
 

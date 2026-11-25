@@ -179,6 +179,12 @@ squelettes, deux états vides. On y ajoute les règles suivantes.
   au backoffice, suppression), et à l'aide des raccourcis `?`.
 - **Jamais** pour un formulaire long, une lecture (les CGU s'accommodent d'une page avec retour) ni
   une décision de file : celle-ci se prend dans la colonne de décision.
+- **Deux exceptions validées** (maquettes du 2026-11-23 et du 2026-11-24, D87, D88) : le dialogue « Filtres »
+  de la recherche (`container-filters`, `size-overlay-max`, en-tête et pied fixes, plein écran sous 768 px,
+  rien ne s'applique avant « Voir les … ») et la **galerie** de visuels d'un profil (dialogue plein écran,
+  `container-gallery`). Ce sont des vues de choix et de lecture, jamais de saisie longue ; elles gardent focus
+  piégé, `Échap` sans perte de saisie et retour du focus au déclencheur. Toute autre modale reste soumise aux
+  règles ci-dessus. Composants : `20` §11.8.
 
 ## 10. Panneaux latéraux
 

@@ -2345,6 +2345,16 @@ ligne de code.
 Le texte juridique affiché dans le parcours (fenêtre des CGU, écran bloquant de `17` §6.7) est rendu
 en KEO par le même composant neutre que les pages légales.
 
+**Composants React communs aux deux fronts (RU-18, D88, `architecte`, 2026-11-25).** Deux implantations de
+mêmes noms : `apps/web/src/components/member/ui/` et `apps/backoffice/src/components/ui/`, mêmes modules, mêmes
+composants, mêmes `export type NomProps` (`22-refonte-ux-ui/02a` §0) ; **`packages/ui` garde `tokens.css` et
+`fonts`** et ne reçoit aucun composant. Les props sont autonomes, sans import propre à un front (§21.3 point 7).
+*Motif :* réversible (la fusion se réévalue après le Lot 5), alors qu'un paquet de composants partagerait deux
+registres sans vérification (`20` §2). *Garde*, au premier composant commun (RUB ou RUC) : `SHARED_CATALOGUE`
+(`charter-data.ts`) ; par nom, deux modules et le même texte normalisé de `NomProps` ; les `exports` de
+`packages/ui` valent `./tokens.css` et `./fonts`, aucun `.tsx`. Négatifs : une prop d'un côté seulement, un module
+absent, un `.tsx` dans `packages/ui`.
+
 ### 21.3 Tokens : un fichier, deux chartes, un attribut
 
 | Option | Pour | Contre |
@@ -2393,6 +2403,39 @@ en KEO par le même composant neutre que les pages légales.
    transparent)` est admis dans les seuls `--effect-action-glow`, `--effect-action-glow-hover` et
    `--background-image-header-glow` du bloc KEO (liste en données, `charter-data.ts`), N ≤ 15 pour le
    halo d'en-tête ; jamais dans un `--color-*`. Valeurs : `20` §11.5.
+
+   **Amendement du 2026-11-25 (D88, jalon RUA, `architecte`, détail : `jalons/rua/modele-archi.md`).**
+   - **Seuils (RU-03).** `--breakpoint-form: 640px` dans `@theme static` de `tokens.css`, en px comme ses voisins :
+     Tailwind trie les `--breakpoint-*` de même unité, `form:` tombe entre `sm:` et `md:` et `max-form:` est offert ;
+     jamais redéfini sous KEO (G3i a) ; G3e permet l'ajout. Le seuil de 1 536 px est une variante du seul
+     backoffice, `@custom-variant bo-wide { @media (width >= 1536px) { @slot; } }`, dans
+     `tokens-backoffice.css`, **avant** `bo-small` (l'échelle `--breakpoint-*` reste une liste, dans `tokens.css`,
+     CA22). Les variantes sortent après les points de rupture, dans l'ordre du fichier : `bo-wide:` suit `2xl:` et
+     `bo-small:` l'emporte dans une fenêtre large et basse (vérifié sur `compile` de `tailwindcss` 4.3.3). Garde :
+     même `compile` sur le `globals.css` réel dans le Vitest du backoffice ; la garde des `@custom-variant` compte
+     exactement deux variantes, dans `tokens-backoffice.css`, `bo-wide` d'abord ; ni `innerWidth` ni `innerHeight`
+     nulle part ; `matchMedia` nulle part avant son seul lecteur (§21.5 point 8).
+   - **Effets sur photo (RU-04, F0 Q2).** Quatre tokens `--effect-photo-scrim-strong`, `-scrim`, `-scrim-soft` et
+     `--effect-photo-shadow` : `transparent` et `none` dans `@theme static` (neutres, comme `--effect-action-glow` ; un
+     `:root` non classé battrait le bloc KEO du backoffice), valorisés dans le bloc KEO
+     (`color-mix(in srgb, var(--color-surface-page) N%, transparent)`, N = 82, 75, 45 ; `drop-shadow(0 1px 2px
+     color-mix(in srgb, #000000 50%, transparent))`). *Motif :* le bloc KEO n'admet que l'opaque ou cette borne
+     (points 2 et 3) et `rgba(…, 0.5)` est refusé ; valorisés **dans le bloc**, où `surface-page` est redéfinie
+     (piège des alias). Lecture : `bg-(--effect-photo-scrim…)` et `filter-(--effect-photo-shadow)` ; `none` neutre ne
+     compose aucune liste de filtres et ne crée pas de contexte d'empilement ; aucun autre filtre sur le même élément
+     (`effect-media-hover` va sur le visuel). Lecteurs : les modules de `PHOTO_EFFECT_READERS` (`charter-data.ts`,
+     vide en RUA, rempli par l'écran qui l'emploie). Aucune couleur nouvelle (D6) : le noir des ombres est celui de
+     la vitrine, jamais un `--color-*`.
+   - **Forme de G3i étendue (TD1, cas négatifs obligatoires).** `ColorMixAllowance` reçoit une `base`
+     (`var(--color-brand-primary)` par défaut ; `var(--color-surface-page)` ; `#000000`) et un `percent` exact
+     (`maxPercent` du halo inchangé) ; la liste `KEO_COLOR_MIX` gagne les quatre tokens, **dans le bloc KEO seulement**.
+     Négatifs : un voile en vert, à 80 %, valorisé dans `@theme` ; `surface-page` dans le halo du bouton ; un
+     `--color-*` listé ; resserrement : `rgba(`, `hsla(` et `#rrggbbaa` refusés dans un `--effect-*`. G3c : les noms
+     sont dans `@theme`. G8 : un lecteur hors `PHOTO_EFFECT_READERS` échoue. **G3d** : `withGlowPeak` devient
+     `withMixOver(tokens, token, ground, name)`, une fonction pour deux usages (halo sur `surface-page`, voile sur
+     `PHOTO_WORST` = `#ffffff`, pourcentage lu dans la feuille) ; `PHOTO_SCRIM_PAIRS`, à part comme `GLOW_PEAK_PAIRS` :
+     `text-primary` sur les voiles de 82 et de 75 % ≥ 4,5:1 (environ 11,0 et 8,5 ; valeurs : `20` §11.4) ; le voile de 45 % est un décor sans
+     texte, sans paire. Valeurs et emplois : `20` §11.5.
 4. **Activation, à deux endroits seulement** (G8). `apps/web` : un conteneur `<div data-theme="keo">`
    posé par `app/[locale]/(member)/layout.tsx`, avec les classes de police et
    `min-h-dvh bg-surface-page font-base text-text-primary` ; `<html>` et `<body>` restent vitrine
@@ -2544,7 +2587,9 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
    `--scale-press` 0,98 sous KEO, 1 en vitrine ; agrandissement `--scale-hover` 1,03 ; ni l'un ni
    l'autre sur un petit bouton des écrans du backoffice (`20` §11.5, §11.8). Durée et courbe inchangées :
    une durée redéfinie sur le conteneur KEO masquerait la mise à zéro de `prefers-reduced-motion`
-   portée par `:root`. **Lissage** par l'utilitaire `antialiased` posé sur le conteneur
+   portée par `:root`. *(D88, RUA-02)* **Animations** : jetons `--animate-*` (durées par tokens, `20` §11.5), aucune
+   dépendance ; sous mouvement réduit, durées à 0 et aucune transformation, le squelette en `animation: none` (AN-1) ;
+   ni `transition: all`, ni `height`, ni `max-height` animés (AN-4). **Lissage** par l'utilitaire `antialiased` posé sur le conteneur
    `<div data-theme="keo">` de `(member)/layout.tsx` et sur `<html data-theme="keo">` du backoffice
    (propriété héritée) ; aucune règle de lissage dans `:root`, `html` ou `body`, vitrine inchangée.
    **Halo en fond du conteneur d'écran** : `bg-header-glow bg-no-repeat` sur `SPACE_SCREEN_CLASSES`
@@ -2566,6 +2611,22 @@ Les groupes ne changent aucune URL : chemins localisés, `memberPageLocale` et r
    attendant la vue « deux gestes » de D58 (Lot 4, conditions de session ouvertes) — arbitrage
    `chef-de-projet` du 2026-10-28, condition de hauteur ajoutée par le fondateur (F7, 2026-10-29). Seuls les écrans existants y figurent ; les entrées d'administration restent
    absentes pour un `agent`, le serveur les refuse de toute façon (CA63).
+
+   *Amendement du 2026-11-25 (D88, RU-19 et RU-20, `architecte` ; mécanisme livré par `RUC-08`).* **RU-19** : de
+   768 à 1 023 px, la bande horizontale ci-dessus reste, compteurs compris ; les maquettes gardent le rail, ces
+   largeurs sont hors comparaison visuelle. **RU-20, fenêtre trop petite :**
+   - Seul lecteur : `apps/backoffice/src/lib/small-window.ts`, par `matchMedia` de la requête portée par le token
+     `--query-bo-small` (`tokens-backoffice.css`, texte de la variante `bo-small`), **aucune longueur en
+     JavaScript** (G3) ; `useSyncExternalStore`, instantané serveur « inconnu ».
+   - Décision pure `mountDecision(size, held, mounted)` : `wait` (aucun enfant rendu), `mount`, `unmount`,
+     `keep-hidden`, testée seule. `Shell` l'applique ; une page appelle `useMountHold(true)` tant qu'elle tient un
+     verrou ou une saisie ; le masquage passe par `bo-small:` existant.
+   - *Motif :* une page montée prend des verrous et journalise ses lectures privilégiées ; la démonter sous la
+     main d'un agent perd sa saisie (D87). L'autorisation reste à `apps/api` (`17b` §1.7).
+   - Garde (l. 515-538 de `guards.test.ts`) : `matchMedia` dans ce seul fichier ; la valeur de `--query-bo-small`
+     égale la requête de `bo-small` (négatif : seuil changé d'un côté). Texte de la règle : `20` §11.8 ; `17b`
+     §1.7 suit en tête de `RUC-08`. **Exception écrite** à « aucune détection de largeur en JavaScript »
+     (point 3), limitée à ce module.
 9. Les entrées des Lots 2 à 5 côté membres viennent de `member-nav.ts` ; **elles sont omises jusqu'à
    leur lot** (arbitrage `chef-de-projet` du 2026-10-28, `expert-ux` d'accord) et leurs libellés
    n'entrent dans les fichiers de traduction qu'avec leur écran ; une entrée apparue ne disparaît plus.

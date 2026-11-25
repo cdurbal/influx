@@ -364,7 +364,7 @@ avec les mêmes textes adaptés.
 > `text-on-danger` (alias de `text-primary`), `decorative-progress` `#cc1a0d`. Garde G3b.
 
 Trois **alias**, aucune nouvelle valeur : ils relèvent d'`expert-ux` (skill `design-system-influx`,
-« Ajouter un token »). Ils rejoindront `tokens.css` quand le produit réel les utilisera. Dans les
+« Ajouter un token »). Ils rejoindront `tokens.css` quand le produit réel les utilisera ; **`--color-logo-plate` y entre au jalon RUA (RUA-01, D88)**, dans `@theme` et dans le bloc KEO (sa cible y est redéfinie, G3c), les initiales d'un logo absent en `text-inverse`. Dans les
 espaces connectés, ils résolvent vers les valeurs KEO de §11.3 (D73) : `border-strong` `#78827d`,
 `surface-muted` `#121413`, `surface-inverse` `#f4f6f5`. Les jetons créés par D73 sont listés en §11.3
 et §11.5.
@@ -493,7 +493,9 @@ D73. La colonne **Écart** signale chaque rôle où l'affectation diffère de la
 | `color-surface-card` | `#121413` | KEO `surface-1` | Carte, ligne de tableau | — |
 | `color-surface-raised` | `#1a1d1b` | KEO `surface-2` | Bloc dans une carte, dialogue, ligne survolée du tableau dense, carte cliquable survolée, survol d'item de navigation, piste d'onglets, badge neutre | — |
 | `color-surface-hover` | `#232725` | KEO `surface-3` | En-tête du tableau dense, item de navigation actif | D75 (RK-15) : l'en-tête passe de `surface-2` (1,09:1 contre les lignes, invisible) à `surface-3` ; la ligne survolée reste en `surface-2`, distinguée par son filet |
-| `color-surface-active` *(nouveau)* | `#2d322f` | KEO `surface-4` | Appui du bouton secondaire, onglet segmenté actif | — |
+| `color-surface-active` *(nouveau)* | `#2d322f` | KEO `surface-4` | **(RU-11, D88)** Appui du bouton secondaire ; segment, onglet, vue et pastille de filtre actifs ; pistes de jauge, de segments et de tranche ; avatar. Dessus : `text-primary`, et `text-secondary` pour le compteur d'un onglet actif ; **jamais** `text-tertiary` ni texte d'erreur | — |
+| `color-logo-plate` *(RUA, D88)* | alias `surface-inverse` | alias, redéclaré sous KEO (cible redéfinie, G3c) | Pastille claire derrière un logo de marque ; initiales en `text-inverse` (§10) | — |
+| `color-skeleton-base` / `color-skeleton-sheen` *(RUA, D88)* | alias `surface-raised` / alias `surface-hover` | alias, redéclarés sous KEO | Fond du squelette et balayage (§11.8, C09) | — |
 | `color-surface-inverse` | alias `text-primary` | alias | Pastille de compteur, pastille de logo (§10) | — |
 | — | `#383e3a` | KEO `surface-5` | **Non repris** : aucun usage | — |
 
@@ -555,13 +557,18 @@ coche des réseaux sociaux, qui n'affirme pas la même chose (`08` RG4, RG10, D3
 **jamais une coche seule ni collé à un nom** ; il écrit « Vérifié · ⟨réseau⟩ · ⟨date⟩ » sur la
 ligne du réseau concerné *(amendé à la clôture de L2E, EC-L2E-9 : la date est **complète**, jour, mois et année, selon `08` RG4 et RG10 ; « mois année » à l'origine)*. Le fondateur a retenu ce bleu et cette règle de forme le 2026-10-29 (§11.9, F3).
 
-**Données** (graphiques seulement, chaque série étiquetée directement, jamais pour un état ou un rôle)
+*Amendement du 2026-11-25 (D88, F0 Q6 : « oui partout », RU-02 ; **sous réserve écrite du juriste, D34**).* La règle de forme (F3) ne vaut plus que **pour les fiches** : sur chaque **fiche** (profil anonyme, profil identifié, aperçu, fiche de compte), le badge reste complet, « Vérifié · ⟨réseau⟩ · ⟨date complète⟩ » avec la mention de ce qu'il n'affirme pas (`08` RG4, RG10). Sur la **carte photo** seule (recherche, sélection, recherche du backoffice), l'icône bleue `badge-check` validée est admise **avec un texte accessible** (nom lu : « Vérifié », réseau et date), sans coche collée à un nom. Les deux autres règles de F3 tiennent : bleu `verified-*`, jamais le vert. `08` RG4 est amendée pour la seule carte en tête de `RUB-09` et de `RUH` ; **RU-02 reste ouverte** pour le juriste (libellés du badge, D34) et `product-owner` (`06a`) : tant qu'elle l'est, `RUB-09` et `RUH` attendent, RUA continue.
+
+**`color-network-primary`** *(nouveau, RU-13, D88, F0 Q4)* : alias de `data-3`, **seule couleur `data-*` admise hors d'un graphique** ; elle ne sert qu'à l'étoile du compte principal d'un réseau (écrans 3, 2b, 15 ; backoffice 6, 17), toujours avec « compte principal » écrit ou lu (P7, jamais seule porteuse d'information).
+
+**Données** (graphiques seulement, chaque série étiquetée directement, jamais pour un état ou un rôle ; **seule exception : `color-network-primary`**, ci-dessus, RU-13)
 
 | Token | Valeur | Origine |
 |---|---|---|
 | `color-data-1` *(nouveau)* | alias `brand-primary` | KEO `data-1` |
 | `color-data-2` *(nouveau)* | alias `feedback-info-text` | KEO `data-2` |
 | `color-data-3` *(nouveau)* | `#ffae2b` | KEO `data-3` |
+| `color-network-primary` *(RUA, RU-13)* | alias `data-3` | `@theme` ; `KEO_INHERITS` (hérite de `data-3`) ; étoile du compte principal |
 
 KEO `data-4` (rose) et `data-6` (sable) sont les couleurs de rôle, `data-5` (`#3ccfcf`) est désormais
 la couleur du succès : non repris. Les tokens de la barre de répartition de la vitrine (`color-data-*-share`,
@@ -606,6 +613,7 @@ usage sous KEO (`mockup-banner-*`, `overlay-hero-halo`, `action-inverse-bg`,
 `data-creator-share`, `data-net-creator`). Tout le reste est redéfini, **alias compris** quand leur
 cible l'est (`text-on-danger`, `action-secondary-border`, `border-subtle`, `border-selected`,
 `brand-accent`, `surface-accent`, `focus-ring`, `surface-inverse`, `border-hover` : fermeture G3c).
+*(Lot 3bis, D88)* Nouveaux rôles : `logo-plate`, `skeleton-base`, `skeleton-sheen` (alias dont la cible est redéfinie : redéclarés dans le bloc, G3c) et `network-primary` (`KEO_INHERITS`) ; les `--effect-photo-*` (§11.5) sont neutres dans `@theme static` et valorisés dans le bloc.
 
 ### 11.4 Contrastes calculés
 
@@ -676,6 +684,17 @@ se pose sur la page seulement, en fond du conteneur d'écran (§11.5) ; (5) un *
 d'erreur à moins de `spacing-5` d'un bouton principal survolé** (son ombre lumineuse éclaircit le
 fond) ; (6) un **surtitre ou un badge en vert** ; (7) un **halo d'en-tête au-delà de 15 %**.
 
+**Paires du Lot 3bis** *(D88, RUA ; `CONTRAST_MATRIX.keo` et `PHOTO_SCRIM_PAIRS`, aucune couleur nouvelle)* :
+
+| Paire | Ratio | Seuil |
+|---|---|---|
+| `network-primary` (= `data-3`) sur carte / surélevée / survol | 9,99 / 9,18 / 8,17 | 3 ✅ |
+| `text-inverse` sur `logo-plate` / `surface-inverse` | 17,46 | 4,5 ✅ |
+| `text-inverse` sur `action-primary-bg` (case cochée) | 9,96 | 3 ✅ |
+| `text-primary` sur le voile de 82 % / de 75 % posé sur blanc (pire cas d'une photo) | 11,02 / 8,45 | 4,5 ✅ |
+| Voile de 45 % : décor sans texte, aucune paire (2,90) ; le bord de l'élément tient par `effect-photo-shadow` | — | — |
+| `text-*` sur `surface-active`, `border-strong` sur `surface-raised` | déjà au tableau | — |
+
 ### 11.5 Typographie, formes, élévation, mouvement
 
 **Familles** (mêmes noms de rôle, valeur selon le registre)
@@ -697,6 +716,12 @@ compris. Tailles du texte inchangées (RK-8) : 16 px membres, 14 px backoffice, 
 |---|---|---|---|---|
 | Titre de page (`h1`) | `text-title-page` *(nouveau)* | 1,5 rem sous `lg`, 1,75 rem au-delà | Manrope 800, `tracking-heading` (−0,025 em, D75 RK-6) | `leading-heading` |
 | Titre de section (`h2`) | `text-title-section` *(nouveau)* | 1,25 rem | Manrope 700, `tracking-heading` (D75) | `leading-snug` |
+| *(RU-17, D88)* `h1` de « Mon compte » (20), des vérifications (14) | `text-title-section` | 1,25 rem | Manrope **800**, `tracking-heading` | `leading-snug` |
+| *(RU-17, D88)* `h1` des assistants (3, 7, 10) et de l'entrée (11) | `text-title-section` | 1,25 rem | Manrope **700**, `tracking-heading` | `leading-snug` |
+| *(RU-01, D88)* Titre de fiche (8, 18) | `text-title-detail` | 1,625 · 1,875 · 2,125 rem | Manrope 800, `tracking-heading` | `leading-heading` |
+| *(RU-01, D88)* Titre de héros (5b) | `text-title-hero` | 1,75 · 2 · 2,25 rem | Manrope 800, `tracking-heading` | `leading-heading` |
+| *(RU-01, D88)* Chiffre clé (2b, 5b, 15) | `text-key-figure` | 1,125 · 1,1875 · 1,25 rem | Manrope 800, tabulaire | `leading-tight` |
+| *(RU-01, D88)* Chiffre d'encadré (5b, 8, 18 ; initiales du logo de 5b) | `text-aside-figure` | 1,25 · 1,375 · 1,5 rem | Manrope 800, tabulaire | `leading-tight` |
 | Titre de carte (`h3`) | `text-md` | 1 rem | Manrope 700, sans approche serrée (à 16 px, −0,025 em colle les lettres) | `leading-snug` |
 | *(D75)* Titre de bloc dense (BO, `h3`, `h4`) | `text-sm` | 0,875 rem | Manrope 700, sans approche serrée | `leading-snug` |
 | Corps, espaces membres | `text-md` | 1 rem | Source Sans 3 400, emphase 600 | `leading-body` |
@@ -707,6 +732,19 @@ compris. Tailles du texte inchangées (RK-8) : 16 px membres, 14 px backoffice, 
 | Montant en tableau | `text-sm` | 0,875 rem | Source Sans 3 400, `font-variant-numeric-amount` | `leading-snug` |
 | Bouton | `text-md` (membres), `text-sm` (BO) | — | `font-display` ; principal et danger `font-weight-action` *(700 dans les espaces, 500 en vitrine)* ; secondaire et bouton texte `font-weight-action-secondary` *(nouveau, D75 RK-3 : 600 dans les espaces, 500 en vitrine)* | `leading-snug` |
 | Item de navigation | `text-md` (colonne), `text-sm` (rail BO), `text-xs` (barre du bas) | — | Source Sans 3 400, actif 600 | — |
+
+**Trois paliers fixes (RU-01, D88, écart accordé par le fondateur, D87).** Les quatre tokens
+`text-title-detail`, `-title-hero`, `-key-figure`, `-aside-figure` n'ont **ni `clamp(` ni `vw`** (TK7.3) : une
+valeur dans `@theme`, redéfinie dans `:root` à **768 px** puis **1 024 px**, selon la forme de
+`text-title-page` ; Manrope 800, interligne et approche du tableau ci-dessus. Les paliers valent le
+rendu des maquettes à 375, 1 280 et 1 440 px (0,6 px au plus) ; l'écart maximal entre deux paliers est de
+3,6 px, à 767 px. Aucun autre token de taille n'est fluide sous KEO.
+
+**Largeur de libellé par rôle (RU-16, D88).** `size-property-label` 13 rem (défaut), `-summary` 11
+(récapitulatifs 3, 7, 10 ; backoffice 17), `-reading` 12 (5b, 8, 14, 18), `-reading-compact` 8,5 (18 sous
+640 px), `-terms` 9 (« Conditions », 2b, 15) ; backoffice : `size-bo-label-identified` 6 (6, 17), `-compact` 7
+(4, 16), `-side` 7,5 (6, 17), `-decision` 8 (5), `-dual-control` 10 (21). Une valeur par **rôle**, pas par
+largeur de maquette.
 
 **Chargement des polices** (`architecte`, `02` §21.4). `next/font/local` et fichiers woff2 variables
 versionnés dans le dépôt (module `packages/ui/src/styles/fonts.ts`, importé par les deux fronts) : **aucun
@@ -730,14 +768,40 @@ la vitrine restent en `auto` ; aucune propriété de lissage n'est déclarée da
 | Token | Valeur | Emploi |
 |---|---|---|
 | `radius-card` *(nouveau)* | 1 rem (KEO `radius-card` 16 px) | Carte, dialogue |
-| `radius-md` | 0,75 rem | Bloc dans une carte, champ, notice, item de navigation |
-| `radius-sm` | 0,375 rem | Petite étiquette, cases du code |
+| `radius-md` | 0,75 rem | Bloc dans une carte, champ, notice, item de navigation, **cases du code (RU-08, D88 : le rendu de la maquette ; `radius-sm` auparavant)** |
+| `radius-sm` | 0,375 rem | Petite étiquette |
 | `radius-pill` | 999px | Boutons, badges, pastilles, onglets segmentés |
 | `border-width-action-secondary` *(nouveau)* | 1 px dans les espaces (KEO), 2 px en vitrine (actuel) | Contour du bouton secondaire |
 | `focus-ring-offset-inset` *(nouveau, dérivé)* | `calc(-1 * var(--focus-ring-width))` | Anneau intérieur là où un anneau extérieur serait rogné (barre du bas) |
 
+**Tokens du Lot 3bis** *(D88, RUA-01 et RUA-02 ; une valeur de maquette = un token de même valeur ; tout
+est créé dans `tokens.css`, sauf `-bo-`, créés dans `tokens-backoffice.css`, G3f)*. Rien n'est redéfini sous KEO
+sauf mention ; `--text-*`, `--tracking-*`, `--aspect-*`, `--animate-*` sont de l'espace `@theme` de Tailwind ;
+les `--container-*` et `--grid-*` sont en `:root` (comme `container-max`, G3i).
+
+| Famille | Tokens (valeur) | Emploi |
+|---|---|---|
+| Effets | `effect-media-hover` `brightness(0.85)` ; `scale-heart-press` 0,9 ; `scale-leave` 0,96 | RU-06 (mouvement, ci-dessous) |
+| Durées | `duration-celebrate` 900 ms ; `-spin` 1 s ; `-skeleton` 1,2 s ; sous mouvement réduit, `celebrate` et `spin` valent `duration-instant` | Réseau complet ; icône d'envoi ; squelette |
+| Approche | `tracking-code` 0,06 em ; `-code-entry` 0,3 em ; `-phrase` 0,02 em | Codes (14), saisie du code (20), phrases (11) |
+| Proportions | `aspect-photo` 4 / 3 ; `-mosaic` 2 / 1 ; `-otp` 5 / 6 | Photo de carte, mosaïque, case du code. Espace `aspect-*`, pas `--ratio-*` |
+| Tailles | `size-pill` = `spacing-7` ; `-chip` = `spacing-6` ; `-tag` 2,25 rem ; `-step-marker` 1,75 ; `-segment-bar` 0,375 ; `-icon-xs` 0,75 ; `-icon-dense` 0,875 ; `-icon-star` 1,375 ; `-icon-heart` 1,625 ; `-nudge` 0,125 ; `-nudge-icon` 0,1875 ; `-nudge-hair` 0,0625 ; `-textarea` 7,5 ; `-input-number` 8 ; `-thumb` 3,5 ; `-skeleton-line` = `text-sm` ; `-logo-hero` 7,5 | Pastilles, étiquettes, repères d'étape, icônes, cœur et étoile, zone de texte, nombre court, vignette, logo de héros (5b). Un logo n'est pas un champ : `size-icon-alert` ne sert plus que l'alerte |
+| Tailles de champs | `size-select-add` 13 · `-select-add-max` 20 ; `size-sort` 14 ; `size-search` 15 ; `size-date` 12 ; `size-otp` 22 ; `size-note-min` 12 · `-note-max` 16 rem ; `size-feed-sort` (18) **intact** (G3e) | Liste d'ajout, tri, recherche, date, code, note |
+| Mobile | `size-mobile-space-search` 3,75 · `-reading` 4,25 · `-wizard` 4,5 rem ; `size-overlay-max` 85 dvh | Réserves basses des barres collantes (RU-15) ; dialogue « Filtres » |
+| Décalages | `inset-segment-hit` −0,625 rem (zone de 26 px d'un segment) ; `offset-link` 0,2 em ; `offset-icon-baseline` −0,15 em ; `-baseline-xs` −0,2 em (icône dans une ligne `text-xs`) | Segments d'assistant ; lien souligné ; icône alignée |
+| Mesure | `measure-wide` 46 rem ; `measure-text` 40 rem | Titre du profil anonyme, propriétés (8, 18) ; texte de lecture. Famille `measure-*` |
+| Conteneurs | `container-form` 28 · `-form-wide` 36 · `-dialog` 30 · `-filters` 42 · `-confirm` 34 · `-gallery` 56 · `-feed-card` 26 · `-brand-card` 34 · `-danger` 32 · `-field-xs/-sm/-md/-lg/-xl` 16/18/20/22/26 rem | Formulaires, dialogues, galerie, cartes, champs |
+| Grilles | `grid-reading` ; `grid-home` ; `grid-mosaic` ; `grid-photo-cards` 18 rem ; `-narrow` 17 rem (9) ; `grid-campaign-row` ; `grid-timeline` 8 rem (18) ; `grid-verification-row` ; `grid-range` = `6,5rem minmax(0, 1fr) 5,5rem`, dès 480 px `9rem minmax(0, 1fr) 6,5rem` (jeton réactif, mobile-first) | Écrans de lecture, accueil, mosaïque, cartes photo, lignes |
+| Backoffice | `spacing-bo-panel-w` 22 rem ; `grid-bo-panel` = `minmax(0, 1fr) var(--spacing-bo-panel-w)` (fiche 6, 17 ; décision 5) ; `grid-bo-check` (5) ; `grid-bo-timeline` 7,5 rem ; `grid-bo-sync` ; `size-bo-choice-dense` 1,125 ; `size-bo-alert-code` 3,25 ; `size-bo-kbd` 1,375 ; `size-bo-thumb-min` 7 rem ; `container-bo-form` 52 ; `-bo-page` 60 rem | Seul backoffice, `-bo-` obligatoire (G3f) |
+
+Non retenus (RUA) : `size-measure` (devient `measure-text`, même rôle) ; les noms chiffrés (remplacés par des noms de
+rôle) ; l'élément décoratif `.visual` (remplacé par l'image réelle). La ligne de secours (21, avertissement à 50 %)
+prend `feedback-warning-bg` **opaque** : l'icône et le mot portent l'état. Le logo de la fiche de compte du
+backoffice (3,5 rem, 6 et 17) prend `size-thumb`.
+
 **Élévation sur fond noir.** Au repos, les cartes sont plates : surface + `border-default`, sans
-ombre. `shadow-lg` est réservé aux couches au-dessus de la page (dialogue, menu, palette `⌘K`), sur
+ombre. **Exception (RU-05, D88, F0 Q3) : le seul encadré collant (C39 : 2b, 5b, 8, 15, 18) porte `shadow-md` au
+repos** ; aucune autre carte, aucun autre encadré. `shadow-lg` est réservé aux couches au-dessus de la page (dialogue, menu, palette `⌘K`), sur
 `overlay-scrim`. **Ombre lumineuse du bouton principal** (F6, fondateur, 2026-10-29 ; intensités de la
 référence, D75 RK-1) : dérivée du vert de marque, sans valeur nouvelle ; décorative, elle ne remplace
 jamais l'anneau `focus-ring` et disparaît sur un bouton désactivé (`aria-disabled` ou `disabled`, au
@@ -781,6 +845,22 @@ est admis **dans les seuls** `--effect-action-glow`, `--effect-action-glow-hover
 `--background-image-header-glow` du bloc KEO ; jamais dans un `--color-*`, un texte, un fond de carte ni
 un contour ; **N ≤ 15 pour le halo d'en-tête**. Jamais de modificateur `/NN` sur une couleur (G3i).
 
+**Effets sur photo (RU-04, D88, F0 Q2).** Les voiles et l'ombre portée des éléments **posés sur une photo**
+(badge sombre, compteur, cœur, case ronde : 2, 2b, 9, 13) sont quatre tokens `--effect-*`, **bornés à cet
+emploi** : jamais sur une carte, un fond de page ni une surface.
+
+| Token | `@theme static` (vitrine) | Bloc KEO |
+|---|---|---|
+| `--effect-photo-scrim-strong` · `-scrim` · `-scrim-soft` | `transparent` | `color-mix(in srgb, var(--color-surface-page) N%, transparent)`, N = 82 · 75 · 45 |
+| `--effect-photo-shadow` | `none` | `drop-shadow(0 1px 2px color-mix(in srgb, #000000 50%, transparent))` |
+
+Emploi : le voile de 82 % porte le badge sombre (2, 13), celui de 75 % le compteur (2b, 15), celui de 45 % le
+cœur et la case ronde (2, 13), décor sans texte ; l'ombre portée, le bord d'un élément posé sur une photo
+(2, 9, 13). Le contraste d'un texte sur un voile se garantit sur la photo la plus claire (blanc, §11.4). **Borne
+élargie** (en plus de la borne de RK-A) : `color-mix` admis dans ces quatre tokens du bloc KEO seulement, avec la
+base et le pourcentage exacts du tableau ; jamais `rgba(…)`, `hsla(…)` ni `#rrggbbaa` dans un `--effect-*`. Aucun
+autre filtre sur le même élément. Détail de la garde G3i : `02` §21.3.
+
 **Mouvement.** Transitions de couleur (`duration-fast`, `ease-standard`), jamais `transition: all`.
 **Agrandissement au survol et soulèvement des cartes gardés** (F6, fondateur, 2026-10-29, contre la
 recommandation) : transformation d'état (`scale`, `translate`) **sous `motion-safe:` seulement**,
@@ -791,6 +871,20 @@ RK-2, amende F6) : bouton `scale-hover` **1,03** au survol (KEO, 1,02 jusqu'à D
 petit bouton du backoffice ; bouton texte sans agrandissement. Durée et courbe des boutons inchangées
 (120 ms, `ease-standard`). Sous `prefers-reduced-motion`, aucune transformation, durées à zéro et
 balayage du squelette supprimé (`animation: none`).
+
+**Animations du Lot 3bis (RU-06, D88 ; catalogue : `22-refonte-ux-ui/04-animations.md`, AN-1 à AN-4).** *Sous
+`motion-safe:` : appui du cœur `scale-heart-press`, carte retirée `scale-leave`. Survol d'un visuel de mosaïque :
+`effect-media-hover`, sans transformation, gardé sous mouvement réduit. Réseau complet : `duration-celebrate`.*
+Chaque `--animate-<nom>` vaut `<nom> <durée> ease-standard` (images clés de `04-animations.md` §2 ; `rise-in` part de
+−`spacing-1`) : `fade-in` `duration-fast` ; `rise-in`, `pop` `duration-base` ; `flash`, `flash-strong`, `pop-in`
+`duration-slow` ; `done-flash` `duration-celebrate` ; `spin` `duration-spin` et `skeleton` `duration-skeleton`, en
+`linear infinite`. Sous `prefers-reduced-motion`, aucune propriété `scale`, `translate` ou `rotate` ne change, toute
+durée calculée vaut 0 s et le squelette passe à `animation: none` (AN-1) ; aucune dépendance (AN-3) ; ni
+`transition: all`, ni `height`, ni `max-height` animés (AN-4).
+
+**Points de rupture du Lot 3bis (RU-03, D88).** `--breakpoint-form` 640 px (formulaires : grille de champs à 2, 3 ou 4
+colonnes) dans `@theme static`, jamais redéfini sous KEO ; backoffice : variante `bo-wide` dès 1 536 px (listes),
+déclarée dans `tokens-backoffice.css`. Forme et gardes : `02` §21.3.
 
 ### 11.6 Ce qu'on ne prend pas de la maquette
 
@@ -866,8 +960,8 @@ gardé par le fondateur (F6) ou une couleur revient au fondateur.
 | Espaces membres, mobile et tablette (< 1 024 px) : en-tête + barre du bas | `17` §2.2 |
 | Espaces membres, desktop (≥ 1 024 px) : colonne à gauche façon Railway | `17` §2.3 |
 | Backoffice, poste de travail (≥ 1 024 px) : rail, bande de tête, lignes de 36 px | `17b` §1.7 |
-| Backoffice de 768 à 1 023 px : backoffice complet, navigation en liste horizontale compacte sous la bande | `17b` §1.7 |
-| Backoffice sous 768 px de large ou 500 px de haut (F7) : écran « poste de travail » jusqu'aux vues D58 | `17b` §1.7 |
+| Backoffice de 768 à 1 023 px : backoffice complet, navigation en liste horizontale compacte sous la bande. *(RU-19, D88)* La bande existante reste, compteurs compris ; ces largeurs du backoffice sont **hors comparaison** aux maquettes (N1 à N3, `18` §12.8) | `17b` §1.7 |
+| Backoffice sous 768 px de large ou 500 px de haut (F7) : écran « poste de travail » jusqu'aux vues D58 ; *(RU-20, D88)* comportement ci-dessous | `17b` §1.7 |
 | Page autonome KEO (inscription, connexion, déconnecté, compte supprimé, CGU à ré-accepter) : INFLUX et langue en tête, une colonne `container-narrow`, aucune navigation. Les pages légales publiques gardent le gabarit de la vitrine | `17` §3, §6.7 |
 
 Règles communes (arbitrées par `chef-de-projet` le 2026-10-28) : **un seul `<nav>` « Navigation
@@ -875,6 +969,13 @@ principale », rendu une fois et restylé par le CSS** selon la largeur (`02` §
 largeur en JavaScript ni second `<nav>` masqué ; les entrées dont l'écran n'existe pas sont
 **masquées**, et une entrée apparue ne disparaît plus ; **aucun repli de colonne** (rien à mémoriser :
 le front n'a aucun stockage, D37) ; lien d'évitement en premier ; focus au `h1` après navigation.
+
+**Petite fenêtre du backoffice** *(RU-20, D88 ; mécanisme : `02` §21.5 point 8)*. Arrivée dans une fenêtre de
+moins de 768 px de large ou de 500 px de haut : aucune page de travail n'est montée, seul l'écran « poste de
+travail » est rendu. Quand la fenêtre rétrécit, une page qui tient un verrou ou une saisie non enregistrée reste
+montée et masquée, et réapparaît telle quelle ; les autres sont démontées. Seuils déclarés une fois en CSS ; un
+seul module les lit (`small-window.ts`), **exception écrite** à « aucune détection en JavaScript » de la règle
+commune ci-dessus, limitée à cet emploi.
 
 **Règle du focus** *(D75 RK-13, RK-C)*. L'anneau `focus-ring` (3 px, décalé de 2 px) est visible **sur
 tout élément interactif** : bouton, lien, champ, onglet, région défilante, carte à lien étiré. Il n'est
@@ -897,9 +998,9 @@ un état non cité est sans objet.
 | Bouton danger (D72) | Membres, BO | R `action-danger-bg` + `text-on-danger` · S, A `-hover`, `-active` · D `action-disabled-bg` + `text-disabled` · C idem principal · libellé qui dit l'action ; au BO, jamais par raccourci (§5, niveau 3) |
 | Carte | Membres ; BO pour les blocs du tableau de bord et des fiches | R `surface-card` + `border-default` + `radius-card` (16 px) + `spacing-inset-card` ; bloc intérieur `surface-raised` + `radius-md` · **carte cliquable seulement** (D75 RK-10) : R contour `border-strong`, S `surface-raised` + contour `border-hover` · carte non cliquable : immobile · F anneau autour de la carte (lien étiré sur le titre) · C squelette de même hauteur · E notice dans la carte |
 | Badge de rôle | Membres (liste fermée §11.3), BO | Membres *(L2AU-2)* : pastille neutre `surface-raised` + contour `border-default` + `radius-pill`, point `spacing-3` `role-advertiser` / `role-creator` + rôle écrit `text-secondary` (8,69:1, §11.4). BO : point `spacing-2` + rôle écrit `text-secondary`. Nom en `text-primary` (F4 maintenu, D75 RK-12) |
-| Badge vérifié | Membres, BO | Pilule **remplie** `verified-bg` (D75 RK-11), contour `verified-border`, icône `badge-check` + « Vérifié · ⟨réseau⟩ · ⟨mois année⟩ » (texte F3 inchangé) en `verified-text`, `font-display` 700 |
+| Badge vérifié | Membres, BO | Pilule **remplie** `verified-bg` (D75 RK-11), contour `verified-border`, icône `badge-check` + « Vérifié · ⟨réseau⟩ · ⟨date complète : jour, mois, année⟩ » (EC-L2E-9 ; texte F3) en `verified-text`, `font-display` 700. **Sur une carte photo seule** (RU-02, D88, sous réserve du juriste, §11.3) : icône `badge-check` bleue avec nom accessible « Vérifié », réseau et date ; jamais collée à un nom |
 | Badge de statut | Membres, BO | Pilule **remplie d'une teinte opaque** (D75 RK-11), libellé écrit, `font-display` 700 ; tons : neutre (`surface-raised`, `text-secondary`), succès, alerte, information (`feedback-*-bg`, texte et contour de la famille), erreur (`badge-error-bg`, texte et contour D72). **Jamais plein de vert ni d'une teinte vive** : le plein vif est réservé à l'action ; jamais vert |
-| Onglets segmentés (`tablist`) — *réservés aux canaux d'une conversation (§7) depuis D74* | Membres, BO | Piste `surface-raised` + `border-default` + `radius-pill` · R inactif `text-secondary` · S `text-primary` · actif `surface-active` + `text-primary` 600 + `aria-selected` · compteurs écrits · flèches au clavier. Jamais vert |
+| Onglets segmentés (`tablist`) — *canaux d'une conversation (§7) depuis D74 ; **élargis par RU-10 (D88)*** | Membres, BO | Piste `surface-raised` + `border-default` + `radius-pill` · R inactif `text-secondary` · S `text-primary` · actif `surface-active` + `text-primary` 600 + `aria-selected` · compteurs écrits (le compteur d'un onglet actif en `text-secondary`, RU-11) · flèches au clavier. Jamais vert. **Emplois permis, liste fermée (RU-10)** : (1) un choix exclusif de formulaire, en `radio` (droits d'usage, langue, oui / non, réseau) ; (2) deux vues d'un même contenu (cartes / tableau, avant / après, à traiter / normaux), en `tablist`, ou en liens `aria-current` si chaque vue a son adresse ; (3) les canaux (§7). **Jamais pour une rubrique ni une page (D74)** |
 | Sous-entrée de navigation *(D74, remplace les liens de section)* | Colonne (membres), rail (BO) | Dans l'entrée active seulement, sans icône, libellé aligné sur celui de l'entrée, `text-sm` (membres) · R `text-secondary` · S `nav-item-hover-bg` + `text-primary` · courante `nav-item-active-bg` + `text-primary` 600 + filet gauche 2 px `nav-item-active-indicator` + `aria-current="page"` ; entrée ancêtre `text-primary` 600 sans surface, sans filet, sans `aria-current`. Hauteur ≥ `size-touch-target` (membres), `spacing-bo-row-h` (BO). Liste horizontale du BO (768–1 023 px) : seconde ligne, filet en bas. Masquée sous `lg` côté membres |
 | Page-menu *(D74)* | Membres (< et ≥ 1 024 px) | Liste de lignes pleine largeur dans `<main>` (pas un `<nav>`) : icône décorative, libellé `text-md` 600, phrase `text-sm` `text-secondary`, pastille de compteur éventuelle, chevron décoratif ; lien étiré sur la ligne, hauteur ≥ `size-touch-target`, séparateur `border-subtle` · S `surface-raised` · F anneau autour de la ligne. Sous-page : « ‹ ⟨rubrique⟩ » au-dessus du `h1`. Détail : `archives/jalons/sn-fiche.md` |
 | Champ, zone de texte | Membres, BO | R `surface-page` + contour `border-strong` 1 px + `radius-md` ; libellé `text-primary` 600 au-dessus, aide `text-secondary`, exemple `text-tertiary` jamais seul libellé · D `surface-raised` + `text-secondary` (8,7:1, valeur lisible, *L3C-X3*) + `border-default`, ni opacité ni `text-disabled` · E contour `border-error` 2 px + message (icône + `feedback-error-text`) relié par `aria-describedby`, `aria-invalid`. Hauteur `size-input` (membres), `spacing-bo-row-h` (BO) |
@@ -907,12 +1008,38 @@ un état non cité est sans objet.
 | Notice | Membres, BO | Succès, alerte, information : fond, contour, icône et texte de la famille (texte principal `text-primary` pour l'information). Erreur D72 : fond du conteneur, contour `feedback-error-border`, icône et texte `feedback-error-*`. Icônes `circle-check`, `triangle-alert`, `circle-alert`, `info` ; `role="status"` ou `role="alert"` ; non refermable pour un état permanent ; `radius-md` |
 | Tableau dense | BO | En-tête collant **`surface-hover`**, `text-sm` **Manrope 700** `text-secondary` (D75 RK-15) · lignes `surface-card`, hauteur `spacing-bo-row-h`, séparateur `border-subtle` · S et F (survol, `focus-within` du lien de la ligne) `bo-row-hover` (`surface-raised`) + filet gauche 2 px `brand-primary` par `--effect-bo-row-indicator`, ombre intérieure de largeur constante sur la **première cellule** (aucun décalage en `border-collapse` ; Safari ne dessine pas d'ombre sur un `tr`) ; aucun filet au repos ; 4 px reste réservé à la vue identifiée · C lignes en squelette à hauteur fixe · vide : les deux états de `17b` §2.3 · E notice au-dessus, lignes conservées · chiffres tabulaires |
 | État vide | Membres, BO | Icône décorative `text-tertiary`, titre `text-title-section`, phrase `text-secondary` (pourquoi c'est vide, quoi faire), une action principale au plus ; ni illustration ni « 0 » |
-| Squelette | Membres, BO | `color-skeleton-base` (= `surface-raised`), balayage `color-skeleton-sheen` (= `surface-hover`) supprimé sous `prefers-reduced-motion` ; hauteur finale ; `aria-busy` sur le conteneur et « Chargement… » masqué visuellement |
+| Squelette | Membres, BO | `color-skeleton-base` (= `surface-raised`), balayage `color-skeleton-sheen` (= `surface-hover`) par `animate-skeleton`, supprimé (`animation: none`) sous `prefers-reduced-motion` ; hauteur finale ; `aria-busy` sur le conteneur et « Chargement… » masqué visuellement |
 | Item de navigation | Colonne (membres), barre du bas (membres), rail (BO) | R `text-secondary` · S `nav-item-hover-bg` + `text-primary` · actif `nav-item-active-bg` + `text-primary` 600 + filet 2 px `nav-item-active-indicator` (gauche ; en haut dans la barre du bas) + `aria-current="page"`. Colonne : hauteur ≥ `size-touch-target`, marge `spacing-2`, `radius-md`. Barre du bas : icône sur libellé, cellule pleine hauteur, anneau intérieur (`focus-ring-offset-inset`). Rail : hauteur `spacing-bo-row-h`. Liste horizontale du backoffice (768–1 023 px) : même `<nav>`, mêmes états, filet de 2 px en bas de l'entrée active |
 | Pastille de compteur | Membres ; BO en chiffres | Membres : `counter-bg` + `counter-text`, `text-xs` 700 tabulaire, `radius-pill`, « 9+ » au-delà de 9, texte masqué « ⟨n⟩ éléments nouveaux » (`17` §2.2). BO : nombre tabulaire `text-secondary`, et retard **écrit** « ⚑ ⟨n⟩ hors délai » en `bo-sla-overdue-text` |
-| En-tête de page | Membres, BO | Fil d'Ariane `text-sm` `text-secondary` (à partir du niveau 2), `h1` `text-title-page` Manrope 800 `tracking-heading`, sans anneau quand il reçoit le focus après une navigation, action principale à droite (desktop) ou sous le titre, pleine largeur (mobile). Halo : fond du conteneur d'écran qui le porte (§11.5), aucun calque dans l'en-tête, un seul par page |
+| En-tête de page | Membres, BO | Fil d'Ariane `text-sm` `text-secondary` (à partir du niveau 2), `h1` `text-title-page` Manrope 800 `tracking-heading` (*RU-17* : `text-title-section` 800 pour « Mon compte » et les vérifications, 700 pour les assistants et l'entrée, §11.5), sans anneau quand il reçoit le focus après une navigation, action principale à droite (desktop) ou sous le titre, pleine largeur (mobile). Halo : fond du conteneur d'écran qui le porte (§11.5), aucun calque dans l'en-tête, un seul par page |
 | Surtitre *(D75)* | Membres, BO | Ligne au-dessus d'un titre : `font-display` `text-xs` 700, capitales, `tracking-overline`, `text-secondary` ; **jamais vert**, jamais seul porteur d'une information |
-| Dialogue | Membres, BO | `surface-raised` + `border-default` + `radius-card` + `shadow-lg`, voile `overlay-scrim`, focus piégé, `Échap` ferme sans perdre la saisie |
+| Dialogue | Membres, BO | `surface-raised` + `border-default` + `radius-card` + `shadow-lg`, voile `overlay-scrim`, focus piégé, `Échap` ferme sans perdre la saisie. Largeur `container-dialog` ; réservé aux confirmations, à l'identité, à l'aide `?` ; **deux exceptions validées** (`audit-ux-ui/04-DIRECTION-ARTISTIQUE` §9) : « Filtres » et la galerie |
+| *(Lot 3bis, D88 ; dimensions et variantes : `22-refonte-ux-ui/02a`, `02b`)* Section | Membres, BO | `h2` + intro + actions + contenu, **sans conteneur** : filet `border-default` au-dessus sauf la première ; une section n'est pas une carte (trois niveaux de surface au plus : page, carte, bloc intérieur) |
+| Bloc intérieur | Membres, BO | `surface-raised`, `radius-md`, sans contour ; jamais dans un autre bloc intérieur ; zone interne : tirets `border-strong` seuls, réservés à la vue interne |
+| Liste de lignes | Membres, BO | `ul`, filet `border-subtle`, ligne ≥ `size-touch-target` + 16 px (BO : 36), titre Manrope 700, fin de ligne `text-secondary` + chevron ; S `surface-raised` ; F anneau intérieur ; lien étiré sur la ligne, une action dans la ligne passe au-dessus |
+| Liste de propriétés | Membres, BO | `dl` en paires `dt` / `dd`, libellé sur `size-property-label` (rôle, §11.5) `text-secondary` 600 ; valeur vide en `text-tertiary` |
+| Résumé d'erreurs | Membres, BO | Contour `feedback-error-border`, `radius-md`, titre Manrope 700 + icône ; focus sur le résumé après un refus ; chaque lien ouvre l'étape ou la section, puis focalise le champ. Pas de fond teinté (D72) |
+| Assistant | Membres | Boîte `container-narrow` (768 px), `radius-card`, sans boîte sous 768 px ; tête : `h1` (RU-17), « Étape n sur N », segments `size-segment-bar` (zone de toucher `inset-segment-hit`) ; « Continuer » jamais bloquant ; pied fixe au-dessus de la barre du bas sous 768 px (`size-mobile-space-wizard`) |
+| Carte photo | Membres | Photo `aspect-photo`, `radius-card`, sur `surface-raised` ; piste aimantée, points `text-secondary` (actif `text-primary`, plus large), flèches au survol ou au focus ; badge, compteur, cœur et case ronde posés sur la photo : `effect-photo-*` (§11.5) ; cœur rempli `text-primary`, **jamais vert** ; alias en lien étiré |
+| Galerie | Membres | Mosaïque `aspect-mosaic` (1 + 4, `radius-card`) dès 768 px, carrousel dessous ; dialogue plein écran, max `container-gallery` ; région défilante focalisable ; retour du focus, `Échap` |
+| Encadré collant | Membres | `surface-card` + `border-default` + `radius-card`, collant dès 1 024 px, **`shadow-md` au repos** (RU-05) ; sinon barre fixe au-dessus de la barre du bas ; une seule action verte ; repère nommé |
+| Avatar | Membres, BO | *(RU-07)* Disque `surface-active` uni, initiales `text-primary` Manrope 700 ; ni dégradé ni `data-*` |
+| Cases du code | Membres | *(RU-08)* Six cases `surface-raised`, contour `border-strong` 1 px, `radius-md`, `aspect-otp` ; courante : `focus-ring` 2 px ; erreur : `border-error` 2 px. **Seule exception au champ en `surface-page`** ; un seul `input`, collage accepté |
+
+**Règles transverses du Lot 3bis** *(D88 ; écarts accordés par le fondateur, D87)*.
+
+- **Désactivé ou inerte (RU-09).** Jamais d'opacité. Bouton : `action-disabled-bg` + `text-disabled` ; case ronde :
+  contour `text-disabled` (case à cocher : règle L3C-X3) ; une phrase adjacente dit pourquoi ; **jamais
+  `aria-hidden` sur un bouton**. Concerne l'aperçu (15, `.inert`, RU-43), la ligne de secours (21, `.dvp`) et la case
+  ronde de 13. La photo d'une carte bloquée (13) est rendue entière : l'état se dit par son libellé `.blk`. Points de
+  carrousel inactifs en `text-secondary`, l'actif en `text-primary` et plus large (2, 13). Écarts de rendu : `06b` §7.
+- **Accessibilité sans effet visuel (RU-12).** Région défilante : `tabindex="0"` et nom ; `dl` en paires `dt` / `dd` ;
+  pas d'`aria-label` sur un élément sans rôle ; repères nommés ; titres sans saut ; cible ≥ 24 px (les liens de 13
+  passent à 24 px de haut) ; un `h1` par page.
+- **Divergences entre maquettes (RU-15).** Chaque écran suit sa maquette (grilles de 18 et de 17 rem, réserves basses
+  de `size-mobile-space-*`, vide de « Mes campagnes » en carte), **sauf** la densité `bo` de la recherche (13), oubli
+  manifeste, et le badge de rôle de la fiche de compte (6), dont la graisse ne s'hérite jamais.
+- **Comparaison aux maquettes.** N1 à N3 et AN-1 à AN-4 : `22-refonte-ux-ui/05` et `04`, `18` §12.8.
 
 ### 11.9 Points soumis au fondateur
 
@@ -920,8 +1047,9 @@ un état non cité est sans objet.
 |---|---|---|
 | F1 | Étendre la charte KEO aux pages légales publiques ? | Défaut arbitré par `chef-de-projet` : pages légales publiques en vitrine, texte des CGU affiché dans le parcours en KEO (§11.1, `02` §21.2). **Tranché (2026-10-29) : défaut confirmé**, pages légales publiques en vitrine |
 | F2 | Deux verts de marque | Un seul vert, `#1dd68a`, vitrine comprise, revue visuelle D59 avant la mise en ligne de la vitrine ; le mécanisme n'en dépend pas (§11.1). **Tranché (2026-10-29) : oui**, commit DS-14 |
-| F3 | Badge vérifié en bleu (KEO) plutôt qu'en vert | Oui, avec la règle de forme : jamais une coche seule, jamais collée à un nom (§11.3). **Tranché (2026-10-29) : oui** |
+| F3 | Badge vérifié en bleu (KEO) plutôt qu'en vert | Oui, avec la règle de forme : jamais une coche seule, jamais collée à un nom (§11.3). **Tranché (2026-10-29) : oui.** *Amendé le 2026-11-25 (D88, F0 Q6, RU-02) pour la seule carte photo : icône bleue avec texte accessible ; fiches inchangées (badge daté complet) ; **sous réserve écrite du juriste (D34)***. |
 | F4 | Couleurs de rôle sable et rose | Marque visuelle seulement, liste fermée de quatre usages (§11.3) |
 | F5 | Affectations différentes de la maquette, sans valeur nouvelle | Succès sous KEO en `#3ccfcf` (teinte « séquestre » de KEO, réaffectée : 25° du vert d'action, contre 17° pour `#2dd4bf`), vitrine inchangée ; rouge D72 conservé ; fonds `rgba` remplacés par les fonds opaques validés ; contour du bouton secondaire en `#78827d` pour rester ≥ 3:1 ; badge séquestre, vert « disponible », `surface-5` et trois couleurs de données non repris (§11.3, §11.6) |
 | F6 | Effets « Spotify » de la maquette (halo, agrandissement, soulèvement, panneaux flottants) | Écartés (§11.6, §11.7). **Tranché (2026-10-29), contre la recommandation : halo, agrandissement au survol et soulèvement gardés** (sous `motion-safe:` seulement, jamais `transition: all`, durées et halo par tokens, §11.5) ; ombre lumineuse du bouton gardée, panneaux flottants autorisés là où ils sont pertinents (jugement `expert-ux`, écran par écran) ; réduction à l'appui écartée (reprise à 98 % par D75, RK-2) |
 | F7 | Backoffice sur petit écran : compromis arbitré par `chef-de-projet` | De 768 à 1 023 px, backoffice complet avec la navigation en liste horizontale (fenêtre en demi-écran d'un poste de 1 920 px) ; sous 768 px, aucun contenu métier jusqu'aux vues D58 (`17b` §1.7). Effet de bord à connaître : un téléphone tenu à l'horizontale dépasse souvent 768 px et voit alors le backoffice complet. **Tranché (2026-10-29), selon la recommandation : compromis gardé, plus une condition de hauteur** (écran « poste de travail » aussi quand la hauteur est sous 500 px, ce qui couvre le téléphone en paysage) |
+| F8 | Lot 3bis, accord de démarrage de RUA et décisions de charte (F0, 2026-11-25) | **Tranché : « oui partout »** (D88) : Q1 code de RUA seul ; Q2 effets sur photo (RU-04, §11.5) ; Q3 ombre de l'encadré collant (RU-05) ; Q4 étoile `network-primary` (RU-13, §11.3) ; Q5 titres de compte, vérifications et assistants (RU-17, §11.5) ; Q6 badge de la carte photo (RU-02, §11.3), **sous réserve écrite du juriste (D34)** |

@@ -161,3 +161,7 @@ Un écart à une maquette n'existe qu'inscrit ici, avec l'accord du fondateur.
 | 2026-11-25 | 21 : rejeu, confirmation, invitations internes | Motif, aperçu, mot de passe et code ; formulaire interne ajouté | RG101, B-5, D84 | Fondateur, D87 (RU-41) |
 | 2026-11-25 | 6 : vignettes du portfolio | Au geste seulement | D82, L2G | Fondateur, D87 (RU-42) |
 | 2026-11-25 | 15 : aperçu | Décor annoncé, aucune donnée reconstituée | `07` RG104 | Fondateur, D87 (RU-43) |
+| 2026-11-25 | 2b, 15 : avatar | Disque `surface-active` uni, initiales `text-primary` ; ni dégradé `data-1` ni pastille chiffrée | `20` §11.3 (`data-*` : graphiques seuls), `17` §7.1 | `expert-ux`, D88 (RU-07, RUA-A) ; confirmation du fondateur à la validation de l'écran (`05` §8) |
+| 2026-11-25 | 2, 13 : points de carrousel inactifs | `text-secondary`, l'actif en `text-primary` et plus large (opacité de la maquette retirée) | Contraste AA, `20` §11.8 (désactivé sans opacité) | Fondateur, D87 (RU-09) ; détail `expert-ux`, D88 |
+| 2026-11-25 | 13 : photo d'une carte bloquée | Rendue entière, non assombrie ; l'état est dit par `.blk` et la case ronde (contour `text-disabled`) | Contraste AA, `20` §11.8 (désactivé sans opacité) | Fondateur, D87 (RU-09) ; détail `expert-ux`, D88 |
+| 2026-11-25 | 21 : ligne de secours (avertissement à 50 %) | Fond `feedback-warning-bg` opaque ; l'icône et le mot portent l'état (EC-RUA-A-1) | Aucun fond translucide (D72, K3), contraste AA | `expert-ux`, D88 (RUA-A) ; confirmation du fondateur à la validation de l'écran (`05` §8) |

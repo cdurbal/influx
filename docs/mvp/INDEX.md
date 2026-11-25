@@ -46,7 +46,7 @@
 | 552 | 14 | 12. Décisions ouvertes |  |
 | 566 | 20 | 13. Ce qui change en V2 |  |
 
-## 02-architecture-3-espaces.md (~64k tokens)
+## 02-architecture-3-espaces.md (~66k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -100,17 +100,17 @@
 | 2287 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
 | 2296 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
 | 2309 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2316 | 326 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2316 | 387 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
 | 2329 | 7 | ↳ 21.1 Vocabulaire |  |
-| 2336 | 12 | ↳ 21.2 Frontière |  |
-| 2348 | 92 | ↳ 21.3 Tokens : un fichier, deux chartes, un attribut |  |
-| 2440 | 44 | ↳ 21.4 Polices |  |
-| 2484 | 91 | ↳ 21.5 Gabarits de page | RG28–RG107 |
-| 2575 | 23 | ↳ 21.6 Gardes et tests |  |
-| 2598 | 7 | ↳ 21.7 Découpage |  |
-| 2605 | 20 | ↳ 21.8 Risques et réversibilité | RG7 |
-| 2625 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
-| 2636 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
+| 2336 | 22 | ↳ 21.2 Frontière |  |
+| 2358 | 125 | ↳ 21.3 Tokens : un fichier, deux chartes, un attribut |  |
+| 2483 | 44 | ↳ 21.4 Polices |  |
+| 2527 | 109 | ↳ 21.5 Gabarits de page | RG28–RG107 |
+| 2636 | 23 | ↳ 21.6 Gardes et tests |  |
+| 2659 | 7 | ↳ 21.7 Découpage |  |
+| 2666 | 20 | ↳ 21.8 Risques et réversibilité | RG7 |
+| 2686 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
+| 2697 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
 
 ## 03-matrice-des-droits-et-rls.md (~67k tokens)
 
@@ -608,7 +608,7 @@
 | 2191 | 82 | 7. Incohérences relevées, écarts d'implémentation, points à valider | RG4–RG126 |
 | 2273 | 62 | 8. Récapitulatif — les écrans spécifiés |  |
 
-## 18-plan-de-test-mvp.md (~64k tokens)
+## 18-plan-de-test-mvp.md (~66k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -642,9 +642,17 @@
 | 1341 | 60 | 9. Ce qui remonte |  |
 | 1401 | 229 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
 | 1630 | 21 | 11. Verdict |  |
-| 1651 | 271 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1651 | 337 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1660 | 13 | ↳ 12.1 Les familles TD1 à TD8, 44 cas | RG66 |
+| 1673 | 23 | ↳ 12.2 Matrice axe : largeurs par écran |  |
+| 1696 | 30 | ↳ 12.3 Plan par commit |  |
+| 1726 | 16 | ↳ 12.4 Recette humaine de fin de jalon |  |
+| 1742 | 16 | ↳ 12.5 Points à arbitrer qui conditionnent des tests *(relevés le 2026-10-28)* |  |
+| 1758 | 47 | ↳ 12.6 Les familles TK1 à TK8 du jalon RK (D75) *(ajouté le 2026-10-30)* |  |
+| 1805 | 111 | ↳ 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30, relu phrase à phrase le 2026-11-01, L2A-01)* |  |
+| 1916 | 72 | ↳ 12.8 Les tests du Lot 3bis, refonte UX/UI (D87, D88) *(ajouté le 2026-11-25)* |  |
 
-## 20-direction-design.md (~27k tokens)
+## 20-direction-design.md (~32k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -658,16 +666,16 @@
 | 326 | 17 | 8. Angles morts du dark theme |  |
 | 343 | 13 | 9. Questions ouvertes | RG116–RG130 |
 | 356 | 24 | 10. Tokens proposés |  |
-| 380 | 549 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
+| 380 | 677 | 11. Charte KEO Emerald des espaces connectés (D73) | RG1–RG65 |
 | 393 | 40 | ↳ 11.1 Périmètre et frontière |  |
 | 433 | 14 | ↳ 11.2 Ce qui ne change pas |  |
-| 447 | 163 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
-| 610 | 69 | ↳ 11.4 Contrastes calculés |  |
-| 679 | 116 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
-| 795 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
-| 828 | 32 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
-| 860 | 57 | ↳ 11.8 Gabarits et composants |  |
-| 917 | 12 | ↳ 11.9 Points soumis au fondateur |  |
+| 447 | 171 | ↳ 11.3 Correspondance KEO → tokens INFLUX | RG1–RG10 |
+| 618 | 80 | ↳ 11.4 Contrastes calculés |  |
+| 698 | 191 | ↳ 11.5 Typographie, formes, élévation, mouvement |  |
+| 889 | 33 | ↳ 11.6 Ce qu'on ne prend pas de la maquette | RG4–RG65 |
+| 922 | 32 | ↳ 11.7 Test du logo : INFLUX, pas Spotify |  |
+| 954 | 90 | ↳ 11.8 Gabarits et composants |  |
+| 1044 | 13 | ↳ 11.9 Points soumis au fondateur |  |
 
 ## 21-plan-de-developpement.md (~20k tokens)
 
