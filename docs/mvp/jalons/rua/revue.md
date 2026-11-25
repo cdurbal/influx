@@ -19,4 +19,5 @@ tard ». Synthèse dans `annexe.md` § Revue ; une ligne `fix-n` dans `run.md` p
 - Outil de comparaison : ouvre des fichiers locaux seulement, n'envoie rien sur le réseau, ne lit aucun secret
   (`.env.local`, `.operator-secrets`).
 - **Marqueur I-4** : aucun commit du jalon ne touche `audit.*`, une politique, un `GRANT` ou `supabase/config.toml` ;
-  confirmer par `git diff --stat` sur `supabase/` et `apps/api/` (vides), aucune attestation requise.
+  confirmer par `git diff --stat` sur `supabase/` et `apps/api/` (vides). 596c18c touche `.github/workflows/ci.yml` et
+  `apps/web/next.config.ts` (`SECURITY_PREFIXES`) : attestation requise, couverte par RUA-R.
