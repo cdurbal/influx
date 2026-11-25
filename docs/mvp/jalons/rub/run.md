@@ -6,7 +6,7 @@
 | B | B.md | arbitrage | opus | xhigh | expert-ux | fait | `modele-ux.md` : aside nommé ; C06 = 8 ; C47 j/m/a en EN ; cibles 44 par pseudo-élément ; AP1 contour transparent ; anneau double sur photo ; 4 renvois |
 | 00 | 00.md | commit | sonnet | medium | expert-ux | fait | D89 écrite ; `20` §11.8 : AP1, zone 44 px, anneau double ; 17 §2.3 aside ; 18 familles T0-T11 ; gardes en 02 §21.2 ; 06b : effets F0 Q4 |
 | X1 | X1.md | commit | sonnet | high | testeur | fait | G8 refuse next/headers, @influx/contracts, fetch(, process.env (cas négatifs) ; ws refusée et comptée ; plancher app 4 à part, lu par test |
-| 01 | 01.md | commit | sonnet | high | dev-react-node | à faire | |
+| 01 | 01.md | commit | sonnet | high | dev-react-node | fait | C01-C03, C29 livrés ; planche : structure, announcer ; garde h1 par cellule ; gardes catalogue, copies en sursis, SHARED_CATALOGUE (4 pending) ; crumbs sans nav |
 | 02 | 02.md | commit | sonnet | high | dev-react-node | à faire | |
 | 03 | 03.md | commit | sonnet | high | dev-react-node | à faire | |
 | 04 | 04.md | commit | sonnet | high | dev-react-node | à faire | |

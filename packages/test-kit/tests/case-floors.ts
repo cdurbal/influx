@@ -6,6 +6,7 @@
 export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/artifacts.test.ts": 12,
   "tests/case-floors.test.ts": 13,
+  "tests/catalogue-guards.test.ts": 12,
   "tests/charter-boundary.test.ts": 22,
   "tests/check-migrations.test.ts": 12,
   "tests/ci-production-job.test.ts": 17,

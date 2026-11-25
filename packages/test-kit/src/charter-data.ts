@@ -3,7 +3,12 @@
 // what is inherited, what is vitrine-only, which pairs are checked and at which floor are data, in
 // this one module, that `expert-ux` keeps up to date. A floor goes down only by a written decision
 // of the founder (CLAUDE.md §4). Read by apps/web and apps/backoffice (same tokens.css, same data).
-import type { Charter, ColorMixAllowance, TokenPair } from "./guards.ts";
+import type {
+  Charter,
+  ColorMixAllowance,
+  SharedCatalogueEntry,
+  TokenPair,
+} from "./guards.ts";
 
 // ---------------------------------------------------------------------------------------------
 // G3c: the --color-* that the KEO block does not redefine (02 §21.3 point 2; 20 §11.3, last table)
@@ -451,4 +456,22 @@ export const FORBIDDEN_CLASS_PAIRS: ReadonlyArray<{
       "text-feedback-error-text",
     ],
   },
+];
+
+// ---------------------------------------------------------------------------------------------
+// G8: the components the two fronts hold under one name (RU-18, D88, RUB-A §3; 02 §21.2)
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * The components of the member folder that a screen of the backoffice also draws (07a): the same
+ * module and the same `<Name>Props` in both fronts. `pending` until RUC delivers the twin, which
+ * then flips the entry and must hold the same text; no entry is `pending` after RUC but by a named
+ * carry-over in the remainder of the plan. Each line of RUB adds the names it creates; C04, C20,
+ * C25, C37, C39, C41, C42, C48, C51, C56 and C68 stay with the members and have no entry.
+ */
+export const SHARED_CATALOGUE: readonly SharedCatalogueEntry[] = [
+  { name: "PageFrame", backoffice: "pending" },
+  { name: "PageHeader", backoffice: "pending" },
+  { name: "Section", backoffice: "pending" },
+  { name: "Announcer", backoffice: "pending" },
 ];

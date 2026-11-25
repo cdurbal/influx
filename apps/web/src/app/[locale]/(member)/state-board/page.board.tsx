@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import { AnnouncerProvider } from "@/components/member/ui/Announcer";
 import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
+import { AnnouncerBoard } from "./announcer.board";
 import { BadgeBoard } from "./badge.board";
 import { ButtonBoard } from "./button.board";
 import { FieldBoard } from "./field.board";
 import { NoticeBoard } from "./notice.board";
+import { StructureBoard } from "./structure.board";
 
 // The component state board (RUA-05; docs/mvp/jalons/rua/modele-archi.md §6). Not a page of the
 // product: Next.js serves this file only when the `board.tsx` page extension is on
@@ -36,10 +39,14 @@ export default function StateBoardPage() {
         <h1 className={PAGE_TITLE_CLASSES}>{TEXTS.title}</h1>
         <p className="text-md text-text-secondary">{TEXTS.intro}</p>
       </header>
-      <ButtonBoard />
-      <NoticeBoard />
-      <BadgeBoard />
-      <FieldBoard />
+      <AnnouncerProvider>
+        <StructureBoard />
+        <AnnouncerBoard />
+        <ButtonBoard />
+        <NoticeBoard />
+        <BadgeBoard />
+        <FieldBoard />
+      </AnnouncerProvider>
     </main>
   );
 }

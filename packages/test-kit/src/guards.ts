@@ -1763,6 +1763,262 @@ export function findStateBoardViolations(
 // G3g and G3h: the role colors confined, the forbidden pairs of classes (D73; 20 §11.3, §11.4)
 // ---------------------------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------------------------
+// G8, the catalogue of the member components (RUB, D89; jalons/rub/modele-archi.md §1, §2, §3, §7)
+// ---------------------------------------------------------------------------------------------
+
+export type CatalogueRules = {
+  /** The folder of the components, relative to the front root (`src/components/member/ui`). */
+  directory: string;
+  /** The `.tsx` modules of the folder, and none other: the catalogue, the controls of C18, the dated exceptions. */
+  expectedModules: readonly string[];
+  /**
+   * The modules of RUB (names without extension) with no caller before RUE: only the folder and the
+   * state board import them. The screen that wires one removes its entry, in its own commit.
+   */
+  uncalled: readonly string[];
+};
+
+/** A file named `index`: a barrel, which would drag every module of the folder into a route. */
+const BARREL_FILE = /^index\.(?:ts|tsx|js|jsx|mjs)$/;
+
+/**
+ * G8, catalogue: the `.tsx` modules of the folder are exactly the expected ones, and it holds no
+ * barrel; an `uncalled` module that does not exist is a stale entry, and one that a module outside
+ * the folder and the state board imports is reported (its bytes would ride that route). A module
+ * that comes back under an old name (`MemberButton.tsx`) is outside the list.
+ */
+export function findCatalogueProblems(
+  frontRoot: string,
+  rules: CatalogueRules,
+): string[] {
+  const directory = path.join(frontRoot, rules.directory);
+  const inFolder = existsSync(directory) ? listFiles(directory) : [];
+  const findings = exactSetFinding(
+    "the member component modules",
+    inFolder
+      .filter((file) => file.endsWith(".tsx"))
+      .map((file) => relativePath(directory, file)),
+    rules.expectedModules,
+  );
+  for (const file of inFolder) {
+    if (BARREL_FILE.test(path.basename(file))) {
+      findings.push(`${relativePath(frontRoot, file)}: a barrel`);
+    }
+  }
+  const uncalled = rules.uncalled.map((name) => path.join(directory, name));
+  for (const name of rules.uncalled) {
+    if (!rules.expectedModules.includes(`${name}.tsx`)) {
+      findings.push(
+        `${name}: an uncalled module that is not a module of the folder`,
+      );
+    }
+  }
+  for (const file of sourceFilesUnder(frontRoot)) {
+    if (file.startsWith(directory + path.sep) || STATE_BOARD_FILE.test(file)) {
+      continue;
+    }
+    for (const specifier of importSpecifiers(readFileSync(file, "utf8"))) {
+      const resolved = resolveLocalSpecifier(frontRoot, file, specifier);
+      if (resolved !== null && uncalled.includes(resolved)) {
+        findings.push(
+          `${relativePath(frontRoot, file)}: imports ${path.basename(resolved)}, which has no caller before RUE`,
+        );
+      }
+    }
+  }
+  return findings;
+}
+
+export type TransitionalCopyRule = {
+  /** What the copy is, for the report. */
+  name: string;
+  /** The code of a copy (comments do not count). */
+  pattern: RegExp;
+  /** The files, relative to the front root, that may hold it: the screens not migrated yet and the module. */
+  files: readonly string[];
+};
+
+/**
+ * G8, copies of screen in reprieve: each rule lists the files that may hold its pattern. A file
+ * outside the list that holds it is reported; so is a listed file that no longer holds it (or no
+ * longer exists): the commit that migrates a screen removes its entry. Comments do not count.
+ */
+export function findTransitionalCopies(
+  frontRoot: string,
+  rules: readonly TransitionalCopyRule[],
+): string[] {
+  const sources = sourceFilesUnder(frontRoot).map((file) => ({
+    where: relativePath(frontRoot, file),
+    code: withoutComments(readFileSync(file, "utf8")),
+  }));
+  return rules.flatMap((rule) => {
+    const holders = sources
+      .filter((source) => rule.pattern.test(source.code))
+      .map((source) => source.where);
+    return [
+      ...holders
+        .filter((where) => !rule.files.includes(where))
+        .map((where) => `${where}: holds ${rule.name}, which is not listed`),
+      ...rule.files
+        .filter((where) => !holders.includes(where))
+        .map(
+          (where) => `${rule.name}: ${where} is listed and no longer holds it`,
+        ),
+    ];
+  });
+}
+
+/** A component of the catalogue and where its twin in the backoffice stands (RU-18, 02 §21.2). */
+export type SharedCatalogueEntry = {
+  name: string;
+  backoffice: "pending" | "delivered";
+};
+
+export type SharedCatalogueRoots = {
+  /** `apps/web/src/components/member/ui`. */
+  memberDirectory: string;
+  /** `apps/backoffice/src/components/ui`, absent until the first twin is delivered. */
+  backofficeDirectory: string;
+  /** `packages/ui`. */
+  uiPackageRoot: string;
+};
+
+/** What a module of RUB may import to type its properties: React, and its own module of classes. */
+function isOwnPropsSource(specifier: string, name: string): boolean {
+  const kebab = name.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+  return specifier === "react" || specifier === `./${kebab}-classes`;
+}
+
+/** The text of `export type <name>Props = …;`, up to the `;` that closes it, or null. */
+function propsTypeOf(source: string, name: string): string | null {
+  const start = new RegExp(String.raw`\bexport\s+type\s+${name}Props\b`).exec(
+    source,
+  );
+  if (start === null) return null;
+  let depth = 0;
+  for (let index = start.index; index < source.length; index += 1) {
+    const character = source.charAt(index);
+    if ("{[(".includes(character)) depth += 1;
+    else if ("}])".includes(character)) depth -= 1;
+    else if (character === ";" && depth === 0) {
+      return source.slice(start.index, index);
+    }
+  }
+  return source.slice(start.index);
+}
+
+/** The identifiers a source imports, each with the specifier it comes from. */
+function importedIdentifiers(source: string): Map<string, string> {
+  const identifiers = new Map<string, string>();
+  const pattern =
+    /\bimport\s+(?:type\s+)?([^'"()]*?)\s*from\s*["']([^"']+)["']/g;
+  for (const match of source.matchAll(pattern)) {
+    const clause = match[1] ?? "";
+    const specifier = match[2] ?? "";
+    for (const part of clause.replace(/[{}]/g, ",").split(",")) {
+      const word = part
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/)
+        .pop()
+        ?.replace(/^\*\s+as\s+/, "")
+        .trim();
+      if (word !== undefined && word !== "") identifiers.set(word, specifier);
+    }
+  }
+  return identifiers;
+}
+
+/** The `.tsx` files under a package, its installed dependencies and build output aside. */
+function tsxFilesOutsideDependencies(root: string): string[] {
+  return readdirSync(root, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      return entry.name === "node_modules" || entry.name === ".next"
+        ? []
+        : tsxFilesOutsideDependencies(full);
+    }
+    return entry.name.endsWith(".tsx") ? [full] : [];
+  });
+}
+
+/** A module text without comments, its blanks reduced: the form in which two twins are compared. */
+function normalizedModule(source: string): string {
+  return withoutComments(source).replace(/\s+/g, " ").trim();
+}
+
+/**
+ * G8, the shared catalogue (RU-18, D88; 02 §21.2): each entry has its module in the member folder,
+ * which exports a `<name>Props` typed from React and its own classes alone (no `@influx/contracts`,
+ * no module of the front); `pending` means no twin in the backoffice, `delivered` a twin whose text
+ * is the same once comments and blanks are set aside; and `packages/ui` exports `./tokens.css` and
+ * `./fonts` and holds no `.tsx`.
+ */
+export function findSharedCatalogueProblems(
+  roots: SharedCatalogueRoots,
+  catalogue: readonly SharedCatalogueEntry[],
+): string[] {
+  const findings: string[] = [];
+  for (const { name, backoffice } of catalogue) {
+    const member = path.join(roots.memberDirectory, `${name}.tsx`);
+    if (!existsSync(member)) {
+      findings.push(`${name}: the module is absent from the member folder`);
+      continue;
+    }
+    const source = withoutComments(readFileSync(member, "utf8"));
+    const props = propsTypeOf(source, name);
+    if (props === null) {
+      findings.push(`${name}: does not export ${name}Props`);
+    } else {
+      const imported = importedIdentifiers(source);
+      for (const [identifier, specifier] of imported) {
+        if (
+          !isOwnPropsSource(specifier, name) &&
+          new RegExp(String.raw`(?<![\w$.])${identifier}(?![\w$])`).test(props)
+        ) {
+          findings.push(
+            `${name}: ${name}Props is typed from ${identifier} of ${specifier}`,
+          );
+        }
+      }
+      if (/\bimport\s*\(/.test(props)) {
+        findings.push(`${name}: ${name}Props is typed by an inline import`);
+      }
+    }
+    const twin = path.join(roots.backofficeDirectory, `${name}.tsx`);
+    if (backoffice === "pending" && existsSync(twin)) {
+      findings.push(`${name}: pending, and the backoffice twin exists`);
+    }
+    if (backoffice === "delivered") {
+      if (!existsSync(twin)) {
+        findings.push(`${name}: delivered, and the backoffice twin is absent`);
+      } else if (
+        normalizedModule(readFileSync(twin, "utf8")) !==
+        normalizedModule(readFileSync(member, "utf8"))
+      ) {
+        findings.push(`${name}: the two twins differ`);
+      }
+    }
+  }
+  const manifest = JSON.parse(
+    readFileSync(path.join(roots.uiPackageRoot, "package.json"), "utf8"),
+  ) as { exports?: Record<string, unknown> };
+  findings.push(
+    ...exactSetFinding(
+      "the exports of packages/ui",
+      Object.keys(manifest.exports ?? {}),
+      ["./tokens.css", "./fonts"],
+    ),
+  );
+  for (const file of tsxFilesOutsideDependencies(roots.uiPackageRoot)) {
+    findings.push(
+      `packages/ui/${relativePath(roots.uiPackageRoot, file)}: a component in the package of tokens`,
+    );
+  }
+  return findings;
+}
+
 /**
  * A role color used as a class (`text-`, `bg-`, `border-`… `-role-advertiser` / `-role-creator`) or
  * read as a variable. The role colors are a visual mark and nothing else (12 RG7, 20 §11.3).

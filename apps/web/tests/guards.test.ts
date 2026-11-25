@@ -36,8 +36,11 @@ import {
   findKeoActivationViolations,
   findMemberGroupMismatches,
   findPortalUse,
+  findCatalogueProblems,
+  findSharedCatalogueProblems,
   findStateBoardViolations,
   findStateTransforms,
+  findTransitionalCopies,
   findVitrineImportsUnder,
   findVitrineTokenUse,
   tokenScopes,
@@ -78,11 +81,18 @@ import {
   PHOTO_SCRIM_STRONG,
   PHOTO_WORST,
   ROLE_COLOR_COMPONENTS,
+  SHARED_CATALOGUE,
   SUCCESS_MIN_HUE_GAP,
   VITRINE_ONLY,
   VITRINE_TOKEN_MARKERS,
 } from "@influx/test-kit/charter-data";
 import { MEMBER_PAGE_SLUGS } from "@/lib/member-paths";
+import {
+  CATALOGUE_DIRECTORY,
+  CATALOGUE_MODULES,
+  TRANSITIONAL_COPIES,
+  UNCALLED_MODULES,
+} from "./catalogue-data";
 import { describe, expect, it } from "vitest";
 
 const WEB_ROOT = path.resolve(
@@ -640,12 +650,14 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
   it("keeps the state board to its own files, with no session, API client or translation", () => {
     const board = "src/app/[locale]/(member)/state-board";
     const files = [
+      "announcer.board.tsx",
       "badge.board.tsx",
       "board-section.board.tsx",
       "button.board.tsx",
       "field.board.tsx",
       "notice.board.tsx",
       "page.board.tsx",
+      "structure.board.tsx",
     ];
     expect(
       findStateBoardViolations(WEB_ROOT, {
@@ -657,6 +669,43 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
           "src/components/member/MemberShell",
         ],
       }),
+    ).toEqual([]);
+  });
+
+  // RUB (D89; jalons/rub/modele-archi.md §1, §7): the folder of the components is the set of the catalogue, with
+  // no barrel, and the modules of RUB that no screen calls yet are imported by the folder and the board alone.
+  // The detector is self-tested in the test-kit.
+  it("keeps the member components to the modules of the catalogue, with no barrel and no import of an uncalled module", () => {
+    expect(
+      findCatalogueProblems(WEB_ROOT, {
+        directory: CATALOGUE_DIRECTORY,
+        expectedModules: CATALOGUE_MODULES,
+        uncalled: UNCALLED_MODULES,
+      }),
+    ).toEqual([]);
+  });
+
+  // RUB-A §2: the copies of screen in reprieve stay in the screens that hold them, until their migration.
+  it("holds each copy of screen in reprieve in its listed files alone, and lists no file that lost it", () => {
+    expect(findTransitionalCopies(WEB_ROOT, TRANSITIONAL_COPIES)).toEqual([]);
+  });
+
+  // RU-18, RUB-A §3: the components held under one name by the two fronts, the twin of the backoffice pending or equal.
+  it("holds the shared catalogue: props typed from React alone, a pending twin absent, a delivered twin equal, no component in packages/ui", () => {
+    expect(
+      findSharedCatalogueProblems(
+        {
+          memberDirectory: path.join(WEB_ROOT, CATALOGUE_DIRECTORY),
+          backofficeDirectory: path.join(
+            BACKOFFICE_ROOT,
+            "src",
+            "components",
+            "ui",
+          ),
+          uiPackageRoot: UI_ROOT,
+        },
+        SHARED_CATALOGUE,
+      ),
     ).toEqual([]);
   });
 
