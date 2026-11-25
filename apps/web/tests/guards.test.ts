@@ -21,6 +21,7 @@ import {
   findRelayImporterViolations,
   findRouteFileViolations,
   findVitrineSnapshotChanges,
+  findPhotoEffectUse,
   PLATFORM_EXPORTS,
   WEB_STRUCTURAL_SEGMENTS,
   PLATFORM_NETWORK_FILES,
@@ -58,7 +59,7 @@ import {
   DANGER_RED_TOKENS,
   OPAQUE_TOKEN_VALUE,
   TRANSLUCENT_RED_CLASS,
-  withGlowPeak,
+  withMixOver,
   type Charter,
 } from "@influx/test-kit/guards";
 import {
@@ -70,6 +71,11 @@ import {
   KEO_COLOR_MIX,
   KEO_INHERITS,
   KEO_RETARGETED,
+  PHOTO_EFFECT_READERS,
+  PHOTO_SCRIM,
+  PHOTO_SCRIM_PAIRS,
+  PHOTO_SCRIM_STRONG,
+  PHOTO_WORST,
   ROLE_COLOR_COMPONENTS,
   SUCCESS_MIN_HUE_GAP,
   VITRINE_ONLY,
@@ -357,6 +363,52 @@ describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no sm
     expect(findKeoTrapViolations(tokens, KEO_COLOR_MIX)).toEqual([]);
   });
 
+  // RUA-T2 (RU-04, D88): the four effects on a photo, valued in the KEO block alone, exact share, exact base.
+  it("fails on a scrim at 80 %, a green scrim, a scrim valued in @theme and an alpha color in an --effect-* (G3i a, negative cases)", () => {
+    expect(
+      findKeoTrapViolations(
+        withKeoDeclaration(
+          tokens,
+          "--effect-photo-scrim: color-mix(in srgb, var(--color-surface-page) 80%, transparent);",
+        ),
+        KEO_COLOR_MIX,
+      ),
+    ).toEqual(["--effect-photo-scrim: 80% instead of the 75% allowed"]);
+    expect(
+      findKeoTrapViolations(
+        withKeoDeclaration(
+          tokens,
+          "--effect-photo-scrim: color-mix(in srgb, var(--color-brand-primary) 75%, transparent);",
+        ),
+        KEO_COLOR_MIX,
+      ),
+    ).toEqual([
+      '--effect-photo-scrim: "color-mix(in srgb, var(--color-brand-primary) 75%, transparent)" is not the page surface mixed with transparency',
+    ]);
+    expect(
+      findKeoTrapViolations(
+        tokens.replace(
+          "--effect-photo-scrim-soft: transparent;",
+          "--effect-photo-scrim-soft: color-mix(in srgb, var(--color-surface-page) 45%, transparent);",
+        ),
+        KEO_COLOR_MIX,
+      ),
+    ).toEqual([
+      '--effect-photo-scrim-soft: "color-mix(in srgb, var(--color-surface-page) 45%, transparent)" outside the tokens of RK-A (not in the KEO block)',
+    ]);
+    expect(
+      findKeoTrapViolations(
+        withKeoDeclaration(
+          tokens,
+          "--effect-photo-shadow: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));",
+        ),
+        KEO_COLOR_MIX,
+      ),
+    ).toEqual([
+      '--effect-photo-shadow: "drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5))" holds an alpha color, a color-mix over transparency replaces it',
+    ]);
+  });
+
   it("lets no fluid size nor letter-spacing through to KEO (TK7.3)", () => {
     expect(findFluidKeoTypography(tokens)).toEqual([]);
   });
@@ -399,11 +451,16 @@ describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () =
 
   it("holds the texts and the field border at the peak of the header glow, about #0d291d (RK-9)", () => {
     const keo = effectiveTokens(tokens, "keo");
-    const withPeak = withGlowPeak(keo, GLOW_PEAK);
+    const withPeak = withMixOver(
+      keo,
+      "--background-image-header-glow",
+      "--color-surface-page",
+      GLOW_PEAK,
+    );
     expect(withPeak.get(GLOW_PEAK)).toBe("#0d291d");
     expect(findTokenPairFailures(withPeak, GLOW_PEAK_PAIRS)).toEqual([]);
     // A glow past the 15 % ceiling sinks the tertiary text and the error red: the pairs see it.
-    const strong = withGlowPeak(
+    const strong = withMixOver(
       effectiveTokens(
         withKeoDeclaration(
           tokens,
@@ -411,9 +468,48 @@ describe("G3d: contrasts and success hue, per charter (20 §11.3, §11.4)", () =
         ),
         "keo",
       ),
+      "--background-image-header-glow",
+      "--color-surface-page",
       GLOW_PEAK,
     );
     expect(findTokenPairFailures(strong, GLOW_PEAK_PAIRS)).not.toEqual([]);
+  });
+
+  // RUA-T2 (RU-04, D88): the text of a badge or a counter on the scrims of 82 and 75 %, over the
+  // lightest photo. The 45 % scrim is a decor without text: no pair, but it must stay under it.
+  it("holds the primary text on the scrims of 82 and 75 % laid over a white photo (RU-04)", () => {
+    const keo = effectiveTokens(tokens, "keo");
+    const both = withMixOver(
+      withMixOver(
+        keo,
+        "--effect-photo-scrim-strong",
+        PHOTO_WORST,
+        PHOTO_SCRIM_STRONG,
+      ),
+      "--effect-photo-scrim",
+      PHOTO_WORST,
+      PHOTO_SCRIM,
+    );
+    expect(findTokenPairFailures(both, PHOTO_SCRIM_PAIRS)).toEqual([]);
+    // A scrim down to 45 % no longer carries the text: the pairs see it (negative case).
+    const light = withMixOver(
+      withMixOver(
+        effectiveTokens(
+          withKeoDeclaration(
+            tokens,
+            "--effect-photo-scrim-strong: color-mix(in srgb, var(--color-surface-page) 45%, transparent);",
+          ),
+          "keo",
+        ),
+        "--effect-photo-scrim-strong",
+        PHOTO_WORST,
+        PHOTO_SCRIM_STRONG,
+      ),
+      "--effect-photo-scrim",
+      PHOTO_WORST,
+      PHOTO_SCRIM,
+    );
+    expect(findTokenPairFailures(light, PHOTO_SCRIM_PAIRS)).not.toEqual([]);
   });
 
   it("gives the success its own color per charter, 20 degrees or more from the action", () => {
@@ -519,6 +615,12 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     expect(
       findVitrineTokenUse(WEB_ROOT, KEO_SCOPES, [...colors, ...effects]),
     ).toEqual([]);
+  });
+
+  // RUA-T2 (RU-04, D88): the effects on a photo are read by the modules of PHOTO_EFFECT_READERS only
+  // (empty until a screen lays an element on a photo); the detector is self-tested in the test-kit.
+  it("reads the --effect-photo-* tokens in no module but PHOTO_EFFECT_READERS", () => {
+    expect(findPhotoEffectUse(WEB_ROOT, PHOTO_EFFECT_READERS)).toEqual([]);
   });
 
   it("transforms a state under motion-safe: only and never transitions all (20 §11.5, F6)", () => {

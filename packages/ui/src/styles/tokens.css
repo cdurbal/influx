@@ -142,6 +142,18 @@
   --color-data-net-creator: var(--color-brand-subtle-bg);
 
   /*
+   * ---------- Colors: roles of the Lot 3bis (D88, RUA-01; 20 §11.3) ----------
+   * Aliases, no new value (D6). logo-plate and the two skeleton roles point at surfaces that the KEO
+   * block redefines, so the block redeclares them identically (G3c). network-primary is data-3, which
+   * KEO keeps (KEO_INHERITS): it marks the main account of a creator, always with the words "main
+   * account" written or read (RU-13), and is no chart series.
+   */
+  --color-logo-plate: var(--color-surface-inverse);
+  --color-skeleton-base: var(--color-surface-raised);
+  --color-skeleton-sheen: var(--color-surface-hover);
+  --color-network-primary: var(--color-data-3);
+
+  /*
    * ---------- Backgrounds: premium metal card (fondateur, 2026-09-17, effet carte métallisée
    * inspiré de wekollab.fr ; intensité relevée le 2026-09-17 pour un rendu façon carte noire
    * Visa Infinite) ----------
@@ -260,6 +272,10 @@
   --tracking-heading: -0.01em;
   --tracking-normal: 0;
   --tracking-overline: 0.08em;
+  /* Letter-spacing of the Lot 3bis (RU-01): a code, the entry of a code, a matching phrase. */
+  --tracking-code: 0.06em;
+  --tracking-code-entry: 0.3em;
+  --tracking-phrase: 0.02em;
 
   /* ---------- Typography: sizes with their default line height (03 §4.2) ---------- */
   --text-xs: 0.75rem;
@@ -287,6 +303,19 @@
   --text-title-page--line-height: var(--leading-heading);
   --text-title-section: 1.25rem;
   --text-title-section--line-height: var(--leading-snug);
+  /*
+   * Four fixed sizes of the Lot 3bis, in three steps (RU-01, D88; 20 §11.5): the value below is the
+   * smallest window's, raised in the media queries further down at 768 and 1024 px, as --text-title-page.
+   * Never `clamp(` nor `vw` (TK7.3).
+   */
+  --text-title-detail: 1.625rem;
+  --text-title-detail--line-height: var(--leading-heading);
+  --text-title-hero: 1.75rem;
+  --text-title-hero--line-height: var(--leading-heading);
+  --text-key-figure: 1.125rem;
+  --text-key-figure--line-height: var(--leading-tight);
+  --text-aside-figure: 1.25rem;
+  --text-aside-figure--line-height: var(--leading-tight);
 
   /* ---------- Spacing scale, base 4 px (03 §5) ---------- */
   --spacing-0: 0;
@@ -342,6 +371,19 @@
    */
   --effect-action-glow: 0 0 transparent;
   --effect-action-glow-hover: 0 0 transparent;
+  /*
+   * Effects of the Lot 3bis (D88, RU-04 and RU-06; 20 §11.5). The hover of a visual of the mosaic dims it,
+   * without any transformation. The scrims and the shadow of an element laid on a photo are neutral here
+   * (`transparent`, `none`: a filter that `none` composes with nothing, no stacking context) and valued in
+   * the KEO block, where `surface-page` is redefined. Read as `bg-(--effect-photo-scrim)` and
+   * `filter-(--effect-photo-shadow)`, by an element on a photo only; declared in the theme layer, as
+   * --effect-action-glow.
+   */
+  --effect-media-hover: brightness(0.85);
+  --effect-photo-scrim-strong: transparent;
+  --effect-photo-scrim: transparent;
+  --effect-photo-scrim-soft: transparent;
+  --effect-photo-shadow: none;
   /*
    * Elevation on a near-black page: a pure dark drop shadow disappears into the background, so
    * each level pairs it with a hairline, near-transparent white edge (glass-like rim) to read as
@@ -411,6 +453,11 @@
   --rotate-hero-halo: 14deg;
   --blur-hero-halo: 40px;
 
+  /* ---------- Proportions of the Lot 3bis (D88): the `aspect-*` space, not `--ratio-*` ---------- */
+  --aspect-photo: 4 / 3;
+  --aspect-mosaic: 2 / 1;
+  --aspect-otp: 5 / 6;
+
   /* ---------- Breakpoints, mobile-first (03 §6) ---------- */
   --breakpoint-sm: 480px;
   --breakpoint-md: 768px;
@@ -429,6 +476,9 @@
   /* Hover zoom and press of a button, lift of a clickable card (F6, RK-2): none in the vitrine. */
   --scale-hover: 1;
   --scale-press: 1;
+  /* Press of the heart and leave of a removed card (RU-06, D88): none in the vitrine, not redefined under KEO. */
+  --scale-heart-press: 0.9;
+  --scale-leave: 0.96;
   --translate-lift: 0;
   --animate-marquee: marquee var(--duration-marquee-loop) linear infinite;
 
@@ -460,6 +510,10 @@
   --duration-base: 200ms;
   --duration-slow: 320ms;
   --duration-marquee-loop: 40s;
+  /* Durations of the Lot 3bis (RU-06, D88): the complete network, the send icon, the skeleton sweep. */
+  --duration-celebrate: 900ms;
+  --duration-spin: 1s;
+  --duration-skeleton: 1.2s;
 
   /* Control and icon sizes (03 §8) */
   --size-touch-target: 2.75rem;
@@ -560,12 +614,108 @@
   --font-stack-system:
     system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
     "Noto Sans", "Liberation Sans", sans-serif;
+
+  /*
+   * ---------- Lengths and grids of the Lot 3bis (D88, RUA-01; 20 §11.5) ----------
+   * One token per value of the mockups, named by role, never by number (jalons/rua/modele-ux.md). Rem
+   * only: they follow the user's font size. None is redefined under KEO (G3i a: no --container-* there).
+   * The tokens of the backoffice alone are in tokens-backoffice.css (`-bo-`, G3f).
+   */
+
+  /* Pills, chips, tags, markers and icons */
+  --size-pill: var(--spacing-7);
+  --size-chip: var(--spacing-6);
+  --size-tag: 2.25rem;
+  --size-step-marker: 1.75rem;
+  --size-segment-bar: 0.375rem;
+  /* Hit zone of a segment of the wizard: 26 px around a 6 px bar. */
+  --inset-segment-hit: -0.625rem;
+  --size-icon-xs: 0.75rem;
+  --size-icon-dense: 0.875rem;
+  --size-icon-star: 1.375rem;
+  --size-icon-heart: 1.625rem;
+  --size-skeleton-line: var(--text-sm);
+  /* A logo is not a field: its own role (the hero of the creator's reading page, 5b). */
+  --size-logo-hero: 7.5rem;
+  --size-thumb: 3.5rem;
+  /* Optical alignment of an icon with the first line of its text, and the inner gap of dense rows. */
+  --size-nudge: 0.125rem;
+  --size-nudge-icon: 0.1875rem;
+  --size-nudge-hair: 0.0625rem;
+  --offset-link: 0.2em;
+  --offset-icon-baseline: -0.15em;
+  --offset-icon-baseline-xs: -0.2em;
+
+  /* Fields */
+  --size-textarea: 7.5rem;
+  --size-input-number: 8rem;
+  --size-select-add: 13rem;
+  --size-select-add-max: 20rem;
+  --size-sort: 14rem;
+  --size-search: 15rem;
+  --size-date: 12rem;
+  --size-otp: 22rem;
+  --size-note-min: 12rem;
+  --size-note-max: 16rem;
+
+  /* Reserve under a sticky bar, on a phone (RU-15), and the height of the filters dialog. */
+  --size-mobile-space-search: 3.75rem;
+  --size-mobile-space-reading: 4.25rem;
+  --size-mobile-space-wizard: 4.5rem;
+  --size-overlay-max: 85dvh;
+
+  /* Width of a label of a list of properties, by role (RU-16): the default, then each reading. */
+  --size-property-label: 13rem;
+  --size-property-label-summary: 11rem;
+  --size-property-label-reading: 12rem;
+  --size-property-label-reading-compact: 8.5rem;
+  --size-property-label-terms: 9rem;
+
+  /* Measures and containers */
+  --measure-wide: 46rem;
+  --container-form: 28rem;
+  --container-form-wide: 36rem;
+  --container-dialog: 30rem;
+  --container-filters: 42rem;
+  --container-confirm: 34rem;
+  --container-gallery: 56rem;
+  --container-feed-card: 26rem;
+  --container-brand-card: 34rem;
+  --container-danger: 32rem;
+  /* Widths of the fields and lists sized on their line (`style=` in the mockups). */
+  --container-field-xs: 16rem;
+  --container-field-sm: 18rem;
+  --container-field-md: 20rem;
+  --container-field-lg: 22rem;
+  --container-field-xl: 26rem;
+
+  /* Grids */
+  --grid-reading: minmax(0, 7fr) minmax(19rem, 4fr);
+  --grid-home: minmax(0, 2fr) minmax(0, 1fr);
+  --grid-mosaic: 2fr 1fr 1fr;
+  --grid-photo-cards: repeat(auto-fill, minmax(18rem, 1fr));
+  --grid-photo-cards-narrow: repeat(auto-fill, minmax(17rem, 1fr));
+  --grid-campaign-row: minmax(0, 1fr) 15rem 5.5rem var(--size-icon-md);
+  --grid-timeline: 8rem minmax(0, 1fr);
+  --grid-verification-row: 7rem minmax(0, 1fr);
+  /* Bars of ranges: mobile-first, widened from 480 px by the media query below. */
+  --grid-range: 6.5rem minmax(0, 1fr) 5.5rem;
 }
 
 /* Responsive semantic tokens (03 §5 and §6). Values mirror the breakpoints above. */
+@media (width >= 480px) {
+  :root {
+    --grid-range: 9rem minmax(0, 1fr) 6.5rem;
+  }
+}
+
 @media (width >= 768px) {
   :root {
     --spacing-grid-gap: var(--spacing-5);
+    --text-title-detail: 1.875rem;
+    --text-title-hero: 2rem;
+    --text-key-figure: 1.1875rem;
+    --text-aside-figure: 1.375rem;
   }
 }
 
@@ -575,6 +725,10 @@
     --spacing-inset-card: var(--spacing-6);
     --header-height: 4.5rem;
     --text-title-page: 1.75rem;
+    --text-title-detail: 2.125rem;
+    --text-title-hero: 2.25rem;
+    --text-key-figure: 1.25rem;
+    --text-aside-figure: 1.5rem;
   }
 }
 
@@ -584,6 +738,9 @@
     --duration-fast: var(--duration-instant);
     --duration-base: var(--duration-instant);
     --duration-slow: var(--duration-instant);
+    /* The long ones of the Lot 3bis (RU-06); the skeleton sweep is removed by `animation: none` (AN-1). */
+    --duration-celebrate: var(--duration-instant);
+    --duration-spin: var(--duration-instant);
   }
 }
 
@@ -665,6 +822,11 @@
     --color-data-1: var(--color-brand-primary);
     --color-data-2: var(--color-feedback-info-text);
 
+    /* Roles of the Lot 3bis (D88): aliases whose target is redefined above */
+    --color-logo-plate: var(--color-surface-inverse);
+    --color-skeleton-base: var(--color-surface-raised);
+    --color-skeleton-sheen: var(--color-surface-hover);
+
     /* Families (20 §11.5, 02 §21.4): Manrope for titles and figures, Source Sans 3 for the body,
      * `latin` only, then the system stack (02 §21.4 point 3, fallback case: the metric fallback of
      * next/font draws a `latin-ext` glyph before a second family could, TD3.4).
@@ -692,6 +854,27 @@
       ellipse 50% var(--size-header-glow) at 50% 0%,
       color-mix(in srgb, var(--color-brand-primary) 15%, transparent),
       transparent
+    );
+    /* Effects on a photo (D88, RU-04; 20 §11.5): the page surface mixed with transparency for the three
+     * scrims, black at 50 % for the shadow, and nothing else (G3i a). Valued here, where `surface-page`
+     * is redefined; the scrim of 82 % and the one of 75 % carry a text (G3d, PHOTO_SCRIM_PAIRS). */
+    --effect-photo-scrim-strong: color-mix(
+      in srgb,
+      var(--color-surface-page) 82%,
+      transparent
+    );
+    --effect-photo-scrim: color-mix(
+      in srgb,
+      var(--color-surface-page) 75%,
+      transparent
+    );
+    --effect-photo-scrim-soft: color-mix(
+      in srgb,
+      var(--color-surface-page) 45%,
+      transparent
+    );
+    --effect-photo-shadow: drop-shadow(
+      0 1px 2px color-mix(in srgb, #000000 50%, transparent)
     );
     --scale-hover: 1.03;
     --scale-press: 0.98;

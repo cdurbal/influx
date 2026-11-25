@@ -1180,21 +1180,29 @@ const COLOR_MIX_OVER_TRANSPARENT =
   /color-mix\(\s*in srgb\s*,\s*(#[0-9a-fA-F]{6})\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)/;
 
 /**
- * The effective tokens plus one derived color, `name`: the peak of the header glow, i.e. the brand
- * green of its `color-mix(… N%, transparent)` laid over the page (RK-9; 20 §11.4). The percentage
- * is read from the stylesheet, so a stronger glow moves the pairs checked against it. Nothing is
- * declared: the color exists only here, for G3d. A glow with no such mix is a finding (it throws).
+ * The effective tokens plus one derived color, `name`: the `color-mix(… N%, transparent)` held by
+ * `token`, laid over `ground` (G3d; 20 §11.4). The mixed color and the percentage are read from the
+ * stylesheet, so a stronger glow or a lighter scrim moves the pairs checked against it. One function
+ * for two uses: the peak of the header glow over the page (`ground` = `--color-surface-page`, RK-9)
+ * and a scrim over the lightest photo (`ground` = PHOTO_WORST, RU-04). `ground` is a `--token` of the
+ * set or a 6-digit hex. Nothing is declared: the color exists only here, for G3d. A token with no
+ * such mix, or a ground that is neither, is a finding (it throws).
  */
-export function withGlowPeak(
+export function withMixOver(
   tokens: ReadonlyMap<string, string>,
+  token: string,
+  ground: string,
   name: string,
 ): Map<string, string> {
-  const mix = COLOR_MIX_OVER_TRANSPARENT.exec(
-    tokens.get("--background-image-header-glow") ?? "",
-  );
-  const page = tokens.get("--color-surface-page");
-  if (mix === null || page === undefined) {
-    throw new Error("no header glow made of a color-mix over the page");
+  const mix = COLOR_MIX_OVER_TRANSPARENT.exec(tokens.get(token) ?? "");
+  const under = ground.startsWith("--") ? tokens.get(ground) : ground;
+  if (mix === null) {
+    throw new Error(`${token}: no color-mix over transparency`);
+  }
+  if (under === undefined || !/^#[0-9a-fA-F]{6}$/.test(under)) {
+    throw new Error(
+      `${ground}: not a 6-digit hex color nor a token holding one`,
+    );
   }
   const share = Number(mix[2]) / 100;
   const channel = (hex: string, start: number): number =>
@@ -1203,7 +1211,7 @@ export function withGlowPeak(
     .map((start) =>
       Math.round(
         channel(mix[1] ?? "", start) * share +
-          channel(page, start) * (1 - share),
+          channel(under, start) * (1 - share),
       )
         .toString(16)
         .padStart(2, "0"),
@@ -1868,12 +1876,35 @@ export const KEO_FORBIDDEN_NAMESPACES: readonly string[] = [
   "--container-",
 ];
 
-/** A token allowed to mix the brand green with transparency (RK-A), and its ceiling in percent. */
-export type ColorMixAllowance = { name: string; maxPercent?: number };
+/** The colors a `color-mix` over transparency may be made of (G3i; RK-A, then RU-04 of D88). */
+export type ColorMixBase =
+  "var(--color-brand-primary)" | "var(--color-surface-page)" | "#000000";
 
-/** The only `color-mix` RK-A admits: the brand green, a percentage, then transparency. */
-const BRAND_COLOR_MIX =
-  /^color-mix\(\s*in srgb\s*,\s*var\(\s*--color-brand-primary\s*\)\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)$/;
+/** What each base is called in a finding. */
+const COLOR_MIX_BASE_LABEL: Readonly<Record<ColorMixBase, string>> = {
+  "var(--color-brand-primary)": "the brand green",
+  "var(--color-surface-page)": "the page surface",
+  "#000000": "black",
+};
+
+/**
+ * A token allowed to hold `color-mix(in srgb, <base> N%, transparent)`: `base` is the brand green
+ * unless said otherwise (RK-A), `maxPercent` a ceiling (the header glow), `percent` the exact share
+ * (the three scrims and the shadow on a photo, RU-04).
+ */
+export type ColorMixAllowance = {
+  name: string;
+  maxPercent?: number;
+  base?: ColorMixBase;
+  percent?: number;
+};
+
+/** The only shape of `color-mix` that G3i admits: a color, a percentage, then transparency. */
+const COLOR_MIX_OVER_NOTHING =
+  /^color-mix\(\s*in srgb\s*,\s*(var\(\s*--[\w-]+\s*\)|#[0-9a-fA-F]{6})\s+(\d+(?:\.\d+)?)%\s*,\s*transparent\s*\)$/;
+
+/** An alpha channel written in an `--effect-*`: `rgba(`, `hsla(` or `#rrggbbaa` (RU-04; 02 §21.3). */
+const EFFECT_ALPHA_COLOR = /\b(?:rgba|hsla)\(|#[0-9a-fA-F]{8}\b/;
 
 /** Every `color-mix(…)` of a value, its parentheses balanced. */
 function colorMixesOf(value: string): string[] {
@@ -1900,13 +1931,17 @@ function colorMixesOf(value: string): string[] {
 /**
  * G3i (a), on the sources: a token of a namespace that Tailwind inscribes, redefined in the KEO
  * block; an `@theme inline` (every value inscribed, 02 §21.3 point 3); a `color-mix` anywhere but
- * in a token of `allowances` inside the KEO block, in the form RK-A admits, within its ceiling.
+ * in a token of `allowances` inside the KEO block, made of the base the allowance names, at its exact
+ * percentage or within its ceiling; an allowance given to a `--color-*`; an alpha color (`rgba(`,
+ * `hsla(`, `#rrggbbaa`) in any `--effect-*`, which a `color-mix` over transparency replaces (RU-04).
  */
 export function findKeoTrapViolations(
   css: string,
   allowances: readonly ColorMixAllowance[],
 ): string[] {
-  const findings: string[] = [];
+  const findings: string[] = allowances
+    .filter((entry) => entry.name.startsWith("--color-"))
+    .map((entry) => `${entry.name}: a --color-* never holds a color-mix`);
   if (/@theme\b[^{;]*\binline\b/.test(css.replace(/\/\*[\s\S]*?\*\//g, " "))) {
     findings.push(
       "@theme inline: Tailwind would inscribe every value, KEO would be read nowhere",
@@ -1926,18 +1961,34 @@ export function findKeoTrapViolations(
   }
   const visit = (block: CssBlock, inKeo: boolean) => {
     for (const { name, value } of block.declarations) {
+      if (name.startsWith("--effect-") && EFFECT_ALPHA_COLOR.test(value)) {
+        findings.push(
+          `${name}: "${value}" holds an alpha color, a color-mix over transparency replaces it`,
+        );
+      }
       for (const mix of colorMixesOf(value)) {
         const allowance = inKeo
           ? allowances.find((entry) => entry.name === name)
           : undefined;
-        const percent = BRAND_COLOR_MIX.exec(mix)?.[1];
+        const parsed = COLOR_MIX_OVER_NOTHING.exec(mix);
+        const base = parsed?.[1]?.replace(/\s+/g, "");
+        const percent = parsed?.[2];
+        const wanted: ColorMixBase =
+          allowance?.base ?? "var(--color-brand-primary)";
         if (allowance === undefined) {
           findings.push(
             `${name}: "${mix}" outside the tokens of RK-A${inKeo ? "" : " (not in the KEO block)"}`,
           );
-        } else if (percent === undefined) {
+        } else if (percent === undefined || base !== wanted) {
           findings.push(
-            `${name}: "${mix}" is not the brand green mixed with transparency`,
+            `${name}: "${mix}" is not ${COLOR_MIX_BASE_LABEL[wanted]} mixed with transparency`,
+          );
+        } else if (
+          allowance.percent !== undefined &&
+          Number(percent) !== allowance.percent
+        ) {
+          findings.push(
+            `${name}: ${percent}% instead of the ${allowance.percent}% allowed`,
           );
         } else if (
           allowance.maxPercent !== undefined &&
@@ -2278,6 +2329,29 @@ export function findDocumentSmoothing(css: string): string[] {
       ? [`${selector}: declares a font smoothing (${collapse(body)})`]
       : [];
   });
+}
+
+/** The four tokens of the effects on a photo (RU-04, D88): the three scrims and the shadow. */
+export const PHOTO_EFFECT_TOKENS: readonly string[] = [
+  "effect-photo-scrim-strong",
+  "effect-photo-scrim",
+  "effect-photo-scrim-soft",
+  "effect-photo-shadow",
+];
+
+/**
+ * G8, the effects on a photo confined (RU-04): every line of src/ that names one of the four
+ * `effect-photo-*` tokens outside the modules of `readers` (PHOTO_EFFECT_READERS), comments aside,
+ * and every listed module that does not exist. An element laid on a photo reads them; no card, page
+ * or surface does.
+ */
+export function findPhotoEffectUse(
+  frontRoot: string,
+  readers: readonly string[],
+): string[] {
+  return PHOTO_EFFECT_TOKENS.flatMap((token) =>
+    findTokenUseOutside(frontRoot, token, readers),
+  );
 }
 
 /**

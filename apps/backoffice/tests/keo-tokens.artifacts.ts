@@ -44,6 +44,15 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   "--translate-lift",
   // The border of a clickable card on hover (RK-10): the backoffice has no clickable card.
   "--color-border-hover",
+  // Roles and effects of the Lot 3bis (D88, RUA-01), redefined under KEO and read by no class before the
+  // screens of RUC; each entry goes when its reader arrives (a stale entry fails this very test).
+  "--color-logo-plate",
+  "--color-skeleton-base",
+  "--color-skeleton-sheen",
+  "--effect-photo-scrim-strong",
+  "--effect-photo-scrim",
+  "--effect-photo-scrim-soft",
+  "--effect-photo-shadow",
 ];
 
 describe("G3i (b): the built CSS reads every KEO token through var()", () => {

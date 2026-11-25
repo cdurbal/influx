@@ -691,7 +691,7 @@ fond) ; (6) un **surtitre ou un badge en vert** ; (7) un **halo d'en-tête au-de
 | `network-primary` (= `data-3`) sur carte / surélevée / survol | 9,99 / 9,18 / 8,17 | 3 ✅ |
 | `text-inverse` sur `logo-plate` / `surface-inverse` | 17,46 | 4,5 ✅ |
 | `text-inverse` sur `action-primary-bg` (case cochée) | 9,96 | 3 ✅ |
-| `text-primary` sur le voile de 82 % / de 75 % posé sur blanc (pire cas d'une photo) | 11,02 / 8,45 | 4,5 ✅ |
+| `text-primary` sur le voile de 82 % / de 75 % posé sur blanc (pire cas d'une photo) | 11,01 / 8,46 (EC-RUA-00-2, calculé par `withMixOver` : `#363736`, `#474847`) | 4,5 ✅ |
 | Voile de 45 % : décor sans texte, aucune paire (2,90) ; le bord de l'élément tient par `effect-photo-shadow` | — | — |
 | `text-*` sur `surface-active`, `border-strong` sur `surface-raised` | déjà au tableau | — |
 

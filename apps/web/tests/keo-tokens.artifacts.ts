@@ -34,6 +34,15 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   // Chart series (20 §11.4): no chart is drawn in this front yet.
   "--color-data-1",
   "--color-data-2",
+  // Roles and effects of the Lot 3bis (D88, RUA-01), redefined under KEO and read by no class before the
+  // screens of RUB; each entry goes when its reader arrives (a stale entry fails this very test).
+  "--color-logo-plate",
+  "--color-skeleton-base",
+  "--color-skeleton-sheen",
+  "--effect-photo-scrim-strong",
+  "--effect-photo-scrim",
+  "--effect-photo-scrim-soft",
+  "--effect-photo-shadow",
 ];
 
 // A word of a module of classes that the build names no rule for, one line each. None is a class: the

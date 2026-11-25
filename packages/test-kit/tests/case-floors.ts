@@ -15,7 +15,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/guards.test.ts": 27,
   "tests/logs.test.ts": 11,
   "tests/operator-secrets.test.ts": 7,
-  "tests/rendering-guards.test.ts": 21,
+  "tests/rendering-guards.test.ts": 27,
   "tests/t16-static.test.ts": 22,
   "tests/token-readers.test.ts": 33,
   "tests/totp.test.ts": 8,

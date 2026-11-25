@@ -37,6 +37,7 @@ import {
   findDocumentSmoothing,
   findFluidKeoTypography,
   findKeoTrapViolations,
+  findPhotoEffectUse,
   findTokenUseOutside,
   findVitrineTokenUse,
   fluidTypographyClasses,
@@ -45,7 +46,11 @@ import {
   TRANSLUCENT_RED_CLASS,
   type Charter,
 } from "@influx/test-kit/guards";
-import { DANGER_PAIRS, KEO_COLOR_MIX } from "@influx/test-kit/charter-data";
+import {
+  DANGER_PAIRS,
+  KEO_COLOR_MIX,
+  PHOTO_EFFECT_READERS,
+} from "@influx/test-kit/charter-data";
 import { describe, expect, it } from "vitest";
 import nextConfig, { NOINDEX, SECURITY_HEADERS } from "../next.config";
 import {
@@ -218,6 +223,28 @@ describe("G3f: tokens-backoffice.css holds backoffice tokens only", () => {
     expect(findNonBoDeclarations(css)).toEqual([]);
   });
 
+  // RUA-T2 (D88, RUA-01): the Lot 3bis tokens of the backoffice carry -bo-, a -bo- name outside
+  // tokens-backoffice.css is no one's, and the two widths of the pages are in :root, never in @theme.
+  it("declares the Lot 3bis tokens with -bo- names, the two containers in :root (G3f, G3i a)", () => {
+    expect(findNonBoDeclarations(css)).toEqual([]);
+    for (const name of [
+      "--spacing-bo-panel-w",
+      "--grid-bo-panel",
+      "--size-bo-kbd",
+      "--size-bo-label-dual-control",
+    ]) {
+      expect(css, name).toContain(`${name}:`);
+    }
+    expect(css).toMatch(
+      /:root\s*\{\s*--container-bo-form: 52rem;\s*--container-bo-page: 60rem;\s*\}/,
+    );
+    expect(
+      findNonBoDeclarations(
+        "@theme static { --container-form: 28rem; --grid-bo-panel: 1fr; }",
+      ),
+    ).toEqual(['--container-form: no "-bo-" marker in tokens-backoffice.css']);
+  });
+
   it("detects a plain name (self-check of the detector)", () => {
     expect(
       findNonBoDeclarations("@theme static { --color-brand-primary: red; }"),
@@ -273,6 +300,14 @@ describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no sm
 
   it("lets no fluid size nor letter-spacing through to KEO (TK7.3)", () => {
     expect(findFluidKeoTypography(tokens)).toEqual([]);
+  });
+
+  // RUA-T2 (RU-04, D88): the four effects on a photo are read by PHOTO_EFFECT_READERS alone (empty
+  // until a screen lays an element on a photo); the detector is self-tested in the test-kit.
+  it("reads the --effect-photo-* tokens in no module but PHOTO_EFFECT_READERS (G8)", () => {
+    expect(findPhotoEffectUse(BACKOFFICE_ROOT, PHOTO_EFFECT_READERS)).toEqual(
+      [],
+    );
   });
 
   it("uses no class of the vitrine's fluid typography, the backoffice being KEO whole (TK7.3, G8 extended)", () => {
