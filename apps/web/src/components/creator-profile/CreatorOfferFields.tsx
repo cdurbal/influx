@@ -11,7 +11,12 @@
 import { useLocale, useTranslations } from "next-intl";
 import { Notice } from "@/components/member/ui/Notice";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
-import { YesNoField } from "@/components/member/ui/YesNoField";
+import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
+import {
+  answerToCode,
+  codeToAnswer,
+  yesNoOptions,
+} from "@/components/member/ui/yes-no-answer";
 import type { ChoiceOption } from "@/components/member/ui/choice-option";
 import {
   MEMBER_FIELD_HELP_CLASSES,
@@ -19,7 +24,7 @@ import {
   memberChoiceRowClasses,
 } from "@/components/member/ui/field-classes";
 import { describedByOf, useFieldIds } from "@/components/member/ui/field-ids";
-import { FieldFrame, type FieldTexts } from "@/components/member/ui/FieldFrame";
+import { Field, type FieldTexts } from "@/components/member/ui/Field";
 import { ChevronDownIcon } from "@/components/ui/icons";
 import type { CreatorFieldsProps } from "./CreatorProfileFields";
 import { FOLD_SUMMARY_CLASSES } from "./creator-profile-classes";
@@ -102,7 +107,7 @@ function CheckGroup({
       </div>
     ));
   return (
-    <FieldFrame
+    <Field
       {...texts}
       help={help}
       ids={ids}
@@ -128,7 +133,7 @@ function CheckGroup({
           {boxes(folded.groups)}
         </details>
       )}
-    </FieldFrame>
+    </Field>
   );
 }
 
@@ -245,13 +250,13 @@ export function OfferFields({
         {...field("maxExclusivity", "public", t("fields.maxExclusivity.label"))}
         help={t("fields.maxExclusivity.help")}
       />
-      <YesNoField
+      <ChoiceGroup
+        type="radio"
         id={controlIdOf("acceptsNonMonetary")}
         name="acceptsNonMonetary"
-        value={draft.acceptsNonMonetary}
-        onChange={(answer) => change("acceptsNonMonetary", answer)}
-        yesLabel={t("field.yes")}
-        noLabel={t("field.no")}
+        options={yesNoOptions(t("field.yes"), t("field.no"))}
+        value={answerToCode(draft.acceptsNonMonetary)}
+        onChange={(code) => change("acceptsNonMonetary", codeToAnswer(code))}
         {...field(
           "acceptsNonMonetary",
           "public",

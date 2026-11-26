@@ -14,7 +14,7 @@ import {
 import { CAMPAIGN_LIST_LIMITS } from "@influx/contracts/campaign";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/member/ui/Button";
-import { MultiChoiceField } from "@/components/member/ui/MultiChoiceField";
+import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
 import { PickListField } from "@/components/member/ui/PickListField";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
@@ -91,7 +91,8 @@ export function CampaignAudienceFields({
             t("fields.audienceLanguages.label"),
           )}
         />
-        <MultiChoiceField
+        <ChoiceGroup
+          type="checkbox"
           id={controlIdOf("audienceTopics")}
           options={options.topics}
           value={draft.audienceTopics}
@@ -118,7 +119,8 @@ export function CampaignAudienceFields({
         <h3 id="campaign-block-audience-more" className={CARD_TITLE}>
           {t("form.blocks.audienceMore")}
         </h3>
-        <MultiChoiceField
+        <ChoiceGroup
+          type="checkbox"
           id={controlIdOf("audienceBands")}
           options={options.audienceBands}
           value={draft.audienceBands}
@@ -129,7 +131,8 @@ export function CampaignAudienceFields({
           onChange={(codes) => change("audienceBands", codes)}
           {...texts("audienceBands", "public", t("fields.audienceBands.label"))}
         />
-        <MultiChoiceField
+        <ChoiceGroup
+          type="checkbox"
           id={controlIdOf("audienceAgeBands")}
           options={options.audienceAgeBands}
           value={draft.audienceAgeBands}

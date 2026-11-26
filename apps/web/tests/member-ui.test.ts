@@ -39,7 +39,11 @@ import { RoleBadge } from "@/components/member/ui/RoleBadge";
 import { StatusBadge } from "@/components/member/ui/StatusBadge";
 import { VerifiedBadge } from "@/components/member/ui/VerifiedBadge";
 import { CheckIcon, FlagIcon } from "@/components/ui/icons";
-import { YesNoField } from "@/components/member/ui/YesNoField";
+import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
+import {
+  answerToCode,
+  yesNoOptions,
+} from "@/components/member/ui/yes-no-answer";
 
 const html = (element: Parameters<typeof renderToStaticMarkup>[0]) =>
   renderToStaticMarkup(element);
@@ -217,13 +221,13 @@ describe("badges and notices", () => {
 describe("locked fields (L3C-X3)", () => {
   it("keeps a locked radio disabled and checked, redrawn as a shape and never dimmed, its value still readable", () => {
     const markup = html(
-      createElement(YesNoField, {
+      createElement(ChoiceGroup, {
+        type: "radio",
         name: "remote",
         label: "Remote",
-        value: true,
+        options: yesNoOptions("Yes", "No"),
+        value: answerToCode(true),
         onChange: () => undefined,
-        yesLabel: "Yes",
-        noLabel: "No",
         disabled: true,
       }),
     );

@@ -1,26 +1,24 @@
+import { ChoiceGroup } from "./ChoiceGroup";
 import type { ChoiceOption } from "./choice-option";
-import {
-  memberChoiceInputClasses,
-  memberChoiceRowClasses,
-  memberControlClasses,
-} from "./field-classes";
-import { describedByOf, useFieldIds } from "./field-ids";
-import { FieldFrame, type FieldTexts } from "./FieldFrame";
+import { memberControlClasses } from "./field-classes";
+import { describedByOf, fieldRefsOf, useFieldIds } from "./field-ids";
+import { Field, type FieldLayout, type FieldTexts } from "./Field";
 
-type SingleChoiceFieldProps = FieldTexts & {
-  /** Id of the control (of the first radio): the screen focuses the first invalid field by it. */
-  id?: string;
-  name: string;
-  options: readonly ChoiceOption[];
-  value: string | null;
-  onChange: (code: string) => void;
-  /** "select" for a long list (sectors), "radios" for a short one (sizes), all in view. */
-  display?: "select" | "radios";
-  /** The first, empty option of a select: "Choose…". */
-  placeholder?: string;
-  disabled?: boolean;
-  className?: string;
-};
+type SingleChoiceFieldProps = FieldTexts &
+  FieldLayout & {
+    /** Id of the control (of the first radio): the screen focuses the first invalid field by it. */
+    id?: string;
+    name: string;
+    options: readonly ChoiceOption[];
+    value: string | null;
+    onChange: (code: string) => void;
+    /** "select" for a long list (sectors), "radios" for a short one (sizes), all in view. */
+    display?: "select" | "radios";
+    /** The first, empty option of a select: "Choose…". */
+    placeholder?: string;
+    disabled?: boolean;
+    className?: string;
+  };
 
 /** One choice among a closed list (06 RG15): a native select or native radios, keyboard as the browser gives it. */
 export function SingleChoiceField({
@@ -37,41 +35,39 @@ export function SingleChoiceField({
 }: SingleChoiceFieldProps) {
   const ids = useFieldIds(id);
   const hasError = texts.error !== undefined && texts.error !== null;
+  const refs = fieldRefsOf(texts, ids);
   const describedBy = describedByOf(
-    texts.layer && ids.layer,
-    texts.help && ids.help,
-    hasError && ids.error,
+    refs.layer,
+    refs.help,
+    refs.suffix,
+    refs.counter,
+    refs.warning,
+    refs.error,
   );
   if (display === "radios") {
     return (
-      <FieldFrame
-        {...texts}
-        ids={ids}
-        kind="group"
-        describedBy={describedBy}
-        radioGroup={{ invalid: hasError }}
+      <ChoiceGroup
+        type="radio"
+        id={id}
+        name={name}
+        options={options}
+        value={value}
+        onChange={onChange}
+        label={texts.label}
+        requiredLabel={texts.requiredLabel}
+        layer={texts.layer}
+        layerShown={texts.layerShown}
+        help={texts.help}
+        error={texts.error}
+        warnings={texts.warnings}
+        conditional={texts.conditional}
+        disabled={disabled}
         className={className}
-      >
-        {options.map((option, index) => (
-          <label key={option.code} className={memberChoiceRowClasses()}>
-            <input
-              id={index === 0 ? ids.control : undefined}
-              type="radio"
-              name={name}
-              value={option.code}
-              checked={value === option.code}
-              disabled={disabled}
-              onChange={() => onChange(option.code)}
-              className={memberChoiceInputClasses()}
-            />
-            <span>{option.label}</span>
-          </label>
-        ))}
-      </FieldFrame>
+      />
     );
   }
   return (
-    <FieldFrame {...texts} ids={ids} kind="single" className={className}>
+    <Field {...texts} ids={ids} kind="single" className={className}>
       <select
         id={ids.control}
         name={name}
@@ -93,6 +89,6 @@ export function SingleChoiceField({
           </option>
         ))}
       </select>
-    </FieldFrame>
+    </Field>
   );
 }

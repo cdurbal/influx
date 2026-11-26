@@ -11,7 +11,7 @@ import {
   CAMPAIGN_DELIVERABLES_MAX,
 } from "./campaign-domain";
 import { useTranslations } from "next-intl";
-import { FieldFrame } from "@/components/member/ui/FieldFrame";
+import { Field } from "@/components/member/ui/Field";
 import { Button } from "@/components/member/ui/Button";
 import { describedByOf, useFieldIds } from "@/components/member/ui/field-ids";
 import { memberControlClasses } from "@/components/member/ui/field-classes";
@@ -73,7 +73,7 @@ export function DeliverablesField({
   }
 
   return (
-    <FieldFrame
+    <Field
       {...frame}
       help={`${t("fields.deliverables.help")} ${t("field.lineLimit", { max: CAMPAIGN_DELIVERABLES_MAX })}`}
       ids={ids}
@@ -220,7 +220,7 @@ export function DeliverablesField({
           {t("field.addLine")}
         </Button>
       </div>
-    </FieldFrame>
+    </Field>
   );
 }
 

@@ -10,7 +10,7 @@ import {
 } from "./campaign-domain";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/member/ui/Button";
-import { FieldFrame } from "@/components/member/ui/FieldFrame";
+import { Field } from "@/components/member/ui/Field";
 import { describedByOf, useFieldIds } from "@/components/member/ui/field-ids";
 import { memberControlClasses } from "@/components/member/ui/field-classes";
 import { PlusIcon, Trash2Icon } from "@/components/ui/icons";
@@ -52,7 +52,7 @@ export function KeyMessagesField({
   }
 
   return (
-    <FieldFrame
+    <Field
       {...frame}
       help={`${t("fields.keyMessages.help")} ${t("field.keyMessageLimit", { max: CAMPAIGN_KEY_MESSAGES_MAX })}`}
       ids={ids}
@@ -118,6 +118,6 @@ export function KeyMessagesField({
           {t("field.addKeyMessage")}
         </Button>
       </div>
-    </FieldFrame>
+    </Field>
   );
 }

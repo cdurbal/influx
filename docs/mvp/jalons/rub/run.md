@@ -10,7 +10,7 @@
 | 02 | 02.md | commit | sonnet | high | dev-react-node | fait | C04, C05, C10-C12 livrés ; Button ← MemberButton (client) ; sm = size-tag, bar = size-pill ; busy et raison déclaratifs ; AN2 02 vert ; SHARED +4 pending |
 | 03 | 03.md | commit | sonnet | high | dev-react-node | fait | C13-C17, C33, C38 livrés ; VerifiedBadge = ton verified ; Notice noticeClasses intacte (callers auth) ; garde hero : 2 rôles exemptés ; SHARED +7 pending |
 | 04 | 04.md | commit | sonnet | high | dev-react-node | fait | C06-C09 livrés ; 8 variantes RowList par champs ; titre EmptyState = p (02c) ; squelette 1 s par minuteur ; AN2 04 et 32 verts ; SHARED +4 pending |
-| 05 | 05.md | commit | sonnet | high | dev-react-node | à faire | |
+| 05 | 05.md | commit | sonnet | high | dev-react-node | fait | C18-C21 livrés ; Field ← FieldFrame, ChoiceGroup ← Multi/YesNo (legend = label, code gardé) ; erreur sans décalage ; ErrorSummary client ; SHARED +3 |
 | 06 | 06.md | commit | sonnet | high | dev-react-node | à faire | |
 | 07 | 07.md | commit | sonnet | high | dev-react-node | à faire | |
 | 08 | 08.md | commit | sonnet | high | dev-react-node | à faire | |

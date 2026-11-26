@@ -6,7 +6,7 @@ import {
   memberControlClasses,
 } from "./field-classes";
 import { describedByOf, useFieldIds } from "./field-ids";
-import { FieldFrame, type FieldTexts } from "./FieldFrame";
+import { Field, type FieldTexts } from "./Field";
 import { buttonClasses } from "./button-classes";
 
 type PickListFieldProps = Omit<FieldTexts, "help"> & {
@@ -73,7 +73,7 @@ export function PickListField({
     ? []
     : options.filter((option) => !value.includes(option.code));
   return (
-    <FieldFrame
+    <Field
       {...texts}
       help={limitText}
       ids={ids}
@@ -136,6 +136,6 @@ export function PickListField({
       <p id={statusId} role="status" className={MEMBER_FIELD_COUNTER_CLASSES}>
         {atCap ? limitReachedText : null}
       </p>
-    </FieldFrame>
+    </Field>
   );
 }

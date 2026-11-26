@@ -8,7 +8,7 @@
 import type { CampaignReferences } from "@influx/contracts/campaign";
 import type { CampaignResponse } from "@influx/contracts/campaign";
 import { useTranslations } from "next-intl";
-import type { FieldTexts } from "@/components/member/ui/FieldFrame";
+import type { FieldTexts } from "@/components/member/ui/Field";
 import type { CampaignOptions } from "./campaign-options";
 import {
   dateConflictsOf,

@@ -22,6 +22,9 @@ const COMPONENTS = [
   "logo-plate",
   "chip-list",
   "field",
+  "field-message",
+  "error-summary",
+  "choice-group",
   "row-list",
   "property-list",
   "empty-state",
@@ -520,4 +523,150 @@ test("RUB-AN2 04 and 32: the row lights its ground and the skeleton shows its sh
     stacked.getByText("Brouillon").boundingBox(),
   ]);
   expect(state!.y).toBeGreaterThanOrEqual(title!.y + title!.height - 1);
+});
+
+// RUB-AN2, line 05 (R04 lines 21 and 30: the field, C18, enters by `rise-in` when it is conditional, and its outline
+// goes from 1 to 2 px by its colour alone), RUB-AX for C18 to C21 and the keyboard of the summary
+// (docs/mvp/jalons/rub/modele-ux.md §5, PT1): at 1 440 px an error does not move the text of a field (the padding
+// grows back the outline, the height stays), a text area keeps its height, the unit sits after a control of 128 px,
+// the grid has four columns at 1 440 px and one at 375, a link of the summary opens the field that a closed step
+// hides and focuses it, and a group of boxes refuses a choice over its cap without unticking another one.
+test("RUB-AN2 05: the field enters by rise-in and its error moves nothing, and not under reduced motion; RUB-AX: the grid, the unit, the summary to the field by the keyboard, the cap of a group", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (component: string, state: string) =>
+    board.locator(
+      `[data-board-component="${component}"] [data-board-state="${state}"]`,
+    );
+  const control = (component: string, state: string, tag = "input") =>
+    cell(component, state).locator(tag).first();
+  const measures = (target: ReturnType<typeof control>) =>
+    target.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        height: element.getBoundingClientRect().height,
+        border: style.borderTopWidth,
+        textStart:
+          parseFloat(style.borderLeftWidth) + parseFloat(style.paddingLeft),
+        textEnd:
+          parseFloat(style.borderRightWidth) + parseFloat(style.paddingRight),
+        textTop:
+          parseFloat(style.borderTopWidth) + parseFloat(style.paddingTop),
+        duration: style.transitionDuration,
+        timing: style.transitionTimingFunction,
+        properties: style.transitionProperty,
+      };
+    });
+
+  // The error: 2 px instead of 1, the same height, the text where it was; only the colour transitions.
+  const resting = await measures(control("field", "filled"));
+  const failing = await measures(control("field", "error-filled"));
+  expect(resting.border).toBe("1px");
+  expect(failing.border).toBe("2px");
+  expect(failing.height).toBe(resting.height);
+  expect(failing.textStart).toBe(resting.textStart);
+  expect(failing.textEnd).toBe(resting.textEnd);
+  expect(failing).toMatchObject({
+    duration: "0.12s",
+    timing: "cubic-bezier(0.2, 0, 0, 1)",
+  });
+  expect(failing.properties).toContain("border-color");
+  expect(failing.properties).not.toContain("all");
+  expect(failing.properties).not.toContain("width");
+  const area = await measures(control("field", "area", "textarea"));
+  const areaFailing = await measures(
+    control("field", "area-error", "textarea"),
+  );
+  expect(areaFailing.height).toBe(area.height);
+  expect(areaFailing.textStart).toBe(area.textStart);
+  expect(areaFailing.textTop).toBe(area.textTop);
+  expect(area.height).toBeGreaterThanOrEqual(120);
+
+  // The conditional field enters by rise-in over 200 ms, and not under reduced motion (AN-1).
+  const conditional = cell("field", "conditional")
+    .locator("label")
+    .locator("xpath=../..");
+  const readEntering = () =>
+    conditional.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { name: style.animationName, duration: style.animationDuration };
+    });
+  expect(await readEntering()).toEqual({ name: "rise-in", duration: "0.2s" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect((await readEntering()).duration).toBe("0s");
+  expect((await measures(control("field", "error-filled"))).duration).toBe(
+    "0s",
+  );
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // The control of a number is 128 px, its unit follows it on the same line; the grid has four columns.
+  const number = await control("field", "unit").boundingBox();
+  const unit = await cell("field", "unit").getByText("jours").boundingBox();
+  expect(Math.round(number!.width)).toBe(128);
+  expect(unit!.x).toBeGreaterThan(number!.x + number!.width);
+  expect(
+    Math.abs(unit!.y + unit!.height / 2 - (number!.y + number!.height / 2)),
+  ).toBeLessThanOrEqual(2);
+  const gridTops = async () =>
+    Promise.all(
+      [0, 1, 2, 3].map(async (index) =>
+        Math.round(
+          (await cell("field", "grid")
+            .locator("input")
+            .nth(index)
+            .boundingBox())!.y,
+        ),
+      ),
+    );
+  expect(new Set(await gridTops()).size).toBe(1);
+
+  // The summary: the first link opens the field a closed step hides, then focuses it; the second focuses a visible one.
+  const summary = cell("error-summary", "summary");
+  await expect(summary.locator("#board-summary-hidden")).toHaveCount(0);
+  await summary.getByRole("link", { name: "Site web" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(summary.locator("#board-summary-hidden")).toBeFocused();
+  await summary.getByRole("link", { name: "Nom de la marque" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(summary.locator("#board-summary-visible")).toBeFocused();
+  await expect(cell("error-summary", "empty").getByRole("group")).toHaveCount(
+    0,
+  );
+  await expect(
+    cell("error-summary", "missing").getByRole("listitem"),
+  ).toHaveCount(2);
+
+  // The group of boxes at its cap refuses a fourth choice and unticks nothing; ticking one frees the others.
+  const cap = cell("choice-group", "cap");
+  const box = (name: string) => cap.getByRole("checkbox", { name });
+  await expect(cap.getByRole("status")).toContainText("Plafond atteint");
+  await expect(box("Sport")).toHaveAttribute("aria-disabled", "true");
+  await box("Sport").click({ force: true });
+  await expect(box("Sport")).not.toBeChecked();
+  for (const name of ["Beauté", "Cuisine", "Voyage"]) {
+    await expect(box(name)).toBeChecked();
+  }
+  await expect(cap).toContainText("3 / 3");
+  await box("Voyage").click();
+  await expect(box("Voyage")).not.toBeChecked();
+  await expect(cap.getByRole("status")).toBeEmpty();
+  await box("Sport").click();
+  await expect(box("Sport")).toBeChecked();
+  const rowHeight = (await cap.locator("label").first().boundingBox())!.height;
+  expect(rowHeight).toBeGreaterThanOrEqual(44);
+
+  // A choice that is unavailable says why, a locked group keeps its answer readable, the radios answer to the arrows.
+  const reason = cell("choice-group", "reason");
+  await expect(reason.getByRole("checkbox", { name: "Direct" })).toBeDisabled();
+  await expect(reason).toContainText("Les directs ne sont pas ouverts");
+  const locked = cell("choice-group", "locked").getByRole("radio");
+  await expect(locked.first()).toBeDisabled();
+  await expect(locked.first()).toBeChecked();
+  const radios = cell("choice-group", "radios").getByRole("radio");
+  await radios.nth(1).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(radios.nth(2)).toBeChecked();
 });

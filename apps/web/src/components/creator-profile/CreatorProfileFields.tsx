@@ -16,7 +16,7 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
-import { MultiChoiceField } from "@/components/member/ui/MultiChoiceField";
+import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
 import { Notice } from "@/components/member/ui/Notice";
 import { PickListField } from "@/components/member/ui/PickListField";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
@@ -312,7 +312,8 @@ export function EditorialFields({
           t("fields.secondaryTopics.label"),
         )}
       />
-      <MultiChoiceField
+      <ChoiceGroup
+        type="checkbox"
         id={controlIdOf("tones")}
         options={options.tones}
         value={draft.tones}

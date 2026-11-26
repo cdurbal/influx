@@ -21,7 +21,12 @@ import { useTranslations } from "next-intl";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
 import { TextField } from "@/components/member/ui/TextField";
-import { YesNoField } from "@/components/member/ui/YesNoField";
+import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
+import {
+  answerToCode,
+  codeToAnswer,
+  yesNoOptions,
+} from "@/components/member/ui/yes-no-answer";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { Notice } from "@/components/member/ui/Notice";
 import { bandOptionsOf } from "./campaign-options";
@@ -161,13 +166,13 @@ export function CampaignOfferFields({
             [draft.restrictions],
           )}
         />
-        <YesNoField
+        <ChoiceGroup
+          type="radio"
           id={controlIdOf("productIsSent")}
           name="productIsSent"
-          value={draft.productIsSent}
-          yesLabel={tBrand("field.yes")}
-          noLabel={tBrand("field.no")}
-          onChange={(answer) => change("productIsSent", answer)}
+          options={yesNoOptions(tBrand("field.yes"), tBrand("field.no"))}
+          value={answerToCode(draft.productIsSent)}
+          onChange={(code) => change("productIsSent", codeToAnswer(code))}
           {...texts("productIsSent", "public", t("fields.productIsSent.label"))}
         />
         {draft.productIsSent === true ? (
@@ -201,13 +206,15 @@ export function CampaignOfferFields({
                 t("fields.productValueBand.help"),
               )}
             />
-            <YesNoField
+            <ChoiceGroup
+              type="radio"
               id={controlIdOf("creatorKeepsProduct")}
               name="creatorKeepsProduct"
-              value={draft.creatorKeepsProduct}
-              yesLabel={tBrand("field.yes")}
-              noLabel={tBrand("field.no")}
-              onChange={(answer) => change("creatorKeepsProduct", answer)}
+              options={yesNoOptions(tBrand("field.yes"), tBrand("field.no"))}
+              value={answerToCode(draft.creatorKeepsProduct)}
+              onChange={(code) =>
+                change("creatorKeepsProduct", codeToAnswer(code))
+              }
               {...texts(
                 "creatorKeepsProduct",
                 "public",

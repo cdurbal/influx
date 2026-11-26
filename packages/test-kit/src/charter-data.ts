@@ -500,4 +500,7 @@ export const SHARED_CATALOGUE: readonly SharedCatalogueEntry[] = [
   { name: "PropertyList", backoffice: "pending" },
   { name: "EmptyState", backoffice: "pending" },
   { name: "Skeleton", backoffice: "pending" },
+  { name: "Field", backoffice: "pending" },
+  { name: "FieldMessage", backoffice: "pending" },
+  { name: "ChoiceGroup", backoffice: "pending" },
 ];

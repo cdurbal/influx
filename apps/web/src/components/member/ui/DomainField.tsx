@@ -1,22 +1,23 @@
 import type { ReactNode } from "react";
 import { memberControlClasses } from "./field-classes";
-import { describedByOf, useFieldIds } from "./field-ids";
-import { FieldFrame, type FieldTexts } from "./FieldFrame";
+import { describedByOf, fieldRefsOf, useFieldIds } from "./field-ids";
+import { Field, type FieldLayout, type FieldTexts } from "./Field";
 
-type DomainFieldProps = FieldTexts & {
-  id?: string;
-  name: string;
-  /** As typed: the API keeps the domain only and says so (06 RG17, CA4). */
-  value: string;
-  onChange: (value: string) => void;
-  /** The longest input accepted before the reduction to a domain. */
-  maxLength: number;
-  placeholder?: string;
-  /** What follows the field, e.g. the notice "we kept the domain …" (`brandProfile.website.normalized`). */
-  notice?: ReactNode;
-  disabled?: boolean;
-  className?: string;
-};
+type DomainFieldProps = FieldTexts &
+  FieldLayout & {
+    id?: string;
+    name: string;
+    /** As typed: the API keeps the domain only and says so (06 RG17, CA4). */
+    value: string;
+    onChange: (value: string) => void;
+    /** The longest input accepted before the reduction to a domain. */
+    maxLength: number;
+    placeholder?: string;
+    /** What follows the field, e.g. the notice "we kept the domain …" (`brandProfile.website.normalized`). */
+    notice?: ReactNode;
+    disabled?: boolean;
+    className?: string;
+  };
 
 /**
  * A website domain field (06 RG17): one line, no auto-capitalisation, correction or suggestion, the
@@ -38,14 +39,18 @@ export function DomainField({
   const noticeId = `${ids.control}-notice`;
   const hasError = texts.error !== undefined && texts.error !== null;
   const hasNotice = notice !== undefined && notice !== null;
+  const refs = fieldRefsOf(texts, ids);
   const describedBy = describedByOf(
-    texts.layer && ids.layer,
-    texts.help && ids.help,
+    refs.layer,
+    refs.help,
+    refs.suffix,
+    refs.counter,
     hasNotice && noticeId,
-    hasError && ids.error,
+    refs.warning,
+    refs.error,
   );
   return (
-    <FieldFrame {...texts} ids={ids} kind="single" className={className}>
+    <Field {...texts} ids={ids} kind="single" className={className}>
       <input
         id={ids.control}
         name={name}
@@ -65,6 +70,6 @@ export function DomainField({
         className={memberControlClasses(hasError)}
       />
       {hasNotice ? <div id={noticeId}>{notice}</div> : null}
-    </FieldFrame>
+    </Field>
   );
 }

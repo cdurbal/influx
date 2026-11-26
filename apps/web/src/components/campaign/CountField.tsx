@@ -5,7 +5,7 @@
 // key, an empty field is "not entered" (null). The bounds are packages/domain's, said in the help and
 // held by the schema of the API; a number outside them is refused as a field in error, never clamped.
 import { TextField } from "@/components/member/ui/TextField";
-import type { FieldTexts } from "@/components/member/ui/FieldFrame";
+import type { FieldTexts } from "@/components/member/ui/Field";
 
 type CountFieldProps = FieldTexts & {
   id: string;

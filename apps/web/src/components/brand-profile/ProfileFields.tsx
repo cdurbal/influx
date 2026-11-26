@@ -17,13 +17,17 @@ import {
 import { useLocale, useTranslations } from "next-intl";
 import { DomainField } from "@/components/member/ui/DomainField";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
-import { MultiChoiceField } from "@/components/member/ui/MultiChoiceField";
 import { Notice } from "@/components/member/ui/Notice";
 import { PickListField } from "@/components/member/ui/PickListField";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
 import { TextField } from "@/components/member/ui/TextField";
-import { YesNoField } from "@/components/member/ui/YesNoField";
+import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
+import {
+  answerToCode,
+  codeToAnswer,
+  yesNoOptions,
+} from "@/components/member/ui/yes-no-answer";
 import {
   MEMBER_FIELD_HEADER_CLASSES,
   MEMBER_FIELD_HELP_CLASSES,
@@ -190,7 +194,8 @@ export function IdentityFields({
         onChange={(codes) => change("targetMarkets", codes)}
         {...texts("targetMarkets", "public", t("fields.targetMarkets.label"))}
       />
-      <MultiChoiceField
+      <ChoiceGroup
+        type="checkbox"
         id={controlIdOfRequired("workingLanguages")}
         options={options.languages}
         value={draft.workingLanguages}
@@ -257,7 +262,8 @@ export function ExpectationFields({
   const limits = BRAND_PROFILE_LIST_LIMITS;
   return (
     <>
-      <MultiChoiceField
+      <ChoiceGroup
+        type="checkbox"
         id={controlIdOfRequired("topics")}
         options={options.topics}
         value={draft.topics}
@@ -271,7 +277,8 @@ export function ExpectationFields({
         onChange={(codes) => change("topics", codes)}
         {...texts("topics", "public", t("fields.topics.label"))}
       />
-      <MultiChoiceField
+      <ChoiceGroup
+        type="checkbox"
         id={controlIdOfRequired("networks")}
         options={options.networks}
         value={draft.networks}
@@ -282,7 +289,8 @@ export function ExpectationFields({
         onChange={(codes) => change("networks", codes)}
         {...texts("networks", "public", t("fields.networks.label"))}
       />
-      <MultiChoiceField
+      <ChoiceGroup
+        type="checkbox"
         id={controlIdOfRequired("formats")}
         options={options.formats}
         value={draft.formats}
@@ -293,7 +301,8 @@ export function ExpectationFields({
         onChange={(codes) => change("formats", codes)}
         {...texts("formats", "public", t("fields.formats.label"))}
       />
-      <MultiChoiceField
+      <ChoiceGroup
+        type="checkbox"
         id={controlIdOf("usageRights")}
         options={options.usageRights}
         value={draft.usageRights}
@@ -317,13 +326,13 @@ export function ExpectationFields({
           t("fields.exclusivityBand.label"),
         )}
       />
-      <YesNoField
+      <ChoiceGroup
+        type="radio"
         id={controlIdOf("offersNonMonetary")}
         name="offersNonMonetary"
-        value={draft.offersNonMonetary}
-        yesLabel={t("field.yes")}
-        noLabel={t("field.no")}
-        onChange={(answer) => change("offersNonMonetary", answer)}
+        options={yesNoOptions(t("field.yes"), t("field.no"))}
+        value={answerToCode(draft.offersNonMonetary)}
+        onChange={(code) => change("offersNonMonetary", codeToAnswer(code))}
         {...texts(
           "offersNonMonetary",
           "public",

@@ -9,7 +9,7 @@
 // opens no conversation (RG80). No contact of the brand, no counter of applications (RG81, RG82). Fields
 // display the draft and report a change: the rules are campaign-view.ts's and apps/api's.
 import { useTranslations } from "next-intl";
-import { MultiChoiceField } from "@/components/member/ui/MultiChoiceField";
+import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
 import { Notice } from "@/components/member/ui/Notice";
 import { TextField } from "@/components/member/ui/TextField";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
@@ -78,7 +78,8 @@ export function CampaignCalendarFields({
         <h3 id="campaign-block-application" className={CARD_TITLE}>
           {t("form.blocks.application")}
         </h3>
-        <MultiChoiceField
+        <ChoiceGroup
+          type="checkbox"
           id={controlIdOf("requestedItems")}
           options={options.requestedItems}
           value={draft.requestedItems}

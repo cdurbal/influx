@@ -23,10 +23,13 @@ import {
 import { ScoreGauge } from "@/components/member/ui/ScoreGauge";
 import { DomainField } from "@/components/member/ui/DomainField";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
-import { MultiChoiceField } from "@/components/member/ui/MultiChoiceField";
+import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
-import { YesNoField } from "@/components/member/ui/YesNoField";
+import {
+  answerToCode,
+  yesNoOptions,
+} from "@/components/member/ui/yes-no-answer";
 import { describedByOf } from "@/components/member/ui/field-ids";
 import {
   countCharacters,
@@ -177,13 +180,13 @@ describe("a field's texts are tied to its control (06 RG85)", () => {
 
   it("yes/no: two native radios, both answers written, nothing ticked until answered", () => {
     const markup = html(
-      createElement(YesNoField, {
+      createElement(ChoiceGroup, {
+        type: "radio",
         id: "f-nm",
         name: "nm",
         label: "Do you offer products?",
-        yesLabel: "Yes",
-        noLabel: "No",
-        value: null,
+        options: yesNoOptions("Yes", "No"),
+        value: answerToCode(null),
         onChange: noop,
       }),
     );
@@ -192,12 +195,12 @@ describe("a field's texts are tied to its control (06 RG85)", () => {
     expect(markup).toContain("Yes");
     expect(markup).toContain("No");
     const answered = html(
-      createElement(YesNoField, {
+      createElement(ChoiceGroup, {
+        type: "radio",
         name: "nm",
         label: "?",
-        yesLabel: "Yes",
-        noLabel: "No",
-        value: false,
+        options: yesNoOptions("Yes", "No"),
+        value: answerToCode(false),
         onChange: noop,
       }),
     );
@@ -225,7 +228,8 @@ describe("multiple choice with a cap (06 RG15, RG27)", () => {
 
   function render(value: string[]): string {
     return html(
-      createElement(MultiChoiceField, {
+      createElement(ChoiceGroup, {
+        type: "checkbox",
         id: "f-topics",
         label: "Topics",
         options: OPTIONS,
