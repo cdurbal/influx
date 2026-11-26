@@ -1,20 +1,34 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
 import { CloseIcon } from "@/components/ui/icons";
 import { toggleChoice } from "./choice-limits";
-import type { ChoiceOption } from "./choice-option";
-import {
-  MEMBER_FIELD_COUNTER_CLASSES,
-  memberControlClasses,
-} from "./field-classes";
+import { MEMBER_FIELD_COUNTER_CLASSES } from "./field-classes";
 import { describedByOf, useFieldIds } from "./field-ids";
-import { Field, type FieldTexts } from "./Field";
-import { buttonClasses } from "./button-classes";
+import { Field } from "./Field";
+import {
+  TAG_CLASSES,
+  TAG_LIST_CLASSES,
+  TAG_REMOVE_CLASSES,
+  TAG_REMOVE_ICON_CLASSES,
+  tagPickerSelectClasses,
+} from "./tag-picker-classes";
 
-type PickListFieldProps = Omit<FieldTexts, "help"> & {
+export type TagPickerProps = {
   /** Id of the select: the screen focuses the first invalid field by it. */
   id?: string;
   name: string;
+  /** The visible label, above the select. */
+  label: string;
+  /** "required" / "obligatoire", written beside the label; absent for an optional field. */
+  requiredLabel?: string;
+  /** Who sees this field, and the layer's text. */
+  layer?: { layer: "public" | "revealed" | "internal"; label: string };
+  /** The message of the field in error; the select carries `aria-invalid`. */
+  error?: string | null;
+  warnings?: readonly string[];
   /** The long list (countries, 249): every option, in the language of the page. */
-  options: readonly ChoiceOption[];
+  options: readonly { code: string; label: string }[];
   value: readonly string[];
   onChange: (codes: string[]) => void;
   /** The cap of the list (06 RG15, RG27: 5 markets, 5 countries), also held by the database. */
@@ -29,16 +43,19 @@ type PickListFieldProps = Omit<FieldTexts, "help"> & {
   listLabel: string;
   /** The accessible name of the button that removes one choice: "Remove France". */
   removeLabel: (label: string) => string;
+  /** What is said when a tag is removed: "France removed"; nothing is said when absent. */
+  removedText?: (label: string) => string;
   disabled?: boolean;
   className?: string;
 };
 
 /**
- * A capped choice among a list too long for boxes: a select adds, a chip with a button removes. The
- * select keeps the focus after a choice (the keyboard adds again), a choice over the cap is refused,
- * never replaced, and the cap is told before and after (RG85).
+ * A capped choice among a list too long for boxes (C23): a select adds, a tag with a cross removes. The select
+ * keeps the focus after a choice (the keyboard adds again); after a removal the focus goes to the cross of the tag
+ * that follows, else to the select, and the removal is said in the status line of the count. A choice over the cap
+ * is refused, never replaced, and the cap is told before and after (RG85).
  */
-export function PickListField({
+export function TagPicker({
   id,
   name,
   options,
@@ -51,21 +68,38 @@ export function PickListField({
   addLabel,
   listLabel,
   removeLabel,
+  removedText,
   disabled,
   className,
   ...texts
-}: PickListFieldProps) {
+}: TagPickerProps) {
   const ids = useFieldIds(id);
   const countId = `${ids.control}-count`;
   const statusId = `${ids.control}-status`;
   const hasError = texts.error !== undefined && texts.error !== null;
   const atCap = value.length >= max;
   const labelOf = new Map(options.map((option) => [option.code, option.label]));
+  const select = useRef<HTMLSelectElement>(null);
+  const crosses = useRef(new Map<string, HTMLButtonElement>());
+  // Where the focus goes once the removal is drawn: the cross of this code, or the select (`null`).
+  const focusAfter = useRef<{ code: string | null } | null>(null);
+  const [removed, setRemoved] = useState<string | null>(null);
+  useEffect(() => {
+    const target = focusAfter.current;
+    if (target === null) {
+      return;
+    }
+    focusAfter.current = null;
+    const cross =
+      target.code === null ? undefined : crosses.current.get(target.code);
+    (cross ?? select.current)?.focus();
+  }, [value]);
+  const status = atCap ? limitReachedText : (removed ?? null);
   const describedBy = describedByOf(
     texts.layer && ids.layer,
     ids.help,
     countId,
-    atCap && statusId,
+    status !== null && statusId,
     hasError && ids.error,
   );
   // At the cap nothing more is offered: the status below says why.
@@ -81,6 +115,7 @@ export function PickListField({
       className={className}
     >
       <select
+        ref={select}
         id={ids.control}
         name={name}
         value=""
@@ -89,10 +124,11 @@ export function PickListField({
         aria-describedby={describedBy}
         onChange={(event) => {
           if (event.target.value !== "") {
+            setRemoved(null);
             onChange(toggleChoice(value, event.target.value, max));
           }
         }}
-        className={memberControlClasses(hasError)}
+        className={tagPickerSelectClasses(hasError)}
       >
         <option value="">{addLabel}</option>
         {available.map((option) => (
@@ -102,27 +138,35 @@ export function PickListField({
         ))}
       </select>
       {value.length === 0 ? null : (
-        <ul aria-label={listLabel} className="flex flex-wrap gap-2">
-          {value.map((code) => {
+        <ul aria-label={listLabel} className={TAG_LIST_CLASSES}>
+          {value.map((code, index) => {
             const label = labelOf.get(code) ?? code;
             return (
-              <li
-                key={code}
-                className="inline-flex items-center gap-1 rounded-pill border-(length:--border-width-thin) border-border-strong bg-surface-raised pl-3 text-sm text-text-primary"
-              >
+              <li key={code} className={TAG_CLASSES}>
                 {label}
                 <button
                   type="button"
                   disabled={disabled}
                   aria-label={removeLabel(label)}
-                  onClick={() =>
-                    onChange(value.filter((chosen) => chosen !== code))
-                  }
-                  className={buttonClasses("text", "md")}
+                  ref={(element) => {
+                    if (element === null) {
+                      crosses.current.delete(code);
+                    } else {
+                      crosses.current.set(code, element);
+                    }
+                  }}
+                  onClick={() => {
+                    setRemoved(
+                      removedText === undefined ? null : removedText(label),
+                    );
+                    focusAfter.current = { code: value[index + 1] ?? null };
+                    onChange(value.filter((chosen) => chosen !== code));
+                  }}
+                  className={TAG_REMOVE_CLASSES}
                 >
                   <CloseIcon
                     aria-hidden="true"
-                    className="size-(--size-icon-sm)"
+                    className={TAG_REMOVE_ICON_CLASSES}
                   />
                 </button>
               </li>
@@ -134,7 +178,7 @@ export function PickListField({
         {countText}
       </p>
       <p id={statusId} role="status" className={MEMBER_FIELD_COUNTER_CLASSES}>
-        {atCap ? limitReachedText : null}
+        {status}
       </p>
     </Field>
   );

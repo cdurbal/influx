@@ -12,7 +12,7 @@ import {
   CAMPAIGN_USAGE_TERRITORIES_MAX,
 } from "./campaign-domain";
 import { useTranslations } from "next-intl";
-import { PickListField } from "@/components/member/ui/PickListField";
+import { TagPicker } from "@/components/member/ui/TagPicker";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { CAMPAIGN_CARD_CLASSES } from "./campaign-classes";
@@ -96,7 +96,7 @@ export function CampaignWorkFields(props: CampaignFieldsProps) {
               )}
             />
             {selectedCountries ? (
-              <PickListField
+              <TagPicker
                 id={controlIdOf("usageRightsTerritories")}
                 name="usageRightsTerritories"
                 options={options.countries}

@@ -15,7 +15,7 @@ import { CAMPAIGN_LIST_LIMITS } from "@influx/contracts/campaign";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/member/ui/Button";
 import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
-import { PickListField } from "@/components/member/ui/PickListField";
+import { TagPicker } from "@/components/member/ui/TagPicker";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { CAMPAIGN_CARD_CLASSES } from "./campaign-classes";
@@ -45,7 +45,7 @@ export function CampaignAudienceFields({
         <h3 id="campaign-block-audience" className={CARD_TITLE}>
           {t("form.blocks.audience")}
         </h3>
-        <PickListField
+        <TagPicker
           id={controlIdOf("audienceCountries")}
           name="audienceCountries"
           options={options.countries}
@@ -72,7 +72,7 @@ export function CampaignAudienceFields({
             t("fields.audienceCountries.label"),
           )}
         />
-        <PickListField
+        <TagPicker
           id={controlIdOf("audienceLanguages")}
           name="audienceLanguages"
           options={options.languages}

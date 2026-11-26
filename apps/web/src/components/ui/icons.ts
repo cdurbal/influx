@@ -28,6 +28,7 @@ export {
   Inbox as InboxIcon,
   ImagePlus as ImagePlusIcon,
   Info as InfoIcon,
+  LoaderCircle as LoaderCircleIcon,
   Lock as LockIcon,
   LogOut as LogOutIcon,
   Mail as MailIcon,

@@ -4,6 +4,7 @@ import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
 import { AnnouncerBoard } from "./announcer.board";
 import { BadgeBoard } from "./badge.board";
 import { ButtonBoard } from "./button.board";
+import { ChoiceBoard } from "./choice.board";
 import { FieldBoard } from "./field.board";
 import { ListBoard } from "./list.board";
 import { NoticeBoard } from "./notice.board";
@@ -49,6 +50,7 @@ export default function StateBoardPage() {
         <NoticeBoard />
         <BadgeBoard />
         <FieldBoard />
+        <ChoiceBoard />
         <ListBoard />
       </AnnouncerProvider>
     </main>

@@ -11,7 +11,7 @@
 | 03 | 03.md | commit | sonnet | high | dev-react-node | fait | C13-C17, C33, C38 livrés ; VerifiedBadge = ton verified ; Notice noticeClasses intacte (callers auth) ; garde hero : 2 rôles exemptés ; SHARED +7 pending |
 | 04 | 04.md | commit | sonnet | high | dev-react-node | fait | C06-C09 livrés ; 8 variantes RowList par champs ; titre EmptyState = p (02c) ; squelette 1 s par minuteur ; AN2 04 et 32 verts ; SHARED +4 pending |
 | 05 | 05.md | commit | sonnet | high | dev-react-node | fait | C18-C21 livrés ; Field ← FieldFrame, ChoiceGroup ← Multi/YesNo (legend = label, code gardé) ; erreur sans décalage ; ErrorSummary client ; SHARED +3 |
-| 06 | 06.md | commit | sonnet | high | dev-react-node | à faire | |
+| 06 | 06.md | commit | sonnet | high | dev-react-node | fait | C22-C26, C47 livrés ; TagPicker ← PickListField (croix 44 px, mesure) ; SaveStatus : copies d’écran gardées, échec seul annoncé ; SHARED +5 |
 | 07 | 07.md | commit | sonnet | high | dev-react-node | à faire | |
 | 08 | 08.md | commit | sonnet | high | dev-react-node | à faire | |
 | 09a | 09a.md | commit | opus | high | dev-react-node | à faire | |

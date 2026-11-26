@@ -25,6 +25,12 @@ const COMPONENTS = [
   "field-message",
   "error-summary",
   "choice-group",
+  "segmented-control",
+  "tag-picker",
+  "internal-zone",
+  "save-status",
+  "disclosure",
+  "date-field",
   "row-list",
   "property-list",
   "empty-state",
@@ -669,4 +675,233 @@ test("RUB-AN2 05: the field enters by rise-in and its error moves nothing, and n
   await radios.nth(1).focus();
   await page.keyboard.press("ArrowDown");
   await expect(radios.nth(2)).toBeChecked();
+});
+
+// RUB-AN2, line 06 (R04 lines 6, 19, 20 and 29: the segment changes its ground over 120 ms, the fold shows its content
+// by `rise-in` over 200 ms and turns its chevron over 200 ms (the panel of the rare gestures, 120 ms), the save status
+// turns its icon for 1 s; AN-1 under reduced motion) and RUB-AX for C22 to C26 and C47 (docs/mvp/jalons/rub/
+// modele-ux.md §3, §5, §6): the contour of the active segment is drawn by forced colours and by them alone, the ring is
+// on a pseudo-element, the radios answer to the arrows, the tabs loop and take Home and End, the cross of a tag has a
+// zone of 44 px and the focus goes to the next tag, then to the list, a failure is announced once, a fold opens on an
+// error, and a date is written back in the order of the language when it is left.
+test("RUB-AN2 06: the segments, the tags, the save status, the fold and the date, their motion and its absence under reduced motion, their keyboard and their forced colours", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (component: string, state: string) =>
+    board.locator(
+      `[data-board-component="${component}"] [data-board-state="${state}"]`,
+    );
+  const style = (target: ReturnType<typeof cell>, property: string) =>
+    target.evaluate(
+      (element, name) =>
+        getComputedStyle(element).getPropertyValue(name as string),
+      property,
+    );
+  const STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
+
+  // The radios: the active segment is on its surface with a transparent contour, and the arrows choose.
+  const radio = cell("segmented-control", "radio");
+  const segment = (name: string) =>
+    radio.locator("label").filter({ hasText: name });
+  expect(await style(segment("Liste"), "outline-style")).toBe("solid");
+  expect(await style(segment("Liste"), "outline-color")).toBe(
+    "rgba(0, 0, 0, 0)",
+  );
+  expect(await style(segment("Grille"), "outline-style")).toBe("none");
+  expect(await style(segment("Liste"), "transition-duration")).toBe("0.12s");
+  expect(await style(segment("Liste"), "transition-timing-function")).toBe(
+    STANDARD,
+  );
+  expect(await style(segment("Grille"), "transition-property")).toContain(
+    "background-color",
+  );
+  expect(Math.round((await segment("Liste").boundingBox())!.height)).toBe(36);
+  const radios = radio.getByRole("radio");
+  await radios.first().focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(radios.nth(1)).toBeChecked();
+  const ring = await segment("Grille").evaluate((label) => {
+    const computed = getComputedStyle(label, "::after");
+    return { style: computed.outlineStyle, width: computed.outlineWidth };
+  });
+  expect(ring).toEqual({ style: "solid", width: "3px" });
+  await expect(segment("Grille")).toHaveCSS("outline-style", "solid");
+  expect(await style(segment("Liste"), "outline-style")).toBe("none");
+
+  // Forced colours draw the contour of the active segment and of the active one alone (AP1).
+  await page.emulateMedia({ forcedColors: "active" });
+  expect(await style(segment("Grille"), "outline-style")).toBe("solid");
+  expect(await style(segment("Liste"), "outline-style")).toBe("none");
+  expect(await style(segment("Grille"), "outline-color")).not.toBe(
+    "rgba(0, 0, 0, 0)",
+  );
+  await page.emulateMedia({ forcedColors: "none" });
+
+  // The tabs: one tab stop, the arrows loop and choose at once, Home and End reach the ends.
+  const tabs = cell("segmented-control", "tabs").getByRole("tab");
+  await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
+  await expect(tabs.nth(1)).toHaveAttribute("tabindex", "-1");
+  await tabs.first().focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(tabs.nth(2)).toBeFocused();
+  await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("ArrowRight");
+  await expect(tabs.first()).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(tabs.nth(2)).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Home");
+  await expect(tabs.first()).toHaveAttribute("aria-selected", "true");
+  await expect(
+    cell("segmented-control", "tabs").getByRole("tabpanel", {
+      name: "Identité",
+    }),
+  ).toBeVisible();
+
+  // The views are links, the current one `true`: the shell alone holds a `page`.
+  const views = cell("segmented-control", "views");
+  await expect(views.locator('a[aria-current="true"]')).toHaveText(
+    /Les miennes/,
+  );
+  await expect(board.locator('[aria-current="page"]')).toHaveCount(0);
+
+  // The tags: the cross has a zone of 44 by 44 px, the focus goes to the next tag, then to the list, the removal is said.
+  const picker = cell("tag-picker", "filled");
+  const cross = picker.getByRole("button", { name: "Retirer France" });
+  const zone = await cross.evaluate((button) => {
+    const computed = getComputedStyle(button, "::before");
+    return { width: computed.width, height: computed.height };
+  });
+  expect(zone).toEqual({ width: "44px", height: "44px" });
+  expect(Math.round((await cross.boundingBox())!.width)).toBe(24);
+  await cross.click();
+  await expect(
+    picker.getByRole("button", { name: "Retirer Belgique" }),
+  ).toBeFocused();
+  await expect(picker.getByRole("status")).toHaveText("France retiré");
+  await picker.getByRole("button", { name: "Retirer Belgique" }).click();
+  await expect(picker.getByRole("combobox")).toBeFocused();
+  await expect(picker.getByRole("status")).toHaveText("Belgique retiré");
+  expect(
+    await cell("tag-picker", "cap")
+      .getByRole("combobox")
+      .locator("option")
+      .count(),
+  ).toBe(1);
+
+  // The save status: its icon turns for 1 s, and stands still under reduced motion; a failure is announced once.
+  const spinner = cell("save-status", "saving").locator("svg").first();
+  const readSpin = () =>
+    spinner.evaluate((icon) => {
+      const computed = getComputedStyle(icon);
+      return {
+        name: computed.animationName,
+        duration: computed.animationDuration,
+        timing: computed.animationTimingFunction,
+      };
+    });
+  expect(await readSpin()).toEqual({
+    name: "turn",
+    duration: "1s",
+    timing: "linear",
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect((await readSpin()).duration).toBe("0s");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  const failing = cell("save-status", "failing");
+  await failing.getByRole("button", { name: "Provoquer l'échec" }).click();
+  await expect(page.locator("[data-announcer]")).toHaveText(
+    "Non enregistré : vos modifications sont conservées ici.",
+  );
+  await failing.getByRole("button", { name: "Réessayer" }).click();
+  await expect(failing.locator('[data-save-state="saving"]')).toHaveCount(1);
+  await expect(cell("save-status", "saved").getByRole("status")).toHaveCount(0);
+
+  // The fold: the content rises in over 200 ms, the chevron turns over 200 ms (120 ms for the rare gestures).
+  const fold = cell("disclosure", "fold").locator("details");
+  const readFold = () =>
+    fold.evaluate((details) => {
+      const content = details.querySelector("summary + div")!;
+      const chevron = details.querySelector("summary svg")!;
+      const animation = getComputedStyle(content);
+      const turn = getComputedStyle(chevron);
+      return {
+        name: animation.animationName,
+        duration: animation.animationDuration,
+        rotate: turn.rotate,
+        turnDuration: turn.transitionDuration,
+        turnTiming: turn.transitionTimingFunction,
+      };
+    });
+  expect(await readFold()).toMatchObject({
+    name: "rise-in",
+    duration: "0.2s",
+    rotate: "none",
+    turnDuration: "0.2s",
+    turnTiming: STANDARD,
+  });
+  expect(
+    Math.round((await fold.locator("summary").boundingBox())!.height),
+  ).toBe(44);
+  await fold.locator("summary").click();
+  await expect(fold).toHaveAttribute("open", "");
+  await expect.poll(async () => (await readFold()).rotate).toBe("90deg");
+  const rare = cell("disclosure", "rare").locator("details");
+  await rare.locator("summary").click();
+  await expect
+    .poll(() =>
+      rare
+        .locator("summary svg")
+        .evaluate((icon) => getComputedStyle(icon).rotate),
+    )
+    .toBe("180deg");
+  expect(
+    await rare
+      .locator("summary svg")
+      .evaluate((icon) => getComputedStyle(icon).transitionDuration),
+  ).toBe("0.12s");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect((await readFold()).duration).toBe("0s");
+  expect((await readFold()).turnDuration).toBe("0s");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // An error inside a closed fold opens it; the member then closes it as any other.
+  const forced = cell("disclosure", "force-open");
+  await expect(forced.locator("details")).not.toHaveAttribute("open", "");
+  await forced.getByRole("button", { name: "Provoquer l'erreur" }).click();
+  await expect(forced.locator("details")).toHaveAttribute("open", "");
+  await expect(forced.getByText("Ce champ est obligatoire.")).toBeVisible();
+  await forced.locator("summary").click();
+  await expect(forced.locator("details")).not.toHaveAttribute("open", "");
+
+  // The date: written back in the order of the language when it is left; a text that is no date is refused in words.
+  const dateCell = cell("date-field", "empty");
+  const date = dateCell.getByRole("textbox");
+  const refusal = dateCell.getByText(
+    "Écrivez la date sous la forme jj/mm/aaaa.",
+  );
+  await date.fill("15.01.2027");
+  await expect(date).toHaveValue("15.01.2027");
+  await date.blur();
+  await expect(date).toHaveValue("15/01/2027");
+  await date.fill("31/02/2027");
+  await expect(refusal).toHaveCount(0);
+  await date.blur();
+  await expect(date).toHaveAttribute("aria-invalid", "true");
+  await expect(refusal).toBeVisible();
+  await date.fill("15012026");
+  await date.blur();
+  await expect(
+    dateCell.getByText("Choisissez une date à partir du 01/01/2027."),
+  ).toBeVisible();
+  await date.fill("20012027");
+  await date.blur();
+  await expect(date).toHaveValue("20/01/2027");
+  await expect(date).not.toHaveAttribute("aria-invalid", "true");
+  expect(Math.round((await date.boundingBox())!.width)).toBe(192);
+  await expect(cell("date-field", "us").getByRole("textbox")).toHaveValue(
+    "01/15/2027",
+  );
 });

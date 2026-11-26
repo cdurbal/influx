@@ -18,7 +18,7 @@ import type { ReactNode } from "react";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
 import { ChoiceGroup } from "@/components/member/ui/ChoiceGroup";
 import { Notice } from "@/components/member/ui/Notice";
-import { PickListField } from "@/components/member/ui/PickListField";
+import { TagPicker } from "@/components/member/ui/TagPicker";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
 import { TextField } from "@/components/member/ui/TextField";
@@ -296,7 +296,7 @@ export function EditorialFields({
         onChange={(code) => change("primaryTopic", code)}
         {...texts("primaryTopic", "public", t("fields.primaryTopic.label"))}
       />
-      <PickListField
+      <TagPicker
         id={controlIdOf("secondaryTopics")}
         name="secondaryTopics"
         options={secondaryOptions}
@@ -321,7 +321,7 @@ export function EditorialFields({
         onChange={(codes) => change("tones", codes)}
         {...texts("tones", "public", t("fields.tones.label"))}
       />
-      <PickListField
+      <TagPicker
         id={controlIdOf("publicationLanguages")}
         name="publicationLanguages"
         options={options.languages}

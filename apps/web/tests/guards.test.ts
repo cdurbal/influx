@@ -662,6 +662,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
       "badge.board.tsx",
       "board-section.board.tsx",
       "button.board.tsx",
+      "choice.board.tsx",
       "field.board.tsx",
       "list.board.tsx",
       "notice.board.tsx",

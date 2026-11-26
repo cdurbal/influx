@@ -18,7 +18,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { DomainField } from "@/components/member/ui/DomainField";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
 import { Notice } from "@/components/member/ui/Notice";
-import { PickListField } from "@/components/member/ui/PickListField";
+import { TagPicker } from "@/components/member/ui/TagPicker";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
 import { TextField } from "@/components/member/ui/TextField";
@@ -141,7 +141,7 @@ export function IdentityFields({
         onChange={(code) => change("primarySector", code)}
         {...texts("primarySector", "public", t("fields.primarySector.label"))}
       />
-      <PickListField
+      <TagPicker
         id={controlIdOf("secondarySectors")}
         name="secondarySectors"
         options={options.sectors}
@@ -174,7 +174,7 @@ export function IdentityFields({
         onChange={(code) => change("companySize", code)}
         {...texts("companySize", "public", t("fields.companySize.label"))}
       />
-      <PickListField
+      <TagPicker
         id={controlIdOfRequired("targetMarkets")}
         name="targetMarkets"
         options={options.countries}
@@ -339,7 +339,7 @@ export function ExpectationFields({
           t("fields.offersNonMonetary.label"),
         )}
       />
-      <PickListField
+      <TagPicker
         id={controlIdOfRequired("audienceCountries")}
         name="audienceCountries"
         options={options.countries}

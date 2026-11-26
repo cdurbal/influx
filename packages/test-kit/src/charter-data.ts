@@ -503,4 +503,9 @@ export const SHARED_CATALOGUE: readonly SharedCatalogueEntry[] = [
   { name: "Field", backoffice: "pending" },
   { name: "FieldMessage", backoffice: "pending" },
   { name: "ChoiceGroup", backoffice: "pending" },
+  { name: "SegmentedControl", backoffice: "pending" },
+  { name: "TagPicker", backoffice: "pending" },
+  { name: "InternalZone", backoffice: "pending" },
+  { name: "Disclosure", backoffice: "pending" },
+  { name: "DateField", backoffice: "pending" },
 ];
