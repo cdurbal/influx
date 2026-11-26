@@ -22,6 +22,10 @@ const COMPONENTS = [
   "logo-plate",
   "chip-list",
   "field",
+  "row-list",
+  "property-list",
+  "empty-state",
+  "skeleton",
 ] as const;
 
 /** A cell that holds its own `h1`: the page header (C02) is shown in its states, one `h1` each. */
@@ -386,4 +390,134 @@ test("RUB-AN2 17: the counter flashes when its value changes, and not under redu
   await cell("notice", "strip-long").scrollIntoViewIfNeeded();
   const narrow = await centres("strip-long");
   expect(narrow.actionTop).toBeGreaterThanOrEqual(narrow.bodyBottom - 1);
+});
+
+// RUB-AN2, lines 04 and 32 (R04 lines 4 and 32: the row, C06; the skeleton, C09), and RUB-AX for line 04
+// (docs/mvp/jalons/rub/modele-ux.md §5): at 1 440 px a linked row lights its ground over 120 ms on the curve
+// `standard` and the sheen of a skeleton crosses it in 1,2 s, linear and infinite; under reduced motion the
+// durations are zero and the sheen is gone (AN-1). A row is 60 px at least, the ring of its link is drawn
+// inside it, the current row has its contour (drawn by the system under forced colours, AP1), the list of
+// properties is a `dl` with its label column and its two lists, a state message announces itself when it is
+// `live`, and at 375 px the campaign row stacks its state under its title.
+test("RUB-AN2 04 and 32: the row lights its ground and the skeleton shows its sheen, and not under reduced motion; RUB-AX: the measures of the lists, the properties and the states", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (component: string, state: string) =>
+    board.locator(
+      `[data-board-component="${component}"] [data-board-state="${state}"]`,
+    );
+  const style = (target: ReturnType<typeof cell>, property: string) =>
+    target.evaluate(
+      (element, name) =>
+        getComputedStyle(element).getPropertyValue(name as string),
+      property,
+    );
+
+  // The row: 60 px at least, the ground on hover over 120 ms on `standard`, instant under reduced motion.
+  const row = cell("row-list", "campaign").locator("li").first();
+  await row.scrollIntoViewIfNeeded();
+  expect(
+    (await row.boundingBox())!.height,
+    "row height",
+  ).toBeGreaterThanOrEqual(60);
+  const readRow = () =>
+    row.evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        background: computed.backgroundColor,
+        duration: computed.transitionDuration,
+        timing: computed.transitionTimingFunction,
+        properties: computed.transitionProperty,
+      };
+    });
+  const resting = await readRow();
+  expect(resting).toMatchObject({
+    duration: "0.12s",
+    timing: "cubic-bezier(0.2, 0, 0, 1)",
+  });
+  expect(resting.properties).toContain("background-color");
+  await row.hover();
+  await expect
+    .poll(async () => (await readRow()).background)
+    .not.toBe(resting.background);
+
+  // The ring of the link is inside the row, on its stretched link.
+  await page.mouse.move(0, 0);
+  await row.locator("a").focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  const ring = await row.locator("a").evaluate((link) => {
+    const computed = getComputedStyle(link, "::after");
+    return {
+      style: computed.outlineStyle,
+      width: computed.outlineWidth,
+      offset: computed.outlineOffset,
+    };
+  });
+  expect(ring).toEqual({ style: "solid", width: "3px", offset: "-3px" });
+
+  // The current row: a contour that is transparent at rest and drawn by the system under forced colours (AP1).
+  const current = cell("row-list", "current").locator("li").first();
+  expect(await style(current, "outline-style")).toBe("solid");
+  expect(await style(current, "outline-color")).toBe("rgba(0, 0, 0, 0)");
+  await page.emulateMedia({ forcedColors: "active" });
+  expect(await style(current, "outline-color")).not.toBe("rgba(0, 0, 0, 0)");
+  await page.emulateMedia({ forcedColors: "none" });
+
+  // The list of properties: a `dl`, the label column at 13 rem, two lists side by side at 1 440 px.
+  const label = cell("property-list", "standard").locator("dt").first();
+  expect(Math.round((await label.boundingBox())!.width)).toBe(208);
+  expect(await cell("property-list", "standard").locator("dl").count()).toBe(1);
+  const lists = cell("property-list", "two-columns").locator("dl");
+  await expect(lists).toHaveCount(2);
+  const [left, right] = await Promise.all(
+    [0, 1].map((index) => lists.nth(index).boundingBox()),
+  );
+  expect(Math.abs(left!.y - right!.y)).toBeLessThanOrEqual(1);
+  expect(right!.x).toBeGreaterThan(left!.x + left!.width - 1);
+
+  // A state message that is `live` speaks its title in the announcer.
+  await expect(page.locator("[data-announcer]")).toHaveText(
+    "La liste n'a pas pu être rechargée",
+  );
+
+  // The skeleton: the shapes show after a second, with a sheen of 1,2 s, linear, infinite; none under reduced motion.
+  const shape = cell("skeleton", "line").locator("[aria-hidden] > div").first();
+  await shape.scrollIntoViewIfNeeded();
+  await expect(shape).toBeVisible({ timeout: 3_000 });
+  const readSheen = () =>
+    shape.evaluate((element) => {
+      const computed = getComputedStyle(element, "::after");
+      return {
+        name: computed.animationName,
+        duration: computed.animationDuration,
+        timing: computed.animationTimingFunction,
+        iterations: computed.animationIterationCount,
+      };
+    });
+  expect(await readSheen()).toEqual({
+    name: "skeleton",
+    duration: "1.2s",
+    timing: "linear",
+    iterations: "infinite",
+  });
+  expect(await style(shape, "border-top-left-radius")).toBe("6px");
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect((await readSheen()).name).toBe("none");
+  await row.hover();
+  await expect.poll(async () => (await readRow()).duration).toBe("0s");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // At 375 px the campaign row stacks its state under its title.
+  await page.setViewportSize({ width: 375, height: 812 });
+  const stacked = cell("row-list", "campaign").locator("li").first();
+  await stacked.scrollIntoViewIfNeeded();
+  const [title, state] = await Promise.all([
+    stacked.locator("a").boundingBox(),
+    stacked.getByText("Brouillon").boundingBox(),
+  ]);
+  expect(state!.y).toBeGreaterThanOrEqual(title!.y + title!.height - 1);
 });
