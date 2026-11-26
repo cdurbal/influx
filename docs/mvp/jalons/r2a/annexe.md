@@ -30,3 +30,22 @@ Identifiant dans le titre du `describe` ou du cas ; plancher = cas livrés (`pac
 - **Risques et retour arrière** : risque unique de crash Railway si `04` est poussé avant la pose des variables `R2_*` sur `api` et `worker` (prévenu par l'invariant 7). `storage.ts` n'étant pas modifié en `R2A`, un `git revert` suffit sans aucun impact sur les images existantes.
 
 ## Revue
+Revue groupée `R2A-R` (`testeur` + `expert-cybersecurite`, plage `66137d0..4ccb74f`, `00` à `04`). **0 `bloquant`, 1 `à corriger dans le jalon` (`R2AT-1` → `fix-1`), 2 `avant production` (`R2AS-1`, `R2AS-2`), 10 `plus tard` (`R2AT-2`..`5`, `R2AS-3`..`6`).** Contrôle `I-4` vert (`security review markers: ok`).
+Entre-temps, le run CI `45901673136` avait échoué sur `apps/web/tests/visual-compare.test.ts:512` (attendait 4 `webServer` au lieu de 5) ; ce défaut CI a été corrigé par `ccd2318` (`fix(web): expect 5 playwright webServers after s3-double addition`) et le run CI `45903383037` sur `ccd2318` est **100 % vert** (`Static checks, unit tests, build` 4m14s, `Browser journeys` 1/3 3m26s, 2/3 3m57s, 3/3 3m19s, `Browser journeys, merged` 17s, `Database tests` 1/2 4m09s & 2/2 4m41s, `Relay` 21s, `Migrate staging` 27s).
+
+### À corriger dans le jalon (→ `fix-1`)
+- **R2AT-1** (`testeur`) — `docs/mvp/jalons/r2a/run.md:8`, `docs/mvp/jalons/r2a/annexe.md:9`, `docs/mvp/jalons/r2a/03.md:11` : preuve E2E `R2A-T3` incomplète après `R2A-04` (`run.md:8` consignait un passage partiel sur `ecb71ad` avant `4ccb74f`), delta de durée `≤ +2 s` non consigné, et `annexe.md:9` / `03.md:11` citent `apps/web/e2e/smoke.spec.ts` inexistant dans le dépôt. *Scénario* : la référence `smoke.spec.ts` pointe vers un fichier absent et l'exécution E2E complète post-`4ccb74f` (avec mesure du budget `≤ +2 s`) manque à la clôture. *Correctif* (`fix-1`) : corriger la référence `smoke.spec.ts` dans `annexe.md` et `03.md`, relever le run CI vert `45903383037` sur `ccd2318` (45 planchers + `assertNoNewErrors`) et consigner le delta E2E mesuré (`≤ +2 s`).
+
+### Avant production (une ligne chacun)
+- **R2AS-1** (`expert-cybersecurite`) — `docs/mvp/21-plan-de-developpement.md:106,115` : l. 115 nomme `constat d'écriture/suppression J9S-1` le test `R2-03` (distinct du script `J9S-1` de `docs/mvp/runbooks/production.md:308-318`) et l. 106 ne cite pas Cloudflare R2.
+- **R2AS-2** (`expert-cybersecurite`) — `docs/mvp/runbooks/production.md:327-339` : livrer le script automatisé `production:check` (`.eu.`, `influx-production-`, `api` ≠ `worker`, sans valeur affichée) avant ouverture `production`.
+
+### Plus tard (une ligne chacun)
+- **R2AT-2** (`testeur`) — `packages/test-kit/src/s3-double.ts:449` : `void (async () => ...)` sans `try/catch` autour de `await readRawBody(request)`.
+- **R2AT-3** (`testeur`) — `packages/test-kit/tests/s3-double.test.ts:102-424` : `setDefaultDelay()`, `canonicalQueryOf()`, `400 InvalidRequest` et `405 MethodNotAllowed` sans cas unitaire dédié.
+- **R2AT-4** (`testeur`) — `apps/api/scripts/staging-check-rules.ts:403-408` et `apps/api/tests/env-local-guard.test.ts:57-69` : `envLocalR2Issues` ne vérifie pas longueur/placeholder de `R2_SECRET_ACCESS_KEY` et `HARNESS_FILES` omet `s3-double.ts`.
+- **R2AT-5** (`testeur`) — `apps/web/playwright.config.ts:7` : commentaire `Four servers` à passer à `Five servers`.
+- **R2AS-3** (`expert-cybersecurite`) — `apps/api/src/config/schema.ts:913-927` : exclure espaces/retours à la ligne sur `R2_ACCESS_KEY_ID`.
+- **R2AS-4** (`expert-cybersecurite`) — `apps/api/scripts/staging-check-rules.ts:165-187,391-414` : rejeter `CHANGE_ME` / `< 32 o` dans `envLocalR2Issues` et comparer le condensat SHA-256 de `R2_ENDPOINT` entre `api` et `worker`.
+- **R2AS-5** (`expert-cybersecurite`) — `packages/test-kit/src/s3-double.ts:343-354,475` : borner la taille dans `readRawBody` et ajouter `try/catch`.
+- **R2AS-6** (`expert-cybersecurite`) — `packages/test-kit/src/artifacts.ts:9-27` : ajouter `"r2.cloudflarestorage.com"` et `".r2.dev"` à `BROWSER_FORBIDDEN_NAMES`.
