@@ -73,6 +73,7 @@ import {
   GLOW_PEAK,
   GLOW_PEAK_PAIRS,
   KEO_COLOR_MIX,
+  KEO_HERO_ROLES,
   KEO_INHERITS,
   KEO_RETARGETED,
   PHOTO_EFFECT_READERS,
@@ -617,10 +618,17 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
   it("consumes no vitrine-only token under the KEO scopes (VITRINE_ONLY, landing effects)", () => {
     const { theme, root } = tokenScopes(tokens);
     const marker = new RegExp(VITRINE_TOKEN_MARKERS.join("|"));
+    // The two members' roles named "hero" are not effects of the landing (KEO_HERO_ROLES, RUB-03); every
+    // other token that holds a marker still is, the hero effects of the landing first.
     const effects = [...theme.keys(), ...root.keys()].flatMap((name) => {
       const at = name.search(marker);
-      return at === -1 ? [] : [name.slice(at)];
+      const exempt = KEO_HERO_ROLES.some(
+        (role) => name === role || name.startsWith(`${role}--`),
+      );
+      return at === -1 || exempt ? [] : [name.slice(at)];
     });
+    expect(effects).not.toContain("hero");
+    expect(effects).toContain("hero-main-x");
     const colors = VITRINE_ONLY.map((name) => name.replace("--color-", ""));
     expect(effects).toContain("metal-card");
     expect(

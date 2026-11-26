@@ -11,7 +11,11 @@ import {
 } from "react";
 import { cn } from "@/components/ui/class-names";
 import { EyeOffIcon, GlobeIcon, LockIcon } from "@/components/ui/icons";
-import { layerBadgeClasses, type ProfileLayer } from "./layer-badge-classes";
+import {
+  LAYER_WRAPPED_ICON_CLASSES,
+  layerBadgeClasses,
+  type ProfileLayer,
+} from "./layer-badge-classes";
 
 const LAYER_ICONS = {
   public: GlobeIcon,
@@ -38,10 +42,14 @@ const MESSAGE_TEXT_CLASSES = cn(
   "px-3 py-2 text-sm font-regular text-text-primary shadow-md",
 );
 
-type LayerBadgeProps = {
+export type LayerBadgeProps = {
   layer: ProfileLayer;
-  /** The layer, written: `brandProfile.layer.<layer>` (06 RG84). */
+  /** The layer, written: `brandProfile.layer.<layer>` (06 RG84); the name of the badge when only its icon is drawn. */
   label: string;
+  /** The text takes two lines in a box of 12 px radius, and the badge never shrinks to its icon. */
+  wrap?: boolean;
+  /** Forces the icon alone (`true`) or the whole badge (`false`); absent, the badge shrinks when its line is too short. */
+  iconOnly?: boolean;
   /** For the `aria-describedby` of the field it labels. */
   id?: string;
   className?: string;
@@ -67,6 +75,7 @@ function textWidthOf(badge: HTMLElement): number {
 function useTextOverflows(
   rootRef: RefObject<HTMLSpanElement | null>,
   badgeRef: RefObject<HTMLSpanElement | null>,
+  enabled: boolean,
 ): boolean {
   const [overflows, setOverflows] = useState(false);
   const chromeWidth = useRef(0);
@@ -75,7 +84,7 @@ function useTextOverflows(
   useLayoutEffect(() => {
     const parent = rootRef.current?.parentElement;
     const badge = badgeRef.current;
-    if (!parent || !badge) {
+    if (!enabled || !parent || !badge) {
       return;
     }
     // A measure late on the change of form would read the icon's box as the whole badge's.
@@ -100,7 +109,7 @@ function useTextOverflows(
       current = false;
       observer.disconnect();
     };
-  }, [rootRef, badgeRef, overflows]);
+  }, [rootRef, badgeRef, enabled, overflows]);
 
   return overflows;
 }
@@ -193,17 +202,36 @@ function useMessageInsideViewport(
  * alone (RG85, CA47). When the text does not fit on one line, the icon stays alone and the text comes
  * on hover, focus or tap (17 §4.2); it remains the name of the icon, so a screen reader always reads it.
  */
-export function LayerBadge({ layer, label, id, className }: LayerBadgeProps) {
+export function LayerBadge({
+  layer,
+  label,
+  wrap = false,
+  iconOnly: forcedIconOnly,
+  id,
+  className,
+}: LayerBadgeProps) {
   const rootRef = useRef<HTMLSpanElement>(null);
   const badgeRef = useRef<HTMLSpanElement>(null);
   const messageRef = useRef<HTMLSpanElement>(null);
-  const iconOnly = useTextOverflows(rootRef, badgeRef);
+  // Measured only when nothing decides: a form asked for, or a text allowed to wrap, needs no measure.
+  const measured = useTextOverflows(
+    rootRef,
+    badgeRef,
+    forcedIconOnly === undefined && !wrap,
+  );
+  const iconOnly = forcedIconOnly ?? measured;
   const { open, rootProps, triggerProps } = useMessage(rootRef);
   useMessageInsideViewport(messageRef, open && iconOnly);
   const Icon = LAYER_ICONS[layer];
   const badge = (
-    <span ref={badgeRef} className={layerBadgeClasses(layer, iconOnly)}>
-      <Icon aria-hidden="true" className="size-(--size-icon-sm) shrink-0" />
+    <span ref={badgeRef} className={layerBadgeClasses(layer, iconOnly, wrap)}>
+      <Icon
+        aria-hidden="true"
+        className={cn(
+          "size-(--size-icon-sm) shrink-0",
+          wrap && !iconOnly && LAYER_WRAPPED_ICON_CLASSES,
+        )}
+      />
       {label}
     </span>
   );

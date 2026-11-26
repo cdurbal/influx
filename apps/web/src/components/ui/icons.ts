@@ -19,6 +19,7 @@ export {
   Eye as EyeIcon,
   EyeOff as EyeOffIcon,
   FileCheck as FileCheckIcon,
+  Flag as FlagIcon,
   Funnel as FilterIcon,
   FileQuestionMark as FileQuestionIcon,
   Globe as GlobeIcon,

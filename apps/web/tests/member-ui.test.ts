@@ -9,6 +9,7 @@ import {
   type ButtonVariant,
 } from "@/components/member/ui/button-classes";
 import { counterText } from "@/components/member/ui/counter";
+import { ChipList } from "@/components/member/ui/ChipList";
 import { CounterBadge } from "@/components/member/ui/CounterBadge";
 import {
   memberChoiceInputClasses,
@@ -25,11 +26,19 @@ import {
 } from "@/components/member/ui/card-classes";
 import { CardActions } from "@/components/member/ui/CardActions";
 import { InnerPanel } from "@/components/member/ui/InnerPanel";
+import { LayerBadge } from "@/components/member/ui/LayerBadge";
+import { LogoPlate } from "@/components/member/ui/LogoPlate";
+import {
+  initialsOf,
+  logoPlateContent,
+} from "@/components/member/ui/logo-plate-content";
+import { noticeClasses } from "@/components/member/ui/notice-classes";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import { RoleBadge } from "@/components/member/ui/RoleBadge";
 import { StatusBadge } from "@/components/member/ui/StatusBadge";
 import { VerifiedBadge } from "@/components/member/ui/VerifiedBadge";
+import { CheckIcon, FlagIcon } from "@/components/ui/icons";
 import { YesNoField } from "@/components/member/ui/YesNoField";
 
 const html = (element: Parameters<typeof renderToStaticMarkup>[0]) =>
@@ -497,5 +506,326 @@ describe("RUB-T2: the link of action (C11)", () => {
     expect(
       html(createElement(ActionLink, { href: "/terms" }, "Terms")),
     ).not.toContain("target=");
+  });
+});
+
+// RUB-T3 (docs/mvp/jalons/rub/annexe.md; line 03): C13 to C17, C33 and C38, by what they render. Server rendering;
+// the pixels, the gaps as computed and the flash are the board's (RUB-AN2 17, RUB-AX).
+
+/** The classes of the first element of a markup, as a set: what a call draws, whatever the order they come in. */
+function rootClasses(markup: string): Set<string> {
+  return new Set((/class="([^"]*)"/.exec(markup)?.[1] ?? "").split(" "));
+}
+
+/** What a call drew before RUB, with the effects of the line listed by RUB-A §1 applied: removed, then added. */
+function afterEffects(
+  before: string,
+  removed: readonly string[],
+  added: readonly string[],
+): Set<string> {
+  return new Set([
+    ...before.split(" ").filter((name) => !removed.includes(name)),
+    ...added,
+  ]);
+}
+
+describe("RUB-T3: the status badge, its icon and its text form (C13)", () => {
+  it("puts 8 px between the icon and the word, the icon decorative and 16 px, the word always written", () => {
+    const markup = html(
+      createElement(StatusBadge, { tone: "success", icon: CheckIcon }, "Done"),
+    );
+    expect(markup).toContain("gap-2");
+    expect(markup).not.toContain("gap-1");
+    expect(markup).toMatch(/<svg[^>]*aria-hidden="true"/);
+    expect(markup).toContain("size-(--size-icon-sm)");
+    expect(markup).toMatch(/<\/svg>Done<\/span>$/);
+    expect(
+      html(createElement(StatusBadge, { tone: "success" }, "Done")),
+    ).not.toContain("<svg");
+  });
+
+  it("draws the six tones, the verified one included, each on the opaque ground of its family and never green", () => {
+    const grounds = {
+      neutral: "bg-surface-raised",
+      success: "bg-feedback-success-bg",
+      warning: "bg-feedback-warning-bg",
+      error: "bg-badge-error-bg",
+      info: "bg-feedback-info-bg",
+      verified: "bg-verified-bg",
+    } as const;
+    for (const [tone, ground] of Object.entries(grounds) as [
+      keyof typeof grounds,
+      string,
+    ][]) {
+      const markup = html(createElement(StatusBadge, { tone }, "State"));
+      expect(markup, tone).toContain(ground);
+      expect(markup, tone).toMatch(/font-display(?=[ "])[^"]*font-bold/);
+      expect(markup, tone).not.toMatch(/bg-(?:brand|action-primary)/);
+    }
+    // The verified badge of the phrase is the verified tone of the badge, with its icon.
+    const verified = html(
+      createElement(VerifiedBadge, {
+        text: "Compte vérifié — Instagram, le 3 mars 2026",
+      }),
+    );
+    expect(rootClasses(verified)).toEqual(
+      rootClasses(html(createElement(StatusBadge, { tone: "verified" }, "x"))),
+    );
+  });
+
+  it("draws the text form with no pill and no ground, 4 px between its icon and its word, in the colour of its tone", () => {
+    const markup = html(
+      createElement(
+        StatusBadge,
+        { tone: "warning", variant: "text", icon: FlagIcon },
+        "Late",
+      ),
+    );
+    const classes = rootClasses(markup);
+    expect(classes.has("gap-1")).toBe(true);
+    expect(classes.has("text-feedback-warning-text")).toBe(true);
+    for (const forbidden of [
+      "rounded-pill",
+      "bg-feedback-warning-bg",
+      "px-3",
+    ]) {
+      expect(classes.has(forbidden), forbidden).toBe(false);
+    }
+    expect(markup).toContain("Late");
+  });
+
+  it("changes a call that already exists by the gap alone (RUB-E)", () => {
+    expect(
+      rootClasses(html(createElement(StatusBadge, { tone: "neutral" }, "x"))),
+    ).toEqual(
+      afterEffects(
+        "inline-flex items-center gap-1 self-start rounded-pill px-3 py-1 border-(length:--border-width-thin) font-display text-xs font-bold border-border-default bg-surface-raised text-text-secondary",
+        ["gap-1"],
+        ["gap-2"],
+      ),
+    );
+  });
+});
+
+describe("RUB-T3: the layer badge, its wrap and its icon alone (C14), the role badge (C15)", () => {
+  it("keeps the badge whole by default, takes two lines in a box of 12 px radius on `wrap`, and the icon alone on `iconOnly`, the text staying its name", () => {
+    const whole = html(
+      createElement(LayerBadge, {
+        layer: "revealed",
+        label: "After the introduction",
+      }),
+    );
+    expect(whole).toContain("rounded-pill");
+    expect(whole).toContain("gap-2");
+    const wrapped = html(
+      createElement(LayerBadge, {
+        layer: "revealed",
+        wrap: true,
+        label: "After the introduction",
+      }),
+    );
+    expect(wrapped).toContain("rounded-md");
+    expect(wrapped).toContain("items-start");
+    expect(wrapped).not.toContain("whitespace-nowrap");
+    expect(wrapped).toContain("mt-(--size-nudge)");
+    const iconOnly = html(
+      createElement(LayerBadge, {
+        layer: "internal",
+        iconOnly: true,
+        label: "INFLUX team only",
+      }),
+    );
+    expect(iconOnly).toContain("data-layer-icon-only");
+    expect(iconOnly).toContain('role="button"');
+    expect(iconOnly).toContain("INFLUX team only");
+    expect(iconOnly).toContain("overflow-hidden");
+    expect(iconOnly).not.toContain("rounded-md");
+  });
+
+  it("gives the role badge a weight of its own, and nothing else new (RU-15, RUB-E)", () => {
+    expect(
+      rootClasses(
+        html(createElement(RoleBadge, { role: "creator", label: "Creator" })),
+      ),
+    ).toEqual(
+      afterEffects(
+        "inline-flex items-center gap-2 rounded-pill px-3 py-1 border-(length:--border-width-thin) border-border-default bg-surface-raised text-sm text-text-secondary",
+        [],
+        ["font-regular"],
+      ),
+    );
+  });
+});
+
+describe("RUB-T3: the counter, its late and dot forms and its contour (C16)", () => {
+  it("draws a late counter with the warning ground and a flag, the lateness read in words and the number beside the flag", () => {
+    const markup = html(
+      createElement(CounterBadge, { count: 4, late: true, label: "4 overdue" }),
+    );
+    expect(markup).toContain("bg-feedback-warning-bg");
+    expect(markup).toContain("text-feedback-warning-text");
+    expect(markup).toContain("lucide-flag");
+    expect(markup).toContain('<span aria-hidden="true">4</span>');
+    expect(markup).toContain('<span class="sr-only">4 overdue</span>');
+    expect(markup).not.toContain("bg-counter-bg");
+  });
+
+  it("draws the dot at 20 px with the flag alone when late, and keeps a transparent thin contour on both forms (AP1), with no flash on the first draw", () => {
+    const dot = html(
+      createElement(CounterBadge, {
+        count: 4,
+        variant: "dot",
+        label: "4 filters",
+      }),
+    );
+    expect(dot).toContain("size-(--size-icon-md)");
+    expect(dot).toContain("rounded-round");
+    const lateDot = html(
+      createElement(CounterBadge, {
+        count: 4,
+        variant: "dot",
+        late: true,
+        label: "4 overdue",
+      }),
+    );
+    expect(lateDot).toContain("lucide-flag");
+    expect(lateDot).not.toContain('<span aria-hidden="true">4</span>');
+    expect(lateDot).toContain('<span class="sr-only">4 overdue</span>');
+    const pill = html(createElement(CounterBadge, { count: 2, label: "2" }));
+    for (const markup of [dot, lateDot, pill]) {
+      expect(markup).toContain("outline-transparent");
+      expect(markup).toContain("outline-(length:--border-width-thin)");
+      expect(markup).not.toContain("animate-flash-strong");
+    }
+    expect(pill).toContain("min-w-5");
+  });
+});
+
+describe("RUB-T3: the notice, its title, its action and its strip (C17)", () => {
+  it("draws the icon at 16 px with 12 px after it, the title in bold before the text and the action after it", () => {
+    const markup = html(
+      createElement(
+        Notice,
+        {
+          tone: "warning",
+          title: "Late.",
+          action: createElement("a", { href: "#x" }, "Fix"),
+        },
+        "Brief to clarify.",
+      ),
+    );
+    expect(markup).toContain("gap-3");
+    expect(markup).toContain("size-(--size-icon-sm)");
+    expect(markup).not.toContain("size-(--size-icon-md)");
+    expect(markup.indexOf("<strong")).toBeLessThan(
+      markup.indexOf("Brief to clarify."),
+    );
+    expect(markup.indexOf("Brief to clarify.")).toBeLessThan(
+      markup.indexOf("Fix"),
+    );
+    expect(markup).toContain('role="status"');
+    const strip = html(
+      createElement(Notice, { tone: "info", size: "strip" }, "Text"),
+    );
+    expect(strip).toContain("flex-wrap");
+    expect(strip).toContain("items-center");
+    expect(strip).not.toContain("items-start");
+    expect(strip).toContain("grow");
+  });
+
+  it("changes a call that already exists by the gap and the icon alone, and leaves the box of the forms as it was (RUB-E)", () => {
+    const markup = html(createElement(Notice, { tone: "info" }, "x"));
+    expect(rootClasses(markup)).toEqual(
+      afterEffects(
+        "rounded-md border-(length:--border-width-thin) px-4 py-3 text-sm border-feedback-info-border bg-feedback-info-bg text-text-primary flex items-start gap-2",
+        ["gap-2"],
+        ["gap-3"],
+      ),
+    );
+    expect(markup).toContain(
+      "size-(--size-icon-sm) shrink-0 mt-(--size-nudge)",
+    );
+    expect(noticeClasses("info")).toBe(
+      "rounded-md border-(length:--border-width-thin) px-4 py-3 text-sm border-feedback-info-border bg-feedback-info-bg text-text-primary",
+    );
+  });
+});
+
+describe("RUB-T3: the logo plate and its initials (C33), the list of chips (C38)", () => {
+  it("shows the picture under the name as alternative text, and the initials of the name, decorative, under the name as label when there is none", () => {
+    const picture = html(
+      createElement(LogoPlate, {
+        src: "data:image/png;base64,AAAA",
+        name: "Atelier Exemple",
+        size: 48,
+        shape: "plate",
+      }),
+    );
+    expect(picture).toContain('alt="Atelier Exemple"');
+    expect(picture).toContain("object-contain");
+    expect(picture).toContain("bg-logo-plate");
+    expect(picture).toContain("size-8");
+    const initials = html(
+      createElement(LogoPlate, {
+        name: "Atelier Exemple",
+        size: 120,
+        shape: "plate",
+      }),
+    );
+    expect(initials).toContain('role="img"');
+    expect(initials).toContain('aria-label="Atelier Exemple"');
+    expect(initials).toContain('<span aria-hidden="true">AE</span>');
+    expect(initials).toContain("size-(--size-logo-hero)");
+    expect(initials).toContain("rounded-card");
+    expect(initials).not.toContain("<img");
+  });
+
+  it("falls back to the initials when the picture fails, forgets the failure when the source changes, and draws dashes only for a missing logo", () => {
+    expect(logoPlateContent("a.png", undefined, "initials")).toBe("image");
+    expect(logoPlateContent("a.png", "a.png", "dashed")).toBe("initials");
+    expect(logoPlateContent("b.png", "a.png", "initials")).toBe("image");
+    expect(logoPlateContent(undefined, undefined, "initials")).toBe("initials");
+    expect(logoPlateContent("", undefined, "dashed")).toBe("dashed");
+    expect(initialsOf("Atelier Exemple")).toBe("AE");
+    expect(initialsOf("  camille ")).toBe("C");
+    expect(initialsOf("Jean-Luc de la Tour")).toBe("JL");
+    expect(initialsOf("")).toBe("");
+    const dashed = html(
+      createElement(LogoPlate, {
+        name: "Atelier",
+        size: 48,
+        shape: "plate",
+        missing: "dashed",
+      }),
+    );
+    expect(dashed).toContain("border-dashed");
+    expect(dashed).not.toContain("bg-logo-plate");
+    expect(dashed).not.toContain("aria-hidden");
+    const round = html(
+      createElement(LogoPlate, {
+        name: "Camille Exemple",
+        size: 40,
+        shape: "round",
+      }),
+    );
+    expect(round).toContain("rounded-round");
+    expect(round).toContain("bg-surface-active");
+    expect(round).not.toMatch(/gradient|bg-data-/);
+  });
+
+  it("names the list of chips, draws one non-interactive item per word, and draws nothing for an empty list", () => {
+    const markup = html(
+      createElement(ChipList, {
+        items: ["Cooking", "Family", "Cooking"],
+        label: "Topics",
+      }),
+    );
+    expect(markup).toContain('aria-label="Topics"');
+    expect(markup.match(/<li /g)).toHaveLength(3);
+    expect(markup).toContain("min-h-(--size-chip)");
+    expect(markup).not.toMatch(/<button|<a |tabindex|href=/);
+    expect(html(createElement(ChipList, { items: [], label: "Topics" }))).toBe(
+      "",
+    );
   });
 });

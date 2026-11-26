@@ -5,7 +5,13 @@ import {
   InfoIcon,
   TriangleAlertIcon,
 } from "@/components/ui/icons";
-import { noticeClasses, type NoticeTone } from "./notice-classes";
+import {
+  noticeBodyClasses,
+  noticeRowClasses,
+  noticeIconClasses,
+  type NoticeSize,
+  type NoticeTone,
+} from "./notice-classes";
 
 const TONE_ICONS = {
   success: { Icon: CircleCheckIcon, color: "text-feedback-success-icon" },
@@ -13,8 +19,14 @@ const TONE_ICONS = {
   info: { Icon: InfoIcon, color: "text-feedback-info-icon" },
 } as const;
 
-type NoticeProps = {
+export type NoticeProps = {
   tone: NoticeTone;
+  /** `md` by default; `strip`: icon, text and action on one centred line, wrapping together. */
+  size?: NoticeSize;
+  /** The first words in bold, running on into the text, already translated. */
+  title?: string;
+  /** What the notice offers (a button or a link), at its end; it is part of what is announced. */
+  action?: ReactNode;
   id?: string;
   /** `status` by default; false for a text already tied to its subject (no live region). */
   announce?: boolean;
@@ -22,9 +34,15 @@ type NoticeProps = {
   children?: ReactNode;
 };
 
-/** A notice: family icon and text, never the color alone (P7). An error is ErrorNotice. */
+/**
+ * A notice (C17): family icon and text, never the colour alone (P7), for an event or a warning and never
+ * for a lasting state (U46: that is a badge). Three tones only (R06b §7, EC-RUA-06-1). An error is ErrorNotice.
+ */
 export function Notice({
   tone,
+  size,
+  title,
+  action,
   id,
   announce = true,
   className,
@@ -35,13 +53,16 @@ export function Notice({
     <div
       id={id}
       role={announce ? "status" : undefined}
-      className={cn(noticeClasses(tone), "flex items-start gap-2", className)}
+      className={cn(noticeRowClasses(tone, size), className)}
     >
-      <Icon
-        aria-hidden="true"
-        className={cn("size-(--size-icon-md) shrink-0", color)}
-      />
-      <div className="min-w-0">{children}</div>
+      <Icon aria-hidden="true" className={cn(noticeIconClasses(size), color)} />
+      <div className={noticeBodyClasses(size)}>
+        {title === undefined ? null : (
+          <strong className="font-semibold">{title} </strong>
+        )}
+        {children}
+      </div>
+      {action === undefined ? null : <div className="shrink-0">{action}</div>}
     </div>
   );
 }

@@ -15,7 +15,12 @@ const COMPONENTS = [
   "button",
   "surface",
   "notice",
-  "badge",
+  "status-badge",
+  "layer-badge",
+  "role-badge",
+  "counter-badge",
+  "logo-plate",
+  "chip-list",
   "field",
 ] as const;
 
@@ -221,4 +226,164 @@ test("RUB-AN2 02: the surfaces and the actions, their motion and its absence und
       selector,
     ).toBe("underline");
   }
+});
+
+// RUB-AN2, line 17 (R04 line 17: the counter, C16), and RUB-AX for line 03 (docs/mvp/jalons/rub/modele-ux.md §5):
+// at 1 440 px a counter whose value changes flashes its container once, 320 ms on the curve `standard`, and
+// not before the change; under reduced motion the duration is zero (AN-1). The badges keep the measures of
+// `02a` (8 px between an icon and its word, 4 px in the `text` form, 12 px and 16 px in a notice), the role
+// badge never inherits the weight of its parent (RU-15), the counter has its contour (AP1) that the system
+// draws under forced colours, a plate shows its initials when the picture is absent or fails, and a strip
+// keeps its action on the line of its text, then under it at 375 px.
+test("RUB-AN2 17: the counter flashes when its value changes, and not under reduced motion; RUB-AX: the measures of the badges, the notices and the plates", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (component: string, state: string) =>
+    board.locator(
+      `[data-board-component="${component}"] [data-board-state="${state}"]`,
+    );
+  const style = (target: ReturnType<typeof cell>, property: string) =>
+    target.evaluate(
+      (element, name) =>
+        getComputedStyle(element).getPropertyValue(name as string),
+      property,
+    );
+
+  // The counter: no flash on the first draw, one after a change, none under reduced motion.
+  const changed = cell("counter-badge", "changed");
+  const container = changed.locator(".animate-flash-strong");
+  await expect(container).toHaveCount(0);
+  await changed.getByRole("button").click();
+  await expect(container).toHaveCount(1);
+  expect(
+    await container.evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        name: computed.animationName,
+        duration: computed.animationDuration,
+        timing: computed.animationTimingFunction,
+      };
+    }),
+  ).toEqual({
+    name: "flash-strong",
+    duration: "0.32s",
+    timing: "cubic-bezier(0.2, 0, 0, 1)",
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await changed.getByRole("button").click();
+  expect(
+    await changed
+      .locator(".animate-flash-strong")
+      .evaluate((element) => getComputedStyle(element).animationDuration),
+  ).toBe("0s");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // The counter: 24 px at least, its contour transparent at rest and drawn by the system under forced colours (AP1).
+  const pill = cell("counter-badge", "pill")
+    .locator("span.rounded-pill > span")
+    .first();
+  expect(Math.round((await pill.boundingBox())!.width)).toBeGreaterThanOrEqual(
+    24,
+  );
+  expect(await style(pill, "outline-style")).toBe("solid");
+  expect(await style(pill, "outline-color")).toBe("rgba(0, 0, 0, 0)");
+  await page.emulateMedia({ forcedColors: "active" });
+  expect(await style(pill, "outline-color")).not.toBe("rgba(0, 0, 0, 0)");
+  await page.emulateMedia({ forcedColors: "none" });
+
+  // The badges and the notices: the gaps and the icon of `02a`.
+  const withIcon = cell("status-badge", "with-icon").locator("span").first();
+  expect(await style(withIcon, "column-gap")).toBe("8px");
+  expect(
+    await withIcon
+      .locator("svg")
+      .evaluate((icon) => icon.getBoundingClientRect().width),
+  ).toBe(16);
+  expect(
+    await style(
+      cell("status-badge", "text").locator("span").first(),
+      "column-gap",
+    ),
+  ).toBe("4px");
+  expect(
+    await style(
+      cell("layer-badge", "layers").locator("span > span").first(),
+      "column-gap",
+    ),
+  ).toBe("8px");
+  expect(
+    await style(
+      cell("layer-badge", "wrap").locator("span > span").first(),
+      "border-top-left-radius",
+    ),
+  ).toBe("12px");
+  const notice = cell("notice", "titled").locator("[role=status]");
+  expect(await style(notice, "column-gap")).toBe("12px");
+  expect(
+    await notice
+      .locator("svg")
+      .evaluate((icon) => icon.getBoundingClientRect().width),
+  ).toBe(16);
+
+  // RU-15: the role badge under a parent of weight 800 keeps its own.
+  expect(
+    await style(
+      cell("role-badge", "inherited-weight")
+        .locator("span.rounded-pill")
+        .first(),
+      "font-weight",
+    ),
+  ).toBe("400");
+
+  // The plates: six sizes of picture, initials without one, initials after a failure, a dashed square.
+  const sizes = await cell("logo-plate", "plate-image")
+    .locator("img")
+    .evaluateAll((images) =>
+      images.map((image) => [
+        Math.round(image.parentElement!.getBoundingClientRect().width),
+        (image as HTMLImageElement).naturalWidth,
+      ]),
+    );
+  expect(sizes).toEqual([32, 40, 48, 56, 64, 120].map((size) => [size, 8]));
+  const initials = cell("logo-plate", "plate-initials").getByRole("img", {
+    name: "Atelier Exemple",
+  });
+  await expect(initials).toHaveCount(6);
+  await expect(initials.first()).toHaveText("AE");
+  const failed = cell("logo-plate", "failed");
+  await expect(failed.locator("img")).toHaveCount(0);
+  await expect(failed.getByRole("img", { name: "Atelier Exemple" })).toHaveText(
+    "AE",
+  );
+  expect(
+    await style(
+      cell("logo-plate", "dashed").getByRole("img"),
+      "border-top-style",
+    ),
+  ).toBe("dashed");
+
+  // The strip: the action stays on the line of the text at 1 440 px, and drops under it at 375 px.
+  const centres = (state: string) =>
+    cell("notice", state)
+      .locator("[role=status]")
+      .evaluate((element) => {
+        const [icon, body, action] = [...element.children].map((child) =>
+          child.getBoundingClientRect(),
+        );
+        return {
+          iconMiddle: icon!.top + icon!.height / 2,
+          actionMiddle: action!.top + action!.height / 2,
+          bodyBottom: body!.bottom,
+          actionTop: action!.top,
+        };
+      });
+  const wide = await centres("strip");
+  expect(Math.abs(wide.iconMiddle - wide.actionMiddle)).toBeLessThanOrEqual(2);
+  await page.setViewportSize({ width: 375, height: 812 });
+  await cell("notice", "strip-long").scrollIntoViewIfNeeded();
+  const narrow = await centres("strip-long");
+  expect(narrow.actionTop).toBeGreaterThanOrEqual(narrow.bodyBottom - 1);
 });

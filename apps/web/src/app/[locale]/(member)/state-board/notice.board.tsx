@@ -1,3 +1,4 @@
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import type { NoticeTone } from "@/components/member/ui/notice-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
@@ -24,10 +25,22 @@ const TONES: readonly { tone: NoticeTone; label: string; text: string }[] = [
 const TEXTS = {
   title: "Notice",
   note:
-    "Trois tons d'une notice, puis la notice d'erreur : une icône et un texte, jamais la couleur seule. " +
-    "Chacune est annoncée (status ou alert) ; la version sans annonce est celle d'un texte déjà relié à son objet.",
+    "C17 : trois tons d'une notice (icône de 16 px, écart de 12 px), avec un titre, avec une action, en bandeau (icône, " +
+    "texte et action sur une ligne centrée, qui passent à la ligne ensemble), puis la notice d'erreur : une icône et un " +
+    "texte, jamais la couleur seule. Chacune est annoncée (status ou alert) ; la version sans annonce est celle d'un " +
+    "texte déjà relié à son objet.",
   error: "Erreur",
   errorText: "L'enregistrement a échoué. Réessayez dans un instant.",
+  titled: "Avec un titre",
+  titledTitle: "« Coffret de fêtes » est à corriger.",
+  titledText: "Votre brief ne permet pas de comprendre le livrable attendu.",
+  action: "Avec une action",
+  actionLabel: "Corriger",
+  strip: "Bandeau : texte et action sur une ligne",
+  stripText: "Brief à préciser.",
+  stripWrap: "Bandeau, texte long : l'action passe dessous",
+  stripLong:
+    "Un texte assez long pour que le bandeau le fasse passer à la ligne avant son action, sans rien déborder à 375 px.",
   silent: "Sans annonce",
   silentText: "Ce texte est déjà relié à son champ.",
 } as const;
@@ -41,6 +54,42 @@ export function NoticeBoard() {
           <Notice tone={tone}>{text}</Notice>
         </BoardState>
       ))}
+      <BoardState state="titled" label={TEXTS.titled} className="flex-col">
+        <Notice tone="warning" title={TEXTS.titledTitle}>
+          {TEXTS.titledText}
+        </Notice>
+      </BoardState>
+      <BoardState state="action" label={TEXTS.action} className="flex-col">
+        <Notice
+          tone="info"
+          action={<Button size="sm">{TEXTS.actionLabel}</Button>}
+        >
+          {TONES[2]?.text}
+        </Notice>
+      </BoardState>
+      <BoardState state="strip" label={TEXTS.strip} className="flex-col">
+        <Notice
+          tone="warning"
+          size="strip"
+          title={TEXTS.titledTitle}
+          action={<Button>{TEXTS.actionLabel}</Button>}
+        >
+          {TEXTS.stripText}
+        </Notice>
+      </BoardState>
+      <BoardState
+        state="strip-long"
+        label={TEXTS.stripWrap}
+        className="flex-col"
+      >
+        <Notice
+          tone="success"
+          size="strip"
+          action={<Button variant="secondary">{TEXTS.actionLabel}</Button>}
+        >
+          {TEXTS.stripLong}
+        </Notice>
+      </BoardState>
       <BoardState state="error" label={TEXTS.error} className="flex-col">
         <ErrorNotice>{TEXTS.errorText}</ErrorNotice>
       </BoardState>

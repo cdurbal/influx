@@ -36,7 +36,6 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   "--color-data-2",
   // Roles and effects of the Lot 3bis (D88, RUA-01), redefined under KEO and read by no class before the
   // screens of RUB; each entry goes when its reader arrives (a stale entry fails this very test).
-  "--color-logo-plate",
   "--color-skeleton-base",
   "--color-skeleton-sheen",
   "--effect-photo-scrim-strong",
@@ -62,7 +61,6 @@ const CLASSES_JUSTIFIED: readonly string[] = [
   "current",
   "ancestor",
   "idle",
-  "error",
   "public",
   "revealed",
   "internal",

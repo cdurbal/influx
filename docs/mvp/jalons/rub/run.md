@@ -8,7 +8,7 @@
 | X1 | X1.md | commit | sonnet | high | testeur | fait | G8 refuse next/headers, @influx/contracts, fetch(, process.env (cas négatifs) ; ws refusée et comptée ; plancher app 4 à part, lu par test |
 | 01 | 01.md | commit | sonnet | high | dev-react-node | fait | C01-C03, C29 livrés ; planche : structure, announcer ; garde h1 par cellule ; gardes catalogue, copies en sursis, SHARED_CATALOGUE (4 pending) ; crumbs sans nav |
 | 02 | 02.md | commit | sonnet | high | dev-react-node | fait | C04, C05, C10-C12 livrés ; Button ← MemberButton (client) ; sm = size-tag, bar = size-pill ; busy et raison déclaratifs ; AN2 02 vert ; SHARED +4 pending |
-| 03 | 03.md | commit | sonnet | high | dev-react-node | à faire | |
+| 03 | 03.md | commit | sonnet | high | dev-react-node | fait | C13-C17, C33, C38 livrés ; VerifiedBadge = ton verified ; Notice noticeClasses intacte (callers auth) ; garde hero : 2 rôles exemptés ; SHARED +7 pending |
 | 04 | 04.md | commit | sonnet | high | dev-react-node | à faire | |
 | 05 | 05.md | commit | sonnet | high | dev-react-node | à faire | |
 | 06 | 06.md | commit | sonnet | high | dev-react-node | à faire | |

@@ -146,6 +146,17 @@ export const VITRINE_TOKEN_MARKERS: readonly string[] = [
   "mockup",
 ];
 
+/**
+ * The two tokens of the Lot 3bis (D88, RUA-01) whose name holds "hero" without being an effect of the
+ * landing: the 120 px logo of a brand page and the title of its reading page (20 §11.5). Members' roles,
+ * read under KEO (the logo plate of RUB, C33); the effects of the landing (`hero-halo`, `hero-card`,
+ * `hero-main-x`…) stay vitrine-only, and no other token is exempt (RUB-03, TD1).
+ */
+export const KEO_HERO_ROLES: readonly string[] = [
+  "--size-logo-hero",
+  "--text-title-hero",
+];
+
 // ---------------------------------------------------------------------------------------------
 // G3d: the matrix of contrasts and the hue gap of the success, per charter (20 §11.3, §11.4)
 // ---------------------------------------------------------------------------------------------
@@ -478,4 +489,11 @@ export const SHARED_CATALOGUE: readonly SharedCatalogueEntry[] = [
   { name: "ActionLink", backoffice: "pending" },
   { name: "InnerPanel", backoffice: "pending" },
   { name: "CardActions", backoffice: "pending" },
+  { name: "StatusBadge", backoffice: "pending" },
+  { name: "LayerBadge", backoffice: "pending" },
+  { name: "RoleBadge", backoffice: "pending" },
+  { name: "CounterBadge", backoffice: "pending" },
+  { name: "Notice", backoffice: "pending" },
+  { name: "LogoPlate", backoffice: "pending" },
+  { name: "ChipList", backoffice: "pending" },
 ];
