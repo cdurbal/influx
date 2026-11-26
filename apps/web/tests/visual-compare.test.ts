@@ -509,7 +509,7 @@ describe("the `visual` project exists only under E2E_VISUAL (modele-archi.md §5
     expect((app.projects ?? []).map((project) => project.name)).toEqual([
       "visual",
     ]);
-    expect([app.webServer].flat()).toHaveLength(4);
+    expect([app.webServer].flat()).toHaveLength(5);
     await expect(config("all")).rejects.toThrow(
       /E2E_VISUAL is "mockup" or "app"/,
     );
