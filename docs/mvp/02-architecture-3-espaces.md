@@ -1239,7 +1239,7 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `DIRECT_DATABASE_URL` (rôle de migration, **propriétaire des objets**) | — | — | — | — | **Secrète, CI uniquement** — jamais dans un service d'exécution |
 | `INFLUX_PUBLIC_BACKOFFICE_URL` — *ajoutée le 2026-09-27 (`21` J1-F)* | — | — | ✔ | ✔ (J9) | Publique — origine de la surface `backoffice` pour le contrôle d'origine A4 (`03` §6.4) ; côté `worker`, cible de la sonde avec `INFLUX_PUBLIC_SITE_URL` (§20.5), les trois cibles ensemble |
 | `SUPABASE_URL` | — | — | ✔ | ✔ (J7) | **Serveur uniquement**, non secrète. Côté `worker`, avec `SUPABASE_SECRET_KEY` (les deux ou aucune, requises en production) |
-| `SUPABASE_SECRET_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ (J3) | ✔ (J6) | **Secrète, jamais dans un bundle. Une clé par service** (`api`, `worker`), révocable séparément (*2026-09-27, `21` EC-46*). Usage limité à GoTrue (création d'utilisateur, code, second facteur ; côté `worker`, la seule purge E-4 des utilisateurs orphelins) et aux URL signées du Storage. **Jamais pour atteindre une table** |
+| `SUPABASE_SECRET_KEY` — **clé d'API HTTP**, à ne pas confondre avec le rôle Postgres `service_role`, qui n'est utilisé nulle part | — | — | ✔ (J3) | ✔ (J6) | **Secrète, jamais dans un bundle. Une clé par service** (`api`, `worker`), révocable séparément (*2026-09-27, `21` EC-46*). Usage limité à GoTrue (création d'utilisateur, code, second facteur ; côté `worker`, la seule purge E-4 des utilisateurs orphelins) et aux URL signées du Storage *(D90, Lot 3ter : stockage d'images migré vers Cloudflare R2 via `R2_*` ; en `R2C`, usage restreint au seul GoTrue)*. **Jamais pour atteindre une table** |
 | ~~`SUPABASE_PUBLISHABLE_KEY`~~, ~~`SUPABASE_JWKS_URL`~~ | — | — | — | — | **Retirées le 2026-09-27** (`21` EC-46) : tout appel à GoTrue porte la clé secrète, et INFLUX ne vérifie aucun JWT (`21` J3-C règle 3). Sur les projets hébergés, la clé *publishable* est désactivée si la plateforme le permet (`21` G-1) |
 | `BREVO_API_KEY` | — | — | ✔ | ✔ | **Secrète. Deux clés distinctes par environnement**, une pour `api` (code de connexion `P0`, D43 ; alertes D60), une pour `worker` (*2026-09-27, `21` EC-19*) |
 | `BREVO_API_BASE_URL`, `BREVO_MODE`, `BREVO_TEST_RECIPIENTS`, `BREVO_SENDER_TRANSACTIONAL` | — | — | ✔ | ✔ | Garde-fous du §12.4 appliqués **aussi** à `api`, dès le premier envoi du code (`16` §M8) |
@@ -1251,6 +1251,10 @@ démarrage : une variable requise manquante fait **échouer le démarrage** avec
 | `SYNC_MODE` (`live` \| `dry_run`) | — | — | — | ✔ | Garde-fou, §12.4 |
 | `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | — | — | — | ✔ | Garde-fou, §12.4 : `development` seul, refusée en environnement déployé (comme `BREVO_TEST_RECIPIENTS`) |
 | `OPS_ALERT_RECIPIENTS` — *J9 commit 8 (§20.10, `15` RG165)* | — | — | ✔ | ✔ | Non secrète, **jamais recopiée** : adresses d'astreinte (`on_call`) des alertes techniques, séparées par des virgules, jamais en base (§20.8), seules disponibles base injoignable ; requise en environnement déployé (D70, EC-J9-7) |
+| `R2_ENDPOINT` — *ajoutée le 2026-11-26 (`D90`, Lot 3ter)* | — | — | ✔ | ✔ (tout-ou-rien en `development`) | Publique — origine S3 sans chemin, query ni identifiants : `http://` sur `LOOPBACK_HOSTS` (`127.0.0.1`, `localhost`, `[::1]`) en `development` (tout hôte `*.r2.cloudflarestorage.com` refusé, `16` RG148) ; `https://<32-hex>.(eu.)r2.cloudflarestorage.com` sous `isDeployedEnvironment` (`.eu.` vérifié en `production` par `production.md` / `J9S-1`, D25) |
+| `R2_ACCESS_KEY_ID` — *ajoutée le 2026-11-26 (`D90`, Lot 3ter)* | — | — | ✔ | ✔ (tout-ou-rien en `development`) | Interne, jamais dans un bundle (`"R2_"` interdit, T11.1) — identifiant du jeton R2 `Object Read & Write` borné aux 3 compartiments ; **un jeton distinct par service** (`api` ≠ `worker`) et par environnement, sans `CHANGE_ME` |
+| `R2_SECRET_ACCESS_KEY` — *ajoutée le 2026-11-26 (`D90`, Lot 3ter)* | — | — | ✔ | ✔ (tout-ou-rien en `development`) | **Secrète**, jamais dans un bundle (`"R2_"` interdit, T11.1) — ≥ 32 octets, sans `CHANGE_ME`, distincte de `R2_ACCESS_KEY_ID` et de tout autre secret du processus (`schema.ts`) |
+| `R2_BUCKET_PREFIX` — *ajoutée le 2026-11-26 (`D90`, Lot 3ter)* | — | — | ✔ | ✔ (tout-ou-rien en `development`) | Publique — préfixe des 3 compartiments logiques (`${prefix}${bucket}`, `23` A2) : `""` par défaut ou `^[a-z0-9][a-z0-9-]{0,30}-$` en `development` (`e2e-` en Playwright) ; `^influx-(?:staging\|production)-$` sous `isDeployedEnvironment` |
 
 **Variables de base : refus de démarrage** (*ajouté le 2026-09-26, `21` EC-20, tranché par
 `expert-cybersecurite`* ; `ELEVATED_DATABASE_URL` disparaît, `03` §4 P7 fait foi) :
@@ -1308,6 +1312,15 @@ sans exception, les refus de démarrage suivants (`api` et `worker` selon la var
    `INFLUX_PUBLIC_BACKOFFICE_URL` (`api`) ⇒ refus.
 7. Réglages de synchronisation indispensables manquants ⇒ refus (`worker`, §12.5, `05` RG162),
    au commit (b) de D67.
+8. Variables R2 (`R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_PREFIX`) absentes
+   ou invalides ⇒ refus (`api` et `worker`, **D90**, `23` §3.3 A3, §5.1, §7.3 RG13–RG14) :
+   `R2_ENDPOINT` différent de `^https://[0-9a-f]{32}\.(?:eu\.)?r2\.cloudflarestorage\.com$` (sans
+   chemin, query ni identifiants), `R2_BUCKET_PREFIX` différent de `^influx-(?:staging|production)-$`,
+   ou `R2_SECRET_ACCESS_KEY` < 32 octets, égal à `CHANGE_ME`, à `R2_ACCESS_KEY_ID` ou à un autre secret
+   du processus. En `development` : `R2_ENDPOINT` hors origine `http://` sur `LOOPBACK_HOSTS`
+   (`127.0.0.1`, `localhost`, `[::1]`) ou visant `*.r2.cloudflarestorage.com` (`16` RG148) ⇒ refus ;
+   sur `worker`, les quatre variables suivent la règle du **tout-ou-rien** (`config.r2 = null` si
+   toutes absentes, refus si présence partielle).
 
 En `development`, à l'inverse : `BREVO_MODE=live` ⇒ refus ; `BREVO_MODE=redirect` sans
 `BREVO_TEST_RECIPIENTS` ⇒ refus ; `SYNC_MODE=live` sans `NON_PRODUCTION_RECIPIENT_ALLOWLIST` ⇒
@@ -1318,7 +1331,12 @@ service déployé ne se relâche pas en changeant une variable.
 configuration ; la configuration remet au connecteur un filtre de destinataires déjà résolu (liste
 blanche en `development`, « sans restriction » en environnement déployé ; valeur discriminée, jamais
 `null`). Tout nouveau test `=== "production"` dans `apps/api/src` est un défaut de revue, sauf pour
-une différence de la liste fermée de D70.
+une différence de la liste fermée de D70. En particulier pour **R2 (`D90`, `23` §3.3 A3)**,
+`apps/api/src/config/schema.ts` ne contient **aucun branchement `INFLUX_ENV === "production"`** :
+`staging` et `production` partagent exclusivement `isDeployedEnvironment(INFLUX_ENV)`, la distinction
+entre `staging` (`influx-staging-`, sans `.eu.`, deux `R2_ACCESS_KEY_ID` distincts entre `api` et
+`worker`) et `production` (`influx-production-`, hôte `.eu.` D25) étant portée par `staging:check`,
+`script-guards.ts`, `runbooks/production.md` et le script pré-vol `J9S-1`.
 
 **Quatre verrous, après D70.**
 

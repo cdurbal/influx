@@ -1207,25 +1207,46 @@ Les mêmes règles s'appliquent à `introduction_events`, `conversation_access_l
 
 ### P10 — Les politiques du Storage
 
+> **Amendé le 2026-11-26 (`D90`, Lot 3ter `23-migration-cloudflare-r2.md`) :** le stockage physique
+> des images (`brand-logo`, `portfolio`, `verification-evidence`) migre vers **Cloudflare R2** en
+> adressage S3 **path-style** privé (`${R2_ENDPOINT}/${R2_BUCKET_PREFIX}${bucket}/${objectKey}`,
+> accès public `r2.dev` désactivé, `If-None-Match: "*"`, juridiction `eu` en `production` `D25` et
+> `default` en `staging` sous `B9`), avec **deux jetons R2 `Object Read & Write` distincts** bornés aux
+> 3 compartiments (`api` ≠ `worker`, `worker` limité au seul `ObjectStore.remove()`), **zéro URL
+> présignée ni publique** (`X-Amz-Signature`, `X-Amz-Expires`) et **zéro `ListObjectsV2`** dans
+> `apps/api/src/`.
+
 1. **Tous les compartiments sont privés.** Aucun compartiment public, jamais, quelle que soit la
-   justification. Un test vérifie `storage.buckets.public = false` pour tous (§8, T9).
-2. **Un compartiment par classe de sensibilité**, parce que les limites de type et de taille sont des
-   propriétés du compartiment : `brand-logo` (L2B, D80 : logo de marque, sortie ré-encodée par `apps/api`, WebP, ≤ 1 Mio, privé), `portfolio` (visuels modérés, visibles des annonceurs après
-   modération) et `verification-evidence` (pièces d'audience, **jamais visibles d'un annonceur** ; nom réel du compartiment depuis L2E, EC-L2E-8, qui remplace `verification` de la rédaction d'origine).
-3. `allowed_mime_types` et `file_size_limit` **réglés au niveau du compartiment** : c'est la seule
-   limite réellement appliquée par Supabase au moment du téléversement direct. Un contrôle fait
-   uniquement dans `apps/api` avant l'émission de l'URL ne contraint pas ce que le navigateur envoie
-   ensuite.
-4. **Le chemin de l'objet est calculé par `apps/api`**, jamais fourni par le client :
-   `<compartiment>/<uuid-du-propriétaire>/<uuid-aléatoire>.<extension>`. **Jamais le nom de fichier
-   d'origine** : `story-marie-dupont-instagram.png` révèle exactement ce que A2 protège, et un nom de
-   fichier voyage dans les URL signées, les journaux et les en-têtes `Referer`.
-5. **Après téléversement, avant référencement** : `apps/api` ou le worker vérifie les octets d'en-tête
-   (le type réel, pas le type déclaré), les dimensions, et **ré-encode les images de portfolio pour
-   supprimer les métadonnées EXIF**. Une capture d'écran de téléphone contient fréquemment la
-   géolocalisation : c'est une dé-anonymisation directe, et personne n'y pense.
-6. **Politiques sur `storage.objects`** alignées sur celles des tables correspondantes, pour le cas
-   où un chemin d'accès autre que l'URL signée existerait un jour.
+   justification (ni `r2.dev`, ni domaine personnalisé sur R2, ni `storage.buckets.public = true`). Un
+   test vérifie `storage.buckets.public = false` pour tous (§8, T9).
+2. **Un compartiment par classe de sensibilité**, parce que les limites de type, de lecture (`1 Mio` /
+   `8 Mio`) et d'isolement d'accès sont portées par le compartiment : `${R2_BUCKET_PREFIX}brand-logo`
+   (L2B, D80 : logo de marque, WebP ré-encodé ≤ 1 Mio, privé), `${R2_BUCKET_PREFIX}portfolio` (visuels
+   modérés, visibles des annonceurs après modération) et `${R2_BUCKET_PREFIX}verification-evidence`
+   (pièces d'audience, **jamais visibles d'un annonceur** ; nom réel du compartiment depuis L2E,
+   EC-L2E-8, qui remplace `verification` de la rédaction d'origine). Le préfixe unique
+   `R2_BUCKET_PREFIX` empêche structurellement toute fusion de compartiments (`23` A2).
+3. `allowed_mime_types` et `file_size_limit` **réglés au niveau du compartiment** côté Supabase, et
+   **appliqués côté `apps/api`** (`platform/images.ts` pour les octets d'en-tête et le ré-encodage WebP
+   sans métadonnée ; `platform/storage.ts` pour `STORAGE_READ_MAX_BYTES`, `If-None-Match: "*"` et
+   `isObjectKey()`), puisque l'exception de téléversement direct E1 n'est pas retenue (`D80`, `D82`,
+   `D90`).
+4. **Le chemin de l'objet est calculé par la base / `apps/api`**, jamais fourni par le client :
+   `<uuid-du-propriétaire>/<uuid-aléatoire>.webp` (ou `<uuid-du-propriétaire>/<uuid-demande>/<uuid-aléatoire>.webp`
+   pour les pièces), revalidé par `isObjectKey(bucket, key)` avant toute signature S3 (anti-SSRF).
+   **Jamais le nom de fichier d'origine** : `story-marie-dupont-instagram.png` révèle exactement ce que
+   A2 protège, et un nom de fichier voyage dans les journaux.
+5. **Avant référencement et publication** : `apps/api` vérifie les octets d'en-tête (le type réel, pas
+   le type déclaré), les dimensions, et **ré-encode toutes les images en WebP pour supprimer les
+   métadonnées EXIF**. Une capture d'écran de téléphone contient fréquemment la géolocalisation : c'est
+   une dé-anonymisation directe, et personne n'y pense.
+6. **Politiques sur `storage.objects` et lignes `storage.buckets` conservées en base (`23` §4.2,
+   `D90`) :** les 3 lignes `public = false` dans `storage.buckets` et les politiques restrictives
+   `influx_no_member_access` (`FOR ALL TO anon, authenticated USING (false) WITH CHECK (false)`) sont
+   **maintenues en PostgreSQL** comme défense en profondeur (et pour le trigger `protect_buckets_delete`),
+   sans aucun droit `influx_%` sur `storage` ; `[storage.s3_protocol] enabled = false` est posé en
+   `R2C` (solde `L2BS-4`), et toute lecture/écriture/suppression passe uniquement par `apps/api` /
+   `worker` (`ObjectStore`) sans URL présignée ni `ListObjectsV2`.
 7. **Quotas par compte** (nombre et volume par jour). Sans quota, un stockage privé reste un
    hébergement gratuit et un canal d'exfiltration.
 
@@ -1704,8 +1725,12 @@ Reformulation validée :
    `packages/contracts`. `withElevatedTransaction(reason, fn)` refuse tout motif hors liste **à
    l'exécution**, pas seulement à la compilation.
 4. **`service_role` au sens Postgres n'est utilisé nulle part.** La clé
-   `SUPABASE_SECRET_KEY` reste nécessaire pour l'API HTTP d'Auth et de Storage, uniquement dans
-   `apps/api` et le worker (§6.9).
+   `SUPABASE_SECRET_KEY` reste nécessaire pour l'API HTTP d'Auth (et de Storage jusqu'en `R2B`), uniquement dans
+   `apps/api` et le worker (§6.9). *(Amendé par `D90`, 2026-11-26, Lot 3ter : le stockage binaire
+   migre vers Cloudflare R2 en path-style privé avec deux jetons S3 `R2_ACCESS_KEY_ID` /
+   `R2_SECRET_ACCESS_KEY` distincts par service `api` ≠ `worker`, zéro URL présignée ni
+   `ListObjectsV2` ; en `R2C`, `@supabase/storage-js` est retiré et `SUPABASE_SECRET_KEY` se limite au
+   seul GoTrue, tout en conservant `storage.buckets` et `influx_no_member_access` en base, P10.6.)*
 5. **Une seconde grappe de connexions**, avec sa propre variable d'environnement, pour les rôles
    élevés. Le chemin utilisateur et le chemin élevé ne partagent jamais une connexion : un défaut sur
    le premier ne peut pas emprunter les droits du second.

@@ -46,7 +46,7 @@
 | 552 | 14 | 12. Décisions ouvertes |  |
 | 566 | 20 | 13. Ce qui change en V2 |  |
 
-## 02-architecture-3-espaces.md (~66k tokens)
+## 02-architecture-3-espaces.md (~67k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -62,55 +62,55 @@
 | 955 | 124 | 9. Le contrat entre l'API et les fronts |  |
 | 1079 | 60 | 10. Où s'applique la RLS, et où elle ne suffit pas |  |
 | 1139 | 51 | 11. Le worker |  |
-| 1190 | 198 | 12. Conséquences sur Railway et Supabase | RG9–RG165 |
-| 1388 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
-| 1446 | 60 | 14. Ce qui reste ouvert |  |
-| 1506 | 47 | 15. Conventions pour `dev-react-node` |  |
-| 1553 | 14 | 16. Points à faire valider par le fondateur |  |
-| 1567 | 12 | 17. Mises à jour des autres documents |  |
-| 1579 | 15 | Sources (vérifiées le 2026-09-18) |  |
-| 1594 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
-| 1615 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
-| 1632 | 7 | ↳ 18.2 Les deux questions posées |  |
-| 1639 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
-| 1660 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
-| 1684 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
-| 1745 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
-| 1756 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
-| 1799 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
-| 1831 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
-| 1858 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
-| 1892 | 16 | ↳ 18.11 Conséquences | RG122 |
-| 1908 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
-| 1917 | 7 | ↳ 18.13 Réversibilité |  |
-| 1924 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
-| 1954 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
-| 1964 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
-| 1988 | 328 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG160 |
-| 2005 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
-| 2016 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
-| 2035 | 17 | ↳ 20.3 Options |  |
-| 2052 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
-| 2066 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
-| 2161 | 35 | ↳ 20.6 Signaux et seuils d'alerte | RG160 |
-| 2196 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
-| 2218 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
-| 2244 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
-| 2256 | 31 | ↳ 20.10 Conséquences |  |
-| 2287 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
-| 2296 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
-| 2309 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
-| 2316 | 398 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
-| 2329 | 7 | ↳ 21.1 Vocabulaire |  |
-| 2336 | 33 | ↳ 21.2 Frontière |  |
-| 2369 | 125 | ↳ 21.3 Tokens : un fichier, deux chartes, un attribut |  |
-| 2494 | 44 | ↳ 21.4 Polices |  |
-| 2538 | 109 | ↳ 21.5 Gabarits de page | RG28–RG107 |
-| 2647 | 23 | ↳ 21.6 Gardes et tests |  |
-| 2670 | 7 | ↳ 21.7 Découpage |  |
-| 2677 | 20 | ↳ 21.8 Risques et réversibilité | RG7 |
-| 2697 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
-| 2708 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
+| 1190 | 216 | 12. Conséquences sur Railway et Supabase | RG9–RG165 |
+| 1406 | 58 | 13. Sortie du mode maquette de `apps/web` |  |
+| 1464 | 60 | 14. Ce qui reste ouvert |  |
+| 1524 | 47 | 15. Conventions pour `dev-react-node` |  |
+| 1571 | 14 | 16. Points à faire valider par le fondateur |  |
+| 1585 | 12 | 17. Mises à jour des autres documents |  |
+| 1597 | 15 | Sources (vérifiées le 2026-09-18) |  |
+| 1612 | 370 | 18. Addendum du 2026-09-19 — D43 : chemin d'envoi des e-mails transactionnels critiques (code de connexion) | RG39–RG122 |
+| 1633 | 17 | ↳ 18.1 Contexte | RG59–RG86 |
+| 1650 | 7 | ↳ 18.2 Les deux questions posées |  |
+| 1657 | 21 | ↳ 18.3 Question (a) — options | RG41–RG87 |
+| 1678 | 24 | ↳ 18.4 Décision (a) : **(i) — appel synchrone dans la requête, avec cinq garde-fous** | RG46–RG64 |
+| 1702 | 61 | ↳ 18.5 L'énumération de comptes — le point que l'envoi synchrone oblige à trancher | RG44–RG60 |
+| 1763 | 11 | ↳ 18.6 Panne du fournisseur : ce qui se passe, et ce que personne ne doit croire | RG64–RG122 |
+| 1774 | 43 | ↳ 18.7 Conséquence non évidente : **c'est `apps/api` qui envoie l'e-mail, pas Supabase Auth** | RG40–RG100 |
+| 1817 | 32 | ↳ 18.8 Décision (b) : `leads.transactional_sends` est **un journal, et rien d'autre** | RG60 |
+| 1849 | 27 | ↳ 18.9 La famine, et pourquoi elle est écartée par construction |  |
+| 1876 | 34 | ↳ 18.10 Contrat d'implémentation — `POST /v1/auth/request-code` | RG44–RG91 |
+| 1910 | 16 | ↳ 18.11 Conséquences | RG122 |
+| 1926 | 9 | ↳ 18.12 Si l'on se trompe | RG46–RG98 |
+| 1935 | 7 | ↳ 18.13 Réversibilité |  |
+| 1942 | 30 | ↳ 18.14 Ce que cet addendum demande aux autres agents | RG60 |
+| 1972 | 10 | ↳ Sources (vérifiées le 2026-09-19) |  |
+| 1982 | 24 | 19. Addendum du 2026-09-24 — D57 : sauvegarde et restauration |  |
+| 2006 | 328 | 20. Addendum du 2026-09-24 — D60 : surveillance de production, entièrement interne | RG98–RG160 |
+| 2023 | 11 | ↳ 20.1 Le besoin, en deux questions |  |
+| 2034 | 19 | ↳ 20.2 Ce qui existe déjà, et ce qui manque | RG98–RG126 |
+| 2053 | 17 | ↳ 20.3 Options |  |
+| 2070 | 14 | ↳ 20.4 Décision : six pièces, toutes internes |  |
+| 2084 | 95 | ↳ 20.5 Comment chaque pièce fonctionne |  |
+| 2179 | 35 | ↳ 20.6 Signaux et seuils d'alerte | RG160 |
+| 2214 | 22 | ↳ 20.7 La période de rodage — « surtout au début » |  |
+| 2236 | 26 | ↳ 20.8 Ce qui n'entre jamais dans un journal ni dans le schéma `ops` |  |
+| 2262 | 12 | ↳ 20.9 Ce que la décision ne couvre pas — risque accepté par le fondateur |  |
+| 2274 | 31 | ↳ 20.10 Conséquences |  |
+| 2305 | 9 | ↳ 20.11 Points à faire valider par le fondateur |  |
+| 2314 | 13 | ↳ 20.12 Ce que cet addendum demande aux autres agents |  |
+| 2327 | 7 | ↳ Sources (vérifiées le 2026-09-24) |  |
+| 2334 | 398 | 21. Addendum du 2026-10-28 — D73 : charte KEO, mécanique technique (tokens, polices, gabarits) | RG7–RG107 |
+| 2347 | 7 | ↳ 21.1 Vocabulaire |  |
+| 2354 | 33 | ↳ 21.2 Frontière |  |
+| 2387 | 125 | ↳ 21.3 Tokens : un fichier, deux chartes, un attribut |  |
+| 2512 | 44 | ↳ 21.4 Polices |  |
+| 2556 | 109 | ↳ 21.5 Gabarits de page | RG28–RG107 |
+| 2665 | 23 | ↳ 21.6 Gardes et tests |  |
+| 2688 | 7 | ↳ 21.7 Découpage |  |
+| 2695 | 20 | ↳ 21.8 Risques et réversibilité | RG7 |
+| 2715 | 11 | ↳ 21.9 Ce que cet addendum demande aux autres agents |  |
+| 2726 | 6 | ↳ Sources (vérifiées le 2026-10-28) |  |
 
 ## 03-matrice-des-droits-et-rls.md (~67k tokens)
 
@@ -126,7 +126,7 @@
 | 458 | 215 | ↳ 3.4 Domaine `matching` et `messaging` | RG5–RG146 |
 | 673 | 76 | ↳ 3.5 Domaines `billing` (pipeline commercial), `leads` et `backoffice` | RG1–RG39 |
 | 749 | 30 | ↳ 3.6 Domaine `audit` — le registre |  |
-| 779 | 455 | 4. Les principes de Row Level Security | RG4–RG165 |
+| 779 | 476 | 4. Les principes de Row Level Security | RG4–RG165 |
 | 784 | 15 | ↳ P1 — Refus par défaut, sur toutes les tables, sans exception |  |
 | 799 | 53 | ↳ P2 — L'API se connecte avec le rôle de l'utilisateur, jamais avec un rôle qui contourne la RLS |  |
 | 852 | 22 | ↳ P3 — Le rôle métier est lu en base, jamais dans le jeton |  |
@@ -136,25 +136,25 @@
 | 946 | 199 | ↳ P7 — La liste **nommée et fermée** des opérations autorisées à s'élever | RG4–RG165 |
 | 1145 | 52 | ↳ P8 — L'append-only est réel, pas conventionnel |  |
 | 1197 | 11 | ↳ P9 — Ce que la RLS ne sait pas faire, et qui le fait à sa place |  |
-| 1208 | 26 | ↳ P10 — Les politiques du Storage |  |
-| 1234 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
-| 1374 | 422 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
-| 1376 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
-| 1459 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
-| 1494 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
-| 1514 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
-| 1590 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
-| 1664 | 25 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
-| 1689 | 27 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
-| 1716 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
-| 1753 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
-| 1796 | 32 | 7. L'isolement du backoffice |  |
-| 1828 | 39 | 8. Les tests de sécurité exigés |  |
-| 1867 | 62 | 9. Verdict d'étape | RG49–RG55 |
-| 1929 | 41 | 10. Ce qui sort de mon périmètre |  |
-| 1970 | 17 | 11. Mises à jour attendues dans les autres documents |  |
+| 1208 | 47 | ↳ P10 — Les politiques du Storage |  |
+| 1255 | 140 | 5. La lecture d'une conversation par un agent non participant | RG132–RG134 |
+| 1395 | 426 | 6. Réponse aux neuf points du §14.1 de `02-architecture-3-espaces.md` | RG57 |
+| 1397 | 83 | ↳ 6.1 — Point 1 : D37 dans son ensemble | RG57 |
+| 1480 | 35 | ↳ 6.2 — Point 2 : `aal2` vérifié dans les politiques RLS |  |
+| 1515 | 20 | ↳ 6.3 — Point 3 : le rôle métier lu en base plutôt que dans le jeton |  |
+| 1535 | 76 | ↳ 6.4 — Point 4 : le passe-plat |  |
+| 1611 | 74 | ↳ 6.5 — Point 5 : les trois CSP et les en-têtes de sécurité |  |
+| 1685 | 25 | ↳ 6.6 — Point 6 : l'exception E1, téléversement direct vers le Storage |  |
+| 1710 | 31 | ↳ 6.7 — Point 7 : la liste des opérations autorisées à utiliser `service_role` |  |
+| 1741 | 37 | ↳ 6.8 — Point 8 : les trois verrous du garde-fou `staging` |  |
+| 1778 | 43 | ↳ 6.9 — Point 9 : inscription et récupération du second facteur du backoffice |  |
+| 1821 | 32 | 7. L'isolement du backoffice |  |
+| 1853 | 39 | 8. Les tests de sécurité exigés |  |
+| 1892 | 62 | 9. Verdict d'étape | RG49–RG55 |
+| 1954 | 41 | 10. Ce qui sort de mon périmètre |  |
+| 1995 | 17 | 11. Mises à jour attendues dans les autres documents |  |
 
-## 04-modele-de-donnees-mvp.md (~162k tokens)
+## 04-modele-de-donnees-mvp.md (~163k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
@@ -166,7 +166,7 @@
 | 404 | 65 | ↳ 4.1 `influx` — fonctions de contexte |  |
 | 469 | 99 | ↳ 4.2 `reference` — les listes fermées partagées | RG18–RG115 |
 | 568 | 237 | ↳ 4.3 `audit` — le registre chaîné | RG1–RG109 |
-| 805 | 4716 | 5. Le schéma, domaine par domaine | RG2–RG163 |
+| 805 | 4736 | 5. Le schéma, domaine par domaine | RG2–RG163 |
 | 807 | 448 | ↳ 5.1 `identity` — comptes, rôles, CGU, consentement, santé de l'adresse (Lots 0 et 1) | RG18–RG106 |
 | 1255 | 281 | ↳ 5.2 `profiles` — le profil marque et le profil créateur en trois objets (Lot 2) | RG7–RG86 |
 | 1536 | 167 | ↳ 5.3 `verification` — preuves, badge, péremption (Lot 2) | RG34–RG78 |
@@ -177,16 +177,16 @@
 | 4358 | 365 | ↳ 5.8 `leads` — la file de synchronisation (Lot 1) | RG35–RG163 |
 | 4723 | 381 | ↳ 5.9 `billing` — les taux (vides) et les affaires | RG33–RG95 |
 | 5104 | 394 | ↳ 5.10 `backoffice` — pilotage interne | RG6–RG131 |
-| 5498 | 23 | ↳ 5.11 Le stockage de fichiers (Supabase Storage) |  |
-| 5521 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
-| 5728 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
-| 6010 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
-| 6048 | 130 | 9. Conservation, suppression, anonymisation | RG6–RG112 |
-| 6178 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
-| 6343 | 199 | 11. Plan de migrations | RG1–RG163 |
-| 6542 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
-| 6719 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
-| 6755 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
+| 5498 | 43 | ↳ 5.11 Le stockage de fichiers (Cloudflare R2, D90 — gardes SQL `storage.*` conservées) |  |
+| 5541 | 207 | 6. Les politiques RLS — principes et exemples | RG122 |
+| 5748 | 282 | 7. Réponse aux six points du §14.2 du document `02` |  |
+| 6030 | 38 | 8. Les règles argent, même sans calcul au MVP |  |
+| 6068 | 134 | 9. Conservation, suppression, anonymisation | RG3–RG112 |
+| 6202 | 165 | 10. Les index, et la requête qui justifie chacun | RG8–RG134 |
+| 6367 | 199 | 11. Plan de migrations | RG1–RG163 |
+| 6566 | 177 | 12. Ce qui reste ouvert | RG22–RG123 |
+| 6743 | 36 | 13. Impacts sur le code existant | RG11–RG72 |
+| 6779 | 44 | 14. Checklist de la skill `supabase-schema` | RG106 |
 
 ## 05-spec-inscription-et-leads.md (~42k tokens)
 
@@ -615,7 +615,7 @@
 | 34 | 23 | 0. Ce qu'il faut retenir si l'on ne lit qu'une page |  |
 | 57 | 41 | 1. En-tête : portée, public, limites |  |
 | 98 | 136 | 2. Les zones critiques, par gravité décroissante |  |
-| 234 | 619 | 3. Les tests exigés par `expert-cybersecurite`, traduits en cas exécutables | RG116–RG148 |
+| 234 | 621 | 3. Les tests exigés par `expert-cybersecurite`, traduits en cas exécutables | RG15–RG148 |
 | 286 | 47 | ↳ T1 — Anonymisation de bout en bout, sur la charge utile brute |  |
 | 333 | 89 | ↳ T2 — RLS par rôle et par table, et échec de la CI sur toute table non déclarée |  |
 | 422 | 56 | ↳ T3 — Inviolabilité du registre et détection d'altération de chaîne |  |
@@ -624,7 +624,7 @@
 | 557 | 33 | ↳ T6 — Opérations élevées : la liste fermée est réellement fermée |  |
 | 590 | 26 | ↳ T7 — Le passe-plat |  |
 | 616 | 27 | ↳ T8 — Authentification |  |
-| 643 | 24 | ↳ T9 — Storage |  |
+| 643 | 24 | ↳ T9 — Storage (Cloudflare R2 & gardes SQL, `D90`) | RG15 |
 | 667 | 20 | ↳ T10 — En-têtes et politique de sécurité de contenu |  |
 | 687 | 14 | ↳ T11 — Secrets |  |
 | 701 | 13 | ↳ T12 — Dépendances |  |
@@ -632,25 +632,25 @@
 | 731 | 14 | ↳ T14 — Références directes non contrôlées (IDOR) |  |
 | 745 | 14 | ↳ T15 — Limitation de débit |  |
 | 759 | 37 | ↳ T16 — Aucun calcul de commission |  |
-| 796 | 46 | ↳ T17 — Garde-fou `staging` | RG116–RG148 |
-| 842 | 11 | ↳ 3.1 Récapitulatif des contrôles X1 à X4 |  |
-| 853 | 189 | 4. Les tests métier, en complément des 17 | RG160–RG164 |
-| 1042 | 76 | 5. Le sort des gardes existantes de `apps/web` | RG7 |
-| 1118 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
-| 1267 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
-| 1310 | 31 | 8. Ce qui n'est pas couvert, et pourquoi |  |
-| 1341 | 60 | 9. Ce qui remonte |  |
-| 1401 | 229 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
-| 1630 | 21 | 11. Verdict |  |
-| 1651 | 362 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
-| 1660 | 13 | ↳ 12.1 Les familles TD1 à TD8, 44 cas | RG66 |
-| 1673 | 23 | ↳ 12.2 Matrice axe : largeurs par écran |  |
-| 1696 | 30 | ↳ 12.3 Plan par commit |  |
-| 1726 | 16 | ↳ 12.4 Recette humaine de fin de jalon |  |
-| 1742 | 16 | ↳ 12.5 Points à arbitrer qui conditionnent des tests *(relevés le 2026-10-28)* |  |
-| 1758 | 47 | ↳ 12.6 Les familles TK1 à TK8 du jalon RK (D75) *(ajouté le 2026-10-30)* |  |
-| 1805 | 111 | ↳ 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30, relu phrase à phrase le 2026-11-01, L2A-01)* |  |
-| 1916 | 97 | ↳ 12.8 Les tests du Lot 3bis, refonte UX/UI (D87, D88) *(ajouté le 2026-11-25)* |  |
+| 796 | 48 | ↳ T17 — Garde-fou `staging` | RG116–RG148 |
+| 844 | 11 | ↳ 3.1 Récapitulatif des contrôles X1 à X4 |  |
+| 855 | 189 | 4. Les tests métier, en complément des 17 | RG160–RG164 |
+| 1044 | 76 | 5. Le sort des gardes existantes de `apps/web` | RG7 |
+| 1120 | 149 | 6. Le corpus de test de la détection de coordonnées |  |
+| 1269 | 43 | 7. Le parcours de bout en bout du Lot 6 |  |
+| 1312 | 31 | 8. Ce qui n'est pas couvert, et pourquoi |  |
+| 1343 | 60 | 9. Ce qui remonte |  |
+| 1403 | 229 | 10. La définition du « prêt à livrer », lot par lot | RG148–RG162 |
+| 1632 | 21 | 11. Verdict |  |
+| 1653 | 362 | 12. Les tests du jalon DS, charte KEO Emerald (D73) *(ajouté le 2026-10-28)* | RG66 |
+| 1662 | 13 | ↳ 12.1 Les familles TD1 à TD8, 44 cas | RG66 |
+| 1675 | 23 | ↳ 12.2 Matrice axe : largeurs par écran |  |
+| 1698 | 30 | ↳ 12.3 Plan par commit |  |
+| 1728 | 16 | ↳ 12.4 Recette humaine de fin de jalon |  |
+| 1744 | 16 | ↳ 12.5 Points à arbitrer qui conditionnent des tests *(relevés le 2026-10-28)* |  |
+| 1760 | 47 | ↳ 12.6 Les familles TK1 à TK8 du jalon RK (D75) *(ajouté le 2026-10-30)* |  |
+| 1807 | 111 | ↳ 12.7 Traçabilité de `20` §11 : chaque phrase normative a sa preuve (R3) *(ajouté le 2026-10-30, relu phrase à phrase le 2026-11-01, L2A-01)* |  |
+| 1918 | 97 | ↳ 12.8 Les tests du Lot 3bis, refonte UX/UI (D87, D88) *(ajouté le 2026-11-25)* |  |
 
 ## 20-direction-design.md (~33k tokens)
 
@@ -677,19 +677,19 @@
 | 954 | 103 | ↳ 11.8 Gabarits et composants |  |
 | 1057 | 13 | ↳ 11.9 Points soumis au fondateur |  |
 
-## 21-plan-de-developpement.md (~20k tokens)
+## 21-plan-de-developpement.md (~21k tokens)
 
 | Ligne | Lignes | Section | RG citées |
 |---|---|---|---|
-| 10 | 23 | 0. L'essentiel | RG148 |
-| 33 | 7 | 1. Point de départ & conventions d'environnement |  |
-| 40 | 42 | 2. Stratégie de développement | RG44–RG148 |
-| 82 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
-| 88 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
-| 94 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
-| 118 | 9 | 6. Configuration des services externes |  |
-| 127 | 18 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 145 | 139 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 10 | 24 | 0. L'essentiel | RG148 |
+| 34 | 7 | 1. Point de départ & conventions d'environnement |  |
+| 41 | 43 | 2. Stratégie de développement | RG44–RG148 |
+| 84 | 6 | 3. Écarts (`EC-*`) des Lots 0 et 1 |  |
+| 90 | 6 | 4. Lot 0 — le socle (J0 à J4) |  |
+| 96 | 25 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
+| 121 | 10 | 6. Configuration des services externes |  |
+| 131 | 19 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
+| 150 | 139 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
 
 ## 22-refonte-ux-ui.md (~2k tokens)
 

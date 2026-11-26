@@ -9,7 +9,7 @@
 
 ## 0. L'essentiel
 
-| Lot ou jalon | État au 2026-11-13 |
+| Lot ou jalon | État au 2026-11-26 |
 |---|---|
 | **Lot 0** — socle (J0 à J4) | ✅ Clos le 2026-10-07 |
 | **Lot 1** — inscription et leads (J5 à J9) | ✅ Clos le 2026-10-27 sur `staging` ; production préparée, non créée (portes §5.8, J9T-1) |
@@ -17,6 +17,7 @@
 | Extras **DS** (D73), **SN** (D74), **RK** (D75) | ✅ Clos les 2026-10-29, 2026-10-30 et 2026-10-30 ; reliquat RK au §8 |
 | **Lot 2** — profils, réseaux, badge | ✅ Clos le 2026-11-13. Découpé en sept jalons L2A à L2G (`archives/jalons/lot2-plan.md`, validé le 2026-11-01) ; L2A à L2G clos (L2F le 2026-11-11, D83 réalisée ; L2G le 2026-11-13, avec réserves L2GT-1, L2GT-3, L2GT-9 au §8) : **Lot 2 clos** |
 | **Lot 3bis** — refonte UX/UI des écrans existants (code RU) | **Validé par le fondateur le 2026-11-25 (D87)**, arbitrages partiels ; avant le Lot 4 ; démarrage accordé le 2026-11-25 (F0). Spécification : `22-refonte-ux-ui.md` ; découpage : `jalons/lot3bis-plan.md` (12 jalons RUA à RUL). RUA ✅ clos le 2026-11-25 ; suite : RUB |
+| **Lot 3ter** — migration du stockage des images vers Cloudflare R2 (code `R2`) | **Validé par le fondateur le 2026-11-26 (`D90`, `F0`)** ; intercalaire avant le Lot 4, sans collision d'écran avec `RUB` (dérogation fil unique). Spécification : `23-migration-cloudflare-r2.md` ; découpage : `jalons/lot3ter-plan.md` (`R2A`, `R2B`, `R2C`, 15 commits hors revues/clôtures). Actif : `R2A` |
 
 **Deux niveaux de « prêt », à ne pas confondre :** *prêt en `staging`* (démontrable, `staging` iso-production depuis D70 : envois et contacts réels sur les comptes de `staging`, exploité par les agents) et *prêt en production* (ouvert au public : en plus, les portes non techniques de §5.8 et l'accord explicite du fondateur).
 
@@ -57,6 +58,7 @@
 | **Données** | `supabase/seed` + saisies synthétiques | `supabase/seed` | `supabase/seed` **seul** (B9) | Réelles |
 | **Brevo** | Doublure (tests) ; `.env.local` = valeurs de `staging` (D70) | Doublure (`16` RG148) | **`live`, compte de `staging`**, domaine d'envoi propre (D70, après le commit 1 de `archives/jalons/d70-plan.md`) | `live`, compte de production, 3 sous-domaines authentifiés |
 | **Apollo** | Doublure (tests) | Doublure | **`live`, compte de `staging`** (D70) | `live` après validation du juriste (D33) |
+| **Stockage images (`D90`)** | Doublure S3 locale `s3-double` (`pnpm dev:s3-double`, `:4011`) ; jamais de clé réelle en test (`16` RG148) | Doublure `s3-double` en mémoire (`port 0` base/unit, `:4111` E2E) ; `storage-api` exclu en `R2C` | Cloudflare R2 `staging` (`influx-staging-*`, juridiction `default` sous `B9`, jetons `api` ≠ `worker`) | Cloudflare R2 `production` (`influx-production-*`, **juridiction `eu`** `D25`, jetons `eu` `api` ≠ `worker` posés par le fondateur seul) |
 
 ### 2.3 Stratégie de test & discipline de dépôt
 
@@ -75,7 +77,7 @@
 
 ### 2.4 Dépendances épinglées (versions exactes, `savePrefix: ""`)
 
-Les `package.json` et `pnpm-lock.yaml` font foi pour les versions (aucune copie ici, qui se périme). Invariants : `@supabase/supabase-js` et `@supabase/postgrest-js` interdits (garde `test-witnesses/j3b`) ; `@supabase/auth-js` importé **uniquement** dans `apps/api/src/platform/supabase.ts` ; `@supabase/storage-js` admis au Lot 2 (2.117.2, importé par `apps/api/src/platform/storage.ts` seul) ; `sharp` 0.35.5 (`platform/images.ts` seul, ré-encodage sans métadonnée) ; `postgres` avec `prepare: false` ; `apps/api` exécuté directement par Node (effacement des types, D64). Toute dépendance nouvelle : `architecte`, suite locale complète (`CLAUDE.md` §7 règle 5).
+Les `package.json` et `pnpm-lock.yaml` font foi pour les versions (aucune copie ici, qui se périme). Invariants : `@supabase/supabase-js` et `@supabase/postgrest-js` interdits (garde `test-witnesses/j3b`) ; `@supabase/auth-js` importé **uniquement** dans `apps/api/src/platform/supabase.ts` ; `@supabase/storage-js` admis au Lot 2 (2.117.2, importé par `apps/api/src/platform/storage.ts` seul), puis **supprimé en fin de Lot 3ter (`R2C`, `D90`)** au profit d'un signeur S3 `AWS4-HMAC-SHA256` natif (`node:crypto` + `boundedFetch`, zéro `@aws-sdk/*` ajouté) ; `sharp` 0.35.5 (`platform/images.ts` seul, ré-encodage sans métadonnée) ; `postgres` avec `prepare: false` ; `apps/api` exécuté directement par Node (effacement des types, D64). Toute dépendance nouvelle : `architecte`, suite locale complète (`CLAUDE.md` §7 règle 5).
 
 ---
 
@@ -110,6 +112,7 @@ Tous tranchés et implémentés. Tableau d'origine : `archives/21-journal-lot1-a
 | *(2026-11-12, L2G fix-2, L2GU-4, 5, 6, 17, 18)* **Textes du portfolio créateur ajoutés à la relecture des textes D48** (FR et EN, formulations validées par le fondateur le 2026-11-12) : `portfolio.removeConfirm` (« Retirer ? »), `removeKeep` (« Garder »), `unsaved` (« Modification non enregistrée »), `errors.quota` (« … Réessayez plus tard. ») ; clés écrites par l'agent, à relire : les noms accessibles `portfolio.removeNamed`, `removeNow`, `removeKeepNamed`, `replaceNamed`, `saveCaptionNamed` (avec la position du visuel) et `visibility.saved` (« Enregistré ») | `expert-ux` + fondateur | D48, `archives/jalons/l2g/ux-constats.md` L2GU-11 |
 | Textes de la landing relus ; revue visuelle du budget d'effets | `expert-marketing` + `expert-conformite-rgpd` ; `expert-ux` | D48, D59 |
 | Exécution des demandes « mes données » (E-5 minimale, `account.deleted`) livrée | `dev-react-node` + `expert-cybersecurite` | Arbitrage `chef-de-projet` 2026-10-14, `15` RG79, RG80 |
+| *(2026-11-26, D90 / R2-02, R2-03)* **Cloudflare R2 `production` conforme et vérifié à l'ouverture** : DPA Cloudflare accepté ; **Cloudflare, Inc. (Cloudflare R2, juridiction UE)** inscrit au registre des traitements ; **politique de confidentialité mise à jour et validée par un juriste (`RU-30`, aucun texte affiché modifié avant avis)** ; 3 compartiments privés `influx-production-*` en juridiction **`eu`** (`D25`, `AbortIncompleteMultipartUpload = 1 j`, sans réplication secondaire `R2-04`) ; 2 jetons `eu` distincts (`api` ≠ `worker`) posés par le fondateur seul sur Railway `production` (`R2_ENDPOINT` en `.eu.`, `R2_BUCKET_PREFIX=influx-production-`) et constat d'écriture/suppression `J9S-1` exécuté à l'ouverture `production` (`R2-03` option a) | Fondateur + juriste (`D29`) + `expert-conformite-rgpd` (Lot 6) + `integrateur` | `D90`, `23` §5.3, §8.1, `production.md` §0 |
 | Aucune objection ouverte de `expert-cybersecurite` ni de `expert-conformite-rgpd` | Les deux experts | `CLAUDE.md` §7 règle 2 (D71) |
 | **Accord explicite du fondateur** pour la mise en production | Fondateur | `CLAUDE.md` §7 règle 4 |
 
@@ -121,6 +124,7 @@ Tous tranchés et implémentés. Tableau d'origine : `archives/21-journal-lot1-a
 - **Brevo** : attributs `16` §M4 + EC-11 ; listes par rôle et langue ; modèles transactionnels FR/EN (`auth.login_code`, `account.welcome_*`, `auth.new_device`, `auth.email_change_*`, `internal.critical_alert`) ; webhook (J7) ; deux clés API distinctes (`api` et `worker`, EC-19).
 - **Apollo** : champs personnalisés du contexte INFLUX ; séquences activées uniquement après validation du juriste (D33).
 - **Railway & GitHub** : 4 services (`web`, `backoffice`, `api` sans domaine public, `worker`), variables par service, secrets dans les environnements GitHub `staging` et `production`, trois sous-domaines DNS (`tx.`, `news.`, `pro.`).
+- **Cloudflare R2 (`D90`, Lot 3ter)** : 3 compartiments privés par environnement (`brand-logo`, `portfolio`, `verification-evidence`, accès `r2.dev` désactivé, `AbortIncompleteMultipartUpload = 1 j`, sans réplication secondaire `R2-04`) ; `staging` (`influx-staging-*`, juridiction `default` sous `B9`), `production` (`influx-production-*`, juridiction **`eu`** `D25`) ; 2 jetons `Object Read & Write` distincts par environnement (`api` ≠ `worker`) bornés aux 3 compartiments, absents des fronts (`"R2_"` interdit, T11.1).
 
 ---
 
@@ -133,6 +137,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | **2 — Profils, réseaux, badge** | D34, D61 (`07` Q15 et Q16), D24 instruite, `03` R-4 et R-5 | Migrations `0201` à `0207` : trois objets créateur, compartiments Storage privés ; création de `packages/domain` (`packages/ui` et `packages/web-platform` : jalon PL, PL-08 et PL-09, arbitrage PL-07, `02` §21.3 point 7) ; écrans construits dans la charte KEO (D73) | **T1** (anonymisation sur la charge brute), T9, T14, TM5, TM11 |
 | **3 — Campagnes, recherche anonymisée** *(mode serré `00` §9)* | D38, facettes de `10` | Migrations `0303` à `0334` (`0301` et `0302` pris par L3A, EC-L3A-1 ; `0303` à `0306` par L3B, EC-L3B-1 ; `0307` à `0313` par L3C, EC-L3C-1 ; `0314` par L3D, EC-L3D-1 ; la recherche de L3E à `0315` à `0321` ; `0322` à `0326` par L3F ; `0327` à `0334` par L3G) ; domaine `search` avec k-anonymat, pagination plafonnée, journal ; fil chronologique côté créateur | T1 rejoué, T15, TM12 ; mesure manuelle des 30 secondes |
 | **3bis — Refonte UX/UI des écrans existants** *(D87)* | Décisions ouvertes de RU-01 à RU-44 (`22-refonte-ux-ui/06a-decisions.md`) | Spécifications amendées, tokens, outillage de comparaison aux maquettes (RUA), puis composants | N1 à N3 (`22-refonte-ux-ui/05-recette-visuelle.md`), axe, specs e2e existantes ; T1, T2, T14, T16 rejoués |
+| **3ter — Migration Cloudflare R2** *(code `R2`, D90)* | `F0` tranchée le 2026-11-26 (`R2-01` à `R2-05`) ; `F1` sur `staging` avant `R2C` | `R2A` (`s3-double`, Playwright `:4111`, `schema.ts`, `staging:check`), `R2B` (`storage.ts` SigV4, `--reupload-images`), `R2C` (retrait `@supabase/storage-js`, `L2BS-4`, CI `-x storage-api`, vidage `staging`) | T9 (T9.1, T9.2, T9.6, T9.7), T11.1 (`"R2_"`), T17 (`R2_*` sans branchement `production`), `s3-double.test`, `storage-r2.test`, 5 `db-tests` S3, 8 specs E2E d'images |
 | **4 — Mise en relation, messagerie à trois** | D30, apartés (`04` §5.7.1 A2), conditions mobiles de D58 | Migrations `0401` à `0406` ; `reveal_identity()` et affaire créée à la révélation | **T18**, T5, T19, TM2, TM3 |
 | **5 — Backoffice, pipeline, e-mails** *(mode serré `00` §9)* | D35, D36, `03` R-7 | Migrations `0501` à `0503` ; interrupteur d'urgence ; traitement unitaire et exports (`00` §9) | TM4, TM6, TM8, TM9 |
 | **6 — Recette, audit, ouverture** *(livraison mode serré fin oct.)* | Levée des deux vetos ; test d'intrusion (F-9) | Parcours de bout en bout en douze étapes (`18` §7) | Toutes les familles ; restauration répétée |
@@ -168,7 +173,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 | L2AS-4 | `vitest` 4.1.12 et `zod` porté par `eslint-plugin-react-hooks` (avis suivis) | Plus tard | idem |
 | L2BT-4 | Échec de l'autosave de M2 : cas e2e (entrée conservée, nouvelle tentative) | Avant production | idem |
 | L2BT-5 | Largeurs de M2 croisées, FR et EN (375, 768, 1440) | Avant production | idem |
-| L2BS-4 | Connexion S3 du Storage | Avant production | idem |
+| L2BS-4 | Connexion S3 du Storage | Avant production *(planifié en `R2C-02`, D90)* | idem |
 | L2BT-6, L2BT-8 | Horloge des tests de quota ; D76 à étendre | Plus tard | idem |
 | L2BS-5, L2BS-6, L2BS-9 | `sharp` sans borne de temps ; 2 Mio sur tout le passe-plat ; `fastify` ≥ 5.12.6 | Plus tard | idem |
 | L2C-HARNAIS | Deux exécutions superposées de la suite base échouent parfois en 401 : `db-tests/stale-fixtures.ts` désactive tous les agents actifs ; `setLocalRolePasswords` : « tuple concurrently updated » en lancement simultané. Décision : plus tard, une seule suite base à la fois (recommandation `testeur`) | Plus tard | `archives/jalons/l2c/run.md` ligne fix-1 |
@@ -275,7 +280,7 @@ Chaque lot commence par la même séquence : décisions obtenues, spécification
 - **L3G** (le commercial trouve en vue identifiée les créateurs compatibles d'une campagne ; file 9, masse critique D38, réglages sous pair ; reliquat L3F en tête ; migrations `0327` à `0334` ; dernier jalon du Lot 3) : ouvert le 2026-11-20, **clos le 2026-11-21, avec le Lot 3** ; critère de fin prouvé (CI 44955936546 après une relance, « Migrate staging » vert, `staging` lu en lecture seule : `0327` à `0334` appliquées, interrupteur faux, ligne du jour de `search.supply_counters`, D38 tranchée, 30 s validées par le fondateur : « je valide la recette », avec la réserve de preuve L3GT-3), revue sans bloquant, attestation I-4, reliquat « avant production » ci-dessus ; `archives/jalons/l3g-fiche.md`, `archives/jalons/l3g/run.md`.
 - **RUA** (socle de la refonte UX/UI, Lot 3bis : charte amendée, tokens, gardes, outillage de comparaison aux maquettes, jeu de recette ; aucun écran, aucune API, aucune donnée de `staging` ; D87, D88) : ouvert le 2026-11-25, **clos le 2026-11-25** ; F0 « oui partout », F1 « oui à toutes les questions » (RU-27 tranchée) ; RU-02 reste ouverte côté juriste (D34) ; 0 bloquant, attestation I-4 `5d7b6df` (couvre `596c18c`), CI verte sur `5e204fc` (run 45696366452) ; preuve e2e = la CI (pas de Supabase en local) ; reliquat ci-dessus ; `archives/jalons/rua-fiche.md`, `archives/jalons/rua/run.md`.
 - **RUB** (composants membres et coquille, Lot 3bis : 49 composants de la planche d'états, puis la coquille des membres comparée à sa maquette ; D87, D88) : ouvert le 2026-11-25 ; F0 « oui à toutes les questions » ; `jalons/rub-fiche.md`, `jalons/rub/run.md`.
-- **R2A** (migration Cloudflare R2, phase A, Lot 3ter : décision D90, doublure S3 SigV4 locale, câblage Playwright et validation R2) : ouvert le 2026-11-26 (dérogation fil unique sur RUB) ; F0 validé (`R2-01` à `R2-05`, `00`..`03` avant pose `staging`) ; `jalons/r2a-fiche.md`, `jalons/r2a/run.md`.
+- **R2A** (migration Cloudflare R2, phase A, Lot 3ter `R2A`–`R2C` — découpage `jalons/lot3ter-plan.md`, `D90` : décision D90, doublure S3 SigV4 locale, câblage Playwright et validation R2) : ouvert le 2026-11-26 (dérogation fil unique sur RUB) ; F0 validé (`R2-01` à `R2-05`, `00`..`03` avant pose `staging`) ; `jalons/r2a-fiche.md`, `jalons/r2a/run.md`.
 
 **Registre des décisions** (PL-11) : `decisions.md` ne garde que sujet et statut résumés de D1 à D79 ; le texte intégral (sujet, arbitre, statut, échéance, mot pour mot) est dans `decisions-detail.md` (§ Dxx), qui fait foi en cas d'écart.
 

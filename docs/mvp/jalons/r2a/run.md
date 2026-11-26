@@ -2,7 +2,7 @@
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
 | F0 | F0.md | fondateur | — | — | fondateur | fait | « 1.autorisation de démarrer 2. touche pas aux textes 3.différer tout test à l'ouverture production 4.pas de réplication secondaire R2 au MVP 5.oui 6.ok pour ta recommendation » (2026-11-26) : R2-01..05 oui, 00..03 d'abord |
-| 00 | 00.md | commit | pro | high | architecte | à faire | D90 + amendements 02, 03 P10/§6.7, 04, 18, 21 + docs:index |
+| 00 | 00.md | commit | pro | high | architecte | fait | D90 (F0 R2-01..05 verbatim), D80/D82, 02/03/04/18/21 amendées (zéro prod-branch, eu prod, R2-04/05), INDEX.md régénéré |
 | 01 | 01.md | commit | flash | medium | integrateur | à faire | env-secrets/references/ (SKILL.md ≤ 10 Ko), prerequis, staging.md hors bloc borné, production.md |
 | 02 | 02.md | commit | flash | high | dev-react-node | à faire | s3-double SigV4 + If-None-Match 412, dev:s3-double :4011, R2_ dans BROWSER_FORBIDDEN_NAMES |
 | 03 | 03.md | commit | flash | high | testeur | à faire | Playwright webServer s3-double :4111 + R2_* loopback vers start-api.ts, budget e2e ≤ +2 s |

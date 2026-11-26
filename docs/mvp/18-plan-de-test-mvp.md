@@ -640,24 +640,24 @@ s'exécutent donc aussi sur un dossier de fichiers témoins en infraction (hors 
 
 ---
 
-### T9 — Storage
+### T9 — Storage (Cloudflare R2 & gardes SQL, `D90`)
 
 | | |
 |---|---|
-| **Niveau** | Intégration (Storage + API) |
-| **Lot** | 2 |
+| **Niveau** | Intégration (doublure S3 SigV4 `s3-double` + base + API) |
+| **Lot** | 2, amendé Lot 3ter (`D90`) |
 | **Déclencheur** | À chaque exécution |
-| **Critère d'échec** | Un compartiment public, une pièce de vérification atteignable par un annonceur, ou une image publiée avec ses métadonnées |
+| **Critère d'échec** | Un compartiment public, une pièce de vérification atteignable par un annonceur, une URL/hôte/en-tête S3 exposé, ou une image publiée avec ses métadonnées |
 
 | Cas | Ce qu'il vérifie |
 |---|---|
-| **T9.1** | `storage.buckets.public = false` pour **tous** les compartiments, sans exception |
-| **T9.2** | URL signée expirée ⇒ refus ; durée émise ≤ 5 min. *Au L2B (D80) : aucune réponse du logo ne porte d'hôte Supabase ni de jeton. Au L2E (D82) : aucune URL signée n'est émise pour les pièces de vérification, aucune réponse ne porte d'hôte Supabase ni de jeton ; le cas devient « aucune URL émise ». Au L3F (09) : même cas pour les visuels du portfolio servis à une marque, relayés en JSON par `apps/api`, et aucun code de `apps/api` ne peut émettre d'adresse de Storage (balayage du source)* |
+| **T9.1** | `storage.buckets.public = false` pour **tous** les compartiments en base (`03` P10.6, conservés avec `influx_no_member_access` après `R2C`), et compartiments R2 privés (`r2.dev` désactivé, `R2_BUCKET_PREFIX` isolé par environnement, aucun `ListObjectsV2` dans `apps/api/src/`, `D90`) |
+| **T9.2** | URL signée expirée ⇒ refus ; durée émise ≤ 5 min. *Au L2B (D80) : aucune réponse du logo ne porte d'hôte Supabase ni de jeton. Au L2E (D82) : aucune URL signée n'est émise pour les pièces de vérification, aucune réponse ne porte d'hôte Supabase ni de jeton ; le cas devient « aucune URL émise ». Au L3F (09) : même cas pour les visuels du portfolio servis à une marque, relayés en JSON par `apps/api`, et aucun code de `apps/api` ne peut émettre d'adresse de Storage (balayage du source). Au Lot 3ter (`D90`, `23` RG15) : étendu aux hôtes et en-têtes R2/S3 — aucune URL présignée ni publique (`X-Amz-Signature`, `X-Amz-Expires`), et aucune occurrence de `supabase`, `r2.cloudflarestorage.com`, `r2.dev` ou `x-amz-` dans aucune réponse de `apps/api` ni dans `apps/api/src/`* |
 | **T9.3** | Clé d'objet avec traversée (`../`) ⇒ refus |
 | **T9.4** | Fichier dont les **octets d'en-tête** contredisent le type déclaré ⇒ rejet ; PDF refusé (E1-9) |
 | **T9.5** | **EXIF absent après traitement** : image de test portant une géolocalisation connue ⇒ après ré-encodage, la donnée a disparu. Le test lit les octets, il ne fait pas confiance à un booléen |
-| **T9.6** | **Une pièce de vérification n'est atteignable par aucune route ni aucun schéma du rôle annonceur, y compris en devinant un identifiant** et y compris après révélation d'identité (C(13)). Ce cas est bloquant à lui seul. *Précisé au L2E (EC-L2E-18) : l'annonceur n'a aucun droit sur le schéma `verification`, `USAGE` compris, ni sur `storage` ; toute fonction qu'il exécute, tous schémas, ne nomme ni `verification.evidence_files` ni `storage.` (`prosrc`, corps SQL standard, `pg_depend`) ; les propriétaires atteints de proche en proche n'ont aucun droit sur la pièce ni sur Storage ; une pièce réelle portée dans chaque route donne la même réponse qu'un identifiant inconnu ; témoins rouges et mutation (`USAGE` accordé) vus rouges. Au L3F (09) : le créateur qui porte la pièce, publié et cherchable avec un visuel approuvé, un en attente et un refusé, est servi à une marque (profil, visuel) : son visuel approuvé seul, ses autres visuels, ceux d'un autre créateur, la pièce, sa demande et une clé d'objet devinés donnant la réponse d'un identifiant jamais émis, sans lecture du compartiment des pièces* |
-| **T9.7** | Toute émission d'URL signée est journalisée *(au L2B, D80 : aucune URL signée n'est émise)* ; la lecture d'une pièce de vérification passe par `apps/api` et non par une URL signée (E1-7) *(au L2E : aucune réponse ne porte d'hôte Supabase ni de jeton, et chaque ouverture écrit `verification.evidence_viewed` (agent, demande, pièce) dans la transaction qui rend la clé ; au L3F (09), côté annonceur : le visuel d'une marque est lu par `apps/api` dans l'objet du seul visuel `approved`, jamais dans le compartiment des pièces, et un identifiant deviné donne la réponse d'un identifiant jamais émis)* |
+| **T9.6** | **Une pièce de vérification n'est atteignable par aucune route ni aucun schéma du rôle annonceur, y compris en devinant un identifiant** et y compris après révélation d'identité (C(13)). Ce cas est bloquant à lui seul. *Précisé au L2E (EC-L2E-18) : l'annonceur n'a aucun droit sur le schéma `verification`, `USAGE` compris, ni sur `storage` ; toute fonction qu'il exécute, tous schémas, ne nomme ni `verification.evidence_files` ni `storage.` (`prosrc`, corps SQL standard, `pg_depend`) ; les propriétaires atteints de proche en proche n'ont aucun droit sur la pièce ni sur Storage ; une pièce réelle portée dans chaque route donne la même réponse qu'un identifiant inconnu ; témoins rouges et mutation (`USAGE` accordé) vus rouges. Au L3F (09) : le créateur qui porte la pièce, publié et cherchable avec un visuel approuvé, un en attente et un refusé, est servi à une marque (profil, visuel) : son visuel approuvé seul, ses autres visuels, ceux d'un autre créateur, la pièce, sa demande et une clé d'objet devinés donnant la réponse d'un identifiant jamais émis, sans lecture du compartiment des pièces. Au Lot 3ter (`D90`) : le compartiment R2 `${R2_BUCKET_PREFIX}verification-evidence` n'est jamais sollicité par aucune route annonceur et aucune réponse ne contient d'hôte, clé ni en-tête R2/S3* |
+| **T9.7** | Toute émission d'URL signée est journalisée *(au L2B, D80 : aucune URL signée n'est émise)* ; la lecture d'une pièce de vérification passe par `apps/api` et non par une URL signée (E1-7) *(au L2E : aucune réponse ne porte d'hôte Supabase ni de jeton, et chaque ouverture écrit `verification.evidence_viewed` (agent, demande, pièce) dans la transaction qui rend la clé ; au L3F (09), côté annonceur : le visuel d'une marque est lu par `apps/api` dans l'objet du seul visuel `approved`, jamais dans le compartiment des pièces, et un identifiant deviné donne la réponse d'un identifiant jamais émis ; au Lot 3ter (`D90`) : lecture dans `${R2_BUCKET_PREFIX}verification-evidence` ou `${R2_BUCKET_PREFIX}portfolio` uniquement, aucune URL présignée ni publique émise, aucun hôte R2, clé d'objet, identifiant d'accès, secret ou signature dans les réponses ni dans les journaux `pino` / `ops`, `D60`, `23` RG15)* |
 | **T9.8** | Quotas par compte (nombre et volume par jour) appliqués côté serveur |
 | **T9.9** | Le chemin d'objet est calculé par le serveur et **ne contient jamais le nom de fichier d'origine** |
 | **T9.10** | Contrainte de base : un visuel de portfolio dont les métadonnées n'ont pas été retirées **ne peut pas** passer en `approved` ; un remplacement de fichier repasse la modération à `pending` |
@@ -688,7 +688,7 @@ s'exécutent donc aussi sur un dossier de fichiers témoins en infraction (hors 
 
 | Cas | Ce qu'il vérifie |
 |---|---|
-| **T11.1** | Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SECRET_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `SESSION_COOKIE_SECRET` |
+| **T11.1** | Analyse des artefacts de construction de `apps/web` et `apps/backoffice` : aucune occurrence de `SUPABASE_SECRET_KEY`, `BREVO_API_KEY`, `APOLLO_API_KEY`, `SESSION_COOKIE_SECRET` (`AUTH_TOKEN_SIGNING_SECRET`, `AUTH_THROTTLE_PEPPER`), ni du préfixe `"R2_"` (`R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_PREFIX` dans `BROWSER_FORBIDDEN_NAMES` de `packages/test-kit/src/artifacts.ts`, `D90`) |
 | **T11.2** | Aucune chaîne ressemblant à un JWT dans un artefact de front |
 | **T11.3** | Analyse de secrets sur le dépôt **et son historique** |
 | **T11.4** | `.env*` ignoré, `.env.example` présent et à jour (toute variable requise par la validation de démarrage y figure) |
@@ -809,12 +809,14 @@ sans supposer ; soumises à `expert-cybersecurite`, §9.1 C-3) :
 > | `SYNC_MODE` | `dry_run` par défaut ; `live` exige la liste blanche | `live` exigé, y compris variable absente (T17.5) |
 > | `BREVO_API_BASE_URL`, origines publiques, `SUPABASE_URL` | doublure locale et `http` acceptées | URL officielle Brevo et origines `https` exigées |
 > | Secrets du webhook, `PRIVACY_DATABASE_URL`, paire de purge GoTrue | facultatifs | exigés |
+> | `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_PREFIX` (`D90`) | `R2_ENDPOINT` en `http://` sur `LOOPBACK_HOSTS` sans `*.r2.cloudflarestorage.com` (`16` RG148) ; `R2_BUCKET_PREFIX` `""` ou `^[a-z0-9][a-z0-9-]{0,30}-$` ; secret ≥ 32 octets ≠ `R2_ACCESS_KEY_ID` ≠ autres secrets, sans `CHANGE_ME` ; requis sur `api`, tout-ou-rien sur `worker` | **exigées** sur `api` et `worker` (même prédicat `isDeployedEnvironment`, zéro `=== "production"`) : `R2_ENDPOINT` `^https://[0-9a-f]{32}\.(?:eu\.)?r2\.cloudflarestorage\.com$`, `R2_BUCKET_PREFIX` `^influx-(?:staging\|production)-$`, secret ≥ 32 octets ≠ `R2_ACCESS_KEY_ID` ≠ autres secrets, sans `CHANGE_ME` |
 > | `INFLUX_ENV=development` sur Railway | refusé (un service déployé ne se relâche pas par une variable) | — |
 >
 > Tests : `describe.each` des deux environnements déployés (config complète acceptée, un cas par
-> variable retirée ou ajoutée), comparaison `staging` = `production` sur les mêmes cas, démarrage
+> variable retirée ou ajoutée — y compris les 4 `R2_*` sur `api` et `worker`, sans aucun
+> branchement `INFLUX_ENV === "production"` dans `schema.ts`, `D90`), comparaison `staging` = `production` sur les mêmes cas, démarrage
 > refusé au niveau du processus pour les deux (T17.5, T17.10), et une garde (`16` RG148) vérifiant
-> qu'aucun script `test`, `test:db` ou e2e ne charge `.env.local`.
+> qu'aucun script `test`, `test:db` ou e2e ne charge `.env.local` (les distinctions `staging` vs `production` sur `.eu.`, `influx-staging-` et jetons `api` ≠ `worker` relèvent de `staging:check`, `script-guards.ts` et `J9S-1`).
 
 **Deux moitiés.** Les **refus de démarrage** (T17.5 à T17.10) sont en place depuis le J1 (`21` §4,
 J1-D point 3 ; `apps/api/tests/config.test.ts`). Les **verrous d'exécution** (T17.1 à T17.4) arrivent

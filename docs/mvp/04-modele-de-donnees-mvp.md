@@ -5495,26 +5495,46 @@ responsable, **30 j** vers l'administrateur — `14` Q13, valeurs d'attente),
 
 ---
 
-### 5.11 Le stockage de fichiers (Supabase Storage)
+### 5.11 Le stockage de fichiers (Cloudflare R2, D90 — gardes SQL `storage.*` conservées)
 
-Cinq compartiments, **tous privés**, sans exception.
+> **Amendé le 2026-11-26 (`D90`, Lot 3ter `23-migration-cloudflare-r2.md`) :** les octets WebP
+> ré-encodés des **3 compartiments actifs** migrent de Supabase Storage vers **Cloudflare R2**
+> (adressage S3 path-style privé `${R2_ENDPOINT}/${R2_BUCKET_PREFIX}${bucket}/${objectKey}`,
+> `If-None-Match: "*"`, juridiction `default` en `staging` sous `B9`, **`eu`** en `production` `D25`),
+> sans modifier les tables SQL métiers ni les clés générées.
 
-| Compartiment | Contenu | Écriture | Lecture |
+| Compartiment logique (`${R2_BUCKET_PREFIX}<nom>`) | Contenu | Écriture | Lecture |
 |---|---|---|---|
-| `verification-evidence` | Captures et pièces de vérification | `apps/api` seul, par le passe-plat (≤ 8 Mio sur la seule route de dépôt d'une pièce, D82), WebP ré-encodé, jamais d'URL signée | **Agents seulement**, octets relayés par l'API, chaque ouverture journalisée (`verification.evidence_viewed`). Jamais un annonceur, jamais un autre créateur |
-| `portfolio` | Visuels de portfolio | `apps/api` seul, par le passe-plat (≤ 8 Mio sur la seule route de dépôt, D82 (7)), WebP ré-encodé sans métadonnée, clé `portfolio/<account_id>/<item_id>.webp`, jamais d'URL signée *(amendé à la clôture de L2G)* | Le créateur (ses visuels) et les agents (ceux de leur entrée), octets relayés par l'API et lecture d'agent journalisée ; **l'annonceur : aucun droit au Lot 2**, sa lecture des visuels `approved` arrive avec la recherche du Lot 3 |
-| `introduction-documents` | Canal de documents (si D30/Q4 le retient) | Participants d'une mise en relation | Contrepartie **après** modération |
-| `legal-documents` | Versions publiées des CGU et politiques | Administrateur | Tout le monde, par URL signée longue |
+| `verification-evidence` | Captures et pièces de vérification | `apps/api` seul, par le passe-plat (≤ 8 Mio sur la seule route de dépôt d'une pièce, D82), WebP ré-encodé, jamais d'URL signée (`PUT` R2 SigV4 avec `If-None-Match: "*"`, D90) | **Agents seulement**, octets relayés par l'API, chaque ouverture journalisée (`verification.evidence_viewed`). Jamais un annonceur, jamais un autre créateur |
+| `portfolio` | Visuels de portfolio | `apps/api` seul, par le passe-plat (≤ 8 Mio sur la seule route de dépôt, D82 (7)), WebP ré-encodé sans métadonnée, clé `<account_id>/<item_id>.webp`, jamais d'URL signée *(amendé à la clôture de L2G)* | Le créateur (ses visuels) et les agents (ceux de leur entrée), octets relayés par l'API et lecture d'agent journalisée ; **l'annonceur : aucun droit au Lot 2**, sa lecture des visuels `approved` arrive avec la recherche du Lot 3 |
+| `introduction-documents` | Canal de documents (Lot 4, si D30/Q4 le retient) | Participants d'une mise en relation via le même adaptateur R2 (`D90`) | Contrepartie **après** modération |
+| `legal-documents` | *Caduc en stockage objet* — versions publiées des CGU et politiques servies depuis PostgreSQL (`identity.terms_versions`) | Administrateur (publication SQL signée) | Tout le monde |
 | `brand-logo` | Logo de marque, WebP carré 512 px ≤ 1 Mio, ré-encodé sans métadonnée (D80, EC-L2B-6) | `apps/api` seul, par le passe-plat (≤ 2 Mio), jamais d'URL signée | `apps/api` seul, octets servis par l'API |
 
 Règles communes, alignées sur les RLS des tables correspondantes :
 
-1. **Le chemin encode le propriétaire** : `verification-evidence/<account_id>/<request_id>/<uuid>.webp` *(amendé à L2E, D82 ; `.png` à l'origine)*.
-   Les politiques du Storage comparent le premier segment à `influx.current_account_id()`.
-2. **Aucune lecture directe** : toute lecture passe par `apps/api` après contrôle. *(Amendé à L2E, D82 : aucune URL signée n'est émise pour `verification-evidence` ni `brand-logo` ; l'exception E1 du document `02` n'est pas utilisée ; la lecture est journalisée par la base dans la transaction qui rend la clé.)* Les autres compartiments gardent l'URL signée courte journalisée.
-3. **Une ligne en base pour chaque objet stocké.** Un fichier sans ligne est un orphelin : une tâche
-   hebdomadaire les liste et alerte.
-4. **La suppression d'un fichier suit la rétention de sa ligne**, jamais l'inverse.
+1. **Clé générée en base et préfixe d'environnement unique (`R2_BUCKET_PREFIX`, `23` A2) :**
+   la base génère `object_key` (`GENERATED ALWAYS AS ... STORED`, `<account_id>/<id>.webp` ou
+   `<account_id>/<request_id>/<id>.webp`, jamais le nom de fichier d'origine), revalidée par
+   `isObjectKey(bucket, key)` avant tout appel S3. Le nom physique `${R2_BUCKET_PREFIX}${bucket}`
+   (`influx-staging-*` / `influx-production-*`) rend impossible toute confusion entre compartiments
+   de sensibilité différente (`verification-evidence` vs `portfolio`). En base PostgreSQL, les 3 lignes
+   `public = false` de `storage.buckets` et les politiques `influx_no_member_access` sont **conservées**
+   (`03` P10.6, `23` §4.2 ; `[storage.s3_protocol] enabled = false` posé en `R2C`, soldant `L2BS-4`).
+2. **Aucune lecture directe ni URL présignée :** toute lecture/écriture passe par `apps/api` après
+   contrôle (`D80`, `D82`, `D90` : relais JSON `base64` borné à `1 Mio` pour `brand-logo` et `8 Mio`
+   pour `verification-evidence` et `portfolio` ; lecture d'agent journalisée dans la transaction qui
+   rend la clé ; zéro `X-Amz-Signature`, zéro `r2.dev`).
+3. **Une ligne en base pour chaque objet stocké (hygiène sans `ListObjectsV2`, `D90` `R2-05`) :**
+   la ligne SQL est insérée **avant** l'écriture R2 ; tout abandon `pending`/`uploading` > 15 min
+   passe en `purging` et est nettoyé par la tâche horaire E-4 `storage_purge` (`worker`, jeton R2
+   distinct d'`api`, appelant `ObjectStore.remove()` seul). **`ListObjectsV2` est interdit dans
+   `apps/api/src/`** (`D90` `R2-05`).
+4. **La suppression d'un fichier suit la rétention SQL, sans expiration automatique R2 (`D90` `R2-05`) :**
+   PostgreSQL gouverne seul la rétention via `ops.claim_storage_purges` (remplacement, retrait,
+   45 j des pièces, 30 j des visuels retirés/refusés, effacement RGPD). **Aucune règle d'expiration
+   automatique des objets validés n'est posée sur R2** ; seule la règle d'hygiène
+   **`AbortIncompleteMultipartUpload = 1 jour`** est configurée sur les 6 compartiments R2.
 
 ---
 
@@ -6056,11 +6076,11 @@ les préparer serait inventer.
 |---|---|---|---|---|
 | Compte actif | `identity.accounts`, `profiles.*` | Vie du compte + **3 ans** d'inactivité | `last_seen_at` | Un créateur inactif 3 ans n'est plus une offre commerciale |
 | Preuves d'acceptation | `identity.terms_acceptances`, `identity.consent_events` | **5 ans** après la fin de la relation | `deleted_at` du compte | Preuve du consentement et de l'acceptation des CGU (durée usuelle de prescription) |
-| Pièces de vérification | `verification.evidence_files` | **45 jours** après la décision *(fondateur, 2026-11-01, `08` Q2)* | `decided_at` | La pièce n'a plus de raison d'être une fois le constat saisi. C'est le constat qui vaut, pas la pièce (`profile-verification` règle 27) |
+| Pièces de vérification | `verification.evidence_files` | **45 jours** après la décision *(fondateur, 2026-11-01, `08` Q2)* | `decided_at` | La pièce n'a plus de raison d'être une fois le constat saisi. C'est le constat qui vaut, pas la pièce (`profile-verification` règle 27). Objet R2 `${R2_BUCKET_PREFIX}verification-evidence` sans versioning ni expiration côté R2, supprimé par `storage_purge` (`D90`) |
 | Badges et décisions | `verification.badges`, `verification_requests` | **3 ans** | `decided_at` ; *depuis L2F (`0230`), pour un badge fini (`expired`, `revoked`, `replaced`), `ended_at`* | Historique de responsabilité : INFLUX répond de ce qu'il a affirmé. *L2F : à `findings_retention_days`, la ligne du badge fini est gardée, ses chiffres, valeurs déclarées, période et référence sont effacés (handle `[deleted]`, `findings_erased_at`) ; pièces `purged` et codes supprimés ; textes des contestations, retraits et entrées de la file 6 vidés sur lignes closes (`ops.purge_verification_findings()`)* |
 | Messages | `messaging.messages` | **3 ans** après la clôture de la conversation | `closed_at` | Preuve d'une négociation d'où peut naître une créance V2 (D29) |
 | Journal des lectures | `messaging.conversation_access_log` | **3 ans** | `accessed_at` | Contrepartie de la supervision annoncée (A10) : elle doit être vérifiable aussi longtemps que les échanges |
-| **Documents et téléchargements** | `messaging.documents`, **`messaging.document_downloads`** | **3 ans** après la clôture de la conversation | `closed_at` du fil | **Même durée que les messages** : un brief transmis fait partie de la négociation. Les octets sortent du Storage à la même échéance, le journal des téléchargements reste pendant la même durée |
+| **Documents et téléchargements** | `messaging.documents`, **`messaging.document_downloads`** | **3 ans** après la clôture de la conversation | `closed_at` du fil | **Même durée que les messages** : un brief transmis fait partie de la négociation. Les octets sortent du stockage objet (R2 si ouvert au Lot 4, `D90`) à la même échéance, le journal des téléchargements reste pendant la même durée |
 | **Journal d'envoi des e-mails** | **`matching.introduction_emails`** | **3 ans** | `created_at` | Corroboration externe d'une mise en relation (`13` RG79). Ne contient ni adresse ni texte : sa conservation coûte peu et son absence rendrait la preuve externe introuvable |
 | **Notes internes** | **`backoffice.internal_notes`** | **Vie du compte ou de l'objet + 3 ans** | `deleted_at` du sujet | Alignées sur ce qu'elles commentent (`15`, écart 11). Une note qui survit à son sujet est une donnée personnelle orpheline ; une note purgée avant lui rend l'historique incompréhensible |
 | **Instances d'alerte** | **`backoffice.alert_instances`** | **24 mois** | `closed_at` | Assez pour régler les seuils sur une saisonnalité complète (`15` RG67), pas assez pour constituer un dossier sur une personne |
@@ -6085,6 +6105,10 @@ les préparer serait inventer.
 | File de synchronisation | `leads.outbox_events` | `succeeded` : **30 jours** · `failed` : jusqu'à traitement | `completed_at` | Document `02` §6 |
 | Affaires | `billing.deals`, `deal_field_changes` | **10 ans** | `created_at` | Obligation comptable dans la plupart des pays visés. **Aucune suppression physique** (R6) |
 | **Registre chaîné** | `audit.audit_events`, `chain_checks` | **Aucune purge** | — | Une chaîne trouée n'est plus une chaîne. Pseudonyme par construction (aucun nom, aucun contenu) |
+
+> **Stockage objet R2, cycle de vie et politique PITR (`D57`, `D90` — `R2-04`, `R2-05`) :**
+> 1. **Aucune expiration côté R2 (`R2-05`) :** PostgreSQL gouverne seul la rétention (`ops.claim_storage_purges` puis `DELETE` R2 par `storage_purge`, sans versioning d'objet). Seule règle de cycle de vie autorisée sur les 6 compartiments `${R2_BUCKET_PREFIX}{brand-logo,portfolio,verification-evidence}` : **`AbortIncompleteMultipartUpload = 1 jour`**.
+> 2. **Politique de sauvegarde face au PITR PostgreSQL (`R2-04`, option A retenue au MVP) :** aucune réplication vers un second compartiment R2 n'est activée (durabilité native R2 `11×9`), afin de garantir un effacement RGPD immédiatement définitif sans copie secondaire. Lors d'une restauration PITR de PostgreSQL à un instant $T$ antérieur à une purge horaire, une ligne SQL ressuscitée peut référencer une clé déjà supprimée dans R2 (`404 NoSuchKey`) : l'application traite ce cas sans erreur `500` par dégradation gracieuse (`23` §6.6 `RG3` : `{ logo: null }` ou `404` propre, nouveau dépôt possible), après rejeu des purges et anonymisations RGPD (`02` §19 pt 4).
 
 ### 9.2 Ce qui se passe quand un compte demande sa suppression
 
