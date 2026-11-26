@@ -31,6 +31,10 @@ const COMPONENTS = [
   "save-status",
   "disclosure",
   "date-field",
+  "dialog",
+  "filters-dialog",
+  "filter-bar",
+  "pager",
   "row-list",
   "property-list",
   "empty-state",
@@ -904,4 +908,393 @@ test("RUB-AN2 06: the segments, the tags, the save status, the fold and the date
   await expect(cell("date-field", "us").getByRole("textbox")).toHaveValue(
     "01/15/2027",
   );
+});
+
+// RUB-T7 (docs/mvp/jalons/rub/annexe.md; 02a C27, C28, C30, C32), with the axe check of the open dialog: the dialog is
+// modal, names itself, puts the focus on the title or on the element asked for and gives it back to its opener; `Échap`
+// and the backdrop ask it to close, unless a request runs; the dialog of the filters gives its draft up when it is
+// closed without « Voir les … » and keeps what was applied; it fills the screen at 375 px; the bar toggles, opens and
+// retires its criteria; the pager draws no `nav`.
+test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by the backdrop unless a request runs, the filters give their draft up, and axe finds nothing in an open dialog", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (component: string, state: string) =>
+    board.locator(
+      `[data-board-component="${component}"] [data-board-state="${state}"]`,
+    );
+
+  // The confirmation: the focus lands on the title, a modal axe pass is clean, `Échap` closes and gives the focus back.
+  const confirm = cell("dialog", "confirm");
+  const opener = confirm.getByRole("button", {
+    name: "Ouvrir la confirmation",
+  });
+  await opener.click();
+  const dialog = page.getByRole("dialog", {
+    name: "Retirer cette sélection ?",
+  });
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole("heading", { name: "Retirer cette sélection ?" }),
+  ).toBeFocused();
+  expect(
+    await dialog.evaluate((element) =>
+      parseFloat(getComputedStyle(element).width),
+    ),
+  ).toBe(480);
+  await expectNoAxeViolation(page, "dialogue ouvert (confirmation)");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+
+  // The click on the backdrop closes it too; a click inside does not.
+  await opener.click();
+  await expect(dialog).toBeVisible();
+  await dialog.getByText("Les créateurs qu'elle contient").click();
+  await expect(dialog).toBeVisible();
+  await page.mouse.click(5, 5);
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+
+  // The large one is 34 rem; the one that asks for its focus puts it on the safe gesture.
+  await cell("dialog", "wide")
+    .getByRole("button", { name: "Ouvrir le dialogue large" })
+    .click();
+  const wide = page.getByRole("dialog", {
+    name: "Comment lire un profil anonymisé",
+  });
+  expect(
+    await wide.evaluate((element) =>
+      parseFloat(getComputedStyle(element).width),
+    ),
+  ).toBe(544);
+  await page.keyboard.press("Escape");
+  await expect(wide).toBeHidden();
+  await cell("dialog", "focus")
+    .getByRole("button", { name: "Ouvrir le dialogue au focus demandé" })
+    .click();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Supprimer ce brouillon ?" })
+      .getByRole("button", { name: "Garder" }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+
+  // A request runs: neither `Échap` nor the backdrop closes the dialog, its own button does.
+  await cell("dialog", "busy")
+    .getByRole("button", { name: "Ouvrir le dialogue en cours" })
+    .click();
+  const busy = page.getByRole("dialog", { name: "Envoi de la demande" });
+  await expect(busy).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.mouse.click(5, 5);
+  await expect(busy).toBeVisible();
+  await busy.getByRole("button", { name: "Terminer l'envoi" }).click();
+  await expect(busy).toBeHidden();
+
+  // The error dialog is clean for axe as well.
+  await cell("dialog", "error")
+    .getByRole("button", { name: "Ouvrir le dialogue d'erreur" })
+    .click();
+  await expect(
+    page
+      .getByRole("dialog", { name: "La demande n'est pas partie" })
+      .getByRole("alert"),
+  ).toContainText("L'envoi a échoué");
+  await expectNoAxeViolation(page, "dialogue ouvert (erreur)");
+  await page.keyboard.press("Escape");
+
+  // The filters: nothing applies before « Voir les … »; the draft is given up by the cross, by `Échap` and by the backdrop.
+  const filters = cell("filters-dialog", "closed");
+  const applied = filters.locator("[data-board-applied]");
+  const opening = filters.getByRole("button", { name: "Ouvrir les filtres" });
+  const panel = page.getByRole("dialog", { name: "Filtres" });
+  const keyword = panel.getByRole("searchbox", {
+    name: "Mot-clé de la recherche",
+  });
+  await opening.click();
+  await expect(panel).toBeVisible();
+  await expect(panel.getByRole("heading", { name: "Filtres" })).toBeFocused();
+  expect(
+    await panel.evaluate((element) =>
+      parseFloat(getComputedStyle(element).width),
+    ),
+  ).toBe(672);
+  const clear = panel.getByRole("button", { name: "Tout effacer" });
+  await expect(clear).toHaveAttribute("aria-disabled", "true");
+  await panel.getByRole("checkbox", { name: "TikTok" }).check();
+  await keyword.fill("cuisine");
+  await expect(clear).not.toHaveAttribute("aria-disabled", "true");
+  await expect(applied).toHaveText("Critères appliqués : 0");
+  await expectNoAxeViolation(page, "dialogue des filtres ouvert");
+  await panel.getByRole("button", { name: "Fermer les filtres" }).click();
+  await expect(panel).toBeHidden();
+  await expect(opening).toBeFocused();
+  await expect(applied).toHaveText("Critères appliqués : 0");
+  await opening.click();
+  await expect(
+    panel.getByRole("checkbox", { name: "TikTok" }),
+  ).not.toBeChecked();
+  await expect(keyword).toHaveValue("");
+  await panel.getByRole("checkbox", { name: "TikTok" }).check();
+  await page.keyboard.press("Escape");
+  await expect(panel).toBeHidden();
+  await opening.click();
+  await expect(
+    panel.getByRole("checkbox", { name: "TikTok" }),
+  ).not.toBeChecked();
+  await page.mouse.click(5, 5);
+  await expect(panel).toBeHidden();
+  // Applied: the draft becomes the criteria, which the next opening starts from; « Tout effacer » empties the draft only.
+  await opening.click();
+  await panel.getByRole("checkbox", { name: "YouTube" }).check();
+  await panel.getByRole("button", { name: "Voir le résultat" }).click();
+  await expect(panel).toBeHidden();
+  await expect(applied).toHaveText("Critères appliqués : 1");
+  await opening.click();
+  await expect(panel.getByRole("checkbox", { name: "YouTube" })).toBeChecked();
+  await panel.getByRole("button", { name: "Tout effacer" }).click();
+  await expect(
+    panel.getByRole("checkbox", { name: "YouTube" }),
+  ).not.toBeChecked();
+  await page.keyboard.press("Escape");
+  await expect(applied).toHaveText("Critères appliqués : 1");
+
+  // The bar: a toggle says its state, the menu pill opens and closes, the cross retires its own criterion only.
+  const members = cell("filter-bar", "members");
+  const available = members.getByRole("button", {
+    name: "Disponible cette semaine",
+  });
+  await expect(available).toHaveAttribute("aria-pressed", "false");
+  await available.click();
+  await expect(available).toHaveAttribute("aria-pressed", "true");
+  const menu = cell("filter-bar", "menu").getByRole("button", {
+    name: "Thématique",
+  });
+  await expect(menu).toHaveAttribute("aria-haspopup", "dialog");
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+  await menu.click();
+  await expect(menu).toHaveAttribute("aria-expanded", "true");
+  await expect(members.getByText("Pays d'audience : Belgique")).toBeVisible();
+  await members
+    .getByRole("button", {
+      name: "Retirer le critère : Pays d'audience : Belgique",
+    })
+    .click();
+  await expect(members.getByText("Pays d'audience : Belgique")).toHaveCount(0);
+  await expect(
+    members.getByRole("button", { name: "Compte vérifié", exact: true }),
+  ).toBeVisible();
+
+  // The line scrolls under a narrow width and the keyboard reaches what is out of sight.
+  await page.setViewportSize({ width: 375, height: 812 });
+  const overflowing = cell("filter-bar", "overflow").locator(
+    "[data-filter-bar]",
+  );
+  expect(
+    await overflowing.evaluate((bar) => bar.scrollWidth > bar.clientWidth),
+  ).toBe(true);
+  await overflowing.getByRole("button").last().focus();
+  expect(await overflowing.evaluate((bar) => bar.scrollLeft)).toBeGreaterThan(
+    0,
+  );
+
+  // Under 768 px the dialog of the filters is the whole screen.
+  await opening.click();
+  // the sizes of the layout: the dialog may still be scaling in
+  expect(
+    await panel.evaluate((element) => [
+      parseFloat(getComputedStyle(element).width),
+      parseFloat(getComputedStyle(element).height),
+    ]),
+  ).toEqual([375, 812]);
+  expect(
+    await panel.evaluate((element) => getComputedStyle(element).borderRadius),
+  ).toBe("0px");
+  await expectNoAxeViolation(page, "dialogue des filtres à 375 px");
+  await page.keyboard.press("Escape");
+
+  // The pager is a group, never a nav; the last page keeps its place.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const pages = cell("pager", "pages").getByRole("group", {
+    name: /Pages de résultats/,
+  });
+  await expect(
+    pages.getByRole("button", { name: "Page précédente" }),
+  ).toBeVisible();
+  await expect(
+    pages.getByRole("button", { name: "Page suivante" }),
+  ).toBeVisible();
+  await expect(board.locator("nav")).toHaveCount(0);
+  await expect(
+    cell("pager", "last").getByRole("button", { name: "Page suivante" }),
+  ).toHaveCount(0);
+  await expect(
+    cell("pager", "busy").getByRole("button", { name: "Page suivante" }),
+  ).toHaveAttribute("aria-disabled", "true");
+});
+
+// RUB-AN2, lines 06 (C30), 07 and 08 (R04 lines 6, 7 and 8: the pill changes its contour and its ground over 120 ms on
+// the curve `standard`; the dialog comes in over 200 ms on the same curve, by `opacity` and by a `scale` of 0.98 to 1,
+// and goes out over 120 ms on the curve `exit`; the scrim fades with it; under reduced motion the fade is instant and
+// nothing scales: AN-1) and RUB-AX for C27 to C32 (docs/mvp/jalons/rub/modele-ux.md §5 PT4: the chevron of a pill with a
+// menu turns over by 180 degrees; AP1: the active pill keeps its contour under forced colours).
+test("RUB-AN2 07: the pills, the dialog and its scrim, their motion and its absence under reduced motion, the chevron that turns over and the contour under forced colours", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (component: string, state: string) =>
+    board.locator(
+      `[data-board-component="${component}"] [data-board-state="${state}"]`,
+    );
+  const STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
+  const EXIT = "cubic-bezier(0.4, 0, 1, 1)";
+
+  // The pill: the contour and the ground change over 120 ms on `standard`; the active one is told by more than colour.
+  const pill = cell("filter-bar", "members").locator('[data-pill="verified"]');
+  const readPill = () =>
+    pill.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        duration: style.transitionDuration,
+        timing: style.transitionTimingFunction,
+        properties: style.transitionProperty,
+        weight: style.fontWeight,
+      };
+    });
+  const active = await readPill();
+  expect(active).toMatchObject({
+    duration: "0.12s",
+    timing: STANDARD,
+    weight: "600",
+  });
+  expect(active.properties).toContain("border-color");
+  expect(active.properties).toContain("background-color");
+  const rest = await cell("filter-bar", "members")
+    .locator('[data-pill="available"]')
+    .evaluate((element) => getComputedStyle(element).fontWeight);
+  expect(rest).toBe("400");
+  expect(Math.round((await pill.boundingBox())!.height)).toBe(40);
+  expect(
+    Math.round(
+      (await cell("filter-bar", "bo")
+        .locator('[data-pill="late"]')
+        .boundingBox())!.height,
+    ),
+  ).toBe(36);
+
+  // The chevron of the menu pill turns over by 180 degrees over 120 ms when it opens.
+  const menu = cell("filter-bar", "menu").getByRole("button", {
+    name: "Thématique",
+  });
+  const chevron = menu.locator("svg");
+  const readTurn = () =>
+    chevron.evaluate((icon) => {
+      const style = getComputedStyle(icon);
+      return {
+        rotate: style.rotate,
+        duration: style.transitionDuration,
+        timing: style.transitionTimingFunction,
+      };
+    });
+  expect(await readTurn()).toMatchObject({
+    rotate: "none",
+    duration: "0.12s",
+    timing: STANDARD,
+  });
+  await menu.click();
+  await expect.poll(async () => (await readTurn()).rotate).toBe("180deg");
+
+  // Forced colours: the active pill keeps its contour, it is drawn by the system.
+  await page.emulateMedia({ forcedColors: "active" });
+  expect(
+    await pill.evaluate((element) => getComputedStyle(element).borderTopStyle),
+  ).toBe("solid");
+  expect(
+    parseFloat(
+      await pill.evaluate(
+        (element) => getComputedStyle(element).borderTopWidth,
+      ),
+    ),
+  ).toBeGreaterThan(0);
+  await page.emulateMedia({ forcedColors: "none" });
+
+  // The dialog, closed then open: its exit is read on the closed element, its entry on the open one.
+  const element = cell("dialog", "confirm").locator("dialog");
+  const readDialog = () =>
+    element.evaluate((dialog) => {
+      const style = getComputedStyle(dialog);
+      const backdrop = getComputedStyle(dialog, "::backdrop");
+      return {
+        duration: style.transitionDuration,
+        timing: style.transitionTimingFunction,
+        properties: style.transitionProperty,
+        behavior: style.transitionBehavior,
+        opacity: style.opacity,
+        scale: style.scale,
+        scrim: backdrop.backgroundColor,
+        scrimDuration: backdrop.transitionDuration,
+        scrimTiming: backdrop.transitionTimingFunction,
+        scrimOpacity: backdrop.opacity,
+      };
+    });
+  const closed = await readDialog();
+  expect(closed).toMatchObject({
+    duration: "0.12s",
+    timing: EXIT,
+    opacity: "0",
+    scale: "0.98",
+    scrimDuration: "0.12s",
+    scrimTiming: EXIT,
+    scrimOpacity: "0",
+  });
+  for (const name of ["opacity", "scale", "display", "overlay"]) {
+    expect(closed.properties, `transition of ${name}`).toContain(name);
+  }
+  expect(closed.properties).not.toBe("all");
+  expect(closed.behavior).toContain("allow-discrete");
+  const opening = cell("dialog", "confirm").getByRole("button", {
+    name: "Ouvrir la confirmation",
+  });
+  await opening.click();
+  const dialog = page.getByRole("dialog", {
+    name: "Retirer cette sélection ?",
+  });
+  await expect(dialog).toBeVisible();
+  await expect.poll(async () => (await readDialog()).opacity).toBe("1");
+  const shown = await readDialog();
+  expect(shown).toMatchObject({
+    duration: "0.2s",
+    timing: STANDARD,
+    scrimDuration: "0.2s",
+    scrimTiming: STANDARD,
+    scrimOpacity: "1",
+  });
+  expect(["none", "1"]).toContain(shown.scale);
+  expect(shown.scrim).not.toBe("rgba(0, 0, 0, 0)");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+
+  // Reduced motion: the fade is instant and nothing scales, whatever the state.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect(await readDialog()).toMatchObject({
+    duration: "0s",
+    scrimDuration: "0s",
+    scale: "none",
+  });
+  await opening.click();
+  await expect(dialog).toBeVisible();
+  expect(await readDialog()).toMatchObject({
+    duration: "0s",
+    scale: "none",
+    opacity: "1",
+  });
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  expect((await readTurn()).duration).toBe("0s");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
 });

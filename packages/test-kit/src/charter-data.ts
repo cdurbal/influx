@@ -508,4 +508,8 @@ export const SHARED_CATALOGUE: readonly SharedCatalogueEntry[] = [
   { name: "InternalZone", backoffice: "pending" },
   { name: "Disclosure", backoffice: "pending" },
   { name: "DateField", backoffice: "pending" },
+  { name: "Dialog", backoffice: "pending" },
+  { name: "FiltersDialog", backoffice: "pending" },
+  { name: "FilterBar", backoffice: "pending" },
+  { name: "Pager", backoffice: "pending" },
 ];

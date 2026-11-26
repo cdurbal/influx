@@ -12,7 +12,7 @@
 | 04 | 04.md | commit | sonnet | high | dev-react-node | fait | C06-C09 livrés ; 8 variantes RowList par champs ; titre EmptyState = p (02c) ; squelette 1 s par minuteur ; AN2 04 et 32 verts ; SHARED +4 pending |
 | 05 | 05.md | commit | sonnet | high | dev-react-node | fait | C18-C21 livrés ; Field ← FieldFrame, ChoiceGroup ← Multi/YesNo (legend = label, code gardé) ; erreur sans décalage ; ErrorSummary client ; SHARED +3 |
 | 06 | 06.md | commit | sonnet | high | dev-react-node | fait | C22-C26, C47 livrés ; TagPicker ← PickListField (croix 44 px, mesure) ; SaveStatus : copies d’écran gardées, échec seul annoncé ; SHARED +5 |
-| 07 | 07.md | commit | sonnet | high | dev-react-node | à faire | |
+| 07 | 07.md | commit | sonnet | high | dev-react-node | fait | C27, C28, C30, C32 livrés ; Dialog natif, sans padding : cible = voile ; FiltersDialog : corps rekeyé ; chevron au repos ; TermsDialog non migré ; SHARED +4 |
 | 08 | 08.md | commit | sonnet | high | dev-react-node | à faire | |
 | 09a | 09a.md | commit | opus | high | dev-react-node | à faire | |
 | 09b | 09b.md | commit | sonnet | high | dev-react-node | à faire | |

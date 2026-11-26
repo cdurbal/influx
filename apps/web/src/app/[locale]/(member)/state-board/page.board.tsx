@@ -5,6 +5,7 @@ import { AnnouncerBoard } from "./announcer.board";
 import { BadgeBoard } from "./badge.board";
 import { ButtonBoard } from "./button.board";
 import { ChoiceBoard } from "./choice.board";
+import { DialogBoard } from "./dialog.board";
 import { FieldBoard } from "./field.board";
 import { ListBoard } from "./list.board";
 import { NoticeBoard } from "./notice.board";
@@ -51,6 +52,7 @@ export default function StateBoardPage() {
         <BadgeBoard />
         <FieldBoard />
         <ChoiceBoard />
+        <DialogBoard />
         <ListBoard />
       </AnnouncerProvider>
     </main>
