@@ -18,6 +18,7 @@ fuite**. **Deux procédures ; prendre la mauvaise est une faute.** Critère :
 | `INFLUX_API_INTERNAL_SECRET*` (D64) | Non ; `api` et le front concerné doivent basculer ensemble | **A**, en fenêtre creuse |
 | `AUTH_TOKEN_SIGNING_SECRET` | Non, mais **perd les parcours de connexion en cours** (15 à 30 min) | **A**, en fenêtre creuse |
 | `AUTH_THROTTLE_PEPPER` | Non, mais **remet les compteurs de débit à zéro** | **A** |
+| `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (`api` ≠ `worker`) | Non (aucun envoi vers un tiers) | **A/B sortante (sans coupure)** |
 
 ## Procédure A : clé sans effet de bord observable
 
@@ -52,6 +53,27 @@ l'opération sûre, c'est la fenêtre à deux clés.**
 > **En `staging`** (D70) : les clés des **comptes de `staging`** se font tourner par l'agent selon la
 > procédure B appliquée à ces comptes (nouvelle clé, Railway et `.env.local`, vérification,
 > révocation de l'ancienne). Jamais la clé de production.
+
+## Procédure A/B sortante (sans coupure) : jetons Cloudflare R2
+
+Les jetons R2 n'ont aucun effet d'envoi externe vers un tiers (comme A), mais le changement porte
+sur `R2_ACCESS_KEY_ID` + `R2_SECRET_ACCESS_KEY` lus au démarrage : pour éviter toute coupure pendant
+le redéploiement, Cloudflare R2 permet de garder deux jetons actifs simultanément pendant la bascule
+(comme B côté sortant). Chaque service (`api` et `worker`) possède son propre jeton et tourne
+indépendamment :
+
+1. **Créer un nouveau jeton R2** dans Cloudflare (`Object Read & Write`, restreint aux **3 seuls
+   compartiments de l'environnement**, juridiction **`eu`** en `production`), **sans révoquer
+   l'ancien**.
+2. **Mettre à jour `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY`** sur le seul service concerné (`api`
+   ou `worker`) dans Railway (et, pour `staging` sur `api`, dans `apps/api/.env.local`), puis
+   redéployer ce service.
+3. **Constater le fonctionnement** sur le service redéployé : lecture/écriture d'une image sur `api`
+   ou exécution de `storage_purge` sur `worker`, zéro `AccessDenied` / `SignatureDoesNotMatch` dans
+   les journaux.
+4. **Révoquer immédiatement l'ancien jeton** dans le tableau de bord Cloudflare R2, puis vérifier les
+   journaux (plus aucune erreur d'authentification R2).
+5. **Consigner** : date, motif, environnement, service (`api` ou `worker`), qui, date de révocation.
 
 ## En cas de fuite avérée
 

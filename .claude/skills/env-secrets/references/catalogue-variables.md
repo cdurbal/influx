@@ -24,7 +24,7 @@ chaque variable. En cas d'écart, le runbook et `apps/api/src/config/schema.ts` 
 | Variable | Porteurs | Exposition | `staging` vs `production` |
 |---|---|---|---|
 | `SUPABASE_URL` | api · worker (purge E-4) | **Serveur uniquement** | **Deux projets Supabase distincts**, jamais deux schémas d'un même projet (`02` §12.2) |
-| `SUPABASE_SECRET_KEY` : clé d'API HTTP (ex-`SUPABASE_SERVICE_ROLE_KEY`, `sb_secret_…`), à ne pas confondre avec le rôle Postgres `service_role`, **utilisé nulle part** | api · worker (purge E-4) | **Secrète, jamais dans un bundle.** Usage limité à **GoTrue (Auth)** et aux **URL signées du Storage**, **jamais pour atteindre une table** | **Une clé par projet et par service** (`influx-api`, `influx-worker`), révocable séparément (EC-46) ; clés héritées `anon` / `service_role` désactivées |
+| `SUPABASE_SECRET_KEY` : clé d'API HTTP (ex-`SUPABASE_SERVICE_ROLE_KEY`, `sb_secret_…`), à ne pas confondre avec le rôle Postgres `service_role`, **utilisé nulle part** | api · worker (purge E-4) | **Secrète, jamais dans un bundle.** Usage limité à **GoTrue (Auth)** et aux **URL signées du Storage** (jusqu'à la bascule R2B, D90), **jamais pour atteindre une table** | **Une clé par projet et par service** (`influx-api`, `influx-worker`), révocable séparément (EC-46) ; clés héritées `anon` / `service_role` désactivées |
 
 `SUPABASE_PUBLISHABLE_KEY` et `SUPABASE_JWKS_URL` sont **retirées** (EC-46) : INFLUX ne vérifie aucun
 JWT, tout appel à GoTrue porte la clé secrète. Sur les projets hébergés, la clé *publishable* est
@@ -100,3 +100,24 @@ unitaire (garde statique).
 | `APOLLO_API_KEY` | worker | **Secrète** | `staging` : clé du **compte Apollo de `staging`** (D70, contre `03` §6.8), aussi dans `.env.local` ; production : clé de production, après D33. Tests et CI : aucune (doublure). Une clé de production hors production est un incident |
 | `SYNC_MODE` (`live` \| `dry_run`) | worker | Garde-fou | `live` en `staging` et en production (D70) ; `dry_run` réservé à la pile locale et aux tests. Lu au démarrage, **immuable à l'exécution**, journalisé |
 | `NON_PRODUCTION_RECIPIENT_ALLOWLIST` | worker | Garde-fou | Condition **positive** évaluée au connecteur, après tout le mappage. Pile locale et tests seulement, refusée en `staging` |
+
+## Cloudflare R2 (Lot 3ter, D90)
+
+Stockage objet privé S3 pour les images WebP (`brand-logo`, `portfolio`, `verification-evidence`).
+Les 4 variables `R2_*` ne quittent jamais `api` et `worker` : le préfixe `"R2_"` est interdit dans
+les artefacts navigateur (`BROWSER_FORBIDDEN_NAMES`, `T11.1`). Conformément à D70 (`02` §12.4, `T17`),
+`apps/api/src/config/schema.ts` applique exactement la même règle sous `isDeployedEnvironment`
+(`staging` et `production`) sans aucun branchement `INFLUX_ENV === "production"`.
+
+| Variable | Porteurs | Exposition | `development` (tests, CI, pile locale) | `staging` et `production` (`isDeployedEnvironment`) |
+|---|---|---|---|---|
+| `R2_ENDPOINT` | api · worker | **Serveur uniquement** | Origine `http://` sur `LOOPBACK_HOSTS` uniquement (`127.0.0.1`, `localhost`, `[::1]`, ex. `:4011` local / `:4111` E2E). Requis sur `api`, tout-ou-rien sur `worker`. Tout hôte `*.r2.cloudflarestorage.com` refusé (`16` RG148) | **Exigée.** `^https://[0-9a-f]{32}\.(?:eu\.)?r2\.cloudflarestorage\.com$` (origine stricte sans chemin, query ni identifiants). **`staging`** : sans `.eu.` (vérifié par `staging:check`). **`production`** : **`.eu.` obligatoire** (`D25`, vérifié par runbook et `J9S-1`) |
+| `R2_ACCESS_KEY_ID` | api · worker | **Secrète** | Chaîne non vide sans `CHANGE_ME` (requis sur `api`, tout-ou-rien sur `worker`) | **Exigée.** Identifiant du jeton R2 **propre au service** (`influx-<env>-api` ≠ `influx-<env>-worker`, contrôlé par `staging:check`) |
+| `R2_SECRET_ACCESS_KEY` | api · worker | **Secrète**, ≥ 32 octets | Sans `CHANGE_ME`, distinct de `R2_ACCESS_KEY_ID` et des autres secrets du processus (`schema.ts`) ; requis sur `api`, tout-ou-rien sur `worker` | **Exigée.** Secret S3 SHA-256 du jeton propre au service ; en `production`, posé par le fondateur seul sur Railway (`16` RG115 : jamais dans `.env.local`) |
+| `R2_BUCKET_PREFIX` | api · worker | **Serveur uniquement** | Défaut `""` ou `^[a-z0-9][a-z0-9-]{0,30}-$` (ex. `local-`, `e2e-`) | **Exigée.** `^influx-(?:staging\|production)-$` (`influx-staging-` sur `staging`, `influx-production-` en `production`). Nom physique : `${R2_BUCKET_PREFIX}${bucket}` |
+
+**Jetons et rotation :** deux jetons `Object Read & Write` distincts par environnement (`api` ≠
+`worker`), chacun restreint aux **3 seuls compartiments de son environnement** (jamais
+`Admin Read & Write`, jamais « All buckets »). Sur `worker`, la règle du **tout-ou-rien** en
+`development` renvoie `config.r2 = null` si les 4 variables sont absentes. Rotation sans coupure :
+procédure A/B sortante dans `rotation-et-fuite.md`.

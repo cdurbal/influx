@@ -69,7 +69,17 @@ Brevo, Apollo.io et le prestataire de paiement sont ouverts au nom de la sociét
       **inaccessible**. Un e-mail qui n'arrive pas n'est plus une gêne marketing, c'est **une
       impossibilité de se connecter**. La délivrabilité devient la disponibilité du produit
 - [ ] Signer les contrats de sous-traitance des données (Brevo, Apollo.io, Supabase, Railway,
-      prestataire de paiement) et tenir le registre des traitements
+      Cloudflare DPA R2, prestataire de paiement) et tenir le registre des traitements
+- [ ] Configurer **Cloudflare R2** (`D90`, `23-migration-cloudflare-r2.md`) : compte Cloudflare et **6
+      compartiments privés** (accès public `r2.dev` désactivé, sans versioning) —
+      `influx-staging-{brand-logo,portfolio,verification-evidence}` (juridiction `default`) et
+      `influx-production-{brand-logo,portfolio,verification-evidence}` (juridiction **`eu`**, `D25`),
+      règle de cycle de vie **`AbortIncompleteMultipartUpload = 1 jour`** sur les 6 compartiments
+      (`R2-05`), et **2 jetons `Object Read & Write` distincts par environnement** bornés aux 3
+      compartiments de leur environnement (`influx-staging-api` / `influx-staging-worker` avant
+      `R2A-04`, puis `influx-production-api` / `influx-production-worker` émis en juridiction `eu` et
+      posés directement sur Railway `production` à l'ouverture, `16` RG115) — *6 compartiments créés
+      le 2026-11-26*
 
 ### 14.4 Cadrage produit
 

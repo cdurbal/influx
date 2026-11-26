@@ -54,8 +54,8 @@ cochée mais explicitement acceptée et datée par le fondateur vaut cochée (`1
 - [ ] Périmètre et base légale Apollo validés par un juriste, pays de prospection renseignés
       (D33, `05` Q1 à Q3) — fondateur + `expert-conformite-rgpd` (veto).
 - [ ] CGU FR et EN (non-contournement, supervision, conservation probatoire), politique de
-      confidentialité nommant Brevo et Apollo, validées par le juriste (D29, A5, A10, R-1) ;
-      marqueurs `[…]` remplacés (section 12).
+      confidentialité nommant Brevo, Apollo et Cloudflare R2 (`RU-30`, `D90`), validées par le juriste
+      (D29, A5, A10, R-1) ; marqueurs `[…]` remplacés (section 12).
 - [ ] Trois sous-domaines d'envoi authentifiés (SPF, DKIM, DMARC) sur le compte Brevo de production
       (`16` RG9).
 - [ ] Comptes Brevo et Apollo au nom de la société, contrats de sous-traitance signés.
@@ -67,6 +67,15 @@ cochée mais explicitement acceptée et datée par le fondateur vaut cochée (`1
 - [ ] Textes de la landing relus (`expert-marketing`, `expert-conformite-rgpd`, verdict L9) ; revue
       du budget d'effets (`expert-ux`) — D48, D59.
 - [ ] Exécution des demandes « mes données » livrée (E-5 minimale, `15` RG79, RG80).
+- [ ] **Cloudflare R2 `production` conforme et vérifié à l'ouverture (`D90`, `23` §5.3, §8.1)** : DPA
+      Cloudflare accepté ; **Cloudflare, Inc. (Cloudflare R2, juridiction UE)** inscrit au registre des
+      traitements ; **politique de confidentialité mise à jour et validée par le juriste (`RU-30` —
+      aucun texte affiché modifié avant avis)** ; 3 compartiments privés
+      `influx-production-{brand-logo,portfolio,verification-evidence}` en juridiction **`eu`** (`D25`,
+      règle `AbortIncompleteMultipartUpload = 1 jour`, sans versioning ni réplication secondaire
+      `R2-04`) ; 2 jetons `Object Read & Write` émis sous juridiction `eu` distincts
+      (`influx-production-api` ≠ `influx-production-worker`), posés par le fondateur seul sur Railway
+      `production`, et constat d'écriture/suppression exécuté à l'ouverture (`R2-03` option a).
 - [x] **Revue groupée de fin de J9** par `expert-cybersecurite` et `testeur` (2026-10-27) : droits
       signés (`expected-rights.ts`, `0142` à `0149`, E-4 et E-6 de `03` P7), 14 commits couverts par
       le commit d'attestation de clôture du J9 ; reports listés dans `archives/jalons/j9-fiche.md`.
@@ -283,12 +292,24 @@ services dans **l'environnement `production`** :
   (43 à 128) sur `api` seul.
 - Secrets de 32 octets, **une valeur différente pour chacun** :
   `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`.
-- Aucune clé Brevo, Apollo ni Supabase de `staging` ; aucun jeton de `staging`.
+- **Cloudflare R2 (`D90`, `23` §3.3 A3, §5.1, §8.1)** sur `api` et `worker` uniquement (jamais sur
+  `web` ni `backoffice`, jamais dans `.env.local`, `16` RG115) :
+  `R2_ENDPOINT=https://<account_id>.eu.r2.cloudflarestorage.com` (origine `https://` stricte avec
+  **juridiction `eu.` obligatoire**, `D25`, sans chemin ni query),
+  `R2_BUCKET_PREFIX=influx-production-` (3 compartiments privés
+  `influx-production-{brand-logo,portfolio,verification-evidence}` en juridiction `eu`, règle
+  `AbortIncompleteMultipartUpload = 1 jour`, sans réplication secondaire `R2-04`), et **2 jetons
+  `Object Read & Write` émis sous juridiction `eu` distincts** (`R2_ACCESS_KEY_ID` /
+  `R2_SECRET_ACCESS_KEY` de `influx-production-api` sur `api` ≠ `influx-production-worker` sur
+  `worker`), posés directement sur Railway `production` par le fondateur seul.
+- Aucune clé Brevo, Apollo ni Supabase de `staging` ; aucun jeton de `staging` (ni jeton R2, ni
+  endpoint sans `.eu.`, ni `R2_BUCKET_PREFIX=influx-staging-`).
 
 **Valeurs héritées du fork : toutes remplacées (J9S-1, bloquant, revue de fin de J9).** L'environnement
 `production` a été forké avec `staging` : il en porte les **valeurs**, lisibles par tous les agents
 (`.env.local`, D70). Avant le premier déploiement, le fondateur **régénère ou remplace chaque valeur**
-de chaque service (secrets, `…_DATABASE_URL`, clés Supabase, Brevo et Apollo, jetons du webhook), puis
+de chaque service (secrets, `…_DATABASE_URL`, clés Supabase, Brevo et Apollo, jetons du webhook,
+et les 4 variables `R2_*` qui ne figurent pas dans la liste blanche `ok`), puis
 vérifie, depuis son poste, qu'**aucune** valeur de production n'égale celle de `staging` hors d'une
 liste blanche de valeurs non secrètes. Le script compare en mémoire et n'affiche **que des noms** :
 
@@ -312,7 +333,9 @@ railway variables -s <service> -e production --json | node -e "let s='';process.
 ```
 
 Vérifier en outre, sans les afficher en entier : `INFLUX_ENV=production` partout, `BREVO_MODE=live`
-(`api`, `worker`), `SYNC_MODE=live` (`worker`). Un équivalent automatisé pour la production est un
+(`api`, `worker`), `SYNC_MODE=live` (`worker`), `R2_ENDPOINT` en `.eu.` et
+`R2_BUCKET_PREFIX=influx-production-` (`api`, `worker`) avec deux `R2_ACCESS_KEY_ID` distincts
+(`R2-03` : constat écriture/suppression exécuté à l'ouverture `production` seulement). Un équivalent automatisé pour la production est un
 commit à part, à demander à `integrateur`.
 
 ## 6. Figer une version (tag SemVer) et promouvoir vers `production` (D71)
@@ -407,9 +430,16 @@ constat A5 qui enverrait des codes, pas d'inscription fictive.
 3. Une migration n'est **jamais** annulée par un retour de code (migrations additives). Sinon,
    migration corrective suivante, jamais la modification d'une migration appliquée (EC-37).
 4. Remettre `BREVO_MODE` / `SYNC_MODE` en `dry_run` ou `disabled` fait **refuser le démarrage**
-   (D70) : revenir d'abord au commit précédent, puis aux variables d'avant.
+   (D70) : revenir d'abord au commit précédent, puis aux variables d'avant. De même pour **Cloudflare
+   R2 (`D90`, `23` §8.3)** : avant le vidage final de `R2C`, redéployer **ensemble** `api` et `worker`
+   sur le dernier commit sain de `R2A` restaure Supabase Storage sans perte, et ne retirer les 4
+   variables `R2_*` qu'**après** le retour au commit antérieur à `R2A-04` (`schema.ts` exigeant `R2_*`)
+   ; après `R2C`, revenir en arrière exige le `git revert` de `R2C` et `R2B` (aucune migration SQL).
 5. Donnée perdue ou corrompue : restauration à un instant donné (section 1 point 7 : purges à
-   rejouer, chaîne à vérifier, avant remise en service). Vers un projet jetable d'abord.
+   rejouer, chaîne à vérifier, avant remise en service). Vers un projet jetable d'abord. Pour R2
+   (`R2-04`, `D57`, `23` §8.4) : aucune réplication secondaire ni versioning n'existant au MVP, les
+   objets déjà supprimés restent effacés (effacement RGPD définitif) et l'application traite leur
+   absence sans erreur `500`.
 6. Noter l'heure, la version revenue (`RAILWAY_GIT_COMMIT_SHA`) et la cause dans le bilan de rodage ;
    corriger sur `main`, puis refusionner sur accord.
 

@@ -145,6 +145,14 @@ les liens d'invitation (équipe et membres). **Jamais un domaine de `production`
 
 - Secrets de 32 octets : `node -e "console.log(require('node:crypto').randomBytes(32).toString('base64url'))"`,
   **une valeur différente pour chacun**, sinon `api` refuse de démarrer.
+- **Cloudflare R2 (`D90`, `23` §5.1, §8.1)** sur `api` et `worker` uniquement (jamais sur `web` ni
+  `backoffice`) : `R2_ENDPOINT=https://<account_id>.r2.cloudflarestorage.com` (juridiction `default`
+  sans `.eu.`, autorisée en `staging` sous le verrou 4 `B9` données synthétiques seules),
+  `R2_BUCKET_PREFIX=influx-staging-` (3 compartiments privés
+  `influx-staging-{brand-logo,portfolio,verification-evidence}`), et **2 jetons `Object Read & Write`
+  distincts** bornés aux 3 compartiments (`influx-staging-api` sur `api` et dans `apps/api/.env.local`
+  pour le poste opérateur D70, `influx-staging-worker` sur `worker`). Jamais un endpoint `.eu.`, un
+  préfixe `influx-production-` ou un jeton de `production` ; jamais chargé par un test (`16` RG148).
 - Poser une variable : `railway variable set NOM --stdin -s <service> -e staging`, valeur lue depuis
   `.env.local` sans affichage. Jamais d'option qui cible `production` (interdite aussi par
   `.claude/settings.json`).
@@ -159,7 +167,8 @@ les liens d'invitation (équipe et membres). **Jamais un domaine de `production`
 vérifie en outre `INFLUX_ENV=staging` partout, `BREVO_MODE=live` (`api`, `worker`) et
 `SYNC_MODE=live` (`worker`). Liste tirée de ce que lit le code (`apps/api/src/config/schema.ts`,
 `apps/*/src/config/`) : `BREVO_SENDER_MARKETING` et `BREVO_SENDER_PROSPECTING` n'y sont pas, aucun
-code ne les lisant encore.
+code ne les lisant encore (`R2_*` entre dans le tableau ci-dessous au commit `R2A-04` qui les lit dans
+`schema.ts`).
 
 <!-- staging-check:begin -->
 | Service | Exigées | Facultatives |
@@ -288,7 +297,12 @@ complets, Apollo compris.
 2. Une migration n'est **jamais** annulée par un retour de code (migrations additives). Sinon,
    migration corrective, jamais la modification d'une migration appliquée (EC-37).
 3. Remettre seulement `BREVO_MODE` / `SYNC_MODE` en `dry_run` ou `disabled` fait **refuser le
-   démarrage** (D70) : revenir d'abord au commit précédent, puis aux variables d'avant.
+   démarrage** (D70) : revenir d'abord au commit précédent, puis aux variables d'avant. De même pour
+   **Cloudflare R2 (`D90`, `23` §8.3)** : pendant `R2A`, `storage.ts` reste sur Supabase Storage (`git
+   revert` suffit) ; pendant `R2B` avant le vidage de `R2C`, redéployer **ensemble** `api` et
+   `worker` sur le dernier commit sain de `R2A` restaure l'accès Supabase Storage sans perte, et ne
+   retirer les variables `R2_*` qu'**après** le retour au commit antérieur à `R2A-04` (`schema.ts`
+   exigeant `R2_*`).
 4. Noter l'heure, la version revenue (`RAILWAY_GIT_COMMIT_SHA`) et la cause dans le bilan de rodage ;
    corriger sur `main`.
 
