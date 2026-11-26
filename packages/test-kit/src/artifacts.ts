@@ -22,6 +22,8 @@ export const BROWSER_FORBIDDEN_NAMES: readonly string[] = [
   "sb_secret_",
   "DATABASE_URL",
   "INFLUX_API_INTERNAL_",
+  // R2 credentials and bucket config (23 RG14, T11.1): never shipped to the browser.
+  "R2_",
 ];
 
 /** Three base64url segments, the first two starting like a JSON object ("eyJ" encodes '{"'). */

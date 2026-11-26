@@ -113,6 +113,25 @@ describe("scanBuildArtifacts (T11)", () => {
     ]);
   });
 
+  it("R2A-T2: finds every R2_* variable name in browser static chunks", () => {
+    writeArtifact(
+      "static/chunks/app.js",
+      "const cfg = ['R2_ENDPOINT','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY','R2_BUCKET_PREFIX'];",
+    );
+    expect(scanBuildArtifacts(nextDirectory)).toEqual([
+      ".next/static/chunks/app.js: server name R2_",
+    ]);
+  });
+
+  it("R2A-T2: allows R2_* variable names in server bundles only", () => {
+    writeArtifact("static/chunks/app.js", "console.log('ok');");
+    writeArtifact(
+      "server/relay.js",
+      "process.env.R2_ENDPOINT; process.env.R2_ACCESS_KEY_ID; process.env.R2_SECRET_ACCESS_KEY; process.env.R2_BUCKET_PREFIX;",
+    );
+    expect(scanBuildArtifacts(nextDirectory)).toEqual([]);
+  });
+
   it("finds a JWT-like string and a Postgres connection string anywhere in the build", () => {
     writeArtifact("static/chunks/app.js", "ok");
     writeArtifact("server/a.js", `const token = "${FAKE_JWT}";`);

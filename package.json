@@ -16,6 +16,7 @@
     "release:cut": "node packages/test-kit/scripts/cut-release.ts",
     "db:demo-accounts": "pnpm --filter @influx/api db:demo-accounts",
     "dev:brevo-double": "pnpm --filter @influx/test-kit dev:brevo-double",
+    "dev:s3-double": "pnpm --filter @influx/test-kit dev:s3-double",
     "start": "pnpm --filter @influx/web start",
     "start:web": "pnpm --filter @influx/web start",
     "build": "pnpm -r run build",

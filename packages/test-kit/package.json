@@ -14,6 +14,7 @@
     "./totp": "./src/totp.ts",
     "./brevo-double": "./src/brevo-double.ts",
     "./brevo-exchanges": "./src/brevo-exchanges.ts",
+    "./s3-double": "./src/s3-double.ts",
     "./apollo-double": "./src/apollo-double.ts",
     "./gotrue-double": "./src/gotrue-double.ts",
     "./apollo-exchanges": "./src/apollo-exchanges.ts",
@@ -28,6 +29,7 @@
     "test": "vitest run --reporter=default --reporter=json --outputFile.json=test-results/vitest-report.json && node ../../packages/test-kit/scripts/check-case-floors.ts tests/case-floors.ts test-results/vitest-report.json",
     "db:role-passwords": "node scripts/set-role-passwords.ts",
     "dev:brevo-double": "node scripts/brevo-double.ts",
+    "dev:s3-double": "node scripts/s3-double.ts",
     "prod:role-passwords": "node scripts/production-role-passwords.ts",
     "staging:role-passwords": "node --env-file=../../apps/api/.env.local scripts/staging-role-passwords.ts"
   },
