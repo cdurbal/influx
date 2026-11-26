@@ -8,7 +8,7 @@
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
 >
 > **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/rub-fiche.md`.
+> `jalons/r2a-fiche.md`, `jalons/r2b-fiche.md`, `jalons/r2c-fiche.md`, `jalons/rub-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -689,7 +689,7 @@
 | 94 | 24 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 118 | 9 | 6. Configuration des services externes |  |
 | 127 | 18 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 145 | 138 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 145 | 139 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
 
 ## 22-refonte-ux-ui.md (~2k tokens)
 
@@ -703,3 +703,17 @@
 | 66 | 12 | 6. Dépendances | RG61 |
 | 78 | 6 | 7. Conditions de validation du lot |  |
 | 84 | 14 | 8. Risques |  |
+
+## 23-migration-cloudflare-r2.md (~21k tokens)
+
+| Ligne | Lignes | Section | RG citées |
+|---|---|---|---|
+| 27 | 63 | 1. Objectif, contexte et périmètre | RG15–RG84 |
+| 90 | 49 | 2. Confrontation de l'audit Gemini au code réel | RG148 |
+| 139 | 118 | 3. Architecture cible et arbitrages techniques | RG148 |
+| 257 | 50 | 4. Données, contrat S3 et compatibilité PostgreSQL |  |
+| 307 | 73 | 5. Sécurité, permissions et conformité RGPD | RG115–RG148 |
+| 380 | 86 | 6. Comportements fonctionnels de bout en bout | RG9–RG111 |
+| 466 | 172 | 7. Catalogue des exigences vérifiables et critères d'acceptation | RG1–RG148 |
+| 638 | 65 | 8. Stratégie de migration, environnements, exploitation et retour arrière | RG3–RG148 |
+| 703 | 16 | 9. Décisions à valider (`D90` et questions `F0` au fondateur) | RG3 |
