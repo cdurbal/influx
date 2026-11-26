@@ -767,6 +767,237 @@ function checkBrevoWebhook(
   }
 }
 
+/**
+ * Cloudflare R2 object storage configuration (D90, 23-migration-cloudflare-r2.md §3.3 A2–A3, §5.1):
+ * required on `api`, all-or-nothing in `development` on `worker`, and all four required under
+ * `isDeployedEnvironment`. Never read by `web` or `backoffice` (`T11.1`).
+ */
+export const R2_VARIABLES = [
+  "R2_ENDPOINT",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET_PREFIX",
+] as const;
+export type R2Variable = (typeof R2_VARIABLES)[number];
+
+export type R2Config = {
+  endpoint: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucketPrefix: string;
+};
+
+const DEPLOYED_R2_ENDPOINT_PATTERN =
+  /^https:\/\/[0-9a-f]{32}\.(?:eu\.)?r2\.cloudflarestorage\.com$/;
+const DEVELOPMENT_R2_BUCKET_PREFIX_PATTERN = /^[a-z0-9][a-z0-9-]{0,30}-$/;
+const DEPLOYED_R2_BUCKET_PREFIX_PATTERN = /^influx-(?:staging|production)-$/;
+
+type ParsedR2Endpoint = {
+  origin: string;
+  protocol: string;
+  hostname: string;
+};
+
+const r2Endpoint = z.preprocess(
+  emptyAsAbsent,
+  z
+    .string({ error: "must be a string" })
+    .transform((value, context): ParsedR2Endpoint => {
+      let url: URL;
+      try {
+        url = new URL(value);
+      } catch {
+        context.addIssue({
+          code: "custom",
+          message: "must be an http(s) origin",
+        });
+        return z.NEVER;
+      }
+      const isOriginOnly =
+        (url.protocol === "http:" || url.protocol === "https:") &&
+        url.username === "" &&
+        url.password === "" &&
+        url.pathname === "/" &&
+        url.search === "" &&
+        url.hash === "";
+      if (!isOriginOnly) {
+        context.addIssue({
+          code: "custom",
+          message: "must be an origin without path, query or credentials",
+        });
+        return z.NEVER;
+      }
+      return {
+        origin: url.origin,
+        protocol: url.protocol,
+        hostname: url.hostname,
+      };
+    })
+    .optional(),
+);
+
+const r2EnvShape = {
+  R2_ENDPOINT: r2Endpoint,
+  R2_ACCESS_KEY_ID: optionalText,
+  R2_SECRET_ACCESS_KEY: z.preprocess(emptyAsAbsent, secretOf32Bytes.optional()),
+  R2_BUCKET_PREFIX: optionalText,
+};
+
+type R2ParsedEnv = {
+  INFLUX_ENV: InfluxEnvironment;
+  R2_ENDPOINT?: ParsedR2Endpoint | undefined;
+  R2_ACCESS_KEY_ID?: string | undefined;
+  R2_SECRET_ACCESS_KEY?: string | undefined;
+  R2_BUCKET_PREFIX?: string | undefined;
+};
+
+function checkR2Config(
+  env: R2ParsedEnv,
+  options: {
+    requiredInDevelopment: boolean;
+    otherSecrets: readonly (string | undefined)[];
+  },
+  context: z.RefinementCtx,
+): void {
+  const isDeployed = isDeployedEnvironment(env.INFLUX_ENV);
+  const anySet =
+    env.R2_ENDPOINT !== undefined ||
+    env.R2_ACCESS_KEY_ID !== undefined ||
+    env.R2_SECRET_ACCESS_KEY !== undefined ||
+    env.R2_BUCKET_PREFIX !== undefined;
+
+  if (!isDeployed && !options.requiredInDevelopment && !anySet) {
+    return;
+  }
+
+  for (const variable of [
+    "R2_ENDPOINT",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY",
+  ] as const) {
+    if (env[variable] === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: [variable],
+        message: isDeployed
+          ? "is required in a deployed environment"
+          : options.requiredInDevelopment
+            ? "is required"
+            : "is required with the other R2 variables",
+      });
+    }
+  }
+
+  if (env.R2_ENDPOINT !== undefined) {
+    if (isDeployed) {
+      if (!DEPLOYED_R2_ENDPOINT_PATTERN.test(env.R2_ENDPOINT.origin)) {
+        context.addIssue({
+          code: "custom",
+          path: ["R2_ENDPOINT"],
+          message:
+            "must be https://<32-hex>.(eu.)r2.cloudflarestorage.com in a deployed environment",
+        });
+      }
+    } else if (
+      env.R2_ENDPOINT.protocol !== "http:" ||
+      !LOOPBACK_HOSTS.has(env.R2_ENDPOINT.hostname)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["R2_ENDPOINT"],
+        message: "must be an http:// loopback origin in development (16 RG148)",
+      });
+    }
+  }
+
+  if (env.R2_ACCESS_KEY_ID !== undefined) {
+    if (env.R2_ACCESS_KEY_ID.trim() === "") {
+      context.addIssue({
+        code: "custom",
+        path: ["R2_ACCESS_KEY_ID"],
+        message: "must not be empty",
+      });
+    } else if (holdsPlaceholder(env.R2_ACCESS_KEY_ID)) {
+      context.addIssue({
+        code: "custom",
+        path: ["R2_ACCESS_KEY_ID"],
+        message: `must not contain the ${PLACEHOLDER} placeholder`,
+      });
+    }
+  }
+
+  if (env.R2_SECRET_ACCESS_KEY !== undefined) {
+    if (
+      env.R2_ACCESS_KEY_ID !== undefined &&
+      env.R2_SECRET_ACCESS_KEY === env.R2_ACCESS_KEY_ID
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["R2_SECRET_ACCESS_KEY"],
+        message: "must differ from R2_ACCESS_KEY_ID",
+      });
+    }
+    if (options.otherSecrets.includes(env.R2_SECRET_ACCESS_KEY)) {
+      context.addIssue({
+        code: "custom",
+        path: ["R2_SECRET_ACCESS_KEY"],
+        message: "must differ from every other secret of the process",
+      });
+    }
+  }
+
+  if (isDeployed) {
+    if (env.R2_BUCKET_PREFIX === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["R2_BUCKET_PREFIX"],
+        message: "is required in a deployed environment",
+      });
+    } else if (!DEPLOYED_R2_BUCKET_PREFIX_PATTERN.test(env.R2_BUCKET_PREFIX)) {
+      context.addIssue({
+        code: "custom",
+        path: ["R2_BUCKET_PREFIX"],
+        message:
+          "must be influx-staging- or influx-production- in a deployed environment",
+      });
+    }
+  } else if (
+    env.R2_BUCKET_PREFIX !== undefined &&
+    !DEVELOPMENT_R2_BUCKET_PREFIX_PATTERN.test(env.R2_BUCKET_PREFIX)
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["R2_BUCKET_PREFIX"],
+      message: "must be empty or match ^[a-z0-9][a-z0-9-]{0,30}-$",
+    });
+  }
+}
+
+function r2ConfigOf(env: R2ParsedEnv): R2Config | null {
+  if (
+    env.R2_ENDPOINT === undefined ||
+    env.R2_ACCESS_KEY_ID === undefined ||
+    env.R2_SECRET_ACCESS_KEY === undefined
+  ) {
+    return null;
+  }
+  return {
+    endpoint: env.R2_ENDPOINT.origin,
+    accessKeyId: env.R2_ACCESS_KEY_ID,
+    secretAccessKey: env.R2_SECRET_ACCESS_KEY,
+    bucketPrefix: env.R2_BUCKET_PREFIX ?? "",
+  };
+}
+
+function requiredR2ConfigOf(env: R2ParsedEnv): R2Config {
+  const config = r2ConfigOf(env);
+  if (config === null) {
+    // Unreachable: superRefine refused missing R2 variables before transform runs.
+    throw new Error("R2 configuration was not validated");
+  }
+  return config;
+}
+
 export type BaseConfig = {
   environment: InfluxEnvironment;
   /** Deployed commit, written in every log line (D60). */
@@ -860,6 +1091,8 @@ export type ApiConfig = BaseConfig & {
   brevoWebhook: BrevoWebhookSecrets;
   /** The recipients of the alert "worker stopped", sent by the api (02 §20.5, 15 RG165). */
   alerting: AlertingConfig;
+  /** Cloudflare R2 object storage configuration (D90, 23 §5.1). */
+  r2: R2Config;
 };
 
 /** D68: the sub-keys of leads.sync_settings.brevo_list_ids, as given. */
@@ -951,6 +1184,8 @@ export type WorkerConfig = BaseConfig & {
   probe: ProbeOrigins | null;
   /** The on-call recipients of the availability alerts the worker sends (15 RG165). */
   alerting: AlertingConfig;
+  /** Cloudflare R2 object storage configuration (D90, 23 §5.1); null when unset in development. */
+  r2: R2Config | null;
 };
 
 export const apiEnvSchema = z
@@ -973,6 +1208,7 @@ export const apiEnvSchema = z
     AUTH_TOKEN_SIGNING_SECRET: secretOf32Bytes,
     SUPABASE_URL: supabaseUrl,
     SUPABASE_SECRET_KEY: supabaseSecretKey,
+    ...r2EnvShape,
     ...brevoTransportShape,
     ...brevoWebhookShape,
     ...databaseEnvShape,
@@ -992,7 +1228,27 @@ export const apiEnvSchema = z
         env.AUTH_TOKEN_SIGNING_SECRET,
         env.SUPABASE_SECRET_KEY,
         env.BREVO_API_KEY,
+        env.R2_SECRET_ACCESS_KEY,
       ],
+      context,
+    );
+    checkR2Config(
+      env,
+      {
+        requiredInDevelopment: true,
+        otherSecrets: [
+          env.INFLUX_API_INTERNAL_SECRET_WEB,
+          env.INFLUX_API_INTERNAL_SECRET_BACKOFFICE,
+          env.AUTH_THROTTLE_PEPPER,
+          env.AUTH_TOKEN_SIGNING_SECRET,
+          env.SUPABASE_SECRET_KEY,
+          env.BREVO_API_KEY,
+          env.BREVO_WEBHOOK_PATH_TOKEN_CURRENT,
+          env.BREVO_WEBHOOK_PATH_TOKEN_PREVIOUS,
+          env.BREVO_WEBHOOK_SECRET_CURRENT,
+          env.BREVO_WEBHOOK_SECRET_PREVIOUS,
+        ],
+      },
       context,
     );
     if (
@@ -1099,6 +1355,7 @@ export const apiEnvSchema = z
       ),
     },
     alerting: alertingOf(env),
+    r2: requiredR2ConfigOf(env),
   }));
 
 function presentValues(...values: (string | undefined)[]): string[] {
@@ -1234,6 +1491,7 @@ export const workerEnvSchema = z
       emptyAsAbsent,
       supabaseSecretKey.optional(),
     ),
+    ...r2EnvShape,
     // Read only to be refused on Railway: the webhook secrets are the api service's alone.
     ...brevoWebhookShape,
     ...databaseEnvShape,
@@ -1354,6 +1612,18 @@ export const workerEnvSchema = z
         message: "is required when SYNC_MODE is live in development",
       });
     }
+    checkR2Config(
+      env,
+      {
+        requiredInDevelopment: false,
+        otherSecrets: [
+          env.SUPABASE_SECRET_KEY,
+          env.BREVO_API_KEY,
+          env.APOLLO_API_KEY,
+        ],
+      },
+      context,
+    );
   })
   .transform((env): WorkerConfig => ({
     environment: env.INFLUX_ENV,
@@ -1407,6 +1677,7 @@ export const workerEnvSchema = z
           }
         : null,
     alerting: alertingOf(env),
+    r2: r2ConfigOf(env),
   }));
 
 /** Refusal to start. Its message names variables and rules, never a value. */

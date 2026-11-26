@@ -10,6 +10,12 @@ export const TOKEN_SIGNING_SECRET = "token-signing-secret-for-tests-0123456789";
 /** Shaped like the local stack's values; never reached by the unit tests. */
 export const TEST_SUPABASE_URL = "http://127.0.0.1:54321";
 export const TEST_SUPABASE_SECRET_KEY = "sb_secret_fake-key-for-unit-tests";
+/** Loopback-only S3 SigV4 double values; never reached unless a test starts s3-double. */
+export const TEST_R2_ENDPOINT = "http://127.0.0.1:4011";
+export const TEST_R2_ACCESS_KEY_ID = "test-r2-access-key-id";
+export const TEST_R2_SECRET_ACCESS_KEY =
+  "test-r2-secret-access-key-0123456789abcdef";
+export const TEST_R2_BUCKET_PREFIX = "test-";
 /** Public origins of the two surfaces (03 §6.4 A4). */
 export const WEB_ORIGIN = "https://influx.example";
 export const BACKOFFICE_ORIGIN = "https://bo.influx.example";
@@ -38,6 +44,10 @@ export function testApiConfig(): ApiConfig {
     AUTH_TOKEN_SIGNING_SECRET: TOKEN_SIGNING_SECRET,
     SUPABASE_URL: TEST_SUPABASE_URL,
     SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
+    R2_ENDPOINT: TEST_R2_ENDPOINT,
+    R2_ACCESS_KEY_ID: TEST_R2_ACCESS_KEY_ID,
+    R2_SECRET_ACCESS_KEY: TEST_R2_SECRET_ACCESS_KEY,
+    R2_BUCKET_PREFIX: TEST_R2_BUCKET_PREFIX,
     DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
     AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
     OPS_DATABASE_URL: TEST_DATABASE_URLS.OPS_DATABASE_URL,

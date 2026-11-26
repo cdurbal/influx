@@ -23,14 +23,18 @@ import {
   closedListsOf,
   compareNames,
   envLocalIssues,
+  envLocalR2Issues,
   EXPECTED_MODES,
   namesVerdict,
   RAILWAY_SERVICES,
   railwayVariablesOf,
+  r2DistinctTokensVerdict,
+  r2ServiceVerdict,
   syncSettingsIssues,
   verdictLine,
   wrongModes,
   type ClosedLists,
+  type RailwayR2Summary,
   type RailwayVariables,
   type Verdict,
 } from "./staging-check-rules.ts";
@@ -72,6 +76,12 @@ record({
   ok: localIssues.length === 0,
   ...(localIssues.length === 0 ? {} : { detail: localIssues.join(", ") }),
 });
+const localR2Issues = envLocalR2Issues(process.env);
+record({
+  label: ".env.local: R2 staging endpoint and bucket prefix",
+  ok: localR2Issues.length === 0,
+  ...(localR2Issues.length === 0 ? {} : { detail: localR2Issues.join("; ") }),
+});
 
 // (ii) and (iii): Railway, names (and the three mode variables, compared here, never printed).
 let lists: ClosedLists | null = null;
@@ -85,6 +95,7 @@ try {
   });
 }
 let workerNames: string[] = [];
+const r2ByService: Partial<Record<"api" | "worker", RailwayR2Summary>> = {};
 for (const service of RAILWAY_SERVICES) {
   let variables: RailwayVariables;
   try {
@@ -126,6 +137,13 @@ for (const service of RAILWAY_SERVICES) {
     ok: wrong.length === 0,
     ...(wrong.length === 0 ? {} : { detail: wrong.join(", ") }),
   });
+  if (service === "api" || service === "worker") {
+    r2ByService[service] = variables.r2;
+    record(r2ServiceVerdict(service, variables.r2));
+  }
+}
+if (r2ByService.api !== undefined && r2ByService.worker !== undefined) {
+  record(r2DistinctTokensVerdict(r2ByService.api, r2ByService.worker));
 }
 
 // (i) and (iii): the database of staging, with the migration role, read-only.

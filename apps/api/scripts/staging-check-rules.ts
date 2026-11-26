@@ -3,6 +3,7 @@
 // runbook, turns the JSON of `railway variables --json` into NAMES, and judges the modes and the
 // settings. Nothing here returns a value: a verdict names a variable or a setting, never what it
 // holds (skill env-secrets rule 8).
+import { createHash } from "node:crypto";
 import { startSettingsIssues } from "../src/domains/leads/start-check.ts";
 
 export const RAILWAY_SERVICES = ["api", "worker", "web", "backoffice"] as const;
@@ -96,16 +97,99 @@ export const MODE_VARIABLES = [
 ] as const;
 export type ModeVariable = (typeof MODE_VARIABLES)[number];
 
+export const STAGING_R2_BUCKET_PREFIX = "influx-staging-";
+
+const STAGING_R2_ENDPOINT_PATTERN =
+  /^https:\/\/[0-9a-f]{32}\.r2\.cloudflarestorage\.com$/;
+const EU_R2_ENDPOINT_PATTERN =
+  /^https:\/\/[0-9a-f]{32}\.eu\.r2\.cloudflarestorage\.com$/;
+
+export type R2EndpointKind = "missing" | "staging" | "eu" | "invalid";
+export type R2BucketPrefixKind = "missing" | "staging" | "invalid";
+
+export type RailwayR2Summary = {
+  endpointKind: R2EndpointKind;
+  bucketPrefixKind: R2BucketPrefixKind;
+  /** SHA-256 hex digest of R2_ACCESS_KEY_ID, never the raw token id, or null when absent. */
+  accessKeyIdDigest: string | null;
+};
+
 export type RailwayVariables = {
   /** Sorted, those Railway adds by itself left out. */
   names: string[];
   modes: Partial<Record<ModeVariable, string>>;
+  r2: RailwayR2Summary;
 };
+
+function classifyR2Endpoint(value: string | undefined): R2EndpointKind {
+  if (value === undefined || value === "") {
+    return "missing";
+  }
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return "invalid";
+  }
+  const isOriginOnly =
+    url.protocol === "https:" &&
+    url.username === "" &&
+    url.password === "" &&
+    url.pathname === "/" &&
+    url.search === "" &&
+    url.hash === "";
+  if (!isOriginOnly) {
+    return "invalid";
+  }
+  if (STAGING_R2_ENDPOINT_PATTERN.test(url.origin)) {
+    return "staging";
+  }
+  if (EU_R2_ENDPOINT_PATTERN.test(url.origin)) {
+    return "eu";
+  }
+  return "invalid";
+}
+
+function classifyR2BucketPrefix(value: string | undefined): R2BucketPrefixKind {
+  if (value === undefined || value === "") {
+    return "missing";
+  }
+  return value === STAGING_R2_BUCKET_PREFIX ? "staging" : "invalid";
+}
+
+function sha256Hex(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+
+/** Summarises R2 configuration without retaining any raw secret or account identifier. */
+export function r2SummaryOf(
+  variables: Readonly<Record<string, unknown>>,
+): RailwayR2Summary {
+  const endpoint =
+    typeof variables.R2_ENDPOINT === "string"
+      ? variables.R2_ENDPOINT
+      : undefined;
+  const bucketPrefix =
+    typeof variables.R2_BUCKET_PREFIX === "string"
+      ? variables.R2_BUCKET_PREFIX
+      : undefined;
+  const accessKeyId =
+    typeof variables.R2_ACCESS_KEY_ID === "string" &&
+    variables.R2_ACCESS_KEY_ID !== ""
+      ? variables.R2_ACCESS_KEY_ID
+      : undefined;
+  return {
+    endpointKind: classifyR2Endpoint(endpoint),
+    bucketPrefixKind: classifyR2BucketPrefix(bucketPrefix),
+    accessKeyIdDigest:
+      accessKeyId === undefined ? null : sha256Hex(accessKeyId),
+  };
+}
 
 /**
  * The output of `railway variables -s <service> -e staging --json`: a JSON object of name → value.
- * Only the names and the three mode variables are kept; the parse error is replaced by a message of
- * ours, since the one of JSON.parse quotes the text it read.
+ * Only the names, the three mode variables and the non-secret R2 summary are kept; the parse error
+ * is replaced by a message of ours, since the one of JSON.parse quotes the text it read.
  */
 export function railwayVariablesOf(json: string): RailwayVariables {
   let parsed: unknown;
@@ -117,7 +201,8 @@ export function railwayVariablesOf(json: string): RailwayVariables {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error("the output of railway variables is not a JSON object");
   }
-  const entries = Object.entries(parsed as Record<string, unknown>);
+  const raw = parsed as Record<string, unknown>;
+  const entries = Object.entries(raw);
   const modes: Partial<Record<ModeVariable, string>> = {};
   for (const [name, value] of entries) {
     if ((MODE_VARIABLES as readonly string[]).includes(name)) {
@@ -130,6 +215,7 @@ export function railwayVariablesOf(json: string): RailwayVariables {
       .filter((name) => !isProvidedByRailway(name))
       .sort(),
     modes,
+    r2: r2SummaryOf(raw),
   };
 }
 
@@ -236,4 +322,93 @@ export function namesVerdict(
     ok: parts.length === 0,
     ...(parts.length === 0 ? {} : { detail: parts.join("; ") }),
   };
+}
+
+function r2EndpointIssue(kind: R2EndpointKind): string | null {
+  switch (kind) {
+    case "staging":
+      return null;
+    case "missing":
+      return "R2_ENDPOINT missing";
+    case "eu":
+      return "R2_ENDPOINT (.eu. forbidden on staging)";
+    case "invalid":
+      return "R2_ENDPOINT invalid";
+  }
+}
+
+function r2BucketPrefixIssue(kind: R2BucketPrefixKind): string | null {
+  switch (kind) {
+    case "staging":
+      return null;
+    case "missing":
+      return "R2_BUCKET_PREFIX missing";
+    case "invalid":
+      return `R2_BUCKET_PREFIX (must be ${STAGING_R2_BUCKET_PREFIX})`;
+  }
+}
+
+/** Verifies that api or worker on staging uses a non-.eu. endpoint, influx-staging- prefix, and has R2_ACCESS_KEY_ID. */
+export function r2ServiceVerdict(
+  service: Extract<RailwayService, "api" | "worker">,
+  r2: RailwayR2Summary,
+): Verdict {
+  const issues = [
+    r2EndpointIssue(r2.endpointKind),
+    r2BucketPrefixIssue(r2.bucketPrefixKind),
+    r2.accessKeyIdDigest === null ? "R2_ACCESS_KEY_ID missing" : null,
+  ].filter((issue): issue is string => issue !== null);
+  return {
+    label: `railway ${service}: R2 staging endpoint and bucket prefix`,
+    ok: issues.length === 0,
+    ...(issues.length === 0 ? {} : { detail: issues.join("; ") }),
+  };
+}
+
+/** Verifies that api and worker on staging use distinct R2_ACCESS_KEY_ID tokens without printing either value. */
+export function r2DistinctTokensVerdict(
+  api: RailwayR2Summary,
+  worker: RailwayR2Summary,
+): Verdict {
+  if (api.accessKeyIdDigest === null || worker.accessKeyIdDigest === null) {
+    return {
+      label: "railway api/worker: distinct R2_ACCESS_KEY_ID tokens",
+      ok: false,
+      detail: "R2_ACCESS_KEY_ID missing on api or worker",
+    };
+  }
+  const distinct = api.accessKeyIdDigest !== worker.accessKeyIdDigest;
+  return {
+    label: "railway api/worker: distinct R2_ACCESS_KEY_ID tokens",
+    ok: distinct,
+    ...(distinct
+      ? {}
+      : { detail: "R2_ACCESS_KEY_ID must differ between api and worker" }),
+  };
+}
+
+/** Checks R2 variables in apps/api/.env.local for staging: non-.eu. endpoint, influx-staging-, keys set. */
+export function envLocalR2Issues(
+  env: Readonly<Record<string, string | undefined>>,
+): string[] {
+  const summary = r2SummaryOf(env);
+  const issues: string[] = [];
+  const endpointIssue = r2EndpointIssue(summary.endpointKind);
+  if (endpointIssue !== null) {
+    issues.push(endpointIssue);
+  }
+  if (summary.accessKeyIdDigest === null) {
+    issues.push("R2_ACCESS_KEY_ID missing");
+  }
+  if (
+    env.R2_SECRET_ACCESS_KEY === undefined ||
+    env.R2_SECRET_ACCESS_KEY === ""
+  ) {
+    issues.push("R2_SECRET_ACCESS_KEY missing");
+  }
+  const prefixIssue = r2BucketPrefixIssue(summary.bucketPrefixKind);
+  if (prefixIssue !== null) {
+    issues.push(prefixIssue);
+  }
+  return issues;
 }

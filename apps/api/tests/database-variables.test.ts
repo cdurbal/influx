@@ -87,3 +87,33 @@ describe("T11.4: every variable read at startup is documented in .env.example", 
     expect(missing).toEqual([]);
   });
 });
+
+describe("R2A-T4: .env.example documents the four R2 variables with fake loopback values", () => {
+  const template = readFileSync(path.join(API_ROOT, ".env.example"), "utf8");
+
+  function valueOf(variable: string): string {
+    const line = template
+      .split("\n")
+      .find((entry) => entry.startsWith(`${variable}=`));
+    expect(line, variable).toBeDefined();
+    return (line ?? "").slice(variable.length + 1).trim();
+  }
+
+  it("sets R2_ENDPOINT to the local s3-double loopback and never a cloud R2 host", () => {
+    const endpoint = valueOf("R2_ENDPOINT");
+    expect(endpoint).toBe("http://127.0.0.1:4011");
+    expect(endpoint).not.toContain("r2.cloudflarestorage.com");
+  });
+
+  it("uses CHANGE_ME placeholders on R2 credentials and >= 32 bytes for the secret", () => {
+    const accessKey = valueOf("R2_ACCESS_KEY_ID");
+    const secretKey = valueOf("R2_SECRET_ACCESS_KEY");
+    const prefix = valueOf("R2_BUCKET_PREFIX");
+    expect(accessKey).toContain("CHANGE_ME");
+    expect(secretKey).toContain("CHANGE_ME");
+    expect(new TextEncoder().encode(secretKey).length).toBeGreaterThanOrEqual(
+      32,
+    );
+    expect(prefix).toBe("local-");
+  });
+});

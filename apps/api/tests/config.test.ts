@@ -3,6 +3,7 @@
 // Since D70 (02 §12.4), a matrix by environment: development keeps locks 2 and 3; staging refuses
 // exactly what production refuses (the single predicate isDeployedEnvironment).
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -16,6 +17,10 @@ import {
   BACKOFFICE_ORIGIN,
   BACKOFFICE_SECRET,
   TEST_DATABASE_URLS,
+  TEST_R2_ACCESS_KEY_ID,
+  TEST_R2_BUCKET_PREFIX,
+  TEST_R2_ENDPOINT,
+  TEST_R2_SECRET_ACCESS_KEY,
   TEST_SUPABASE_SECRET_KEY,
   TEST_SUPABASE_URL,
   THROTTLE_PEPPER,
@@ -39,6 +44,10 @@ const VALID_API_ENV = {
   AUTH_TOKEN_SIGNING_SECRET: TOKEN_SIGNING_SECRET,
   SUPABASE_URL: TEST_SUPABASE_URL,
   SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
+  R2_ENDPOINT: TEST_R2_ENDPOINT,
+  R2_ACCESS_KEY_ID: TEST_R2_ACCESS_KEY_ID,
+  R2_SECRET_ACCESS_KEY: TEST_R2_SECRET_ACCESS_KEY,
+  R2_BUCKET_PREFIX: TEST_R2_BUCKET_PREFIX,
   DATABASE_URL: TEST_DATABASE_URLS.DATABASE_URL,
   AUTH_DATABASE_URL: TEST_DATABASE_URLS.AUTH_DATABASE_URL,
   OPS_DATABASE_URL: TEST_DATABASE_URLS.OPS_DATABASE_URL,
@@ -50,6 +59,10 @@ const VALID_WORKER_ENV = {
 } as const;
 
 const HOSTED_SUPABASE_URL = "https://abcdefghijklmnop.supabase.co";
+const DEPLOYED_R2_ENDPOINT =
+  "https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com";
+const DEPLOYED_R2_EU_ENDPOINT =
+  "https://0123456789abcdef0123456789abcdef.eu.r2.cloudflarestorage.com";
 const APP_URL = TEST_DATABASE_URLS.DATABASE_URL;
 const AUTH_URL = TEST_DATABASE_URLS.AUTH_DATABASE_URL;
 const WORKER_URL = TEST_DATABASE_URLS.WORKER_DATABASE_URL;
@@ -80,6 +93,10 @@ function deployedApiEnv(
     BREVO_API_KEY: "xkeysib-deployed-like-value",
     BREVO_SENDER_TRANSACTIONAL: "no-reply@tx.influx.example",
     SUPABASE_URL: HOSTED_SUPABASE_URL,
+    R2_ENDPOINT: DEPLOYED_R2_ENDPOINT,
+    R2_ACCESS_KEY_ID: "api-r2-access-key-id",
+    R2_SECRET_ACCESS_KEY: "api-r2-secret-access-key-0123456789abcdef",
+    R2_BUCKET_PREFIX: "influx-staging-",
     DATABASE_URL: hostedUrl("influx_app"),
     AUTH_DATABASE_URL: hostedUrl("influx_auth_login"),
     OPS_DATABASE_URL: hostedUrl("influx_ops_login"),
@@ -89,7 +106,7 @@ function deployedApiEnv(
   };
 }
 
-/** A complete worker configuration of a deployed environment: live, no list, E-5, GoTrue. */
+/** A complete worker configuration of a deployed environment: live, no list, E-5, GoTrue, R2. */
 function deployedWorkerEnv(
   environment: DeployedEnvironment,
 ): Record<string, string> {
@@ -102,6 +119,10 @@ function deployedWorkerEnv(
     SYNC_MODE: "live",
     SUPABASE_URL: HOSTED_SUPABASE_URL,
     SUPABASE_SECRET_KEY: TEST_SUPABASE_SECRET_KEY,
+    R2_ENDPOINT: DEPLOYED_R2_ENDPOINT,
+    R2_ACCESS_KEY_ID: "worker-r2-access-key-id",
+    R2_SECRET_ACCESS_KEY: "worker-r2-secret-access-key-0123456789abc",
+    R2_BUCKET_PREFIX: "influx-staging-",
     WORKER_DATABASE_URL: hostedUrl("influx_worker_login"),
     OPS_DATABASE_URL: hostedUrl("influx_ops_login"),
     PRIVACY_DATABASE_URL: hostedUrl("influx_privacy_login"),
@@ -152,6 +173,12 @@ describe("api configuration", () => {
       brevoWebhook: { pathTokens: [], headerTokens: [] },
       // 15 RG165: nobody to alert in development, where nothing is sent
       alerting: { onCallRecipients: [] },
+      r2: {
+        endpoint: TEST_R2_ENDPOINT,
+        accessKeyId: TEST_R2_ACCESS_KEY_ID,
+        secretAccessKey: TEST_R2_SECRET_ACCESS_KEY,
+        bucketPrefix: TEST_R2_BUCKET_PREFIX,
+      },
     });
   });
 
@@ -694,6 +721,7 @@ describe("worker configuration", () => {
       // 02 §20.5: no probe without its targets in development, and nobody to alert
       probe: null,
       alerting: { onCallRecipients: [] },
+      r2: null,
     });
   });
 
@@ -1108,6 +1136,36 @@ const API_DEPLOYED_CASES: readonly DeployedCase[] = [
     { OPS_ALERT_RECIPIENTS: undefined },
     "OPS_ALERT_RECIPIENTS is required in a deployed environment (availability alerts, 02 §20.5)",
   ],
+  [
+    "no R2_ENDPOINT (23 RG13)",
+    { R2_ENDPOINT: undefined },
+    "R2_ENDPOINT is required in a deployed environment",
+  ],
+  [
+    "a loopback R2_ENDPOINT in a deployed environment",
+    { R2_ENDPOINT: TEST_R2_ENDPOINT },
+    "R2_ENDPOINT must be https://<32-hex>.(eu.)r2.cloudflarestorage.com in a deployed environment",
+  ],
+  [
+    "no R2_ACCESS_KEY_ID",
+    { R2_ACCESS_KEY_ID: "" },
+    "R2_ACCESS_KEY_ID is required in a deployed environment",
+  ],
+  [
+    "no R2_SECRET_ACCESS_KEY",
+    { R2_SECRET_ACCESS_KEY: undefined },
+    "R2_SECRET_ACCESS_KEY is required in a deployed environment",
+  ],
+  [
+    "empty R2_BUCKET_PREFIX in a deployed environment",
+    { R2_BUCKET_PREFIX: "" },
+    "R2_BUCKET_PREFIX is required in a deployed environment",
+  ],
+  [
+    "a development R2_BUCKET_PREFIX in a deployed environment",
+    { R2_BUCKET_PREFIX: "e2e-" },
+    "R2_BUCKET_PREFIX must be influx-staging- or influx-production- in a deployed environment",
+  ],
 ];
 
 const WORKER_DEPLOYED_CASES: readonly DeployedCase[] = [
@@ -1170,6 +1228,26 @@ const WORKER_DEPLOYED_CASES: readonly DeployedCase[] = [
     "an http public origin of the site to probe",
     { INFLUX_PUBLIC_SITE_URL: "http://influx.example" },
     "INFLUX_PUBLIC_SITE_URL must be an https origin in a deployed environment",
+  ],
+  [
+    "no R2 configuration on worker (23 RG13)",
+    {
+      R2_ENDPOINT: undefined,
+      R2_ACCESS_KEY_ID: undefined,
+      R2_SECRET_ACCESS_KEY: undefined,
+      R2_BUCKET_PREFIX: undefined,
+    },
+    "R2_ENDPOINT is required in a deployed environment",
+  ],
+  [
+    "a loopback R2_ENDPOINT on worker",
+    { R2_ENDPOINT: TEST_R2_ENDPOINT },
+    "R2_ENDPOINT must be https://<32-hex>.(eu.)r2.cloudflarestorage.com in a deployed environment",
+  ],
+  [
+    "a development R2_BUCKET_PREFIX on worker",
+    { R2_BUCKET_PREFIX: "local-" },
+    "R2_BUCKET_PREFIX must be influx-staging- or influx-production- in a deployed environment",
   ],
 ];
 
@@ -1438,5 +1516,228 @@ describe("DATABASE_CA_CERT (21 EC-34)", () => {
         }),
       ),
     ).toContain("DATABASE_CA_CERT must be a PEM certificate");
+  });
+});
+
+describe("R2A-T4: Cloudflare R2 configuration (23 §3.3, §5.1, T17, RG148)", () => {
+  it("accepts localhost and [::1] loopback origins on api and defaults R2_BUCKET_PREFIX to empty in development", () => {
+    const localhostConfig = loadApiConfig({
+      ...VALID_API_ENV,
+      R2_ENDPOINT: "http://localhost:4011/",
+      R2_BUCKET_PREFIX: undefined,
+    });
+    expect(localhostConfig.r2).toEqual({
+      endpoint: "http://localhost:4011",
+      accessKeyId: TEST_R2_ACCESS_KEY_ID,
+      secretAccessKey: TEST_R2_SECRET_ACCESS_KEY,
+      bucketPrefix: "",
+    });
+    const ipv6Config = loadApiConfig({
+      ...VALID_API_ENV,
+      R2_ENDPOINT: "http://[::1]:4111",
+      R2_BUCKET_PREFIX: "e2e-",
+    });
+    expect(ipv6Config.r2.endpoint).toBe("http://[::1]:4111");
+    expect(ipv6Config.r2.bucketPrefix).toBe("e2e-");
+  });
+
+  it.each<[string, Environment, string]>([
+    [
+      "a cloud R2 endpoint in development (16 RG148)",
+      { ...VALID_API_ENV, R2_ENDPOINT: DEPLOYED_R2_ENDPOINT },
+      "R2_ENDPOINT must be an http:// loopback origin in development (16 RG148)",
+    ],
+    [
+      "a cloud .eu. R2 endpoint in development (16 RG148)",
+      { ...VALID_API_ENV, R2_ENDPOINT: DEPLOYED_R2_EU_ENDPOINT },
+      "R2_ENDPOINT must be an http:// loopback origin in development (16 RG148)",
+    ],
+    [
+      "an https loopback endpoint in development",
+      { ...VALID_API_ENV, R2_ENDPOINT: "https://127.0.0.1:4011" },
+      "R2_ENDPOINT must be an http:// loopback origin in development (16 RG148)",
+    ],
+    [
+      "an R2 endpoint with a path",
+      { ...VALID_API_ENV, R2_ENDPOINT: "http://127.0.0.1:4011/bucket" },
+      "R2_ENDPOINT must be an origin without path, query or credentials",
+    ],
+    [
+      "a missing R2_ENDPOINT on api",
+      { ...VALID_API_ENV, R2_ENDPOINT: undefined },
+      "R2_ENDPOINT is required",
+    ],
+    [
+      "a missing R2_ACCESS_KEY_ID on api",
+      { ...VALID_API_ENV, R2_ACCESS_KEY_ID: undefined },
+      "R2_ACCESS_KEY_ID is required",
+    ],
+    [
+      "a missing R2_SECRET_ACCESS_KEY on api",
+      { ...VALID_API_ENV, R2_SECRET_ACCESS_KEY: "" },
+      "R2_SECRET_ACCESS_KEY is required",
+    ],
+    [
+      "R2_ACCESS_KEY_ID holding CHANGE_ME",
+      { ...VALID_API_ENV, R2_ACCESS_KEY_ID: "change_me_r2_key" },
+      "R2_ACCESS_KEY_ID must not contain the CHANGE_ME placeholder",
+    ],
+    [
+      "R2_SECRET_ACCESS_KEY under 32 bytes",
+      { ...VALID_API_ENV, R2_SECRET_ACCESS_KEY: "too-short-r2-secret" },
+      "R2_SECRET_ACCESS_KEY must be at least 32 bytes",
+    ],
+    [
+      "R2_SECRET_ACCESS_KEY holding CHANGE_ME",
+      {
+        ...VALID_API_ENV,
+        R2_SECRET_ACCESS_KEY: "change_me_r2_secret_padded_to_32_bytes",
+      },
+      "R2_SECRET_ACCESS_KEY must not contain the CHANGE_ME placeholder",
+    ],
+    [
+      "R2_SECRET_ACCESS_KEY equal to R2_ACCESS_KEY_ID",
+      {
+        ...VALID_API_ENV,
+        R2_ACCESS_KEY_ID: "same-32-byte-token-value-0123456789",
+        R2_SECRET_ACCESS_KEY: "same-32-byte-token-value-0123456789",
+      },
+      "R2_SECRET_ACCESS_KEY must differ from R2_ACCESS_KEY_ID",
+    ],
+    [
+      "R2_SECRET_ACCESS_KEY reused from AUTH_TOKEN_SIGNING_SECRET",
+      { ...VALID_API_ENV, R2_SECRET_ACCESS_KEY: TOKEN_SIGNING_SECRET },
+      "R2_SECRET_ACCESS_KEY must differ from every other secret of the process",
+    ],
+    [
+      "R2_SECRET_ACCESS_KEY reused from BREVO_WEBHOOK_SECRET_CURRENT",
+      {
+        ...VALID_API_ENV,
+        BREVO_WEBHOOK_PATH_TOKEN_CURRENT: "P".repeat(43),
+        BREVO_WEBHOOK_SECRET_CURRENT: "H".repeat(43),
+        R2_SECRET_ACCESS_KEY: "H".repeat(43),
+      },
+      "R2_SECRET_ACCESS_KEY must differ from every other secret of the process",
+    ],
+    [
+      "R2_BUCKET_PREFIX without trailing hyphen in development",
+      { ...VALID_API_ENV, R2_BUCKET_PREFIX: "e2e" },
+      "R2_BUCKET_PREFIX must be empty or match ^[a-z0-9][a-z0-9-]{0,30}-$",
+    ],
+    [
+      "R2_BUCKET_PREFIX with uppercase letters in development",
+      { ...VALID_API_ENV, R2_BUCKET_PREFIX: "E2E-" },
+      "R2_BUCKET_PREFIX must be empty or match ^[a-z0-9][a-z0-9-]{0,30}-$",
+    ],
+  ])("api refuses %s", (_case, env, issue) => {
+    expect(refusal(() => loadApiConfig(env))).toContain(issue);
+  });
+
+  it("worker applies all-or-nothing R2 rules in development", () => {
+    expect(
+      loadWorkerConfig({
+        ...VALID_WORKER_ENV,
+        R2_ENDPOINT: "",
+        R2_ACCESS_KEY_ID: "",
+        R2_SECRET_ACCESS_KEY: "",
+        R2_BUCKET_PREFIX: "",
+      }).r2,
+    ).toBeNull();
+
+    const configured = loadWorkerConfig({
+      ...VALID_WORKER_ENV,
+      R2_ENDPOINT: TEST_R2_ENDPOINT,
+      R2_ACCESS_KEY_ID: "worker-dev-key",
+      R2_SECRET_ACCESS_KEY: "worker-dev-secret-at-least-32-bytes-0123",
+      R2_BUCKET_PREFIX: "local-",
+    });
+    expect(configured.r2).toEqual({
+      endpoint: TEST_R2_ENDPOINT,
+      accessKeyId: "worker-dev-key",
+      secretAccessKey: "worker-dev-secret-at-least-32-bytes-0123",
+      bucketPrefix: "local-",
+    });
+  });
+
+  it.each<[string, Environment, string]>([
+    [
+      "only R2_ENDPOINT set",
+      { ...VALID_WORKER_ENV, R2_ENDPOINT: TEST_R2_ENDPOINT },
+      "R2_ACCESS_KEY_ID is required with the other R2 variables",
+    ],
+    [
+      "only R2_BUCKET_PREFIX set",
+      { ...VALID_WORKER_ENV, R2_BUCKET_PREFIX: "local-" },
+      "R2_ENDPOINT is required with the other R2 variables",
+    ],
+    [
+      "a cloud R2_ENDPOINT in development",
+      {
+        ...VALID_WORKER_ENV,
+        R2_ENDPOINT: DEPLOYED_R2_ENDPOINT,
+        R2_ACCESS_KEY_ID: "worker-dev-key",
+        R2_SECRET_ACCESS_KEY: "worker-dev-secret-at-least-32-bytes-0123",
+        R2_BUCKET_PREFIX: "local-",
+      },
+      "R2_ENDPOINT must be an http:// loopback origin in development (16 RG148)",
+    ],
+    [
+      "R2_SECRET_ACCESS_KEY equal to APOLLO_API_KEY",
+      {
+        ...VALID_WORKER_ENV,
+        APOLLO_API_KEY: "shared-secret-value-at-least-32-bytes-0123",
+        R2_ENDPOINT: TEST_R2_ENDPOINT,
+        R2_ACCESS_KEY_ID: "worker-dev-key",
+        R2_SECRET_ACCESS_KEY: "shared-secret-value-at-least-32-bytes-0123",
+      },
+      "R2_SECRET_ACCESS_KEY must differ from every other secret of the process",
+    ],
+  ])("worker refuses %s in development", (_case, env, issue) => {
+    expect(refusal(() => loadWorkerConfig(env))).toContain(issue);
+  });
+
+  it.each(DEPLOYED)(
+    "accepts .eu. endpoint and influx-production- symmetrically in %s (EC-R2A-1)",
+    (environment) => {
+      const api = loadApiConfig({
+        ...deployedApiEnv(environment),
+        R2_ENDPOINT: DEPLOYED_R2_EU_ENDPOINT,
+        R2_BUCKET_PREFIX: "influx-production-",
+      });
+      const worker = loadWorkerConfig({
+        ...deployedWorkerEnv(environment),
+        R2_ENDPOINT: DEPLOYED_R2_EU_ENDPOINT,
+        R2_BUCKET_PREFIX: "influx-production-",
+      });
+      expect(api.r2.endpoint).toBe(DEPLOYED_R2_EU_ENDPOINT);
+      expect(api.r2.bucketPrefix).toBe("influx-production-");
+      expect(worker.r2?.endpoint).toBe(DEPLOYED_R2_EU_ENDPOINT);
+      expect(worker.r2?.bucketPrefix).toBe("influx-production-");
+    },
+  );
+
+  it("schema.ts contains zero INFLUX_ENV === production branching (T17, D70)", () => {
+    const source = readFileSync(
+      path.join(API_ROOT, "src/config/schema.ts"),
+      "utf8",
+    );
+    expect(source).not.toMatch(/INFLUX_ENV\s*[!=]==?\s*["']production["']/);
+    expect(source).not.toMatch(/["']production["']\s*[!=]==?\s*.*INFLUX_ENV/);
+  });
+
+  it("never quotes R2 secrets or keys in refusal messages", () => {
+    const secret = "super-secret-r2-value-never-shown";
+    const keyId = "r2-key-id-never-shown";
+    const issues = refusal(() =>
+      loadApiConfig({
+        ...VALID_API_ENV,
+        R2_ENDPOINT: "https://evil.example/path",
+        R2_ACCESS_KEY_ID: keyId,
+        R2_SECRET_ACCESS_KEY: secret,
+      }),
+    ).join(" ");
+    expect(issues).not.toContain(secret);
+    expect(issues).not.toContain(keyId);
+    expect(issues).not.toContain("evil.example");
   });
 });

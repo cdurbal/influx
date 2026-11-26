@@ -1,6 +1,7 @@
 // D70 commit 3 (docs/mvp/archives/jalons/d70-plan.md): the pure part of `staging:check`, without network —
 // the closed list of the runbook, the names of `railway variables --json`, their comparison, the
 // modes, leads.sync_settings (05 RG162), and the rule that no verdict ever carries a value.
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,11 +13,16 @@ import {
   closedListsOf,
   compareNames,
   envLocalIssues,
+  envLocalR2Issues,
   EXPECTED_MODES,
   namesNotRead,
   namesVerdict,
   RAILWAY_SERVICES,
   railwayVariablesOf,
+  r2DistinctTokensVerdict,
+  r2ServiceVerdict,
+  r2SummaryOf,
+  STAGING_R2_BUCKET_PREFIX,
   syncSettingsIssues,
   verdictLine,
   wrongModes,
@@ -361,5 +367,148 @@ describe("syncSettingsIssues (05 RG162, D69): the verdict of the worker at start
       "rate_limits.apollo_contact_per_minute",
       "apollo_scope",
     ]);
+  });
+});
+
+describe("R2A-T5: R2 checks of staging:check (23 §3.3 A3, §5.1, CA16, CA21)", () => {
+  const STAGING_ENDPOINT =
+    "https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com";
+  const EU_ENDPOINT =
+    "https://0123456789abcdef0123456789abcdef.eu.r2.cloudflarestorage.com";
+  const lists = closedListsOf(RUNBOOK);
+
+  it("requires all four R2_* variables on api and worker, and forbids them on web and backoffice", () => {
+    for (const name of [
+      "R2_ENDPOINT",
+      "R2_ACCESS_KEY_ID",
+      "R2_SECRET_ACCESS_KEY",
+      "R2_BUCKET_PREFIX",
+    ]) {
+      expect(lists.api.required).toContain(name);
+      expect(lists.worker.required).toContain(name);
+      expect([...lists.web.required, ...lists.web.optional]).not.toContain(
+        name,
+      );
+      expect([
+        ...lists.backoffice.required,
+        ...lists.backoffice.optional,
+      ]).not.toContain(name);
+    }
+  });
+
+  it("summarises R2 without ever retaining raw secrets, endpoints or key ids", () => {
+    const keyId = "staging-api-r2-key-never-shown";
+    const secret = "staging-api-r2-secret-never-shown-0123456789";
+    const parsed = railwayVariablesOf(
+      JSON.stringify({
+        INFLUX_ENV: "staging",
+        R2_ENDPOINT: STAGING_ENDPOINT,
+        R2_ACCESS_KEY_ID: keyId,
+        R2_SECRET_ACCESS_KEY: secret,
+        R2_BUCKET_PREFIX: STAGING_R2_BUCKET_PREFIX,
+      }),
+    );
+    expect(parsed.r2).toEqual({
+      endpointKind: "staging",
+      bucketPrefixKind: "staging",
+      accessKeyIdDigest: createHash("sha256")
+        .update(keyId, "utf8")
+        .digest("hex"),
+    });
+    const serialized = JSON.stringify(parsed);
+    expect(serialized).not.toContain(keyId);
+    expect(serialized).not.toContain(secret);
+    expect(serialized).not.toContain("0123456789abcdef0123456789abcdef");
+    expect(serialized).not.toContain(STAGING_R2_BUCKET_PREFIX);
+  });
+
+  it("accepts a valid staging R2 configuration across api and worker with distinct tokens", () => {
+    const api = r2SummaryOf({
+      R2_ENDPOINT: STAGING_ENDPOINT,
+      R2_ACCESS_KEY_ID: "influx-staging-api-token",
+      R2_BUCKET_PREFIX: "influx-staging-",
+    });
+    const worker = r2SummaryOf({
+      R2_ENDPOINT: STAGING_ENDPOINT,
+      R2_ACCESS_KEY_ID: "influx-staging-worker-token",
+      R2_BUCKET_PREFIX: "influx-staging-",
+    });
+    expect(verdictLine(r2ServiceVerdict("api", api))).toBe(
+      "OK  railway api: R2 staging endpoint and bucket prefix",
+    );
+    expect(verdictLine(r2ServiceVerdict("worker", worker))).toBe(
+      "OK  railway worker: R2 staging endpoint and bucket prefix",
+    );
+    expect(verdictLine(r2DistinctTokensVerdict(api, worker))).toBe(
+      "OK  railway api/worker: distinct R2_ACCESS_KEY_ID tokens",
+    );
+  });
+
+  it("rejects R2_BUCKET_PREFIX !== influx-staging- without printing its value", () => {
+    const summary = r2SummaryOf({
+      R2_ENDPOINT: STAGING_ENDPOINT,
+      R2_ACCESS_KEY_ID: "influx-staging-api-token",
+      R2_BUCKET_PREFIX: "influx-production-",
+    });
+    const line = verdictLine(r2ServiceVerdict("api", summary));
+    expect(line).toMatch(
+      /^KO {2}railway api: R2 staging endpoint and bucket prefix: R2_BUCKET_PREFIX/,
+    );
+    expect(line).not.toContain("influx-production-");
+  });
+
+  it("rejects an .eu. R2_ENDPOINT on staging without printing the account id", () => {
+    const summary = r2SummaryOf({
+      R2_ENDPOINT: EU_ENDPOINT,
+      R2_ACCESS_KEY_ID: "influx-staging-worker-token",
+      R2_BUCKET_PREFIX: "influx-staging-",
+    });
+    const line = verdictLine(r2ServiceVerdict("worker", summary));
+    expect(line).toMatch(
+      /^KO {2}railway worker: R2 staging endpoint and bucket prefix: R2_ENDPOINT \(\.eu\. forbidden on staging\)/,
+    );
+    expect(line).not.toContain("0123456789abcdef0123456789abcdef");
+  });
+
+  it("rejects identical R2_ACCESS_KEY_ID tokens between api and worker without printing the token", () => {
+    const shared = "shared-staging-r2-token-never-printed";
+    const api = r2SummaryOf({
+      R2_ENDPOINT: STAGING_ENDPOINT,
+      R2_ACCESS_KEY_ID: shared,
+      R2_BUCKET_PREFIX: "influx-staging-",
+    });
+    const worker = r2SummaryOf({
+      R2_ENDPOINT: STAGING_ENDPOINT,
+      R2_ACCESS_KEY_ID: shared,
+      R2_BUCKET_PREFIX: "influx-staging-",
+    });
+    const line = verdictLine(r2DistinctTokensVerdict(api, worker));
+    expect(line).toBe(
+      "KO  railway api/worker: distinct R2_ACCESS_KEY_ID tokens: R2_ACCESS_KEY_ID must differ between api and worker",
+    );
+    expect(line).not.toContain(shared);
+  });
+
+  it("checks .env.local R2 staging rules without exposing any value", () => {
+    expect(
+      envLocalR2Issues({
+        R2_ENDPOINT: STAGING_ENDPOINT,
+        R2_ACCESS_KEY_ID: "influx-staging-api-token",
+        R2_SECRET_ACCESS_KEY: "staging-r2-secret-0123456789abcdef012345",
+        R2_BUCKET_PREFIX: "influx-staging-",
+      }),
+    ).toEqual([]);
+    const issues = envLocalR2Issues({
+      R2_ENDPOINT: EU_ENDPOINT,
+      R2_ACCESS_KEY_ID: "",
+      R2_BUCKET_PREFIX: "e2e-",
+    });
+    expect(issues).toEqual([
+      "R2_ENDPOINT (.eu. forbidden on staging)",
+      "R2_ACCESS_KEY_ID missing",
+      "R2_SECRET_ACCESS_KEY missing",
+      "R2_BUCKET_PREFIX (must be influx-staging-)",
+    ]);
+    expect(issues.join(" ")).not.toContain("e2e-");
   });
 });
