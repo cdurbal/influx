@@ -17,7 +17,7 @@ import {
 import { TEXT_LINK_CLASSES } from "@/components/auth/auth-classes";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
@@ -27,7 +27,7 @@ import {
   memberControlClasses,
 } from "@/components/member/ui/field-classes";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { ChevronLeftIcon } from "@/components/ui/icons";
 import type { AppLocale } from "@/i18n/routing";
@@ -150,7 +150,7 @@ function SelectionRequestView({ place }: { place: SearchPlace }) {
             </p>
             <Link
               href={searchHref(locale, place)}
-              className={memberButtonClasses("secondary")}
+              className={buttonClasses("secondary")}
             >
               {t("selectionRequest.sent.back")}
             </Link>
@@ -260,7 +260,7 @@ function SelectionRequestView({ place }: { place: SearchPlace }) {
                 </Notice>
               ) : null}
               <div>
-                <MemberButton
+                <Button
                   type="submit"
                   aria-disabled={status.kind === "sending" || problem !== null}
                   data-send-request=""
@@ -268,7 +268,7 @@ function SelectionRequestView({ place }: { place: SearchPlace }) {
                   {status.kind === "sending"
                     ? t("selectionRequest.sending")
                     : t("selectionRequest.submit")}
-                </MemberButton>
+                </Button>
               </div>
             </form>
           </>

@@ -14,7 +14,7 @@ import { TEXT_LINK_CLASSES } from "@/components/auth/auth-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import {
@@ -104,12 +104,9 @@ export function CampaignFeedScreen() {
           {failureText(state.failure, state.retryAfterSeconds)}
         </ErrorNotice>
         {state.failure === "forbidden" ? null : (
-          <MemberButton
-            variant="secondary"
-            onClick={() => feed.load(state.sort)}
-          >
+          <Button variant="secondary" onClick={() => feed.load(state.sort)}>
             {t("feed.retry")}
-          </MemberButton>
+          </Button>
         )}
       </div>
     );
@@ -149,13 +146,13 @@ export function CampaignFeedScreen() {
           </ErrorNotice>
         ) : null}
         {state.nextPage === null ? null : (
-          <MemberButton
+          <Button
             variant="secondary"
             aria-disabled={more.kind === "loading" || undefined}
             onClick={() => feed.more()}
           >
             {more.kind === "loading" ? t("feed.moreLoading") : t("feed.more")}
-          </MemberButton>
+          </Button>
         )}
       </>
     );

@@ -10,7 +10,7 @@ import type { BrandProfileReferences } from "@influx/contracts/brand-profile";
 import type { CreatorSearchFilters } from "@influx/contracts/creator-search";
 import { useLocale } from "next-intl";
 import { useId, useMemo, useState } from "react";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import {
   memberChoiceInputClasses,
@@ -205,9 +205,9 @@ export function SearchFiltersForm({
       {references.phase === "failed" ? (
         <Notice tone="warning">
           <p>{t("filters.referencesFailed")}</p>
-          <MemberButton variant="text" onClick={onReload}>
+          <Button variant="text" onClick={onReload}>
             {t("filters.referencesRetry")}
-          </MemberButton>
+          </Button>
         </Notice>
       ) : null}
       <FilterSelect
@@ -271,14 +271,14 @@ export function SearchFiltersForm({
         onToggle={toggle("F17")}
       />
       <div className={FILTER_ACTIONS_CLASSES}>
-        <MemberButton type="submit" fullWidth>
+        <Button type="submit" block>
           {t("filters.apply")}
-        </MemberButton>
+        </Button>
         {criteriaCountOf(draft) === 0 &&
         criteriaCountOf(filters) === 0 ? null : (
-          <MemberButton variant="secondary" fullWidth onClick={onClear}>
+          <Button variant="secondary" block onClick={onClear}>
             {t("filters.clear")}
-          </MemberButton>
+          </Button>
         )}
       </div>
     </form>

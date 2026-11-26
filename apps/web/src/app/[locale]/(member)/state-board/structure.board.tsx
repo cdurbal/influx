@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/member/ui/PageHeader";
 import { Section } from "@/components/member/ui/Section";
 import type { SectionVariant } from "@/components/member/ui/section-classes";
 import { StatusBadge } from "@/components/member/ui/StatusBadge";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { BoardSection, BoardState } from "./board-section.board";
 
 const SECTIONS: readonly {
@@ -90,7 +90,7 @@ export function StructureBoard() {
           ]}
           badges={<StatusBadge tone="info">{TEXTS.headerBadge}</StatusBadge>}
           lead={TEXTS.headerLead}
-          actions={<MemberButton>{TEXTS.headerAction}</MemberButton>}
+          actions={<Button>{TEXTS.headerAction}</Button>}
           meta={TEXTS.headerMeta}
         />
       </BoardState>

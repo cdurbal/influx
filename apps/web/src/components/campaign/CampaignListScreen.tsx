@@ -17,8 +17,8 @@ import {
 } from "@/components/auth/auth-classes";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { buttonClasses } from "@/components/member/ui/button-classes";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import { StatusBadge } from "@/components/member/ui/StatusBadge";
@@ -98,13 +98,13 @@ function CampaignListView() {
     profile.kind === "ready" && profile.summary.status === "published";
   const blocked = profile.kind === "ready" && !published;
   const createButton = published ? (
-    <MemberButton
+    <Button
       aria-disabled={creating === "busy" || undefined}
       onClick={() => void create()}
     >
       <PlusIcon aria-hidden="true" className="size-(--size-icon-md)" />
       {creating === "busy" ? t("list.creating") : t("list.create")}
-    </MemberButton>
+    </Button>
   ) : undefined;
 
   return (
@@ -131,9 +131,9 @@ function CampaignListView() {
       ) : state.kind === "unavailable" ? (
         <div className="flex flex-col gap-4">
           <ErrorNotice>{t("list.unavailable")}</ErrorNotice>
-          <MemberButton variant="secondary" onClick={() => void load()}>
+          <Button variant="secondary" onClick={() => void load()}>
             {t("list.retry")}
-          </MemberButton>
+          </Button>
         </div>
       ) : state.campaigns.length === 0 ? (
         <Card>
@@ -204,10 +204,7 @@ function CampaignRow({
         </div>
         <Link
           href={memberPageHref("advertiserCampaign", locale, campaign.id)}
-          className={memberButtonClasses(
-            editable ? "primary" : "secondary",
-            "md",
-          )}
+          className={buttonClasses(editable ? "primary" : "secondary", "md")}
         >
           {editable ? t("list.resume") : t("list.view")}
           <span className="sr-only">

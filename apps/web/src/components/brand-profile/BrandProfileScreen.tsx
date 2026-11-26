@@ -19,7 +19,7 @@ import {
 } from "@/components/account/account-classes";
 import { useMember } from "@/components/member/member-context";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { ScoreGauge } from "@/components/member/ui/ScoreGauge";
@@ -124,9 +124,9 @@ function BrandProfileView() {
       phase === "unavailable" ? (
         <div className="flex flex-col gap-4">
           <ErrorNotice>{t("page.unavailable")}</ErrorNotice>
-          <MemberButton variant="secondary" onClick={state.reload}>
+          <Button variant="secondary" onClick={state.reload}>
             {t("page.retry")}
-          </MemberButton>
+          </Button>
         </div>
       ) : (
         <p role="status" className="text-sm text-text-secondary">
@@ -269,14 +269,14 @@ function LoadedProfile({
       <div data-action-bar="" className={ACTION_BAR_CLASSES}>
         <SaveStatus save={state.save} locale={locale} />
         {submittable ? (
-          <MemberButton
+          <Button
             aria-disabled={state.submitState === "submitting" || undefined}
             onClick={() => void submit()}
           >
             {state.submitState === "submitting"
               ? t("submit.busy")
               : t("submit.label")}
-          </MemberButton>
+          </Button>
         ) : null}
       </div>
     </>
@@ -381,15 +381,15 @@ function ProfileProgress({
       </p>
       {submittable ? (
         <div className="flex flex-col gap-2 max-lg:hidden">
-          <MemberButton
-            fullWidth
+          <Button
+            block
             aria-disabled={state.submitState === "submitting" || undefined}
             onClick={() => void onSubmit()}
           >
             {state.submitState === "submitting"
               ? t("submit.busy")
               : t("submit.label")}
-          </MemberButton>
+          </Button>
           <p className="text-sm text-text-secondary">{t("submit.explain")}</p>
         </div>
       ) : null}

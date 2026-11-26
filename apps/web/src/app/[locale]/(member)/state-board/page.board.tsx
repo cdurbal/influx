@@ -7,6 +7,7 @@ import { ButtonBoard } from "./button.board";
 import { FieldBoard } from "./field.board";
 import { NoticeBoard } from "./notice.board";
 import { StructureBoard } from "./structure.board";
+import { SurfaceBoard } from "./surface.board";
 
 // The component state board (RUA-05; docs/mvp/jalons/rua/modele-archi.md §6). Not a page of the
 // product: Next.js serves this file only when the `board.tsx` page extension is on
@@ -43,6 +44,7 @@ export default function StateBoardPage() {
         <StructureBoard />
         <AnnouncerBoard />
         <ButtonBoard />
+        <SurfaceBoard />
         <NoticeBoard />
         <BadgeBoard />
         <FieldBoard />

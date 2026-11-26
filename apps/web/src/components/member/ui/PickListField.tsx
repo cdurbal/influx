@@ -7,7 +7,7 @@ import {
 } from "./field-classes";
 import { describedByOf, useFieldIds } from "./field-ids";
 import { FieldFrame, type FieldTexts } from "./FieldFrame";
-import { memberButtonClasses } from "./button-classes";
+import { buttonClasses } from "./button-classes";
 
 type PickListFieldProps = Omit<FieldTexts, "help"> & {
   /** Id of the select: the screen focuses the first invalid field by it. */
@@ -118,7 +118,7 @@ export function PickListField({
                   onClick={() =>
                     onChange(value.filter((chosen) => chosen !== code))
                   }
-                  className={memberButtonClasses("text", "md")}
+                  className={buttonClasses("text", "md")}
                 >
                   <CloseIcon
                     aria-hidden="true"

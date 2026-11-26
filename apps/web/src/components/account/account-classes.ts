@@ -2,7 +2,7 @@
 // (src/components/auth/auth-classes.ts) they share. Members' register, dark theme, mobile first
 // (skill design-system-influx); every value is a token of src/styles/tokens.css (CA22, G3).
 import { cn } from "@/components/ui/class-names";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { SECTION_TITLE } from "@/components/member/ui/heading-classes";
 import { noticeClasses } from "@/components/member/ui/notice-classes";
 import { statusBadgeClasses } from "@/components/member/ui/status-badge-classes";
@@ -11,7 +11,7 @@ import { statusBadgeClasses } from "@/components/member/ui/status-badge-classes"
  * A destructive action: a solid red button, light text, INFLUX pill (zone-de-danger fiche §5).
  * Its label says what it does (17 §6.3, never an icon alone); offline (`aria-disabled`) it is grey.
  */
-export const DESTRUCTIVE_BUTTON_CLASSES = memberButtonClasses("danger", "md");
+export const DESTRUCTIVE_BUTTON_CLASSES = buttonClasses("danger", "md");
 
 /**
  * The danger notice: the container's own background, a full 1 px red border and red text, with an

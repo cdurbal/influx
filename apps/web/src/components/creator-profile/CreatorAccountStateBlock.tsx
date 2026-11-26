@@ -8,7 +8,7 @@
 // no amount, rate or price (D78).
 import { useLocale, useTranslations } from "next-intl";
 import { ACCOUNT_STATE_CLASSES } from "@/components/member/shell-classes";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { cn } from "@/components/ui/class-names";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
@@ -40,7 +40,7 @@ export function CreatorAccountStateBlock({
       ) : null}
       <Link
         href={memberPageHref("accountProfile", locale)}
-        className={cn(memberButtonClasses("secondary", "md"), "w-full")}
+        className={cn(buttonClasses("secondary", "md"), "w-full")}
       >
         {t(`home.${creatorNextActionOf(summary)}`)}
       </Link>

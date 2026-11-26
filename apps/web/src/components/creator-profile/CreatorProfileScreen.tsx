@@ -28,11 +28,11 @@ import {
 import { formatSavedTime } from "@/components/brand-profile/brand-profile-view";
 import type { SaveState } from "@/components/brand-profile/use-brand-profile";
 import { useMember } from "@/components/member/member-context";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { ScoreGauge } from "@/components/member/ui/ScoreGauge";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import {
@@ -163,9 +163,9 @@ function CreatorProfileView() {
       phase === "unavailable" ? (
         <div className="flex flex-col gap-4">
           <ErrorNotice>{t("page.unavailable")}</ErrorNotice>
-          <MemberButton variant="secondary" onClick={state.reload}>
+          <Button variant="secondary" onClick={state.reload}>
             {t("page.retry")}
-          </MemberButton>
+          </Button>
         </div>
       ) : (
         <p role="status" className="text-sm text-text-secondary">
@@ -384,7 +384,7 @@ function Summary({ missing }: { missing: readonly RequiredCode[] }) {
       <Link
         href={memberPageHref("accountProfilePreview", locale)}
         data-preview-link=""
-        className={memberButtonClasses("secondary")}
+        className={buttonClasses("secondary")}
       >
         <EyeIcon
           aria-hidden="true"

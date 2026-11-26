@@ -34,11 +34,11 @@ import { SPACE_SCREEN_CLASSES } from "@/components/auth/auth-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { VerifiedBadge } from "@/components/member/ui/VerifiedBadge";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
 import {
   CARD_TITLE,
@@ -159,12 +159,9 @@ function AudienceView({ networkCode }: { networkCode: string }) {
       <div className="flex flex-col gap-4">
         <ErrorNotice>{t("ownership.unavailable")}</ErrorNotice>
         <div>
-          <MemberButton
-            variant="secondary"
-            onClick={() => void verification.retry()}
-          >
+          <Button variant="secondary" onClick={() => void verification.retry()}>
             {t("ownership.retry")}
-          </MemberButton>
+          </Button>
         </div>
       </div>
     );
@@ -296,12 +293,12 @@ function Journey({
             {isRenewable(journey.badge) ? (
               // the reminder window is open (08 RG70 « J-15 », L2FU-2): the new deposit keeps the badge
               <div className={ACTIONS_CLASSES}>
-                <MemberButton
+                <Button
                   onClick={gestures.start}
                   aria-disabled={gestures.busy !== null}
                 >
                   {t("audience.affirm.continueRefresh")}
-                </MemberButton>
+                </Button>
               </div>
             ) : null}
             <BackToProfile label={t("ownership.done.back")} />
@@ -333,7 +330,7 @@ function LockedStep({
       <div>
         <Link
           href={ownershipJourneyHref(networkCode, locale)}
-          className={memberButtonClasses("primary")}
+          className={buttonClasses("primary")}
         >
           {t("audience.locked.cta", { network })}
         </Link>
@@ -440,14 +437,11 @@ function AffirmStep({
         {t("verif.evidence.freshness")}
       </p>
       <div className={ACTIONS_CLASSES}>
-        <MemberButton
-          onClick={gestures.start}
-          aria-disabled={gestures.busy !== null}
-        >
+        <Button onClick={gestures.start} aria-disabled={gestures.busy !== null}>
           {journey.refresh
             ? t("audience.affirm.continueRefresh")
             : t("audience.affirm.continue")}
-        </MemberButton>
+        </Button>
       </div>
     </>
   );
@@ -540,7 +534,7 @@ function DepositStep({
             {pieces.map((piece, index) => (
               <li key={piece.id} className={PIECE_CLASSES} data-piece="">
                 <span>{pieceLabel(t, locale, piece, index + 1)}</span>
-                <MemberButton
+                <Button
                   variant="text"
                   aria-label={t("audience.deposit.pieces.removeLabel", {
                     number: index + 1,
@@ -549,7 +543,7 @@ function DepositStep({
                   onClick={() => gestures.removePiece(requestId, piece.id)}
                 >
                   {t("audience.deposit.pieces.remove")}
-                </MemberButton>
+                </Button>
               </li>
             ))}
           </ul>
@@ -575,7 +569,7 @@ function DepositStep({
             hidden
             onChange={onPick}
           />
-          <MemberButton
+          <Button
             variant="secondary"
             aria-disabled={busy}
             onClick={() => {
@@ -587,7 +581,7 @@ function DepositStep({
             {pieces.length === 0
               ? t("audience.deposit.choose")
               : t("audience.deposit.chooseMore")}
-          </MemberButton>
+          </Button>
         </div>
         <p className={MEMBER_FIELD_HELP_CLASSES}>
           {t("audience.deposit.chooseHelp")}
@@ -595,7 +589,7 @@ function DepositStep({
       </section>
 
       <div className={ACTIONS_CLASSES}>
-        <MemberButton
+        <Button
           onClick={() => {
             if (pieces.length > 0) {
               gestures.submit(requestId);
@@ -604,15 +598,15 @@ function DepositStep({
           aria-disabled={busy || pieces.length === 0}
         >
           {t("audience.deposit.submit")}
-        </MemberButton>
+        </Button>
         {request === null || !isCancellable(request) ? null : (
-          <MemberButton
+          <Button
             variant="text"
             onClick={() => gestures.cancel(request.id)}
             aria-disabled={busy}
           >
             {t("ownership.cancel")}
-          </MemberButton>
+          </Button>
         )}
       </div>
       {pieces.length === 0 ? (
@@ -684,20 +678,17 @@ function AttemptRow({
       {attempt.state !== "failed" ? null : (
         <div className={ACTIONS_CLASSES}>
           {failure?.retryable === true ? (
-            <MemberButton
+            <Button
               variant="secondary"
               aria-disabled={gestures.busy !== null}
               onClick={() => gestures.retry(requestId, attempt.key)}
             >
               {t("audience.deposit.attempt.retry")}
-            </MemberButton>
+            </Button>
           ) : null}
-          <MemberButton
-            variant="text"
-            onClick={() => gestures.dismiss(attempt.key)}
-          >
+          <Button variant="text" onClick={() => gestures.dismiss(attempt.key)}>
             {t("audience.deposit.attempt.dismiss")}
-          </MemberButton>
+          </Button>
         </div>
       )}
     </li>
@@ -760,13 +751,13 @@ function SentStep({
       <div className={ACTIONS_CLASSES}>
         <BackToProfile label={t("ownership.confirm.back")} />
         {request === null || !isCancellable(request) ? null : (
-          <MemberButton
+          <Button
             variant="text"
             onClick={() => gestures.cancel(request.id)}
             aria-disabled={gestures.busy !== null}
           >
             {t("ownership.cancel")}
-          </MemberButton>
+          </Button>
         )}
       </div>
     </>

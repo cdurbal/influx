@@ -4,7 +4,7 @@
 // RG95; jalons/l2e, commits 18 and 19): what a refused call means, written, and the way back to the
 // profile. They draw; what a refusal is lies in verification-view.ts.
 import { useLocale, useTranslations } from "next-intl";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { Link } from "@/i18n/navigation";
 import { memberPageHref } from "@/lib/member-paths";
@@ -61,7 +61,7 @@ export function BackToProfile({ label }: { label: string }) {
     <div>
       <Link
         href={memberPageHref("accountProfile", locale)}
-        className={memberButtonClasses("secondary")}
+        className={buttonClasses("secondary")}
       >
         {label}
       </Link>

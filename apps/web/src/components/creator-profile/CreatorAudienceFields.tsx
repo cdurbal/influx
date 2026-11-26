@@ -11,7 +11,7 @@
 import type { CreatorNetworkLine } from "@influx/contracts/creator-profile";
 import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextField } from "@/components/member/ui/TextField";
@@ -81,9 +81,9 @@ export function AudienceFields({ networks, audience, labelOf }: BlockProps) {
     return (
       <div className="flex flex-col gap-4">
         <p className="text-sm text-text-primary">{t("networks.unavailable")}</p>
-        <MemberButton variant="secondary" onClick={networks.reload}>
+        <Button variant="secondary" onClick={networks.reload}>
           {t("page.retry")}
-        </MemberButton>
+        </Button>
       </div>
     );
   }
@@ -281,7 +281,7 @@ function AudienceLine({
               layer={exact}
               className="md:flex-1"
             />
-            <MemberButton
+            <Button
               variant="text"
               onClick={() => {
                 pendingFocus.current = { kind: "removed", index };
@@ -297,7 +297,7 @@ function AudienceLine({
               })}
             >
               {t("networks.remove")}
-            </MemberButton>
+            </Button>
           </div>
         ))}
         {issue("others") === undefined ? null : (
@@ -308,7 +308,7 @@ function AudienceLine({
         )}
         {draft.others.length < OTHER_COUNTRIES_MAX ? (
           <div>
-            <MemberButton
+            <Button
               ref={addButton}
               variant="secondary"
               onClick={() => {
@@ -320,7 +320,7 @@ function AudienceLine({
               }}
             >
               {t("audience.countries.add")}
-            </MemberButton>
+            </Button>
           </div>
         ) : (
           <p className={MEMBER_FIELD_HELP_CLASSES}>

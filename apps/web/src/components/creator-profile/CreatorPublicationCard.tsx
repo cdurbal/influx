@@ -11,7 +11,7 @@
 // API's. No amount, rate, net or price (D48, D78).
 import type { CreatorProfileResponse } from "@influx/contracts/creator-profile";
 import { useLocale, useTranslations } from "next-intl";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PROFILE_CARD_CLASSES } from "@/components/brand-profile/brand-profile-classes";
 import { cn } from "@/components/ui/class-names";
@@ -194,8 +194,8 @@ export function PublicationCard({
       ) : null}
       {mode === "submit" ? (
         <>
-          <MemberButton
-            fullWidth
+          <Button
+            block
             aria-disabled={sending || undefined}
             aria-describedby="publish-review-help"
             onClick={() => {
@@ -205,7 +205,7 @@ export function PublicationCard({
             }}
           >
             {t("publish.action")}
-          </MemberButton>
+          </Button>
           {/* L2GU-16: « Publier » promises nothing immediate, a salesperson reads first. */}
           <p id="publish-review-help" className="text-sm text-text-secondary">
             {t("publish.review")}

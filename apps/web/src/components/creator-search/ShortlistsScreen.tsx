@@ -16,7 +16,7 @@ import {
 } from "@/components/account/account-classes";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
@@ -34,7 +34,7 @@ import { shortlistHref } from "./shortlists-view";
 import { useSearchLabels } from "./use-search-labels";
 import { useOriginCampaigns, type OriginCampaign } from "./use-search-sources";
 import { useShortlists } from "./use-shortlists";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 
 /** The page of a brand; any other role finds a page that does not exist (18 T14.3, T14.4). */
 export function ShortlistsScreen() {
@@ -106,9 +106,9 @@ function ShortlistsView() {
               <span data-state="failed">{t("lists.failed")}</span>
             </ErrorNotice>
             <div>
-              <MemberButton variant="secondary" onClick={selection.reload}>
+              <Button variant="secondary" onClick={selection.reload}>
                 {t("failed.retry")}
-              </MemberButton>
+              </Button>
             </div>
           </div>
         ) : null}
@@ -148,7 +148,7 @@ function ShortlistsView() {
                 </p>
                 <Link
                   href={memberPageHref("advertiserCreators", locale)}
-                  className={memberButtonClasses("secondary")}
+                  className={buttonClasses("secondary")}
                 >
                   {t("lists.toSearch")}
                 </Link>
@@ -168,7 +168,7 @@ function ShortlistsView() {
                       <Link
                         href={shortlistHref(locale, list.id)}
                         data-open-shortlist={list.id}
-                        className={memberButtonClasses("secondary")}
+                        className={buttonClasses("secondary")}
                       >
                         {t("lists.open")}
                         <span className="sr-only"> {list.name}</span>

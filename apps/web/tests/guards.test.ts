@@ -658,6 +658,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
       "notice.board.tsx",
       "page.board.tsx",
       "structure.board.tsx",
+      "surface.board.tsx",
     ];
     expect(
       findStateBoardViolations(WEB_ROOT, {

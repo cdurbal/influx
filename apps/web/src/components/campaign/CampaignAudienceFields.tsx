@@ -13,7 +13,7 @@ import {
 } from "./campaign-domain";
 import { CAMPAIGN_LIST_LIMITS } from "@influx/contracts/campaign";
 import { useTranslations } from "next-intl";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { MultiChoiceField } from "@/components/member/ui/MultiChoiceField";
 import { PickListField } from "@/components/member/ui/PickListField";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
@@ -160,13 +160,13 @@ export function CampaignAudienceFields({
         />
         {draft.audienceGender === null ? null : (
           // No answer is "no preference" (RG52): the choice is taken back, never defaulted.
-          <MemberButton
+          <Button
             variant="text"
             className="self-start"
             onClick={() => change("audienceGender", null)}
           >
             {t("field.clearChoice")}
-          </MemberButton>
+          </Button>
         )}
       </section>
     </>

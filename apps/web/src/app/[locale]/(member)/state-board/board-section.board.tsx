@@ -43,16 +43,27 @@ type BoardStateProps = {
   state: string;
   label: string;
   className?: string;
+  /** No card under the cell: for a component that is itself a card, never put inside another one. */
+  bare?: boolean;
   children: ReactNode;
 };
 
-/** One state of a component, on the surface of a card, its name above it. */
+/** One state of a component, on the surface of a card (or on the page when `bare`), its name above it. */
 export function BoardState({
   state,
   label,
   className,
+  bare = false,
   children,
 }: BoardStateProps) {
+  if (bare) {
+    return (
+      <div data-board-state={state} className="flex flex-col gap-4">
+        <p className={OVERLINE}>{label}</p>
+        <div className={cn("flex flex-col gap-3", className)}>{children}</div>
+      </div>
+    );
+  }
   return (
     <div data-board-state={state} className={MEMBER_CARD_CLASSES}>
       <p className={OVERLINE}>{label}</p>

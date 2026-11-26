@@ -12,7 +12,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
@@ -126,7 +126,7 @@ export function CampaignLifecyclePanel({
             </Notice>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <MemberButton
+            <Button
               variant="danger"
               aria-describedby={warningId}
               aria-disabled={busy !== null || undefined}
@@ -135,8 +135,8 @@ export function CampaignLifecyclePanel({
               {busy === "close"
                 ? t("lifecycle.closing")
                 : t("lifecycle.closeConfirm")}
-            </MemberButton>
-            <MemberButton
+            </Button>
+            <Button
               variant="text"
               onClick={() => {
                 setConfirmClose(false);
@@ -145,14 +145,14 @@ export function CampaignLifecyclePanel({
               }}
             >
               {t("lifecycle.cancel")}
-            </MemberButton>
+            </Button>
           </div>
         </div>
       ) : actions.length > 0 ? (
         <div className="flex flex-wrap items-center gap-3">
           {actions.map((action) =>
             action === "close" ? (
-              <MemberButton
+              <Button
                 key={action}
                 ref={closeButtonRef}
                 variant="secondary"
@@ -164,9 +164,9 @@ export function CampaignLifecyclePanel({
                 }}
               >
                 {t("lifecycle.close")}
-              </MemberButton>
+              </Button>
             ) : (
-              <MemberButton
+              <Button
                 key={action}
                 variant={action === "resume" ? "primary" : "secondary"}
                 aria-disabled={busy !== null || undefined}
@@ -175,7 +175,7 @@ export function CampaignLifecyclePanel({
                 {busy === action
                   ? t(`lifecycle.${BUSY_KEYS[action]}`)
                   : t(`lifecycle.${action}`)}
-              </MemberButton>
+              </Button>
             ),
           )}
         </div>

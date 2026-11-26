@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAnnouncer } from "@/components/member/ui/Announcer";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { BoardSection, BoardState } from "./board-section.board";
 
 const TEXTS = {
@@ -23,7 +23,7 @@ export function AnnouncerBoard() {
   return (
     <BoardSection component="announcer" title={TEXTS.title} note={TEXTS.note}>
       <BoardState state="announce" label={TEXTS.cell} className="items-center">
-        <MemberButton
+        <Button
           variant="secondary"
           onClick={() => {
             announce(TEXTS.message);
@@ -31,7 +31,7 @@ export function AnnouncerBoard() {
           }}
         >
           {TEXTS.button}
-        </MemberButton>
+        </Button>
         <p className="text-sm text-text-secondary">
           {TEXTS.count} {sent}
         </p>

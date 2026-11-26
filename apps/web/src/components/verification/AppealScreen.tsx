@@ -35,7 +35,7 @@ import { SPACE_SCREEN_CLASSES } from "@/components/auth/auth-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
@@ -129,12 +129,9 @@ function AppealView({ target }: { target: AppealTarget }) {
       <div className="flex flex-col gap-4">
         <ErrorNotice>{t("ownership.unavailable")}</ErrorNotice>
         <div>
-          <MemberButton
-            variant="secondary"
-            onClick={() => void verification.retry()}
-          >
+          <Button variant="secondary" onClick={() => void verification.retry()}>
             {t("ownership.retry")}
-          </MemberButton>
+          </Button>
         </div>
       </div>
     );
@@ -335,9 +332,9 @@ function Form({
           {t("appeal.form.noAttachment")}
         </p>
         <div className={ACTIONS_CLASSES}>
-          <MemberButton type="submit" aria-disabled={gesture.busy}>
+          <Button type="submit" aria-disabled={gesture.busy}>
             {gesture.busy ? t("appeal.form.sending") : t("appeal.form.submit")}
-          </MemberButton>
+          </Button>
         </div>
       </form>
     </Card>

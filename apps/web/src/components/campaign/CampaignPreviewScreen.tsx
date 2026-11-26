@@ -20,7 +20,7 @@ import {
 } from "@/components/account/account-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
@@ -118,9 +118,9 @@ function CampaignPreviewView({
       state.phase === "unavailable" ? (
         <div className="flex flex-col gap-4">
           <ErrorNotice>{t("preview.unavailable")}</ErrorNotice>
-          <MemberButton variant="secondary" onClick={state.reload}>
+          <Button variant="secondary" onClick={state.reload}>
             {t("preview.retry")}
-          </MemberButton>
+          </Button>
         </div>
       ) : (
         <p role="status" className="text-sm text-text-secondary">

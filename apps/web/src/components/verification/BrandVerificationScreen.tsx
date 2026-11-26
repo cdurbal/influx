@@ -39,7 +39,7 @@ import { SPACE_SCREEN_CLASSES } from "@/components/auth/auth-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
@@ -154,12 +154,9 @@ function BrandVerificationView() {
       <div className="flex flex-col gap-4">
         <ErrorNotice>{t("brand.unavailable")}</ErrorNotice>
         <div>
-          <MemberButton
-            variant="secondary"
-            onClick={() => void verification.retry()}
-          >
+          <Button variant="secondary" onClick={() => void verification.retry()}>
             {t("brand.retry")}
-          </MemberButton>
+          </Button>
         </div>
       </div>
     );
@@ -300,12 +297,12 @@ function Journey({
             {isRenewable(journey.badge) ? (
               // the reminder window is open (06 RG54, L2FU-2): a new request keeps the badge until it is decided
               <div className={ACTIONS_CLASSES}>
-                <MemberButton
+                <Button
                   onClick={gestures.start}
                   aria-disabled={gestures.busy !== null}
                 >
                   {t("brandBlock.cta.refresh")}
-                </MemberButton>
+                </Button>
               </div>
             ) : null}
             <BackToProfile label={t("brand.done.back")} />
@@ -375,14 +372,11 @@ function AffirmStep({
       </div>
       <p className={MEMBER_FIELD_HELP_CLASSES}>{t("brandBlock.optional")}</p>
       <div className={ACTIONS_CLASSES}>
-        <MemberButton
-          onClick={gestures.start}
-          aria-disabled={gestures.busy !== null}
-        >
+        <Button onClick={gestures.start} aria-disabled={gestures.busy !== null}>
           {expired
             ? t("ownership.code.renewExpired")
             : t("brand.affirm.continue")}
-        </MemberButton>
+        </Button>
         <BackToProfile label={t("brand.affirm.back")} />
       </div>
     </>
@@ -433,9 +427,9 @@ function PublishStep({
         <>
           <Notice tone="warning">{t("verif.request.expired")}</Notice>
           <div className={ACTIONS_CLASSES}>
-            <MemberButton onClick={gestures.renew} aria-disabled={busy}>
+            <Button onClick={gestures.renew} aria-disabled={busy}>
               {t("ownership.code.renewExpired")}
-            </MemberButton>
+            </Button>
             <CancelButton request={request} gestures={gestures} />
           </div>
         </>
@@ -459,18 +453,18 @@ function PublishStep({
             missing={showMissing ? missing : []}
           />
           <div className={ACTIONS_CLASSES}>
-            <MemberButton onClick={send} aria-disabled={busy}>
+            <Button onClick={send} aria-disabled={busy}>
               {gestures.busy === "submit"
                 ? t("brand.publish.sending")
                 : t("brand.publish.submit")}
-            </MemberButton>
-            <MemberButton
+            </Button>
+            <Button
               variant="text"
               onClick={gestures.renew}
               aria-disabled={busy}
             >
               {t("ownership.code.renew")}
-            </MemberButton>
+            </Button>
             <CancelButton request={request} gestures={gestures} />
           </div>
           <p className={MEMBER_FIELD_HELP_CLASSES}>
@@ -588,13 +582,13 @@ function CancelButton({
     return null;
   }
   return (
-    <MemberButton
+    <Button
       variant="text"
       onClick={gestures.cancel}
       aria-disabled={gestures.busy !== null}
     >
       {t("ownership.cancel")}
-    </MemberButton>
+    </Button>
   );
 }
 

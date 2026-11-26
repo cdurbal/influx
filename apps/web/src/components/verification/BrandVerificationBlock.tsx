@@ -10,9 +10,9 @@
 // use-brand-verification.ts. No amount, rate, net or price (D48, D78).
 import { useLocale, useTranslations } from "next-intl";
 import { useMember } from "@/components/member/member-context";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { Link } from "@/i18n/navigation";
@@ -40,12 +40,9 @@ export function BrandVerificationBlock({
       <div className="flex flex-col gap-3">
         <ErrorNotice>{t("line.unavailable")}</ErrorNotice>
         <div>
-          <MemberButton
-            variant="secondary"
-            onClick={() => void verification.retry()}
-          >
+          <Button variant="secondary" onClick={() => void verification.retry()}>
             {t("line.retry")}
-          </MemberButton>
+          </Button>
         </div>
       </div>
     );
@@ -83,7 +80,7 @@ export function BrandVerificationBlock({
         <div>
           <Link
             href={memberPageHref("accountBrandVerification", locale)}
-            className={memberButtonClasses("secondary", "md")}
+            className={buttonClasses("secondary", "md")}
           >
             {t(BRAND_CTA_KEYS[block.action])}
           </Link>

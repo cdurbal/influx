@@ -22,7 +22,7 @@ import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { ChevronLeftIcon, CircleAlertIcon } from "@/components/ui/icons";
@@ -160,7 +160,7 @@ function ProfileBody({
   const request = (
     <Link
       href={requestHref(locale, place)}
-      className={memberButtonClasses("secondary")}
+      className={buttonClasses("secondary")}
     >
       {t("request.link")}
     </Link>
@@ -207,7 +207,7 @@ function ProfileBody({
           </p>
           <Link
             href={searchHref(locale, place)}
-            className={memberButtonClasses("secondary")}
+            className={buttonClasses("secondary")}
           >
             {t("profile.back")}
           </Link>
@@ -239,7 +239,7 @@ function ProfileBody({
           </ErrorNotice>
           <Link
             href={searchHref(locale, place)}
-            className={memberButtonClasses("secondary")}
+            className={buttonClasses("secondary")}
           >
             {t("profile.back")}
           </Link>
@@ -331,7 +331,7 @@ function OpenedProfileView({
                 <Link
                   href={requestHref(locale, place)}
                   data-profile-request=""
-                  className={memberButtonClasses("secondary")}
+                  className={buttonClasses("secondary")}
                 >
                   {t("request.link")}
                 </Link>

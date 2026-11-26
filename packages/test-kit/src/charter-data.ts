@@ -474,4 +474,8 @@ export const SHARED_CATALOGUE: readonly SharedCatalogueEntry[] = [
   { name: "PageHeader", backoffice: "pending" },
   { name: "Section", backoffice: "pending" },
   { name: "Announcer", backoffice: "pending" },
+  { name: "Button", backoffice: "pending" },
+  { name: "ActionLink", backoffice: "pending" },
+  { name: "InnerPanel", backoffice: "pending" },
+  { name: "CardActions", backoffice: "pending" },
 ];

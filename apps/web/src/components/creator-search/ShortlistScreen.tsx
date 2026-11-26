@@ -20,11 +20,11 @@ import { CreatorCardView } from "@/components/creator-profile/CreatorCardView";
 import { cardOfProjection } from "@/components/creator-profile/creator-preview-view";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { TextAreaField } from "@/components/member/ui/TextAreaField";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { ChevronLeftIcon, Trash2Icon } from "@/components/ui/icons";
@@ -109,7 +109,7 @@ function ShortlistView({ id }: { id: string }) {
             </p>
             <Link
               href={memberPageHref("advertiserShortlists", locale)}
-              className={memberButtonClasses("secondary")}
+              className={buttonClasses("secondary")}
             >
               {t("list.back")}
             </Link>
@@ -293,7 +293,7 @@ function ItemActions({
         }
       />
       <div className={CARD_ACTION_ROW_CLASSES}>
-        <MemberButton
+        <Button
           variant="secondary"
           aria-disabled={busy || problem !== null}
           data-save-note={alias}
@@ -305,8 +305,8 @@ function ItemActions({
           }
         >
           {t("list.note.save")}
-        </MemberButton>
-        <MemberButton
+        </Button>
+        <Button
           variant="text"
           aria-disabled={busy}
           data-remove-item={alias}
@@ -314,7 +314,7 @@ function ItemActions({
         >
           <Trash2Icon aria-hidden="true" className="size-(--size-icon-md)" />
           {t("list.remove")}
-        </MemberButton>
+        </Button>
         <Link
           href={profileHref(alias, locale, {
             query: EMPTY_QUERY,
@@ -376,28 +376,28 @@ function DeleteList({
             {t("list.delete.confirm")}
           </p>
           <div className={CARD_ACTION_ROW_CLASSES}>
-            <MemberButton
+            <Button
               variant="danger"
               aria-disabled={busy}
               data-delete-confirmed=""
               onClick={() => void confirm()}
             >
               {t("list.delete.yes")}
-            </MemberButton>
-            <MemberButton variant="secondary" onClick={() => setAsking(false)}>
+            </Button>
+            <Button variant="secondary" onClick={() => setAsking(false)}>
               {t("list.delete.cancel")}
-            </MemberButton>
+            </Button>
           </div>
         </>
       ) : (
         <div>
-          <MemberButton
+          <Button
             variant="secondary"
             data-delete-list=""
             onClick={() => setAsking(true)}
           >
             {t("list.delete.action")}
-          </MemberButton>
+          </Button>
         </div>
       )}
       {failure === null ? null : (

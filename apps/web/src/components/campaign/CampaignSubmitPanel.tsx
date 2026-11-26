@@ -12,7 +12,7 @@
 import type { CampaignResponse } from "@influx/contracts/campaign";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import {
@@ -176,7 +176,7 @@ export function CampaignSubmitPanel({
       ) : null}
       <SubmitFeedback state={state} onGoTo={onGoTo} />
       <div className="flex flex-col gap-2">
-        <MemberButton
+        <Button
           aria-disabled={busy || undefined}
           onClick={() => {
             if (!busy) {
@@ -185,7 +185,7 @@ export function CampaignSubmitPanel({
           }}
         >
           {busy ? t("publish.busy") : t("publish.button")}
-        </MemberButton>
+        </Button>
         <p className="text-sm text-text-secondary">{t("publish.explain")}</p>
       </div>
     </section>

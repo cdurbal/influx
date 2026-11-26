@@ -19,7 +19,7 @@ import { TEXT_LINK_CLASSES } from "@/components/auth/auth-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
@@ -135,9 +135,9 @@ export function CampaignRecordScreen({ id }: { id: string }) {
             {failureText(state.failure, state.retryAfterSeconds)}
           </ErrorNotice>
           {state.failure === "forbidden" ? null : (
-            <MemberButton variant="secondary" onClick={state.reload}>
+            <Button variant="secondary" onClick={state.reload}>
               {t("record.retry")}
-            </MemberButton>
+            </Button>
           )}
         </div>
       ) : (

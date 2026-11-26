@@ -3,7 +3,7 @@
 // of src/styles/tokens.css; nothing here is a literal color, size or spacing (CA22, G3).
 import { cn } from "@/components/ui/class-names";
 import {
-  memberButtonClasses,
+  buttonClasses,
   memberTextLinkClasses,
 } from "@/components/member/ui/button-classes";
 import {
@@ -53,16 +53,13 @@ export function codeInputClasses(hasError: boolean): string {
 
 /** A submit button that looks like the primary button of the spaces (20 §11.8). */
 export const PRIMARY_SUBMIT_CLASSES = cn(
-  memberButtonClasses("primary", "lg"),
+  buttonClasses("primary", "lg"),
   "w-full",
 );
 
-export const SECONDARY_BUTTON_CLASSES = memberButtonClasses("secondary", "md");
+export const SECONDARY_BUTTON_CLASSES = buttonClasses("secondary", "md");
 
-export const TEXT_BUTTON_CLASSES = cn(
-  memberButtonClasses("text"),
-  "self-start",
-);
+export const TEXT_BUTTON_CLASSES = cn(buttonClasses("text"), "self-start");
 
 /** A link with the look of a text button: underlined, aligned to the left (20 §11.8, L2AU-3). */
 export const TEXT_LINK_CLASSES = cn(memberTextLinkClasses(), "self-start");

@@ -30,7 +30,7 @@ import { useOnline } from "@/components/auth/use-online";
 import { ACTION_BAR_CLASSES } from "@/components/brand-profile/brand-profile-classes";
 import { formatSavedTime } from "@/components/brand-profile/brand-profile-view";
 import { useMember } from "@/components/member/member-context";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
 import { StatusBadge } from "@/components/member/ui/StatusBadge";
@@ -146,9 +146,9 @@ function CampaignFormView({
       phase === "unavailable" ? (
         <div className="flex flex-col gap-4">
           <ErrorNotice>{t("form.unavailable")}</ErrorNotice>
-          <MemberButton variant="secondary" onClick={state.reload}>
+          <Button variant="secondary" onClick={state.reload}>
             {t("form.retry")}
-          </MemberButton>
+          </Button>
         </div>
       ) : (
         <p role="status" className="text-sm text-text-secondary">
@@ -267,13 +267,9 @@ function LoadedCampaign({
         <Notice tone="warning">
           <p className="font-semibold">{t("save.failedTitle")}</p>
           <p>{t("save.failedText")}</p>
-          <MemberButton
-            variant="secondary"
-            className="mt-2"
-            onClick={state.retryNow}
-          >
+          <Button variant="secondary" className="mt-2" onClick={state.retryNow}>
             {t("save.retryNow")}
-          </MemberButton>
+          </Button>
         </Notice>
       ) : null}
       {editable ? null : <Notice tone="info">{t("form.locked")}</Notice>}
@@ -316,14 +312,12 @@ function LoadedCampaign({
             {previous === undefined ? (
               <span />
             ) : (
-              <MemberButton variant="secondary" onClick={() => goTo(previous)}>
+              <Button variant="secondary" onClick={() => goTo(previous)}>
                 {t("form.previous")}
-              </MemberButton>
+              </Button>
             )}
             {next === undefined ? null : (
-              <MemberButton onClick={() => goTo(next)}>
-                {t("form.next")}
-              </MemberButton>
+              <Button onClick={() => goTo(next)}>{t("form.next")}</Button>
             )}
           </div>
           {editable ? (
@@ -362,7 +356,7 @@ function SubmitBarButton({ submission }: { submission: Submission }) {
   const t = useTranslations("campaign");
   const { busy, submit } = submission;
   return (
-    <MemberButton
+    <Button
       aria-disabled={busy || undefined}
       onClick={() => {
         if (!busy) {
@@ -371,7 +365,7 @@ function SubmitBarButton({ submission }: { submission: Submission }) {
       }}
     >
       {busy ? t("publish.busy") : t("publish.button")}
-    </MemberButton>
+    </Button>
   );
 }
 

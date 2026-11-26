@@ -12,7 +12,7 @@ import { useTranslations } from "next-intl";
 import { useRef, type ChangeEvent } from "react";
 import { cn } from "@/components/ui/class-names";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
@@ -90,7 +90,7 @@ export function PortfolioFields({
           onChange={onPick}
         />
         <div className="flex flex-wrap items-center gap-3">
-          <MemberButton
+          <Button
             variant="secondary"
             aria-disabled={blocked || full || undefined}
             onClick={() => {
@@ -104,15 +104,15 @@ export function PortfolioFields({
               className="size-(--size-icon-md) shrink-0"
             />
             {t("portfolio.add")}
-          </MemberButton>
+          </Button>
           {state.canRetry ? (
-            <MemberButton
+            <Button
               variant="secondary"
               aria-disabled={blocked || undefined}
               onClick={state.retry}
             >
               {t("portfolio.retry")}
-            </MemberButton>
+            </Button>
           ) : null}
         </div>
         <p className={MEMBER_FIELD_HELP_CLASSES}>{t("portfolio.help")}</p>
@@ -140,9 +140,9 @@ export function PortfolioFields({
       {state.phase === "unavailable" ? (
         <div className="flex flex-col items-start gap-3">
           <ErrorNotice>{t("portfolio.unavailable")}</ErrorNotice>
-          <MemberButton variant="secondary" onClick={state.reload}>
+          <Button variant="secondary" onClick={state.reload}>
             {t("portfolio.reload")}
-          </MemberButton>
+          </Button>
         </div>
       ) : null}
       {state.phase === "ready" &&

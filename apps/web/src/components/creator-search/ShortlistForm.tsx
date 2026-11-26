@@ -6,7 +6,7 @@
 // lists; a refusal is told in words next to the field it concerns. Nothing is decided here.
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState, type FormEvent } from "react";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { TextField } from "@/components/member/ui/TextField";
 import {
@@ -157,13 +157,9 @@ export function ShortlistForm({
         </Notice>
       ) : null}
       <div>
-        <MemberButton
-          type="submit"
-          aria-disabled={busy}
-          data-shortlist-submit=""
-        >
+        <Button type="submit" aria-disabled={busy} data-shortlist-submit="">
           {submitLabel}
-        </MemberButton>
+        </Button>
       </div>
     </form>
   );

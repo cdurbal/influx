@@ -8,7 +8,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { useId, useState, type FormEvent } from "react";
 import { TEXT_LINK_CLASSES } from "@/components/auth/auth-classes";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { TextField } from "@/components/member/ui/TextField";
 import {
   MEMBER_FIELD_LABEL_CLASSES,
@@ -67,9 +67,9 @@ export function SelectionPanel({
         className={cn(SELECTION_PANEL_CLASSES, className)}
       >
         <p className="text-sm text-text-secondary">{t("panel.failed")}</p>
-        <MemberButton variant="secondary" onClick={selection.reload}>
+        <Button variant="secondary" onClick={selection.reload}>
           {t("panel.retry")}
-        </MemberButton>
+        </Button>
       </section>
     );
   }
@@ -112,7 +112,7 @@ export function SelectionPanel({
         <h2 id={titleId} className={CARD_TITLE}>
           {t("panel.title", { count })}
         </h2>
-        <MemberButton
+        <Button
           variant="text"
           className="lg:hidden"
           aria-expanded={open}
@@ -128,7 +128,7 @@ export function SelectionPanel({
               open && "rotate-180",
             )}
           />
-        </MemberButton>
+        </Button>
       </div>
       <div
         id={bodyId}
@@ -195,14 +195,14 @@ export function SelectionPanel({
                 : t(`lists.problem.${problem}`)
             }
           />
-          <MemberButton
+          <Button
             type="submit"
             variant="secondary"
             aria-disabled={creating}
             data-create-selection=""
           >
             {t("panel.create")}
-          </MemberButton>
+          </Button>
         </form>
         {failure === null || failure === "invalid_name" ? null : (
           <ErrorNotice>

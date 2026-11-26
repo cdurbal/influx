@@ -9,8 +9,8 @@
 import type { CreatorNetworkLine } from "@influx/contracts/creator-profile";
 import { useLocale, useTranslations } from "next-intl";
 import { Notice } from "@/components/member/ui/Notice";
-import { MemberButton } from "@/components/member/ui/MemberButton";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { Button } from "@/components/member/ui/Button";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { GROUP_TITLE_CLASSES } from "@/components/creator-profile/creator-profile-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { Link } from "@/i18n/navigation";
@@ -70,12 +70,9 @@ export function VerificationLineState({
       <div className="flex flex-col gap-3">
         <ErrorNotice>{t("line.unavailable")}</ErrorNotice>
         <div>
-          <MemberButton
-            variant="secondary"
-            onClick={() => void verification.retry()}
-          >
+          <Button variant="secondary" onClick={() => void verification.retry()}>
             {t("line.retry")}
-          </MemberButton>
+          </Button>
         </div>
       </div>
     );
@@ -119,7 +116,7 @@ export function VerificationLineState({
               <div>
                 <a
                   href={`#${lineControlIdOf(line.id, missing)}`}
-                  className={memberButtonClasses("secondary")}
+                  className={buttonClasses("secondary")}
                   data-verification-action="fillIdentifier"
                   onClick={(event) => {
                     const field = document.getElementById(
@@ -142,7 +139,7 @@ export function VerificationLineState({
               <div>
                 <Link
                   href={ownershipJourneyHref(line.networkCode, locale)}
-                  className={memberButtonClasses(
+                  className={buttonClasses(
                     action === "start" ? "primary" : "secondary",
                   )}
                   data-verification-action={action}
@@ -176,7 +173,7 @@ export function VerificationLineState({
               <div>
                 <Link
                   href={audienceJourneyHref(line.networkCode, locale)}
-                  className={memberButtonClasses(
+                  className={buttonClasses(
                     audienceAction === "start" ? "primary" : "secondary",
                   )}
                   data-verification-action={audienceAction}

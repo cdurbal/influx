@@ -1,12 +1,12 @@
 // The primitives of the connected spaces (docs/mvp/20 §11.8; DS-5): what each one renders, and the
 // rules that no class check sees: one h1, the role and the verified badge written, the counter read
 // in words, motion under motion-safe: only. Server rendering, no browser (the e2e look at pixels).
-import { createElement } from "react";
+import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
-  memberButtonClasses,
-  type MemberButtonVariant,
+  buttonClasses,
+  type ButtonVariant,
 } from "@/components/member/ui/button-classes";
 import { counterText } from "@/components/member/ui/counter";
 import { CounterBadge } from "@/components/member/ui/CounterBadge";
@@ -16,7 +16,15 @@ import {
   memberControlClasses,
   memberTextAreaClasses,
 } from "@/components/member/ui/field-classes";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { ActionLink } from "@/components/member/ui/ActionLink";
+import { Button } from "@/components/member/ui/Button";
+import { Card } from "@/components/member/ui/Card";
+import {
+  cardClasses,
+  MEMBER_CARD_CLASSES,
+} from "@/components/member/ui/card-classes";
+import { CardActions } from "@/components/member/ui/CardActions";
+import { InnerPanel } from "@/components/member/ui/InnerPanel";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import { RoleBadge } from "@/components/member/ui/RoleBadge";
@@ -28,22 +36,17 @@ const html = (element: Parameters<typeof renderToStaticMarkup>[0]) =>
   renderToStaticMarkup(element);
 
 describe("buttons (20 §11.8)", () => {
-  const variants: MemberButtonVariant[] = [
-    "primary",
-    "secondary",
-    "danger",
-    "text",
-  ];
+  const variants: ButtonVariant[] = ["primary", "secondary", "danger", "text"];
 
   it("are pills with a named transition, zoomed and pressed under motion-safe: and never when aria-disabled, the text button still", () => {
     for (const variant of variants) {
-      const classes = memberButtonClasses(variant);
+      const classes = buttonClasses(variant);
       expect(classes, variant).toContain("transition-lift");
       expect(classes, variant).not.toContain("transition-all");
       expect(classes, variant).toContain("aria-disabled:bg-action-disabled-bg");
     }
     for (const variant of ["primary", "secondary", "danger"] as const) {
-      const classes = memberButtonClasses(variant);
+      const classes = buttonClasses(variant);
       expect(classes, variant).toContain(
         "motion-safe:not-aria-disabled:hover:scale-(--scale-hover)",
       );
@@ -51,32 +54,32 @@ describe("buttons (20 §11.8)", () => {
         "motion-safe:not-aria-disabled:active:scale-(--scale-press)",
       );
     }
-    expect(memberButtonClasses("text")).not.toContain("scale-");
+    expect(buttonClasses("text")).not.toContain("scale-");
     for (const variant of ["primary", "secondary", "danger"] as const) {
-      expect(memberButtonClasses(variant)).toContain("rounded-pill");
+      expect(buttonClasses(variant)).toContain("rounded-pill");
     }
   });
 
   it("gives the glow to the primary button alone, and takes it away when disabled", () => {
-    const primary = memberButtonClasses("primary");
+    const primary = buttonClasses("primary");
     expect(primary).toContain("shadow-(--effect-action-glow)");
     expect(primary).toContain(
       "not-aria-disabled:hover:shadow-(--effect-action-glow-hover)",
     );
     expect(primary).toContain("aria-disabled:shadow-none");
     for (const variant of ["secondary", "danger", "text"] as const) {
-      expect(memberButtonClasses(variant), variant).not.toContain("shadow-");
+      expect(buttonClasses(variant), variant).not.toContain("shadow-");
     }
   });
 
   it("renders a button that never submits by chance, and stretches only on request", () => {
-    const plain = html(createElement(MemberButton, null, "Save"));
+    const plain = html(createElement(Button, null, "Save"));
     expect(plain).toContain('type="button"');
     expect(plain).not.toContain("w-full");
     const stretched = html(
       createElement(
-        MemberButton,
-        { type: "submit", fullWidth: true, "aria-disabled": true },
+        Button,
+        { type: "submit", block: true, "aria-disabled": true },
         "Send",
       ),
     );
@@ -110,7 +113,7 @@ describe("page header (20 §11.8)", () => {
       createElement(PageHeader, {
         title: "Campaigns",
         above: "Home",
-        actions: createElement(MemberButton, null, "New"),
+        actions: createElement(Button, null, "New"),
       }),
     );
     expect(markup.match(/<h1[ >]/g)).toHaveLength(1);
@@ -241,5 +244,258 @@ describe("locked fields (L3C-X3)", () => {
       "disabled:text-text-secondary",
     );
     expect(memberChoiceRowClasses()).toContain("has-disabled:cursor-default");
+  });
+});
+
+// RUB-T2 (docs/mvp/jalons/rub/annexe.md; line 02): C04, C05, C10, C11 and C12, by what they render. Server
+// rendering; the handlers are called as functions, the pixels, the hover and the motion are the board's (RUB-AN2).
+describe("RUB-T2: the button, its sizes and its states (C10)", () => {
+  it("draws the four sizes by their height token, the two small ones reaching 44 px by a transparent pseudo-element, the text button keeping its own", () => {
+    expect(buttonClasses("primary", "sm")).toContain("min-h-(--size-tag)");
+    expect(buttonClasses("primary", "bar")).toContain("min-h-(--size-pill)");
+    expect(buttonClasses("primary", "md")).toContain(
+      "min-h-(--size-button-md)",
+    );
+    expect(buttonClasses("primary", "lg")).toContain(
+      "min-h-(--size-button-lg)",
+    );
+    for (const size of ["sm", "bar"] as const) {
+      const classes = buttonClasses("secondary", size);
+      expect(classes, size).toContain("before:h-(--size-touch-target)");
+      expect(classes, size).toContain("py-0");
+    }
+    for (const size of ["md", "lg"] as const) {
+      expect(buttonClasses("secondary", size), size).not.toContain("before:");
+    }
+    expect(buttonClasses("text", "sm")).toBe(buttonClasses("text", "lg"));
+    expect(buttonClasses("text")).toContain("min-h-(--size-touch-target)");
+  });
+
+  it("makes a busy button unavailable and busy, keeps its width by stacking both labels, and runs nothing", () => {
+    const calls: string[] = [];
+    const markup = html(
+      createElement(
+        Button,
+        { busy: true, busyLabel: "Sending", onClick: () => calls.push("x") },
+        "Send",
+      ),
+    );
+    expect(markup).toContain('aria-busy="true"');
+    expect(markup).toContain('aria-disabled="true"');
+    expect(markup).toContain("Sending");
+    expect(markup).toMatch(/<span class="[^"]*invisible[^"]*">Send<\/span>/);
+    const element = Button({
+      busy: true,
+      onClick: () => calls.push("click"),
+      children: "Send",
+    }) as ReactElement<{
+      onClick: (event: { preventDefault: () => void }) => void;
+    }>;
+    let prevented = false;
+    element.props.onClick({
+      preventDefault: () => {
+        prevented = true;
+      },
+    });
+    expect(prevented).toBe(true);
+    expect(calls).toEqual([]);
+    const idle = html(createElement(Button, { busyLabel: "Sending" }, "Send"));
+    expect(idle).not.toContain("aria-busy");
+    expect(idle).toMatch(
+      /<span aria-hidden="true" class="[^"]*invisible[^"]*">Sending<\/span>/,
+    );
+  });
+
+  it("ties an unavailable button to the text that says why, keeping the ids it already had", () => {
+    const markup = html(
+      createElement(
+        Button,
+        { disabledReason: "why", "aria-describedby": "hint" },
+        "Continue",
+      ),
+    );
+    expect(markup).toContain('aria-disabled="true"');
+    expect(markup).toContain('aria-describedby="hint why"');
+    expect(markup).not.toMatch(/ disabled[ =>]/);
+    expect(html(createElement(Button, null, "Continue"))).not.toContain(
+      "aria-describedby",
+    );
+  });
+
+  it("says pressed or not by aria-pressed, and the added state by a fading check and a calmer contour of the secondary button alone", () => {
+    expect(html(createElement(Button, { pressed: true }, "On"))).toContain(
+      'aria-pressed="true"',
+    );
+    expect(html(createElement(Button, { pressed: false }, "Off"))).toContain(
+      'aria-pressed="false"',
+    );
+    expect(html(createElement(Button, null, "Plain"))).not.toContain(
+      "aria-pressed",
+    );
+    const added = html(
+      createElement(Button, { variant: "secondary", added: true }, "Added"),
+    );
+    expect(added).toMatch(/<svg[^>]*animate-fade-in[^>]*aria-hidden="true"/);
+    const calm = buttonClasses("secondary", "md", true);
+    expect(calm).toContain("border-border-default");
+    expect(calm.split(" ")).not.toContain("border-action-secondary-border");
+    expect(buttonClasses("secondary").split(" ")).toContain(
+      "border-action-secondary-border",
+    );
+    expect(buttonClasses("primary", "md", true)).toBe(buttonClasses("primary"));
+  });
+
+  it("renders a link of the same look when given an href, unavailable by aria-disabled and without a type", () => {
+    const link = html(createElement(Button, { href: "/next" }, "Go"));
+    expect(link).toMatch(/^<a href="\/next"/);
+    expect(link).not.toContain("type=");
+    expect(link).toContain(buttonClasses("primary"));
+    const busy = html(
+      createElement(Button, { href: "/next", busy: true }, "Go"),
+    );
+    expect(busy).toContain('aria-disabled="true"');
+    expect(busy).toContain('aria-busy="true"');
+  });
+});
+
+describe("RUB-T2: the card, its variants and its link (C04)", () => {
+  it("keeps the card of today as it is and draws the others by their padding alone", () => {
+    expect(cardClasses("default")).toBe(MEMBER_CARD_CLASSES);
+    expect(html(createElement(Card, null, "Text"))).toBe(
+      `<div class="${MEMBER_CARD_CLASSES}">Text</div>`,
+    );
+    expect(cardClasses("compact")).toContain("p-4");
+    expect(cardClasses("box")).toContain("p-5");
+    for (const variant of ["compact", "box"] as const) {
+      expect(cardClasses(variant), variant).toContain("bg-surface-card");
+      expect(cardClasses(variant), variant).toContain("border-border-default");
+      expect(cardClasses(variant), variant).not.toContain("p-inset-card");
+    }
+  });
+
+  it("makes the whole card the click zone of one link, stretched, lifting on hover under motion-safe: only", () => {
+    const markup = html(
+      createElement(
+        Card,
+        { variant: "link", href: "/campaign", title: "Spring", as: "li" },
+        "Body",
+      ),
+    );
+    expect(markup).toMatch(/^<li class="/);
+    expect(markup.match(/<a /g)).toHaveLength(1);
+    expect(markup).not.toContain("<button");
+    expect(markup).toContain('<a href="/campaign"');
+    expect(markup).toContain("after:absolute after:inset-0");
+    expect(markup).toContain(">Spring</a>");
+    const classes = cardClasses("link");
+    expect(classes).toContain("border-border-strong");
+    expect(classes).toContain("hover:bg-surface-raised");
+    expect(classes).toContain(
+      "motion-safe:hover:translate-y-(--translate-lift)",
+    );
+    expect(classes).not.toMatch(/(?<!motion-safe:)hover:translate-y/);
+  });
+});
+
+describe("RUB-T2: the inner panel and the actions of a card (C05, C12)", () => {
+  it("raises its surface without a contour and draws each variant by its parts", () => {
+    const base = html(createElement(InnerPanel, { title: "Title" }, "Body"));
+    expect(base).toContain("bg-surface-raised");
+    expect(base).toContain("rounded-md");
+    expect(base).not.toMatch(/border-/);
+    expect(base).toContain("animate-rise-in");
+    expect(base).toContain(">Title</p>");
+    const readonly = html(
+      createElement(
+        InnerPanel,
+        {
+          variant: "readonly",
+          title: "Email",
+          action: createElement("a", { href: "/edit" }, "Edit"),
+        },
+        "a@example.test",
+      ),
+    );
+    expect(readonly.indexOf("Email")).toBeLessThan(
+      readonly.indexOf("a@example.test"),
+    );
+    expect(readonly.indexOf("a@example.test")).toBeLessThan(
+      readonly.indexOf("Edit"),
+    );
+    expect(readonly).toContain("px-4 py-3");
+    const preview = html(
+      createElement(
+        InnerPanel,
+        { variant: "preview", title: "Preview", icon: createElement("svg") },
+        "Body",
+      ),
+    );
+    expect(preview).toContain("uppercase");
+    expect(preview).toMatch(/<span aria-hidden="true"[^>]*><svg/);
+    expect(
+      html(createElement(InnerPanel, { variant: "form" }, "Body")),
+    ).toContain("flex-col");
+  });
+
+  it("wraps the actions 12 px apart and stretches them under 480 px on request alone", () => {
+    const plain = html(createElement(CardActions, null, "Body"));
+    expect(plain).toContain("flex-wrap");
+    expect(plain).toContain("gap-3");
+    expect(plain).not.toContain("max-sm:");
+    const stretched = html(
+      createElement(CardActions, { stretch: true }, "Body"),
+    );
+    expect(stretched).toContain("max-sm:*:w-full");
+    expect(stretched.split(" ")).not.toContain("w-full");
+  });
+});
+
+describe("RUB-T2: the link of action (C11)", () => {
+  it("underlines the inline link, adds a chevron nudging under motion-safe: to the go link and a pressed heart to the save link", () => {
+    const inline = html(createElement(ActionLink, { href: "/back" }, "Back"));
+    expect(inline).toMatch(/^<a href="\/back"/);
+    expect(inline).toContain("underline");
+    expect(inline).toContain("before:min-h-(--size-touch-target)");
+    expect(inline).toContain("before:min-w-(--size-touch-target)");
+    const go = html(
+      createElement(ActionLink, { variant: "go", href: "/detail" }, "Detail"),
+    );
+    expect(go).toMatch(/<svg[^>]*aria-hidden="true"/);
+    expect(go).toContain("motion-safe:group-hover:translate-x-(--size-nudge)");
+    expect(go).not.toMatch(/(?<!motion-safe:)group-hover:translate-x/);
+    expect(go).toContain("size-(--size-icon-md)");
+    expect(
+      html(
+        createElement(
+          ActionLink,
+          { variant: "go", dense: true, href: "/detail" },
+          "Detail",
+        ),
+      ),
+    ).toContain("size-(--size-icon-sm)");
+    const save = html(
+      createElement(ActionLink, { variant: "save", pressed: true }, "Saved"),
+    );
+    expect(save).toMatch(/^<button type="button"[^>]*aria-pressed="true"/);
+    expect(save).toContain("group-aria-pressed:fill-current");
+    expect(
+      html(createElement(ActionLink, { variant: "save" }, "Save")),
+    ).not.toContain(" aria-pressed=");
+  });
+
+  it("opens an external link in a new tab and says so after its label, in the text it is given", () => {
+    const external = html(
+      createElement(
+        ActionLink,
+        { href: "https://example.test", external: "(new tab)" },
+        "Terms",
+      ),
+    );
+    expect(external).toContain('target="_blank"');
+    expect(external).toContain('rel="noopener noreferrer"');
+    expect(external).toContain('<span class="sr-only"> (new tab)</span>');
+    expect(
+      html(createElement(ActionLink, { href: "/terms" }, "Terms")),
+    ).not.toContain("target=");
   });
 });

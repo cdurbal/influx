@@ -6,7 +6,7 @@
 // profile is read or unreadable (the home says so). The completeness is never shown to the other
 // party (06 RG57), and no score is shown here at all. Nothing but words: no amount, rate or price.
 import { useLocale, useTranslations } from "next-intl";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { cn } from "@/components/ui/class-names";
 import { ACCOUNT_STATE_CLASSES } from "@/components/member/shell-classes";
 import { Link } from "@/i18n/navigation";
@@ -37,7 +37,7 @@ export function AccountStateBlock({ state }: { state: BrandSummaryState }) {
       {action === null ? null : (
         <Link
           href={memberPageHref("accountProfile", locale)}
-          className={cn(memberButtonClasses("secondary", "md"), "w-full")}
+          className={cn(buttonClasses("secondary", "md"), "w-full")}
         >
           {tState(action)}
         </Link>

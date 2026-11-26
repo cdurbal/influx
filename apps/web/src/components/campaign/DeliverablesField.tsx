@@ -12,7 +12,7 @@ import {
 } from "./campaign-domain";
 import { useTranslations } from "next-intl";
 import { FieldFrame } from "@/components/member/ui/FieldFrame";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { describedByOf, useFieldIds } from "@/components/member/ui/field-ids";
 import { memberControlClasses } from "@/components/member/ui/field-classes";
 import { PlusIcon, Trash2Icon } from "@/components/ui/icons";
@@ -187,7 +187,7 @@ export function DeliverablesField({
               </select>
             </div>
             {lines.length > 1 ? (
-              <MemberButton
+              <Button
                 variant="text"
                 aria-label={t("field.removeLine", { number: index + 1 })}
                 onClick={() =>
@@ -201,13 +201,13 @@ export function DeliverablesField({
                   aria-hidden="true"
                   className="size-(--size-icon-md)"
                 />
-              </MemberButton>
+              </Button>
             ) : null}
           </div>
         );
       })}
       <div className={LIST_ACTIONS_CLASSES}>
-        <MemberButton
+        <Button
           variant="secondary"
           aria-disabled={atCap || undefined}
           onClick={() => {
@@ -218,7 +218,7 @@ export function DeliverablesField({
         >
           <PlusIcon aria-hidden="true" className="size-(--size-icon-md)" />
           {t("field.addLine")}
-        </MemberButton>
+        </Button>
       </div>
     </FieldFrame>
   );

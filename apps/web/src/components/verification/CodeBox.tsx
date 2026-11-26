@@ -9,7 +9,7 @@
 import type { OwnCode } from "@influx/contracts/verification";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { MEMBER_FIELD_HELP_CLASSES } from "@/components/member/ui/field-classes";
 import { CopyIcon } from "@/components/ui/icons";
 import { copyText } from "@/browser/copy-text";
@@ -35,7 +35,7 @@ export function CodeBox({ code }: { code: OwnCode }) {
           {code.code}
         </code>
         <div className={ACTIONS_CLASSES}>
-          <MemberButton
+          <Button
             variant="secondary"
             onClick={() => {
               void copyText(code.code).then((done) =>
@@ -48,7 +48,7 @@ export function CodeBox({ code }: { code: OwnCode }) {
               className="size-(--size-icon-sm) shrink-0"
             />
             {t("ownership.code.copy")}
-          </MemberButton>
+          </Button>
           <span role="status" className="text-sm text-text-secondary">
             {copy === "copied"
               ? t("ownership.code.copied")

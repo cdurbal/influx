@@ -10,16 +10,19 @@ export const CATALOGUE_DIRECTORY = "src/components/member/ui";
 /**
  * Every `.tsx` module of the folder, and none other: the catalogue of RUB, the controls of C18 and
  * the dated exceptions (`VerifiedBadge`, `ScoreGauge`, RUB-A §1). An old name that comes back
- * (`MemberButton.tsx` after its rename by line 02) is outside the list.
+ * (`MemberButton.tsx`, renamed by line 02) is outside the list.
  */
 export const CATALOGUE_MODULES: readonly string[] = [
+  "ActionLink.tsx",
   "Announcer.tsx",
+  "Button.tsx",
   "Card.tsx",
+  "CardActions.tsx",
   "CounterBadge.tsx",
   "DomainField.tsx",
   "FieldFrame.tsx",
+  "InnerPanel.tsx",
   "LayerBadge.tsx",
-  "MemberButton.tsx",
   "MultiChoiceField.tsx",
   "Notice.tsx",
   "PageFrame.tsx",
@@ -38,7 +41,10 @@ export const CATALOGUE_MODULES: readonly string[] = [
 
 /** The modules of RUB with no caller before RUE (RUB-A §7); the screen that wires one removes it. */
 export const UNCALLED_MODULES: readonly string[] = [
+  "ActionLink",
   "Announcer",
+  "CardActions",
+  "InnerPanel",
   "PageFrame",
   "Section",
 ];

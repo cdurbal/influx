@@ -19,7 +19,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { useMember } from "@/components/member/member-context";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { SingleChoiceField } from "@/components/member/ui/SingleChoiceField";
 import { TextField } from "@/components/member/ui/TextField";
@@ -147,9 +147,9 @@ export function NetworksFields({
     return (
       <div className="flex flex-col gap-4">
         <ErrorNotice>{t("networks.unavailable")}</ErrorNotice>
-        <MemberButton variant="secondary" onClick={state.reload}>
+        <Button variant="secondary" onClick={state.reload}>
           {t("page.retry")}
-        </MemberButton>
+        </Button>
       </div>
     );
   }
@@ -337,14 +337,14 @@ function NetworkLine({
             >
               {t("networks.removeConfirm", { network })}
             </p>
-            <MemberButton
+            <Button
               variant="danger"
               onClick={() => state.remove(line.id)}
               aria-label={t("networks.removeNow", { network })}
             >
               {t("networks.remove")}
-            </MemberButton>
-            <MemberButton
+            </Button>
+            <Button
               ref={keepButton}
               variant="secondary"
               onClick={() => {
@@ -354,17 +354,17 @@ function NetworkLine({
               aria-label={t("networks.removeKeepNamed", { network })}
             >
               {t("networks.removeKeep")}
-            </MemberButton>
+            </Button>
           </div>
         ) : (
-          <MemberButton
+          <Button
             ref={removeButton}
             variant="text"
             onClick={() => setConfirming(true)}
             aria-label={t("networks.removeNamed", { network })}
           >
             {t("networks.remove")}
-          </MemberButton>
+          </Button>
         )}
       </div>
 
@@ -458,12 +458,9 @@ function NetworkLine({
         ) : null}
         {holdsPriorityFigure(line) || state.toConfirm.has(line.id) ? (
           <div>
-            <MemberButton
-              variant="secondary"
-              onClick={() => state.confirm(line.id)}
-            >
+            <Button variant="secondary" onClick={() => state.confirm(line.id)}>
               {t("figures.confirm")}
-            </MemberButton>
+            </Button>
           </div>
         ) : null}
       </div>

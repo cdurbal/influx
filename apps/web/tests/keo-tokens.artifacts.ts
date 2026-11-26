@@ -47,7 +47,7 @@ const UNREAD_JUSTIFIED: readonly string[] = [
 
 // A word of a module of classes that the build names no rule for, one line each. None is a class: the
 // words are the variants and sizes passed as arguments to the builders of classes
-// (`memberButtonClasses("danger", "md")`, `statusBadgeClasses("neutral")`, `noticeClasses("info")`, the layer names keying `layer-badge-classes`).
+// (`buttonClasses("danger", "md")`, `statusBadgeClasses("neutral")`, `noticeClasses("info")`, the layer names keying `layer-badge-classes`).
 const CLASSES_JUSTIFIED: readonly string[] = [
   "danger",
   "md",

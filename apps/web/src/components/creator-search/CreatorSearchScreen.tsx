@@ -21,10 +21,10 @@ import { CreatorCardView } from "@/components/creator-profile/CreatorCardView";
 import { cardOfProjection } from "@/components/creator-profile/creator-preview-view";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageHeader } from "@/components/member/ui/PageHeader";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import {
   MEMBER_FIELD_HELP_CLASSES,
   MEMBER_FIELD_LABEL_CLASSES,
@@ -130,10 +130,7 @@ function RequestLink({
   const t = useTranslations("creatorSearch");
   const locale = useLocale();
   return (
-    <Link
-      href={requestHref(locale, place)}
-      className={memberButtonClasses(variant)}
-    >
+    <Link href={requestHref(locale, place)} className={buttonClasses(variant)}>
       {t("request.link")}
     </Link>
   );
@@ -207,7 +204,7 @@ function CreatorSearchView({
       <ShortlistsLink />
       <p className="text-md text-text-secondary">{t("page.explain")}</p>
       <div className={SEARCH_LAYOUT_CLASSES}>
-        <MemberButton
+        <Button
           variant="secondary"
           className={SEARCH_FILTERS_BUTTON_CLASSES}
           aria-expanded={filtersOpen}
@@ -216,7 +213,7 @@ function CreatorSearchView({
         >
           <FilterIcon aria-hidden="true" className="size-(--size-icon-md)" />
           {filtersLabel}
-        </MemberButton>
+        </Button>
         <SortControl query={query} labels={labels} onChange={apply} />
         <CampaignControl
           query={query}
@@ -257,7 +254,7 @@ function CreatorSearchView({
             <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
               {criteria.map((criterion) => (
                 <li key={criterion.id}>
-                  <MemberButton
+                  <Button
                     variant="secondary"
                     data-criterion={criterion.id}
                     onClick={() => apply(withoutCriterion(query, criterion))}
@@ -270,7 +267,7 @@ function CreatorSearchView({
                     <span className="sr-only">
                       {t("criteria.remove", { label: criterion.label })}
                     </span>
-                  </MemberButton>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -509,7 +506,7 @@ function Body({
               <ul className="m-0 flex list-none flex-col gap-2 p-0">
                 {widenings.map((widening) => (
                   <li key={widening.facet}>
-                    <MemberButton
+                    <Button
                       variant="secondary"
                       data-widen={widening.facet}
                       onClick={() => onApply(widenedQuery(query, widening))}
@@ -519,7 +516,7 @@ function Body({
                         : t("tooNarrow.remove", {
                             facet: t(`facets.${widening.facet}`),
                           })}
-                    </MemberButton>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -578,9 +575,9 @@ function Body({
           <Notice tone="info">
             <span data-state="page_cap">{t("pageCap.text")}</span>
           </Notice>
-          <MemberButton variant="secondary" onClick={() => onApply(query, 1)}>
+          <Button variant="secondary" onClick={() => onApply(query, 1)}>
             {t("results.backToFirst")}
-          </MemberButton>
+          </Button>
         </div>
       );
     case "forbidden":
@@ -589,12 +586,12 @@ function Body({
           <ErrorNotice>
             <span data-state="forbidden">{t("forbidden.text")}</span>
           </ErrorNotice>
-          <MemberButton
+          <Button
             variant="secondary"
             onClick={() => onApply({ ...query, campaignId: null })}
           >
             {t("forbidden.action")}
-          </MemberButton>
+          </Button>
         </div>
       );
     case "failed":
@@ -603,9 +600,9 @@ function Body({
           <ErrorNotice>
             <span data-state="failed">{t("failed.text")}</span>
           </ErrorNotice>
-          <MemberButton variant="secondary" onClick={onRetry}>
+          <Button variant="secondary" onClick={onRetry}>
             {t("failed.retry")}
-          </MemberButton>
+          </Button>
           {screen.kept === null ? null : (
             <Results
               screen={screen.kept}
@@ -658,9 +655,9 @@ function Results({
           >
             {t("results.endOfResults")}
           </p>
-          <MemberButton variant="secondary" onClick={() => onApply(query, 1)}>
+          <Button variant="secondary" onClick={() => onApply(query, 1)}>
             {t("results.backToFirst")}
-          </MemberButton>
+          </Button>
         </Card>
       ) : (
         <ul aria-label={t("results.title")} className={SEARCH_RESULTS_CLASSES}>
@@ -686,13 +683,13 @@ function Results({
           {screen.previousPage === null ? (
             <span />
           ) : (
-            <MemberButton
+            <Button
               variant="secondary"
               data-page="previous"
               onClick={() => onApply(query, screen.previousPage ?? 1)}
             >
               {t("results.previous")}
-            </MemberButton>
+            </Button>
           )}
           <span className="text-sm text-text-secondary">
             {t("results.page", { page: screen.page })}
@@ -700,13 +697,13 @@ function Results({
           {screen.nextPage === null ? (
             <span />
           ) : (
-            <MemberButton
+            <Button
               variant="secondary"
               data-page="next"
               onClick={() => onApply(query, screen.nextPage ?? 1)}
             >
               {t("results.next")}
-            </MemberButton>
+            </Button>
           )}
         </nav>
       )}

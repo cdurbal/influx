@@ -14,8 +14,8 @@ import { HELP_CLASSES } from "@/components/auth/auth-classes";
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { buttonClasses } from "@/components/member/ui/button-classes";
+import { Button } from "@/components/member/ui/Button";
 import { ScoreGauge } from "@/components/member/ui/ScoreGauge";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { Link } from "@/i18n/navigation";
@@ -41,9 +41,9 @@ export function CreatorHomeCard() {
     return (
       <Card>
         <ErrorNotice>{t("page.unavailable")}</ErrorNotice>
-        <MemberButton variant="secondary" onClick={creatorProfile.reload}>
+        <Button variant="secondary" onClick={creatorProfile.reload}>
           {t("page.retry")}
-        </MemberButton>
+        </Button>
       </Card>
     );
   }
@@ -78,7 +78,7 @@ function ProfileCard({ summary }: { summary: CreatorProfileSummary }) {
         value={summary.score}
         valueText={t("completeness.value", { score: summary.score })}
       />
-      <Link href={profileHref} className={memberButtonClasses("primary", "md")}>
+      <Link href={profileHref} className={buttonClasses("primary", "md")}>
         {t(`home.${creatorNextActionOf(summary)}`)}
       </Link>
       {missing.length === 0 ? (

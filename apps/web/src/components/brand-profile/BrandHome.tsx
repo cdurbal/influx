@@ -16,8 +16,8 @@ import {
 import { useMember } from "@/components/member/member-context";
 import { Card } from "@/components/member/ui/Card";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
-import { MemberButton } from "@/components/member/ui/MemberButton";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { Button } from "@/components/member/ui/Button";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { PageHeader } from "@/components/member/ui/PageHeader";
 import { cn } from "@/components/ui/class-names";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
@@ -88,9 +88,9 @@ function UnavailableCard({ onRetry }: { onRetry: () => void }) {
   return (
     <Card>
       <ErrorNotice>{t("page.unavailable")}</ErrorNotice>
-      <MemberButton variant="secondary" onClick={onRetry}>
+      <Button variant="secondary" onClick={onRetry}>
         {t("page.retry")}
-      </MemberButton>
+      </Button>
     </Card>
   );
 }
@@ -133,7 +133,7 @@ function ProfileCard({ summary }: { summary: BrandProfileSummary }) {
       </p>
       <Link
         href={memberPageHref("accountProfile", locale)}
-        className={memberButtonClasses("primary", "md")}
+        className={buttonClasses("primary", "md")}
       >
         {tState(action ?? "complete")}
       </Link>
@@ -200,7 +200,7 @@ function SearchCard() {
       <p className="text-md text-text-secondary">{t("home.search.text")}</p>
       <Link
         href={memberPageHref("advertiserCreators", locale)}
-        className={memberButtonClasses("primary", "md")}
+        className={buttonClasses("primary", "md")}
       >
         {tSearch("meta.search")}
       </Link>
@@ -218,7 +218,7 @@ function CampaignCard() {
       <p className="text-md text-text-secondary">{t("home.text")}</p>
       <Link
         href={memberPageHref("advertiserCampaigns", locale)}
-        className={memberButtonClasses("primary", "md")}
+        className={buttonClasses("primary", "md")}
       >
         {t("home.link")}
       </Link>

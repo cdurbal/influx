@@ -11,7 +11,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/components/ui/class-names";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import {
   memberChoiceInputClasses,
@@ -238,7 +238,7 @@ export function PortfolioItemCard({
         </>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        <MemberButton
+        <Button
           variant={saveVariant}
           aria-label={t("portfolio.saveCaptionNamed", { position })}
           aria-describedby={changed ? unsavedId : undefined}
@@ -246,8 +246,8 @@ export function PortfolioItemCard({
           onClick={save}
         >
           {t("portfolio.saveCaption")}
-        </MemberButton>
-        <MemberButton
+        </Button>
+        <Button
           variant="secondary"
           aria-label={t("portfolio.moveUp", { position })}
           aria-disabled={blocked || actions.isFirst || undefined}
@@ -261,8 +261,8 @@ export function PortfolioItemCard({
             aria-hidden="true"
             className="size-(--size-icon-md) shrink-0"
           />
-        </MemberButton>
-        <MemberButton
+        </Button>
+        <Button
           variant="secondary"
           aria-label={t("portfolio.moveDown", { position })}
           aria-disabled={blocked || actions.isLast || undefined}
@@ -276,9 +276,9 @@ export function PortfolioItemCard({
             aria-hidden="true"
             className="size-(--size-icon-md) shrink-0"
           />
-        </MemberButton>
+        </Button>
         {state === "approved" ? (
-          <MemberButton
+          <Button
             variant="secondary"
             aria-label={t("portfolio.replaceNamed", { position })}
             aria-disabled={blocked || undefined}
@@ -293,7 +293,7 @@ export function PortfolioItemCard({
               className="size-(--size-icon-md) shrink-0"
             />
             {t("portfolio.replace")}
-          </MemberButton>
+          </Button>
         ) : null}
         {confirming ? (
           <div
@@ -307,7 +307,7 @@ export function PortfolioItemCard({
             >
               {t("portfolio.removeConfirm")}
             </p>
-            <MemberButton
+            <Button
               variant="danger"
               aria-label={t("portfolio.removeNow", { position })}
               aria-disabled={blocked || undefined}
@@ -322,8 +322,8 @@ export function PortfolioItemCard({
                 className="size-(--size-icon-md) shrink-0"
               />
               {t("portfolio.remove")}
-            </MemberButton>
-            <MemberButton
+            </Button>
+            <Button
               ref={keepButton}
               variant="secondary"
               aria-label={t("portfolio.removeKeepNamed", { position })}
@@ -333,10 +333,10 @@ export function PortfolioItemCard({
               }}
             >
               {t("portfolio.removeKeep")}
-            </MemberButton>
+            </Button>
           </div>
         ) : (
-          <MemberButton
+          <Button
             ref={removeButton}
             variant="secondary"
             aria-label={t("portfolio.removeNamed", { position })}
@@ -352,7 +352,7 @@ export function PortfolioItemCard({
               className="size-(--size-icon-md) shrink-0"
             />
             {t("portfolio.remove")}
-          </MemberButton>
+          </Button>
         )}
       </div>
       {actions.failure === null ? null : (

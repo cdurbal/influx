@@ -25,10 +25,10 @@ import {
 import { PROFILE_PAGE_CLASSES } from "@/components/brand-profile/brand-profile-classes";
 import { useOnline } from "@/components/auth/use-online";
 import { useMember } from "@/components/member/member-context";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { CheckIcon, ChevronLeftIcon } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
@@ -88,9 +88,9 @@ function CreatorPreviewView() {
       state.phase === "unavailable" ? (
         <div className="flex flex-col gap-4">
           <ErrorNotice>{t("preview.unavailable")}</ErrorNotice>
-          <MemberButton variant="secondary" onClick={state.reload}>
+          <Button variant="secondary" onClick={state.reload}>
             {t("page.retry")}
-          </MemberButton>
+          </Button>
         </div>
       ) : (
         <p role="status" className="text-sm text-text-secondary">
@@ -189,9 +189,7 @@ function Tabs({
               data-preview-tab={name}
               onClick={() => setTab(name)}
               onKeyDown={onKeyDown}
-              className={memberButtonClasses(
-                selected ? "primary" : "secondary",
-              )}
+              className={buttonClasses(selected ? "primary" : "secondary")}
             >
               {selected ? (
                 <CheckIcon

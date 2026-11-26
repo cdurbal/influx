@@ -10,7 +10,7 @@ import type { BrandLogo } from "@influx/contracts/brand-profile";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/member/ui/Card";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { CARD_TITLE } from "@/components/member/ui/heading-classes";
 import { StatusBadge } from "@/components/member/ui/StatusBadge";
 import { VerifiedBadge } from "@/components/member/ui/VerifiedBadge";
@@ -146,7 +146,7 @@ export function CampaignFeedCard({
         {view.closed ? null : (
           <Link
             href={record}
-            className={memberButtonClasses("primary", "md") + " self-start"}
+            className={buttonClasses("primary", "md") + " self-start"}
           >
             {t("feed.card.open")}
             <span className="sr-only"> {title}</span>

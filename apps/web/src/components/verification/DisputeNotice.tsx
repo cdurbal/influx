@@ -15,7 +15,7 @@ import type {
   OwnDisputesResponse,
 } from "@influx/contracts/verification";
 import { useLocale, useTranslations } from "next-intl";
-import { memberButtonClasses } from "@/components/member/ui/button-classes";
+import { buttonClasses } from "@/components/member/ui/button-classes";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { Link } from "@/i18n/navigation";
 import { routing, type AppLocale } from "@/i18n/routing";
@@ -52,7 +52,7 @@ function AppealLink({
     <div>
       <Link
         href={appealHref(target, locale)}
-        className={memberButtonClasses("secondary")}
+        className={buttonClasses("secondary")}
         data-appeal-link={target.kind}
       >
         {t(label)}

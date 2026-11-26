@@ -7,7 +7,7 @@
 // is no longer visible, the bucket) is told, never swallowed. Nothing is decided here (CLAUDE.md §5).
 import { useTranslations } from "next-intl";
 import { useState } from "react";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { ErrorNotice } from "@/components/ui/ErrorNotice";
 import { CheckIcon, PlusIcon } from "@/components/ui/icons";
 import { CARD_ACTION_ROW_CLASSES } from "./creator-search-classes";
@@ -49,7 +49,7 @@ export function AddToSelectionButton({
   return (
     <div className="flex flex-col gap-2" data-selection-action={alias}>
       <div className={CARD_ACTION_ROW_CLASSES}>
-        <MemberButton
+        <Button
           variant="secondary"
           aria-disabled={busy || waiting}
           data-add-to-selection={alias}
@@ -62,7 +62,7 @@ export function AddToSelectionButton({
             <PlusIcon aria-hidden="true" className="size-(--size-icon-md)" />
           )}
           {held ? t("shortlist.remove") : t("shortlist.add")}
-        </MemberButton>
+        </Button>
         {held && selection.active !== null ? (
           <p className="text-sm text-text-secondary">
             {t("shortlist.inList", { name: selection.active.name })}

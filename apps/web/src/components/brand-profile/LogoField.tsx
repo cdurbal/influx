@@ -9,7 +9,7 @@
 import { useId, useRef, type ChangeEvent } from "react";
 import { useTranslations } from "next-intl";
 import { LayerBadge } from "@/components/member/ui/LayerBadge";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { Notice } from "@/components/member/ui/Notice";
 import {
   MEMBER_FIELD_CLASSES,
@@ -118,21 +118,21 @@ export function LogoField({
             hidden
             onChange={onPick}
           />
-          <MemberButton
+          <Button
             variant="secondary"
             aria-disabled={logo.busy || undefined}
             onClick={() => picker.current?.click()}
           >
             {hasLogo ? t("logo.replace") : t("logo.choose")}
-          </MemberButton>
+          </Button>
           {hasLogo ? (
-            <MemberButton
+            <Button
               variant="secondary"
               aria-disabled={logo.busy || undefined}
               onClick={logo.remove}
             >
               {t("logo.remove")}
-            </MemberButton>
+            </Button>
           ) : null}
         </div>
       </div>
@@ -147,9 +147,9 @@ export function LogoField({
       {logo.phase === "unavailable" ? (
         <div className="flex flex-col items-start gap-3">
           <ErrorNotice>{t("logo.errors.loadFailed")}</ErrorNotice>
-          <MemberButton variant="secondary" onClick={logo.reload}>
+          <Button variant="secondary" onClick={logo.reload}>
             {t("logo.reload")}
-          </MemberButton>
+          </Button>
         </div>
       ) : null}
       {activity.kind === "failed" ? (
@@ -163,13 +163,13 @@ export function LogoField({
             )}
           </ErrorNotice>
           {logo.canRetry ? (
-            <MemberButton
+            <Button
               variant="secondary"
               aria-disabled={logo.busy || undefined}
               onClick={logo.retry}
             >
               {t("logo.retry")}
-            </MemberButton>
+            </Button>
           ) : null}
         </div>
       ) : null}

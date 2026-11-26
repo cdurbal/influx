@@ -9,7 +9,7 @@ import {
   CAMPAIGN_KEY_MESSAGES_MAX,
 } from "./campaign-domain";
 import { useTranslations } from "next-intl";
-import { MemberButton } from "@/components/member/ui/MemberButton";
+import { Button } from "@/components/member/ui/Button";
 import { FieldFrame } from "@/components/member/ui/FieldFrame";
 import { describedByOf, useFieldIds } from "@/components/member/ui/field-ids";
 import { memberControlClasses } from "@/components/member/ui/field-classes";
@@ -85,7 +85,7 @@ export function KeyMessagesField({
               />
             </div>
             {lines.length > 1 ? (
-              <MemberButton
+              <Button
                 variant="text"
                 aria-label={t("field.removeKeyMessage", { number: index + 1 })}
                 onClick={() =>
@@ -99,13 +99,13 @@ export function KeyMessagesField({
                   aria-hidden="true"
                   className="size-(--size-icon-md)"
                 />
-              </MemberButton>
+              </Button>
             ) : null}
           </div>
         );
       })}
       <div className={LIST_ACTIONS_CLASSES}>
-        <MemberButton
+        <Button
           variant="secondary"
           aria-disabled={atCap || undefined}
           onClick={() => {
@@ -116,7 +116,7 @@ export function KeyMessagesField({
         >
           <PlusIcon aria-hidden="true" className="size-(--size-icon-md)" />
           {t("field.addKeyMessage")}
-        </MemberButton>
+        </Button>
       </div>
     </FieldFrame>
   );

@@ -81,7 +81,7 @@ import {
   SKIP_LINK_CLASSES,
   SPACE_NAME_CLASSES,
 } from "./shell-classes";
-import { memberButtonClasses } from "./ui/button-classes";
+import { buttonClasses } from "./ui/button-classes";
 import { RoleBadge } from "./ui/RoleBadge";
 
 type State =
@@ -419,7 +419,7 @@ function Frame({
               type="button"
               onClick={() => void leave()}
               aria-disabled={signingOut || undefined}
-              className={cn(memberButtonClasses("secondary", "md"), "w-full")}
+              className={cn(buttonClasses("secondary", "md"), "w-full")}
             >
               <LogOutIcon aria-hidden="true" className={NAV_ICON_CLASSES} />
               {signingOut ? tAuth("logout.busy") : t("footer.signOut")}
