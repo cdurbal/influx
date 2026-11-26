@@ -24,6 +24,10 @@ import {
   BACKOFFICE_PORT,
   DOUBLE_ORIGIN,
   DOUBLE_PORT,
+  S3_DOUBLE_ACCESS_KEY_ID,
+  S3_DOUBLE_ORIGIN,
+  S3_DOUBLE_PORT,
+  S3_DOUBLE_SECRET_ACCESS_KEY,
   WEB_ORIGIN,
   WEB_PORT,
 } from "./e2e/support/servers";
@@ -131,6 +135,17 @@ export default defineConfig({
           timeout: SERVER_TIMEOUT_MS,
         },
         {
+          command: "node ../../packages/test-kit/scripts/s3-double.ts",
+          url: `${S3_DOUBLE_ORIGIN}/_double/state`,
+          env: {
+            S3_DOUBLE_PORT: String(S3_DOUBLE_PORT),
+            S3_DOUBLE_ACCESS_KEY_ID,
+            S3_DOUBLE_SECRET_ACCESS_KEY,
+          },
+          reuseExistingServer: false,
+          timeout: SERVER_TIMEOUT_MS,
+        },
+        {
           command: "node e2e/start-api.ts",
           url: `${API_ORIGIN}/health`,
           env: {
@@ -148,6 +163,10 @@ export default defineConfig({
             BREVO_API_KEY: "e2e-brevo-double-key",
             BREVO_SENDER_TRANSACTIONAL: "codes@e2e.example.test",
             BREVO_TEST_RECIPIENTS: mailboxAddresses().join(","),
+            R2_ENDPOINT: S3_DOUBLE_ORIGIN,
+            R2_ACCESS_KEY_ID: S3_DOUBLE_ACCESS_KEY_ID,
+            R2_SECRET_ACCESS_KEY: S3_DOUBLE_SECRET_ACCESS_KEY,
+            R2_BUCKET_PREFIX: "e2e-",
           },
           reuseExistingServer: false,
           timeout: SERVER_TIMEOUT_MS,
