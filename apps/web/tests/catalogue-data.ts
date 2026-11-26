@@ -36,10 +36,13 @@ export const CATALOGUE_MODULES: readonly string[] = [
   "LayerBadge.tsx",
   "LogoPlate.tsx",
   "Notice.tsx",
+  "NumberedSteps.tsx",
+  "OtpField.tsx",
   "PageFrame.tsx",
   "PageHeader.tsx",
   "Pager.tsx",
   "PropertyList.tsx",
+  "Recap.tsx",
   "RoleBadge.tsx",
   "RowList.tsx",
   "SaveStatus.tsx",
@@ -53,6 +56,7 @@ export const CATALOGUE_MODULES: readonly string[] = [
   "TextAreaField.tsx",
   "TextField.tsx",
   "VerifiedBadge.tsx",
+  "Wizard.tsx",
 ];
 
 /** The modules of RUB with no caller before RUE (RUB-A §7); the screen that wires one removes it. */
@@ -72,14 +76,18 @@ export const UNCALLED_MODULES: readonly string[] = [
   "InnerPanel",
   "InternalZone",
   "LogoPlate",
+  "NumberedSteps",
+  "OtpField",
   "PageFrame",
   "Pager",
   "PropertyList",
+  "Recap",
   "RowList",
   "SaveStatus",
   "Section",
   "SegmentedControl",
   "Skeleton",
+  "Wizard",
 ];
 
 const SCREENS = "src/components";

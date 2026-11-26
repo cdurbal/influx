@@ -35,6 +35,10 @@ const COMPONENTS = [
   "filters-dialog",
   "filter-bar",
   "pager",
+  "wizard",
+  "recap",
+  "otp-field",
+  "numbered-steps",
   "row-list",
   "property-list",
   "empty-state",
@@ -1296,5 +1300,297 @@ test("RUB-AN2 07: the pills, the dialog and its scrim, their motion and its abse
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   expect((await readTurn()).duration).toBe("0s");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+});
+
+// RUB-T8 (docs/mvp/jalons/rub/annexe.md; 02b C41, C42, C49, C51; RUB-B §2): the segments of the wizard are links that the
+// keyboard goes through and follows, whatever their state; « Continue » and « Previous » change the step and the focus
+// goes to the `h2` of the new one, which draws no ring; « Continue » is never unavailable; the touch zone of a segment is
+// 26 px; under 480 px « Previous » is its chevron, 44 px wide and still named; the save status shows once, in the foot
+// from 768 px and in the meta under; nothing overflows at 320 px. The code is ONE field: a paste with separators fills the
+// six boxes, letters are refused, the next box takes the ring colour, the error draws the six, the blocked one is
+// disabled. RUB-AX on the numbered steps and the recap.
+test("RUB-T8: the wizard follows its segments by the keyboard, moves the focus to the title of the step and never blocks, the code is one field that takes a paste, and nothing overflows at 320 px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (component: string, state: string) =>
+    board.locator(
+      `[data-board-component="${component}"] [data-board-state="${state}"]`,
+    );
+  const start = cell("wizard", "page-header-wizard-start");
+  const segments = start
+    .getByRole("list", { name: "Étapes" })
+    .getByRole("link");
+  await expect(segments).toHaveCount(5);
+  await expect(segments.nth(1)).toHaveAttribute("aria-current", "step");
+  await expect(segments.nth(1)).toHaveAccessibleName(
+    "Étape 2 sur 5 : Votre ligne éditoriale, en cours",
+  );
+  await expect(segments.nth(3)).toHaveAccessibleName(
+    "Étape 4 sur 5 : Votre audience, à compléter",
+  );
+  await expect(start.locator("[aria-current]")).toHaveCount(1);
+
+  // The keyboard goes from segment to segment and `Entrée` follows the one it is on, whatever its state.
+  await segments.first().focus();
+  await page.keyboard.press("Tab");
+  await expect(segments.nth(1)).toBeFocused();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await expect(segments.nth(3)).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/#step-4$/);
+
+  // The zone of a segment is 26 px around a bar of 6 px (2.5.8 holds at 24).
+  const zone = await segments.first().evaluate((element) => ({
+    bar: parseFloat(getComputedStyle(element).height),
+    zone: parseFloat(getComputedStyle(element, "::before").height),
+  }));
+  expect(zone).toEqual({ bar: 6, zone: 26 });
+
+  // « Continue » moves the step and the focus goes to its `h2`, without a ring; « Previous » does the same backwards.
+  const next = start.getByRole("button", { name: /^Continuer : / });
+  await expect(next).not.toHaveAttribute("aria-disabled", "true");
+  await next.click();
+  const heading = start.getByRole("heading", { level: 2 });
+  await expect(heading).toHaveText("Vos réseaux");
+  await expect(heading).toBeFocused();
+  expect(
+    await heading.evaluate((element) => getComputedStyle(element).outlineStyle),
+  ).toBe("none");
+  await expect(start.getByText("Étape 3 sur 5", { exact: true })).toBeVisible();
+  await expect(segments.nth(2)).toHaveAttribute("aria-current", "step");
+  // a step with a gap after it, and « Continue » still free
+  await expect(next).toHaveText("Continuer : Votre audience");
+  await expect(next).not.toHaveAttribute("aria-disabled", "true");
+  await start.getByRole("button", { name: "Précédent" }).click();
+  await expect(heading).toHaveText("Votre ligne éditoriale");
+  await expect(heading).toBeFocused();
+
+  // The save status is shown once: in the foot from 768 px, in the meta under.
+  const foot = next.locator("xpath=..");
+  await expect(start.locator("[data-save-state]:visible")).toHaveCount(1);
+  await expect(foot.locator("[data-save-state]:visible")).toHaveCount(1);
+  expect(
+    await foot.evaluate((element) => getComputedStyle(element).position),
+  ).toBe("static");
+  await page.setViewportSize({ width: 600, height: 900 });
+  await expect(start.locator("[data-save-state]:visible")).toHaveCount(1);
+  await expect(foot.locator("[data-save-state]:visible")).toHaveCount(0);
+  expect(
+    await foot.evaluate((element) => getComputedStyle(element).position),
+  ).toBe("fixed");
+
+  // Under 480 px « Previous » is its chevron, 44 px wide, its name kept for the screen reader.
+  const previous = start.getByRole("button", { name: "Précédent" });
+  const label = previous.locator("span").last();
+  expect((await label.boundingBox())!.width).toBeGreaterThan(8);
+  await page.setViewportSize({ width: 375, height: 812 });
+  expect((await previous.boundingBox())!.width).toBeGreaterThanOrEqual(44);
+  expect((await label.boundingBox())!.width).toBeLessThanOrEqual(1);
+  await expect(previous).toBeVisible();
+
+  // Nothing overflows sideways at 320 px, the wizards included.
+  await page.setViewportSize({ width: 320, height: 800 });
+  for (const component of ["wizard", "recap", "otp-field", "numbered-steps"]) {
+    expect(
+      await board
+        .locator(`[data-board-component="${component}"]`)
+        .evaluate((element) => element.scrollWidth - element.clientWidth),
+      `${component} at 320 px`,
+    ).toBeLessThanOrEqual(0);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+
+  // The code: one field, a paste with separators fills the boxes, letters are refused, the ring colour follows the typing.
+  const typed = cell("otp-field", "empty");
+  await expect(typed.getByRole("textbox")).toHaveCount(1);
+  const code = typed.getByRole("textbox", { name: /Code à 6 chiffres/ });
+  const boxes = typed.locator("[data-otp-box]");
+  await expect(boxes).toHaveCount(6);
+  await code.focus();
+  await expect(boxes.first()).toHaveAttribute("data-otp-box", "current");
+  await page.keyboard.insertText("123 456");
+  await expect(code).toHaveValue("123456");
+  expect(await boxes.allTextContents()).toEqual(["1", "2", "3", "4", "5", "6"]);
+  await page.keyboard.press("Control+A");
+  await page.keyboard.press("Backspace");
+  await expect(code).toHaveValue("");
+  await page.keyboard.type("a1b2");
+  await expect(code).toHaveValue("12");
+  await expect(boxes.nth(2)).toHaveAttribute("data-otp-box", "current");
+  await page.keyboard.type("3456789");
+  await expect(code).toHaveValue("123456");
+  // the box that waits wears 2 px, the others 1 px, and none changes its size
+  const widthOf = (target: typeof boxes) =>
+    target.evaluate((element) => getComputedStyle(element).borderTopWidth);
+  expect(await widthOf(boxes.first())).toBe("1px");
+  expect(await widthOf(boxes.nth(5))).toBe("2px");
+  const rest = await boxes.first().boundingBox();
+  expect((await boxes.nth(5).boundingBox())!.height).toBe(rest!.height);
+
+  // The error draws the six boxes alike and ties the field to its message; the box keeps its size.
+  const failing = cell("otp-field", "error");
+  const failingBoxes = failing.locator("[data-otp-box]");
+  for (let index = 0; index < 6; index += 1) {
+    await expect(failingBoxes.nth(index)).toHaveAttribute(
+      "data-otp-box",
+      "invalid",
+    );
+    expect(await widthOf(failingBoxes.nth(index))).toBe("2px");
+  }
+  const failingBox = await failingBoxes.first().boundingBox();
+  expect(Math.round(failingBox!.width)).toBe(Math.round(rest!.width));
+  expect(Math.round(failingBox!.height)).toBe(Math.round(rest!.height));
+  const failingField = failing.getByRole("textbox");
+  await expect(failingField).toHaveAttribute("aria-invalid", "true");
+  await expect(failingField).toHaveAccessibleDescription(
+    /Ce code est incorrect\. Il vous reste 4 essais\./,
+  );
+  await expect(
+    cell("otp-field", "blocked").getByRole("textbox"),
+  ).toBeDisabled();
+  await expect(cell("otp-field", "busy").getByRole("textbox")).toHaveAttribute(
+    "readonly",
+    "",
+  );
+  const line = cell("otp-field", "line").getByRole("textbox");
+  await expect(line).toHaveValue("123");
+  expect(
+    await line.evaluate((element) => getComputedStyle(element).opacity),
+  ).toBe("1");
+  expect((await line.boundingBox())!.width).toBeLessThanOrEqual(192);
+
+  // The recap and the numbered steps: a link to edit named by its section, a state read before the label.
+  const recap = cell("recap", "missing");
+  await expect(
+    recap.getByRole("link", { name: "Modifier : 1. Vous présenter" }),
+  ).toBeVisible();
+  await expect(
+    recap.getByRole("region", { name: "3. Vos réseaux et vos chiffres" }),
+  ).toBeVisible();
+  const steps = cell("numbered-steps", "process").getByRole("list", {
+    name: "Étapes du changement d'adresse",
+  });
+  await expect(steps.getByRole("listitem")).toHaveCount(3);
+  await expect(steps.locator('[aria-current="step"]')).toContainText(
+    "En cours : Confirmer que c'est bien vous",
+  );
+});
+
+// RUB-AN2, lines 23, 24 and 31 (R04: the step comes in by `fade-in` over 120 ms on the curve `standard`; a segment of
+// the progress changes its colour over 320 ms on the same curve; the box of the code changes its outline over 120 ms;
+// under reduced motion the durations are zero: AN-1) and RUB-AX, AP1 (RUB-B §5): the contour of a segment is transparent,
+// thin on all and thick on the done and the current one, and forced colours draw it; so does the current marker of the
+// numbered steps, and the other ones keep none.
+test("RUB-AN2 08: the step fades in, the segments and the boxes of the code change their colour over their durations, and not under reduced motion, and forced colours draw the contours of the segments and of the current step", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (component: string, state: string) =>
+    board.locator(
+      `[data-board-component="${component}"] [data-board-state="${state}"]`,
+    );
+  const STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
+  const start = cell("wizard", "page-header-wizard-start");
+  const step = start.locator("section");
+  const segment = start.getByRole("list", { name: "Étapes" }).getByRole("link");
+  const box = cell("otp-field", "empty").locator("[data-otp-box]").first();
+  const readAnimation = () =>
+    step.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        name: style.animationName,
+        duration: style.animationDuration,
+        timing: style.animationTimingFunction,
+      };
+    });
+  const readTransition = (target: typeof box) =>
+    target.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        duration: style.transitionDuration,
+        timing: style.transitionTimingFunction,
+        properties: style.transitionProperty,
+      };
+    });
+
+  // Motion allowed.
+  expect(await readAnimation()).toEqual({
+    name: "fade-in",
+    duration: "0.12s",
+    timing: STANDARD,
+  });
+  const bar = await readTransition(segment.first());
+  expect(bar).toMatchObject({ duration: "0.32s", timing: STANDARD });
+  expect(bar.properties).toContain("background-color");
+  expect(bar.properties).not.toBe("all");
+  const outline = await readTransition(box);
+  expect(outline).toMatchObject({ duration: "0.12s", timing: STANDARD });
+  expect(outline.properties).toContain("border-color");
+  expect(outline.properties).not.toBe("all");
+
+  // The colour of a segment: done and current are the brand green, a step to complete the warning colour, the others calm.
+  const ground = (index: number) =>
+    segment
+      .nth(index)
+      .evaluate((element) => getComputedStyle(element).backgroundColor);
+  const [done, current, todo, gap] = await Promise.all([
+    ground(0),
+    ground(1),
+    ground(2),
+    ground(3),
+  ]);
+  expect(done).toBe(current);
+  expect(new Set([done, todo, gap]).size).toBe(3);
+
+  // Forced colours: the contour is transparent at rest, drawn by the system, thin on all and thick on done and current.
+  const contour = (index: number) =>
+    segment.nth(index).evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        style: style.outlineStyle,
+        width: style.outlineWidth,
+        color: style.outlineColor,
+      };
+    });
+  expect(await contour(0)).toEqual({
+    style: "solid",
+    width: "2px",
+    color: "rgba(0, 0, 0, 0)",
+  });
+  expect(await contour(1)).toMatchObject({ style: "solid", width: "2px" });
+  expect(await contour(2)).toMatchObject({ style: "solid", width: "1px" });
+  expect(await contour(3)).toMatchObject({ style: "solid", width: "1px" });
+  const marker = (state: string) =>
+    cell("numbered-steps", "process")
+      .locator(`[data-step-state="${state}"] > span`)
+      .first();
+  const markerStyle = (state: string) =>
+    marker(state).evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { style: style.outlineStyle, color: style.outlineColor };
+    });
+  expect(await markerStyle("current")).toEqual({
+    style: "solid",
+    color: "rgba(0, 0, 0, 0)",
+  });
+  expect((await markerStyle("todo")).style).toBe("none");
+  await page.emulateMedia({ forcedColors: "active" });
+  expect((await contour(0)).color).not.toBe("rgba(0, 0, 0, 0)");
+  expect((await markerStyle("current")).color).not.toBe("rgba(0, 0, 0, 0)");
+  expect((await markerStyle("todo")).style).toBe("none");
+  await page.emulateMedia({ forcedColors: "none" });
+
+  // Reduced motion: every duration is zero.
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect((await readAnimation()).duration).toBe("0s");
+  expect((await readTransition(segment.first())).duration).toBe("0s");
+  expect((await readTransition(box)).duration).toBe("0s");
   await page.emulateMedia({ reducedMotion: "no-preference" });
 });

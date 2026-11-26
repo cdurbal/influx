@@ -512,4 +512,5 @@ export const SHARED_CATALOGUE: readonly SharedCatalogueEntry[] = [
   { name: "FiltersDialog", backoffice: "pending" },
   { name: "FilterBar", backoffice: "pending" },
   { name: "Pager", backoffice: "pending" },
+  { name: "OtpField", backoffice: "pending" },
 ];
