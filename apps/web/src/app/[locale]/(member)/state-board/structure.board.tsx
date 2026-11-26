@@ -50,6 +50,9 @@ const TEXTS = {
   headerDefault: "En-tête, titre de page",
   headerFull: "En-tête, titre de section, chapeau, badges, action et méta",
   headerTitle: "Campagnes de la marque",
+  // A title of its own: TK3.1 pairs the h1 of 375 and 1 440 px by their text, so two cells of one
+  // page sharing a title, at two sizes, would be read as one title that changes size.
+  headerFullTitle: "Détail de la campagne",
   headerLead: "Retrouvez ici vos campagnes et leur avancement.",
   headerMeta: "Mise à jour le 12 janvier 2027",
   headerBadge: "En cours",
@@ -81,7 +84,7 @@ export function StructureBoard() {
       </BoardState>
       <BoardState state="page-header-full" label={TEXTS.headerFull}>
         <PageHeader
-          title={TEXTS.headerTitle}
+          title={TEXTS.headerFullTitle}
           titleSize="section"
           crumbs={[
             { href: "#", label: TEXTS.crumbHome },
