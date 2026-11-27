@@ -57,19 +57,23 @@ export const KEO_FIXED_TEXT_TOKENS: readonly string[] = (() => {
 /**
  * Waits for the end of the element's animations and transitions (`getAnimations()` flushes the style,
  * so a transition that a hover has just started is among them). An endless animation has no end.
+ * `subtree` adds those of the descendants and of the pseudo-elements.
  */
-export async function settled(target: Locator): Promise<void> {
-  await target.evaluate(async (element) => {
+export async function settled(
+  target: Locator,
+  { subtree = false }: { subtree?: boolean } = {},
+): Promise<void> {
+  await target.evaluate(async (element, deep) => {
     await Promise.all(
       element
-        .getAnimations()
+        .getAnimations({ subtree: deep })
         .filter(
           (animation) =>
             animation.effect?.getComputedTiming().endTime !== Infinity,
         )
         .map((animation) => animation.finished),
     );
-  });
+  }, subtree);
 }
 
 /** The element hovered, its transitions over. */

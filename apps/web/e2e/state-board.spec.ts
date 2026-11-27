@@ -5,8 +5,10 @@
 // in each of them, no sideways overflow of a section, and axe (WCAG 2.1 AA) finds nothing; at 375 px
 // nothing overflows sideways (05-recette-visuelle §6, RUAU-J1). The absence of the page
 // from a deployed build is the other half, proved on the artifact (tests/build.artifacts.ts).
+import type { Locator } from "@playwright/test";
 import { expectNoAxeViolation } from "./support/axe";
 import { expect, open, test } from "./support/journey";
+import { settled } from "./support/rendering";
 
 /** The sections the board holds today, one per component of RUA-05 and per family of RUB (RUB adds its own). */
 const COMPONENTS = [
@@ -916,6 +918,15 @@ test("RUB-AN2 06: the segments, the tags, the save status, the fold and the date
   );
 });
 
+/**
+ * The end state of an open dialog, to await before an axe pass: it fades in, and axe measures a text still half
+ * transparent as a lack of contrast. Its content has transitions of its own (the buttons of the filters).
+ */
+async function fullyShown(dialog: Locator): Promise<void> {
+  await settled(dialog, { subtree: true });
+  await expect(dialog).toHaveCSS("opacity", "1");
+}
+
 // RUB-T7 (docs/mvp/jalons/rub/annexe.md; 02a C27, C28, C30, C32), with the axe check of the open dialog: the dialog is
 // modal, names itself, puts the focus on the title or on the element asked for and gives it back to its opener; `Échap`
 // and the backdrop ask it to close, unless a request runs; the dialog of the filters gives its draft up when it is
@@ -950,6 +961,7 @@ test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by t
       parseFloat(getComputedStyle(element).width),
     ),
   ).toBe(480);
+  await fullyShown(dialog);
   await expectNoAxeViolation(page, "dialogue ouvert (confirmation)");
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
@@ -1004,11 +1016,11 @@ test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by t
   await cell("dialog", "error")
     .getByRole("button", { name: "Ouvrir le dialogue d'erreur" })
     .click();
-  await expect(
-    page
-      .getByRole("dialog", { name: "La demande n'est pas partie" })
-      .getByRole("alert"),
-  ).toContainText("L'envoi a échoué");
+  const failed = page.getByRole("dialog", {
+    name: "La demande n'est pas partie",
+  });
+  await expect(failed.getByRole("alert")).toContainText("L'envoi a échoué");
+  await fullyShown(failed);
   await expectNoAxeViolation(page, "dialogue ouvert (erreur)");
   await page.keyboard.press("Escape");
 
@@ -1034,6 +1046,7 @@ test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by t
   await keyword.fill("cuisine");
   await expect(clear).not.toHaveAttribute("aria-disabled", "true");
   await expect(applied).toHaveText("Critères appliqués : 0");
+  await fullyShown(panel);
   await expectNoAxeViolation(page, "dialogue des filtres ouvert");
   await panel.getByRole("button", { name: "Fermer les filtres" }).click();
   await expect(panel).toBeHidden();
@@ -1119,6 +1132,7 @@ test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by t
   expect(
     await panel.evaluate((element) => getComputedStyle(element).borderRadius),
   ).toBe("0px");
+  await fullyShown(panel);
   await expectNoAxeViolation(page, "dialogue des filtres à 375 px");
   await page.keyboard.press("Escape");
 
