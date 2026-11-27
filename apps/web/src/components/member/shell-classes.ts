@@ -41,10 +41,11 @@ export const BRAND_LINK_CLASSES = cn(
 
 /**
  * The name of the space in its role pill, at every width (17 §2.2, §2.3; L2AU-2): below lg, right
- * after INFLUX, the language pushed to the far end, its inset narrower so that the header holds on
- * one line at 320 px; from lg, under INFLUX in the column head.
+ * after INFLUX, the language pushed to the far end; under `breakpoint-header` its inset narrows to
+ * 8 px so that the header holds on one line at 320 px, from it the pill is the mockups' (RUB-11,
+ * E01.0-S04); from lg, under INFLUX in the column head.
  */
-export const SPACE_NAME_CLASSES = "max-lg:mr-auto max-lg:px-2";
+export const SPACE_NAME_CLASSES = "max-lg:mr-auto max-header:px-2";
 
 /**
  * The language in the header, below lg only (from lg it sits in the foot of the column). Under

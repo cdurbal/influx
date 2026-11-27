@@ -20,6 +20,7 @@ import {
   N3_SCREENSHOT_OPTIONS,
   type MaskKind,
   type StyleRecord,
+  withoutBorderOfNoWidth,
 } from "./compare";
 
 /** N1 of a page: its ARIA snapshot and the names of its visible icons, in document order. */
@@ -27,12 +28,18 @@ export type StructureCapture = { aria: string; icons: string[] };
 
 /**
  * The visible icons: a mockup draws `<svg><use href="#i-name">` (icons.js), the application
- * `<svg class="lucide lucide-name">` (icons.ts); both read `name`.
+ * `<svg class="lucide lucide-name">` (icons.ts); both read `name`. `root`: the part of the page
+ * compared (the whole body by default; the shell's column for a couple whose content is out of zone).
  */
-export async function readStructure(page: Page): Promise<StructureCapture> {
-  const aria = await page.locator("body").ariaSnapshot();
-  const icons = await page.evaluate(() =>
-    Array.from(document.querySelectorAll("svg")).flatMap((svg) => {
+export async function readStructure(
+  page: Page,
+  root = "body",
+): Promise<StructureCapture> {
+  const aria = await page.locator(root).first().ariaSnapshot();
+  const icons = await page.evaluate((root) => {
+    const scope = document.querySelector(root);
+    if (scope === null) return [];
+    return Array.from(scope.querySelectorAll("svg")).flatMap((svg) => {
       if (svg.getClientRects().length === 0) return [];
       if (getComputedStyle(svg).visibility !== "visible") return [];
       const use = svg.querySelector('use[href^="#i-"]');
@@ -41,8 +48,8 @@ export async function readStructure(page: Page): Promise<StructureCapture> {
         (name) => name.startsWith("lucide-") && name !== "lucide-icon",
       );
       return lucide === undefined ? [] : [lucide.slice("lucide-".length)];
-    }),
-  );
+    });
+  }, root);
   return { aria, icons };
 }
 
@@ -155,7 +162,7 @@ export async function readStyles(
   );
   return raw.map(({ colors, fontFamily, ...record }: RawRecord) => {
     const family = canonicalFamily(fontFamily.split(",")[0] ?? "");
-    return {
+    return withoutBorderOfNoWidth({
       ...record,
       colors: Object.fromEntries(
         Object.entries(colors).map(([property, value]) => [
@@ -165,7 +172,7 @@ export async function readStyles(
       ),
       family,
       familyLoaded: loaded.has(family),
-    };
+    });
   });
 }
 
@@ -232,10 +239,14 @@ export async function expectZoneMatches(
   name: string,
   masks: readonly VisualMask[] = [],
   soft = false,
+  timeout?: number,
 ): Promise<void> {
+  // `timeout`: how long a failing comparison retries (the expect timeout by default); the
+  // tolerances stay those of N3_SCREENSHOT_OPTIONS.
   const options = {
     ...N3_SCREENSHOT_OPTIONS,
     mask: maskLocators(page, masks),
+    ...(timeout === undefined ? {} : { timeout }),
   };
   const assert = soft ? expect.soft : expect;
   if (zone.selector === null) {

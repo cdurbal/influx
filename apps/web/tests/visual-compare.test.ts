@@ -1,7 +1,8 @@
 // RUA-03 (jalons/rua/03.md, modele-archi.md §5; 22-refonte-ux-ui/05 §1 to §3): the mockup comparison
 // tool without a browser. The comparators of N1 and N2 and their tolerances, the options and masks
 // of N3, the manifest of the frozen mockups (954e009) and the 147 states of the survey, RU-19 refused
-// by the data, the couples (empty in RUA), the `visual` project defined only under E2E_VISUAL, and no
+// by the data, the couples (the member shell's from RUB line 11, screen × state of its mockup, A §6),
+// the `visual` project defined only under E2E_VISUAL, its `app` spec apart, and no
 // image under apps/web/e2e. File reading only: deterministic, run by `pnpm test` in CI.
 import { createHash } from "node:crypto";
 import {
@@ -17,6 +18,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CASE_FLOORS as APP_CASE_FLOORS } from "../e2e/visual/app-case-floors";
+import {
+  expectedDifferences,
+  SUBMITTED_DEVIATIONS,
+} from "../e2e/visual/app-deviations";
 import { CASE_FLOORS as MOCKUP_CASE_FLOORS } from "../e2e/visual/case-floors";
 import {
   canonicalFamily,
@@ -29,6 +34,7 @@ import {
   N3_SCREENSHOT_OPTIONS,
   normalizedAria,
   sameColor,
+  withoutBorderOfNoWidth,
   zonesOf,
   type StyleRecord,
   type VisualColor,
@@ -143,6 +149,58 @@ describe("N1: structure and texts (05 §3)", () => {
     );
   });
 
+  it("counts a line added or removed once, without shifting the lines after it (RUB-11)", () => {
+    const added = aria.replace(
+      "- main:",
+      ['  - link "Campagnes"', "- main:"].join("\n"),
+    );
+    expect(
+      compareStructure({ aria, icons: [] }, { aria: added, icons: [] }),
+    ).toEqual(['aria line 3: null → "  - link \\"Campagnes\\""']);
+    expect(
+      compareStructure({ aria: added, icons: [] }, { aria, icons: [] }),
+    ).toEqual(['aria line 3: "  - link \\"Campagnes\\"" → null']);
+    // A button that became a link: its line differs, the link's address is one line more.
+    expect(
+      compareStructure(
+        { aria: '- button "English"\n- main', icons: [] },
+        { aria: '- link "English":\n  - /url: /en\n- main', icons: [] },
+      ),
+    ).toEqual([
+      'aria line 1: "- button \\"English\\"" → "- link \\"English\\":"',
+      'aria line 2: null → "  - /url: /en"',
+    ]);
+  });
+
+  it("drops an unnamed image and a text repeating its holder's name, keeps any other (RUB-11)", () => {
+    // A mockup's link holds its icon (`<svg>` in the tree) and its text; the application's, its
+    // text alone (icon `aria-hidden`): the same link, the icons compared apart.
+    const mockup = [
+      '- link "Accueil":',
+      '  - /url: "#contenu"',
+      "  - img",
+      "  - text: Accueil",
+    ].join("\n");
+    const app = ['- link "Accueil":', "  - /url: /fr/marque"].join("\n");
+    expect(
+      compareStructure(
+        { aria: mockup, icons: ["house"] },
+        { aria: app, icons: ["house"] },
+        [/(?<=\/url: ).+/],
+      ),
+    ).toEqual([]);
+    // Negative cases: a named image, a text other than the name, the same text out of its holder.
+    expect(normalizedAria('- img "Logo"')).toEqual(['- img "Logo"']);
+    expect(
+      normalizedAria(['- link "Accueil":', "  - text: Accueil !"].join("\n")),
+    ).toEqual(['- link "Accueil":', "  - text: Accueil !"]);
+    expect(
+      normalizedAria(
+        ['- link "Accueil":', "  - /url: /", "- text: Accueil"].join("\n"),
+      ),
+    ).toEqual(['- link "Accueil":', "  - /url: /", "- text: Accueil"]);
+  });
+
   it("sees an icon replaced or moved", () => {
     expect(
       compareStructure(
@@ -240,6 +298,56 @@ describe("N2: computed styles and geometry (05 §3)", () => {
     expect(canonicalFamily("__Source_Sans_3_a1b2c3")).toBe("source sans 3");
     expect(canonicalFamily("Source Sans 3")).toBe("source sans 3");
     expect(canonicalFamily("Manrope Fallback")).toBe("manrope fallback");
+  });
+
+  it("reads the constants of fonts.ts as their typeface, a closed list (RUB-11)", () => {
+    expect(canonicalFamily("__SOURCE_SANS_LATIN_9f8e7d")).toBe("source sans 3");
+    expect(canonicalFamily("__MANROPE_LATIN_EXT_9f8e7d")).toBe("manrope");
+    expect(canonicalFamily("__SOURCE_SANS_LATIN_Fallback_9f8e7d")).toBe(
+      "source sans latin fallback",
+    );
+    expect(canonicalFamily("Inter Latin")).toBe("inter latin");
+  });
+
+  it("reads a border of no width as no border, whatever its style and color; not a border of 1 px (RUB-11)", () => {
+    const tailwind = record({
+      exact: {
+        "border-top-width": "0px",
+        "border-top-style": "solid",
+        "border-left-width": "1px",
+        "border-left-style": "solid",
+      },
+      colors: {
+        "border-top-color": color(42, 47, 44),
+        "border-left-color": color(42, 47, 44),
+      },
+    });
+    const mockup = record({
+      exact: {
+        ...tailwind.exact,
+        "border-top-style": "none",
+        "border-left-style": "dashed",
+      },
+      colors: {
+        "border-top-color": color(244, 246, 245),
+        "border-left-color": color(244, 246, 245),
+      },
+    });
+    expect(withoutBorderOfNoWidth(tailwind).exact["border-top-style"]).toBe(
+      "none",
+    );
+    expect(withoutBorderOfNoWidth(tailwind).colors["border-top-color"]).toBe(
+      null,
+    );
+    expect(
+      compareStyleRecord(
+        withoutBorderOfNoWidth(mockup),
+        withoutBorderOfNoWidth(tailwind),
+      ),
+    ).toEqual([
+      "heading[0] <h1> border-left-color: rgba(244, 246, 245, 1) → rgba(42, 47, 44, 1)",
+      "heading[0] <h1> border-left-style: dashed → solid",
+    ]);
   });
 });
 
@@ -403,55 +511,143 @@ describe("RU-19: the backoffice from 768 to 1 023 px is out of N1 to N3", () => 
 
 describe("the couples mockup ↔ application", () => {
   const couple = (overrides: Partial<VisualCouple> = {}): VisualCouple => ({
-    id: "E04-S01",
+    id: "E04:matin",
     mockup: { file: "proto-bo-accueil.html", state: "matin" },
-    app: { front: "backoffice", path: "/accueil" },
-    matrix: [{ name: "title", mockup: "main h1", app: "main h1" }],
+    app: {
+      front: "backoffice",
+      path: "/accueil",
+      load: { space: "backoffice", options: {} },
+      ready: "main h1",
+    },
+    structure: { mockup: "body", app: "body" },
+    parts: [],
+    matrix: [{ name: "E04-S01", mockup: "main h1", app: "main h1" }],
     zones: [{ name: "main", mockup: "main", app: "main" }],
     masks: [],
     variables: [],
     ...overrides,
   });
 
-  it("is empty in RUA: no screen is compared before RUB", () => {
-    expect(VISUAL_COUPLES).toEqual([]);
+  it("are valid: the four states of the member shell from RUB line 11, each a couple that can be compared", () => {
+    expect(VISUAL_COUPLES.map((each) => each.id)).toEqual([
+      "E01.0:marque-neuve",
+      "E01.0:marque",
+      "E01.0:createur-neuf",
+      "E01.0:createur",
+    ]);
+    expect(new Set(VISUAL_COUPLES.map((each) => each.mockup.file))).toEqual(
+      new Set(["proto-accueils.html"]),
+    );
     expect(coupleProblems(VISUAL_COUPLES)).toEqual([]);
     expect(coupleProblems([couple()])).toEqual([]);
+    for (const each of VISUAL_COUPLES) {
+      // S02 to S16 but S08 and S09 (proto-compte's), the zones of A §6, the address masked only.
+      expect(each.matrix.map((line) => line.name)).toEqual(
+        [2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16].map(
+          (line) => `E01.0-S${String(line).padStart(2, "0")}`,
+        ),
+      );
+      expect(each.parts.map((part) => part.name)).toEqual([
+        "header",
+        "navigation",
+        "state",
+        "foot",
+      ]);
+      expect(each.zones.map((zone) => zone.name)).toEqual([
+        "column",
+        "header",
+        "navigation",
+      ]);
+      expect(each.masks.map((mask) => mask.kind)).toEqual(["account-email"]);
+      expect(each.app.front).toBe("web");
+    }
+  });
+
+  it("hold for each couple the deviations submitted to F1, each a line of N1 to N3 in a window of its space (05 §3)", () => {
+    expect(Object.keys(SUBMITTED_DEVIATIONS).sort()).toEqual(
+      VISUAL_COUPLES.map((each) => each.id).sort(),
+    );
+    for (const [id, deviations] of Object.entries(SUBMITTED_DEVIATIONS)) {
+      const ids = deviations.map((deviation) => deviation.id);
+      expect(new Set(ids).size, id).toBe(ids.length);
+      for (const deviation of deviations) {
+        // Never written as granted without the founder's consent (06b §7): F1 decides.
+        expect(deviation.status, `${id} ${deviation.id}`).toBe("submitted");
+        expect(deviation.why.length, deviation.id).toBeGreaterThan(20);
+        for (const width of deviation.widths) {
+          expect([375, 768, 1280, 1440], deviation.id).toContain(width);
+        }
+        for (const line of deviation.lines) {
+          expect(line, deviation.id).toMatch(/^N[123] /);
+        }
+      }
+      expect(
+        expectedDifferences(deviations, 1280).every((line) =>
+          line.startsWith("1280: "),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("refuses a line E..-S.. as identifier, a state other than the mockup's, a line of another screen", () => {
+    expect(coupleProblems([couple({ id: "E01.0-S02" as never })])).toEqual([
+      "E01.0-S02: not an identifier E..:<state>",
+    ]);
+    expect(coupleProblems([couple({ id: "E04:calme" })])).toEqual([
+      "E04:calme: the state of the identifier is not matin",
+    ]);
+    expect(
+      coupleProblems([
+        couple({
+          matrix: [{ name: "E05-S01", mockup: "main h1", app: "main h1" }],
+        }),
+      ]),
+    ).toEqual(["E04:matin: E05-S01 is not a line of the matrix of E04"]);
+    expect(
+      coupleProblems([
+        couple({
+          matrix: [{ name: "E04.1-S01", mockup: "main h1", app: "main h1" }],
+        }),
+      ]),
+    ).toEqual(["E04:matin: E04.1-S01 is not a line of the matrix of E04"]);
   });
 
   it("refuses a backoffice couple at 900 px, a foreign mask, an unknown state or mockup", () => {
     expect(
       coupleProblems([couple({ windows: [{ width: 900, height: 800 }] })]),
-    ).toEqual([expect.stringMatching(/^E04-S01: RU-19/)]);
+    ).toEqual([expect.stringMatching(/^E04:matin: RU-19/)]);
     expect(
       coupleProblems([
         couple({
           masks: [{ kind: "title" as never, mockup: "h1", app: "h1" }],
         }),
       ]),
-    ).toEqual(['E04-S01: "title" is not a mask of 05 §3']);
+    ).toEqual(['E04:matin: "title" is not a mask of 05 §3']);
     expect(
       coupleProblems([
-        couple({ mockup: { file: "proto-bo-accueil.html", state: "nuit" } }),
+        couple({
+          id: "E04:nuit",
+          mockup: { file: "proto-bo-accueil.html", state: "nuit" },
+        }),
       ]),
-    ).toEqual(["E04-S01: nuit is not a state of proto-bo-accueil.html"]);
+    ).toEqual(["E04:nuit: nuit is not a state of proto-bo-accueil.html"]);
     expect(
       coupleProblems([
-        couple({ mockup: { file: "proto-x.html", state: "a" } }),
+        couple({ id: "E04:a", mockup: { file: "proto-x.html", state: "a" } }),
       ]),
-    ).toEqual(["E04-S01: proto-x.html is not a mockup"]);
+    ).toEqual(["E04:a: proto-x.html is not a mockup"]);
   });
 
-  it("refuses an identifier that is not E..-S.., twice the same, an empty matrix or no zone", () => {
-    expect(coupleProblems([couple({ id: "E4-S1" })])).toEqual([
-      "E4-S1: not an identifier E..-S..",
+  it("refuses an identifier that is not E..:<state>, twice the same, an empty matrix or no zone", () => {
+    expect(coupleProblems([couple({ id: "E4:matin" })])).toEqual([
+      "E4:matin: not an identifier E..:<state>",
     ]);
     expect(coupleProblems([couple(), couple()])).toEqual([
-      "E04-S01: declared twice",
+      "E04:matin: declared twice",
     ]);
     expect(coupleProblems([couple({ matrix: [], zones: [] })])).toEqual([
-      "E04-S01: no line of the N2 matrix",
-      "E04-S01: no N3 zone",
+      "E04:matin: no line of the N2 matrix",
+      "E04:matin: no N3 zone",
     ]);
   });
 });
@@ -495,6 +691,8 @@ describe("the `visual` project exists only under E2E_VISUAL (modele-archi.md §5
     expect(visual?.use?.reducedMotion).toBe("reduce");
     const match = visual?.testMatch as RegExp;
     expect(match.test("e2e/visual/survey.spec.ts")).toBe(true);
+    expect(match.test("e2e/visual/mockup-self.spec.ts")).toBe(true);
+    expect(match.test("e2e/visual/app.spec.ts")).toBe(false);
     expect(match.test("e2e/backoffice.spec.ts")).toBe(false);
     expect(mockup.webServer).toEqual([]);
     expect(mockup.globalSetup).toBeUndefined();
@@ -510,6 +708,10 @@ describe("the `visual` project exists only under E2E_VISUAL (modele-archi.md §5
       "visual",
     ]);
     expect([app.webServer].flat()).toHaveLength(5);
+    const match = app.projects?.[0]?.testMatch as RegExp;
+    expect(match.test("e2e/visual/app.spec.ts")).toBe(true);
+    expect(match.test("e2e/visual/survey.spec.ts")).toBe(false);
+    expect(match.test("e2e/visual/mockup-self.spec.ts")).toBe(false);
     await expect(config("all")).rejects.toThrow(
       /E2E_VISUAL is "mockup" or "app"/,
     );
@@ -578,18 +780,24 @@ describe("the floors of the visual specs (RUAT-4)", () => {
     .map((name) => `e2e/visual/${name}`)
     .sort();
 
-  it("name existing specs, with a positive floor", () => {
+  it("name existing specs, with a positive floor, every spec of e2e/visual with its floor", () => {
     expect(floorProblems(MOCKUP_CASE_FLOORS, specs, true)).toEqual([]);
-    expect(Object.keys(MOCKUP_CASE_FLOORS).sort()).toEqual(
-      specs.filter((file) => !(file in APP_CASE_FLOORS)),
-    );
+    expect(floorProblems(APP_CASE_FLOORS, specs, true)).toEqual([]);
+    expect(
+      [
+        ...Object.keys(MOCKUP_CASE_FLOORS),
+        ...Object.keys(APP_CASE_FLOORS),
+      ].sort(),
+    ).toEqual(specs);
   });
 
-  it("hold the app floor of the mockup tool in a module of its own: 4 cases at least", () => {
+  it("hold the app floor of the mockup tool in a module of its own: a case per couple, and two", () => {
     // app.spec.ts is written by RUB line 11: its file is required from then on.
     expect(Object.keys(APP_CASE_FLOORS)).toEqual(["e2e/visual/app.spec.ts"]);
-    expect(floorProblems(APP_CASE_FLOORS, specs, false)).toEqual([]);
-    expect(APP_CASE_FLOORS["e2e/visual/app.spec.ts"]).toBeGreaterThanOrEqual(4);
+    expect(specs).toContain("e2e/visual/app.spec.ts");
+    expect(APP_CASE_FLOORS["e2e/visual/app.spec.ts"]).toBeGreaterThanOrEqual(
+      Math.max(4, VISUAL_COUPLES.length + 2),
+    );
   });
 
   it("would refuse a floor without a spec and a floor that is not positive (negative case)", () => {

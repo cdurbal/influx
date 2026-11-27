@@ -955,8 +955,9 @@ test("RUB-T10: the column, the header and the bar of a new brand, its state in w
     });
   }
 
-  // CA01 at 320 px, both languages: the header holds within its gutters. Under 360 px its pill
-  // alone narrows to 12 px of inset; from 360 it is that of the mockups, 24 px (RUB-B §1).
+  // CA01 at 320 px, both languages: the header holds within its gutters. Under 360 px its pills
+  // narrow, the language to 12 px of inset, the role to 8; from 360 they are those of the mockups,
+  // 24 and 12 px (RUB-B §1; RUB-11, E01.0-S04).
   for (const locale of ["fr", "en"] as const) {
     // CA06: the link leads to the same page in the other language.
     if (locale === "en") {
@@ -967,11 +968,11 @@ test("RUB-T10: the column, the header and the bar of a new brand, its state in w
     }
     const other = banner.locator("a[hreflang]");
     await expect(other).toHaveAttribute("lang", locale === "fr" ? "en" : "fr");
-    for (const [width, inset] of [
-      [320, "12px"],
-      [359, "12px"],
-      [360, "24px"],
-      [375, "24px"],
+    for (const [width, inset, roleInset] of [
+      [320, "12px", "8px"],
+      [359, "12px", "8px"],
+      [360, "24px", "12px"],
+      [375, "24px", "12px"],
     ] as const) {
       await page.setViewportSize({ width, height: 812 });
       const where = `${locale}, ${width} px`;
@@ -980,6 +981,8 @@ test("RUB-T10: the column, the header and the bar of a new brand, its state in w
       const space = banner.getByText(MEMBER[locale].space.advertiser, {
         exact: true,
       });
+      await expect(space, where).toHaveCSS("padding-left", roleInset);
+      await expect(space, where).toHaveCSS("padding-right", roleInset);
       const [name, language] = [await boxOf(space), await boxOf(other)];
       expect(name.height, where).toBeLessThan(40);
       expect(language.height, where).toBeLessThan(52);

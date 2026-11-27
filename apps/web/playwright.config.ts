@@ -49,9 +49,12 @@ const HEADINGS_FROM = process.env.E2E_HEADINGS_FROM;
 // RUA-03 (jalons/rua/modele-archi.md §5; 22-refonte-ux-ui/05 §3): the mockup comparison tool, a
 // project that exists only under E2E_VISUAL, then alone. `mockup`: the frozen mockups compared with
 // themselves, from the disk, with no stack, no server and no global setup. `app` (RUB and after): the
-// couples of e2e/support/visual/couples.ts, against the servers of the ordinary mode. Local only:
+// couples of e2e/support/visual/couples.ts (e2e/visual/app.spec.ts alone), against the servers of the
+// ordinary mode and the local stack. Local only:
 //   E2E_VISUAL=mockup pnpm --filter @influx/web exec playwright test
 //   cd apps/web && node ../../packages/test-kit/scripts/check-case-floors.ts e2e/visual/case-floors.ts test-results/e2e-report.json
+//   E2E_VISUAL=app pnpm --filter @influx/web exec playwright test
+//   cd apps/web && node ../../packages/test-kit/scripts/check-case-floors.ts e2e/visual/app-case-floors.ts test-results/e2e-report.json
 // Unset (CI, `pnpm test:e2e`), the project does not exist and "chromium" ignores e2e/visual/.
 const VISUAL = process.env.E2E_VISUAL;
 if (VISUAL !== undefined && VISUAL !== "mockup" && VISUAL !== "app") {
@@ -104,7 +107,11 @@ export default defineConfig({
       ? [
           {
             name: "visual",
-            testMatch: /visual\/.*\.spec\.ts$/,
+            // `mockup` ignores app.spec.ts, `app` runs it alone (jalons/rub/modele-archi.md §6).
+            testMatch:
+              VISUAL === "app"
+                ? /visual\/app\.spec\.ts$/
+                : /visual\/(?!app\.spec\.ts$)[^/]*\.spec\.ts$/,
             use: {
               ...devices["Desktop Chrome"],
               locale: "fr-FR",

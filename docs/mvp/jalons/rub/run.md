@@ -17,7 +17,7 @@
 | 09a | 09a.md | commit | opus | high | dev-react-node | fait | C31, C48 livrés ; PHOTO_EFFECT_READERS par front (web : photo-card-classes) ; cœur jamais vert ; icône vérifiée + texte ; planche sans image vitrine |
 | 09b | 09b.md | commit | sonnet | high | dev-react-node | fait | C34-C37, C39, C40, C66, C68 livrés ; flèches 09a remises sur la photo ; bande en SVG (CSP) ; « Lire la suite » et halo C68 non faits (EC) ; SHARED = 38 |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | C56 : aside nommé, état en texte (rien après Publié), langue en pilule, --breakpoint-header 360, cadres sur C01 à gauche, annonceur monté ; go en Manrope |
-| 11 | 11.md | commit | opus | high | testeur | à faire | |
+| 11 | 11.md | commit | opus | high | testeur | fait | 4 couples E01.0:<état> N1-N3 × 4 largeurs, 0 écart N3 ; 4 écarts D1-D4 soumis F1 (liste exacte) ; pastille 12 px dès 360 ; outil : LCS, bordure 0 |
 | U | ux.md | ux | sonnet | high | expert-ux | à faire | |
 | F1 | F1.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |

@@ -7,7 +7,8 @@
 // instant before any document, then run for a fixed delay once the page is loaded: the timers of zero
 // delay (a scroll into view, a section opened) fire, the countdowns of a second never do, and both
 // renderings of a state are the same (05 §3 masks the current dates and times; a frozen clock makes
-// them equal instead).
+// them equal instead). The application's side (RUB-11) is watched the same way, its own front alone
+// allowed, and opened on the same frozen clock once the session is written (RUAT-8).
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 import type { Page } from "@playwright/test";
@@ -92,5 +93,56 @@ export async function openMockupState(
       `${file}#${state}: proto.js applied the state "${applied ?? ""}"`,
     );
   }
+  await page.evaluate(() => document.fonts.ready);
+}
+
+/** What an application page did that it must not: requests out of its front, script errors. */
+export type AppFindings = MockupFindings;
+
+/**
+ * The application's side of a couple (RUB-11; jalons/rub/modele-archi.md §6), from now on: every
+ * request out of `origin` (the front of the couple) and every WebSocket is refused and counted, and
+ * the script errors are collected. Call it once per page, before the session is written: the clock
+ * is not touched here, the sign-in runs in real time.
+ */
+export async function watchAppPage(
+  page: Page,
+  origin: string,
+): Promise<AppFindings> {
+  const findings: AppFindings = { networkRequests: [], scriptErrors: [] };
+  await page.route(
+    (url) => url.origin !== origin,
+    async (route) => {
+      findings.networkRequests.push(route.request().url());
+      await route.abort("blockedbyclient");
+    },
+  );
+  await page.routeWebSocket(/^wss?:\/\//, (socket) => {
+    findings.networkRequests.push(socket.url());
+    void socket.close();
+  });
+  page.on("pageerror", (error) => {
+    findings.scriptErrors.push(error.message);
+  });
+  return findings;
+}
+
+/**
+ * Opens a page of the application once signed in (RUAT-8): the clock installed at MOCKUP_INSTANT and
+ * paused as the mockups', then the navigation, then `ready` (what the page must show, waited for in
+ * real time: the reads of the API are not timers), then SETTLE_DELAY_MS on the frozen clock and the
+ * fonts.
+ */
+export async function openAppPage(
+  page: Page,
+  url: string,
+  ready: (page: Page) => Promise<void>,
+): Promise<void> {
+  await page.clock.install({ time: MOCKUP_INSTANT });
+  await page.clock.pauseAt(PAUSED_INSTANT);
+  await page.goto(url, { waitUntil: "load" });
+  await ready(page);
+  await page.evaluate(() => document.fonts.ready);
+  await page.clock.runFor(SETTLE_DELAY_MS);
   await page.evaluate(() => document.fonts.ready);
 }

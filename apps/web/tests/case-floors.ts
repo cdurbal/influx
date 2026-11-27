@@ -46,5 +46,5 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "tests/state-board.test.ts": 12,
   "tests/status-cache.test.ts": 7,
   "tests/verification-view.test.ts": 107,
-  "tests/visual-compare.test.ts": 32,
+  "tests/visual-compare.test.ts": 38,
 };
