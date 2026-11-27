@@ -4,10 +4,14 @@
 // the element shows it as a modal (`showModal`, which holds the focus inside and gives it back to the opener), the
 // focus goes first to the element asked for, else to an `autofocus` one, else to the title; `Échap` and the click
 // on the backdrop ask the page to close, which may refuse (`dismissible` false while a request runs).
+// Chromium stops honouring `preventDefault` on `cancel` when no new user activation came since it last did, so a
+// dialog that must stay refuses `Échap` at the `keydown`, and shows itself again if the element closes all the same.
 import {
   useEffect,
   useId,
   useRef,
+  type FocusEvent,
+  type KeyboardEvent,
   type MouseEvent,
   type RefObject,
   type SyntheticEvent,
@@ -32,12 +36,14 @@ export function useModalDialog({
   const titleRef = useRef<HTMLHeadingElement>(null);
   const titleId = useId();
   // The native `close` event comes after the page has closed the dialog itself: it must not ask the page again.
-  const latest = useRef({ open, onClose });
+  const latest = useRef({ open, onClose, dismissible });
+  // What had the focus inside: a native close has already given it away when it is heard.
+  const lastFocus = useRef<HTMLElement | null>(null);
   // A press that began inside the dialog and ended on the backdrop (a text selection) is not a click on the backdrop.
   const pressedOnBackdrop = useRef(false);
 
   useEffect(() => {
-    latest.current = { open, onClose };
+    latest.current = { open, onClose, dismissible };
   });
 
   useEffect(() => {
@@ -66,6 +72,14 @@ export function useModalDialog({
       onClose();
     }
   };
+  const onKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
+    if (event.key === "Escape" && !latest.current.dismissible) {
+      event.preventDefault();
+    }
+  };
+  const onFocus = (event: FocusEvent<HTMLDialogElement>) => {
+    lastFocus.current = event.target;
+  };
   const onMouseDown = (event: MouseEvent<HTMLDialogElement>) => {
     pressedOnBackdrop.current = event.target === event.currentTarget;
   };
@@ -81,9 +95,21 @@ export function useModalDialog({
     }
   };
   const onNativeClose = () => {
-    if (latest.current.open) {
-      latest.current.onClose();
+    if (!latest.current.open) {
+      return;
     }
+    if (latest.current.dismissible) {
+      latest.current.onClose();
+      return;
+    }
+    const dialog = dialogRef.current;
+    if (dialog === null || dialog.open) {
+      return;
+    }
+    // Read before `showModal`, whose own focusing steps move the focus.
+    const held = lastFocus.current;
+    dialog.showModal();
+    (held !== null && dialog.contains(held) ? held : titleRef.current)?.focus();
   };
 
   return {
@@ -92,6 +118,8 @@ export function useModalDialog({
       ref: dialogRef,
       "aria-labelledby": titleId,
       onCancel,
+      onKeyDown,
+      onFocus,
       onMouseDown,
       onClick,
       onClose: onNativeClose,

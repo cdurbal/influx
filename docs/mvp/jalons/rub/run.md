@@ -26,11 +26,11 @@
 | fix-5 | fix-5.md | fix | sonnet | high | dev-react-node | fait | U-7 : cadre étroit à `container-max`, pile de 768 px par le seul retrait droit, appelants intacts ; choix « corriger » (fondateur, 2026-11-27) |
 | F1 | F1.md | fondateur | — | — | fondateur | fait | « 1 oui, 2 accordés, 3 acceptés » (2026-11-27) : coquille validée ; D1-D4 en `06b` §7 ; effets acceptés |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | RUBS 0/0/0/5, I-4 ok ; RUBT 0/5/2/4 (bloquant/jalon/avant prod/plus tard) ; jalon : fix-6 à fix-10, 8 et 10 en deux voies au choix |
-| fix-6 | fix-6.md | fix | sonnet | high | dev-react-node | à valider | RUBT-2 : dialogue occupé fermé au 3e Échap ; Échap bloqué au keydown, close natif → showModal sans onClose ; T7 : trois Échap |
-| fix-7 | fix-7.md | fix | sonnet | high | dev-react-node | à valider | RUBT-3 : date refusée effacée quand une borne change ; brouillon gardé, valeur réémise ; cellule date-field/bounds |
-| fix-8a | fix-8a.md | fix | sonnet | high | dev-react-node | à valider | RUBT-4 voie A : id, data-*, aria-* posés à la racine des 54 modules, test paramétré RUB-T12 ; exclusive de fix-8b |
-| fix-8b | fix-8b.md | fix | opus | xhigh | architecte | à valider | RUBT-4 voie B : 02c l. 5-7 amendé au plus près du code, D89 amendée ; aucun code ; exclusive de fix-8a |
-| fix-9 | fix-9.md | fix | sonnet | high | integrateur | à valider | RUBT-5 (antérieur à RUB) : EPIPE de T7.3 ; 413 lu même si l'écriture casse ; 413 vu par Chromium constaté |
-| fix-10a | fix-10a.md | fix | opus | high | testeur | à valider | RUBT-1 voie A : planche scindée par famille (A §4), service relevé en CI ; RUB ≤ 20 s visé |
+| fix-6 | fix-6.md | fix | sonnet | high | dev-react-node | fait | RUBT-2 : Échap refusé au keydown ; close natif → showModal sans onClose ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
+| fix-7 | fix-7.md | fix | sonnet | high | dev-react-node | à faire | RUBT-3 : date saisie gardée quand une borne change ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
+| fix-8a | fix-8a.md | fix | sonnet | high | dev-react-node | à faire | RUBT-4 voie A : id, data-*, aria-* à la racine, test RUB-T12 ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
+| fix-8b | fix-8b.md | fix | opus | xhigh | architecte | ignoré | voie A retenue par le fondateur (fix-8a), 2026-11-27 |
+| fix-9 | fix-9.md | fix | sonnet | high | integrateur | à faire | RUBT-5 : EPIPE de T7.3, 413 lu ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
+| fix-10a | fix-10a.md | fix | opus | high | testeur | à faire | RUBT-1 voie A : planche scindée, service relevé en CI ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-10b | fix-10b.md | fix | opus | xhigh | architecte + chef-de-projet | à valider | RUBT-1 voie B : budget réécrit au chiffre mesuré ; seule, ou après fix-10a pour le reste |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |

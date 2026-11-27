@@ -1122,16 +1122,44 @@ test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by t
   await page.keyboard.press("Escape");
 
   // A request runs: neither `Échap` nor the backdrop closes the dialog, its own button does.
-  await cell("dialog", "busy")
-    .getByRole("button", { name: "Ouvrir le dialogue en cours" })
-    .click();
+  const sending = cell("dialog", "busy").getByRole("button", {
+    name: "Ouvrir le dialogue en cours",
+  });
+  await sending.click();
   const busy = page.getByRole("dialog", { name: "Envoi de la demande" });
   await expect(busy).toBeVisible();
-  await page.keyboard.press("Escape");
+  // Three in a row, with no click between them: with no new activation, Chromium stops letting `cancel` be refused.
+  // Refused at the key, so the element never closes, not even to show itself again.
+  await busy.evaluate((element) =>
+    element.addEventListener(
+      "close",
+      () => element.setAttribute("data-heard-close", ""),
+      { once: true },
+    ),
+  );
+  for (let press = 0; press < 3; press += 1) {
+    await page.keyboard.press("Escape");
+  }
+  await expect(busy).toBeVisible();
+  await expect(busy).toHaveAttribute("open", "");
+  await expect(busy).not.toHaveAttribute("data-heard-close");
   await page.mouse.click(5, 5);
   await expect(busy).toBeVisible();
+  // A close that no key asked for: the element shows itself again, the focus back on what had it.
+  const held = busy.getByRole("button", { name: "Envoi…" });
+  await held.focus();
+  await busy.evaluate(async (element: HTMLDialogElement) => {
+    const closed = new Promise((done) =>
+      element.addEventListener("close", done, { once: true }),
+    );
+    element.close();
+    await closed;
+  });
+  await expect(busy).toHaveAttribute("open", "");
+  await expect(held).toBeFocused();
   await busy.getByRole("button", { name: "Terminer l'envoi" }).click();
   await expect(busy).toBeHidden();
+  await expect(sending).toBeFocused();
 
   // The error dialog is clean for axe as well.
   await cell("dialog", "error")
