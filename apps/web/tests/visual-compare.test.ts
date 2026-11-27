@@ -567,12 +567,20 @@ describe("the couples mockup ↔ application", () => {
     expect(Object.keys(SUBMITTED_DEVIATIONS).sort()).toEqual(
       VISUAL_COUPLES.map((each) => each.id).sort(),
     );
+    const [, journal] = readFileSync(
+      path.resolve(
+        WEB_ROOT,
+        "../../docs/mvp/22-refonte-ux-ui/06b-ecarts-et-anomalies.md",
+      ),
+      "utf8",
+    ).split("## 7. Journal des écarts accordés");
     for (const [id, deviations] of Object.entries(SUBMITTED_DEVIATIONS)) {
       const ids = deviations.map((deviation) => deviation.id);
       expect(new Set(ids).size, id).toBe(ids.length);
       for (const deviation of deviations) {
-        // Never written as granted without the founder's consent (06b §7): F1 decides.
-        expect(deviation.status, `${id} ${deviation.id}`).toBe("submitted");
+        // Granted only with the founder's consent, written in the journal of 06b §7.
+        expect(deviation.status, `${id} ${deviation.id}`).toBe("granted");
+        expect(journal, `${id} ${deviation.id}`).toContain(`(${deviation.id})`);
         expect(deviation.why.length, deviation.id).toBeGreaterThan(20);
         for (const width of deviation.widths) {
           expect([375, 768, 1280, 1440], deviation.id).toContain(width);

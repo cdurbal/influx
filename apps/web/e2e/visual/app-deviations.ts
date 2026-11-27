@@ -1,8 +1,9 @@
 // The differences of the couples submitted to the founder (RUB line 11; 22-refonte-ux-ui/05 §3, §8):
-// each is either corrected by a `fix` or written in 06b §7 with the founder's consent at F1, there is
-// no third way. Until F1, app.spec.ts requires exactly these differences: a new one fails, and so does
-// one that no longer shows (a fix removes its entry; a consent moves it to 06b §7 and keeps it here,
-// its status changed). Pure data, read by app.spec.ts and tests/visual-compare.test.ts.
+// each is either corrected by a `fix` or written in 06b §7 with the founder's consent, there is no
+// third way. D1 to D4 were granted at F1 (2026-11-27) and are written there. app.spec.ts requires
+// exactly these differences: a new one fails, and so does one that no longer shows (a fix removes its
+// entry; a consent writes it in 06b §7 and keeps it here, its status changed). Pure data, read by
+// app.spec.ts and tests/visual-compare.test.ts.
 
 /** A difference of a couple: the lines app.spec.ts writes for it, where, and why. */
 export type SubmittedDeviation = {
@@ -56,14 +57,14 @@ function shellDeviations(state: {
         "N2 E01.0-S05[0] <button> tag: button → a",
       ],
       why: "S05 (and S14, in D3): the language is a link, not a button (it changes the address, 17 §3.1; MemberShell LanguageLinks, CA06); same pill, same look",
-      status: "submitted",
+      status: "granted",
     },
     {
       id: "RUB-11-D2",
       widths: ALL,
       lines: radius("E01.0-S03", "a"),
       why: "S03: INFLUX keeps radius-md (12 px), the shape of its focus ring; the mockup's link has none; seen under focus only",
-      status: "submitted",
+      status: "granted",
     },
     {
       id: "RUB-11-D3",
@@ -107,7 +108,7 @@ function shellDeviations(state: {
         "N2 E01.0-S14[0] <button> tag: button → a",
       ],
       why: "S11, S12, S14 to S16: the state and the foot in the aside « Votre compte » (RUB-B §1, 17 §2.3, D89; axe `region` of the mockup, 06b §3 and RU-12), its lines as paragraphs, the foot no contentinfo; the language a link (D1); same look",
-      status: "submitted",
+      status: "granted",
     },
     ...(state.missing
       ? [
@@ -119,7 +120,7 @@ function shellDeviations(state: {
               "N2 E01.0-S13[0] <a> stacking: static/auto → relative/auto",
             ],
             why: "S13: « Compléter mon profil » (C11 `go`) holds its 44 px target in a pseudo-element (RUB-B, 20 §11.8 « zone 44 px »): relative, radius-md for its focus ring; same box, same look",
-            status: "submitted" as const,
+            status: "granted" as const,
           },
         ]
       : []),
