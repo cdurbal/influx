@@ -951,6 +951,8 @@
 
 **Conséquences** : `20` §11.8, `17` §2.3, `18` §12.8, `02` §21.2 et `02a`, `02b`, `02c` amendés avant tout code (règle d'or) ; `06a` : « État » de RU-32, RU-34 et RU-36 pour leur part composant ; `06b` §7 : une ligne
 
+**Complément du 2026-11-27 (fondateur), qui ferme le point « CA01 de la coquille à 320 px » ci-dessus** : à 320 px, l'en-tête déborde avec la langue en pilule `secondary md` (largeur nécessaire sur une ligne, pour 288 px disponibles : marque FR 304,1, créateur FR 307,0, marque EN 294,5, créateur EN 302,5 ; avec une marge intérieure de 12 px au lieu de 24 : 280,1, 283,0, 270,5, 278,5 ; la pilule dessinée tient dès 339 px ; la maquette déborde elle-même à 320 ; aucun seuil entre 339 et 375, le plus petit étant `breakpoint-sm`, 480). Question : **A**, un token de seuil à 360 px, sous lequel la pilule de l'en-tête passe à 12 px (`spacing-3`), la maquette étant suivie au-dessus sans écart en `06b` §7 ; **B**, 12 px partout sous 1 024 px ; **C**, le lien compact actuel sous 1 024 px. **Réponse du fondateur, mot pour mot : « A » (2026-11-27)**. Token `--breakpoint-header: 360px`, créé par la ligne 10 (`RUB-10`) ; l'assertion e2e L2AU-2 reste intacte. Reports : `jalons/rub/modele-ux.md` §1, `20` §11.5 et §11.8
+
 **Échéance** : avant le Lot 4
 
 ## D90 — Lot 3ter : migration du stockage des images vers Cloudflare R2 (code R2)

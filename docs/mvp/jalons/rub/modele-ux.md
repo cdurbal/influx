@@ -1,10 +1,10 @@
 # RUB-B — Modèle UX des composants et de la coquille
-> `expert-ux`, 2026-11-26 · F0 « oui a toutes les questions » · après A · aucune couleur ni token nouveau (D6) · aucun écart de maquette hors `R06b` §7 · *M.* motif, *P.* preuve.
+> `expert-ux`, 2026-11-26 · F0 « oui a toutes les questions » · après A · aucune couleur nouvelle (D6), un seul token (§1) · aucun écart de maquette hors `R06b` §7 · *M.* motif, *P.* preuve.
 
 ## 1. Coquille, ligne 10 (E01-Q8)
 - **Bloc d'état et pied** : un `aside` nommé « Votre compte » / « Your account » (clé neuve `member.json` `shell.accountState.label`, FR et EN), après la `nav` : bloc d'état (S11 à S13), puis pied (S14 à S16) poussé en bas du reste de la colonne. Absent si `me` est nul ; masqué sous 1 024 px. *M.* ordre du DOM = ordre visuel (2.4.3), impossible dans le `header`, avant la `nav` ; axe `region` levé (X11) sans effet visuel ; TD5.1 et TD5.3 (`column` à 1 440) inchangés.
 - **Langue** : le lien actuel (`lang`, `hrefLang`, nom de l'autre langue dans sa langue), dessiné par `buttonClasses("secondary", "md")` ; jamais un `button` (il change d'adresse). En-tête sous 1 024, pied dès 1 024, largeur du contenu. E01-Q4 (libellé) : RUE.
-- **Risque CA01** : à 320 px, INFLUX + pastille + langue ≈ 55 + 141 + 106 + 16 = 318 px pour 288. La ligne 10 mesure ; débordement = `arret decision` (320 non dessiné).
+- **Seuil de l'en-tête (CA01 ; fondateur, « A », 2026-11-27)** : à 320 px, la pilule dessinée déborde (270,5 à 283,0 px avec 12 px de marge intérieure ; 294,5 à 307,0 avec 24 ; 288 disponibles ; elle tient dès 339). **Décision écrite de B** (invariants 2 et 6) : la ligne 10 crée dans `tokens.css` `--breakpoint-header: 360px` (nom de rôle, comme `form`), dans `@theme static`, jamais redéfini sous KEO. Sous ce seuil (`max-header:`), la seule pilule de l'en-tête prend `spacing-3` (12 px) en marge intérieure horizontale ; dès 360, conforme à la maquette ; rien en `R06b` §7. L2AU-2 intacte.
 
 ## 2. Assistant C41 (ligne 08)
 - **Pied sous 480 px (RU-36)** : « Précédent » = C10 `text`, chevron 16 seul, largeur minimale `size-touch-target` ; le libellé reste dans le DOM, masqué à l'œil (`max-sm:sr-only`) : même nom à toute largeur, aucune `aria-label`. Dès 480 : chevron et libellé (maquette). Ordre : Précédent, statut C25 (au centre dès 768 ; dessous, dans la méta de tête), « Continuer : ⟨étape⟩ » (`primary`, à droite, deux lignes permises). Sans `back`, « Continuer » reste à droite. À 375 : 343 − 44 − 12 = 287 ≥ 240,3 (E03-Q9) et 239,9 (E07-Q13). Lien raccourci de la recherche (E02-Q14) : RUH.
@@ -37,6 +37,6 @@
 02 : 3 (C11), 16 (C10 `added`), 21 (C05) · 03 : 17 (C16) · 04 : 4 (C06), 32 (C09) · 05 : 21 (C18) · 06 : 6 (C22), 19, 20 (C26), 29 (C25) · 07 : 6 (C30), 7, 8 (C27, C28) · 08 : 23, 24 (C41), 31 (C49) · 09a : 2 (C48), 11 à 15, 22 (C31 ; fin du retrait à l'écran, RUH, immédiate en mouvement réduit) · 09b : 9, 10 (C34), 33 (C39) · hors RUB : 18 (C58), 33 (C59) → RUC ; 25 (C43) → RUE ; 26 à 28 (C44) → RUF.
 
 ## 8. Preuves et renvois
-- Paires nouvelles : anneau `focus-ring` × halo `surface-page` 18,2:1 ; cœur 3,15:1 et ≥ 3,66:1 (§5) ; le reste suit la maquette. Tokens cités : tous dans `tokens.css`.
+- Paires nouvelles : anneau `focus-ring` × halo `surface-page` 18,2:1 ; cœur 3,15:1 et ≥ 3,66:1 (§5) ; le reste suit la maquette. Tokens cités : dans `tokens.css`, sauf celui du §1.
 - Pour 00 (`20` §11.8, une ligne chacun) : AP1 ; zone de 44 px (§3) ; anneau double sur photo (§5).
-- Renvois, aucun bloquant pour RUB : chevron au repos (RUC) ; « à compléter » écrit (RUF) ; erreur contre « À vérifier » (RUG) ; CA01 à 320 px (10).
+- Renvois, aucun bloquant pour RUB : chevron au repos (RUC) ; « à compléter » écrit (RUF) ; erreur contre « À vérifier » (RUG).

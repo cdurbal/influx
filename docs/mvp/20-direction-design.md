@@ -885,6 +885,8 @@ durée calculée vaut 0 s et le squelette passe à `animation: none` (AN-1) ; au
 **Points de rupture du Lot 3bis (RU-03, D88).** `--breakpoint-form` 640 px (formulaires : grille de champs à 2, 3 ou 4
 colonnes) dans `@theme static`, jamais redéfini sous KEO ; backoffice : variante `bo-wide` dès 1 536 px (listes),
 déclarée dans `tokens-backoffice.css`. Forme et gardes : `02` §21.3.
+*(Complément du 2026-11-27, D89, créé par `RUB-10`)* `--breakpoint-header` 360 px (en-tête des espaces membres,
+§11.8), même forme que `--breakpoint-form`, jamais redéfini sous KEO.
 
 ### 11.6 Ce qu'on ne prend pas de la maquette
 
@@ -1052,6 +1054,9 @@ un état non cité est sans objet.
 - **Contrôles sur photo (RUB-B, D89).** Tout glyphe posé sur une photo sans fond propre (cœur, points, case ronde) porte
   `effect-photo-shadow` ; tout contrôle sur photo (cœur, flèches, « Voir les n visuels ») a un anneau double : `focus-ring`
   sur un halo `surface-page` (anneau contre halo 18,2:1). Cœur : remplissage `effect-photo-scrim-soft`, trait `text-primary`.
+- **Pilule de langue de l'en-tête (D89, fondateur, « A », 2026-11-27).** Sous `breakpoint-header` (360 px), la seule
+  pilule de l'en-tête membre prend une marge intérieure horizontale de `spacing-3` (12 px), sans quoi l'en-tête déborde à
+  320 px ; dès 360 px, elle est conforme à la maquette. Aucun écart en `06b` §7.
 - **Comparaison aux maquettes.** N1 à N3 et AN-1 à AN-4 : `22-refonte-ux-ui/05` et `04`, `18` §12.8.
 
 ### 11.9 Points soumis au fondateur
