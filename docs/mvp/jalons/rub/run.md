@@ -18,7 +18,12 @@
 | 09b | 09b.md | commit | sonnet | high | dev-react-node | fait | C34-C37, C39, C40, C66, C68 livrés ; flèches 09a remises sur la photo ; bande en SVG (CSP) ; « Lire la suite » et halo C68 non faits (EC) ; SHARED = 38 |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | fait | C56 : aside nommé, état en texte (rien après Publié), langue en pilule, --breakpoint-header 360, cadres sur C01 à gauche, annonceur monté ; go en Manrope |
 | 11 | 11.md | commit | opus | high | testeur | fait | 4 couples E01.0:<état> N1-N3 × 4 largeurs, 0 écart N3 ; 4 écarts D1-D4 soumis F1 (liste exacte) ; pastille 12 px dès 360 ; outil : LCS, bordure 0 |
-| U | ux.md | ux | sonnet | high | expert-ux | à faire | |
+| U | ux.md | ux | sonnet | high | expert-ux | fait | `ux-constats.md` : bloquant 0, jalon 7 (U-1 à U-7), avant production 4, plus tard 9 |
+| fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | à valider | U-1, U-2 : aucun texte sous un bouton (pagination, panneau `readonly`) |
+| fix-2 | fix-2.md | fix | sonnet | high | dev-react-node | à valider | U-3 : AP1 sur le courant de la coquille en couleurs forcées |
+| fix-3 | fix-3.md | fix | sonnet | medium | dev-react-node | à valider | U-4 : `campaign` avec `sub` seul, chevron au bord droit |
+| fix-4 | fix-4.md | fix | sonnet | medium | dev-react-node | à valider | U-5, U-6 : plus d'icône orpheline (`SaveStatus`, notice `strip`) |
+| fix-5 | fix-5.md | fix | sonnet | high | dev-react-node | à valider | U-7, conditionnel : seulement si le fondateur choisit de corriger ; sinon D5 à accorder en F1 et ligne `ignoré` |
 | F1 | F1.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |

@@ -57,3 +57,17 @@ focus, mouvement et styles calculés sur la planche, en e2e, sans API ni compte.
 - **Non traité, reliquat inchangé** : RUA-J8T8, RUAS-2 à RUAS-4, RUAT-5 à RUAT-7 (hors budget de planche).
 
 ## Revue
+Passe U (`ux-constats.md`, qui fait foi) ; U-1 à U-7 : lignes `fix-n` de `run.md`.
+- U-8, avant production : C31, aucun lien au centre de la photo (RUH).
+- U-9, avant production : C30, anneau rogné au bord de la ligne défilante.
+- U-10, avant production : cibles de moins de 44 px (C22, liens de C20).
+- U-11, avant production : « Lire la suite » (C40) et halo de C68 à porter au reliquat.
+- U-P1, plus tard : C07, libellé large à 375 (RUE, RUI).
+- U-P2, plus tard : C30, chevron au repos (RUC).
+- U-P3, plus tard : annonceur, un seul message par rendu.
+- U-P4, plus tard : C22, piste sur deux lignes.
+- U-P5, plus tard : C31, points peu visibles sur blanc.
+- U-P6, plus tard : couleurs forcées, bouton principal et C41 (RUF).
+- U-P7, plus tard : libellés très longs, actions de C17 et C39.
+- U-P8, plus tard : lien d'évitement de 40 px.
+- U-P9, plus tard : planche, aide de la cellule `us` de C47.
