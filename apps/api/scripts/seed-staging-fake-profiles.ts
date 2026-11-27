@@ -1,8 +1,8 @@
-// `pnpm --filter @influx/api db:staging-fake-profiles -- --pool=<dir> [--dry-run] [--limit=N]`
+// `pnpm --filter @influx/api db:staging-fake-profiles -- --pool=<dir> [--dry-run] [--limit=N] [--reupload-images]`
 //
 // Fills STAGING with 100 fake creators and 50 fake brands, every address in @cadaero.ovh, with
 // realistic storefronts, network lines, audiences, verified badges, approved portfolio visuals
-// (Storage bucket `portfolio`) and brand logos (bucket `brand-logo`). Test data for the Lot 3
+// (R2 bucket `portfolio`) and brand logos (bucket `brand-logo`). Test data for the Lot 3
 // search and campaigns; never meant for production.
 //
 // Written with the migration role, like seed-staging-demo-accounts.ts, so that NOTHING of the real
@@ -10,17 +10,30 @@
 // or Apollo (the script asserts that the outbox did not grow, per account, and rolls back if it
 // did). The GoTrue users are created confirmed through the administration API (no message).
 //
+// With `--reupload-images`, reloads active logos and approved portfolio visuals of existing
+// `seed-fake-profiles` accounts from the database, deterministically re-renders each WebP from
+// the same seeds and photo pool, updates dimensions/size/checksum if they differ, and writes to R2
+// with `If-None-Match: "*"` (412 counted as `skipped`), without calling GoTrue or deleting accounts.
+//
 // Refused: production; a database without the staging marker; a Supabase URL that is not an https
-// *.supabase.co origin; an address already used by an account this script did not create.
+// *.supabase.co origin; a non-staging R2 endpoint (.eu. or wrong prefix); an address already used by
+// an account this script did not create.
 // Re-runnable: the same seeds draw the same people; an account this script created is skipped.
 // Every account carries signup_utm_source = 'seed-fake-profiles', the handle to find them all.
 //
 // Inputs: apps/api/.env.local (staging values, D70) loaded by --env-file; the photo pool built by
 // scripts/fake-profiles/build-photo-pool.ts (--pool=<dir>). Nothing is printed of any secret.
 import { randomBytes, randomUUID } from "node:crypto";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 // eslint-disable-next-line no-restricted-imports -- an operator script, as script-guards.ts
 import type postgres from "postgres";
+import {
+  createObjectStore,
+  type ObjectStore,
+  type StorageBucket,
+} from "../src/platform/storage.ts";
 import { generateBrands, type FakeBrand } from "./fake-profiles/brand-data.ts";
 import {
   generateCreators,
@@ -34,13 +47,14 @@ import {
   type PhotoPool,
   type RenderedImage,
 } from "./fake-profiles/images.ts";
-import { createRng } from "./fake-profiles/random.ts";
+import { createRng, type Rng } from "./fake-profiles/random.ts";
 import {
   assertStagingMarker,
   connectToStagingAsMigrationRole,
   refuseProduction,
   requiredStagingVariable,
   stagingGoTrue,
+  stagingR2,
 } from "./script-guards.ts";
 
 const MARKER = "seed-fake-profiles";
@@ -48,120 +62,102 @@ const CREATOR_SEED = 20261114;
 const BRAND_SEED = 20261115;
 const DAY = 86_400_000;
 
-refuseProduction("fake profiles");
-const { values } = parseArgs({
-  args: process.argv.slice(2).filter((argument) => argument !== "--"),
-  options: {
-    pool: { type: "string" },
-    "dry-run": { type: "boolean", default: false },
-    limit: { type: "string" },
-    only: { type: "string" },
-    creators: { type: "string", default: "100" },
-    brands: { type: "string", default: "50" },
-  },
-});
-const dryRun = values["dry-run"] === true;
-const limit = values.limit === undefined ? Infinity : Number(values.limit);
-if (values.pool === undefined) {
-  throw new Error("--pool=<directory of the photo pool> is required");
-}
-if (
-  values.only !== undefined &&
-  values.only !== "creators" &&
-  values.only !== "brands"
-) {
-  throw new Error("--only=creators|brands");
-}
-
-const gotrue = stagingGoTrue();
-const supabaseUrl = new URL(requiredStagingVariable("SUPABASE_URL")).origin;
-const secretKey = requiredStagingVariable("SUPABASE_SECRET_KEY");
-const pool: PhotoPool = loadPhotoPool(values.pool);
-const sql: postgres.Sql = connectToStagingAsMigrationRole();
 type Tx = postgres.TransactionSql;
 
 class DryRunRollback extends Error {}
 
-// ---------------------------------------------------------------------------------------------
-// GoTrue and Storage (REST, secret key of staging)
-// ---------------------------------------------------------------------------------------------
-
-const authHeaders = {
-  apikey: secretKey,
-  authorization: `Bearer ${secretKey}`,
-  "content-type": "application/json",
-};
-
-async function createAuthUser(email: string): Promise<string> {
-  // alreadySeeded() found no INFLUX account for this address: a GoTrue user holding it is the orphan
-  // of an interrupted run, and goes before the new one is made
-  const orphans = await sql<{ id: string }[]>`
-    select u.id::text from auth.users u
-     where u.email = ${email}
-       and not exists (select 1 from identity.accounts a where a.auth_user_id = u.id)`;
-  for (const orphan of orphans) {
-    await deleteAuthUser(orphan.id);
-  }
-  const response = await fetch(`${gotrue.authUrl}/admin/users`, {
-    method: "POST",
-    headers: authHeaders,
-    body: JSON.stringify({ email, email_confirm: true }),
-    signal: AbortSignal.timeout(10_000),
-  });
-  const body = (await response.json()) as { id?: unknown; code?: unknown };
-  if (!response.ok || typeof body.id !== "string") {
-    throw new Error(
-      `GoTrue refused a user: ${response.status} ${String(body.code)}`,
-    );
-  }
-  return body.id;
+function initCreatorRng(creator: FakeCreator): {
+  rng: Rng;
+  dayFraction: number;
+} {
+  const rng = createRng(CREATOR_SEED + creator.index * 7919);
+  const dayFraction = rng();
+  return { rng, dayFraction };
 }
 
-async function deleteAuthUser(id: string): Promise<void> {
-  await fetch(`${gotrue.authUrl}/admin/users/${id}`, {
-    method: "DELETE",
-    headers: authHeaders,
-    signal: AbortSignal.timeout(10_000),
-  }).catch(() => undefined);
+function initBrandRng(brand: FakeBrand): { rng: Rng; dayFraction: number } {
+  const rng = createRng(BRAND_SEED + brand.index * 6151);
+  const dayFraction = rng();
+  return { rng, dayFraction };
+}
+
+// ---------------------------------------------------------------------------------------------
+// GoTrue (REST, secret key of staging) and ObjectStore (Cloudflare R2)
+// ---------------------------------------------------------------------------------------------
+
+type GoTrueClient = {
+  createAuthUser(email: string): Promise<string>;
+  deleteAuthUser(id: string): Promise<void>;
+};
+
+function createGoTrueClient(sql: postgres.Sql): GoTrueClient {
+  const gotrue = stagingGoTrue();
+  const secretKey = requiredStagingVariable("SUPABASE_SECRET_KEY");
+  const authHeaders = {
+    apikey: secretKey,
+    authorization: `Bearer ${secretKey}`,
+    "content-type": "application/json",
+  };
+
+  async function deleteAuthUser(id: string): Promise<void> {
+    await fetch(`${gotrue.authUrl}/admin/users/${id}`, {
+      method: "DELETE",
+      headers: authHeaders,
+      signal: AbortSignal.timeout(10_000),
+    }).catch(() => undefined);
+  }
+
+  async function createAuthUser(email: string): Promise<string> {
+    // alreadySeeded() found no INFLUX account for this address: a GoTrue user holding it is the
+    // orphan of an interrupted run, and goes before the new one is made
+    const orphans = await sql<{ id: string }[]>`
+      select u.id::text from auth.users u
+       where u.email = ${email}
+         and not exists (select 1 from identity.accounts a where a.auth_user_id = u.id)`;
+    for (const orphan of orphans) {
+      await deleteAuthUser(orphan.id);
+    }
+    const response = await fetch(`${gotrue.authUrl}/admin/users`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ email, email_confirm: true }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    const body = (await response.json()) as { id?: unknown; code?: unknown };
+    if (!response.ok || typeof body.id !== "string") {
+      throw new Error(
+        `GoTrue refused a user: ${response.status} ${String(body.code)}`,
+      );
+    }
+    return body.id;
+  }
+
+  return { createAuthUser, deleteAuthUser };
 }
 
 async function putObject(
-  bucket: string,
+  store: ObjectStore,
+  bucket: StorageBucket,
   key: string,
   body: Buffer,
 ): Promise<void> {
-  const response = await fetch(
-    `${supabaseUrl}/storage/v1/object/${bucket}/${key}`,
-    {
-      method: "POST",
-      headers: {
-        apikey: secretKey,
-        authorization: `Bearer ${secretKey}`,
-        "content-type": "image/webp",
-        "x-upsert": "true",
-      },
-      body: new Uint8Array(body),
-      signal: AbortSignal.timeout(30_000),
-    },
-  );
-  if (!response.ok) {
-    throw new Error(`Storage refused ${bucket} object: ${response.status}`);
+  const outcome = await store.write(bucket, key, body, "image/webp");
+  if (!outcome.ok) {
+    const code = outcome.errorCode === null ? "" : ` ${outcome.errorCode}`;
+    throw new Error(
+      `Storage refused ${bucket} object: ${outcome.status ?? outcome.reason}${code}`,
+    );
   }
 }
 
 async function removeObjects(
-  bucket: string,
+  store: ObjectStore,
+  bucket: StorageBucket,
   keys: readonly string[],
 ): Promise<void> {
-  if (keys.length === 0) {
-    return;
+  for (const key of keys) {
+    await store.remove(bucket, key).catch(() => undefined);
   }
-  await fetch(`${supabaseUrl}/storage/v1/object/${bucket}`, {
-    method: "DELETE",
-    headers: authHeaders,
-    body: JSON.stringify({ prefixes: keys }),
-    signal: AbortSignal.timeout(30_000),
-  }).catch(() => undefined);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -173,7 +169,15 @@ type Context = {
   terms: Map<string, { id: string; hash: Buffer; locale: string }>;
 };
 
-async function loadContext(): Promise<Context> {
+type SeedRuntime = {
+  sql: postgres.Sql;
+  pool: PhotoPool;
+  store: ObjectStore;
+  gotrue: GoTrueClient;
+  dryRun: boolean;
+};
+
+async function loadContext(sql: postgres.Sql): Promise<Context> {
   const [admin] = await sql<{ id: string }[]>`
     select a.id::text from identity.accounts a
       join identity.account_roles r on r.account_id = a.id
@@ -207,7 +211,10 @@ async function loadContext(): Promise<Context> {
 }
 
 /** Skip (true) an account this script made; refuse an address somebody else holds. */
-async function alreadySeeded(email: string): Promise<boolean> {
+async function alreadySeeded(
+  sql: postgres.Sql,
+  email: string,
+): Promise<boolean> {
   const [row] = await sql<{ marker: string | null }[]>`
     select signup_utm_source as marker from identity.accounts where email = ${email}`;
   if (row === undefined) {
@@ -279,19 +286,20 @@ function newAlias(): string {
 async function seedCreator(
   creator: FakeCreator,
   context: Context,
+  runtime: SeedRuntime,
 ): Promise<"created" | "skipped"> {
-  if (await alreadySeeded(creator.email)) {
+  if (await alreadySeeded(runtime.sql, creator.email)) {
     return "skipped";
   }
-  const rng = createRng(CREATOR_SEED + creator.index * 7919);
+  const { rng, dayFraction } = initCreatorRng(creator);
   const accountId = randomUUID();
   const publishedAt = new Date(
-    Date.now() - creator.publishedDaysAgo * DAY - Math.floor(rng() * DAY),
+    Date.now() - creator.publishedDaysAgo * DAY - Math.floor(dayFraction * DAY),
   );
   const createdAt = new Date(publishedAt.getTime() - 5 * DAY);
 
   // images first: a bad photo fails here, before any account exists
-  const files = choosePhotos(pool, creator.portfolioTopics, rng);
+  const files = choosePhotos(runtime.pool, creator.portfolioTopics, rng);
   const visuals: {
     id: string;
     image: RenderedImage;
@@ -306,12 +314,13 @@ async function seedCreator(
   }
   const objectKeys = visuals.map((visual) => `${accountId}/${visual.id}.webp`);
 
-  const authUserId = await createAuthUser(creator.email);
+  const authUserId = await runtime.gotrue.createAuthUser(creator.email);
   let uploaded = false;
   try {
-    if (!dryRun) {
+    if (!runtime.dryRun) {
       for (const [position, visual] of visuals.entries()) {
         await putObject(
+          runtime.store,
           "portfolio",
           objectKeys[position] as string,
           visual.image.buffer,
@@ -319,7 +328,7 @@ async function seedCreator(
       }
       uploaded = true;
     }
-    await sql.begin(async (tx) => {
+    await runtime.sql.begin(async (tx) => {
       const outboxBefore = await outboxCount(tx);
       await insertAccount(tx, context, {
         id: accountId,
@@ -482,23 +491,23 @@ async function seedCreator(
           "the outbox grew: nothing may be queued for a seeded account (rolled back)",
         );
       }
-      if (dryRun) {
+      if (runtime.dryRun) {
         await reportCreator(tx, accountId);
         throw new DryRunRollback();
       }
     });
   } catch (error) {
-    await deleteAuthUser(authUserId);
+    await runtime.gotrue.deleteAuthUser(authUserId);
     if (uploaded) {
-      await removeObjects("portfolio", objectKeys);
+      await removeObjects(runtime.store, "portfolio", objectKeys);
     }
     if (error instanceof DryRunRollback) {
       return "created";
     }
     throw error;
   }
-  if (dryRun) {
-    await deleteAuthUser(authUserId);
+  if (runtime.dryRun) {
+    await runtime.gotrue.deleteAuthUser(authUserId);
   }
   return "created";
 }
@@ -532,28 +541,29 @@ async function reportCreator(tx: Tx, accountId: string): Promise<void> {
 async function seedBrand(
   brand: FakeBrand,
   context: Context,
+  runtime: SeedRuntime,
 ): Promise<"created" | "skipped"> {
-  if (await alreadySeeded(brand.email)) {
+  if (await alreadySeeded(runtime.sql, brand.email)) {
     return "skipped";
   }
-  const rng = createRng(BRAND_SEED + brand.index * 6151);
+  const { rng, dayFraction } = initBrandRng(brand);
   const accountId = randomUUID();
   const publishedAt = new Date(
-    Date.now() - brand.publishedDaysAgo * DAY - Math.floor(rng() * DAY),
+    Date.now() - brand.publishedDaysAgo * DAY - Math.floor(dayFraction * DAY),
   );
   const createdAt = new Date(publishedAt.getTime() - 4 * DAY);
   const logo = await renderLogo(brand.logoSeed, rng);
   const logoId = randomUUID();
   const logoKey = `${accountId}/${logoId}.webp`;
 
-  const authUserId = await createAuthUser(brand.email);
+  const authUserId = await runtime.gotrue.createAuthUser(brand.email);
   let uploaded = false;
   try {
-    if (!dryRun) {
-      await putObject("brand-logo", logoKey, logo.buffer);
+    if (!runtime.dryRun) {
+      await putObject(runtime.store, "brand-logo", logoKey, logo.buffer);
       uploaded = true;
     }
-    await sql.begin(async (tx) => {
+    await runtime.sql.begin(async (tx) => {
       const outboxBefore = await outboxCount(tx);
       await insertAccount(tx, context, {
         id: accountId,
@@ -631,68 +641,471 @@ async function seedBrand(
           "the outbox grew: nothing may be queued for a seeded account (rolled back)",
         );
       }
-      if (dryRun) {
+      if (runtime.dryRun) {
         throw new DryRunRollback();
       }
     });
   } catch (error) {
-    await deleteAuthUser(authUserId);
+    await runtime.gotrue.deleteAuthUser(authUserId);
     if (uploaded) {
-      await removeObjects("brand-logo", [logoKey]);
+      await removeObjects(runtime.store, "brand-logo", [logoKey]);
     }
     if (error instanceof DryRunRollback) {
       return "created";
     }
     throw error;
   }
-  if (dryRun) {
-    await deleteAuthUser(authUserId);
+  if (runtime.dryRun) {
+    await runtime.gotrue.deleteAuthUser(authUserId);
   }
   return "created";
 }
 
 // ---------------------------------------------------------------------------------------------
+// --reupload-images (23 §4.3, RG20, CA22)
+// ---------------------------------------------------------------------------------------------
 
-try {
-  await assertStagingMarker(sql);
-  const context = await loadContext();
-  const tally = { created: 0, skipped: 0 };
-  const run = async <T>(
-    kind: string,
-    items: readonly T[],
-    seed: (item: T) => Promise<"created" | "skipped">,
-  ) => {
+export type SeededPortfolioRow = {
+  accountId: string;
+  email: string;
+  itemId: string;
+  objectKey: string;
+  displayOrder: number | null;
+  byteSize: number | null;
+  width: number | null;
+  height: number | null;
+  checksum: string | null;
+};
+
+export type SeededBrandLogoRow = {
+  accountId: string;
+  email: string;
+  logoId: string;
+  objectKey: string;
+  byteSize: number | null;
+  width: number | null;
+  height: number | null;
+};
+
+export type ReuploadDatabase = {
+  listApprovedPortfolioItems(): Promise<SeededPortfolioRow[]>;
+  listActiveBrandLogos(): Promise<SeededBrandLogoRow[]>;
+  updatePortfolioItemMetadata(
+    itemId: string,
+    image: Pick<RenderedImage, "byteSize" | "width" | "height" | "checksum">,
+  ): Promise<void>;
+  updateBrandLogoMetadata(
+    logoId: string,
+    image: Pick<RenderedImage, "byteSize" | "width" | "height">,
+  ): Promise<void>;
+};
+
+export type ReuploadOptions = {
+  pool: PhotoPool;
+  store: ObjectStore;
+  db: ReuploadDatabase;
+  dryRun?: boolean;
+  limit?: number;
+  only?: "creators" | "brands";
+  creatorsCount?: number;
+  brandsCount?: number;
+};
+
+export type ReuploadResult = {
+  written: number;
+  skipped: number;
+  failed: number;
+  metadataUpdated: number;
+};
+
+function createPostgresReuploadDatabase(sql: postgres.Sql): ReuploadDatabase {
+  return {
+    async listApprovedPortfolioItems() {
+      const rows = await sql<
+        {
+          account_id: string;
+          email: string;
+          item_id: string;
+          object_key: string;
+          display_order: number | null;
+          byte_size: number | null;
+          width: number | null;
+          height: number | null;
+          checksum: string | null;
+        }[]
+      >`
+        select a.id::text as account_id,
+               a.email,
+               p.id::text as item_id,
+               p.object_key,
+               p.display_order,
+               p.byte_size,
+               p.width,
+               p.height,
+               p.checksum
+          from identity.accounts a
+          join identity.account_roles r on r.account_id = a.id and r.role = 'creator'
+          join profiles.portfolio_items p on p.account_id = a.id
+         where a.signup_utm_source = ${MARKER}
+           and p.state = 'approved'
+         order by a.created_at asc, a.email asc, p.display_order asc nulls last, p.id asc`;
+      return rows.map((row) => ({
+        accountId: row.account_id,
+        email: row.email,
+        itemId: row.item_id,
+        objectKey: row.object_key,
+        displayOrder: row.display_order,
+        byteSize: row.byte_size,
+        width: row.width,
+        height: row.height,
+        checksum: row.checksum,
+      }));
+    },
+
+    async listActiveBrandLogos() {
+      const rows = await sql<
+        {
+          account_id: string;
+          email: string;
+          logo_id: string;
+          object_key: string;
+          byte_size: number | null;
+          width: number | null;
+          height: number | null;
+        }[]
+      >`
+        select a.id::text as account_id,
+               a.email,
+               l.id::text as logo_id,
+               l.object_key,
+               l.byte_size,
+               l.width,
+               l.height
+          from identity.accounts a
+          join identity.account_roles r on r.account_id = a.id and r.role = 'advertiser'
+          join profiles.brand_logo_objects l on l.account_id = a.id
+         where a.signup_utm_source = ${MARKER}
+           and l.state = 'active'
+         order by a.created_at asc, a.email asc, l.id asc`;
+      return rows.map((row) => ({
+        accountId: row.account_id,
+        email: row.email,
+        logoId: row.logo_id,
+        objectKey: row.object_key,
+        byteSize: row.byte_size,
+        width: row.width,
+        height: row.height,
+      }));
+    },
+
+    async updatePortfolioItemMetadata(itemId, image) {
+      await sql.begin(async (tx) => {
+        const outboxBefore = await outboxCount(tx);
+        await tx`
+          update profiles.portfolio_items
+             set byte_size = ${image.byteSize},
+                 width = ${image.width},
+                 height = ${image.height},
+                 checksum = ${image.checksum}
+           where id = ${itemId}`;
+        if ((await outboxCount(tx)) !== outboxBefore) {
+          throw new Error(
+            "the outbox grew: nothing may be queued during --reupload-images (rolled back)",
+          );
+        }
+      });
+    },
+
+    async updateBrandLogoMetadata(logoId, image) {
+      await sql.begin(async (tx) => {
+        const outboxBefore = await outboxCount(tx);
+        await tx`
+          update profiles.brand_logo_objects
+             set byte_size = ${image.byteSize},
+                 width = ${image.width},
+                 height = ${image.height}
+           where id = ${logoId}`;
+        if ((await outboxCount(tx)) !== outboxBefore) {
+          throw new Error(
+            "the outbox grew: nothing may be queued during --reupload-images (rolled back)",
+          );
+        }
+      });
+    },
+  };
+}
+
+function groupByAccount<T extends { accountId: string; email: string }>(
+  rows: readonly T[],
+): { accountId: string; email: string; rows: T[] }[] {
+  const byAccount = new Map<
+    string,
+    { accountId: string; email: string; rows: T[] }
+  >();
+  for (const row of rows) {
+    let group = byAccount.get(row.accountId);
+    if (group === undefined) {
+      group = { accountId: row.accountId, email: row.email, rows: [] };
+      byAccount.set(row.accountId, group);
+    }
+    group.rows.push(row);
+  }
+  return [...byAccount.values()];
+}
+
+export async function reuploadSeedImages(
+  options: ReuploadOptions,
+): Promise<ReuploadResult> {
+  const dryRun = options.dryRun === true;
+  const limit = options.limit ?? Infinity;
+  const creatorsCount = options.creatorsCount ?? 100;
+  const brandsCount = options.brandsCount ?? 50;
+  const tally: ReuploadResult = {
+    written: 0,
+    skipped: 0,
+    failed: 0,
+    metadataUpdated: 0,
+  };
+
+  if (options.only !== "brands") {
+    const creatorByEmail = new Map(
+      generateCreators(creatorsCount, CREATOR_SEED).map((creator) => [
+        creator.email,
+        creator,
+      ]),
+    );
+    const groups = groupByAccount(
+      await options.db.listApprovedPortfolioItems(),
+    );
     let done = 0;
-    for (const item of items) {
+    for (const group of groups) {
       if (done >= limit) {
         break;
       }
-      tally[await seed(item)] += 1;
       done += 1;
-      if (done % 10 === 0) {
-        process.stdout.write(
-          `${kind}: ${done}/${Math.min(items.length, limit)}\n`,
+      const creator = creatorByEmail.get(group.email);
+      if (creator === undefined) {
+        tally.failed += group.rows.length;
+        continue;
+      }
+      const { rng } = initCreatorRng(creator);
+      const files = choosePhotos(options.pool, creator.portfolioTopics, rng);
+      const images: RenderedImage[] = [];
+      for (const file of files) {
+        images.push(await renderPortfolioImage(file, rng));
+      }
+      for (const [rowIndex, row] of group.rows.entries()) {
+        const visualIndex =
+          row.displayOrder !== null ? row.displayOrder - 1 : rowIndex;
+        const image = images[visualIndex];
+        if (image === undefined) {
+          tally.failed += 1;
+          continue;
+        }
+        const differs =
+          row.byteSize !== image.byteSize ||
+          row.width !== image.width ||
+          row.height !== image.height ||
+          row.checksum !== image.checksum;
+        if (dryRun) {
+          tally.written += 1;
+          continue;
+        }
+        const outcome = await options.store.write(
+          "portfolio",
+          row.objectKey,
+          image.buffer,
+          "image/webp",
+        );
+        if (outcome.ok) {
+          if (differs) {
+            await options.db.updatePortfolioItemMetadata(row.itemId, image);
+            tally.metadataUpdated += 1;
+          }
+          tally.written += 1;
+        } else if (outcome.reason === "rejected" && outcome.status === 412) {
+          if (differs) {
+            await options.db.updatePortfolioItemMetadata(row.itemId, image);
+            tally.metadataUpdated += 1;
+          }
+          tally.skipped += 1;
+        } else {
+          tally.failed += 1;
+          const code =
+            outcome.errorCode === null ? "" : ` ${outcome.errorCode}`;
+          process.stderr.write(
+            `reupload failed (portfolio): ${outcome.status ?? outcome.reason}${code}\n`,
+          );
+        }
+      }
+    }
+  }
+
+  if (options.only !== "creators") {
+    const brandByEmail = new Map(
+      generateBrands(brandsCount, BRAND_SEED).map((brand) => [
+        brand.email,
+        brand,
+      ]),
+    );
+    const rows = await options.db.listActiveBrandLogos();
+    let done = 0;
+    for (const row of rows) {
+      if (done >= limit) {
+        break;
+      }
+      done += 1;
+      const brand = brandByEmail.get(row.email);
+      if (brand === undefined) {
+        tally.failed += 1;
+        continue;
+      }
+      const { rng } = initBrandRng(brand);
+      const logo = await renderLogo(brand.logoSeed, rng);
+      const differs =
+        row.byteSize !== logo.byteSize ||
+        row.width !== logo.width ||
+        row.height !== logo.height;
+      if (dryRun) {
+        tally.written += 1;
+        continue;
+      }
+      const outcome = await options.store.write(
+        "brand-logo",
+        row.objectKey,
+        logo.buffer,
+        "image/webp",
+      );
+      if (outcome.ok) {
+        if (differs) {
+          await options.db.updateBrandLogoMetadata(row.logoId, logo);
+          tally.metadataUpdated += 1;
+        }
+        tally.written += 1;
+      } else if (outcome.reason === "rejected" && outcome.status === 412) {
+        if (differs) {
+          await options.db.updateBrandLogoMetadata(row.logoId, logo);
+          tally.metadataUpdated += 1;
+        }
+        tally.skipped += 1;
+      } else {
+        tally.failed += 1;
+        const code = outcome.errorCode === null ? "" : ` ${outcome.errorCode}`;
+        process.stderr.write(
+          `reupload failed (brand-logo): ${outcome.status ?? outcome.reason}${code}\n`,
         );
       }
     }
-  };
-  if (values.only !== "brands") {
-    await run(
-      "creators",
-      generateCreators(Number(values.creators), CREATOR_SEED),
-      (c) => seedCreator(c, context),
-    );
   }
-  if (values.only !== "creators") {
-    await run(
-      "brands",
-      generateBrands(Number(values.brands), BRAND_SEED),
-      (b) => seedBrand(b, context),
-    );
+
+  return tally;
+}
+
+// ---------------------------------------------------------------------------------------------
+
+async function main(): Promise<void> {
+  refuseProduction("fake profiles");
+  const { values } = parseArgs({
+    args: process.argv.slice(2).filter((argument) => argument !== "--"),
+    options: {
+      pool: { type: "string" },
+      "dry-run": { type: "boolean", default: false },
+      "reupload-images": { type: "boolean", default: false },
+      limit: { type: "string" },
+      only: { type: "string" },
+      creators: { type: "string", default: "100" },
+      brands: { type: "string", default: "50" },
+    },
+  });
+  const dryRun = values["dry-run"] === true;
+  const reuploadImages = values["reupload-images"] === true;
+  const limit = values.limit === undefined ? Infinity : Number(values.limit);
+  if (values.pool === undefined) {
+    throw new Error("--pool=<directory of the photo pool> is required");
   }
-  process.stdout.write(
-    `${dryRun ? "DRY RUN (everything rolled back, nothing stored): " : ""}accounts created ${tally.created}, skipped ${tally.skipped}\n`,
-  );
-} finally {
-  await sql.end({ timeout: 1 });
+  if (
+    values.only !== undefined &&
+    values.only !== "creators" &&
+    values.only !== "brands"
+  ) {
+    throw new Error("--only=creators|brands");
+  }
+
+  const r2Config = stagingR2();
+  const store = createObjectStore(r2Config);
+  const pool: PhotoPool = loadPhotoPool(values.pool);
+  const sql: postgres.Sql = connectToStagingAsMigrationRole();
+
+  try {
+    await assertStagingMarker(sql);
+    if (reuploadImages) {
+      const result = await reuploadSeedImages({
+        pool,
+        store,
+        db: createPostgresReuploadDatabase(sql),
+        dryRun,
+        limit,
+        ...(values.only !== undefined ? { only: values.only } : {}),
+        creatorsCount: Number(values.creators),
+        brandsCount: Number(values.brands),
+      });
+      process.stdout.write(
+        `${dryRun ? "DRY RUN (nothing written): " : ""}reupload images: written ${result.written}, skipped ${result.skipped}, failed ${result.failed}\n`,
+      );
+      if (result.failed > 0) {
+        process.exitCode = 1;
+      }
+      return;
+    }
+
+    const gotrue = createGoTrueClient(sql);
+    const context = await loadContext(sql);
+    const runtime: SeedRuntime = { sql, pool, store, gotrue, dryRun };
+    const tally = { created: 0, skipped: 0 };
+    const run = async <T>(
+      kind: string,
+      items: readonly T[],
+      seed: (item: T) => Promise<"created" | "skipped">,
+    ) => {
+      let done = 0;
+      for (const item of items) {
+        if (done >= limit) {
+          break;
+        }
+        tally[await seed(item)] += 1;
+        done += 1;
+        if (done % 10 === 0) {
+          process.stdout.write(
+            `${kind}: ${done}/${Math.min(items.length, limit)}\n`,
+          );
+        }
+      }
+    };
+    if (values.only !== "brands") {
+      await run(
+        "creators",
+        generateCreators(Number(values.creators), CREATOR_SEED),
+        (c) => seedCreator(c, context, runtime),
+      );
+    }
+    if (values.only !== "creators") {
+      await run(
+        "brands",
+        generateBrands(Number(values.brands), BRAND_SEED),
+        (b) => seedBrand(b, context, runtime),
+      );
+    }
+    process.stdout.write(
+      `${dryRun ? "DRY RUN (everything rolled back, nothing stored): " : ""}accounts created ${tally.created}, skipped ${tally.skipped}\n`,
+    );
+  } finally {
+    await sql.end({ timeout: 1 });
+  }
+}
+
+const isMain =
+  process.argv[1] !== undefined &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  await main();
 }

@@ -2,17 +2,44 @@
 // and S2). No supabase/seed exists: the staging dataset is db:staging-demo-accounts alone, whose
 // addresses are the internal testers' (posed by the agent, outside the rule); every address the
 // repository could write into a database must therefore end with a reserved test domain.
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { valuesFoundIn } from "@influx/test-kit/logs";
+import {
+  S3_DOUBLE_DEFAULT_ACCESS_KEY_ID,
+  S3_DOUBLE_DEFAULT_SECRET_ACCESS_KEY,
+  startS3Double,
+  type S3Double,
+} from "@influx/test-kit/s3-double";
+import { randomUUID } from "node:crypto";
+import {
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
+import sharp from "sharp";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { demoAccounts } from "../scripts/demo-accounts.ts";
+import { generateBrands } from "../scripts/fake-profiles/brand-data.ts";
+import { generateCreators } from "../scripts/fake-profiles/creator-data.ts";
+import type { PhotoPool } from "../scripts/fake-profiles/images.ts";
 import {
   productionProjectRefOfMigrationUrl,
   refuseProduction,
   requiredStagingUrl,
   stagingGoTrue,
+  stagingR2,
   urlOf,
 } from "../scripts/script-guards.ts";
+import {
+  reuploadSeedImages,
+  type ReuploadDatabase,
+  type SeededBrandLogoRow,
+  type SeededPortfolioRow,
+} from "../scripts/seed-staging-fake-profiles.ts";
+import { createObjectStore } from "../src/platform/storage.ts";
 
 const REPOSITORY = path.join(import.meta.dirname, "..", "..", "..");
 
@@ -153,5 +180,319 @@ describe("script guards (staging operator scripts)", () => {
         () => "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
       ),
     ).toThrow(/must name a hosted Supabase project/);
+  });
+});
+
+describe("R2B-T5: stagingR2() and --reupload-images (RG20, CA22)", () => {
+  const STAGING_ENDPOINT =
+    "https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com";
+  const EU_ENDPOINT =
+    "https://0123456789abcdef0123456789abcdef.eu.r2.cloudflarestorage.com";
+  const SECRET_KEY = "staging-r2-secret-never-shown-0123456789abcdef";
+  const doubles: S3Double[] = [];
+  const tempDirs: string[] = [];
+
+  afterEach(async () => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+    await Promise.all(doubles.splice(0).map((double) => double.close()));
+    for (const dir of tempDirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  function stubValidStagingR2(): void {
+    vi.stubEnv("INFLUX_ENV", "staging");
+    vi.stubEnv("NODE_ENV", "test");
+    vi.stubEnv("R2_ENDPOINT", STAGING_ENDPOINT);
+    vi.stubEnv("R2_ACCESS_KEY_ID", "influx-staging-api-key");
+    vi.stubEnv("R2_SECRET_ACCESS_KEY", SECRET_KEY);
+    vi.stubEnv("R2_BUCKET_PREFIX", "influx-staging-");
+  }
+
+  it("stagingR2() accepts a valid staging R2 configuration", () => {
+    stubValidStagingR2();
+    expect(stagingR2()).toEqual({
+      endpoint: STAGING_ENDPOINT,
+      accessKeyId: "influx-staging-api-key",
+      secretAccessKey: SECRET_KEY,
+      bucketPrefix: "influx-staging-",
+    });
+  });
+
+  it("stagingR2() refuses production without leaking values", () => {
+    stubValidStagingR2();
+    vi.stubEnv("INFLUX_ENV", "production");
+    expect(() => stagingR2()).toThrow("staging R2 refused in production");
+
+    vi.stubEnv("INFLUX_ENV", "staging");
+    vi.stubEnv("NODE_ENV", "production");
+    expect(() => stagingR2()).toThrow("staging R2 refused in production");
+  });
+
+  it("stagingR2() refuses .eu. or non-staging endpoints without echoing the endpoint", () => {
+    stubValidStagingR2();
+    vi.stubEnv("R2_ENDPOINT", EU_ENDPOINT);
+    let euMessage = "";
+    try {
+      stagingR2();
+    } catch (error) {
+      euMessage = error instanceof Error ? error.message : String(error);
+    }
+    expect(euMessage).toContain(".eu.");
+    expect(valuesFoundIn(euMessage, [EU_ENDPOINT, SECRET_KEY])).toEqual([]);
+
+    vi.stubEnv("R2_ENDPOINT", "http://127.0.0.1:4111");
+    let localMessage = "";
+    try {
+      stagingR2();
+    } catch (error) {
+      localMessage = error instanceof Error ? error.message : String(error);
+    }
+    expect(localMessage).toContain("https://<32-hex>.r2.cloudflarestorage.com");
+    expect(localMessage).not.toContain("127.0.0.1");
+  });
+
+  it("stagingR2() refuses any R2_BUCKET_PREFIX other than influx-staging- without echoing it", () => {
+    stubValidStagingR2();
+    vi.stubEnv("R2_BUCKET_PREFIX", "influx-production-");
+    let message = "";
+    try {
+      stagingR2();
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toContain("influx-staging-");
+    expect(message).not.toContain("influx-production-");
+  });
+
+  it("--reupload-images writes once, treats 412 as skipped on re-run, updates differing metadata only, and never calls GoTrue", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const double = await startS3Double();
+    doubles.push(double);
+    const store = createObjectStore({
+      endpoint: double.endpoint,
+      accessKeyId: S3_DOUBLE_DEFAULT_ACCESS_KEY_ID,
+      secretAccessKey: S3_DOUBLE_DEFAULT_SECRET_ACCESS_KEY,
+      bucketPrefix: "test-",
+    });
+
+    const tempDir = mkdtempSync(path.join(tmpdir(), "influx-r2b-t5-"));
+    tempDirs.push(tempDir);
+    const photoPath = path.join(tempDir, "sample.jpg");
+    await sharp({
+      create: {
+        width: 720,
+        height: 720,
+        channels: 3,
+        background: { r: 40, g: 120, b: 90 },
+      },
+    })
+      .jpeg({ quality: 85 })
+      .toFile(photoPath);
+    const pool: PhotoPool = new Map([["travel", [photoPath]]]);
+
+    const [creator] = generateCreators(1, 20261114);
+    const [brand] = generateBrands(1, 20261115);
+    if (creator === undefined || brand === undefined) {
+      throw new Error("expected synthetic creator and brand");
+    }
+
+    const creatorAccountId = randomUUID();
+    const brandAccountId = randomUUID();
+    const portfolioRows: SeededPortfolioRow[] = Array.from(
+      { length: creator.portfolioCount },
+      (_, offset) => {
+        const itemId = randomUUID();
+        return {
+          accountId: creatorAccountId,
+          email: creator.email,
+          itemId,
+          objectKey: `${creatorAccountId}/${itemId}.webp`,
+          displayOrder: offset + 1,
+          byteSize: 1,
+          width: 1,
+          height: 1,
+          checksum: "stale",
+        };
+      },
+    );
+    const logoId = randomUUID();
+    const logoRows: SeededBrandLogoRow[] = [
+      {
+        accountId: brandAccountId,
+        email: brand.email,
+        logoId,
+        objectKey: `${brandAccountId}/${logoId}.webp`,
+        byteSize: 1,
+        width: 1,
+        height: 1,
+      },
+    ];
+
+    const db: ReuploadDatabase = {
+      async listApprovedPortfolioItems() {
+        return portfolioRows;
+      },
+      async listActiveBrandLogos() {
+        return logoRows;
+      },
+      async updatePortfolioItemMetadata(itemId, image) {
+        const row = portfolioRows.find((entry) => entry.itemId === itemId);
+        if (row !== undefined) {
+          row.byteSize = image.byteSize;
+          row.width = image.width;
+          row.height = image.height;
+          row.checksum = image.checksum;
+        }
+      },
+      async updateBrandLogoMetadata(id, image) {
+        const row = logoRows.find((entry) => entry.logoId === id);
+        if (row !== undefined) {
+          row.byteSize = image.byteSize;
+          row.width = image.width;
+          row.height = image.height;
+        }
+      },
+    };
+
+    const first = await reuploadSeedImages({
+      pool,
+      store,
+      db,
+      creatorsCount: 1,
+      brandsCount: 1,
+    });
+    const totalObjects = creator.portfolioCount + 1;
+    expect(first).toEqual({
+      written: totalObjects,
+      skipped: 0,
+      failed: 0,
+      metadataUpdated: totalObjects,
+    });
+    expect(
+      [...double.objects.keys()].filter((key) =>
+        key.startsWith("test-portfolio/"),
+      ),
+    ).toHaveLength(creator.portfolioCount);
+    expect(
+      [...double.objects.keys()].filter((key) =>
+        key.startsWith("test-brand-logo/"),
+      ),
+    ).toHaveLength(1);
+
+    const second = await reuploadSeedImages({
+      pool,
+      store,
+      db,
+      creatorsCount: 1,
+      brandsCount: 1,
+    });
+    expect(second).toEqual({
+      written: 0,
+      skipped: totalObjects,
+      failed: 0,
+      metadataUpdated: 0,
+    });
+
+    const requestedUrls = fetchSpy.mock.calls.map(([input]) => String(input));
+    expect(requestedUrls.length).toBeGreaterThan(0);
+    for (const url of requestedUrls) {
+      expect(url.startsWith(double.endpoint)).toBe(true);
+      expect(url).not.toContain("/auth/v1");
+    }
+    for (const [, init] of fetchSpy.mock.calls) {
+      expect(init?.method).toBe("PUT");
+    }
+  });
+
+  it("--reupload-images --dry-run writes nothing to R2 and updates no DB metadata", async () => {
+    const double = await startS3Double();
+    doubles.push(double);
+    const store = createObjectStore({
+      endpoint: double.endpoint,
+      accessKeyId: S3_DOUBLE_DEFAULT_ACCESS_KEY_ID,
+      secretAccessKey: S3_DOUBLE_DEFAULT_SECRET_ACCESS_KEY,
+      bucketPrefix: "test-",
+    });
+
+    const tempDir = mkdtempSync(path.join(tmpdir(), "influx-r2b-t5-dry-"));
+    tempDirs.push(tempDir);
+    const photoPath = path.join(tempDir, "sample.jpg");
+    await sharp({
+      create: {
+        width: 720,
+        height: 720,
+        channels: 3,
+        background: { r: 90, g: 40, b: 120 },
+      },
+    })
+      .jpeg({ quality: 85 })
+      .toFile(photoPath);
+    const pool: PhotoPool = new Map([["travel", [photoPath]]]);
+
+    const [brand] = generateBrands(1, 20261115);
+    if (brand === undefined) {
+      throw new Error("expected synthetic brand");
+    }
+    const accountId = randomUUID();
+    const logoId = randomUUID();
+    const updateBrandLogoMetadata = vi.fn(async () => undefined);
+    const db: ReuploadDatabase = {
+      async listApprovedPortfolioItems() {
+        return [];
+      },
+      async listActiveBrandLogos() {
+        return [
+          {
+            accountId,
+            email: brand.email,
+            logoId,
+            objectKey: `${accountId}/${logoId}.webp`,
+            byteSize: 1,
+            width: 1,
+            height: 1,
+          },
+        ];
+      },
+      updatePortfolioItemMetadata: vi.fn(async () => undefined),
+      updateBrandLogoMetadata,
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    const result = await reuploadSeedImages({
+      pool,
+      store,
+      db,
+      dryRun: true,
+      only: "brands",
+      brandsCount: 1,
+    });
+    expect(result).toEqual({
+      written: 1,
+      skipped: 0,
+      failed: 0,
+      metadataUpdated: 0,
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(updateBrandLogoMetadata).not.toHaveBeenCalled();
+    expect(double.objects.size).toBe(0);
+  });
+
+  it("seed-staging-fake-profiles.ts uses stagingR2() and createObjectStore without x-upsert or storage/v1", () => {
+    const source = readFileSync(
+      path.join(
+        REPOSITORY,
+        "apps",
+        "api",
+        "scripts",
+        "seed-staging-fake-profiles.ts",
+      ),
+      "utf8",
+    );
+    expect(source).toContain("stagingR2()");
+    expect(source).toContain("createObjectStore");
+    expect(source).not.toContain("x-upsert");
+    expect(source).not.toContain("storage/v1");
   });
 });

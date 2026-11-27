@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 // src/db/ may ever reach (CI-5, J3S-2).
 // eslint-disable-next-line no-restricted-imports -- see the line above
 import postgres from "postgres";
+import type { R2Config } from "../src/config/schema.ts";
 
 const API_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -97,6 +98,71 @@ export function stagingGoTrue(): { authUrl: string; secretKey: string } {
     "staging",
   );
   return { authUrl, secretKey };
+}
+
+const STAGING_R2_ENDPOINT_PATTERN =
+  /^https:\/\/[0-9a-f]{32}\.r2\.cloudflarestorage\.com$/;
+const STAGING_R2_BUCKET_PREFIX = "influx-staging-";
+
+/**
+ * Cloudflare R2 configuration of STAGING, from apps/api/.env.local (23 §7.4 RG20). Refuses
+ * production, any `.eu.` jurisdiction endpoint, any endpoint outside
+ * `https://<32-hex>.r2.cloudflarestorage.com`, and any bucket prefix other than `influx-staging-`,
+ * without ever echoing a variable value in an error message.
+ */
+export function stagingR2(
+  source: VariableSource = requiredStagingVariable,
+): R2Config {
+  refuseProduction("staging R2");
+  const endpointUrl = urlOf("R2_ENDPOINT", source("R2_ENDPOINT"));
+  const isOriginOnly =
+    endpointUrl.protocol === "https:" &&
+    endpointUrl.username === "" &&
+    endpointUrl.password === "" &&
+    endpointUrl.pathname === "/" &&
+    endpointUrl.search === "" &&
+    endpointUrl.hash === "";
+  if (isOriginOnly && endpointUrl.hostname.includes(".eu.")) {
+    throw new Error(
+      "R2_ENDPOINT must not target the .eu. jurisdiction on staging (value not shown)",
+    );
+  }
+  if (!isOriginOnly || !STAGING_R2_ENDPOINT_PATTERN.test(endpointUrl.origin)) {
+    throw new Error(
+      "R2_ENDPOINT must be https://<32-hex>.r2.cloudflarestorage.com on staging (value not shown)",
+    );
+  }
+  const accessKeyId = source("R2_ACCESS_KEY_ID");
+  if (
+    accessKeyId.trim() === "" ||
+    accessKeyId.toUpperCase().includes("CHANGE_ME")
+  ) {
+    throw new Error(
+      "R2_ACCESS_KEY_ID is invalid for staging (value not shown)",
+    );
+  }
+  const secretAccessKey = source("R2_SECRET_ACCESS_KEY");
+  if (
+    secretAccessKey.trim() === "" ||
+    secretAccessKey.toUpperCase().includes("CHANGE_ME") ||
+    secretAccessKey === accessKeyId
+  ) {
+    throw new Error(
+      "R2_SECRET_ACCESS_KEY is invalid for staging (value not shown)",
+    );
+  }
+  const bucketPrefix = source("R2_BUCKET_PREFIX");
+  if (bucketPrefix !== STAGING_R2_BUCKET_PREFIX) {
+    throw new Error(
+      `R2_BUCKET_PREFIX must be ${STAGING_R2_BUCKET_PREFIX} on staging (value not shown)`,
+    );
+  }
+  return {
+    endpoint: endpointUrl.origin,
+    accessKeyId,
+    secretAccessKey,
+    bucketPrefix,
+  };
 }
 
 /**
