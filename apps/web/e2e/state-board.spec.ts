@@ -43,6 +43,8 @@ const COMPONENTS = [
   "property-list",
   "empty-state",
   "skeleton",
+  "photo-card",
+  "feed-card",
 ] as const;
 
 /** A cell that holds its own `h1`: the page header (C02) is shown in its states, one `h1` each. */
@@ -1592,5 +1594,268 @@ test("RUB-AN2 08: the step fades in, the segments and the boxes of the code chan
   expect((await readAnimation()).duration).toBe("0s");
   expect((await readTransition(segment.first())).duration).toBe("0s");
   expect((await readTransition(box)).duration).toBe("0s");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+});
+
+// RUB-T9 (docs/mvp/jalons/rub/annexe.md; 02b C31, C48): the track of a photo card is reached and scrolled by the
+// keyboard, one visual at a time, the dots following; the arrows show on the hover of the photo and move it too; the
+// heart is pressed by the mouse and by the keyboard, named by the screen, and takes the double ring at focus (RUB-B §5,
+// AP2); a heart whose request runs is not pressed again; no amount is written on a card.
+test("RUB-T9: the photo card scrolls its visuals by the keyboard and by its arrows, the dots following, its heart is pressed by the mouse and the keyboard with a double ring, and no card writes an amount", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const card = board
+    .locator(
+      '[data-board-component="photo-card"] [data-board-state="search"] article',
+    )
+    .first();
+  const track = card.getByRole("region", {
+    name: "Visuels du portfolio de Profil 93JMS4",
+  });
+  // by their hook, not their role: an arrow at an end of the track is hidden, out of the tree
+  const previous = card.locator('[data-photo-arrow="previous"]');
+  const next = card.locator('[data-photo-arrow="next"]');
+  const currentDot = () =>
+    card
+      .locator("[data-photo-dots] span")
+      .evaluateAll((dots) =>
+        dots.findIndex((dot) => dot.hasAttribute("data-current")),
+      );
+  await track.scrollIntoViewIfNeeded();
+  expect(await currentDot()).toBe(0);
+  await expect(previous).toBeDisabled();
+
+  // The keyboard: the region takes the focus and the arrow key moves it to the next visual.
+  await track.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect.poll(currentDot).toBe(1);
+  await expect(previous).toBeEnabled();
+
+  // The arrows: shown on the hover of the photo, « next » to the last visual, where it hides.
+  await track.hover();
+  await expect
+    .poll(() => next.evaluate((arrow) => getComputedStyle(arrow).opacity))
+    .toBe("1");
+  await next.click();
+  await expect.poll(currentDot).toBe(2);
+  await expect(next).toBeDisabled();
+  expect(
+    await next.evaluate((arrow) => getComputedStyle(arrow).visibility),
+  ).toBe("hidden");
+
+  // The heart: by the mouse, then by the keyboard, its name given by the screen for its state.
+  const heart = card.locator("[data-photo-heart]");
+  await expect(heart).toHaveAttribute("aria-pressed", "false");
+  await expect(heart).toHaveAccessibleName(
+    "Ajouter Profil 93JMS4 à Ma sélection",
+  );
+  await heart.click();
+  await expect(heart).toHaveAttribute("aria-pressed", "true");
+  await expect(heart).toHaveAccessibleName(
+    "Retirer Profil 93JMS4 de Ma sélection",
+  );
+  await card.getByRole("link", { name: "Profil 93JMS4" }).focus();
+  await page.keyboard.press("Shift+Tab");
+  await expect(heart).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect(heart).toHaveAttribute("aria-pressed", "false");
+  const ring = await heart.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      outline: style.outlineStyle,
+      width: style.outlineWidth,
+      halo: style.boxShadow,
+    };
+  });
+  expect(ring.outline).toBe("solid");
+  expect(ring.width).toBe("3px");
+  // the halo: a spread of offset, ring and thick border (2 + 3 + 2 px), never blurred
+  expect(ring.halo).toMatch(/0px 0px 0px 7px/);
+
+  // A heart whose request runs is not pressed again.
+  const saving = board.locator(
+    '[data-board-state="saving"] [data-photo-heart]',
+  );
+  // forced: aria-disabled is not « enabled » for the actionability of Playwright, the press must still be ignored
+  await expect(saving).toHaveAttribute("aria-disabled", "true");
+  await saving.click({ force: true });
+  await expect(saving).toHaveAttribute("aria-pressed", "false");
+
+  // No amount, on any card of the two sections.
+  for (const component of ["photo-card", "feed-card"]) {
+    const text = await board
+      .locator(`[data-board-component="${component}"]`)
+      .innerText();
+    expect(text, component).not.toMatch(/[€$£]|\bEUR\b|\bUSD\b/);
+  }
+});
+
+// RUB-AN2, lines 02 (C48), 11 to 15 and 22 (R04: the card of the feed lifts 2 px and lights its contour over 120 ms; the
+// track scrolls smoothly; an arrow fades in over 120 ms; the current dot widens from 6 to 16 px over 120 ms; the heart
+// grows to 1,03 on hover over 120 ms and pops over 200 ms when it fills; a card that leaves a selection fades out and
+// shrinks to 0,96 over 200 ms; all on the curve `standard`; under reduced motion nothing moves and the durations are zero:
+// AN-1) and RUB-AX, AP1 (RUB-B §5): the saved heart carries a transparent contour that forced colours draw.
+test("RUB-AN2 09a: the feed card lifts, the track scrolls smoothly, the arrows fade in, the dots widen, the heart grows and pops, the card leaves, and not under reduced motion; forced colours draw the contour of a saved heart", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
+  const search = board.locator(
+    '[data-board-component="photo-card"] [data-board-state="search"] article',
+  );
+  const card = search.first();
+  const savedHeart = search.nth(1).locator("[data-photo-heart]");
+  const track = card.locator("[data-photo-track]");
+  const next = card.locator('[data-photo-arrow="next"]');
+  const heart = card.locator("[data-photo-heart]");
+  const feed = board
+    .locator(
+      '[data-board-component="feed-card"] [data-board-state="open"] article',
+    )
+    .first();
+  const shortlistCell = board.locator('[data-board-state="shortlist"]');
+  const shortlist = shortlistCell.locator("article");
+  const restore = shortlistCell.getByRole("button", {
+    name: "Remettre la carte",
+  });
+  const style = (target: typeof card) =>
+    target.evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        duration: computed.transitionDuration,
+        timing: computed.transitionTimingFunction,
+        properties: computed.transitionProperty,
+        translate: computed.translate,
+        scale: computed.scale,
+        opacity: computed.opacity,
+        width: computed.width,
+        scroll: computed.scrollBehavior,
+      };
+    });
+  const dot = (index: number) =>
+    card.locator("[data-photo-dots] span").nth(index);
+  /** Clicks the heart and reads its icon two frames later, while the pop runs (200 ms). */
+  const pressAndReadPop = () =>
+    heart.evaluate(async (button) => {
+      (button as HTMLButtonElement).click();
+      await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      );
+      const icon = getComputedStyle(button.querySelector("svg")!);
+      return { name: icon.animationName, duration: icon.animationDuration };
+    });
+  const contour = (target: typeof heart) =>
+    target.evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        style: computed.outlineStyle,
+        color: computed.outlineColor,
+        width: computed.outlineWidth,
+      };
+    });
+
+  // Motion allowed. The card of the feed (line 2).
+  await feed.scrollIntoViewIfNeeded();
+  const feedRest = await style(feed);
+  expect(feedRest).toMatchObject({
+    duration: "0.12s",
+    timing: STANDARD,
+    translate: "none",
+  });
+  expect(feedRest.properties).toContain("translate");
+  expect(feedRest.properties).toContain("border-color");
+  await feed.hover();
+  await expect.poll(async () => (await style(feed)).translate).toBe("0px -2px");
+
+  // The track (line 11) and an arrow (line 12).
+  await track.scrollIntoViewIfNeeded();
+  expect((await style(track)).scroll).toBe("smooth");
+  await page.mouse.move(0, 0);
+  await expect.poll(async () => (await style(next)).opacity).toBe("0");
+  const arrow = await style(next);
+  expect(arrow).toMatchObject({
+    duration: "0.12s",
+    timing: STANDARD,
+    opacity: "0",
+  });
+  expect(arrow.properties).toBe("opacity");
+  await track.hover();
+  await expect.poll(async () => (await style(next)).opacity).toBe("1");
+
+  // The dots (line 13): the current one widens from 6 to 16 px, by its width and its colour alone.
+  const firstDot = await style(dot(0));
+  expect(firstDot).toMatchObject({
+    duration: "0.12s",
+    timing: STANDARD,
+    width: "16px",
+  });
+  expect(firstDot.properties).toContain("width");
+  expect((await style(dot(1))).width).toBe("6px");
+  await next.click();
+  await expect.poll(async () => (await style(dot(1))).width).toBe("16px");
+  await expect.poll(async () => (await style(dot(0))).width).toBe("6px");
+
+  // The heart (lines 14 and 15): it grows on hover, and pops when it fills, never when it empties.
+  const heartRest = await style(heart);
+  expect(heartRest).toMatchObject({ duration: "0.12s", timing: STANDARD });
+  expect(heartRest.properties).toContain("scale");
+  await heart.hover();
+  await expect.poll(async () => (await style(heart)).scale).toBe("1.03");
+  expect(await pressAndReadPop()).toEqual({ name: "pop", duration: "0.2s" });
+  expect((await pressAndReadPop()).name).toBe("none");
+
+  // AP1: the saved heart carries a transparent contour, drawn by forced colours; the empty one none.
+  await page.mouse.move(0, 0);
+  expect(await contour(savedHeart)).toEqual({
+    style: "solid",
+    color: "rgba(0, 0, 0, 0)",
+    width: "2px",
+  });
+  expect((await contour(heart)).style).toBe("none");
+  await page.emulateMedia({ forcedColors: "active" });
+  expect((await contour(savedHeart)).color).not.toBe("rgba(0, 0, 0, 0)");
+  expect((await contour(heart)).style).toBe("none");
+  await page.emulateMedia({ forcedColors: "none" });
+
+  // The card that leaves a selection (line 22).
+  await shortlist.scrollIntoViewIfNeeded();
+  await shortlist.locator("[data-photo-heart]").click();
+  await expect.poll(async () => (await style(shortlist)).opacity).toBe("0");
+  const leaving = await style(shortlist);
+  expect(leaving).toMatchObject({
+    duration: "0.2s",
+    timing: STANDARD,
+    scale: "0.96",
+  });
+  expect(leaving.properties).toContain("opacity");
+  expect(leaving.properties).toContain("scale");
+  await restore.click();
+  await expect.poll(async () => (await style(shortlist)).opacity).toBe("1");
+
+  // Reduced motion: nothing lifts, grows nor shrinks, the track jumps, every duration is zero (AN-1).
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await feed.scrollIntoViewIfNeeded();
+  await feed.hover();
+  await expect.poll(async () => (await style(feed)).duration).toBe("0s");
+  expect((await style(feed)).translate).toBe("none");
+  expect((await style(track)).scroll).toBe("auto");
+  expect((await style(next)).duration).toBe("0s");
+  expect((await style(dot(0))).duration).toBe("0s");
+  await heart.scrollIntoViewIfNeeded();
+  await heart.hover();
+  expect((await style(heart)).scale).toBe("none");
+  expect((await pressAndReadPop()).duration).toBe("0s");
+  await shortlist.scrollIntoViewIfNeeded();
+  await shortlist.locator("[data-photo-heart]").click();
+  await expect.poll(async () => (await style(shortlist)).opacity).toBe("0");
+  expect(await style(shortlist)).toMatchObject({
+    duration: "0s",
+    scale: "none",
+  });
   await page.emulateMedia({ reducedMotion: "no-preference" });
 });

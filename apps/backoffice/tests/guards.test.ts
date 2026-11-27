@@ -304,12 +304,13 @@ describe("G3i (a), TK7.3 and TK7.5: no inscribed KEO token, no fluid size, no sm
     expect(findFluidKeoTypography(tokens)).toEqual([]);
   });
 
-  // RUA-T2 (RU-04, D88): the four effects on a photo are read by PHOTO_EFFECT_READERS alone (empty
-  // until a screen lays an element on a photo); the detector is self-tested in the test-kit.
-  it("reads the --effect-photo-* tokens in no module but PHOTO_EFFECT_READERS (G8)", () => {
-    expect(findPhotoEffectUse(BACKOFFICE_ROOT, PHOTO_EFFECT_READERS)).toEqual(
-      [],
-    );
+  // RUA-T2 (RU-04, D88), RUB-09a: the four effects on a photo are read by the backoffice's list of
+  // PHOTO_EFFECT_READERS alone (empty until RUC delivers the twin of the photo card: the members' module allows
+  // nothing here); the detector is self-tested in the test-kit.
+  it("reads the --effect-photo-* tokens in no module but PHOTO_EFFECT_READERS.backoffice (G8)", () => {
+    expect(
+      findPhotoEffectUse(BACKOFFICE_ROOT, PHOTO_EFFECT_READERS.backoffice),
+    ).toEqual([]);
   });
 
   it("uses no class of the vitrine's fluid typography, the backoffice being KEO whole (TK7.3, G8 extended)", () => {

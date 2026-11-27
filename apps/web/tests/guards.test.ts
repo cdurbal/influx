@@ -636,10 +636,11 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     ).toEqual([]);
   });
 
-  // RUA-T2 (RU-04, D88): the effects on a photo are read by the modules of PHOTO_EFFECT_READERS only
-  // (empty until a screen lays an element on a photo); the detector is self-tested in the test-kit.
-  it("reads the --effect-photo-* tokens in no module but PHOTO_EFFECT_READERS", () => {
-    expect(findPhotoEffectUse(WEB_ROOT, PHOTO_EFFECT_READERS)).toEqual([]);
+  // RUA-T2 (RU-04, D88), RUB-09a: the effects on a photo are read by the modules of the members' list of
+  // PHOTO_EFFECT_READERS only (the classes of the photo card since RUB-09a); the detector, and a module listed
+  // for one front that allows nothing in the other, are self-tested in the test-kit.
+  it("reads the --effect-photo-* tokens in no module but PHOTO_EFFECT_READERS.web", () => {
+    expect(findPhotoEffectUse(WEB_ROOT, PHOTO_EFFECT_READERS.web)).toEqual([]);
   });
 
   it("transforms a state under motion-safe: only and never transitions all (20 §11.5, F6)", () => {
@@ -662,6 +663,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
       "badge.board.tsx",
       "board-section.board.tsx",
       "button.board.tsx",
+      "card.board.tsx",
       "choice.board.tsx",
       "dialog.board.tsx",
       "field.board.tsx",

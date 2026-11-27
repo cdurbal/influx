@@ -124,10 +124,15 @@ export const KEO_COLOR_MIX: readonly ColorMixAllowance[] = [
 
 /**
  * The modules (relative to the root of a front) that read the `--effect-photo-*` tokens, the only
- * ones allowed to (G8; RU-04). Empty in RUA, which declares the tokens: the screen that lays an
- * element on a photo adds its module here, in the commit that reads the token.
+ * ones allowed to (G8; RU-04), one list per front: a module listed for the members allows nothing in
+ * the backoffice. The component that lays an element on a photo adds its module of classes here, in
+ * the commit that reads the token: the photo card (C31, RUB-09a), then the gallery (C34, RUB-09b);
+ * the backoffice lists its twin when RUC delivers it.
  */
-export const PHOTO_EFFECT_READERS: readonly string[] = [];
+export const PHOTO_EFFECT_READERS = {
+  web: ["src/components/member/ui/photo-card-classes.ts"],
+  backoffice: [],
+} as const satisfies Readonly<Record<string, readonly string[]>>;
 
 // ---------------------------------------------------------------------------------------------
 // G8: what the member pages never consume (02 §21.6; 18 §5.1)
@@ -513,4 +518,5 @@ export const SHARED_CATALOGUE: readonly SharedCatalogueEntry[] = [
   { name: "FilterBar", backoffice: "pending" },
   { name: "Pager", backoffice: "pending" },
   { name: "OtpField", backoffice: "pending" },
+  { name: "PhotoCard", backoffice: "pending" },
 ];

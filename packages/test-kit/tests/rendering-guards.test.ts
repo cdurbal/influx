@@ -304,8 +304,41 @@ describe("TK7.1 G3d and G8 (RU-04, D88): a scrim read over the lightest photo, t
     ).toHaveLength(1);
   });
 
-  it("confines the four tokens to PHOTO_EFFECT_READERS, empty in RUA: a read elsewhere is reported, a comment is not (G8)", () => {
-    expect(PHOTO_EFFECT_READERS).toEqual([]);
+  // Changed in RUB-09a (invariant 8, TD1): the list, empty in RUA, is now one per front, the classes of the photo
+  // card for the members and nothing for the backoffice; the cases of RUA stand, and a module of one front's list
+  // read in the other front, or listed and absent, is reported (negative cases).
+  it("confines the four tokens to the list of PHOTO_EFFECT_READERS of each front: a read elsewhere is reported, a comment is not, a module of the other front's list is not allowed (G8)", () => {
+    expect(PHOTO_EFFECT_READERS).toEqual({
+      web: ["src/components/member/ui/photo-card-classes.ts"],
+      backoffice: [],
+    });
+    const memberFront = path.join(TEMP_ROOT, "photo-member-front");
+    const memberReader = PHOTO_EFFECT_READERS.web[0];
+    const memberFile = path.join(memberFront, memberReader);
+    mkdirSync(path.dirname(memberFile), { recursive: true });
+    writeFileSync(
+      memberFile,
+      'export const HEART = "fill-(--effect-photo-scrim-soft)";\n',
+    );
+    expect(findPhotoEffectUse(memberFront, PHOTO_EFFECT_READERS.web)).toEqual(
+      [],
+    );
+    expect(
+      findPhotoEffectUse(memberFront, PHOTO_EFFECT_READERS.backoffice),
+    ).toEqual([
+      `${memberReader}:1: export const HEART = "fill-(--effect-photo-scrim-soft)";`,
+    ]);
+    expect(
+      findPhotoEffectUse(
+        path.join(TEMP_ROOT, "photo-empty-front"),
+        PHOTO_EFFECT_READERS.web,
+      ),
+    ).toEqual([
+      `${memberReader}: listed as allowed to use effect-photo-scrim-strong, does not exist`,
+      `${memberReader}: listed as allowed to use effect-photo-scrim, does not exist`,
+      `${memberReader}: listed as allowed to use effect-photo-scrim-soft, does not exist`,
+      `${memberReader}: listed as allowed to use effect-photo-shadow, does not exist`,
+    ]);
     const front = path.join(TEMP_ROOT, "photo-front");
     const write = (relative: string, content: string) => {
       const file = path.join(front, relative);
