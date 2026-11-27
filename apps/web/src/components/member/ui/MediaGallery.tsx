@@ -31,6 +31,7 @@ import {
 } from "./media-gallery-classes";
 import { useModalDialog } from "./use-modal-dialog";
 import { useSlideInView } from "./use-slide-in-view";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** One visual: its source, what it shows (never who), and the words under it in the dialog. */
 type MediaGalleryItem = { src: string; alt: string; caption?: string };
@@ -283,11 +284,13 @@ export function MediaGallery({
   closeLabel,
   emptyLabel,
   className,
-}: MediaGalleryProps) {
+  ...rest
+}: MediaGalleryProps & PassThroughProps) {
   const [openedAt, setOpenedAt] = useState<number | null>(null);
   if (items.length === 0) {
     return (
       <p
+        {...passThroughOf(rest)}
         data-media-gallery="empty"
         className={cn(GALLERY_EMPTY_CLASSES, className)}
       >
@@ -296,7 +299,7 @@ export function MediaGallery({
     );
   }
   return (
-    <div data-media-gallery="" className={className}>
+    <div {...passThroughOf(rest)} data-media-gallery="" className={className}>
       <Mosaic items={items} allLabel={allLabel} onOpen={setOpenedAt} />
       <Carousel items={items} title={title} onOpen={setOpenedAt} />
       <GalleryDialog

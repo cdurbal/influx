@@ -4,6 +4,7 @@ import {
   CARD_ACTIONS_CLASSES,
   CARD_ACTIONS_STRETCH_CLASSES,
 } from "./card-actions-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type CardActionsProps = {
   /** The actions fill the width of the card below 480 px, one per line. */
@@ -17,9 +18,11 @@ export function CardActions({
   stretch = false,
   className,
   children,
-}: CardActionsProps) {
+  ...rest
+}: CardActionsProps & PassThroughProps) {
   return (
     <div
+      {...passThroughOf(rest)}
       className={cn(
         CARD_ACTIONS_CLASSES,
         stretch && CARD_ACTIONS_STRETCH_CLASSES,

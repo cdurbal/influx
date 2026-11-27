@@ -2,8 +2,13 @@ import { cn } from "@/components/ui/class-names";
 import { memberControlClasses } from "./field-classes";
 import { describedByOf, fieldRefsOf, useFieldIds } from "./field-ids";
 import { Field, type FieldLayout, type FieldTexts } from "./Field";
+import {
+  ariaAttributesOf,
+  withoutAria,
+  type PassThroughProps,
+} from "./pass-through";
 
-type TextFieldProps = FieldTexts &
+export type TextFieldProps = FieldTexts &
   FieldLayout & {
     id?: string;
     name: string;
@@ -42,8 +47,9 @@ export function TextField({
   className,
   describedBy: extraDescribedBy,
   ...texts
-}: TextFieldProps) {
+}: TextFieldProps & PassThroughProps) {
   const ids = useFieldIds(id);
+  const received = ariaAttributesOf(texts);
   const hasError = texts.error !== undefined && texts.error !== null;
   const refs = fieldRefsOf(texts, ids);
   const describedBy = describedByOf(
@@ -54,10 +60,17 @@ export function TextField({
     refs.counter,
     refs.warning,
     refs.error,
+    received["aria-describedby"],
   );
   return (
-    <Field {...texts} ids={ids} kind="single" className={className}>
+    <Field
+      {...withoutAria(texts)}
+      ids={ids}
+      kind="single"
+      className={className}
+    >
       <input
+        {...received}
         id={ids.control}
         name={name}
         type={type}

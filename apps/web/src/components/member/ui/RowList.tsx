@@ -14,6 +14,7 @@ import {
   type RowListVariant,
   type RowTone,
 } from "./row-list-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type RowListItem = {
   /** Stable key of the row. */
@@ -100,10 +101,13 @@ export function RowList({
   label,
   id,
   className,
-}: RowListProps) {
+  ...rest
+}: RowListProps & PassThroughProps) {
   return (
     <ul
+      {...passThroughOf(rest)}
       id={id}
+      aria-labelledby={undefined}
       aria-label={label}
       className={cn(rowListClasses(variant), className)}
     >

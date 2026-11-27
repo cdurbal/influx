@@ -7,6 +7,7 @@ import {
   RANGE_TRACK_CLASSES,
   RANGE_VALUE_CLASSES,
 } from "./range-bar-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type RangeBarProps = {
   /**
@@ -21,9 +22,17 @@ export type RangeBarProps = {
  * Ranges of an audience (C37): the written value says it all, the bar only shows where the band stands and is hidden
  * from a screen reader. Ranges alone before the reveal (D61).
  */
-export function RangeBar({ items, className }: RangeBarProps) {
+export function RangeBar({
+  items,
+  className,
+  ...rest
+}: RangeBarProps & PassThroughProps) {
   return (
-    <ul data-range-bar="" className={cn(RANGE_LIST_CLASSES, className)}>
+    <ul
+      {...passThroughOf(rest)}
+      data-range-bar=""
+      className={cn(RANGE_LIST_CLASSES, className)}
+    >
       {items.map((item, index) => (
         <li key={`${index}:${item.label}`} className={RANGE_ROW_CLASSES}>
           <span className={RANGE_LABEL_CLASSES}>{item.label}</span>

@@ -9,6 +9,7 @@ import {
   type LogoPlateSize,
 } from "./logo-plate-classes";
 import { initialsOf, logoPlateContent } from "./logo-plate-content";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 type LogoPlateMissing = "initials" | "dashed";
 
@@ -37,7 +38,8 @@ export function LogoPlate({
   shape,
   missing = "initials",
   className,
-}: LogoPlateProps) {
+  ...rest
+}: LogoPlateProps & PassThroughProps) {
   const [failedSrc, setFailedSrc] = useState<string | undefined>(undefined);
   const content = logoPlateContent(src, failedSrc, missing);
   const classes = cn(
@@ -46,7 +48,7 @@ export function LogoPlate({
   );
   if (content === "image") {
     return (
-      <span className={classes}>
+      <span {...passThroughOf(rest)} className={classes}>
         {/* A data: source built by the API, or a signed URL: next/image has nothing to optimise. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -65,7 +67,13 @@ export function LogoPlate({
     );
   }
   return (
-    <span role="img" aria-label={name} className={classes}>
+    <span
+      {...passThroughOf(rest)}
+      role="img"
+      aria-labelledby={undefined}
+      aria-label={name}
+      className={classes}
+    >
       {content === "initials" ? (
         <span aria-hidden="true">{initialsOf(name)}</span>
       ) : null}

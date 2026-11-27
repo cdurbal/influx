@@ -2,8 +2,13 @@ import type { ReactNode } from "react";
 import { memberControlClasses } from "./field-classes";
 import { describedByOf, fieldRefsOf, useFieldIds } from "./field-ids";
 import { Field, type FieldLayout, type FieldTexts } from "./Field";
+import {
+  ariaAttributesOf,
+  withoutAria,
+  type PassThroughProps,
+} from "./pass-through";
 
-type DomainFieldProps = FieldTexts &
+export type DomainFieldProps = FieldTexts &
   FieldLayout & {
     id?: string;
     name: string;
@@ -34,8 +39,9 @@ export function DomainField({
   disabled,
   className,
   ...texts
-}: DomainFieldProps) {
+}: DomainFieldProps & PassThroughProps) {
   const ids = useFieldIds(id);
+  const received = ariaAttributesOf(texts);
   const noticeId = `${ids.control}-notice`;
   const hasError = texts.error !== undefined && texts.error !== null;
   const hasNotice = notice !== undefined && notice !== null;
@@ -48,10 +54,17 @@ export function DomainField({
     hasNotice && noticeId,
     refs.warning,
     refs.error,
+    received["aria-describedby"],
   );
   return (
-    <Field {...texts} ids={ids} kind="single" className={className}>
+    <Field
+      {...withoutAria(texts)}
+      ids={ids}
+      kind="single"
+      className={className}
+    >
       <input
+        {...received}
         id={ids.control}
         name={name}
         type="text"

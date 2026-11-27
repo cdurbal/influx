@@ -10,6 +10,7 @@ import {
   PAGER_SIDE_CLASSES,
   PAGER_SUMMARY_CLASSES,
 } from "./pager-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type PagerProps = {
   /** `pages`: numbered pages, the page is `page`; `cursor`: a list read forward and back, no page number. */
@@ -52,13 +53,16 @@ export function Pager({
   nextLabel,
   busy = false,
   className,
-}: PagerProps): ReactNode {
+  ...rest
+}: PagerProps & PassThroughProps): ReactNode {
   if (!hasPrevious && !hasNext) {
     return null;
   }
   return (
     <div
+      {...passThroughOf(rest)}
       role="group"
+      aria-labelledby={undefined}
       aria-label={label}
       data-pager={kind}
       data-page={kind === "pages" ? page : undefined}

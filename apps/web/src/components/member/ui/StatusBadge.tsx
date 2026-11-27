@@ -6,6 +6,7 @@ import {
   type StatusTone,
   type StatusVariant,
 } from "./status-badge-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** What a lucide icon of `icons.ts` is, as far as the badge is concerned: it takes a class, it is decorative. */
 type StatusIcon = ComponentType<{ className?: string; "aria-hidden"?: "true" }>;
@@ -31,9 +32,13 @@ export function StatusBadge({
   icon: Icon,
   className,
   children,
-}: StatusBadgeProps) {
+  ...rest
+}: StatusBadgeProps & PassThroughProps) {
   return (
-    <span className={cn(statusBadgeClasses(tone, variant), className)}>
+    <span
+      {...passThroughOf(rest)}
+      className={cn(statusBadgeClasses(tone, variant), className)}
+    >
       {Icon === undefined ? null : (
         <Icon aria-hidden="true" className={STATUS_ICON_CLASSES} />
       )}

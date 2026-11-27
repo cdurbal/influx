@@ -8,6 +8,7 @@ import {
   reasonListClasses,
   type ReasonListGap,
 } from "./reason-list-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** What a lucide icon of `icons.ts` is, as far as a reason is concerned: it takes a class, it is decorative. */
 type ReasonIcon = ComponentType<{
@@ -28,10 +29,19 @@ export type ReasonListProps = {
  * a rank or a share of a match (D11, RG41): the component takes no number of its own. An empty list draws nothing,
  * and the screen leaves its section out.
  */
-export function ReasonList({ items, gap = "lg", className }: ReasonListProps) {
+export function ReasonList({
+  items,
+  gap = "lg",
+  className,
+  ...rest
+}: ReasonListProps & PassThroughProps) {
   if (items.length === 0) return null;
   return (
-    <ul data-reason-list="" className={cn(reasonListClasses(gap), className)}>
+    <ul
+      {...passThroughOf(rest)}
+      data-reason-list=""
+      className={cn(reasonListClasses(gap), className)}
+    >
       {items.map(({ icon: Icon, title, body }, index) => (
         <li key={`${index}:${title}`} className={REASON_CLASSES}>
           <Icon aria-hidden="true" className={REASON_ICON_CLASSES} />

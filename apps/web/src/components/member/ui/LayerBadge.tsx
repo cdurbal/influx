@@ -16,6 +16,7 @@ import {
   layerBadgeClasses,
   type ProfileLayer,
 } from "./layer-badge-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 const LAYER_ICONS = {
   public: GlobeIcon,
@@ -209,7 +210,8 @@ export function LayerBadge({
   iconOnly: forcedIconOnly,
   id,
   className,
-}: LayerBadgeProps) {
+  ...rest
+}: LayerBadgeProps & PassThroughProps) {
   const rootRef = useRef<HTMLSpanElement>(null);
   const badgeRef = useRef<HTMLSpanElement>(null);
   const messageRef = useRef<HTMLSpanElement>(null);
@@ -238,6 +240,7 @@ export function LayerBadge({
   if (!iconOnly) {
     return (
       <span
+        {...passThroughOf(rest)}
         ref={rootRef}
         id={id}
         className={cn("inline-flex self-start", className)}
@@ -248,6 +251,7 @@ export function LayerBadge({
   }
   return (
     <span
+      {...passThroughOf(rest)}
       ref={rootRef}
       id={id}
       data-layer-icon-only=""

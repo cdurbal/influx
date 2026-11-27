@@ -10,6 +10,7 @@ import {
   fieldMessageIconClasses,
   type FieldMessageKind,
 } from "./field-message-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 const KIND_ICONS = {
   error: CircleAlertIcon,
@@ -30,10 +31,15 @@ export type FieldMessageProps = {
  * The message under a field (C19): the icon of its kind and the text, never a box and never announced
  * by itself (the control is tied to it, and the summary of the form tells the refusals).
  */
-export function FieldMessage({ kind, id, children }: FieldMessageProps) {
+export function FieldMessage({
+  kind,
+  id,
+  children,
+  ...rest
+}: FieldMessageProps & PassThroughProps) {
   const Icon = KIND_ICONS[kind];
   return (
-    <p id={id} className={fieldMessageClasses(kind)}>
+    <p {...passThroughOf(rest)} id={id} className={fieldMessageClasses(kind)}>
       <Icon aria-hidden="true" className={fieldMessageIconClasses(kind)} />
       <span className={FIELD_MESSAGE_TEXT_CLASSES}>{children}</span>
     </p>

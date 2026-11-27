@@ -18,6 +18,7 @@ focus, mouvement et styles calculés sur la planche, en e2e, sans API ni compte.
 | RUB-T9 | unitaire, e2e | `tests/member-cards.test.ts`, `tests/member-reading.test.ts`, `state-board.spec.ts` | cartes et lecture : clavier, cœur, aucun montant | 18 ; +2 | 09a, 09b |
 | RUB-T10 | e2e, a11y | `member-shell.spec.ts`, `brand-profile.spec.ts` (E01.0-T01 à T03) | CA01 à CA08, axe à 375, 768, 1 024, 1 440 | +2 | 10 |
 | RUB-T11 | visuel (local) | `e2e/visual/app.spec.ts` | coquille contre `proto-accueils.html` : N1, N2, N3 | 4 | 11 |
+| RUB-T12 | unitaire | `tests/member-pass-through.test.ts` | 02c : `id`, `data-*`, `aria-*` à la racine ou au contrôle des modules de `CATALOGUE_MODULES`, rien d'autre | 58 | fix-8a |
 | RUB-AN2 | e2e | `state-board.spec.ts` | `R04` §3 : durée, courbe, propriété des lignes portées ; AN-1 | 1 par commit porteur | 02 à 09b |
 | RUB-AX | e2e | `state-board.spec.ts` | axe 0, aucun débordement de chaque section à 375 et 1 440 | cas existant étendu | 01 à 09b |
 

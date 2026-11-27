@@ -14,6 +14,7 @@ import {
   PAGE_TITLE_CLASSES,
   SECTION_PAGE_TITLE_CLASSES,
 } from "./page-header-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /**
  * The way back to the page-menu of a rubric, « ‹ Mon compte » (D74, sn-fiche "Retour"): given
@@ -62,7 +63,8 @@ export function PageHeader({
   actions,
   meta,
   className,
-}: PageHeaderProps) {
+  ...rest
+}: PageHeaderProps & PassThroughProps) {
   const back = useContext(PageBackContext);
   const topLine = above ?? back;
   const heading = (
@@ -79,7 +81,10 @@ export function PageHeader({
     </h1>
   );
   return (
-    <header className={cn(PAGE_HEADER_CLASSES, className)}>
+    <header
+      {...passThroughOf(rest)}
+      className={cn(PAGE_HEADER_CLASSES, className)}
+    >
       {crumbs === undefined || crumbs.length === 0 ? (
         topLine === null || topLine === undefined ? null : (
           <div className={PAGE_HEADER_ABOVE_CLASSES}>{topLine}</div>

@@ -7,6 +7,7 @@ import {
   MOBILE_ACTION_BAR_TEXT_CLASSES,
   STICKY_ASIDE_CLASSES,
 } from "./sticky-aside-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type StickyAsideProps = {
   children: ReactNode;
@@ -19,9 +20,16 @@ export type StickyAsideProps = {
  * The box beside a reading (C39): a named complementary landmark that stays in view from 1 024 px. Below that width
  * it is away, and the screen shows `MobileActionBar` in its place.
  */
-export function StickyAside({ children, label, className }: StickyAsideProps) {
+export function StickyAside({
+  children,
+  label,
+  className,
+  ...rest
+}: StickyAsideProps & PassThroughProps) {
   return (
     <aside
+      {...passThroughOf(rest)}
+      aria-labelledby={undefined}
       aria-label={label}
       data-sticky-aside=""
       className={cn(cardClasses("box"), STICKY_ASIDE_CLASSES, className)}
@@ -53,10 +61,13 @@ export function MobileActionBar({
   action,
   hidden = false,
   className,
-}: MobileActionBarProps) {
+  ...rest
+}: MobileActionBarProps & PassThroughProps) {
   if (hidden) return null;
   return (
     <section
+      {...passThroughOf(rest)}
+      aria-labelledby={undefined}
       aria-label={label}
       data-mobile-action-bar=""
       className={cn(MOBILE_ACTION_BAR_CLASSES, className)}

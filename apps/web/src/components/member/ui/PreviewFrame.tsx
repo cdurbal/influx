@@ -5,6 +5,7 @@ import {
   previewFrameClasses,
   type PreviewFrameVariant,
 } from "./preview-frame-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type PreviewFrameProps = {
   /** What says that this is a preview, already translated: a word (`zone`), a sentence (`strip`). */
@@ -25,11 +26,13 @@ export function PreviewFrame({
   variant,
   children,
   className,
-}: PreviewFrameProps) {
+  ...rest
+}: PreviewFrameProps & PassThroughProps) {
   const labelId = useId();
   const classes = previewFrameClasses(variant);
   return (
     <div
+      {...passThroughOf(rest)}
       role="group"
       aria-labelledby={labelId}
       data-preview-frame={variant}

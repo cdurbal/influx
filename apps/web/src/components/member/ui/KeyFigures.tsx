@@ -10,6 +10,7 @@ import {
   keyFiguresClasses,
   type KeyFiguresVariant,
 } from "./key-figures-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** What a lucide icon of `icons.ts` is, as far as a figure is concerned: it takes a class, it is decorative. */
 type KeyFigureIcon = ComponentType<{
@@ -40,10 +41,19 @@ export type KeyFiguresProps = {
  * three. The values arrive written: a range before the reveal, never an exact count computed here (D61), and the
  * words of a missing value are the screen's. The verified cell is told by its words, the blue icon beside them.
  */
-export function KeyFigures({ variant, items, className }: KeyFiguresProps) {
+export function KeyFigures({
+  variant,
+  items,
+  className,
+  ...rest
+}: KeyFiguresProps & PassThroughProps) {
   const classes = keyFiguresClasses(variant);
   return (
-    <dl data-key-figures={variant} className={cn(classes.list, className)}>
+    <dl
+      {...passThroughOf(rest)}
+      data-key-figures={variant}
+      className={cn(classes.list, className)}
+    >
       {items.map((item, index) => {
         const verified = variant === "figures" && item.verified === true;
         const Icon = variant === "essentials" ? item.icon : undefined;

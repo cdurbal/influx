@@ -12,6 +12,7 @@ import {
   segmentClasses,
   segmentedTrackClasses,
 } from "./segmented-control-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** One segment: the value it stands for, its text and, if the screen counts, its count; a link or a panel for the kinds that need one. */
 type SegmentedOption = {
@@ -70,11 +71,16 @@ function RadioSegments({
   id,
   className,
   onChange,
-}: RadioSegmented) {
+  ...rest
+}: RadioSegmented & PassThroughProps) {
   const generated = useId();
   const group = name ?? generated;
   return (
-    <fieldset id={id} className={cn(SEGMENT_FIELDSET_CLASSES, className)}>
+    <fieldset
+      {...passThroughOf(rest)}
+      id={id}
+      className={cn(SEGMENT_FIELDSET_CLASSES, className)}
+    >
       <legend className={SEGMENT_LEGEND_CLASSES}>{label}</legend>
       <div className={segmentedTrackClasses("radio")}>
         {options.map((option) => (
@@ -110,7 +116,8 @@ function TabSegments({
   id,
   className,
   onChange,
-}: TabsSegmented) {
+  ...rest
+}: TabsSegmented & PassThroughProps) {
   const base = useId();
   const tabs = useRef<Array<HTMLButtonElement | null>>([]);
   const chosen = options.findIndex((option) => option.value === value);
@@ -147,8 +154,10 @@ function TabSegments({
   };
   return (
     <div
+      {...passThroughOf(rest)}
       id={id}
       role="tablist"
+      aria-labelledby={undefined}
       aria-label={label}
       className={cn(segmentedTrackClasses("tabs"), className)}
     >
@@ -184,10 +193,13 @@ function ViewSegments({
   id,
   className,
   onChange,
-}: ViewsSegmented) {
+  ...rest
+}: ViewsSegmented & PassThroughProps) {
   return (
     <ul
+      {...passThroughOf(rest)}
       id={id}
+      aria-labelledby={undefined}
       aria-label={label}
       className={cn(
         segmentedTrackClasses("views"),
@@ -218,7 +230,9 @@ function ViewSegments({
  * contour that forced colours draw; the count of an inactive segment stays in secondary text. It never
  * chooses on its own: a gesture only calls `onChange`.
  */
-export function SegmentedControl(props: SegmentedControlProps) {
+export function SegmentedControl(
+  props: SegmentedControlProps & PassThroughProps,
+) {
   switch (props.kind) {
     case "tabs":
       return <TabSegments {...props} />;

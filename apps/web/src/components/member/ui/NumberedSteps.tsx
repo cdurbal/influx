@@ -10,6 +10,7 @@ import {
   numberedStepClasses,
   type NumberedStepState,
 } from "./numbered-steps-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** One step: its label, what it adds under it, and where the member stands. */
 type NumberedStepItem = {
@@ -38,9 +39,19 @@ export function NumberedSteps({
   label,
   stateLabels,
   className,
-}: NumberedStepsProps) {
+  ...rest
+}: NumberedStepsProps & PassThroughProps) {
+  const received = passThroughOf(rest);
   return (
-    <ol aria-label={label} className={cn(NUMBERED_STEPS_CLASSES, className)}>
+    <ol
+      {...received}
+      // the list has a name of its own only when it is given one
+      aria-labelledby={
+        label === undefined ? received["aria-labelledby"] : undefined
+      }
+      aria-label={label ?? received["aria-label"]}
+      className={cn(NUMBERED_STEPS_CLASSES, className)}
+    >
       {items.map((item, index) => {
         const state = item.state ?? "todo";
         return (

@@ -14,6 +14,7 @@ import {
 import { LogoPlate } from "./LogoPlate";
 import { StatusBadge } from "./StatusBadge";
 import { VerifiedBadge } from "./VerifiedBadge";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type FeedCardProps = {
   /** The page of the campaign: the one link of the card, its title. */
@@ -49,11 +50,13 @@ export function FeedCard({
   meta,
   closed,
   className,
-}: FeedCardProps) {
+  ...rest
+}: FeedCardProps & PassThroughProps) {
   const titleId = useId();
   const DueIcon = due.soon === true ? TriangleAlertIcon : ClockIcon;
   return (
     <article
+      {...passThroughOf(rest)}
       aria-labelledby={titleId}
       data-feed-card=""
       data-closed={closed === undefined ? undefined : ""}

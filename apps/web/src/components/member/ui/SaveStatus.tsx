@@ -18,6 +18,7 @@ import {
   type SaveState,
   type SaveStatusPlacement,
 } from "./save-status-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 const STATE_ICONS = {
   idle: ClockIcon,
@@ -79,7 +80,8 @@ export function SaveStatus({
   retryInText,
   retryLabel,
   className,
-}: SaveStatusProps) {
+  ...rest
+}: SaveStatusProps & PassThroughProps) {
   const Icon = STATE_ICONS[state];
   let text: string;
   switch (state) {
@@ -103,6 +105,7 @@ export function SaveStatus({
       : null;
   return (
     <p
+      {...passThroughOf(rest)}
       data-save-state={state}
       className={cn(saveStatusClasses(state, placement), className)}
     >

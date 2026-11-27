@@ -2,8 +2,13 @@ import { memberTextAreaClasses } from "./field-classes";
 import { describedByOf, fieldRefsOf, useFieldIds } from "./field-ids";
 import { Field, type FieldLayout, type FieldTexts } from "./Field";
 import { countCharacters, limitCharacters } from "./text-limits";
+import {
+  ariaAttributesOf,
+  withoutAria,
+  type PassThroughProps,
+} from "./pass-through";
 
-type TextAreaFieldProps = FieldTexts &
+export type TextAreaFieldProps = FieldTexts &
   Omit<FieldLayout, "counter"> & {
     id?: string;
     name: string;
@@ -30,8 +35,9 @@ export function TextAreaField({
   disabled,
   className,
   ...texts
-}: TextAreaFieldProps) {
+}: TextAreaFieldProps & PassThroughProps) {
   const ids = useFieldIds(id);
+  const received = ariaAttributesOf(texts);
   const hasError = texts.error !== undefined && texts.error !== null;
   const count = countCharacters(value);
   const counter = {
@@ -47,16 +53,18 @@ export function TextAreaField({
     refs.counter,
     refs.warning,
     refs.error,
+    received["aria-describedby"],
   );
   return (
     <Field
-      {...texts}
+      {...withoutAria(texts)}
       counter={counter}
       ids={ids}
       kind="single"
       className={className}
     >
       <textarea
+        {...received}
         id={ids.control}
         name={name}
         value={value}

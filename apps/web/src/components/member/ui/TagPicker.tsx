@@ -13,6 +13,11 @@ import {
   TAG_REMOVE_ICON_CLASSES,
   tagPickerSelectClasses,
 } from "./tag-picker-classes";
+import {
+  ariaAttributesOf,
+  withoutAria,
+  type PassThroughProps,
+} from "./pass-through";
 
 export type TagPickerProps = {
   /** Id of the select: the screen focuses the first invalid field by it. */
@@ -72,8 +77,9 @@ export function TagPicker({
   disabled,
   className,
   ...texts
-}: TagPickerProps) {
+}: TagPickerProps & PassThroughProps) {
   const ids = useFieldIds(id);
+  const received = ariaAttributesOf(texts);
   const countId = `${ids.control}-count`;
   const statusId = `${ids.control}-status`;
   const hasError = texts.error !== undefined && texts.error !== null;
@@ -101,6 +107,7 @@ export function TagPicker({
     countId,
     status !== null && statusId,
     hasError && ids.error,
+    received["aria-describedby"],
   );
   // At the cap nothing more is offered: the status below says why.
   const available = atCap
@@ -108,13 +115,14 @@ export function TagPicker({
     : options.filter((option) => !value.includes(option.code));
   return (
     <Field
-      {...texts}
+      {...withoutAria(texts)}
       help={limitText}
       ids={ids}
       kind="single"
       className={className}
     >
       <select
+        {...received}
         ref={select}
         id={ids.control}
         name={name}

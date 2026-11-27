@@ -11,6 +11,7 @@ import {
   counterFlagClasses,
   type CounterVariant,
 } from "./counter-badge-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type CounterBadgeProps = {
   count: number;
@@ -34,7 +35,8 @@ export function CounterBadge({
   variant,
   late = false,
   className,
-}: CounterBadgeProps) {
+  ...rest
+}: CounterBadgeProps & PassThroughProps) {
   // The change is read while rendering: the container is keyed by the number of changes, so that each one
   // replays the flash, and a counter that has not changed has none.
   const [shown, setShown] = useState(count);
@@ -48,6 +50,7 @@ export function CounterBadge({
   const dot = variant === "dot";
   return (
     <span
+      {...passThroughOf(rest)}
       key={changes}
       className={cn(
         COUNTER_CONTAINER_CLASSES,

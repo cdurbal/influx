@@ -1,6 +1,7 @@
 import { cn } from "@/components/ui/class-names";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
-type ScoreGaugeProps = {
+export type ScoreGaugeProps = {
   /** "Profile completeness". */
   label: string;
   /** 0 to 100 (06 RG57). */
@@ -19,9 +20,13 @@ export function ScoreGauge({
   value,
   valueText,
   className,
-}: ScoreGaugeProps) {
+  ...rest
+}: ScoreGaugeProps & PassThroughProps) {
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div
+      {...passThroughOf(rest)}
+      className={cn("flex flex-col gap-2", className)}
+    >
       {/* The value stays in one piece; in a narrow card it goes under the label. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-3">
         <span className="font-semibold text-text-primary">{label}</span>

@@ -12,6 +12,7 @@ import {
   type NoticeSize,
   type NoticeTone,
 } from "./notice-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 const TONE_ICONS = {
   success: { Icon: CircleCheckIcon, color: "text-feedback-success-icon" },
@@ -47,10 +48,12 @@ export function Notice({
   announce = true,
   className,
   children,
-}: NoticeProps) {
+  ...rest
+}: NoticeProps & PassThroughProps) {
   const { Icon, color } = TONE_ICONS[tone];
   return (
     <div
+      {...passThroughOf(rest)}
       id={id}
       role={announce ? "status" : undefined}
       className={cn(noticeRowClasses(tone, size), className)}

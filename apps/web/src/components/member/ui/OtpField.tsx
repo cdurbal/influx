@@ -10,6 +10,11 @@ import {
   otpLineClasses,
   type OtpBoxState,
 } from "./otp-field-classes";
+import {
+  ariaAttributesOf,
+  dataAttributesOf,
+  type PassThroughProps,
+} from "./pass-through";
 
 /** The number of digits of a code: six (C49). */
 const CODE_LENGTH = 6;
@@ -71,12 +76,19 @@ export function OtpField({
   disabled = false,
   describedBy: extraDescribedBy,
   className,
-}: OtpFieldProps) {
+  ...rest
+}: OtpFieldProps & PassThroughProps) {
   const ids = useFieldIds(id);
+  const received = ariaAttributesOf(rest);
   const [focused, setFocused] = useState(false);
   const texts = { label, requiredLabel, help, error };
   const refs = fieldRefsOf(texts, ids);
-  const describedBy = describedByOf(extraDescribedBy, refs.help, refs.error);
+  const describedBy = describedByOf(
+    extraDescribedBy,
+    refs.help,
+    refs.error,
+    received["aria-describedby"],
+  );
   const hasError = invalid || (error !== undefined && error !== null);
   const digits = digitsOf(value);
   const next = Math.min(digits.length, CODE_LENGTH - 1);
@@ -89,9 +101,16 @@ export function OtpField({
           ? "current"
           : "rest";
   return (
-    <Field {...texts} ids={ids} kind="single" className={className}>
+    <Field
+      {...dataAttributesOf(rest)}
+      {...texts}
+      ids={ids}
+      kind="single"
+      className={className}
+    >
       {variant === "line" ? (
         <input
+          {...received}
           id={ids.control}
           name={name}
           type="text"
@@ -119,6 +138,7 @@ export function OtpField({
             </span>
           ))}
           <input
+            {...received}
             id={ids.control}
             name={name}
             type="text"

@@ -20,6 +20,7 @@ import {
   filterSearchClasses,
   type FilterBarDensity,
 } from "./filter-bar-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type FilterPill = {
   id: string;
@@ -162,10 +163,13 @@ export function FilterBar({
   selects,
   density = "md",
   className,
-}: FilterBarProps) {
+  ...rest
+}: FilterBarProps & PassThroughProps) {
   return (
     <div
+      {...passThroughOf(rest)}
       role="group"
+      aria-labelledby={undefined}
       aria-label={label}
       data-filter-bar={density}
       className={cn(filterBarClasses(density), className)}

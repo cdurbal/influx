@@ -19,6 +19,7 @@ import {
   emptyStateClasses,
   type EmptyStateKind,
 } from "./empty-state-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** What a lucide icon of `icons.ts` is, as far as the message is concerned: it takes a class, it is decorative. */
 type StateIcon = ComponentType<{ className?: string; "aria-hidden"?: "true" }>;
@@ -72,11 +73,16 @@ export function EmptyState({
   live = false,
   id,
   className,
-}: EmptyStateProps) {
+  ...rest
+}: EmptyStateProps & PassThroughProps) {
   const announce = live ? <AnnounceOnAppearing message={title} /> : null;
   if (kind === "inline") {
     return (
-      <div id={id} className={cn(emptyStateClasses(kind), className)}>
+      <div
+        {...passThroughOf(rest)}
+        id={id}
+        className={cn(emptyStateClasses(kind), className)}
+      >
         {announce}
         <Icon aria-hidden="true" className={EMPTY_STATE_INLINE_ICON_CLASSES} />
         <p className={EMPTY_STATE_INLINE_TEXT_CLASSES}>{title}</p>
@@ -84,7 +90,11 @@ export function EmptyState({
     );
   }
   return (
-    <div id={id} className={cn(emptyStateClasses(kind), className)}>
+    <div
+      {...passThroughOf(rest)}
+      id={id}
+      className={cn(emptyStateClasses(kind), className)}
+    >
       {announce}
       <Icon aria-hidden="true" className={EMPTY_STATE_ICON_CLASSES} />
       <p className={EMPTY_STATE_TITLE_CLASSES}>{title}</p>

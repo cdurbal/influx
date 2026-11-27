@@ -8,6 +8,7 @@ import {
   sectionTitleClasses,
   type SectionVariant,
 } from "./section-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type SectionProps = {
   title: ReactNode;
@@ -41,10 +42,12 @@ export function Section({
   busy,
   className,
   children,
-}: SectionProps) {
+  ...rest
+}: SectionProps & PassThroughProps) {
   const headingId = useId();
   return (
     <section
+      {...passThroughOf(rest)}
       aria-labelledby={headingId}
       aria-busy={busy === true ? true : undefined}
       className={cn(sectionClasses(variant, divider), className)}

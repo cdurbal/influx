@@ -1,4 +1,5 @@
 import { cn } from "@/components/ui/class-names";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type MemberRole = "advertiser" | "creator";
 
@@ -21,9 +22,15 @@ export type RoleBadgeProps = {
  * decorative. The weight is its own, never the parent's: the account sheet of the backoffice sets 800
  * and the badge must not inherit it (RU-15).
  */
-export function RoleBadge({ role, label, className }: RoleBadgeProps) {
+export function RoleBadge({
+  role,
+  label,
+  className,
+  ...rest
+}: RoleBadgeProps & PassThroughProps) {
   return (
     <span
+      {...passThroughOf(rest)}
       className={cn(
         "inline-flex items-center gap-2 rounded-pill px-3 py-1",
         "border-(length:--border-width-thin) border-border-default bg-surface-raised",

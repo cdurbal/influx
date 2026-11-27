@@ -6,6 +6,7 @@ import {
   type CardVariant,
 } from "./card-classes";
 import { CARD_TITLE } from "./heading-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 type CardBaseProps = {
   /** The element of the card (a `li` in a list, a `section` or an `article` in a page): a `div` by default. */
@@ -41,10 +42,14 @@ export function Card({
   title,
   className,
   children,
-}: CardProps) {
+  ...rest
+}: CardProps & PassThroughProps) {
   if (href !== undefined && title !== undefined) {
     return (
-      <Element className={cn(cardClasses("link"), className)}>
+      <Element
+        {...passThroughOf(rest)}
+        className={cn(cardClasses("link"), className)}
+      >
         <p className={CARD_TITLE}>
           <a href={href} className={CARD_LINK_CLASSES}>
             {title}
@@ -55,7 +60,10 @@ export function Card({
     );
   }
   return (
-    <Element className={cn(cardClasses(variant), className)}>
+    <Element
+      {...passThroughOf(rest)}
+      className={cn(cardClasses(variant), className)}
+    >
       {children}
     </Element>
   );

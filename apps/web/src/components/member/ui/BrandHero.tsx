@@ -8,6 +8,7 @@ import {
   BRAND_HERO_TITLE_CLASSES,
 } from "./brand-hero-classes";
 import { LogoPlate } from "./LogoPlate";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type BrandHeroProps = {
   /** The public name of the brand: the `h1` of its page. */
@@ -31,9 +32,14 @@ export function BrandHero({
   badge,
   meta,
   className,
-}: BrandHeroProps) {
+  ...rest
+}: BrandHeroProps & PassThroughProps) {
   return (
-    <header data-brand-hero="" className={cn(BRAND_HERO_CLASSES, className)}>
+    <header
+      {...passThroughOf(rest)}
+      data-brand-hero=""
+      className={cn(BRAND_HERO_CLASSES, className)}
+    >
       <LogoPlate
         src={logo}
         name={name}

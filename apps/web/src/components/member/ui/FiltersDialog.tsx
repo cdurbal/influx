@@ -13,6 +13,7 @@ import {
   filtersDialogClasses,
 } from "./dialog-classes";
 import { useModalDialog } from "./use-modal-dialog";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type FiltersDialogProps = {
   open: boolean;
@@ -53,7 +54,8 @@ export function FiltersDialog({
   clearLabel,
   closeLabel,
   id,
-}: FiltersDialogProps) {
+  ...rest
+}: FiltersDialogProps & PassThroughProps) {
   const { titleId, titleRef, dialogProps } = useModalDialog({
     open,
     onClose,
@@ -71,6 +73,7 @@ export function FiltersDialog({
   const nothingToClear = activeCount === 0;
   return (
     <dialog
+      {...passThroughOf(rest)}
       id={id}
       data-dialog="filters"
       {...dialogProps}

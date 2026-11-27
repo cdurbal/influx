@@ -13,6 +13,7 @@ import {
   disclosureSummaryClasses,
   type DisclosureVariant,
 } from "./disclosure-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type DisclosureProps = {
   /** `optional` "Optional, to complete later", `fold`, `danger` (the text of an error), `rare` (a pile of gestures, chevron down), `group` (a count), `change` (backoffice). */
@@ -44,7 +45,8 @@ export function Disclosure({
   id,
   className,
   children,
-}: DisclosureProps) {
+  ...rest
+}: DisclosureProps & PassThroughProps) {
   const [open, setOpen] = useState(defaultOpen || forceOpen);
   // An error that comes while the fold is closed opens it: the change of `forceOpen` is read while rendering.
   const [forced, setForced] = useState(forceOpen);
@@ -57,6 +59,7 @@ export function Disclosure({
   const Chevron = variant === "rare" ? ChevronDownIcon : ChevronRightIcon;
   return (
     <details
+      {...passThroughOf(rest)}
       id={id}
       open={open}
       data-disclosure={variant}

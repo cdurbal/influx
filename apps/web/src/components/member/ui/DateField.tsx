@@ -12,6 +12,11 @@ import {
 import { dateFieldControlClasses } from "./date-field-classes";
 import { Field } from "./Field";
 import { describedByOf, fieldRefsOf, useFieldIds } from "./field-ids";
+import {
+  ariaAttributesOf,
+  dataAttributesOf,
+  type PassThroughProps,
+} from "./pass-through";
 
 export type DateFieldProps = {
   /** The id of the control: the screen focuses the first invalid field by it. */
@@ -72,8 +77,9 @@ export function DateField({
   disabled,
   className,
   ...texts
-}: DateFieldProps) {
+}: DateFieldProps & PassThroughProps) {
   const ids = useFieldIds(id);
+  const received = ariaAttributesOf(texts);
   const order = dateOrderOf(locale);
   // What was typed, while the field holds a text of its own, and whether the field was left since; `null` when it
   // shows the value.
@@ -136,10 +142,18 @@ export function DateField({
     refs.help,
     refs.warning,
     refs.error,
+    received["aria-describedby"],
   );
   return (
-    <Field {...fieldTexts} ids={ids} kind="single" className={className}>
+    <Field
+      {...dataAttributesOf(texts)}
+      {...fieldTexts}
+      ids={ids}
+      kind="single"
+      className={className}
+    >
       <input
+        {...received}
         id={ids.control}
         name={name}
         type="text"

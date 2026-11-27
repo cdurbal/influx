@@ -18,6 +18,7 @@ import {
   MISSING_LINK_CLASSES,
   MISSING_LIST_CLASSES,
 } from "./error-summary-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type ErrorSummaryItem = {
   /** The id of the control (of the first one for a group): the link focuses it. */
@@ -51,7 +52,8 @@ export function ErrorSummary({
   autoFocus = false,
   id,
   className,
-}: ErrorSummaryProps) {
+  ...rest
+}: ErrorSummaryProps & PassThroughProps) {
   const box = useRef<HTMLDivElement>(null);
   const titleId = `${id ?? "error-summary"}-title`;
   const hasItems = items.length > 0;
@@ -61,6 +63,7 @@ export function ErrorSummary({
   if (!hasItems) return null;
   return (
     <div
+      {...passThroughOf(rest)}
       ref={box}
       id={id}
       role="group"
@@ -117,10 +120,14 @@ export function MissingList({
   items,
   actionLabel,
   className,
-}: MissingListProps) {
+  ...rest
+}: MissingListProps & PassThroughProps) {
   if (items.length === 0) return null;
   return (
-    <ul className={cn(MISSING_LIST_CLASSES, className)}>
+    <ul
+      {...passThroughOf(rest)}
+      className={cn(MISSING_LIST_CLASSES, className)}
+    >
       {items.map((item) => (
         <li key={item.id} className={MISSING_ITEM_CLASSES}>
           <TriangleAlertIcon

@@ -12,6 +12,7 @@ import {
   skeletonStackClasses,
   type SkeletonShape,
 } from "./skeleton-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** Nothing is drawn before this delay: a load that is quick shows no flash of grey (interactions.html). */
 export const SKELETON_DELAY_MS = 1000;
@@ -60,14 +61,20 @@ export function Skeleton({
   label,
   id,
   className,
-}: SkeletonProps) {
+  ...rest
+}: SkeletonProps & PassThroughProps) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), SKELETON_DELAY_MS);
     return () => clearTimeout(timer);
   }, []);
   return (
-    <div id={id} aria-busy="true" className={className}>
+    <div
+      {...passThroughOf(rest)}
+      id={id}
+      aria-busy="true"
+      className={className}
+    >
       <span className={SKELETON_LABEL_CLASSES}>{label}</span>
       <div aria-hidden="true" className={skeletonStackClasses(shape, visible)}>
         {Array.from({ length: Math.max(1, count) }, (_, index) => (

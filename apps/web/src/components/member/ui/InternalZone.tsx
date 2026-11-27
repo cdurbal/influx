@@ -6,6 +6,7 @@ import {
   INTERNAL_ZONE_ICON_CLASSES,
   INTERNAL_ZONE_TITLE_CLASSES,
 } from "./internal-zone-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type InternalZoneProps = {
   /** What the zone is, already translated: "Visible by INFLUX only". */
@@ -24,10 +25,12 @@ export function InternalZone({
   id,
   className,
   children,
-}: InternalZoneProps) {
+  ...rest
+}: InternalZoneProps & PassThroughProps) {
   const titleId = useId();
   return (
     <div
+      {...passThroughOf(rest)}
       id={id}
       role="group"
       aria-labelledby={titleId}

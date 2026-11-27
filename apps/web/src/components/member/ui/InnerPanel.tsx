@@ -10,6 +10,7 @@ import {
   innerPanelClasses,
   type InnerPanelVariant,
 } from "./inner-panel-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type InnerPanelProps = {
   variant?: InnerPanelVariant;
@@ -35,11 +36,12 @@ export function InnerPanel({
   action,
   className,
   children,
-}: InnerPanelProps) {
+  ...rest
+}: InnerPanelProps & PassThroughProps) {
   const classes = cn(innerPanelClasses(variant), className);
   if (variant === "readonly") {
     return (
-      <div className={classes}>
+      <div {...passThroughOf(rest)} className={classes}>
         {title === undefined ? null : (
           <p className={INNER_PANEL_LABEL_CLASSES}>{title}</p>
         )}
@@ -50,7 +52,7 @@ export function InnerPanel({
   }
   if (variant === "preview") {
     return (
-      <div className={classes}>
+      <div {...passThroughOf(rest)} className={classes}>
         {title === undefined && icon === undefined ? null : (
           <p className={cn(OVERLINE, INNER_PANEL_PREVIEW_HEAD_CLASSES)}>
             {icon === undefined ? null : (
@@ -67,7 +69,7 @@ export function InnerPanel({
     );
   }
   return (
-    <div className={classes}>
+    <div {...passThroughOf(rest)} className={classes}>
       {title === undefined && action === undefined ? null : (
         <div className={INNER_PANEL_HEAD_CLASSES}>
           {title === undefined ? null : <p className={CARD_TITLE}>{title}</p>}

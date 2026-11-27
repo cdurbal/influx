@@ -1,7 +1,8 @@
 import { BadgeCheckIcon } from "@/components/ui/icons";
 import { StatusBadge } from "./StatusBadge";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
-type VerifiedBadgeProps = (
+export type VerifiedBadgeProps = (
   | {
       /** "Verified" / "Vérifié". */
       label: string;
@@ -25,13 +26,14 @@ type VerifiedBadgeProps = (
  * (RUB-A §1; the phrase stays here until RUI), because the blue tick of the social networks claims
  * something else (D34, 20 §11.3). The date is the complete one, day included (EC-L2E-9, 08 RG4).
  */
-export function VerifiedBadge(props: VerifiedBadgeProps) {
+export function VerifiedBadge(props: VerifiedBadgeProps & PassThroughProps) {
   const written =
     "text" in props
       ? props.text
       : [props.label, props.network, props.date].join(" · ");
   return (
     <StatusBadge
+      {...passThroughOf(props)}
       tone="verified"
       icon={BadgeCheckIcon}
       className={props.className}

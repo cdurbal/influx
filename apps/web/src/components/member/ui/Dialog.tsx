@@ -10,6 +10,7 @@ import {
   type DialogSize,
 } from "./dialog-classes";
 import { useModalDialog } from "./use-modal-dialog";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type DialogProps = {
   /** The page owns it: the dialog is modal while it is true, and the focus goes back to the opener when it turns false. */
@@ -45,7 +46,8 @@ export function Dialog({
   initialFocus,
   dismissible = true,
   id,
-}: DialogProps) {
+  ...rest
+}: DialogProps & PassThroughProps) {
   const { titleId, titleRef, dialogProps } = useModalDialog({
     open,
     onClose,
@@ -54,6 +56,7 @@ export function Dialog({
   });
   return (
     <dialog
+      {...passThroughOf(rest)}
       id={id}
       data-dialog=""
       {...dialogProps}

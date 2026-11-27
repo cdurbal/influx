@@ -5,6 +5,7 @@ import {
   READING_MAIN_CLASSES,
 } from "./reading-layout-classes";
 import { StickyAside } from "./StickyAside";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type ReadingLayoutProps = {
   /** The content of the reading: its sections, in order. */
@@ -25,9 +26,11 @@ export function ReadingLayout({
   aside,
   asideLabel,
   className,
-}: ReadingLayoutProps) {
+  ...rest
+}: ReadingLayoutProps & PassThroughProps) {
   return (
     <div
+      {...passThroughOf(rest)}
       data-reading-layout=""
       className={cn(READING_LAYOUT_CLASSES, className)}
     >

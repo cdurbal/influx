@@ -36,6 +36,7 @@ import {
   type PhotoBadgeTone,
 } from "./photo-card-classes";
 import { useSlideInView } from "./use-slide-in-view";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** One visual: its source (absent while it is missing or not yet signed) and what it shows, never who (02b C31). */
 type PhotoCardMedia = { src?: string; alt: string };
@@ -211,7 +212,7 @@ export function PhotoCard({
   leaving = false,
   className,
   ...variantProps
-}: PhotoCardProps) {
+}: PhotoCardProps & PassThroughProps) {
   const nameId = useId();
   const refusalId = useId();
   // the pop of the heart follows a change to « saved », never its first drawing
@@ -229,6 +230,7 @@ export function PhotoCard({
 
   return (
     <article
+      {...passThroughOf(variantProps)}
       aria-labelledby={nameId}
       data-photo-card={variantProps.variant}
       data-saved={saved ? "" : undefined}

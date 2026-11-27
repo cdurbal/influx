@@ -28,6 +28,7 @@ import {
   wizardSegmentClasses,
   type WizardStepState,
 } from "./wizard-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** One step of the wizard: where it goes, its name for a screen reader and the state its segment shows. */
 type WizardStep = {
@@ -92,7 +93,8 @@ export function Wizard({
   notice,
   children,
   className,
-}: WizardProps) {
+  ...rest
+}: WizardProps & PassThroughProps) {
   const headingId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
   const shown = useRef(name);
@@ -104,7 +106,11 @@ export function Wizard({
     }
   }, [name]);
   return (
-    <div data-wizard="" className={cn(WIZARD_CLASSES, className)}>
+    <div
+      {...passThroughOf(rest)}
+      data-wizard=""
+      className={cn(WIZARD_CLASSES, className)}
+    >
       <div className={WIZARD_HEAD_CLASSES}>
         <div className={WIZARD_TOP_CLASSES}>
           <h1 className={WIZARD_TITLE_CLASSES}>{title}</h1>

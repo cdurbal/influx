@@ -9,6 +9,7 @@ import {
   type PropertyLabelWidth,
   type PropertySize,
 } from "./property-list-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type PropertyListItem = {
   label: string;
@@ -44,12 +45,17 @@ function PropertyLines({
   emptyLabel,
   id,
   className,
+  attributes,
 }: Pick<
   PropertyListProps,
   "items" | "size" | "labelWidth" | "emptyLabel" | "id" | "className"
->) {
+> & {
+  /** What the list passes on, when its `dl` is the root. */
+  attributes?: PassThroughProps;
+}) {
   return (
     <dl
+      {...attributes}
       id={id}
       className={cn(propertyListClasses(size, labelWidth), className)}
     >
@@ -87,11 +93,16 @@ export function PropertyList({
   emptyLabel,
   id,
   className,
-}: PropertyListProps) {
+  ...rest
+}: PropertyListProps & PassThroughProps) {
   if (columns === 2) {
     const half = Math.ceil(items.length / 2);
     return (
-      <div id={id} className={cn(PROPERTY_COLUMNS_CLASSES, className)}>
+      <div
+        {...passThroughOf(rest)}
+        id={id}
+        className={cn(PROPERTY_COLUMNS_CLASSES, className)}
+      >
         <PropertyLines
           items={items.slice(0, half)}
           size={size}
@@ -115,6 +126,7 @@ export function PropertyList({
       emptyLabel={emptyLabel}
       id={id}
       className={className}
+      attributes={passThroughOf(rest)}
     />
   );
 }

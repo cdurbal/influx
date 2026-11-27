@@ -16,9 +16,11 @@ import {
   type FieldSize,
   type FieldWidth,
 } from "./field-classes";
+import { describedByOf } from "./field-ids";
 import { FieldMessage } from "./FieldMessage";
 import { LayerBadge } from "./LayerBadge";
 import type { ProfileLayer } from "./layer-badge-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** What every field of the profile form says about itself (06 RG85). */
 export type FieldTexts = {
@@ -104,7 +106,9 @@ export function Field({
   conditional = false,
   children,
   className,
-}: FieldProps) {
+  ...rest
+}: FieldProps & PassThroughProps) {
+  const received = passThroughOf(rest);
   const requiredText = ` (${requiredLabel ?? ""})`;
   const labelText = (
     <>
@@ -172,9 +176,13 @@ export function Field({
     // The legend is the first child of the fieldset; the badge follows it (a legend holds text only).
     return (
       <fieldset
+        {...received}
         role={radioGroup === undefined ? undefined : "radiogroup"}
         aria-invalid={radioGroup?.invalid ? true : undefined}
-        aria-describedby={describedBy}
+        aria-describedby={describedByOf(
+          describedBy,
+          received["aria-describedby"],
+        )}
         className={rootClasses}
       >
         <legend className={cn(MEMBER_FIELD_LABEL_CLASSES, "mb-2 p-0")}>
@@ -186,7 +194,7 @@ export function Field({
     );
   }
   return (
-    <div className={rootClasses}>
+    <div {...received} className={rootClasses}>
       <div className={MEMBER_FIELD_HEADER_CLASSES}>
         <label htmlFor={ids.control} className={MEMBER_FIELD_LABEL_CLASSES}>
           {labelText}
@@ -206,8 +214,18 @@ export type FieldGridProps = {
 };
 
 /** The grid of fields (`fgrid`): the fields of a block side by side from 640 px. */
-export function FieldGrid({ columns, className, children }: FieldGridProps) {
+export function FieldGrid({
+  columns,
+  className,
+  children,
+  ...rest
+}: FieldGridProps & PassThroughProps) {
   return (
-    <div className={cn(fieldGridClasses(columns), className)}>{children}</div>
+    <div
+      {...passThroughOf(rest)}
+      className={cn(fieldGridClasses(columns), className)}
+    >
+      {children}
+    </div>
   );
 }

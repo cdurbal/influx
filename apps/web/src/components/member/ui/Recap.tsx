@@ -10,6 +10,7 @@ import {
   RECAP_SECTION_CLASSES,
   RECAP_TITLE_CLASSES,
 } from "./recap-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** One answer of a section: its label and its value, already written. */
 type RecapItem = {
@@ -53,9 +54,10 @@ export function Recap({
   editLabel,
   emptyLabel,
   className,
-}: RecapProps) {
+  ...rest
+}: RecapProps & PassThroughProps) {
   return (
-    <div className={cn(RECAP_CLASSES, className)}>
+    <div {...passThroughOf(rest)} className={cn(RECAP_CLASSES, className)}>
       {sections.map((section) => {
         const titleId = `recap-${section.id}`;
         return (

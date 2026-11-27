@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { ANNOUNCER_CLASSES } from "./announcer-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** The pause between emptying the region and writing the message, so that a repeated text is read again. */
 const ANNOUNCE_DELAY_MS = 50;
@@ -27,7 +28,10 @@ export type AnnouncerProps = {
  * shell and by the state board. `announce()` empties it, then writes the message. A screen that
  * migrates drops its own region for `useAnnouncer()`; the regions a spec reads by `data-*` stay.
  */
-export function AnnouncerProvider({ children }: AnnouncerProps) {
+export function AnnouncerProvider({
+  children,
+  ...rest
+}: AnnouncerProps & PassThroughProps) {
   const [message, setMessage] = useState("");
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const announce = useCallback<Announce>((next) => {
@@ -40,6 +44,7 @@ export function AnnouncerProvider({ children }: AnnouncerProps) {
     <AnnouncerContext.Provider value={announce}>
       {children}
       <div
+        {...passThroughOf(rest)}
         role="status"
         aria-atomic="true"
         data-announcer=""

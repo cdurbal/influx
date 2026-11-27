@@ -10,6 +10,7 @@ import {
 } from "./field-classes";
 import { describedByOf, useFieldIds } from "./field-ids";
 import { Field } from "./Field";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 /** One choice of the group: the code stored, its label, and what a screen may say of it. */
 export type ChoiceGroupOption = {
@@ -81,7 +82,7 @@ export type ChoiceGroupProps = CheckboxChoiceGroup | RadioChoiceGroup;
  * marked `aria-disabled` (they stay in the tab order, so that the reason can be read) and the cap is said in a
  * live region.
  */
-export function ChoiceGroup(props: ChoiceGroupProps) {
+export function ChoiceGroup(props: ChoiceGroupProps & PassThroughProps) {
   const {
     id,
     options,
@@ -182,6 +183,7 @@ export function ChoiceGroup(props: ChoiceGroupProps) {
   };
   return (
     <Field
+      {...passThroughOf(rest)}
       label={rest.label}
       requiredLabel={rest.requiredLabel}
       layer={rest.layer}

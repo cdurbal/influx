@@ -7,6 +7,7 @@ import {
   actionLinkClasses,
   type ActionLinkVariant,
 } from "./action-link-classes";
+import { passThroughOf, type PassThroughProps } from "./pass-through";
 
 export type ActionLinkProps = AriaAttributes & {
   /** `inline` by default: underlined; `go`: a chevron; `save`: a heart and `aria-pressed`. */
@@ -41,7 +42,7 @@ export function ActionLink({
   className,
   children,
   ...rest
-}: ActionLinkProps) {
+}: ActionLinkProps & PassThroughProps) {
   const classes = cn(actionLinkClasses(variant, dense), className);
   const content = (
     <>
@@ -63,7 +64,7 @@ export function ActionLink({
   if (href !== undefined) {
     return (
       <a
-        {...rest}
+        {...passThroughOf(rest)}
         href={href}
         className={classes}
         onClick={onClick}
@@ -77,7 +78,7 @@ export function ActionLink({
   }
   return (
     <button
-      {...rest}
+      {...passThroughOf(rest)}
       type="button"
       className={classes}
       onClick={onClick}

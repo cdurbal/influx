@@ -3,8 +3,14 @@ import type { ChoiceOption } from "./choice-option";
 import { memberControlClasses } from "./field-classes";
 import { describedByOf, fieldRefsOf, useFieldIds } from "./field-ids";
 import { Field, type FieldLayout, type FieldTexts } from "./Field";
+import {
+  ariaAttributesOf,
+  passThroughOf,
+  withoutAria,
+  type PassThroughProps,
+} from "./pass-through";
 
-type SingleChoiceFieldProps = FieldTexts &
+export type SingleChoiceFieldProps = FieldTexts &
   FieldLayout & {
     /** Id of the control (of the first radio): the screen focuses the first invalid field by it. */
     id?: string;
@@ -32,8 +38,9 @@ export function SingleChoiceField({
   disabled,
   className,
   ...texts
-}: SingleChoiceFieldProps) {
+}: SingleChoiceFieldProps & PassThroughProps) {
   const ids = useFieldIds(id);
+  const received = ariaAttributesOf(texts);
   const hasError = texts.error !== undefined && texts.error !== null;
   const refs = fieldRefsOf(texts, ids);
   const describedBy = describedByOf(
@@ -43,10 +50,12 @@ export function SingleChoiceField({
     refs.counter,
     refs.warning,
     refs.error,
+    received["aria-describedby"],
   );
   if (display === "radios") {
     return (
       <ChoiceGroup
+        {...passThroughOf(texts)}
         type="radio"
         id={id}
         name={name}
@@ -67,8 +76,14 @@ export function SingleChoiceField({
     );
   }
   return (
-    <Field {...texts} ids={ids} kind="single" className={className}>
+    <Field
+      {...withoutAria(texts)}
+      ids={ids}
+      kind="single"
+      className={className}
+    >
       <select
+        {...received}
         id={ids.control}
         name={name}
         value={value ?? ""}
