@@ -11,14 +11,17 @@ const PAGE_FRAME_BASE_CLASSES = cn(
 );
 
 /**
- * The width and the padding of a frame. `wide` stops at `container-max`; `narrow` holds a content of
- * `container-narrow` between its gutters; `bo` is the common contract of the backoffice frame, whose
- * rendering RUC settles (02a: 32 by 48 px).
+ * The width and the padding of a frame. Both member frames stop at `container-max`, so that the glow
+ * is the same on every page (E01.0-S17; U-7). `narrow` holds a stack of `container-narrow` at most,
+ * on the left: its right padding takes what is left, never less than the gutter, so that no screen
+ * wraps its content (the percentage is of the parent, which a `w-full` frame fills up to its
+ * maximum). `bo` is the common contract of the backoffice frame, whose rendering RUC settles (02a:
+ * 32 by 48 px).
  */
 const PAGE_FRAME_VARIANT_CLASSES = {
   wide: "max-w-(--container-max) px-page-gutter py-section-header",
   narrow:
-    "max-w-[calc(var(--container-narrow)+2*var(--spacing-page-gutter))] px-page-gutter py-section-header",
+    "max-w-(--container-max) pl-page-gutter pr-[max(var(--spacing-page-gutter),calc(min(100%,var(--container-max))-var(--container-narrow)-var(--spacing-page-gutter)))] py-section-header",
   bo: "px-8 py-6",
 };
 

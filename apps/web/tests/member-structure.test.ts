@@ -56,6 +56,17 @@ describe("RUB-T1: C01 PageFrame", () => {
     }
     expect(pageFrameClasses("narrow")).toContain("--container-narrow");
     expect(pageFrameClasses("wide")).toContain("max-w-(--container-max)");
+    // U-7: the narrow frame is as wide as the wide one, the glow with it; its stack stays narrow by
+    // the right padding alone, never under the gutter.
+    expect(pageFrameClasses("narrow").split(" ")).toEqual(
+      expect.arrayContaining([
+        "max-w-(--container-max)",
+        "pl-page-gutter",
+        "pr-[max(var(--spacing-page-gutter),calc(min(100%,var(--container-max))-var(--container-narrow)-var(--spacing-page-gutter)))]",
+      ]),
+    );
+    expect(pageFrameClasses("narrow")).not.toMatch(/max-w-\[|px-page-gutter/);
+    expect(pageFrameClasses("wide")).not.toContain("--container-narrow");
   });
 
   it("takes the gap of the reading or the stacked page, and the reserve of its sticky bar on a phone only", () => {

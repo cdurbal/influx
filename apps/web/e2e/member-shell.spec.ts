@@ -1086,6 +1086,25 @@ test("RUB-T10: one edge of the h1 on a narrow and a wide page, nothing after « 
   const narrow = await edges();
   expect(narrow.slice(1)).toEqual([304, 304]);
 
+  /** E01.0-S17 (U-7): the one frame of the page, which carries the glow, and the width it offers. */
+  const frameAt1440 = async () => {
+    const frame = page.getByRole("main").locator(".bg-header-glow");
+    await expect(frame).toHaveCount(1);
+    const { width } = await boxOf(frame);
+    const content = await frame.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return (
+        element.clientWidth -
+        parseFloat(style.paddingLeft) -
+        parseFloat(style.paddingRight)
+      );
+    });
+    return { width, content };
+  };
+  const narrowFrame = await frameAt1440();
+  expect(narrowFrame.content).toBeLessThanOrEqual(768);
+  expect(narrowFrame.content).toBeCloseTo(768, 0);
+
   // CA02: on a sub-page, the rubric is an ancestor, without surface nor line.
   await nav
     .getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true })
@@ -1114,6 +1133,10 @@ test("RUB-T10: one edge of the h1 on a narrow and a wide page, nothing after « 
   await expect(aside.getByText(/manquante/)).toHaveCount(0);
   await expect(aside.getByRole("link")).toHaveCount(1);
   expect(await edges()).toEqual(narrow);
+  // The wide page's frame is as wide as the narrow one's, its content wider.
+  const wideFrame = await frameAt1440();
+  expect(wideFrame.width).toBe(narrowFrame.width);
+  expect(wideFrame.content).toBeGreaterThan(narrowFrame.content);
   expect(
     await markOf(
       nav.getByRole("link", {

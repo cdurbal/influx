@@ -23,7 +23,7 @@
 | fix-2 | fix-2.md | fix | sonnet | high | dev-react-node | fait | U-3 : AP1 sous le seul média forced-colors (transition-colors) ; anneau au focus intact ; « valider fix-1…fix-5 » (fondateur, 2026-11-27) |
 | fix-3 | fix-3.md | fix | sonnet | medium | dev-react-node | fait | U-4 : `md:contents` avec la seule grille, `sub` seul : chevron au bord droit ; « valider fix-1…fix-5 » (fondateur, 2026-11-27) |
 | fix-4 | fix-4.md | fix | sonnet | medium | dev-react-node | fait | U-5, U-6 : icône et texte insécables ; `strip` à base `size-note-min` ; « valider fix-1…fix-5 » (fondateur, 2026-11-27) |
-| fix-5 | fix-5.md | fix | sonnet | high | dev-react-node | à faire | U-7 : le fondateur choisit de corriger (`valider … fix-5`, 2026-11-27) |
+| fix-5 | fix-5.md | fix | sonnet | high | dev-react-node | fait | U-7 : cadre étroit à `container-max`, pile de 768 px par le seul retrait droit, appelants intacts ; choix « corriger » (fondateur, 2026-11-27) |
 | F1 | F1.md | fondateur | — | — | fondateur | à faire | |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | à faire | |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
