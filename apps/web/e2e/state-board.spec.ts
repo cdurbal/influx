@@ -1,11 +1,13 @@
 // RUA-T8 (docs/mvp/jalons/rua/modele-archi.md §6): the component state board, served by the e2e
 // build alone (INFLUX_ENV=development and INFLUX_STATE_BOARD=on at build time: playwright.config.ts
-// locally, the "Build both fronts" step of ci.yml). One case: at 375 and at 1 440 px the page answers within 4 s,
-// shows one section per component with its cells, exactly one `h1` outside the page-header cells and one
-// in each of them, no sideways overflow of a section, and axe (WCAG 2.1 AA) finds nothing; at 375 px
-// nothing overflows sideways (05-recette-visuelle §6, RUAU-J1). The absence of the page
-// from a deployed build is the other half, proved on the artifact (tests/build.artifacts.ts).
-import type { Locator } from "@playwright/test";
+// locally, the "Build both fronts" step of ci.yml). An index and one page per family (RUB-fix-10a): RUA-T8 opens
+// each, which answers within 4 s (its time written in the report), holds the sections of its family with their
+// cells, exactly one `h1` outside the page-header cells and one in each of them. Each case of RUB opens the page
+// of its family alone, and one of them per family checks at 375 and at 1 440 px that no section overflows
+// sideways, nor the page at 375 px, and that axe (WCAG 2.1 AA) finds nothing (05-recette-visuelle §6, RUAU-J1);
+// RUA-T8 does it for the structure family. The absence of the pages from a deployed build is the other half,
+// proved on the artifact (tests/build.artifacts.ts).
+import type { Locator, Page } from "@playwright/test";
 import { expectNoAxeViolation } from "./support/axe";
 import { expect, open, test } from "./support/journey";
 import { settled } from "./support/rendering";
@@ -68,17 +70,140 @@ const VIEWPORTS = [
   { width: 1440, height: 900 },
 ] as const;
 
-test("RUA-T8: the state board is served in the e2e environment at 375 and 1 440 px, with a section per component, within 4 s, without a sideways overflow and without an axe violation", async ({
+/**
+ * The families of the board, one page each at `/fr/state-board/<family>` (RUB-fix-10a; jalons/rub/modele-archi.md §4):
+ * the sections of one line of RUB, in the order of the page. Every entry of COMPONENTS is on one page exactly.
+ */
+const FAMILIES = {
+  structure: ["structure", "announcer"],
+  surface: ["button", "surface"],
+  badge: [
+    "notice",
+    "status-badge",
+    "layer-badge",
+    "role-badge",
+    "counter-badge",
+    "logo-plate",
+    "chip-list",
+  ],
+  field: ["field", "field-message", "error-summary", "choice-group"],
+  choice: [
+    "segmented-control",
+    "tag-picker",
+    "internal-zone",
+    "save-status",
+    "disclosure",
+    "date-field",
+  ],
+  dialog: ["dialog", "filters-dialog", "filter-bar", "pager"],
+  wizard: ["wizard", "recap", "otp-field", "numbered-steps"],
+  list: ["row-list", "property-list", "empty-state", "skeleton"],
+  card: ["photo-card", "feed-card"],
+  reading: [
+    "media-gallery",
+    "key-figures",
+    "reason-list",
+    "range-bar",
+    "sticky-aside",
+    "reading-layout",
+    "preview-frame",
+    "brand-hero",
+  ],
+} as const satisfies Record<string, readonly (typeof COMPONENTS)[number][]>;
+
+type Family = keyof typeof FAMILIES;
+
+/** A case opens the page of its family alone, at 1 440 px. */
+async function openFamily(page: Page, family: Family): Promise<Locator> {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, `/fr/state-board/${family}`);
+  const board = page.locator("[data-state-board]");
+  await expect(board).toBeVisible();
+  return board;
+}
+
+/**
+ * RUB-AX, once per family page, in the case that opens it: at 1 440 then 375 px no section overflows sideways, nor the
+ * page at 375 px, and axe (WCAG 2.1 AA) finds nothing; the page is then back at 1 440 px, at its top.
+ */
+async function expectFamilyClean(page: Page, family: Family): Promise<void> {
+  const board = page.locator("[data-state-board]");
+  for (const viewport of [...VIEWPORTS].reverse()) {
+    const label = `${family}, ${viewport.width} px`;
+    await page.setViewportSize(viewport);
+    for (const component of FAMILIES[family]) {
+      const sectionOverflow = await board
+        .locator(`[data-board-component="${component}"]`)
+        .evaluate((element) => element.scrollWidth - element.clientWidth);
+      expect(
+        sectionOverflow,
+        `${label}: ${component}: overflow`,
+      ).toBeLessThanOrEqual(0);
+    }
+    if (viewport.width === 375) {
+      const overflow = await board.evaluate(
+        (element) => element.scrollWidth - element.clientWidth,
+      );
+      expect(overflow, `${label}: board overflow`).toBeLessThanOrEqual(0);
+    }
+    await expectNoAxeViolation(page, `planche des états, ${label}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.evaluate(() => window.scrollTo(0, 0));
+}
+
+/** A failure keeps its icon left of its text, on its first line: only the delay and the retry wrap. */
+async function expectIconBesideText(
+  line: Locator,
+  where: string,
+): Promise<void> {
+  await line.scrollIntoViewIfNeeded();
+  const measured = await line.evaluate((element) => {
+    const icon = element.querySelector("svg")!.getBoundingClientRect();
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    const range = document.createRange();
+    range.selectNodeContents(walker.nextNode()!);
+    const first = range.getClientRects()[0]!;
+    const middle = icon.top + icon.height / 2;
+    return {
+      gap: first.left - icon.right,
+      onFirstLine: middle > first.top && middle < first.bottom,
+    };
+  });
+  expect(measured.gap, where).toBeGreaterThanOrEqual(0);
+  expect(measured.onFirstLine, where).toBe(true);
+}
+
+test("RUA-T8: the state board is served in the e2e environment, its index and one page per family, each within 4 s, with each component on one page and its cells, one h1 per page and per header cell, and its structure family without a sideways overflow nor an axe violation at 375 and 1 440 px", async ({
   page,
 }) => {
-  for (const viewport of VIEWPORTS) {
-    const label = `${viewport.width} px`;
-    await page.setViewportSize(viewport);
+  // Every entry of COMPONENTS on one family page exactly: the pages are checked below, section by section.
+  expect([...Object.values(FAMILIES).flat()].sort()).toEqual(
+    [...COMPONENTS].sort(),
+  );
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const pages: Array<[string, readonly string[]]> = [
+    ["/fr/state-board", []],
+    ...Object.entries(FAMILIES).map(
+      ([family, components]): [string, readonly string[]] => [
+        `/fr/state-board/${family}`,
+        components,
+      ],
+    ),
+  ];
+  let headerCells = 0;
+  for (const [path, components] of pages) {
     const started = Date.now();
-    await open(page, "/fr/state-board");
+    await open(page, path);
     const board = page.locator("[data-state-board]");
     await expect(board).toBeVisible();
-    expect(Date.now() - started, label).toBeLessThanOrEqual(SERVED_WITHIN_MS);
+    const served = Date.now() - started;
+    // RUBT-1: the time of service, read in the report of the run (CI included).
+    test.info().annotations.push({
+      type: "served",
+      description: `${path}: ${served} ms`,
+    });
+    expect(served, path).toBeLessThanOrEqual(SERVED_WITHIN_MS);
 
     // RUB-AX, the `h1` guard (RUB-A §4): exactly one `h1` outside the page-header cells, and one in each.
     const headings = await board.evaluate((element, cell) => {
@@ -90,38 +215,48 @@ test("RUA-T8: the state board is served in the e2e environment at 375 and 1 440 
         ),
       };
     }, HEADER_CELL);
-    expect(headings.outside, `${label}: h1 outside the header cells`).toBe(1);
-    expect(headings.perCell.length, `${label}: header cells`).toBeGreaterThan(
-      0,
-    );
+    expect(headings.outside, `${path}: h1 outside the header cells`).toBe(1);
+    headerCells += headings.perCell.length;
     expect(
       headings.perCell.every((count) => count === 1),
-      `${label}: one h1 per header cell (${headings.perCell.join(", ")})`,
+      `${path}: one h1 per header cell (${headings.perCell.join(", ")})`,
     ).toBe(true);
-    for (const component of COMPONENTS) {
-      const section = board.locator(`[data-board-component="${component}"]`);
-      await expect(section, `${label}: ${component}`).toHaveCount(1);
+
+    // The sections of the page are those of its family, in order (none on the index), each with its cells.
+    expect(
+      await board
+        .locator("[data-board-component]")
+        .evaluateAll((sections) =>
+          sections.map((section) =>
+            section.getAttribute("data-board-component"),
+          ),
+        ),
+      path,
+    ).toEqual(components);
+    for (const component of components) {
       expect(
-        await section.locator("[data-board-state]").count(),
-        `${label}: ${component}: at least one state`,
+        await board
+          .locator(`[data-board-component="${component}"] [data-board-state]`)
+          .count(),
+        `${path}: ${component}: at least one state`,
       ).toBeGreaterThan(0);
-      // RUB-AX: no section overflows sideways, at 375 and at 1 440 px.
-      const sectionOverflow = await section.evaluate(
-        (element) => element.scrollWidth - element.clientWidth,
-      );
+    }
+    if (components.length === 0) {
+      // The index links to each family.
       expect(
-        sectionOverflow,
-        `${label}: ${component}: overflow`,
-      ).toBeLessThanOrEqual(0);
+        await board
+          .getByRole("link")
+          .evaluateAll((links) =>
+            links.map((link) => link.getAttribute("href")),
+          ),
+      ).toEqual(Object.keys(FAMILIES).map((family) => `${path}/${family}`));
     }
-    if (viewport.width === 375) {
-      const overflow = await board.evaluate(
-        (element) => element.scrollWidth - element.clientWidth,
-      );
-      expect(overflow, "board overflow at 375 px").toBeLessThanOrEqual(0);
+    // RUB-AX of the family no other case opens (rub/fix-10a.md §3).
+    if (path.endsWith("/structure")) {
+      await expectFamilyClean(page, "structure");
     }
-    await expectNoAxeViolation(page, `planche des états à ${label}`);
   }
+  expect(headerCells, "header cells").toBeGreaterThan(0);
 });
 
 // RUB-AN2, line 02 (R04 lines 2, 3, 16 and 21; docs/mvp/jalons/rub/modele-ux.md §3): at 1 440 px the card
@@ -132,9 +267,8 @@ test("RUA-T8: the state board is served in the e2e environment at 375 and 1 440 
 test("RUB-AN2 02: the surfaces and the actions, their motion and its absence under reduced motion, their touch zones and their underline", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "surface");
+  await expectFamilyClean(page, "surface");
   const STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
 
   const cardLink = board.locator('[data-board-state="card-link"] a');
@@ -296,9 +430,8 @@ test("RUB-AN2 02: the surfaces and the actions, their motion and its absence und
 test("RUB-AN2 17: the counter flashes when its value changes, and not under reduced motion; RUB-AX: the measures of the badges, the notices and the plates", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "badge");
+  await expectFamilyClean(page, "badge");
   const cell = (component: string, state: string) =>
     board.locator(
       `[data-board-component="${component}"] [data-board-state="${state}"]`,
@@ -469,9 +602,8 @@ test("RUB-AN2 17: the counter flashes when its value changes, and not under redu
 test("RUB-AN2 04 and 32: the row lights its ground and the skeleton shows its sheen, and not under reduced motion; RUB-AX: the measures of the lists, the properties and the states", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "list");
+  await expectFamilyClean(page, "list");
   const cell = (component: string, state: string) =>
     board.locator(
       `[data-board-component="${component}"] [data-board-state="${state}"]`,
@@ -612,9 +744,8 @@ test("RUB-AN2 04 and 32: the row lights its ground and the skeleton shows its sh
 test("RUB-AN2 05: the field enters by rise-in and its error moves nothing, and not under reduced motion; RUB-AX: the grid, the unit, the summary to the field by the keyboard, the cap of a group", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "field");
+  await expectFamilyClean(page, "field");
   const cell = (component: string, state: string) =>
     board.locator(
       `[data-board-component="${component}"] [data-board-state="${state}"]`,
@@ -759,9 +890,8 @@ test("RUB-AN2 05: the field enters by rise-in and its error moves nothing, and n
 test("RUB-AN2 06: the segments, the tags, the save status, the fold and the date, their motion and its absence under reduced motion, their keyboard and their forced colours", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "choice");
+  await expectFamilyClean(page, "choice");
   const cell = (component: string, state: string) =>
     board.locator(
       `[data-board-component="${component}"] [data-board-state="${state}"]`,
@@ -891,39 +1021,13 @@ test("RUB-AN2 06: the segments, the tags, the save status, the fold and the date
   await expect(failing.locator('[data-save-state="saving"]')).toHaveCount(1);
   await expect(cell("save-status", "saved").getByRole("status")).toHaveCount(0);
 
-  // A failure keeps its icon left of its text, on its first line: only the delay and the retry wrap.
-  const iconBesideText = async (
-    line: ReturnType<typeof cell>,
-    where: string,
-  ) => {
-    await line.scrollIntoViewIfNeeded();
-    const measured = await line.evaluate((element) => {
-      const icon = element.querySelector("svg")!.getBoundingClientRect();
-      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
-      const range = document.createRange();
-      range.selectNodeContents(walker.nextNode()!);
-      const first = range.getClientRects()[0]!;
-      const middle = icon.top + icon.height / 2;
-      return {
-        gap: first.left - icon.right,
-        onFirstLine: middle > first.top && middle < first.bottom,
-      };
-    });
-    expect(measured.gap, where).toBeGreaterThanOrEqual(0);
-    expect(measured.onFirstLine, where).toBe(true);
-  };
+  // A failure keeps its icon left of its text, on its first line (the foot of a wizard: RUB-AN2 08, its family).
   await page.setViewportSize({ width: 375, height: 812 });
-  await iconBesideText(
+  await expectIconBesideText(
     cell("save-status", "failed").locator("[data-save-state]"),
     "save-status failed at 375",
   );
   await page.setViewportSize({ width: 1440, height: 900 });
-  await iconBesideText(
-    cell("wizard", "page-header-wizard-busy").locator(
-      "[data-save-state]:visible",
-    ),
-    "wizard foot at 1 440",
-  );
 
   // The fold: the content rises in over 200 ms, the chevron turns over 200 ms (120 ms for the rare gestures).
   const fold = cell("disclosure", "fold").locator("details");
@@ -1078,9 +1182,8 @@ async function expectPagerClear(cell: Locator, label: string): Promise<void> {
 test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by the backdrop unless a request runs, the filters give their draft up, and axe finds nothing in an open dialog", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "dialog");
+  await expectFamilyClean(page, "dialog");
   const cell = (component: string, state: string) =>
     board.locator(
       `[data-board-component="${component}"] [data-board-state="${state}"]`,
@@ -1344,9 +1447,7 @@ test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by t
 test("RUB-AN2 07: the pills, the dialog and its scrim, their motion and its absence under reduced motion, the chevron that turns over and the contour under forced colours", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "dialog");
   const cell = (component: string, state: string) =>
     board.locator(
       `[data-board-component="${component}"] [data-board-state="${state}"]`,
@@ -1509,9 +1610,8 @@ test("RUB-AN2 07: the pills, the dialog and its scrim, their motion and its abse
 test("RUB-T8: the wizard follows its segments by the keyboard, moves the focus to the title of the step and never blocks, the code is one field that takes a paste, and nothing overflows at 320 px", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "wizard");
+  await expectFamilyClean(page, "wizard");
   const cell = (component: string, state: string) =>
     board.locator(
       `[data-board-component="${component}"] [data-board-state="${state}"]`,
@@ -1685,9 +1785,7 @@ test("RUB-T8: the wizard follows its segments by the keyboard, moves the focus t
 test("RUB-AN2 08: the step fades in, the segments and the boxes of the code change their colour over their durations, and not under reduced motion, and forced colours draw the contours of the segments and of the current step", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "wizard");
   const cell = (component: string, state: string) =>
     board.locator(
       `[data-board-component="${component}"] [data-board-state="${state}"]`,
@@ -1789,6 +1887,15 @@ test("RUB-AN2 08: the step fades in, the segments and the boxes of the code chan
   expect((await readTransition(segment.first())).duration).toBe("0s");
   expect((await readTransition(box)).duration).toBe("0s");
   await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // The failure of the save status in the foot of a wizard keeps its icon left of its text (moved here from RUB-AN2 06,
+  // which opens its own family alone: RUB-fix-10a).
+  await expectIconBesideText(
+    cell("wizard", "page-header-wizard-busy").locator(
+      "[data-save-state]:visible",
+    ),
+    "wizard foot at 1 440",
+  );
 });
 
 // RUB-T9 (docs/mvp/jalons/rub/annexe.md; 02b C31, C48): the track of a photo card is reached and scrolled by the
@@ -1798,9 +1905,8 @@ test("RUB-AN2 08: the step fades in, the segments and the boxes of the code chan
 test("RUB-T9: the photo card scrolls its visuals by the keyboard and by its arrows, the dots following, its heart is pressed by the mouse and the keyboard with a double ring, and no card writes an amount", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "card");
+  await expectFamilyClean(page, "card");
   const card = board
     .locator(
       '[data-board-component="photo-card"] [data-board-state="search"] article',
@@ -1905,9 +2011,7 @@ test("RUB-T9: the photo card scrolls its visuals by the keyboard and by its arro
 test("RUB-AN2 09a: the feed card lifts, the track scrolls smoothly, the arrows fade in, the dots widen, the heart grows and pops, the card leaves, and not under reduced motion; forced colours draw the contour of a saved heart", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "card");
   const STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
   const search = board.locator(
     '[data-board-component="photo-card"] [data-board-state="search"] article',
@@ -2073,9 +2177,8 @@ test("RUB-AN2 09a: the feed card lifts, the track scrolls smoothly, the arrows f
 test("RUB-T9 09b: the mosaic or the carousel, their dialog by the keyboard with its focus given back, axe in the open dialog, an inert action of a preview, and no amount nor score", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "reading");
+  await expectFamilyClean(page, "reading");
   const cell = (state: string) =>
     board.locator(
       `[data-board-component="media-gallery"] [data-board-state="${state}"]`,
@@ -2241,9 +2344,7 @@ test("RUB-T9 09b: the mosaic or the carousel, their dialog by the keyboard with 
 test("RUB-AN2 09b: the gallery fades without a scale, a visual of the mosaic dims, the box sticks or its bar is fixed, and nothing moves under reduced motion; the measures of the reading components at both widths", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await open(page, "/fr/state-board");
-  const board = page.locator("[data-state-board]");
+  const board = await openFamily(page, "reading");
   const STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
   const gallery = board.locator(
     '[data-board-component="media-gallery"] [data-board-state="two"]',

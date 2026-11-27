@@ -95,6 +95,27 @@ describe("findStateBoardInBuild (RUA-T8)", () => {
       ".next/static/chunks/board.js: the marker data-state-board",
     ]);
   });
+
+  // RUB-fix-10a (jalons/rub/modele-archi.md §4): a page of one family, in a folder under the route of the board.
+  it("finds a family page of the board: its path, its marked chunk and its route in a manifest (RUB-fix-10a)", () => {
+    writeArtifact(
+      "server/app/[locale]/(member)/state-board/dialog/page.js",
+      "export {};",
+    );
+    writeArtifact(
+      "static/chunks/app/family.js",
+      `<main ${STATE_BOARD_MARKER}=""><h1>Dialogues</h1></main>`,
+    );
+    writeArtifact(
+      "server/app-paths-manifest.json",
+      '{"/[locale]/(member)/state-board/dialog/page":"app/x.js"}',
+    );
+    expect(findStateBoardInBuild(nextDirectory).sort()).toEqual([
+      ".next/server/app-paths-manifest.json: the route state-board in a manifest",
+      ".next/server/app/[locale]/(member)/state-board/dialog/page.js: a path of the state board",
+      ".next/static/chunks/app/family.js: the marker data-state-board",
+    ]);
+  });
 });
 
 describe("scanBuildArtifacts (T11)", () => {

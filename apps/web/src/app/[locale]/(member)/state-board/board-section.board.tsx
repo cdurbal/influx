@@ -5,6 +5,51 @@ import {
   OVERLINE,
   SECTION_TITLE,
 } from "@/components/member/ui/heading-classes";
+import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
+
+/**
+ * The families of the board (RUB-fix-10a; jalons/rub/modele-archi.md §4), one page each at `state-board/<family>`,
+ * in the order of the index: a family is the components of one line of RUB.
+ */
+export const BOARD_FAMILIES = {
+  structure: "Cadre, en-tête, section et annonceur",
+  surface: "Boutons, liens d'action et surfaces",
+  badge: "Notices, badges et plaques",
+  field: "Champs et messages",
+  choice: "Choix, repli, enregistrement et date",
+  dialog: "Dialogues, filtres et pagination",
+  wizard: "Assistant, récapitulatif et code",
+  list: "Listes et états",
+  card: "Cartes",
+  reading: "Composants de lecture",
+} as const;
+
+export type BoardFamily = keyof typeof BOARD_FAMILIES;
+
+const BOARD_TITLE = "Planche des états des composants";
+
+/** The page title of the board, or of one family of it. */
+export function boardTitle(family?: BoardFamily): string {
+  return family === undefined
+    ? BOARD_TITLE
+    : `${BOARD_TITLE} : ${BOARD_FAMILIES[family]}`;
+}
+
+/** The head of a page of the board: its only `h1` outside the page-header cells, and what it holds. */
+export function BoardHeader({
+  title,
+  intro,
+}: {
+  title: string;
+  intro: string;
+}) {
+  return (
+    <header className="flex flex-col gap-3">
+      <h1 className={PAGE_TITLE_CLASSES}>{title}</h1>
+      <p className="text-md text-text-secondary">{intro}</p>
+    </header>
+  );
+}
 
 type BoardSectionProps = {
   /** The stable name of the component (`data-board-component`): the hook of the screenshots and tests. */

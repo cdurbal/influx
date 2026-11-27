@@ -514,6 +514,46 @@ describe("RUA-T8: G8, the state board kept out of the product", () => {
     ]);
   });
 
+  // RUB-fix-10a (jalons/rub/modele-archi.md §4): one page per family, `state-board/<family>/page.board.tsx`.
+  it("follows the family pages into their folders: the expected ones, a missing or an unexpected one, their imports (RUB-fix-10a)", () => {
+    writeBoard();
+    const FAMILY = `${BOARD_DIRECTORY}/surface/page.board.tsx`;
+    const withFamily = {
+      ...RULES,
+      expectedFiles: [...RULES.expectedFiles, FAMILY],
+    };
+    write(
+      FAMILY,
+      'import { ButtonBoard } from "../button.board";\nexport default ButtonBoard;\n',
+    );
+    expect(findStateBoardViolations(front, withFamily)).toEqual([]);
+    expect(findStateBoardViolations(front, RULES)).toEqual([
+      `the state board files in [${SECTION}, ${PAGE}, ${FAMILY}], expected [${SECTION}, ${PAGE}]`,
+    ]);
+    write(
+      `${BOARD_DIRECTORY}/surface/extra/page.board.tsx`,
+      "export default null;\n",
+    );
+    expect(findStateBoardViolations(front, withFamily)).toEqual([
+      `the state board files in [${SECTION}, ${PAGE}, ${BOARD_DIRECTORY}/surface/extra/page.board.tsx, ${FAMILY}], expected [${SECTION}, ${PAGE}, ${FAMILY}]`,
+    ]);
+    rmSync(path.join(front, BOARD_DIRECTORY, "surface/extra"), {
+      recursive: true,
+    });
+    write(
+      FAMILY,
+      'import { useTranslations } from "next-intl";\nimport { ButtonBoard } from "../button.board";\nexport default () => [useTranslations, ButtonBoard];\n',
+    );
+    write(
+      "src/components/landing/Peek.tsx",
+      'export * from "../../app/[locale]/(member)/state-board/surface/page.board";\n',
+    );
+    expect(findStateBoardViolations(front, withFamily)).toEqual([
+      `${FAMILY}: a board file imports next-intl`,
+      "src/components/landing/Peek.tsx: imports the state board (../../app/[locale]/(member)/state-board/surface/page.board)",
+    ]);
+  });
+
   it("admits what resembles them: prefetch, a comment, a name that only contains process or env (RUAT-2)", () => {
     writeBoard();
     write(

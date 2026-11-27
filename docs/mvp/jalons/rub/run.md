@@ -31,6 +31,6 @@
 | fix-8a | fix-8a.md | fix | sonnet | high | dev-react-node | fait | RUBT-4 : `pass-through.ts` hors `NomProps`, filtre à l’exécution ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-8b | fix-8b.md | fix | opus | xhigh | architecte | ignoré | voie A retenue par le fondateur (fix-8a), 2026-11-27 |
 | fix-9 | fix-9.md | fix | sonnet | high | integrateur | fait | RUBT-5 : échec d’écriture jugé par la lecture ; Chromium lit le 413 ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
-| fix-10a | fix-10a.md | fix | opus | high | testeur | à faire | RUBT-1 voie A : planche scindée, service relevé en CI ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
+| fix-10a | fix-10a.md | fix | opus | high | testeur | fait | RUBT-1 : 10 pages de famille, axe 375/1 440 une par famille ; local : cas RUB 32,0 s, RUA-T8 3,3 s (avant 53,8 et 13,4) > 20 s → fix-10b ; CI à relever |
 | fix-10b | fix-10b.md | fix | opus | xhigh | architecte + chef-de-projet | à valider | RUBT-1 voie B : budget réécrit au chiffre mesuré ; seule, ou après fix-10a pour le reste |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |

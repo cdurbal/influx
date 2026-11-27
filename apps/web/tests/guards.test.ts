@@ -656,8 +656,21 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
 
   // RUA-T8 (jalons/rua/modele-archi.md §6): the board is the set of its files, imported by none of the
   // product, and knows no session, no API client, no translation; the detector is self-tested in the test-kit.
+  // RUB-fix-10a (rub/modele-archi.md §4): the index, its frame, and one page per family in a folder of its own.
   it("keeps the state board to its own files, with no session, API client or translation", () => {
     const board = "src/app/[locale]/(member)/state-board";
+    const families = [
+      "badge",
+      "card",
+      "choice",
+      "dialog",
+      "field",
+      "list",
+      "reading",
+      "structure",
+      "surface",
+      "wizard",
+    ];
     const files = [
       "announcer.board.tsx",
       "badge.board.tsx",
@@ -667,6 +680,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
       "choice.board.tsx",
       "dialog.board.tsx",
       "field.board.tsx",
+      "layout.board.tsx",
       "list.board.tsx",
       "notice.board.tsx",
       "page.board.tsx",
@@ -674,6 +688,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
       "structure.board.tsx",
       "surface.board.tsx",
       "wizard.board.tsx",
+      ...families.map((family) => `${family}/page.board.tsx`),
     ];
     expect(
       findStateBoardViolations(WEB_ROOT, {
