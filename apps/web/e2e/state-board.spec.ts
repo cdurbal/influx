@@ -259,6 +259,31 @@ test("RUB-AN2 02: the surfaces and the actions, their motion and its absence und
       selector,
     ).toBe("underline");
   }
+
+  // U-2: at 375 px the value of a `readonly` line keeps a box that holds its text; « Modifier » wraps, never over it.
+  await page.setViewportSize({ width: 375, height: 812 });
+  const readonlyFaults = await board
+    .locator('[data-board-state="inner-panel-readonly"]')
+    .evaluate((cell) => {
+      const action = cell.querySelector("button")!;
+      const button = action.getBoundingClientRect();
+      const value = action.previousElementSibling!;
+      const box = value.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(value);
+      return [...range.getClientRects()].flatMap((text) => [
+        ...(text.left < box.left - 0.5 || text.right > box.right + 0.5
+          ? [`text of ${text.width} px out of its box of ${box.width} px`]
+          : []),
+        ...(text.left < button.right &&
+        text.right > button.left &&
+        text.top < button.bottom &&
+        text.bottom > button.top
+          ? ["text under the button"]
+          : []),
+      ]);
+    });
+  expect(readonlyFaults, "inner-panel-readonly at 375 px").toEqual([]);
 });
 
 // RUB-AN2, line 17 (R04 line 17: the counter, C16), and RUB-AX for line 03 (docs/mvp/jalons/rub/modele-ux.md §5):
@@ -935,6 +960,33 @@ async function fullyShown(dialog: Locator): Promise<void> {
   await expect(dialog).toHaveCSS("opacity", "1");
 }
 
+/**
+ * U-1: in a cell of the pager, no button lies over the written position, and each button stays inside its side.
+ * Boxes against boxes: an overflow to the left, as on the side of « Suivant », does not show in `scrollWidth`.
+ */
+async function expectPagerClear(cell: Locator, label: string): Promise<void> {
+  const faults = await cell.locator("[data-pager]").evaluate((group) => {
+    const position = group.querySelector("p")!.getBoundingClientRect();
+    return [...group.querySelectorAll("button")].flatMap((button) => {
+      const box = button.getBoundingClientRect();
+      const side = button.parentElement!.getBoundingClientRect();
+      const name = button.dataset.direction;
+      return [
+        ...(box.left < position.right - 0.5 &&
+        box.right > position.left + 0.5 &&
+        box.top < position.bottom - 0.5 &&
+        box.bottom > position.top + 0.5
+          ? [`${name}: over the position`]
+          : []),
+        ...(box.left < side.left - 0.5 || box.right > side.right + 0.5
+          ? [`${name}: ${box.width} px in a side of ${side.width} px`]
+          : []),
+      ];
+    });
+  });
+  expect.soft(faults, label).toEqual([]);
+}
+
 // RUB-T7 (docs/mvp/jalons/rub/annexe.md; 02a C27, C28, C30, C32), with the axe check of the open dialog: the dialog is
 // modal, names itself, puts the focus on the title or on the element asked for and gives it back to its opener; `Échap`
 // and the backdrop ask it to close, unless a request runs; the dialog of the filters gives its draft up when it is
@@ -1162,6 +1214,15 @@ test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by t
   await expect(
     cell("pager", "busy").getByRole("button", { name: "Page suivante" }),
   ).toHaveAttribute("aria-disabled", "true");
+
+  // U-1: no text under a button, with the long summaries (cap, cursor) at 1 440 px and in every cell at 375 px.
+  for (const state of ["cap", "cursor"]) {
+    await expectPagerClear(cell("pager", state), `pager ${state} at 1 440 px`);
+  }
+  await page.setViewportSize({ width: 375, height: 812 });
+  for (const state of ["pages", "first", "last", "cap", "busy", "cursor"]) {
+    await expectPagerClear(cell("pager", state), `pager ${state} at 375 px`);
+  }
 });
 
 // RUB-AN2, lines 06 (C30), 07 and 08 (R04 lines 6, 7 and 8: the pill changes its contour and its ground over 120 ms on

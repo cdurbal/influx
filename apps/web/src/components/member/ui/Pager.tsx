@@ -33,9 +33,10 @@ export type PagerProps = {
 };
 
 /**
- * The foot of a list (C32): « Précédent » and « Suivant » with the position written between them. The last page has no
- * « Suivant » (its place is kept) and a list whose results stop at a cap says why by its screen's notice, not here.
- * Nothing is drawn when there is nowhere to go. A group, not a `nav`: the shell owns the only one (D74).
+ * The foot of a list (C32): « Précédent » and « Suivant » with the position written between them (above them under
+ * `form`). The last page has no « Suivant » (its place is kept) and a list whose results stop at a cap says why by
+ * its screen's notice, not here. Nothing is drawn when there is nowhere to go. A group, not a `nav`: the shell owns
+ * the only one (D74).
  */
 export function Pager({
   kind,

@@ -39,8 +39,11 @@ export const INNER_PANEL_PREVIEW_HEAD_CLASSES = "flex items-center gap-2";
 export const INNER_PANEL_ICON_CLASSES =
   "inline-flex size-(--size-icon-sm) shrink-0 text-text-secondary";
 
-/** The label of a `readonly` line, in secondary text; its value follows, then its action. */
+/**
+ * The label of a `readonly` line, in secondary text; its value follows, then its action. The value asks for 12 rem
+ * and breaks anywhere, so that the action goes to the next line rather than over a long address (RUB U-2).
+ */
 export const INNER_PANEL_LABEL_CLASSES = "text-sm text-text-secondary";
 
 export const INNER_PANEL_VALUE_CLASSES =
-  "min-w-0 flex-1 text-md text-text-primary";
+  "min-w-0 flex-1 basis-(--size-note-min) wrap-anywhere text-md text-text-primary";
