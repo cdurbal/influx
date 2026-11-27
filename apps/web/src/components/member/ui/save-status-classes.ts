@@ -1,7 +1,8 @@
 // Classes of the save status (C25; docs/mvp/22-refonte-ux-ui/02a C25, R04 line 29): a 16 px icon and a 14 px text,
 // 8 px apart. Each state has its own icon, so that the colour is never alone: a clock (waiting), a turning
 // circle (sending: still under reduced motion), a check (saved), an alert (failed). The states and the places are
-// the keys of their objects, not quoted strings (TK7.2).
+// the keys of their objects, not quoted strings (TK7.2). The icon and the text never part: only what follows
+// them wraps.
 import { cn } from "@/components/ui/class-names";
 
 const SAVE_STATUS_PLACEMENT_CLASSES = {
@@ -12,6 +13,9 @@ const SAVE_STATUS_PLACEMENT_CLASSES = {
 export type SaveStatusPlacement = keyof typeof SAVE_STATUS_PLACEMENT_CLASSES;
 
 const SAVE_STATUS_ROW_CLASSES = "flex flex-wrap items-center gap-x-2 text-sm";
+
+/** The icon and its text, one item of the line: the text shrinks and wraps beside the icon. */
+export const SAVE_STATUS_MAIN_CLASSES = "flex min-w-0 items-start gap-2";
 
 const SAVE_STATUS_TEXT_CLASSES = {
   idle: "text-text-secondary",
@@ -45,7 +49,10 @@ const SAVE_STATUS_ICON_CLASSES = {
 
 /** The icon: 16 px, in the colour of its state; it turns while sending, and only where motion is allowed. */
 export function saveStatusIconClasses(state: SaveState): string {
-  return cn("size-(--size-icon-sm) shrink-0", SAVE_STATUS_ICON_CLASSES[state]);
+  return cn(
+    "mt-(--size-nudge) size-(--size-icon-sm) shrink-0",
+    SAVE_STATUS_ICON_CLASSES[state],
+  );
 }
 
 /** What follows the text of a failure: the delay of the next try, in secondary text. */

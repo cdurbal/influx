@@ -423,7 +423,8 @@ test("RUB-AN2 17: the counter flashes when its value changes, and not under redu
     ),
   ).toBe("dashed");
 
-  // The strip: the action stays on the line of the text at 1 440 px, and drops under it at 375 px.
+  // The strip: the action stays on the line of the text at 1 440 px, and drops under it at 375 px. The icon
+  // is never left alone: the body begins on its line, to its right.
   const centres = (state: string) =>
     cell("notice", state)
       .locator("[role=status]")
@@ -432,18 +433,30 @@ test("RUB-AN2 17: the counter flashes when its value changes, and not under redu
           child.getBoundingClientRect(),
         );
         return {
+          bodyBelowIcon: body!.top - icon!.bottom,
+          bodyAfterIcon: body!.left - icon!.right,
           iconMiddle: icon!.top + icon!.height / 2,
           actionMiddle: action!.top + action!.height / 2,
           bodyBottom: body!.bottom,
           actionTop: action!.top,
         };
       });
+  const besideIcon = (
+    strip: Awaited<ReturnType<typeof centres>>,
+    where: string,
+  ) => {
+    expect(strip.bodyBelowIcon, where).toBeLessThan(0);
+    expect(strip.bodyAfterIcon, where).toBeGreaterThanOrEqual(0);
+  };
   const wide = await centres("strip");
   expect(Math.abs(wide.iconMiddle - wide.actionMiddle)).toBeLessThanOrEqual(2);
+  besideIcon(await centres("strip-long"), "strip-long at 1 440");
   await page.setViewportSize({ width: 375, height: 812 });
   await cell("notice", "strip-long").scrollIntoViewIfNeeded();
   const narrow = await centres("strip-long");
   expect(narrow.actionTop).toBeGreaterThanOrEqual(narrow.bodyBottom - 1);
+  besideIcon(narrow, "strip-long at 375");
+  besideIcon(await centres("strip"), "strip at 375");
 });
 
 // RUB-AN2, lines 04 and 32 (R04 lines 4 and 32: the row, C06; the skeleton, C09), and RUB-AX for line 04
@@ -877,6 +890,40 @@ test("RUB-AN2 06: the segments, the tags, the save status, the fold and the date
   await failing.getByRole("button", { name: "Réessayer" }).click();
   await expect(failing.locator('[data-save-state="saving"]')).toHaveCount(1);
   await expect(cell("save-status", "saved").getByRole("status")).toHaveCount(0);
+
+  // A failure keeps its icon left of its text, on its first line: only the delay and the retry wrap.
+  const iconBesideText = async (
+    line: ReturnType<typeof cell>,
+    where: string,
+  ) => {
+    await line.scrollIntoViewIfNeeded();
+    const measured = await line.evaluate((element) => {
+      const icon = element.querySelector("svg")!.getBoundingClientRect();
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const range = document.createRange();
+      range.selectNodeContents(walker.nextNode()!);
+      const first = range.getClientRects()[0]!;
+      const middle = icon.top + icon.height / 2;
+      return {
+        gap: first.left - icon.right,
+        onFirstLine: middle > first.top && middle < first.bottom,
+      };
+    });
+    expect(measured.gap, where).toBeGreaterThanOrEqual(0);
+    expect(measured.onFirstLine, where).toBe(true);
+  };
+  await page.setViewportSize({ width: 375, height: 812 });
+  await iconBesideText(
+    cell("save-status", "failed").locator("[data-save-state]"),
+    "save-status failed at 375",
+  );
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await iconBesideText(
+    cell("wizard", "page-header-wizard-busy").locator(
+      "[data-save-state]:visible",
+    ),
+    "wizard foot at 1 440",
+  );
 
   // The fold: the content rises in over 200 ms, the chevron turns over 200 ms (120 ms for the rare gestures).
   const fold = cell("disclosure", "fold").locator("details");

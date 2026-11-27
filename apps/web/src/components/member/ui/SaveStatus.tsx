@@ -11,6 +11,7 @@ import {
 import { useAnnouncer } from "./Announcer";
 import { Button } from "./Button";
 import {
+  SAVE_STATUS_MAIN_CLASSES,
   SAVE_STATUS_RETRY_IN_CLASSES,
   saveStatusClasses,
   saveStatusIconClasses,
@@ -106,8 +107,10 @@ export function SaveStatus({
       className={cn(saveStatusClasses(state, placement), className)}
     >
       {state === "failed" ? <AnnounceFailure message={failedText} /> : null}
-      <Icon aria-hidden="true" className={saveStatusIconClasses(state)} />
-      <span>{text}</span>
+      <span className={SAVE_STATUS_MAIN_CLASSES}>
+        <Icon aria-hidden="true" className={saveStatusIconClasses(state)} />
+        <span>{text}</span>
+      </span>
       {retryIn === null ? null : (
         <span className={SAVE_STATUS_RETRY_IN_CLASSES}>{retryIn}</span>
       )}

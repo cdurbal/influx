@@ -21,7 +21,7 @@ const TONE_ICONS = {
 
 export type NoticeProps = {
   tone: NoticeTone;
-  /** `md` by default; `strip`: icon, text and action on one centred line, wrapping together. */
+  /** `md` by default; `strip`: icon, text and action on one centred line, the action wrapping first. */
   size?: NoticeSize;
   /** The first words in bold, running on into the text, already translated. */
   title?: string;

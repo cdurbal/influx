@@ -2,7 +2,8 @@
 // warning and information keep an opaque tinted fill (DZ-6). The error notice is ErrorNotice, the one place
 // of the error fill (D72, T15), so it is not a tone of this file. The icon is 16 px, a 12 px gap follows it
 // (it was 20 px and 8 px before RUB). The sizes are the keys of their object: `md` aligns the icon with the
-// first line of its text; `strip` is a band whose icon, text and action share one line and wrap together.
+// first line of its text; `strip` is a band whose icon, text and action share one line: the icon and the text
+// stay together, and the action drops under them when room is short.
 import { cn } from "@/components/ui/class-names";
 
 export type NoticeTone = "success" | "warning" | "info";
@@ -23,7 +24,8 @@ const NOTICE_SIZES = {
   strip: {
     box: "flex-wrap items-center",
     icon: "",
-    body: "min-w-(--size-note-min) grow",
+    // A basis, not the length of the whole text: the body stays beside its icon and wraps there.
+    body: "min-w-0 grow basis-(--size-note-min)",
   },
 };
 
@@ -58,7 +60,7 @@ export function noticeIconClasses(size?: NoticeSize): string {
   return cn("size-(--size-icon-sm) shrink-0", sizeOf(size).icon);
 }
 
-/** The body: the text and its title, which a strip lets grow and wrap before its action. */
+/** The body: the text and its title; in a strip it grows beside its icon, and the action wraps under it. */
 export function noticeBodyClasses(size?: NoticeSize): string {
   return sizeOf(size).body;
 }
