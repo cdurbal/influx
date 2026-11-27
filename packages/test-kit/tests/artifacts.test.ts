@@ -1,7 +1,10 @@
 // Self-checks of the T11 artifact scanner: it must find what it is meant to find.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { Worker } from "node:worker_threads";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   API_RUNTIME_DIRECTORIES,
@@ -11,6 +14,7 @@ import {
   scanApiRuntimeFiles,
   scanBuildArtifacts,
 } from "../src/artifacts.ts";
+import { rawRequest } from "../src/relay-integration.ts";
 
 let appRoot = "";
 let nextDirectory = "";
@@ -180,5 +184,108 @@ describe("scanApiRuntimeFiles (T11, the third artifact: apps/api runs its source
       "apps/api/src/config/leak.ts: Postgres connection string",
       "deploy/railway/leak.json: Brevo key",
     ]);
+  });
+});
+
+/**
+ * An API that refuses a body before reading it all, on its own thread: it closes while the client
+ * writes. "/at-once" refuses on the headers and Node's server closes by itself (the request asks
+ * for it), draining the body meanwhile, as `next start` does under the relay. "/after-1-mib"
+ * refuses in the middle of the upload and cuts the socket.
+ */
+const REFUSING_SERVER = `
+const { createServer } = require("node:http");
+const { parentPort, workerData } = require("node:worker_threads");
+const { body, cutDelayMs } = workerData;
+const server = createServer((request, response) => {
+  const head = () => response.writeHead(413, { "content-length": Buffer.byteLength(body) });
+  const cut = () => request.socket.destroy();
+  const refuseAndCut = () => {
+    head();
+    response.write(body, () => (cutDelayMs === 0 ? cut() : setTimeout(cut, cutDelayMs)));
+  };
+  if (request.url === "/at-once") {
+    if (cutDelayMs === 0) {
+      head();
+      response.end(body);
+    } else {
+      refuseAndCut();
+    }
+    return;
+  }
+  let received = 0;
+  request.on("data", function count(chunk) {
+    received += chunk.byteLength;
+    if (received > 1048576) {
+      request.off("data", count);
+      refuseAndCut();
+    }
+  });
+});
+server.listen(0, "127.0.0.1", () => parentPort.postMessage(server.address().port));
+`;
+
+describe("rawRequest (T7.3, RUBT-5: an answer given during the upload)", () => {
+  const upload = () => Buffer.alloc(8_388_608 + 1, 0x61);
+
+  it("reads the 413 of a server that closes while 8 MiB + 1 are being sent, declared or streamed", async () => {
+    const refusal = JSON.stringify({ error: { code: "payload_too_large" } });
+    // Linux, the CI, keeps a received answer after the reset: the close is immediate. Windows
+    // drops it with the reset, whatever the client does: there, the cut waits, long enough on a
+    // loaded machine (the client does not wait for it).
+    const worker = new Worker(REFUSING_SERVER, {
+      eval: true,
+      workerData: {
+        body: refusal,
+        cutDelayMs: process.platform === "win32" ? 1_000 : 0,
+      },
+    });
+    try {
+      const port = await new Promise<number>((resolve, reject) => {
+        worker.once("message", resolve);
+        worker.once("error", reject);
+      });
+      // A race: ten tries of each form on each path, so that a client that loses the answer
+      // cannot pass.
+      for (const target of ["/at-once", "/after-1-mib"]) {
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          const answer = await rawRequest(`http://127.0.0.1:${port}`, target, {
+            method: "PUT",
+            body: upload(),
+            chunked: attempt % 2 === 1,
+          });
+          expect(answer.status).toBe(413);
+          expect(answer.body).toBe(refusal);
+        }
+      }
+    } finally {
+      await worker.terminate();
+    }
+  });
+
+  it("rejects when the connection is cut during the upload with no answer", async () => {
+    const server = createServer((request) => {
+      request.socket.destroy();
+    });
+    await new Promise<void>((resolve) => {
+      server.listen(0, "127.0.0.1", resolve);
+    });
+    const { port } = server.address() as AddressInfo;
+    try {
+      for (const chunked of [false, true]) {
+        await expect(
+          rawRequest(`http://127.0.0.1:${port}`, "/", {
+            method: "PUT",
+            body: upload(),
+            chunked,
+          }),
+        ).rejects.toThrow(/EPIPE|ECONNRESET|ECONNABORTED|socket hang up/);
+      }
+    } finally {
+      server.closeAllConnections();
+      await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+      });
+    }
   });
 });

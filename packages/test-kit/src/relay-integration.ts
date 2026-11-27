@@ -9,12 +9,17 @@ import { randomUUID } from "node:crypto";
 import {
   createServer,
   request as httpRequest,
+  type ClientRequest,
   type IncomingHttpHeaders,
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
 import { createRequire } from "node:module";
-import { createServer as createNetServer, type AddressInfo } from "node:net";
+import {
+  createServer as createNetServer,
+  type AddressInfo,
+  type Socket,
+} from "node:net";
 import type {
   afterAll as AfterAll,
   beforeAll as BeforeAll,
@@ -152,9 +157,98 @@ export type RawResponse = {
   body: string;
 };
 
+const BODY_BLOCK_BYTES = 64 * 1024;
+
+/**
+ * How long the rest of a body waits after its first block. A refusal on the declared length comes at
+ * once: with little left unread, the server closes without a reset, which on Windows would drop the
+ * part of the answer not yet read.
+ */
+const EARLY_ANSWER_MS = 100;
+
+/**
+ * A failed write no longer destroys the socket, which would drop an answer received and not yet
+ * read (Linux keeps it after the reset). The read side decides alone: the answer, or the end of the
+ * connection without one.
+ */
+function keepReadingAfterFailedWrite(
+  socket: Socket,
+  failed: (error: Error) => void,
+): void {
+  const write = socket._write.bind(socket);
+  const writev = socket._writev?.bind(socket);
+  const keep =
+    (callback: (error?: Error | null) => void) => (error?: Error | null) => {
+      if (error) {
+        failed(error);
+      }
+      callback();
+    };
+  socket._write = (chunk, encoding, callback) => {
+    write(chunk, encoding, keep(callback));
+  };
+  if (writev !== undefined) {
+    socket._writev = (chunks, callback) => {
+      writev(chunks, keep(callback));
+    };
+  }
+}
+
+/** Resolves on the first of these events of the request, or after `afterMs` when given. */
+function firstOf(
+  outgoing: ClientRequest,
+  events: readonly string[],
+  afterMs?: number,
+): Promise<void> {
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      for (const event of events) {
+        outgoing.off(event, done);
+      }
+      resolve();
+    };
+    const timer = afterMs === undefined ? undefined : setTimeout(done, afterMs);
+    for (const event of events) {
+      outgoing.on(event, done);
+    }
+  });
+}
+
+/**
+ * Sends a body block by block, then ends the request, and stops as soon as `stopped` says so. One
+ * turn of the event loop between two blocks: an answer already received is read before the next
+ * write, which fails when the server has closed, and takes the unread answer with it.
+ */
+async function sendBody(
+  outgoing: ClientRequest,
+  body: Buffer,
+  stopped: () => boolean,
+): Promise<void> {
+  let flushed = true;
+  for (let offset = 0; offset < body.byteLength; offset += BODY_BLOCK_BYTES) {
+    if (offset > 0) {
+      if (!flushed) {
+        await firstOf(outgoing, ["drain", "response", "close"]);
+      }
+      if (offset === BODY_BLOCK_BYTES && !stopped()) {
+        await firstOf(outgoing, ["response", "close"], EARLY_ANSWER_MS);
+      }
+      await new Promise((resolve) => setImmediate(resolve));
+      if (stopped()) {
+        return;
+      }
+    }
+    flushed = outgoing.write(body.subarray(offset, offset + BODY_BLOCK_BYTES));
+  }
+  outgoing.end();
+}
+
 /**
  * One HTTP/1.1 request whose request-target is sent exactly as given: no URL parsing, no dot
- * segment removal, no encoding (node:http only refuses spaces and control characters).
+ * segment removal, no encoding (node:http only refuses spaces and control characters). A server
+ * may answer before the body is sent, then close (a 413, PP-9): the answer is what is returned,
+ * and a failed write (EPIPE, ECONNRESET) rejects only when no answer arrives.
  */
 export function rawRequest(
   origin: string,
@@ -169,6 +263,10 @@ export function rawRequest(
 ): Promise<RawResponse> {
   const { hostname, port } = new URL(origin);
   return new Promise((resolve, reject) => {
+    let answered = false;
+    let closed = false;
+    let writeFailure: Error | undefined;
+    let requestFailure: Error | undefined;
     const outgoing = httpRequest(
       {
         host: hostname,
@@ -179,6 +277,7 @@ export function rawRequest(
         agent: false,
       },
       (response) => {
+        answered = true;
         const chunks: Buffer[] = [];
         response.on("data", (chunk: Buffer) => chunks.push(chunk));
         response.on("end", () => {
@@ -188,24 +287,45 @@ export function rawRequest(
             setCookies: response.headers["set-cookie"] ?? [],
             body: Buffer.concat(chunks).toString("utf8"),
           });
+          if (!outgoing.writableEnded) {
+            outgoing.destroy(); // The rest of the body is never sent.
+          }
         });
+        // An answer cut before its end rejects.
         response.on("error", reject);
       },
     );
-    outgoing.on("error", reject);
-    if (options.body !== undefined) {
-      if (options.chunked === true) {
-        const body = Buffer.from(options.body);
-        const size = 64 * 1024;
-        for (let offset = 0; offset < body.byteLength; offset += size) {
-          outgoing.write(body.subarray(offset, offset + size));
-        }
-      } else {
-        outgoing.setHeader("content-length", Buffer.byteLength(options.body));
-        outgoing.write(options.body);
+    outgoing.on("socket", (socket) => {
+      keepReadingAfterFailedWrite(socket, (error) => {
+        writeFailure ??= error;
+      });
+    });
+    outgoing.on("error", (error) => {
+      requestFailure = error;
+    });
+    outgoing.on("close", () => {
+      closed = true;
+      if (!answered) {
+        reject(
+          writeFailure ??
+            requestFailure ??
+            new Error("closed without an answer"),
+        );
       }
+    });
+    if (options.body === undefined) {
+      outgoing.end();
+      return;
     }
-    outgoing.end();
+    const body = Buffer.from(options.body);
+    if (options.chunked !== true) {
+      outgoing.setHeader("content-length", body.byteLength);
+    }
+    sendBody(
+      outgoing,
+      body,
+      () => answered || closed || writeFailure !== undefined,
+    ).catch(reject);
   });
 }
 

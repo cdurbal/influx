@@ -30,7 +30,7 @@
 | fix-7 | fix-7.md | fix | sonnet | high | dev-react-node | fait | RUBT-3 : borne changée → texte gardé, valeur réémise, refus recalculé ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-8a | fix-8a.md | fix | sonnet | high | dev-react-node | fait | RUBT-4 : `pass-through.ts` hors `NomProps`, filtre à l’exécution ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-8b | fix-8b.md | fix | opus | xhigh | architecte | ignoré | voie A retenue par le fondateur (fix-8a), 2026-11-27 |
-| fix-9 | fix-9.md | fix | sonnet | high | integrateur | à faire | RUBT-5 : EPIPE de T7.3, 413 lu ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
+| fix-9 | fix-9.md | fix | sonnet | high | integrateur | fait | RUBT-5 : échec d’écriture jugé par la lecture ; Chromium lit le 413 ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-10a | fix-10a.md | fix | opus | high | testeur | à faire | RUBT-1 voie A : planche scindée, service relevé en CI ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-10b | fix-10b.md | fix | opus | xhigh | architecte + chef-de-projet | à valider | RUBT-1 voie B : budget réécrit au chiffre mesuré ; seule, ou après fix-10a pour le reste |
 | C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
