@@ -71,3 +71,38 @@ Passe U (`ux-constats.md`, qui fait foi) ; U-1 à U-7 : lignes `fix-n` de `run.m
 - U-P7, plus tard : libellés très longs, actions de C17 et C39.
 - U-P8, plus tard : lien d'évitement de 40 px.
 - U-P9, plus tard : planche, aide de la cellule `us` de C47.
+
+Passe R (`8426101..8b469cf`) : RUBS bloquant 0, jalon 0, avant production 0, plus tard 5 ; I-4 « ok », aucune
+attestation. RUBT bloquant 0, jalon 5, avant production 2, plus tard 4. Jalon : lignes `fix-6` à `fix-10` de `run.md`.
+- RUBT-2, jalon (fix-6) : `use-modal-dialog.ts:83-86`, un dialogue `dismissible={false}` se ferme au 3e `Échap`
+  (Chromium, sans activation, n'honore plus `preventDefault` de `cancel` ; `onNativeClose` appelle `onClose`) ; T7
+  n'appuie qu'une fois (`state-board.spec.ts:1130`). `FiltersDialog`, `MediaGallery` : même crochet, `dismissible` vrai.
+- RUBT-3, jalon (fix-7) : `DateField.tsx:74-82`, une saisie refusée est effacée en silence quand `min`/`max` change
+  (`onChange` non appelé) : brouillon réinitialisé dès que sa lecture diffère de `value`.
+- RUBT-4, jalon (fix-8a ou fix-8b) : `R02c` l. 5-7 (`data-*`, `id`, `aria-*` transmis) non tenu : `Button`, `PageFrame`
+  seuls ; `Notice`, `RowList` : `id` ; `StatusBadge`, `InnerPanel`, `ChipList`, `PageHeader`, `Section`, `Card` : rien.
+- RUBT-5, jalon (fix-9) : T7.3 « 8 MiB + 1 » intermittent, `write EPIPE` (`relay-integration.ts:195` ; runs
+  45980239751, 45986965761). Test antérieur à RUB (D82) : hors jalon, gardé car C exige une CI verte.
+- RUBT-1, jalon (fix-10a ou fix-10b) : e2e ≈ 80 s pour 20 (run 46062007755 : nouveaux cas 66 s, RUA-T8 de 1,3 à
+  15,4 s ; 07 : 17,7 s pour 3) ; éclats conformes (4 min 38) ; service de la planche en CI jamais relevé (A §4).
+- RUBT-6, avant production : J8T-4 (`backoffice.spec.ts:457`, l. 508), `<title>` absent avant axe : `toHaveTitle(/\S/)`.
+- RUBT-7, avant production : `<a>` nu sans `LinkComponent` (`ActionLink`, `Button href`, `RowList`, `Wizard`, `Card`,
+  `FeedCard`, `PhotoCard` ; copie `AccountStateLines.tsx`) : rechargement, brouillon d'assistant perdu.
+- RUBT-8, plus tard : ESLint ne voit pas les littéraux à crochets d'une constante `*_CLASSES` (EC-RUB-04-3, CA22).
+- RUBT-9, plus tard : RUB-T7, un cas e2e livré sur +2 (`state-board.spec.ts:1056`).
+- RUBT-10, plus tard : `Pager` ne rend rien sans page voisine, même avec `total` ou `summary`.
+- RUBT-11, plus tard : garde durcie après F1 (`visual-compare.test.ts:570-583`) sans cas négatif (TD1).
+- RUBS-1, plus tard : garde de planche (`guards.ts:1669-1683, 1738-1757`), interdits sur imports directs → imports permis.
+- RUBS-2, plus tard : `Button` lien (`Button.tsx:48-49, 172-185`), `target` sans `rel` → `Omit` de `target` et `rel`.
+- RUBS-3 à RUBS-5, plus tard : attendus ci-dessous.
+- Conforme : JavaScript de première visite +0,0 à +2,0 % ; coquille 36/36 en local, `E2E_VISUAL=app` 6/6 ; CI vertes.
+  Pour C : table composant → fichier → SHA ; reports de `SaveStatus` et `TermsDialog` nommés au reliquat.
+
+### Attendus des fiches suivantes (C les porte au reliquat de `21` §8)
+- **RUE**, RUBS-4 : « Visible par INFLUX seulement » (`InternalZone`) n'est qu'un libellé ; chaque champ ainsi marqué a
+  un filtre de sortie ou une RLS, et un test côté serveur.
+- **RUE**, RUBS-5 : `href` et `src` validés en http(s) dans les contrats serveur.
+- **RUE**, RUBT-7 : `architecte` tranche le lien interne des composants avant le premier câblage.
+- **RUH**, RUBS-3 : anonymat (D45, D46) de `PhotoCard`, `MediaGallery`, `LogoPlate` : test qu'aucune identité ne passe
+  par le nom de la carte, `alt`, les initiales (forme `round`) ou l'URL `src` que l'écran transmet.
+- **RUC**, RUBT-10 : rendu de `Pager` sans page voisine, à trancher.
