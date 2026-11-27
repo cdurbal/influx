@@ -21,7 +21,7 @@
 | U | ux.md | ux | sonnet | high | expert-ux | fait | `ux-constats.md` : bloquant 0, jalon 7 (U-1 à U-7), avant production 4, plus tard 9 |
 | fix-1 | fix-1.md | fix | sonnet | high | dev-react-node | fait | U-1, U-2 : aucun texte sous un bouton ; côté ≥ son bouton, « Suivant » à la ligne si besoin ; « valider fix-1…fix-5 » (fondateur, 2026-11-27) |
 | fix-2 | fix-2.md | fix | sonnet | high | dev-react-node | fait | U-3 : AP1 sous le seul média forced-colors (transition-colors) ; anneau au focus intact ; « valider fix-1…fix-5 » (fondateur, 2026-11-27) |
-| fix-3 | fix-3.md | fix | sonnet | medium | dev-react-node | à faire | U-4 : chevron au bord droit ; « valider fix-1…fix-5 » (fondateur, 2026-11-27) |
+| fix-3 | fix-3.md | fix | sonnet | medium | dev-react-node | fait | U-4 : `md:contents` avec la seule grille, `sub` seul : chevron au bord droit ; « valider fix-1…fix-5 » (fondateur, 2026-11-27) |
 | fix-4 | fix-4.md | fix | sonnet | medium | dev-react-node | à faire | U-5, U-6 : plus d'icône orpheline ; « valider fix-1…fix-5 » (fondateur, 2026-11-27) |
 | fix-5 | fix-5.md | fix | sonnet | high | dev-react-node | à faire | U-7 : le fondateur choisit de corriger (`valider … fix-5`, 2026-11-27) |
 | F1 | F1.md | fondateur | — | — | fondateur | à faire | |

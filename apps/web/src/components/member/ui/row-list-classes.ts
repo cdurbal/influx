@@ -79,12 +79,13 @@ const ROW_STANDARD_PARTS: RowParts = {
 
 /**
  * `campaign` from 768 px: the title, then the state, then the date, then the chevron, in the columns of the
- * grid `--grid-campaign-row`; under it the state and the date stack under the title. The body and the trail
- * dissolve (`contents`) so that their children are the cells; each cell names its column, a missing field
- * leaving its column empty.
+ * grid `--grid-campaign-row`; under it the state and the date stack under the title. In a grid, the body and
+ * the trail dissolve (`contents`) so that their children are the cells; each cell names its column, a missing
+ * field leaving its column empty. Without a grid they keep their boxes, the body taking the free width.
  */
 const ROW_CAMPAIGN_FULL_CLASSES = {
   row: "md:grid md:grid-cols-(--grid-campaign-row)",
+  dissolve: "md:contents",
   meta: "md:col-start-2",
   end: "md:col-start-3",
   chevron: "md:col-start-4",
@@ -93,6 +94,7 @@ const ROW_CAMPAIGN_FULL_CLASSES = {
 /** `campaign` without a date: the state sits to the right, against the chevron (`1fr auto auto`). */
 const ROW_CAMPAIGN_META_CLASSES = {
   row: "md:grid md:grid-cols-[minmax(0,1fr)_auto_auto]",
+  dissolve: "md:contents",
   meta: "md:col-start-2",
   end: "md:col-start-2",
   chevron: "md:col-start-3",
@@ -101,8 +103,6 @@ const ROW_CAMPAIGN_META_CLASSES = {
 const ROW_VARIANT_CLASSES = {
   campaign: {
     ...ROW_STANDARD_PARTS,
-    body: cn(ROW_BODY_CLASSES, "md:contents"),
-    trail: cn(ROW_TRAIL_CLASSES, "md:contents"),
     chevron: true,
     columns: true,
   },
@@ -233,9 +233,9 @@ export function rowParts(
       state.current ? ROW_CURRENT_CLASSES : state.linked && ROW_LINKED_CLASSES,
     ),
     media: parts.media,
-    body: parts.body,
+    body: cn(parts.body, campaign?.dissolve),
     text: parts.text,
-    trail: parts.trail,
+    trail: cn(parts.trail, campaign?.dissolve),
     meta: cn(campaign?.meta),
     end: cn(campaign?.end),
     action: parts.action,

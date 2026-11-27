@@ -153,10 +153,18 @@ describe("RUB-T4: the list of rows, its eight variants (C06)", () => {
       AT_REST,
     );
     expect(sentence.row).not.toContain("md:grid");
-    expect(rowParts("campaign", SHAPE, AT_REST).body).toContain("md:contents");
+    expect(full.body).toContain("md:contents");
+    // Without a grid (the sentence alone, or no field) nothing dissolves: the text keeps the free width.
+    for (const shape of [{ ...SHAPE, sub: true }, SHAPE]) {
+      const parts = rowParts("campaign", shape, AT_REST);
+      expect(parts.body).not.toContain("md:contents");
+      expect(parts.trail).not.toContain("md:contents");
+    }
   });
   it("stacks the variants under their widths: 768 for the campaign, 640 for the tasks and the thumbnails, 480 for the sessions", () => {
-    expect(rowParts("campaign", SHAPE, AT_REST).trail).toContain("md:contents");
+    expect(
+      rowParts("campaign", { ...SHAPE, meta: true }, AT_REST).trail,
+    ).toContain("md:contents");
     expect(rowParts("tasks", SHAPE, AT_REST).row).toContain("flex-col");
     expect(rowParts("tasks", SHAPE, AT_REST).row).toContain("form:flex-row");
     expect(rowParts("lists", SHAPE, AT_REST).media).toContain(

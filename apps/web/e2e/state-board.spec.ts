@@ -498,6 +498,20 @@ test("RUB-AN2 04 and 32: the row lights its ground and the skeleton shows its sh
     .poll(async () => (await readRow()).background)
     .not.toBe(resting.background);
 
+  // With a sentence alone there is no grid: the chevron still ends at the right edge of the row, inside its padding.
+  const chevronGap = await cell("row-list", "campaign-sub")
+    .locator("li")
+    .first()
+    .evaluate((element) => {
+      const chevron = element.querySelector(":scope > svg")!;
+      return (
+        element.getBoundingClientRect().right -
+        parseFloat(getComputedStyle(element).paddingRight) -
+        chevron.getBoundingClientRect().right
+      );
+    });
+  expect(Math.abs(chevronGap), "campaign-sub chevron").toBeLessThanOrEqual(2);
+
   // The ring of the link is inside the row, on its stretched link.
   await page.mouse.move(0, 0);
   await row.locator("a").focus();
