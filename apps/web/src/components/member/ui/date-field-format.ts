@@ -90,3 +90,31 @@ export function readDateText(
     ? { kind: "valid", iso }
     : { kind: "range" };
 }
+
+/** What leaves the field for a reading: its ISO date, or nothing. */
+export function dateValueOf(reading: DateReading): string | null {
+  return reading.kind === "valid" ? reading.iso : null;
+}
+
+/**
+ * Whether the screen takes the field back from the typed text (a reset, a load): its value changed since the
+ * previous rendering and is not the one the text makes. A bound that moves changes the reading, not the value:
+ * the text stays.
+ */
+export function isDraftTakenBack(
+  previousValue: string | null,
+  value: string | null,
+  reading: DateReading,
+): boolean {
+  return previousValue !== value && dateValueOf(reading) !== value;
+}
+
+/** The refusal said under the field: once the field has been left, never while it is typed. */
+export function dateRefusalOf(
+  reading: DateReading,
+  left: boolean,
+): "format" | "range" | null {
+  return left && (reading.kind === "format" || reading.kind === "range")
+    ? reading.kind
+    : null;
+}

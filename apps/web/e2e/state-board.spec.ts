@@ -1010,6 +1010,28 @@ test("RUB-AN2 06: the segments, the tags, the save status, the fold and the date
   await expect(cell("date-field", "us").getByRole("textbox")).toHaveValue(
     "01/15/2027",
   );
+
+  // RUBT-3: a bound that moves reads the typed text again and keeps it; the refusal and the value sent out follow.
+  const bounded = cell("date-field", "bounds");
+  const kept = bounded.getByRole("textbox");
+  const outOfBounds = bounded.getByText(
+    "Choisissez une date à partir de la borne.",
+  );
+  const move = bounded.getByRole("button", { name: "Déplacer la borne" });
+  const sent = bounded.locator("[data-board-value]");
+  await kept.fill("01/01/2027");
+  await kept.blur();
+  await expect(outOfBounds).toBeVisible();
+  await move.click();
+  await expect(sent).toHaveText("Valeur reçue : 2027-01-01");
+  await expect(kept).toHaveValue("01/01/2027");
+  await expect(kept).not.toHaveAttribute("aria-invalid", "true");
+  await expect(outOfBounds).toHaveCount(0);
+  await move.click();
+  await expect(sent).toHaveText("Valeur reçue : aucune");
+  await expect(kept).toHaveValue("01/01/2027");
+  await expect(kept).toHaveAttribute("aria-invalid", "true");
+  await expect(outOfBounds).toBeVisible();
 });
 
 /**

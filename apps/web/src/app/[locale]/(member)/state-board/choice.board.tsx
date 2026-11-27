@@ -130,6 +130,7 @@ const TEXTS = {
     orderWarning: "Ordre à vérifier : avertissement",
     us: "Mois d'abord (en-US)",
     locked: "Verrouillé",
+    bounds: "Borne déplacée",
   },
   dateLabel: "Début de la campagne",
   dateEnd: "Fin de la campagne",
@@ -141,6 +142,12 @@ const TEXTS = {
   dateOrderWarning: "À vérifier : la fin est très proche du début.",
   dateStart: "2027-01-15",
   dateMin: "2027-01-01",
+  dateBoundLate: "2027-02-01",
+  dateBoundEarly: "2026-12-01",
+  dateBoundError: "Choisissez une date à partir de la borne.",
+  dateBoundMove: "Déplacer la borne",
+  dateBoundValue: "Valeur reçue :",
+  dateBoundNone: "aucune",
 } as const;
 
 type SegmentedDemoProps = {
@@ -572,6 +579,46 @@ function DateDemo({
   );
 }
 
+/** A date whose lower bound moves, as another date of a screen moves it; the value the field sent out is written. */
+function DateBoundsDemo() {
+  const [value, setValue] = useState<string | null>(null);
+  const [min, setMin] = useState<string>(TEXTS.dateBoundLate);
+  const sent = `${TEXTS.dateBoundValue} ${value ?? TEXTS.dateBoundNone}`;
+  return (
+    <div className="flex w-full flex-col items-start gap-3">
+      <DateField
+        id="board-date-bounds"
+        name="board-date-bounds"
+        label={TEXTS.dateLabel}
+        help={TEXTS.dateHelp}
+        value={value}
+        onChange={setValue}
+        locale="fr"
+        min={min}
+        formatError={TEXTS.dateFormatError}
+        rangeError={TEXTS.dateBoundError}
+        className="w-full"
+      />
+      <p data-board-value className="text-sm text-text-secondary">
+        {sent}
+      </p>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() =>
+          setMin(
+            min === TEXTS.dateBoundLate
+              ? TEXTS.dateBoundEarly
+              : TEXTS.dateBoundLate,
+          )
+        }
+      >
+        {TEXTS.dateBoundMove}
+      </Button>
+    </div>
+  );
+}
+
 function DateStates() {
   const states = TEXTS.dateStates;
   return (
@@ -616,6 +663,9 @@ function DateStates() {
       </BoardState>
       <BoardState state="locked" label={states.locked}>
         <DateDemo id="board-date-locked" initial={TEXTS.dateStart} disabled />
+      </BoardState>
+      <BoardState state="bounds" label={states.bounds}>
+        <DateBoundsDemo />
       </BoardState>
     </BoardSection>
   );

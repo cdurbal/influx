@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { dateOrderOf, formatDateIso, readDateText } from "./date-field-format";
+import { useEffect, useRef, useState } from "react";
+import {
+  dateOrderOf,
+  dateRefusalOf,
+  dateValueOf,
+  formatDateIso,
+  isDraftTakenBack,
+  readDateText,
+} from "./date-field-format";
 import { dateFieldControlClasses } from "./date-field-classes";
 import { Field } from "./Field";
 import { describedByOf, fieldRefsOf, useFieldIds } from "./field-ids";
@@ -68,19 +75,38 @@ export function DateField({
 }: DateFieldProps) {
   const ids = useFieldIds(id);
   const order = dateOrderOf(locale);
-  // What was typed, while the field holds a text of its own; `null` when it shows the value.
-  const [draft, setDraft] = useState<string | null>(null);
-  const [refusal, setRefusal] = useState<"format" | "range" | null>(null);
-  // A value that the screen changes under the typed text (a reset, a load) takes the field back; read while
-  // rendering, as the counter of C16 reads its change, so that no frame shows the stale text.
-  if (draft !== null) {
-    const reading = readDateText(draft, order, min, max);
-    if ((reading.kind === "valid" ? reading.iso : null) !== value) {
+  // What was typed, while the field holds a text of its own, and whether the field was left since; `null` when it
+  // shows the value.
+  const [draft, setDraft] = useState<{ text: string; left: boolean } | null>(
+    null,
+  );
+  // Read against the bounds of this rendering, so that the refusal follows a bound that moves.
+  const reading =
+    draft === null ? null : readDateText(draft.text, order, min, max);
+  // A value that the screen changes under the typed text takes the field back; read while rendering, as the counter
+  // of C16 reads its change, so that no frame shows the stale text.
+  const [previousValue, setPreviousValue] = useState(value);
+  if (previousValue !== value) {
+    setPreviousValue(value);
+    if (reading !== null && isDraftTakenBack(previousValue, value, reading)) {
       setDraft(null);
-      setRefusal(null);
     }
   }
-  const shown = draft ?? (value === null ? "" : formatDateIso(value, order));
+  // A bound that moves changes what the typed text makes: the screen is told, so that it holds what the field shows.
+  const bounds = useRef({ min, max });
+  useEffect(() => {
+    if (bounds.current.min === min && bounds.current.max === max) {
+      return;
+    }
+    bounds.current = { min, max };
+    if (draft !== null) {
+      onChange(dateValueOf(readDateText(draft.text, order, min, max)));
+    }
+  }, [min, max, draft, order, onChange]);
+  const shown =
+    draft?.text ?? (value === null ? "" : formatDateIso(value, order));
+  const refusal =
+    reading === null ? null : dateRefusalOf(reading, draft?.left === true);
   const refused =
     refusal === "format"
       ? formatError
@@ -127,23 +153,15 @@ export function DateField({
         aria-describedby={describedBy}
         onChange={(event) => {
           const text = event.target.value;
-          const reading = readDateText(text, order, min, max);
-          setDraft(text);
-          setRefusal(null);
-          onChange(reading.kind === "valid" ? reading.iso : null);
+          setDraft({ text, left: false });
+          onChange(dateValueOf(readDateText(text, order, min, max)));
         }}
         onBlur={() => {
-          if (draft === null) {
+          if (draft === null || reading === null) {
             return;
           }
-          const reading = readDateText(draft, order, min, max);
-          if (reading.kind === "valid") {
-            setDraft(null);
-          } else if (reading.kind === "empty") {
-            setDraft(null);
-          } else {
-            setRefusal(reading.kind);
-          }
+          const refusedOnLeave = dateRefusalOf(reading, true) !== null;
+          setDraft(refusedOnLeave ? { ...draft, left: true } : null);
         }}
         className={dateFieldControlClasses(error !== null)}
       />

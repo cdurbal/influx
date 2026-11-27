@@ -15,8 +15,11 @@ import { SegmentedControl } from "@/components/member/ui/SegmentedControl";
 import { TagPicker } from "@/components/member/ui/TagPicker";
 import {
   dateOrderOf,
+  dateRefusalOf,
+  dateValueOf,
   formatDateIso,
   isDateWithin,
+  isDraftTakenBack,
   parseDateText,
   readDateText,
 } from "@/components/member/ui/date-field-format";
@@ -414,6 +417,45 @@ describe("RUB-T6: the writing of a date (C47)", () => {
     expect(isDateWithin("2027-01-15", "2027-01-15", "2027-01-15")).toBe(true);
     expect(isDateWithin("2027-01-16", undefined, "2027-01-15")).toBe(false);
     expect(formatDateIso("not a date", "dmy")).toBe("");
+  });
+});
+
+describe("RUB-T6: the typed text of a date when the screen changes under it (C47, RUBT-3)", () => {
+  const readFrom = (min: string) => readDateText("01/01/2027", "dmy", min);
+
+  it("keeps a refused text when its bound moves: the value did not change, the refusal is lifted and the date goes out", () => {
+    expect(dateRefusalOf(readFrom("2027-02-01"), true)).toBe("range");
+    const after = readFrom("2026-12-01");
+    expect(isDraftTakenBack(null, null, after)).toBe(false);
+    expect(dateRefusalOf(after, true)).toBeNull();
+    expect(dateValueOf(after)).toBe("2027-01-01");
+  });
+
+  it("never writes the typed text again with the value that the typing sent out", () => {
+    expect(isDraftTakenBack(null, "2027-01-01", readFrom("2026-12-01"))).toBe(
+      false,
+    );
+    expect(
+      isDraftTakenBack("2027-01-01", null, readDateText("01/01/202", "dmy")),
+    ).toBe(false);
+  });
+
+  it("takes the field back when the screen resets or loads another value", () => {
+    const reading = readFrom("2026-12-01");
+    expect(isDraftTakenBack("2027-01-01", null, reading)).toBe(true);
+    expect(isDraftTakenBack("2027-01-01", "2027-03-05", reading)).toBe(true);
+    expect(
+      isDraftTakenBack(null, "2027-03-05", readDateText("31/02/2027", "dmy")),
+    ).toBe(true);
+  });
+
+  it("refuses a date that a bound puts outside once the field was left, not while it is typed, and sends out nothing", () => {
+    const outside = readFrom("2027-02-01");
+    expect(dateRefusalOf(outside, false)).toBeNull();
+    expect(dateRefusalOf(outside, true)).toBe("range");
+    expect(dateValueOf(outside)).toBeNull();
+    expect(isDraftTakenBack("2027-01-01", "2027-01-01", outside)).toBe(false);
+    expect(isDraftTakenBack("2027-01-01", null, outside)).toBe(false);
   });
 });
 

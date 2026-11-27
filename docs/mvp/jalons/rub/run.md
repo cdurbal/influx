@@ -27,7 +27,7 @@
 | F1 | F1.md | fondateur | — | — | fondateur | fait | « 1 oui, 2 accordés, 3 acceptés » (2026-11-27) : coquille validée ; D1-D4 en `06b` §7 ; effets acceptés |
 | R | revue.md | revue | — | — | testeur + expert-cybersecurite | fait | RUBS 0/0/0/5, I-4 ok ; RUBT 0/5/2/4 (bloquant/jalon/avant prod/plus tard) ; jalon : fix-6 à fix-10, 8 et 10 en deux voies au choix |
 | fix-6 | fix-6.md | fix | sonnet | high | dev-react-node | fait | RUBT-2 : Échap refusé au keydown ; close natif → showModal sans onClose ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
-| fix-7 | fix-7.md | fix | sonnet | high | dev-react-node | à faire | RUBT-3 : date saisie gardée quand une borne change ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
+| fix-7 | fix-7.md | fix | sonnet | high | dev-react-node | fait | RUBT-3 : borne changée → texte gardé, valeur réémise, refus recalculé ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-8a | fix-8a.md | fix | sonnet | high | dev-react-node | à faire | RUBT-4 voie A : id, data-*, aria-* à la racine, test RUB-T12 ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-8b | fix-8b.md | fix | opus | xhigh | architecte | ignoré | voie A retenue par le fondateur (fix-8a), 2026-11-27 |
 | fix-9 | fix-9.md | fix | sonnet | high | integrateur | à faire | RUBT-5 : EPIPE de T7.3, 413 lu ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
