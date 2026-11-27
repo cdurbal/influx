@@ -6,7 +6,7 @@
 // the next hour). Worker pool (influx_worker_login) and the modules of src/domains/maintenance, as
 // worker.ts builds them. Runs of the CURRENT hour are committed: the local superuser clears those of
 // storage_purge before and after each case, the triggers of the table off (as tm1-periodic-tasks).
-import { localRoleUrl, requireLocalAuth } from "@influx/test-kit/db";
+import { localRoleUrl } from "@influx/test-kit/db";
 import { captureLogStream } from "@influx/test-kit/logs";
 import { randomUUID } from "node:crypto";
 import type postgres from "postgres";
@@ -22,11 +22,8 @@ import {
 } from "../src/domains/maintenance/periodic.ts";
 import { createStoragePurge } from "../src/domains/maintenance/storage-purge.ts";
 import { createLogger } from "../src/platform/logger.ts";
-import {
-  createObjectStore,
-  type ObjectStore,
-} from "../src/platform/storage.ts";
-import { localSuperuser, migrationRole } from "./support.ts";
+import type { ObjectStore } from "../src/platform/storage.ts";
+import { localSuperuser, migrationRole, s3DoubleStore } from "./support.ts";
 
 let migration: postgres.Sql;
 let worker: WorkerDatabase;
@@ -144,8 +141,7 @@ async function runOfStoragePurge() {
 
 beforeAll(async () => {
   migration = migrationRole();
-  const local = await requireLocalAuth();
-  store = createObjectStore({ url: local.apiUrl, secretKey: local.secretKey });
+  ({ store } = await s3DoubleStore());
   worker = createWorkerDatabase(
     {
       worker: {

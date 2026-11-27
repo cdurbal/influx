@@ -18,12 +18,7 @@ import {
   portfolioUploadResponseSchema,
   type PortfolioUploadResponse,
 } from "@influx/contracts/creator-portfolio";
-import {
-  accountIdOf,
-  localRoleUrl,
-  requireLocalAuth,
-  type LoginRole,
-} from "@influx/test-kit/db";
+import { accountIdOf, localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -44,12 +39,9 @@ import {
 } from "../scripts/terms-publication.ts";
 import { secondsUntilNextUtcMidnight } from "../src/domains/profiles/brand-logo.ts";
 import { buildServer } from "../src/server.ts";
-import {
-  createObjectStore,
-  type ObjectStore,
-} from "../src/platform/storage.ts";
+import type { ObjectStore } from "../src/platform/storage.ts";
 import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
-import { migrationRole, testDataSet } from "./support.ts";
+import { migrationRole, s3DoubleStore, testDataSet } from "./support.ts";
 
 const FIXTURES = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -366,8 +358,7 @@ beforeAll(async () => {
     );
   }
   termsId = fr.id;
-  const local = await requireLocalAuth();
-  store = createObjectStore({ url: local.apiUrl, secretKey: local.secretKey });
+  ({ store } = await s3DoubleStore());
   database = createApiDatabase(
     {
       app: localConnection("influx_app"),

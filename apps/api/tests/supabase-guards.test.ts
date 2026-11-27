@@ -89,10 +89,8 @@ describe("J3-C rule 1: one module talks to Supabase Auth, one to Storage, one to
     ]);
   });
 
-  it("has src/platform/storage.ts as the only importer of @supabase/storage-js", () => {
-    expect(importersOf(/^@supabase\/storage-js$/)).toEqual([
-      "src/platform/storage.ts",
-    ]);
+  it("has no importer of @supabase/storage-js (EC-R2B-1: package kept until R2C)", () => {
+    expect(importersOf(/^@supabase\/storage-js$/)).toEqual([]);
   });
 
   it("imports no other package of @supabase/*", () => {

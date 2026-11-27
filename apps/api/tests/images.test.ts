@@ -498,9 +498,11 @@ describe("static guards of the two adapters (stockage.md §1, §2)", () => {
   it("never signs, publishes nor lists an object of Storage", () => {
     const source = readFileSync(path.join(SRC, "platform/storage.ts"), "utf8");
     expect(source).not.toMatch(
-      /\.\s*(?:createSignedUrls?|createSignedUploadUrl|uploadToSignedUrl|getPublicUrl|list|listV2|move|copy|update|info|exists)\s*\(/,
+      /\.\s*(?:createSignedUrls?|createSignedUploadUrl|uploadToSignedUrl|getPublicUrl|list|listV2|move|copy|info|exists)\s*\(/,
     );
-    expect(source).not.toMatch(/upsert:\s*true/);
-    expect(source).toMatch(/upsert:\s*false/);
+    expect(source).not.toMatch(
+      /X-Amz-Signature|X-Amz-Expires|ListObjectsV2|UNSIGNED-PAYLOAD/i,
+    );
+    expect(source).toMatch(/["']if-none-match["']\s*:\s*["']\*["']/i);
   });
 });

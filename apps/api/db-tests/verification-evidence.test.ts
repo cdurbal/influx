@@ -12,7 +12,6 @@ import {
   CREATOR_SOCIAL_ACCOUNT_IDS,
   inRolledBackTransaction,
   localRoleUrl,
-  requireLocalAuth,
 } from "@influx/test-kit/db";
 import { captureLogStream } from "@influx/test-kit/logs";
 import { randomUUID } from "node:crypto";
@@ -31,7 +30,6 @@ import {
 import { createStoragePurge } from "../src/domains/maintenance/storage-purge.ts";
 import { createLogger } from "../src/platform/logger.ts";
 import {
-  createObjectStore,
   isObjectKey,
   STORAGE_READ_MAX_BYTES,
   type ObjectStore,
@@ -40,6 +38,7 @@ import {
   actAsMember,
   localSuperuser,
   migrationRole,
+  s3DoubleStore,
   testDataSet,
 } from "./support.ts";
 
@@ -273,16 +272,13 @@ describe("T9.1, T9.3: the bucket verification-evidence and the key of the base (
       false,
     );
     expect(isObjectKey(BUCKET, key.toUpperCase())).toBe(false);
-    const local = await requireLocalAuth();
-    const store = createObjectStore({
-      url: local.apiUrl,
-      secretKey: local.secretKey,
-    });
+    const { store, double } = await s3DoubleStore();
     expect(await store.read(BUCKET, "../etc/passwd")).toMatchObject({
       ok: false,
       errorCode: "invalid_key",
       status: null,
     });
+    expect(double.requests).toEqual([]);
   });
 });
 
@@ -728,11 +724,7 @@ describe("the tasks of E-4 (L2E-D10 to D12; modele §4 « E-4 »)", () => {
 
   beforeAll(async () => {
     migration = migrationRole();
-    const local = await requireLocalAuth();
-    store = createObjectStore({
-      url: local.apiUrl,
-      secretKey: local.secretKey,
-    });
+    ({ store } = await s3DoubleStore());
     worker = createWorkerDatabase(
       {
         worker: {

@@ -261,7 +261,7 @@ export type BuildServerOptions = {
    * tests that run without a database.
    */
   isDatabaseReachable?: () => Promise<boolean>;
-  /** Supabase Storage (D80); the adapter of src/platform/storage.ts by default. Tests replace it. */
+  /** Object storage (Cloudflare R2, D90); the adapter of src/platform/storage.ts by default. Tests replace it. */
   storage?: ObjectStore;
 };
 
@@ -597,8 +597,8 @@ export function buildServer(
     now: options.identity?.now ?? (() => new Date()),
   });
 
-  // Storage, with the secret key of the service: the logo of the brand profile and its read by an agent.
-  const objectStore = options.storage ?? createObjectStore(config.supabase);
+  // Storage, in Cloudflare R2 with the api service's own token (D90, 23 §3.2).
+  const objectStore = options.storage ?? createObjectStore(config.r2);
   // The two slots of re-encoding of the process, shared by the logo, the pieces and the visuals (D82 (2), (7)).
   const imageSlots = createImageSlots();
 

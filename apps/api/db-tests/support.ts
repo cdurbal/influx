@@ -10,10 +10,55 @@ import {
   type LoginRole,
   type UserContext,
 } from "@influx/test-kit/db";
+import {
+  S3_DOUBLE_DEFAULT_ACCESS_KEY_ID,
+  S3_DOUBLE_DEFAULT_SECRET_ACCESS_KEY,
+  startS3Double,
+  type S3Double,
+  type S3DoubleOptions,
+} from "@influx/test-kit/s3-double";
 import type postgres from "postgres";
 import { afterAll } from "vitest";
+import type { R2Config } from "../src/config/schema.ts";
+import {
+  createObjectStore,
+  type ObjectStore,
+} from "../src/platform/storage.ts";
 
 const opened: postgres.Sql[] = [];
+const doubles: S3Double[] = [];
+
+export type S3DoubleStore = {
+  double: S3Double;
+  store: ObjectStore;
+  config: R2Config;
+};
+
+/** Starts an in-memory S3 SigV4 double on 127.0.0.1 and binds an ObjectStore to it until afterAll. */
+export async function s3DoubleStore(
+  options: S3DoubleOptions & { bucketPrefix?: string } = {},
+): Promise<S3DoubleStore> {
+  const accessKeyId = options.accessKeyId ?? S3_DOUBLE_DEFAULT_ACCESS_KEY_ID;
+  const secretAccessKey =
+    options.secretAccessKey ?? S3_DOUBLE_DEFAULT_SECRET_ACCESS_KEY;
+  const double = await startS3Double({
+    ...options,
+    accessKeyId,
+    secretAccessKey,
+  });
+  doubles.push(double);
+  const config: R2Config = {
+    endpoint: double.endpoint,
+    accessKeyId,
+    secretAccessKey,
+    bucketPrefix: options.bucketPrefix ?? "test-",
+  };
+  return {
+    double,
+    config,
+    store: createObjectStore(config),
+  };
+}
 
 export function migrationRole(): postgres.Sql {
   const sql = connectAsMigrationRole();
@@ -263,8 +308,12 @@ export async function backendPid(tx: postgres.TransactionSql): Promise<number> {
 }
 
 afterAll(async () => {
-  await Promise.all(opened.map((sql) => sql.end({ timeout: 1 })));
+  await Promise.all([
+    ...opened.map((sql) => sql.end({ timeout: 1 })),
+    ...doubles.map((double) => double.close()),
+  ]);
   opened.length = 0;
+  doubles.length = 0;
   byRole.clear();
   superuser = undefined;
   sharedMigration = undefined;

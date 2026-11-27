@@ -405,8 +405,7 @@ async function main(): Promise<void> {
     config.supabase === null
       ? null
       : createGoTrueUserDirectory(config.supabase);
-  const objects =
-    config.supabase === null ? null : createObjectStore(config.supabase);
+  const objects = config.r2 === null ? null : createObjectStore(config.r2);
   const periodic = periodicSchedulerOf(
     config,
     database,

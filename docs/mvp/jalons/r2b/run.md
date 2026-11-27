@@ -1,7 +1,7 @@
 # Exécution du jalon R2B
 | # | Fichier | Type | Modèle | Effort | Agent | État | Note |
 |---|---|---|---|---|---|---|---|
-| 01 | 01.md | commit | neon | high | dev-react-node | à faire | SigV4 natif, isObjectKey avant URL, If-None-Match "*", flux borné, `<Code>` seul (D60) ; 6 appels db-tests sur s3-double |
+| 01 | 01.md | commit | neon | high | dev-react-node | fait | SigV4 natif (`node:crypto`), `isObjectKey` avant URL, `If-None-Match: "*"`, flux borné, `<Code>` ≤ 8 Kio (D60) ; 6 appels `db-tests` sur `s3-double` |
 | 02 | 02.md | commit | carbon | high | testeur | à faire | CA4–CA7, CA10 par queue() ; purge 3 compartiments (L2GT-13) ; hôtes R2 interdits (L2GT-12) |
 | 03 | 03.md | commit | carbon | high | dev-react-node | à faire | stagingR2() ; --reupload-images idempotent (412 → skipped), sans GoTrue ni outbox |
 | 04 | 04.md | commit | carbon | high | testeur | à faire | 8 specs + recette sur :4111 ; CA5 LogoPlate ; /_double/delete + R2AS-5/R2AT-2 ; e2e ≤ +3 s, 3 passes |
