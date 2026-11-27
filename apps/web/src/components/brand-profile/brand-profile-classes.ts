@@ -4,12 +4,13 @@
 import { cn } from "@/components/ui/class-names";
 import { MEMBER_CARD_CLASSES } from "@/components/member/ui/card-classes";
 import { SECTION_TITLE } from "@/components/member/ui/heading-classes";
+import { WIDE_PAGE_FRAME_CLASSES } from "@/components/member/ui/page-frame-classes";
 
-/** The page: a wider container than the other screens of the space (the sticky column needs room). */
-export const PROFILE_PAGE_CLASSES = cn(
-  "mx-auto flex w-full max-w-(--container-max) flex-col gap-6",
-  "min-h-(--size-header-glow) px-page-gutter py-section-header bg-header-glow bg-no-repeat",
-);
+/**
+ * The page: a wider container than the other screens of the space (the sticky column needs room),
+ * the wide frame of C01, aligned to the left (E01.0-CA08).
+ */
+export const PROFILE_PAGE_CLASSES = WIDE_PAGE_FRAME_CLASSES;
 
 /** The form and its column: one column below lg, twelve from lg (17 §2.3). */
 export const PROFILE_GRID_CLASSES =

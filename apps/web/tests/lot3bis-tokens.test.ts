@@ -173,6 +173,8 @@ const SHARED: ReadonlyArray<readonly [string, string, string]> = [
   [ROOT, "--grid-verification-row", "7rem minmax(0, 1fr)"],
   [ROOT, "--grid-range", "6.5rem minmax(0, 1fr) 5.5rem"],
   [FROM_480, "--grid-range", "9rem minmax(0, 1fr) 6.5rem"],
+  // Breakpoint of the header of the member shell (RUB-B §1; founder, 2026-11-27).
+  [THEME, "--breakpoint-header", "360px"],
   // Breakpoint of the forms (RU-03), then the animations of the Lot 3bis (RU-06; 04 §2) and their keyframes.
   [THEME, "--breakpoint-form", "640px"],
   [

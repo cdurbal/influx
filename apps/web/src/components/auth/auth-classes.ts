@@ -19,19 +19,26 @@ import {
 } from "@/components/member/ui/field-classes";
 import { OVERLINE } from "@/components/member/ui/heading-classes";
 import { noticeClasses } from "@/components/member/ui/notice-classes";
+import { NARROW_PAGE_FRAME_CLASSES } from "@/components/member/ui/page-frame-classes";
 import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
 
 /**
- * A page inside the member shell, which holds the frame and its height (17 §2.2, §2.3). Its ground
- * is the header glow of F6 (RK-9): one per page, no layer over the content, valued under KEO only.
+ * A page inside the member shell, which holds the frame and its height (17 §2.2, §2.3): the narrow
+ * frame of C01, aligned to the left, so that the edge of the `h1` is the same on every page of the
+ * space (E01.0-CA08). Its ground is the header glow of F6 (RK-9): one per page, no layer over the
+ * content, valued under KEO only.
  */
-export const SPACE_SCREEN_CLASSES = cn(
+export const SPACE_SCREEN_CLASSES = NARROW_PAGE_FRAME_CLASSES;
+
+/**
+ * A standalone page (the journey, signed out, terms to accept, the legal pages): one centred column,
+ * mobile first. Its own chain, apart from the frame of the space (RUB-A §5).
+ */
+export const SCREEN_CLASSES = cn(
   "mx-auto flex w-full max-w-(--container-narrow) flex-col gap-6",
   "min-h-(--size-header-glow) px-page-gutter py-section-header bg-header-glow bg-no-repeat",
+  "min-h-screen",
 );
-
-/** A standalone page (the journey, signed out, terms to accept): one centred column, mobile first. */
-export const SCREEN_CLASSES = cn(SPACE_SCREEN_CLASSES, "min-h-screen");
 
 export const BRAND_CLASSES = "font-display text-md font-bold text-text-primary";
 

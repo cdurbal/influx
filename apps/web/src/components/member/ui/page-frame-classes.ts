@@ -52,6 +52,22 @@ type PageFrameOptions = {
   stickyBar?: PageFrameStickyBar;
 };
 
+/**
+ * The two frames of the member screens that keep their own element until they migrate (RUB-A §5),
+ * built from the bare keys: a variant written as a string in a module of classes would be read as a
+ * class (TK7.2). A unit case holds them equal to `pageFrameClasses()`.
+ */
+export const NARROW_PAGE_FRAME_CLASSES = cn(
+  PAGE_FRAME_BASE_CLASSES,
+  PAGE_FRAME_VARIANT_CLASSES.narrow,
+  PAGE_FRAME_USUAL_GAP_CLASSES.narrow,
+);
+export const WIDE_PAGE_FRAME_CLASSES = cn(
+  PAGE_FRAME_BASE_CLASSES,
+  PAGE_FRAME_VARIANT_CLASSES.wide,
+  PAGE_FRAME_USUAL_GAP_CLASSES.wide,
+);
+
 /** The classes of a frame, as a string for the screens that keep their own element until they migrate. */
 export function pageFrameClasses(
   variant: PageFrameVariant,

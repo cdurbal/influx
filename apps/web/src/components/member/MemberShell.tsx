@@ -7,10 +7,11 @@
 // session closed elsewhere are seen at the next click; the pages receive the account through
 // useMember() and never read it themselves (G9). The rules (page of a path, space required, entries,
 // active entry, pages exempted from the terms) are pure functions of member-paths.ts and
-// member-nav.ts; this file draws them.
+// member-nav.ts; this file draws them. It also mounts the one announcer of the space (C29).
 // One <nav> "Navigation principale", rendered once and restyled by CSS: a bar fixed at the bottom
-// below lg, the list of the side column from lg (02 §21.5 point 3). The standalone pages (terms to
-// accept, signed out, account deleted) show no navigation at all (20 §11.8).
+// below lg, the list of the side column from lg (02 §21.5 point 3). After it, from lg, an aside
+// "Your account" holds the state of the account and the foot (E01.0; RUB-B §1). The standalone pages
+// (terms to accept, signed out, account deleted) show no navigation at all (20 §11.8).
 import type { MeResponse } from "@influx/contracts/account";
 import { useLocale, useTranslations } from "next-intl";
 import {
@@ -37,7 +38,6 @@ import {
   HEADER_CLASSES as SCREEN_HEADER_CLASSES,
   HELP_CLASSES,
   INFO_CLASSES,
-  LANGUAGE_LINK_CLASSES,
   SCREEN_CLASSES,
   SECONDARY_BUTTON_CLASSES,
   SPACE_SCREEN_CLASSES,
@@ -67,11 +67,12 @@ import { installErrorCollector } from "@influx/web-platform/error-collector";
 import { MemberContext, type MemberContextValue } from "./member-context";
 import { MemberNav, type MemberNavEntry } from "./MemberNav";
 import {
+  ASIDE_CLASSES,
   BRAND_LINK_CLASSES,
   COLUMN_CLASSES,
   FOOTER_CLASSES,
   HEADER_CLASSES,
-  HEADER_ONLY_CLASSES,
+  HEADER_LANGUAGE_CLASSES,
   IDENTITY_CLASSES,
   MAIN_CLASSES,
   NAV_ICON_CLASSES,
@@ -81,6 +82,8 @@ import {
   SKIP_LINK_CLASSES,
   SPACE_NAME_CLASSES,
 } from "./shell-classes";
+import { AnnouncerProvider } from "./ui/Announcer";
+import { Button } from "./ui/Button";
 import { buttonClasses } from "./ui/button-classes";
 import { RoleBadge } from "./ui/RoleBadge";
 
@@ -227,38 +230,40 @@ export function MemberShell({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Frame
-      me={state.kind === "ready" ? state.me : null}
-      page={page}
-      onSignOut={signOut}
-      mainRef={mainRef}
-      busy={state.kind === "loading"}
-      brandProfile={brandProfile}
-      creatorProfile={creatorProfile}
-    >
-      {state.kind === "ready" ? (
-        <SpaceContext
-          me={state.me}
-          refresh={load}
-          signOut={signOut}
-          signedOut={signedOut}
-          accountDeleted={accountDeleted}
-          brandProfile={brandProfile}
-          creatorProfile={creatorProfile}
-        >
-          {children}
-        </SpaceContext>
-      ) : state.kind === "unavailable" ? (
-        <Unavailable
-          onRetry={() => {
-            setState({ kind: "loading" });
-            void load();
-          }}
-        />
-      ) : (
-        <Loading />
-      )}
-    </Frame>
+    <AnnouncerProvider>
+      <Frame
+        me={state.kind === "ready" ? state.me : null}
+        page={page}
+        onSignOut={signOut}
+        mainRef={mainRef}
+        busy={state.kind === "loading"}
+        brandProfile={brandProfile}
+        creatorProfile={creatorProfile}
+      >
+        {state.kind === "ready" ? (
+          <SpaceContext
+            me={state.me}
+            refresh={load}
+            signOut={signOut}
+            signedOut={signedOut}
+            accountDeleted={accountDeleted}
+            brandProfile={brandProfile}
+            creatorProfile={creatorProfile}
+          >
+            {children}
+          </SpaceContext>
+        ) : state.kind === "unavailable" ? (
+          <Unavailable
+            onRetry={() => {
+              setState({ kind: "loading" });
+              void load();
+            }}
+          />
+        ) : (
+          <Loading />
+        )}
+      </Frame>
+    </AnnouncerProvider>
   );
 }
 
@@ -301,8 +306,9 @@ function SpaceContext({
 
 /**
  * The frame of the space: skip link, header (head of the column from lg), the main navigation once
- * the account is known, the foot of the column, then <main>. `me` null: loading or unreadable, the
- * frame stands without navigation (17 §2.3, states of the template).
+ * the account is known, the aside of the account (its state, then the foot of the column), then
+ * <main>. `me` null: loading or unreadable, the frame stands without navigation nor aside (17
+ * §2.3, states of the template).
  */
 function Frame({
   me,
@@ -361,10 +367,6 @@ function Frame({
     }
   }
 
-  const language = (className: string) => (
-    <LanguageLinks page={page} className={className} />
-  );
-
   return (
     <div className={SHELL_CLASSES}>
       <a href="#main" className={SKIP_LINK_CLASSES}>
@@ -391,7 +393,7 @@ function Frame({
               className={SPACE_NAME_CLASSES}
             />
           )}
-          {language(HEADER_ONLY_CLASSES)}
+          <LanguageLinks page={page} className={HEADER_LANGUAGE_CLASSES} />
         </header>
         {me === null ? (
           <div aria-hidden="true" className={NAV_PLACEHOLDER_CLASSES}>
@@ -405,26 +407,28 @@ function Frame({
             LinkComponent={Link}
           />
         )}
-        {me === null ? null : <AccountStateBlock state={brandProfile.state} />}
         {me === null ? null : (
-          <CreatorAccountStateBlock state={creatorProfile.state} />
-        )}
-        {me === null ? null : (
-          <div className={FOOTER_CLASSES}>
-            {language("")}
-            <p className={IDENTITY_CLASSES}>
-              {tAuth("home.signedInAs", { email: me.email })}
-            </p>
-            <button
-              type="button"
-              onClick={() => void leave()}
-              aria-disabled={signingOut || undefined}
-              className={cn(buttonClasses("secondary", "md"), "w-full")}
-            >
-              <LogOutIcon aria-hidden="true" className={NAV_ICON_CLASSES} />
-              {signingOut ? tAuth("logout.busy") : t("footer.signOut")}
-            </button>
-          </div>
+          <aside aria-label={t("accountState.label")} className={ASIDE_CLASSES}>
+            <AccountStateBlock state={brandProfile.state} />
+            <CreatorAccountStateBlock state={creatorProfile.state} />
+            <div className={FOOTER_CLASSES}>
+              <LanguageLinks page={page} />
+              <p className={IDENTITY_CLASSES}>
+                {tAuth("home.signedInAs", { email: me.email })}
+              </p>
+              <Button
+                variant="secondary"
+                icon={
+                  <LogOutIcon aria-hidden="true" className={NAV_ICON_CLASSES} />
+                }
+                busy={signingOut}
+                busyLabel={tAuth("logout.busy")}
+                onClick={() => void leave()}
+              >
+                {t("footer.signOut")}
+              </Button>
+            </div>
+          </aside>
         )}
       </div>
       <main
@@ -442,16 +446,17 @@ function Frame({
 }
 
 /**
- * The page in the other language (the selector of the journey, 17 §3.1): a link, not a landmark,
- * so that the space keeps a single <nav> (18 TD5.1). Drawn in the header below lg and in the foot
- * of the column from lg; the CSS shows one of the two.
+ * The page in the other language (the selector of the journey, 17 §3.1): a link, never a button
+ * (it changes the address) and not a landmark, so that the space keeps a single <nav> (18 TD5.1),
+ * drawn as the secondary pill (E01.0-S05, CA06). In the header below lg and in the foot of the
+ * column from lg; the CSS shows one of the two.
  */
 function LanguageLinks({
   page,
   className,
 }: {
   page: MemberPage | null;
-  className: string;
+  className?: string;
 }) {
   const t = useTranslations("auth");
   const locale = useLocale();
@@ -467,7 +472,7 @@ function LanguageLinks({
         locale={other}
         lang={other}
         hrefLang={other}
-        className={cn(LANGUAGE_LINK_CLASSES, className)}
+        className={cn(buttonClasses("secondary", "md"), className)}
       >
         {t(`language.${other}`)}
       </Link>

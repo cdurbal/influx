@@ -46,8 +46,12 @@ export const BRAND_LINK_CLASSES = cn(
  */
 export const SPACE_NAME_CLASSES = "max-lg:mr-auto max-lg:px-2";
 
-/** Below lg only: the language sits in the header; from lg, in the foot of the column. */
-export const HEADER_ONLY_CLASSES = "lg:hidden";
+/**
+ * The language in the header, below lg only (from lg it sits in the foot of the column). Under
+ * `breakpoint-header` its side inset alone narrows to 12 px, so that the header holds on one line at
+ * 320 px; from it, the pill is that of the mockups (RUB-B §1; founder, 2026-11-27).
+ */
+export const HEADER_LANGUAGE_CLASSES = "lg:hidden max-header:px-3";
 
 /** The one main navigation: a bar fixed at the bottom below lg, the list of the column from lg. */
 export const NAV_CLASSES = cn(
@@ -130,10 +134,17 @@ export function subNavLinkClasses(isCurrent: boolean): string {
 
 export const NAV_ICON_CLASSES = "size-(--size-icon-md) shrink-0";
 
-/** The foot of the column, from lg only: language, identity, sign-out, always visible (17 §2.3). */
+/**
+ * The aside "Your account" after the navigation (17 §2.3; RUB-B §1): the state of the account, then
+ * the foot, pushed to the bottom of what is left of the column. From lg only: below it, the home
+ * carries the state and the header the language.
+ */
+export const ASIDE_CLASSES = "hidden lg:flex lg:grow lg:flex-col";
+
+/** The foot of the column: language, identity, sign-out, each at the width of its content. */
 export const FOOTER_CLASSES = cn(
-  "hidden lg:mt-auto lg:flex lg:flex-col lg:items-start lg:gap-3 lg:px-4 lg:py-4",
-  "lg:border-t-(length:--border-width-thin) lg:border-border-default",
+  "mt-auto flex flex-col items-start gap-3 px-4 py-4",
+  "border-t-(length:--border-width-thin) border-border-default",
 );
 
 export const IDENTITY_CLASSES = "break-words text-sm text-text-secondary";
@@ -147,10 +158,15 @@ export const NAV_PLACEHOLDER_CLASSES = cn(NAV_CLASSES, "lg:hidden");
 export const NAV_PLACEHOLDER_LIST_CLASSES = "h-(--size-nav-bottom-height)";
 
 /**
- * The state of the account in the column (17 §2.3 "Bloc d'état du compte"): under the items, above
- * the foot, from lg only; below lg the home carries it. A rule above, as the foot has.
+ * The state of the account in the aside (17 §2.3 "Bloc d'état du compte"; E01.0-S11 to S13): words
+ * and one link, 4 px apart, under the items and above the foot. A rule above, as the foot has.
  */
 export const ACCOUNT_STATE_CLASSES = cn(
-  "hidden lg:mt-4 lg:flex lg:flex-col lg:items-start lg:gap-2 lg:px-4 lg:py-4",
-  "lg:border-t-(length:--border-width-thin) lg:border-border-default",
+  "mt-4 flex flex-col items-start gap-1 px-4 py-4",
+  "border-t-(length:--border-width-thin) border-border-default",
 );
+
+export const ACCOUNT_STATE_TITLE_CLASSES =
+  "text-sm font-bold text-text-primary";
+
+export const ACCOUNT_STATE_MISSING_CLASSES = "text-sm text-text-secondary";

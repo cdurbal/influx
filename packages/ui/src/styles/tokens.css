@@ -459,6 +459,11 @@
   --aspect-otp: 5 / 6;
 
   /* ---------- Breakpoints, mobile-first (03 §6) ---------- */
+  /*
+   * The header of the member shell (RUB-B §1; founder, 2026-11-27): `max-header:` narrows the inset
+   * of its language pill, so that the header holds on one line at 320 px; never under KEO.
+   */
+  --breakpoint-header: 360px;
   --breakpoint-sm: 480px;
   /* Forms (RU-03, D88): `form:` falls between `sm:` and `md:`, `max-form:` is offered; never under KEO. */
   --breakpoint-form: 640px;

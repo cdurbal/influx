@@ -7,11 +7,13 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { effectiveTokens } from "@influx/test-kit/guards";
 import enAccount from "@/locales/en/account.json" with { type: "json" };
 import enMember from "@/locales/en/member.json" with { type: "json" };
 import frAccount from "@/locales/fr/account.json" with { type: "json" };
+import frAuth from "@/locales/fr/auth.json" with { type: "json" };
+import frBrandProfile from "@/locales/fr/brand-profile.json" with { type: "json" };
 import frCreatorProfile from "@/locales/fr/creator-profile.json" with { type: "json" };
 import frMember from "@/locales/fr/member.json" with { type: "json" };
 import { revokeSessions, seedMember } from "./support/account";
@@ -808,3 +810,280 @@ for (const [locale, role] of [
     }
   });
 }
+
+// RUB-T10 (jalons/rub/annexe.md; E01.0-CA01 to CA08): the shell of the Lot 3bis. CA05 (skip link,
+// focus on the h1) stays with TD5.3 and TD5.5, the single `nav` and `aria-current` with TD5.1.
+
+/** The aside of the account, after the navigation, from lg only (RUB-B §1). */
+function accountAside(page: Page) {
+  return page.getByRole("complementary", {
+    name: MEMBER.fr.accountState.label,
+    exact: true,
+  });
+}
+
+async function boxOf(locator: Locator) {
+  const box = await locator.boundingBox();
+  expect(box).not.toBeNull();
+  const { x, y, width, height } = box ?? { x: 0, y: 0, width: 0, height: 0 };
+  return { x, y, width, height, right: x + width, bottom: y + height };
+}
+
+/** The surface of an element and the line its `::before` draws, if any (E01.0-S07, S08). */
+function markOf(locator: Locator) {
+  return locator.evaluate((element) => {
+    const line = getComputedStyle(element, "::before");
+    return {
+      surface: getComputedStyle(element).backgroundColor !== "rgba(0, 0, 0, 0)",
+      line: line.content === "none" ? null : line.width,
+    };
+  });
+}
+
+/** The answer of the API, with the profile it holds said published. */
+async function answerPublished(page: Page, route: string): Promise<void> {
+  await page.route(route, async (intercepted) => {
+    const response = await intercepted.fetch();
+    const profile = (await response.json()) as Record<string, unknown>;
+    await intercepted.fulfill({
+      response,
+      json: { ...profile, status: "published" },
+    });
+  });
+}
+
+test("RUB-T10: the column, the header and the bar of a new brand, its state in words in the aside, from 320 to 1440 px (E01.0-CA01 to CA04, CA06)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openHome(page, "fr", "advertiser");
+  const aside = accountAside(page);
+  const banner = page.getByRole("banner");
+  const brand = banner.getByRole("link", { name: "INFLUX", exact: true });
+  const pill = banner.getByText(MEMBER.fr.space.advertiser, { exact: true });
+  const headerLanguage = banner.locator('a[hreflang="en"]');
+  const footLanguage = aside.locator('a[hreflang="en"]');
+  await expect(page.locator("[data-announcer]")).toHaveCount(1);
+
+  // CA04: words and one link, 4 px apart, no pill.
+  const state = aside.getByText(
+    MEMBER.fr.accountState.state.replace("{state}", frBrandProfile.state.draft),
+    { exact: true },
+  );
+  const missing = aside.getByText(/^\d+ informations manquantes$/);
+  const way = aside.getByRole("link", {
+    name: MEMBER.fr.accountState.complete,
+    exact: true,
+  });
+  await expect(state).toHaveCSS("font-weight", "700");
+  await expect(way).toHaveAttribute("href", "/fr/compte/profil");
+  await expect(way).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(way).toHaveCSS("border-top-width", "0px");
+  expect((await boxOf(way.locator("svg"))).width).toBe(16);
+
+  for (const width of [1024, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    const where = `${width} px`;
+    // CA01: the column of 256 px, INFLUX then the pill under it.
+    const column = await boxOf(mainNavigation(page, "fr").locator(".."));
+    expect(column.width, where).toBe(256);
+    const [top, role] = [await boxOf(brand), await boxOf(pill)];
+    expect(role.y, where).toBeGreaterThanOrEqual(top.bottom);
+    expect(role.x, where).toBeCloseTo(top.x, 0);
+    const [first, second, third] = [
+      await boxOf(state),
+      await boxOf(missing),
+      await boxOf(way),
+    ];
+    expect(second.y - first.bottom, where).toBeCloseTo(4, 0);
+    expect(third.y - second.bottom, where).toBeCloseTo(4, 0);
+    expect(third.height, where).toBeGreaterThanOrEqual(44);
+    // The aside after the navigation, its foot at the bottom of the column.
+    const [list, held] = [
+      await boxOf(mainNavigation(page, "fr")),
+      await boxOf(aside),
+    ];
+    expect(held.y, where).toBeGreaterThanOrEqual(list.bottom);
+    expect(held.bottom, where).toBeCloseTo(900, 0);
+    // CA06, CA07: the language in the foot alone; each control at the width of its content.
+    await expect(headerLanguage, where).toBeHidden();
+    await expect(footLanguage, where).toHaveAttribute("lang", "en");
+    const language = await boxOf(footLanguage);
+    expect(language.height, where).toBeGreaterThanOrEqual(44);
+    const signOut = await boxOf(
+      aside.getByRole("button", {
+        name: MEMBER.fr.footer.signOut,
+        exact: true,
+      }),
+    );
+    expect(language.x, where).toBeCloseTo(signOut.x, 0);
+    for (const control of [language, signOut]) {
+      expect(control.width, where).toBeLessThan(held.width - 2 * 16);
+    }
+    await expect(
+      aside.getByText(/^Connecté avec .+@example\.test$/),
+    ).toBeVisible();
+    // CA02: the current entry has its surface and its line of 2 px.
+    expect(
+      await markOf(mainNavigation(page, "fr").locator('[aria-current="page"]')),
+    ).toEqual({ surface: true, line: "2px" });
+    await expectNoAxeViolation(page, `coquille marque à ${width} px`, {
+      wcag22: true,
+    });
+  }
+
+  // CA01, CA03, CA06: below lg, the header of 64 px on one line, the bar of 56 px, no aside.
+  for (const width of [768, 375]) {
+    await page.setViewportSize({ width, height: 812 });
+    const where = `${width} px`;
+    await expect(aside, where).toBeHidden();
+    expect((await boxOf(banner)).height, where).toBe(64);
+    const middles = [];
+    for (const item of [brand, pill, headerLanguage]) {
+      const box = await boxOf(item);
+      middles.push(box.y + box.height / 2);
+    }
+    expect(Math.max(...middles) - Math.min(...middles), where).toBeLessThan(1);
+    await expect(headerLanguage, where).toHaveAttribute("lang", "en");
+    expect((await boxOf(headerLanguage)).height).toBeGreaterThanOrEqual(44);
+    const nav = mainNavigation(page, "fr");
+    // The border of the bar sits above its 56 px.
+    expect((await boxOf(nav.locator("ul").first())).height, where).toBe(56);
+    await expect(nav.getByRole("link"), where).toHaveCount(4);
+    await expectNoAxeViolation(page, `coquille marque à ${width} px`, {
+      wcag22: true,
+    });
+  }
+
+  // CA01 at 320 px, both languages: the header holds within its gutters. Under 360 px its pill
+  // alone narrows to 12 px of inset; from 360 it is that of the mockups, 24 px (RUB-B §1).
+  for (const locale of ["fr", "en"] as const) {
+    // CA06: the link leads to the same page in the other language.
+    if (locale === "en") {
+      await headerLanguage.click();
+      await expect(page).toHaveURL(/\/en\/brand$/);
+      // Off the pill, whose hover zoom would widen the box measured below.
+      await page.mouse.move(0, 400);
+    }
+    const other = banner.locator("a[hreflang]");
+    await expect(other).toHaveAttribute("lang", locale === "fr" ? "en" : "fr");
+    for (const [width, inset] of [
+      [320, "12px"],
+      [359, "12px"],
+      [360, "24px"],
+      [375, "24px"],
+    ] as const) {
+      await page.setViewportSize({ width, height: 812 });
+      const where = `${locale}, ${width} px`;
+      await expect(other, where).toHaveCSS("padding-left", inset);
+      await expect(other, where).toHaveCSS("padding-right", inset);
+      const space = banner.getByText(MEMBER[locale].space.advertiser, {
+        exact: true,
+      });
+      const [name, language] = [await boxOf(space), await boxOf(other)];
+      expect(name.height, where).toBeLessThan(40);
+      expect(language.height, where).toBeLessThan(52);
+      expect(language.x, where).toBeGreaterThanOrEqual(name.right + 8);
+      expect(language.right, where).toBeLessThanOrEqual(width - 16 + 0.5);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+        where,
+      ).toBeLessThanOrEqual(width);
+    }
+  }
+});
+
+test("RUB-T10: one edge of the h1 on a narrow and a wide page, nothing after « Publié », an ancestor without surface, one sign-out per click (E01.0-CA02, CA04, CA07, CA08)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await openHome(page, "fr", "creator");
+  const aside = accountAside(page);
+  const nav = mainNavigation(page, "fr");
+  await expect(
+    aside.getByRole("link", {
+      name: frCreatorProfile.home.complete,
+      exact: true,
+    }),
+  ).toHaveAttribute("href", "/fr/compte/profil");
+
+  /** CA08: where the h1 starts, at each width; 304 px from the column and the gutter at 1440. */
+  const edges = async () => {
+    const found: number[] = [];
+    for (const width of [1024, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 900 });
+      found.push((await boxOf(title(page))).x);
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    return found;
+  };
+  const narrow = await edges();
+  expect(narrow.slice(1)).toEqual([304, 304]);
+
+  // CA02: on a sub-page, the rubric is an ancestor, without surface nor line.
+  await nav
+    .getByRole("link", { name: MEMBER.fr.nav.entries.account, exact: true })
+    .click();
+  await expect(title(page)).toHaveText(ACCOUNT.fr.hub.title);
+  expect(await edges()).toEqual(narrow);
+  // CA04: once published, the state alone: no count, no link but the language's.
+  await answerPublished(page, "**/api/v1/me/creator-profile");
+  await page
+    .getByRole("main")
+    .getByRole("link", {
+      name: ACCOUNT.fr.nav.accountProfileCreator,
+      exact: true,
+    })
+    .click();
+  await expect(title(page)).toHaveText(frCreatorProfile.page.title);
+  await expect(
+    aside.getByText(
+      MEMBER.fr.accountState.state.replace(
+        "{state}",
+        frCreatorProfile.state.published,
+      ),
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(aside.getByText(/manquante/)).toHaveCount(0);
+  await expect(aside.getByRole("link")).toHaveCount(1);
+  expect(await edges()).toEqual(narrow);
+  expect(
+    await markOf(
+      nav.getByRole("link", {
+        name: MEMBER.fr.nav.entries.account,
+        exact: true,
+      }),
+    ),
+  ).toEqual({ surface: false, line: null });
+  expect(await markOf(nav.locator('[aria-current="page"]'))).toEqual({
+    surface: true,
+    line: "2px",
+  });
+
+  // CA07: while the call runs, the busy label, the same width, and no second call.
+  let calls = 0;
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/v1/auth/logout", async (route) => {
+    calls += 1;
+    await held;
+    await route.continue();
+  });
+  const signOut = aside.getByRole("button");
+  await expect(signOut).toHaveAccessibleName(MEMBER.fr.footer.signOut);
+  const resting = (await boxOf(signOut)).width;
+  await signOut.click();
+  await expect(signOut).toHaveAccessibleName(frAuth.logout.busy);
+  await expect(signOut).toHaveAttribute("aria-busy", "true");
+  await expect(signOut).toHaveAttribute("aria-disabled", "true");
+  expect((await boxOf(signOut)).width).toBe(resting);
+  await signOut.click({ force: true });
+  await signOut.press("Enter");
+  release();
+  await expect(title(page)).toHaveText(ACCOUNT.fr.signedOut.title);
+  expect(calls).toBe(1);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});

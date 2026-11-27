@@ -17,7 +17,7 @@ const ACTION_LINK_UNDERLINE_CLASSES =
 
 const ACTION_LINK_VARIANT_CLASSES = {
   inline: cn("gap-1 hover:text-text-brand", ACTION_LINK_UNDERLINE_CLASSES),
-  go: "gap-1 min-h-(--size-touch-target) hover:underline hover:underline-offset-(--offset-link)",
+  go: "gap-1 min-h-(--size-touch-target) font-display hover:underline hover:underline-offset-(--offset-link)",
   save: cn("gap-2", ACTION_LINK_UNDERLINE_CLASSES),
 };
 

@@ -72,7 +72,6 @@ export const CATALOGUE_MODULES: readonly string[] = [
 /** The modules of RUB with no caller before RUE (RUB-A §7); the screen that wires one removes it. */
 export const UNCALLED_MODULES: readonly string[] = [
   "ActionLink",
-  "Announcer",
   "BrandHero",
   "CardActions",
   "ChipList",

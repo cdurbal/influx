@@ -6,6 +6,13 @@ import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  SCREEN_CLASSES,
+  SPACE_SCREEN_CLASSES,
+} from "@/components/auth/auth-classes";
+import { PROFILE_PAGE_CLASSES } from "@/components/brand-profile/brand-profile-classes";
+import { CAMPAIGN_PAGE_CLASSES } from "@/components/campaign/campaign-classes";
+import { SEARCH_PAGE_CLASSES } from "@/components/creator-search/creator-search-classes";
+import {
   AnnouncerProvider,
   useAnnouncer,
 } from "@/components/member/ui/Announcer";
@@ -76,6 +83,20 @@ describe("RUB-T1: C01 PageFrame", () => {
       ),
     ).toMatch(
       /id="frame"[^>]*aria-label="Frame"|aria-label="Frame"[^>]*id="frame"/,
+    );
+  });
+
+  it("frames every page of the member space, the standalone pages keeping their centred chain apart (CA08, RUB-A §5)", () => {
+    expect(SPACE_SCREEN_CLASSES).toBe(pageFrameClasses("narrow"));
+    for (const classes of [
+      PROFILE_PAGE_CLASSES,
+      CAMPAIGN_PAGE_CLASSES,
+      SEARCH_PAGE_CLASSES,
+    ]) {
+      expect(classes).toBe(pageFrameClasses("wide"));
+    }
+    expect(SCREEN_CLASSES).toBe(
+      "mx-auto flex w-full max-w-(--container-narrow) flex-col gap-6 min-h-(--size-header-glow) px-page-gutter py-section-header bg-header-glow bg-no-repeat min-h-screen",
     );
   });
 });
