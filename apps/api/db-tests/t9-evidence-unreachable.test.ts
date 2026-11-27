@@ -101,6 +101,7 @@ import {
   localSuperuser,
   loginRole,
   retireBrandFixtures,
+  s3DoubleStore,
   sharedMigrationRole,
   testDataSet,
 } from "./support.ts";
@@ -210,11 +211,11 @@ function localConnection(role: LoginRole) {
   return { url: localRoleUrl(role), role, tls: false };
 }
 
-function app() {
+function app(storage: ObjectStore = store) {
   return buildServer(testApiConfig(), {
     logDestination: captureLogs().destination,
     database,
-    storage: store,
+    storage,
   });
 }
 
@@ -1750,7 +1751,9 @@ describe("L3F-T9: L3F (commit 09): the visuals of a creator reach a brand approv
     }
     for (const answer of answers) {
       const raw = `${answer.body}\n${JSON.stringify(answer.headers)}`;
-      expect(raw).not.toMatch(/:\/\/|supabase|signed|token/i);
+      expect(raw).not.toMatch(
+        /:\/\/|supabase|signed|token|r2\.cloudflarestorage\.com|r2\.dev|x-amz-/i,
+      );
     }
     // every read is the approved object, once per visual served; the bucket of the pieces is not touched
     expect(reads).toEqual([
@@ -1772,5 +1775,238 @@ describe("L3F-T9: L3F (commit 09): the visuals of a creator reach a brand approv
     expect(
       files.filter((file) => forbidden.test(readFileSync(file, "utf8"))),
     ).toEqual([]);
+  });
+});
+
+describe("R2B-T4: R2 host and header isolation across member and backoffice image routes (L2GT-12, CA17)", () => {
+  const R2_HOST_MARKERS = [
+    "supabase",
+    "r2.cloudflarestorage.com",
+    "r2.dev",
+    "x-amz-",
+  ] as const;
+
+  function r2LeakMarkers(raw: string): string[] {
+    const lower = raw.toLowerCase();
+    return R2_HOST_MARKERS.filter((marker) => lower.includes(marker));
+  }
+
+  it("never leaks supabase, r2.cloudflarestorage.com, r2.dev or x-amz- in member or backoffice responses, even on poisoned R2 errors (CA17)", async () => {
+    const { double, store: r2Store } = await s3DoubleStore();
+    const r2Server = app(r2Store);
+    const internals: string[] = [];
+
+    const brandMember = await newMember("advertiser");
+    const brandSession = await newSession(brandMember.accountId);
+    const bigPng = noisePng(320, 320);
+    const putLogo = await call(
+      r2Server,
+      "PUT",
+      "/v1/me/brand-profile/logo",
+      brandSession,
+      { bytes: bigPng, type: "application/octet-stream" },
+    );
+    expect(putLogo.statusCode, putLogo.body).toBe(200);
+    const getLogo = await call(
+      r2Server,
+      "GET",
+      "/v1/me/brand-profile/logo",
+      brandSession,
+    );
+    expect(getLogo.statusCode).toBe(200);
+
+    double.queue({
+      status: 403,
+      headers: {
+        "content-type": "application/xml",
+        "x-amz-request-id": "req-secret",
+      },
+      body: '<?xml version="1.0" encoding="UTF-8"?><Error><Code>AccessDenied</Code><Message>https://deadbeef.r2.cloudflarestorage.com/influx-staging-brand-logo/k?X-Amz-Signature=abc and https://pub.r2.dev/k</Message></Error>',
+      errorCode: "AccessDenied",
+    });
+    const failedLogo = await call(
+      r2Server,
+      "GET",
+      "/v1/me/brand-profile/logo",
+      brandSession,
+    );
+    expect(failedLogo.statusCode).toBe(503);
+
+    const creatorMember = await newMember("creator");
+    const creatorSession = await newSession(creatorMember.accountId);
+    const putVisual = await call(
+      r2Server,
+      "PUT",
+      "/v1/me/creator-profile/portfolio",
+      creatorSession,
+      { bytes: bigPng, type: "application/octet-stream" },
+    );
+    expect(putVisual.statusCode, putVisual.body).toBe(200);
+    const visualId = (putVisual.json() as { item: { id: string } }).item.id;
+    const getVisual = await call(
+      r2Server,
+      "GET",
+      `/v1/me/creator-profile/portfolio/${visualId}/image`,
+      creatorSession,
+    );
+    expect(getVisual.statusCode).toBe(200);
+
+    // Backoffice queue 4 piece read through s3-double
+    await grantAccountBadge(creatorMember.accountId);
+    await migration`
+      update profiles.creator_social_accounts
+         set followers_count = 47300, posts_last_30_days = 14,
+             avg_comments_per_post = 35, engagement_rate_bp = 350
+       where account_id = ${creatorMember.accountId}`;
+    const openReq = await call(r2Server, "POST", REQUESTS, creatorSession, {
+      json: { networkCode: "instagram", level: "audience_verified" },
+    });
+    expect(openReq.statusCode, openReq.body).toBe(200);
+    const requestId = (openReq.json() as { request: { id: string } }).request
+      .id;
+    const putEvidence = await call(
+      r2Server,
+      "PUT",
+      `${REQUESTS}/${requestId}/evidence`,
+      creatorSession,
+      { bytes: bigPng, type: "application/octet-stream" },
+    );
+    expect(putEvidence.statusCode, putEvidence.body).toBe(200);
+    const evidenceId = (putEvidence.json() as { evidence: { id: string } })
+      .evidence.id;
+    const submitReq = await call(
+      r2Server,
+      "POST",
+      `${REQUESTS}/${requestId}/submit`,
+      creatorSession,
+    );
+    expect(submitReq.statusCode, submitReq.body).toBe(200);
+
+    const agentId = randomUUID();
+    const agentToken = randomBytes(32);
+    await migration.begin(async (tx) => {
+      await tx`
+        insert into identity.accounts
+          (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+           display_name, is_adult_attested, adult_attested_at, declared_status)
+        values (${agentId}, ${randomUUID()}, ${`t9-bo-${agentId}@example.test`},
+                now(), 'FR', 'fr', 'T9 R2 Agent', true, now(), 'business')`;
+      await tx`
+        insert into identity.account_roles (account_id, role)
+        values (${agentId}, 'agent'::identity.account_role)`;
+      await tx`
+        insert into identity.agent_profiles
+          (account_id, first_name, activated_at, mfa_enrolled_at, mfa_factor_id)
+        values (${agentId}, 'T9 R2 Agent', now(), now(), ${randomUUID()})`;
+      await tx`
+        insert into identity.sessions
+          (token_hash, account_id, surface, mfa_method, user_agent_summary)
+        values (${createHash("sha256").update(agentToken).digest()}, ${agentId},
+                'backoffice', 'totp', 'firefox.linux')`;
+    });
+    internals.push(agentId);
+    const boCookie = `__Host-influx-ops-session=${agentToken.toString("base64url")}`;
+    const callBo = (method: "GET" | "POST", url: string) =>
+      r2Server.inject({
+        method,
+        url,
+        headers: {
+          "x-influx-internal": BACKOFFICE_SECRET,
+          origin: BACKOFFICE_ORIGIN,
+          "x-request-id": randomUUID(),
+          cookie: boCookie,
+        },
+      });
+    const boOpen = await callBo(
+      "POST",
+      `/v1/bo/queues/verification-creators/entries/${requestId}/open`,
+    );
+    expect(boOpen.statusCode, boOpen.body).toBe(200);
+    const boPieceOk = await callBo(
+      "GET",
+      `/v1/bo/queues/verification-creators/entries/${requestId}/evidence/${evidenceId}`,
+    );
+    expect(boPieceOk.statusCode).toBe(200);
+
+    double.queue({
+      status: 503,
+      headers: {
+        "content-type": "application/xml",
+        "x-amz-id-2": "secret-trace",
+      },
+      body: '<?xml version="1.0" encoding="UTF-8"?><Error><Code>ServiceUnavailable</Code><Message>https://acct.r2.cloudflarestorage.com/b/k</Message></Error>',
+      errorCode: "ServiceUnavailable",
+    });
+    const boPieceDown = await callBo(
+      "GET",
+      `/v1/bo/queues/verification-creators/entries/${requestId}/evidence/${evidenceId}`,
+    );
+    expect(boPieceDown.statusCode).toBe(503);
+
+    try {
+      for (const response of [
+        putLogo,
+        getLogo,
+        failedLogo,
+        putVisual,
+        getVisual,
+        boPieceOk,
+        boPieceDown,
+      ]) {
+        const raw = `${response.body}\n${JSON.stringify(response.headers)}`;
+        expect(r2LeakMarkers(raw)).toEqual([]);
+      }
+    } finally {
+      await migration`
+        update verification.verification_requests
+           set status = 'cancelled', cancelled_at = now(), closed_at = now(),
+               claimed_by_account_id = null, claimed_at = null, claim_expires_at = null
+         where id = ${requestId} and status in ('draft', 'pending')`;
+      await migration`
+        update profiles.portfolio_items set state = 'withdrawn'
+         where account_id = ${creatorMember.accountId} and state = 'pending'`;
+      await migration`
+        delete from profiles.brand_logo_objects where account_id = ${brandMember.accountId}`;
+      await migration`
+        update identity.agent_profiles
+           set is_active = false, deactivated_at = now(), deactivated_by_account_id = account_id
+         where account_id = any (${internals}::uuid[]) and is_active`;
+      await migration`
+        delete from identity.sessions where account_id = any (${internals}::uuid[])`;
+    }
+  });
+
+  it("T9.7-W witness: fails when a route leaks r2.cloudflarestorage.com, r2.dev or x-amz- in body or headers", async () => {
+    const witness = app();
+    witness.get(
+      "/v1/me/t9-r2-witness-leak",
+      {
+        schema: {
+          response: {
+            200: z.strictObject({ url: z.string(), cdn: z.string() }),
+          },
+        },
+      },
+      async (_request, reply) => {
+        void reply.header("x-amz-request-id", "witness-trace");
+        return {
+          url: "https://acct.r2.cloudflarestorage.com/influx-staging-portfolio/key",
+          cdn: "https://pub.r2.dev/key",
+        };
+      },
+    );
+    const leaked = await call(
+      witness,
+      "GET",
+      "/v1/me/t9-r2-witness-leak",
+      await newSession(brand.accountId),
+    );
+    expect(leaked.statusCode).toBe(200);
+    const raw = `${leaked.body}\n${JSON.stringify(leaked.headers)}`;
+    expect(r2LeakMarkers(raw)).toEqual([
+      "r2.cloudflarestorage.com",
+      "r2.dev",
+      "x-amz-",
+    ]);
   });
 });

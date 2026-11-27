@@ -13,6 +13,7 @@ import {
 import { localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
+import type { S3Double } from "@influx/test-kit/s3-double";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -55,6 +56,7 @@ const OCTETS = "application/octet-stream";
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
+let double: S3Double;
 let store: ObjectStore;
 let termsId: string;
 const accounts: string[] = [];
@@ -231,7 +233,7 @@ beforeAll(async () => {
     );
   }
   termsId = fr.id;
-  ({ store } = await s3DoubleStore());
+  ({ double, store } = await s3DoubleStore());
   database = createApiDatabase(
     {
       app: localConnection("influx_app"),
@@ -665,12 +667,15 @@ describe("GET and DELETE /v1/me/brand-profile/logo (stockage.md §4; T9.2 as ame
     expect(response.headers["cache-control"]).toBe("no-store");
     const body = brandLogoResponseSchema.parse(response.json());
     expect(body.logo?.data).toBe(uploaded.logo.data);
-    const text = response.body;
+    const text = `${response.body}\n${JSON.stringify(response.headers).toLowerCase()}`;
     for (const forbidden of [
       "http",
       "supabase",
       "54321",
       "storage/v1",
+      "r2.cloudflarestorage.com",
+      "r2.dev",
+      "x-amz-",
       "token",
       "sign",
       member.accountId,
@@ -757,6 +762,69 @@ describe("T14: the logo of another account is unreachable, a creator meets no ro
     ]) {
       expect(errorOf(response).status).toBe(401);
     }
+  });
+});
+
+describe("R2B-T3: R2 failure modes via s3-double queue() and missing object (CA4, CA5, CA10)", () => {
+  it("leaves the failed row purging and returns 503 on queued 503 and 412, then succeeds on retry (CA4, CA10)", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    double.queue({
+      status: 503,
+      headers: { "content-type": "application/xml" },
+      body: '<?xml version="1.0" encoding="UTF-8"?><Error><Code>ServiceUnavailable</Code><Message>Try again</Message></Error>',
+      errorCode: "ServiceUnavailable",
+    });
+    const unavailable = await put(server, member, GEOTAGGED);
+    expect(errorOf(unavailable)).toMatchObject({
+      status: 503,
+      code: "service_unavailable",
+    });
+    expect((await rowsOf(member.accountId)).map((row) => row.state)).toEqual([
+      "purging",
+    ]);
+
+    const retried = await put(server, member, GEOTAGGED);
+    expect(retried.statusCode).toBe(200);
+    expect((await rowsOf(member.accountId)).map((row) => row.state)).toEqual([
+      "purging",
+      "active",
+    ]);
+
+    double.queue({
+      status: 412,
+      headers: { "content-type": "application/xml" },
+      body: '<?xml version="1.0" encoding="UTF-8"?><Error><Code>PreconditionFailed</Code><Message>Exists</Message></Error>',
+      errorCode: "PreconditionFailed",
+    });
+    const precondition = await put(server, member, PNG);
+    expect(errorOf(precondition)).toMatchObject({
+      status: 503,
+      code: "service_unavailable",
+    });
+    expect((await rowsOf(member.accountId)).map((row) => row.state)).toEqual([
+      "purging",
+      "active",
+      "purging",
+    ]);
+  });
+
+  it("answers 200 { logo: null } without 500 when the active object is missing in R2 (CA5)", async () => {
+    const server = app();
+    const member = await newMember("advertiser");
+    expect((await put(server, member, GEOTAGGED)).statusCode).toBe(200);
+    const [active] = await rowsOf(member.accountId);
+    expect(active?.object_key).toBeDefined();
+    await store.remove("brand-logo", active?.object_key ?? "");
+
+    const response = await call(server, "GET", URL_LOGO, member.session);
+    expect(response.statusCode).toBe(200);
+    expect(brandLogoResponseSchema.parse(response.json())).toEqual({
+      logo: null,
+    });
+    expect(logStreams.map((read) => read()).join("\n")).toContain(
+      "profiles.logo.object_missing",
+    );
   });
 });
 

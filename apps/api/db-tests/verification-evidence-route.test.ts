@@ -18,6 +18,7 @@ import {
 import { accountIdOf, localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
+import type { S3Double } from "@influx/test-kit/s3-double";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -37,7 +38,13 @@ import {
 import { secondsUntilNextUtcMidnight } from "../src/domains/profiles/brand-logo.ts";
 import { buildServer } from "../src/server.ts";
 import type { ObjectStore } from "../src/platform/storage.ts";
-import { captureLogs, testApiConfig, WEB_SECRET } from "../tests/helpers.ts";
+import {
+  BACKOFFICE_ORIGIN,
+  BACKOFFICE_SECRET,
+  captureLogs,
+  testApiConfig,
+  WEB_SECRET,
+} from "../tests/helpers.ts";
 import { migrationRole, s3DoubleStore, testDataSet } from "./support.ts";
 
 const FIXTURES = path.resolve(
@@ -62,9 +69,12 @@ const agentA = accountIdOf("agent", "a");
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
+let double: S3Double;
 let store: ObjectStore;
 let termsId: string;
 const accounts: string[] = [];
+const internals: string[] = [];
+const disputeIds: string[] = [];
 const watchedValues: string[] = [];
 const logStreams: (() => string)[] = [];
 
@@ -385,7 +395,7 @@ beforeAll(async () => {
     );
   }
   termsId = fr.id;
-  ({ store } = await s3DoubleStore());
+  ({ double, store } = await s3DoubleStore());
   database = createApiDatabase(
     {
       app: localConnection("influx_app"),
@@ -398,6 +408,21 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await closeDatabase(database);
+  if (disputeIds.length > 0) {
+    await migration`
+      update verification.disputes
+         set state = 'withdrawn', withdrawn_cause = 'account_erased', closed_at = now(),
+             claimed_by_account_id = null, claimed_at = null, claim_expires_at = null
+       where id = any (${disputeIds}::uuid[]) and state = 'open'`;
+  }
+  if (internals.length > 0) {
+    await migration`
+      update identity.agent_profiles
+         set is_active = false, deactivated_at = now(), deactivated_by_account_id = account_id
+       where account_id = any (${internals}::uuid[]) and is_active`;
+    await migration`
+      delete from identity.sessions where account_id = any (${internals}::uuid[])`;
+  }
   if (accounts.length > 0) {
     const rows = await migration<{ object_key: string }[]>`
       select object_key from verification.evidence_files
@@ -410,7 +435,8 @@ afterAll(async () => {
     // no open request of this file stays in the queue of the shared stack
     await migration`
       update verification.verification_requests
-         set status = 'cancelled', cancelled_at = now(), closed_at = now()
+         set status = 'cancelled', cancelled_at = now(), closed_at = now(),
+             claimed_by_account_id = null, claimed_at = null, claim_expires_at = null
        where account_id = any (${accounts}::uuid[]) and status in ('draft', 'pending')`;
     await migration`
       delete from profiles.storage_daily_usage where account_id = any (${accounts}::uuid[])`;
@@ -835,6 +861,228 @@ describe("L2E-E6 who may reach the routes (18 T14.1 to T14.4)", () => {
   });
 });
 
+describe("R2B-T3: R2 failures via s3-double queue() across deposit, queue 4 and disputes (CA4, CA5, CA6)", () => {
+  async function newBackofficeAgent(name: string): Promise<{
+    accountId: string;
+    session: string;
+  }> {
+    const accountId = randomUUID();
+    const token = randomBytes(32);
+    await migration.begin(async (tx) => {
+      await tx`
+        insert into identity.accounts
+          (id, auth_user_id, email, email_verified_at, country_code, preferred_language,
+           display_name, is_adult_attested, adult_attested_at, declared_status)
+        values (${accountId}, ${randomUUID()}, ${`l2e-bo-${accountId}@example.test`},
+                now(), 'FR', 'fr', ${name}, true, now(), 'business')`;
+      await tx`
+        insert into identity.account_roles (account_id, role)
+        values (${accountId}, 'agent'::identity.account_role)`;
+      await tx`
+        insert into identity.agent_profiles
+          (account_id, first_name, activated_at, mfa_enrolled_at, mfa_factor_id)
+        values (${accountId}, ${name}, now(), now(), ${randomUUID()})`;
+      await tx`
+        insert into identity.sessions
+          (token_hash, account_id, surface, mfa_method, user_agent_summary)
+        values (${createHash("sha256").update(token).digest()}, ${accountId}, 'backoffice',
+                'totp', 'firefox.linux')`;
+    });
+    internals.push(accountId);
+    return { accountId, session: token.toString("base64url") };
+  }
+
+  function callBackoffice(
+    server: Server,
+    method: "GET" | "POST",
+    url: string,
+    session: string,
+  ): Promise<LightMyRequestResponse> {
+    return server.inject({
+      method,
+      url,
+      headers: {
+        "x-influx-internal": BACKOFFICE_SECRET,
+        origin: BACKOFFICE_ORIGIN,
+        "x-request-id": randomUUID(),
+        cookie: `__Host-influx-ops-session=${session}`,
+      },
+    });
+  }
+
+  async function setDeclaredFigures(accountId: string): Promise<void> {
+    await migration`
+      update profiles.creator_social_accounts
+         set followers_count = 47300, posts_last_30_days = 14,
+             avg_comments_per_post = 35, engagement_rate_bp = 350
+       where account_id = ${accountId}`;
+  }
+
+  it("leaves the failed row purging on queued 503 during upload and succeeds on retry (CA4)", async () => {
+    const server = app();
+    const member = await newMember("creator");
+    const requestId = await openRequest(server, member);
+    const kept = await deposit(server, member, requestId, WEBP);
+    double.queue({
+      status: 503,
+      headers: { "content-type": "application/xml" },
+      body: '<?xml version="1.0" encoding="UTF-8"?><Error><Code>ServiceUnavailable</Code><Message>Busy</Message></Error>',
+      errorCode: "ServiceUnavailable",
+    });
+
+    const failed = await put(server, member, requestId, GEOTAGGED);
+    expect(errorOf(failed)).toMatchObject({
+      status: 503,
+      code: "service_unavailable",
+    });
+    expect((await rowsOf(member.accountId)).map((row) => row.state)).toEqual([
+      "active",
+      "purging",
+    ]);
+
+    const retried = await deposit(server, member, requestId, GEOTAGGED);
+    expect(retried.state).toBe("active");
+    const state = await call(server, "GET", URL_STATE, member.session);
+    const request = creatorVerificationResponseSchema.parse(state.json())
+      .lines[0]?.requests[0];
+    expect(request?.evidence.map((item) => item.id)).toEqual([
+      kept.id,
+      retried.id,
+    ]);
+  });
+
+  it("answers 503 decision_blocked on queued 503 and 404 not_found on missing object in queue 4 (CA5, CA6)", async () => {
+    const server = app();
+    const member = await newMember("creator");
+    await grantAccountBadge(member);
+    await setDeclaredFigures(member.accountId);
+    const requestId = await openRequest(server, member);
+    const piece = await deposit(server, member, requestId, GEOTAGGED);
+    const submitted = await call(
+      server,
+      "POST",
+      `${URL_REQUESTS}/${requestId}/submit`,
+      member.session,
+    );
+    expect(submitted.statusCode, submitted.body).toBe(200);
+
+    const agent = await newBackofficeAgent("R2B Queue4 Agent");
+    const open = await callBackoffice(
+      server,
+      "POST",
+      `/v1/bo/queues/verification-creators/entries/${requestId}/open`,
+      agent.session,
+    );
+    expect(open.statusCode, open.body).toBe(200);
+
+    double.queue({
+      status: 503,
+      headers: { "content-type": "application/xml" },
+      body: '<?xml version="1.0" encoding="UTF-8"?><Error><Code>ServiceUnavailable</Code><Message>R2 down</Message></Error>',
+      errorCode: "ServiceUnavailable",
+    });
+    const blocked = await callBackoffice(
+      server,
+      "GET",
+      `/v1/bo/queues/verification-creators/entries/${requestId}/evidence/${piece.id}`,
+      agent.session,
+    );
+    expect(errorOf(blocked)).toMatchObject({
+      status: 503,
+      code: "service_unavailable",
+      details: [{ path: "evidence", issue: "decision_blocked" }],
+    });
+
+    const [row] = await rowsOf(member.accountId);
+    await store.remove(BUCKET, row?.object_key ?? "");
+    const missing = await callBackoffice(
+      server,
+      "GET",
+      `/v1/bo/queues/verification-creators/entries/${requestId}/evidence/${piece.id}`,
+      agent.session,
+    );
+    expect(errorOf(missing)).toMatchObject({
+      status: 404,
+      code: "not_found",
+    });
+    expect(logStreams.map((read) => read()).join("\n")).toContain(
+      "verification.queue.evidence_object_missing",
+    );
+  });
+
+  it("answers 503 decision_blocked on queued 503 and 404 not_found on missing object in disputes queue 5 (CA5, CA6)", async () => {
+    const server = app();
+    const member = await newMember("creator");
+    await grantAccountBadge(member);
+    await setDeclaredFigures(member.accountId);
+    const requestId = await openRequest(server, member);
+    const piece = await deposit(server, member, requestId, GEOTAGGED);
+    const submitted = await call(
+      server,
+      "POST",
+      `${URL_REQUESTS}/${requestId}/submit`,
+      member.session,
+    );
+    expect(submitted.statusCode, submitted.body).toBe(200);
+
+    await migration`
+      update verification.verification_requests
+         set status = 'rejected', decided_by_account_id = ${agentA},
+             decided_at = now(), closed_at = now(),
+             rejection_reason_code = 'evidence_unreadable'
+       where id = ${requestId}`;
+    const [dispute] = await migration<{ id: string }[]>`
+      insert into verification.disputes
+        (account_id, request_id, level, network_code, reason_code, text, original_decider_ids)
+      values (${member.accountId}, ${requestId}, 'audience_verified', 'instagram',
+              'misread', 'Dashboard screenshot shows the 30 days.', array[${agentA}]::uuid[])
+      returning id::text`;
+    const disputeId = dispute?.id ?? "";
+    expect(disputeId).not.toBe("");
+    disputeIds.push(disputeId);
+
+    const reviewer = await newBackofficeAgent("R2B Dispute Agent");
+    const open = await callBackoffice(
+      server,
+      "POST",
+      `/v1/bo/queues/verification-disputes/entries/${disputeId}/open`,
+      reviewer.session,
+    );
+    expect(open.statusCode, open.body).toBe(200);
+
+    double.queue({
+      status: 503,
+      headers: { "content-type": "application/xml" },
+      body: '<?xml version="1.0" encoding="UTF-8"?><Error><Code>ServiceUnavailable</Code><Message>R2 down</Message></Error>',
+      errorCode: "ServiceUnavailable",
+    });
+    const blocked = await callBackoffice(
+      server,
+      "GET",
+      `/v1/bo/queues/verification-disputes/entries/${disputeId}/evidence/${piece.id}`,
+      reviewer.session,
+    );
+    expect(errorOf(blocked)).toMatchObject({
+      status: 503,
+      code: "service_unavailable",
+      details: [{ path: "evidence", issue: "decision_blocked" }],
+    });
+
+    const [row] = await rowsOf(member.accountId);
+    await store.remove(BUCKET, row?.object_key ?? "");
+    const missing = await callBackoffice(
+      server,
+      "GET",
+      `/v1/bo/queues/verification-disputes/entries/${disputeId}/evidence/${piece.id}`,
+      reviewer.session,
+    );
+    expect(errorOf(missing)).toMatchObject({
+      status: 404,
+      code: "not_found",
+    });
+  });
+});
+
 describe("L2E-E7 what an answer and a log carry (T9.2 as D82 amends it; D60, invariant 17)", () => {
   it("answers the deposit, the removal and the state without any key, host of Supabase, address nor token", async () => {
     const server = app();
@@ -847,18 +1095,22 @@ describe("L2E-E7 what an answer and a log carry (T9.2 as D82 amends it; D60, inv
     const state = await call(server, "GET", URL_STATE, member.session);
     const removed = await remove(server, member, requestId, evidence.id);
     for (const response of [deposited, state, removed]) {
+      const combined = `${response.body}\n${JSON.stringify(response.headers).toLowerCase()}`;
       for (const forbidden of [
         "http",
         "supabase",
         "54321",
         "storage/v1",
+        "r2.cloudflarestorage.com",
+        "r2.dev",
+        "x-amz-",
         "token",
         "sign",
         ".webp",
         "checksum",
         member.accountId,
       ]) {
-        expect(response.body.includes(forbidden), forbidden).toBe(false);
+        expect(combined.includes(forbidden), forbidden).toBe(false);
       }
     }
   });

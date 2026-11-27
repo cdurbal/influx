@@ -280,6 +280,32 @@ describe("T9.1, T9.3: the bucket verification-evidence and the key of the base (
     });
     expect(double.requests).toEqual([]);
   });
+
+  it("CA10: rejects overwrite with 412 PreconditionFailed via If-None-Match: '*' and preserves existing bytes", async () => {
+    const { store, double } = await s3DoubleStore();
+    const key = `${creatorA}/${randomUUID()}/${randomUUID()}.webp`;
+    expect(await store.write(BUCKET, key, BYTES, "image/webp")).toEqual({
+      ok: true,
+      value: null,
+    });
+
+    const other = Buffer.from("RIFF\x0c\x00\x00\x00WEBPVP8X", "latin1");
+    const overwrite = await store.write(BUCKET, key, other, "image/webp");
+    expect(overwrite).toEqual({
+      ok: false,
+      reason: "rejected",
+      status: 412,
+      errorCode: "PreconditionFailed",
+    });
+    expect(double.requests.at(-1)?.headers["if-none-match"]).toBe("*");
+    const readBack = await store.read(BUCKET, key);
+    expect(readBack.ok).toBe(true);
+    if (readBack.ok && readBack.value !== null) {
+      expect(Buffer.from(readBack.value).equals(BYTES)).toBe(true);
+    } else {
+      expect.fail("original object missing after 412");
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------------------------

@@ -21,6 +21,7 @@ import {
 import { accountIdOf, localRoleUrl, type LoginRole } from "@influx/test-kit/db";
 import { valuesFoundIn } from "@influx/test-kit/logs";
 import type { LightMyRequestResponse } from "fastify";
+import type { S3Double } from "@influx/test-kit/s3-double";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -65,6 +66,7 @@ const agentA = accountIdOf("agent", "a");
 
 let database: ApiDatabase;
 let migration: postgres.Sql;
+let double: S3Double;
 let store: ObjectStore;
 let termsId: string;
 const accounts: string[] = [];
@@ -358,7 +360,7 @@ beforeAll(async () => {
     );
   }
   termsId = fr.id;
-  ({ store } = await s3DoubleStore());
+  ({ double, store } = await s3DoubleStore());
   database = createApiDatabase(
     {
       app: localConnection("influx_app"),
@@ -630,6 +632,61 @@ describe("L2G-P3 a deposit that fails loses nothing else (D80 (5))", () => {
       (await call(server, "GET", URL_PORTFOLIO, member.session)).json(),
     );
     expect(listed).toEqual({ items: [kept.item], deposited: 1 });
+  });
+
+  it("R2B-T3: leaves the row purging on a queued 503 in s3-double and succeeds on retry (CA4)", async () => {
+    const server = app();
+    const member = await newMember("creator");
+    const kept = await deposit(server, member, WEBP);
+    double.queue({
+      status: 503,
+      headers: { "content-type": "application/xml" },
+      body: '<?xml version="1.0" encoding="UTF-8"?><Error><Code>ServiceUnavailable</Code><Message>Busy</Message></Error>',
+      errorCode: "ServiceUnavailable",
+    });
+
+    const failed = await put(server, member, GEOTAGGED);
+    expect(errorOf(failed)).toMatchObject({
+      status: 503,
+      code: "service_unavailable",
+    });
+    expect((await rowsOf(member.accountId)).map((row) => row.state)).toEqual([
+      "pending",
+      "purging",
+    ]);
+
+    const retried = await deposit(server, member, GEOTAGGED);
+    expect(retried.deposited).toBe(2);
+    const listed = portfolioResponseSchema.parse(
+      (await call(server, "GET", URL_PORTFOLIO, member.session)).json(),
+    );
+    expect(listed.items.map((item) => item.id)).toEqual([
+      kept.item.id,
+      retried.item.id,
+    ]);
+  });
+
+  it("R2B-T3: answers 404 not_found without 500 when the visual object is missing in R2 (CA5)", async () => {
+    const server = app();
+    const member = await newMember("creator");
+    const uploaded = await deposit(server, member, WEBP);
+    const [row] = await rowsOf(member.accountId);
+    expect(row?.object_key).toBeDefined();
+    await store.remove(BUCKET, row?.object_key ?? "");
+
+    const response = await call(
+      server,
+      "GET",
+      `${URL_PORTFOLIO}/${uploaded.item.id}/image`,
+      member.session,
+    );
+    expect(errorOf(response)).toMatchObject({
+      status: 404,
+      code: "not_found",
+    });
+    expect(logStreams.map((read) => read()).join("\n")).toContain(
+      "profiles.portfolio.object_missing",
+    );
   });
 
   it("fails a replacement whose original was withdrawn meanwhile: 409, the row purging, the object gone", async () => {
@@ -1067,11 +1124,15 @@ describe("L2G-P7 what an answer and a log carry (T9.2 as D82 amends it; D60, fic
     const [row] = await rowsOf(member.accountId);
     for (const response of responses) {
       expect(response.statusCode, response.body).toBe(200);
+      const combined = `${response.body}\n${JSON.stringify(response.headers).toLowerCase()}`;
       for (const forbidden of [
         "http",
         "supabase",
         "54321",
         "storage/v1",
+        "r2.cloudflarestorage.com",
+        "r2.dev",
+        "x-amz-",
         "token",
         ".webp",
         "checksum",
@@ -1079,7 +1140,7 @@ describe("L2G-P7 what an answer and a log carry (T9.2 as D82 amends it; D60, fic
         row?.checksum ?? "",
         member.accountId,
       ]) {
-        expect(response.body.includes(forbidden), forbidden).toBe(false);
+        expect(combined.includes(forbidden), forbidden).toBe(false);
       }
     }
   });
