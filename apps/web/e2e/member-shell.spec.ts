@@ -840,6 +840,44 @@ function markOf(locator: Locator) {
   });
 }
 
+const outlineOf = (locator: Locator) =>
+  locator.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return [style.outlineStyle, style.outlineWidth, style.outlineOffset].join(
+      " ",
+    );
+  });
+
+/** The contour of AP1: 2 px, inside the edge by the inset offset of the focus ring. */
+const CONTOUR = "solid 2px -3px";
+
+/**
+ * AP1 (20 §11.8; U-3), under forced colours then back: the contour of the current link, none on an
+ * idle one, and at the focus of the current link the ring in its place, at its own offset.
+ */
+async function expectForcedContour(
+  page: Page,
+  current: Locator,
+  idle: Locator,
+  ringOffset: "-3px" | "2px",
+  where: string,
+): Promise<void> {
+  await page.emulateMedia({ forcedColors: "active" });
+  await expect.poll(() => outlineOf(current), { message: where }).toBe(CONTOUR);
+  await expect(idle, where).toHaveCSS("outline-style", "none");
+  // From the keyboard, away and back: the ring shows on `:focus-visible` alone.
+  await current.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(current, where).toBeFocused();
+  await expect
+    .poll(() => outlineOf(current), { message: `${where}, focused` })
+    .toBe(`solid 3px ${ringOffset}`);
+  await current.blur();
+  await page.emulateMedia({ forcedColors: "none" });
+  await expect(current, where).toHaveCSS("outline-style", "none");
+}
+
 /** The answer of the API, with the profile it holds said published. */
 async function answerPublished(page: Page, route: string): Promise<void> {
   await page.route(route, async (intercepted) => {
@@ -930,6 +968,19 @@ test("RUB-T10: the column, the header and the bar of a new brand, its state in w
     await expectNoAxeViolation(page, `coquille marque à ${width} px`, {
       wcag22: true,
     });
+    if (width === 1440) {
+      const nav = mainNavigation(page, "fr");
+      await expectForcedContour(
+        page,
+        nav.locator('[aria-current="page"]'),
+        nav.getByRole("link", {
+          name: MEMBER.fr.nav.entries.account,
+          exact: true,
+        }),
+        "2px",
+        where,
+      );
+    }
   }
 
   // CA01, CA03, CA06: below lg, the header of 64 px on one line, the bar of 56 px, no aside.
@@ -950,6 +1001,18 @@ test("RUB-T10: the column, the header and the bar of a new brand, its state in w
     // The border of the bar sits above its 56 px.
     expect((await boxOf(nav.locator("ul").first())).height, where).toBe(56);
     await expect(nav.getByRole("link"), where).toHaveCount(4);
+    if (width === 375) {
+      await expectForcedContour(
+        page,
+        nav.locator('[aria-current="page"]'),
+        nav.getByRole("link", {
+          name: MEMBER.fr.nav.entries.account,
+          exact: true,
+        }),
+        "-3px",
+        where,
+      );
+    }
     await expectNoAxeViolation(page, `coquille marque à ${width} px`, {
       wcag22: true,
     });
@@ -1063,6 +1126,30 @@ test("RUB-T10: one edge of the h1 on a narrow and a wide page, nothing after « 
     surface: true,
     line: "2px",
   });
+  // AP1 on this sub-page: the sub-entry in the column, the ancestor in the bar alone.
+  const ancestor = nav.getByRole("link", {
+    name: MEMBER.fr.nav.entries.account,
+    exact: true,
+  });
+  const home = nav.getByRole("link", {
+    name: MEMBER.fr.nav.entries.home,
+    exact: true,
+  });
+  await expectForcedContour(
+    page,
+    nav.locator('[aria-current="page"]'),
+    home,
+    "2px",
+    "sub-entry at 1440 px",
+  );
+  await page.emulateMedia({ forcedColors: "active" });
+  await expect(ancestor).toHaveCSS("outline-style", "none");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect.poll(() => outlineOf(ancestor)).toBe(CONTOUR);
+  await expect(home).toHaveCSS("outline-style", "none");
+  await page.emulateMedia({ forcedColors: "none" });
+  await expect(ancestor).toHaveCSS("outline-style", "none");
+  await page.setViewportSize({ width: 1440, height: 900 });
 
   // CA07: while the call runs, the busy label, the same width, and no second call.
   let calls = 0;

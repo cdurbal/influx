@@ -12,6 +12,10 @@ import {
   type MemberNavLinkProps,
 } from "@/components/member/MemberNav";
 import { PageBackContext, PageHeader } from "@/components/member/ui/PageHeader";
+import {
+  navLinkClasses,
+  subNavLinkClasses,
+} from "@/components/member/shell-classes";
 import { activePlaceOf, subEntriesOf } from "@/lib/member-nav";
 import type { MemberPage } from "@/lib/member-paths";
 
@@ -109,6 +113,32 @@ describe("TN4: the sub-entries of the active rubric, in the one <nav>", () => {
     expect(sub?.[0]).toContain("text-sm");
     expect(sub?.[0]).toContain("rounded-md");
     expect(sub?.[0]).toContain("pl-(--spacing-nav-sub-indent)");
+  });
+});
+
+describe("AP1: the current entry under forced colours (20 §11.8; U-3)", () => {
+  /** The contour a link takes at rest, `scope` being the variant that narrows it to the bar. */
+  const contour = (scope = "") =>
+    [
+      "outline-solid",
+      "outline-(length:--border-width-thick)",
+      "outline-transparent",
+      "outline-offset-(--focus-ring-offset-inset)",
+    ].map((utility) => `forced-colors:${scope}not-focus-visible:${utility}`);
+  const forced = (classes: string) =>
+    classes.split(" ").filter((name) => name.startsWith("forced-colors:"));
+
+  it("contours the current entry, sub-entry and, in the bar alone, the ancestor, never at focus", () => {
+    expect(forced(navLinkClasses("current"))).toEqual(contour());
+    expect(forced(subNavLinkClasses(true))).toEqual(contour());
+    expect(forced(navLinkClasses("ancestor"))).toEqual(contour("max-lg:"));
+    expect(forced(navLinkClasses("idle"))).toEqual([]);
+    expect(forced(subNavLinkClasses(false))).toEqual([]);
+    const all = [
+      ...(["current", "ancestor", "idle"] as const).map(navLinkClasses),
+      subNavLinkClasses(true),
+    ].join(" ");
+    expect(all).not.toMatch(/forced-color-adjust|Highlight|CanvasText/);
   });
 });
 

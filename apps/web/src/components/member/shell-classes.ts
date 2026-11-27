@@ -76,6 +76,27 @@ export const NAV_CELL_CLASSES = "flex-1 max-w-(--spacing-11) lg:max-w-none";
 export type NavLinkState = "current" | "ancestor" | "idle";
 
 /**
+ * AP1 (20 §11.8): forced colours drop the ground and the line of the current entry, so it takes a
+ * transparent contour, inside its edge, that the system draws; at focus the ring takes its place.
+ * Held to that media: `transition-colors` covers the outline color, and a contour written
+ * everywhere would show as it fades at each change of page.
+ */
+const CURRENT_CONTOUR_CLASSES = cn(
+  "forced-colors:not-focus-visible:outline-solid",
+  "forced-colors:not-focus-visible:outline-(length:--border-width-thick)",
+  "forced-colors:not-focus-visible:outline-transparent",
+  "forced-colors:not-focus-visible:outline-offset-(--focus-ring-offset-inset)",
+);
+
+/** The same contour for the ancestor, in the bar alone, where it looks current. */
+const ANCESTOR_CONTOUR_CLASSES = cn(
+  "forced-colors:max-lg:not-focus-visible:outline-solid",
+  "forced-colors:max-lg:not-focus-visible:outline-(length:--border-width-thick)",
+  "forced-colors:max-lg:not-focus-visible:outline-transparent",
+  "forced-colors:max-lg:not-focus-visible:outline-offset-(--focus-ring-offset-inset)",
+);
+
+/**
  * An entry (20 §11.8): icon over its label in a full-height cell of the bar, the focus ring inside
  * so that the edge of the screen never cuts it; icon and label on one line in the column. Current:
  * three carriers at once, `aria-current`, a heavier label in `text-primary`, and a 2 px line, on
@@ -95,6 +116,7 @@ export function navLinkClasses(state: NavLinkState): string {
           "bg-nav-item-active-bg font-semibold text-text-primary",
           "before:absolute before:left-3 before:right-3 before:top-0 before:h-(--border-width-thick) before:bg-nav-item-active-indicator",
           "lg:before:left-0 lg:before:right-auto lg:before:top-2 lg:before:bottom-2 lg:before:h-auto lg:before:w-(--border-width-thick)",
+          CURRENT_CONTOUR_CLASSES,
         )
       : state === "ancestor"
         ? cn(
@@ -102,6 +124,7 @@ export function navLinkClasses(state: NavLinkState): string {
             // The bar shows no sub-entry: there the rubric keeps the look of the current cell.
             "max-lg:bg-nav-item-active-bg",
             "max-lg:before:absolute max-lg:before:left-3 max-lg:before:right-3 max-lg:before:top-0 max-lg:before:h-(--border-width-thick) max-lg:before:bg-nav-item-active-indicator",
+            ANCESTOR_CONTOUR_CLASSES,
           )
         : "text-text-secondary",
   );
@@ -128,6 +151,7 @@ export function subNavLinkClasses(isCurrent: boolean): string {
       ? cn(
           "bg-nav-item-active-bg font-semibold text-text-primary",
           "before:absolute before:left-0 before:top-2 before:bottom-2 before:w-(--border-width-thick) before:bg-nav-item-active-indicator",
+          CURRENT_CONTOUR_CLASSES,
         )
       : "text-text-secondary",
   );
