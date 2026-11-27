@@ -306,19 +306,40 @@ describe("TK7.1 G3d and G8 (RU-04, D88): a scrim read over the lightest photo, t
 
   // Changed in RUB-09a (invariant 8, TD1): the list, empty in RUA, is now one per front, the classes of the photo
   // card for the members and nothing for the backoffice; the cases of RUA stand, and a module of one front's list
-  // read in the other front, or listed and absent, is reported (negative cases).
+  // read in the other front, or listed and absent, is reported (negative cases). Changed in RUB-09b: the counter of
+  // the gallery reads the scrim of 75 %, so its classes join the members' list; a listed module of the two that is
+  // absent is reported on its own (negative case).
   it("confines the four tokens to the list of PHOTO_EFFECT_READERS of each front: a read elsewhere is reported, a comment is not, a module of the other front's list is not allowed (G8)", () => {
     expect(PHOTO_EFFECT_READERS).toEqual({
-      web: ["src/components/member/ui/photo-card-classes.ts"],
+      web: [
+        "src/components/member/ui/photo-card-classes.ts",
+        "src/components/member/ui/media-gallery-classes.ts",
+      ],
       backoffice: [],
     });
     const memberFront = path.join(TEMP_ROOT, "photo-member-front");
-    const memberReader = PHOTO_EFFECT_READERS.web[0];
+    const [memberReader, galleryReader] = PHOTO_EFFECT_READERS.web;
     const memberFile = path.join(memberFront, memberReader);
     mkdirSync(path.dirname(memberFile), { recursive: true });
     writeFileSync(
       memberFile,
       'export const HEART = "fill-(--effect-photo-scrim-soft)";\n',
+    );
+    // the gallery's module absent: it alone is reported, once per token
+    expect(findPhotoEffectUse(memberFront, PHOTO_EFFECT_READERS.web)).toEqual(
+      [
+        "effect-photo-scrim-strong",
+        "effect-photo-scrim",
+        "effect-photo-scrim-soft",
+        "effect-photo-shadow",
+      ].map(
+        (token) =>
+          `${galleryReader}: listed as allowed to use ${token}, does not exist`,
+      ),
+    );
+    writeFileSync(
+      path.join(memberFront, galleryReader),
+      'export const COUNT = "bg-(--effect-photo-scrim)";\n',
     );
     expect(findPhotoEffectUse(memberFront, PHOTO_EFFECT_READERS.web)).toEqual(
       [],
@@ -326,6 +347,7 @@ describe("TK7.1 G3d and G8 (RU-04, D88): a scrim read over the lightest photo, t
     expect(
       findPhotoEffectUse(memberFront, PHOTO_EFFECT_READERS.backoffice),
     ).toEqual([
+      `${galleryReader}:1: export const COUNT = "bg-(--effect-photo-scrim)";`,
       `${memberReader}:1: export const HEART = "fill-(--effect-photo-scrim-soft)";`,
     ]);
     expect(
@@ -333,12 +355,19 @@ describe("TK7.1 G3d and G8 (RU-04, D88): a scrim read over the lightest photo, t
         path.join(TEMP_ROOT, "photo-empty-front"),
         PHOTO_EFFECT_READERS.web,
       ),
-    ).toEqual([
-      `${memberReader}: listed as allowed to use effect-photo-scrim-strong, does not exist`,
-      `${memberReader}: listed as allowed to use effect-photo-scrim, does not exist`,
-      `${memberReader}: listed as allowed to use effect-photo-scrim-soft, does not exist`,
-      `${memberReader}: listed as allowed to use effect-photo-shadow, does not exist`,
-    ]);
+    ).toEqual(
+      [
+        "effect-photo-scrim-strong",
+        "effect-photo-scrim",
+        "effect-photo-scrim-soft",
+        "effect-photo-shadow",
+      ].flatMap((token) =>
+        [memberReader, galleryReader].map(
+          (reader) =>
+            `${reader}: listed as allowed to use ${token}, does not exist`,
+        ),
+      ),
+    );
     const front = path.join(TEMP_ROOT, "photo-front");
     const write = (relative: string, content: string) => {
       const file = path.join(front, relative);

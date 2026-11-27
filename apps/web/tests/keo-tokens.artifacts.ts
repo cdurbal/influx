@@ -33,11 +33,6 @@ const UNREAD_JUSTIFIED: readonly string[] = [
   "--color-surface-accent",
   // Chart series (20 §11.4): no chart is drawn in this front yet.
   "--color-data-1",
-  "--color-data-2",
-  // Effects of the Lot 3bis (D88, RUA-01), redefined under KEO and read by no class before the components
-  // of RUB; each entry goes when its reader arrives (a stale entry fails this very test). The scrim of 75 %
-  // is the counter of the gallery (C34, RUB-09b); the photo card reads the three others since RUB-09a.
-  "--effect-photo-scrim",
 ];
 
 // A word of a module of classes that the build names no rule for, one line each. None is a class: the

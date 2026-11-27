@@ -216,6 +216,15 @@ describe("RUB-T9: the photo card (C31)", () => {
       expect(classes).not.toContain("transition-all");
     }
   });
+
+  // RUB-09b: the build writes `relative` after `absolute`, so a class string that holds both leaves the element in
+  // the flow: the arrows of 09a stood under the photo.
+  it("keeps the arrows laid on the photo: absolute, never relative, their zone of 44 px kept", () => {
+    const classes = PHOTO_ARROW_CLASSES.split(" ");
+    expect(classes).toContain("absolute");
+    expect(classes).not.toContain("relative");
+    expect(classes).toContain("before:min-h-(--size-touch-target)");
+  });
 });
 
 describe("RUB-T9: the card of the feed (C48)", () => {

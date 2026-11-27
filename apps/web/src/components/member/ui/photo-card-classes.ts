@@ -8,7 +8,7 @@
 // (AP1). The badge tones are the bare keys of their object, not quoted strings (TK7.2). Plain strings where a class
 // holds `[` or `opacity-0`: the lint forbids them inside `cn()` (CA22).
 import { cn } from "@/components/ui/class-names";
-import { TOUCH_ZONE_CLASSES } from "./touch-zone-classes";
+import { TOUCH_ZONE_AREA_CLASSES } from "./touch-zone-classes";
 
 /**
  * The card: a column, the photo then the lines. It leaves a selection (R04 line 22) by fading out and shrinking to
@@ -47,7 +47,7 @@ export const PHOTO_CARD_SLIDE_CLASSES =
 export const PHOTO_CARD_IMAGE_CLASSES = "size-full object-cover";
 
 /** The ring of a control on a photo: the usual one, over a halo of `surface-page` wide enough to frame it (AP2). */
-const PHOTO_CONTROL_RING_CLASSES = [
+export const PHOTO_CONTROL_RING_CLASSES = [
   "focus-visible:outline-solid focus-visible:outline-(length:--focus-ring-width) focus-visible:outline-focus-ring",
   "focus-visible:outline-offset-(--focus-ring-offset)",
   "focus-visible:shadow-[0_0_0_calc(var(--focus-ring-offset)+var(--focus-ring-width)+var(--border-width-thick))_var(--color-surface-page)]",
@@ -126,7 +126,7 @@ export const PHOTO_ARROW_CLASSES = [
   "bg-surface-inverse text-text-inverse shadow-sm",
   "transition-opacity duration-(--duration-fast) ease-(--ease-standard)",
   "not-group-hover/photo:not-focus-visible:opacity-0 disabled:invisible [@media(hover:none)]:hidden",
-  TOUCH_ZONE_CLASSES,
+  TOUCH_ZONE_AREA_CLASSES,
   PHOTO_CONTROL_RING_CLASSES,
 ].join(" ");
 

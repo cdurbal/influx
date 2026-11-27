@@ -28,6 +28,13 @@ const DIALOG_MOTION_CLASSES = cn(
   "not-open:duration-(--duration-fast) not-open:ease-(--ease-exit)",
 );
 
+/** The gallery (C34) fades without a scale of its own (R04 line 9): the whole screen does not grow. */
+const GALLERY_MOTION_CLASSES = cn(
+  "transition transition-discrete duration-(--duration-base) ease-(--ease-standard)",
+  DIALOG_FADE_CLASSES,
+  "not-open:duration-(--duration-fast) not-open:ease-(--ease-exit)",
+);
+
 /** The scrim: the dialog never holds it, its backdrop does, and it fades with the dialog. */
 const DIALOG_BACKDROP_CLASSES = cn(
   "backdrop:bg-overlay-scrim backdrop:transition backdrop:transition-discrete",
@@ -75,6 +82,24 @@ export function filtersDialogClasses(): string {
     "w-(--container-filters) max-h-(--size-overlay-max) open:flex open:flex-col",
     "max-md:h-dvh max-md:max-h-dvh max-md:w-screen max-md:max-w-screen max-md:rounded-none",
     DIALOG_MOTION_CLASSES,
+    DIALOG_BACKDROP_CLASSES,
+  );
+}
+
+// The browser draws a frame around a dialog: the gallery, edge to edge, has none (a plain string: the lint reads a
+// zero border inside `cn()` as a level to replace, CA22).
+const GALLERY_FRAMELESS_CLASSES = "border-0 p-0";
+
+/**
+ * The dialog of the gallery (C34), the second whole-screen exception of C27 (20 §11.8): the page ground edge to edge,
+ * laid out as a column whose head stays and whose body scrolls.
+ */
+export function galleryDialogClasses(): string {
+  return cn(
+    "m-0 h-dvh max-h-dvh w-full max-w-full overflow-hidden bg-surface-page text-text-primary",
+    "open:flex open:flex-col",
+    GALLERY_FRAMELESS_CLASSES,
+    GALLERY_MOTION_CLASSES,
     DIALOG_BACKDROP_CLASSES,
   );
 }

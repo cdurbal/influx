@@ -23,6 +23,7 @@ export {
   Funnel as FilterIcon,
   FileQuestionMark as FileQuestionIcon,
   Globe as GlobeIcon,
+  Grid2x2 as GridIcon,
   Heart as HeartIcon,
   House as HomeIcon,
   Inbox as InboxIcon,

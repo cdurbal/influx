@@ -47,6 +47,14 @@ const COMPONENTS = [
   "skeleton",
   "photo-card",
   "feed-card",
+  "media-gallery",
+  "key-figures",
+  "reason-list",
+  "range-bar",
+  "sticky-aside",
+  "reading-layout",
+  "preview-frame",
+  "brand-hero",
 ] as const;
 
 /** A cell that holds its own `h1`: the page header (C02) is shown in its states, one `h1` each. */
@@ -1648,8 +1656,18 @@ test("RUB-T9: the photo card scrolls its visuals by the keyboard and by its arro
   await expect.poll(currentDot).toBe(1);
   await expect(previous).toBeEnabled();
 
-  // The arrows: shown on the hover of the photo, « next » to the last visual, where it hides.
+  // The arrows: shown on the hover of the photo, « next » to the last visual, where it hides. They lie on the photo,
+  // at the middle of its sides (RUB-09b: a class string that held `relative` left them under it).
   await track.hover();
+  const photo = (await track.boundingBox())!;
+  for (const arrow of [previous, next]) {
+    const box = (await arrow.boundingBox())!;
+    expect(
+      Math.abs(box.y + box.height / 2 - (photo.y + photo.height / 2)),
+    ).toBeLessThanOrEqual(1);
+    expect(box.x).toBeGreaterThanOrEqual(photo.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(photo.x + photo.width);
+  }
   await expect
     .poll(() => next.evaluate((arrow) => getComputedStyle(arrow).opacity))
     .toBe("1");
@@ -1872,4 +1890,338 @@ test("RUB-AN2 09a: the feed card lifts, the track scrolls smoothly, the arrows f
     scale: "none",
   });
   await page.emulateMedia({ reducedMotion: "no-preference" });
+});
+
+// RUB-T9, line 09b (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C34 to C40, C66, C68, 02c; RUB-B §4): at
+// 1 440 px the mosaic alone, without an empty cell from one visual to five; each visual and « see them all » open the
+// whole-screen dialog on the visual asked for, the focus on the chevron, the body reached by the keyboard, `Échap` and
+// the chevron closing and giving the focus back; axe finds nothing in the open dialog. At 375 px the carousel alone,
+// its counter following the keyboard, and a lone visual without one. An inert action of a preview does nothing, and
+// no reading component writes an amount or a score (D11, D48, D78).
+test("RUB-T9 09b: the mosaic or the carousel, their dialog by the keyboard with its focus given back, axe in the open dialog, an inert action of a preview, and no amount nor score", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const cell = (state: string) =>
+    board.locator(
+      `[data-board-component="media-gallery"] [data-board-state="${state}"]`,
+    );
+
+  // The frame of 2 / 1 is held whole: each of its six places lies under a visual.
+  for (const [state, shown] of [
+    ["six", 5],
+    ["four", 4],
+    ["three", 3],
+    ["two", 2],
+    ["one", 1],
+  ] as const) {
+    await expect(cell(state).locator("[data-gallery-carousel]")).toBeHidden();
+    const frame = await cell(state)
+      .locator("[data-gallery-mosaic] > div")
+      .evaluate((grid) => {
+        const box = grid.getBoundingClientRect();
+        const visuals = [...grid.children].map((visual) =>
+          visual.getBoundingClientRect(),
+        );
+        const places = [0.25, 0.625, 0.875].flatMap((x) =>
+          [0.25, 0.75].map((y) => ({
+            x: box.left + x * box.width,
+            y: box.top + y * box.height,
+          })),
+        );
+        return {
+          ratio: box.width / box.height,
+          shown: visuals.length,
+          held: places.filter((place) =>
+            visuals.some(
+              (visual) =>
+                place.x >= visual.left &&
+                place.x <= visual.right &&
+                place.y >= visual.top &&
+                place.y <= visual.bottom,
+            ),
+          ).length,
+        };
+      });
+    expect(frame.shown, state).toBe(shown);
+    expect(frame.held, state).toBe(6);
+    expect(Math.abs(frame.ratio - 2), state).toBeLessThan(0.05);
+  }
+  await expect(cell("one").locator("[data-gallery-all]")).toHaveCount(0);
+  await expect(cell("none").getByRole("button")).toHaveCount(0);
+  await expect(
+    cell("none").getByText("Ce profil n'a pas encore de visuel."),
+  ).toBeVisible();
+
+  // By the keyboard: a visual takes its double ring inside its cell, and opens the dialog on itself.
+  const dialog = cell("six").locator('[data-dialog="gallery"]');
+  const body = dialog.locator("[data-gallery-body]");
+  const chevron = dialog.getByRole("button", { name: "Fermer la galerie" });
+  const fourth = cell("six").locator(
+    '[data-gallery-mosaic] [data-gallery-visual="3"]',
+  );
+  await cell("six").locator('[data-gallery-visual="2"]').first().focus();
+  await page.keyboard.press("Tab");
+  await expect(fourth).toBeFocused();
+  const ring = await fourth.evaluate((element) => {
+    const style = getComputedStyle(element, "::after");
+    return {
+      outline: style.outlineStyle,
+      width: style.outlineWidth,
+      offset: style.outlineOffset,
+      halo: style.boxShadow,
+    };
+  });
+  expect(ring).toMatchObject({
+    outline: "solid",
+    width: "3px",
+    offset: "-3px",
+  });
+  expect(ring.halo).toMatch(/0px 0px 0px 5px inset/);
+  await page.keyboard.press("Enter");
+  await expect(dialog).toHaveAttribute("open", "");
+  await expect(dialog).toHaveAccessibleName("Portfolio · Profil 93JMS4");
+  await expect(chevron).toBeFocused();
+  await expect(dialog.locator("figure")).toHaveCount(6);
+  await expect
+    .poll(() => body.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  await page.keyboard.press("Tab");
+  await expect(body).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toHaveAttribute("open", "");
+  await expect(fourth).toBeFocused();
+
+  // « Voir les 6 visuels » opens on the first one; the chevron closes and the focus comes back to the button.
+  const all = cell("six").getByRole("button", { name: "Voir les 6 visuels" });
+  await all.click();
+  await fullyShown(dialog);
+  expect(await body.evaluate((element) => element.scrollTop)).toBe(0);
+  await expectNoAxeViolation(page, "planche des états, galerie ouverte");
+  await chevron.click();
+  await expect(dialog).not.toHaveAttribute("open", "");
+  await expect(all).toBeFocused();
+
+  // An inert action of a preview: unavailable, explained, and nothing happens.
+  const inert = board.locator(
+    '[data-board-component="preview-frame"] [data-board-state="zone"] button',
+  );
+  await expect(inert).toHaveAttribute("aria-disabled", "true");
+  await expect(inert).toHaveAccessibleDescription(
+    "Dans un aperçu, ce bouton ne fait rien.",
+  );
+
+  // An essential's icon stands beside its words, 12 px before them, never on them.
+  const essential = board
+    .locator('[data-key-figures="essentials"] > div')
+    .first();
+  const icon = (await essential.locator("svg").boundingBox())!;
+  const words = (await essential.locator("dd").boundingBox())!;
+  expect(words.x - (icon.x + icon.width)).toBeCloseTo(12, 0);
+
+  // No amount and no score on a reading component.
+  for (const component of [
+    "media-gallery",
+    "key-figures",
+    "reason-list",
+    "range-bar",
+    "sticky-aside",
+    "reading-layout",
+    "preview-frame",
+    "brand-hero",
+  ]) {
+    const text = await board
+      .locator(`[data-board-component="${component}"]`)
+      .innerText();
+    expect(text, component).not.toMatch(/[€$£]|\bEUR\b|\bUSD\b|\/\s?100\b/);
+  }
+
+  // At 375 px: the carousel alone; the arrow key of the keyboard moves it and the counter follows.
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(cell("six").locator("[data-gallery-mosaic]")).toBeHidden();
+  const track = cell("six").getByRole("region", {
+    name: "Portfolio · Profil 93JMS4",
+  });
+  const count = cell("six").locator("[data-gallery-count]");
+  await track.scrollIntoViewIfNeeded();
+  await expect(count).toHaveText("1 / 6");
+  await track.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(count).toHaveText("2 / 6");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Enter");
+  await expect(dialog).toHaveAttribute("open", "");
+  await fullyShown(dialog);
+  expect(await dialog.boundingBox()).toMatchObject({ x: 0, width: 375 });
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toHaveAttribute("open", "");
+  await expect(cell("one").locator("[data-gallery-count]")).toHaveCount(0);
+  await expect(cell("one").getByRole("region")).toHaveCount(0);
+});
+
+// RUB-AN2, lines 9, 10 and 33 (R04: the gallery opens by a fade of 200 ms on the curve `standard`, without a scale, and
+// closes over 120 ms on the curve `exit`; a visual of the mosaic dims on hover over 120 ms; the box stays in view from
+// 1 024 px, by its computed position, and the bar is fixed over the bottom bar below it); under reduced motion the
+// durations are zero (AN-1). RUB-AX: the measures of the reading components at 1 440 and 375 px.
+test("RUB-AN2 09b: the gallery fades without a scale, a visual of the mosaic dims, the box sticks or its bar is fixed, and nothing moves under reduced motion; the measures of the reading components at both widths", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await open(page, "/fr/state-board");
+  const board = page.locator("[data-state-board]");
+  const STANDARD = "cubic-bezier(0.2, 0, 0, 1)";
+  const gallery = board.locator(
+    '[data-board-component="media-gallery"] [data-board-state="two"]',
+  );
+  const dialog = gallery.locator('[data-dialog="gallery"]');
+  const picture = gallery.locator("[data-gallery-mosaic] img").first();
+  const motion = (target: Locator) =>
+    target.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        duration: style.transitionDuration,
+        timing: style.transitionTimingFunction,
+        properties: style.transitionProperty,
+        scale: style.scale,
+        filter: style.filter,
+      };
+    });
+  const component = (name: string) =>
+    board.locator(`[data-board-component="${name}"]`);
+  const aside = component("sticky-aside").locator("[data-sticky-aside]");
+  const bar = component("sticky-aside").locator("[data-mobile-action-bar]");
+  const placed = (target: Locator) =>
+    target.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return {
+        display: style.display,
+        position: style.position,
+        top: style.top,
+        bottom: style.bottom,
+        shadow: style.boxShadow !== "none",
+      };
+    });
+
+  // The measures that the width changes.
+  const measures = async () => {
+    const columns = (target: Locator) =>
+      target.evaluate(
+        (element) =>
+          getComputedStyle(element).gridTemplateColumns.split(" ").length,
+      );
+    const figures = component("key-figures");
+    const hero = component("brand-hero").locator(
+      '[data-board-state="page-header-brand-hero-logo"]',
+    );
+    return {
+      figures: await columns(figures.locator('[data-key-figures="figures"]')),
+      essentials: await columns(
+        figures.locator('[data-key-figures="essentials"]'),
+      ),
+      thirdFilet: await figures
+        .locator('[data-key-figures="figures"] > div')
+        .nth(2)
+        .evaluate((element) => getComputedStyle(element).borderLeftWidth),
+      figureSize: await figures
+        .locator('[data-key-figures="figures"] dd')
+        .nth(1)
+        .evaluate((element) => getComputedStyle(element).fontSize),
+      rangeLabel: await component("range-bar")
+        .locator("li")
+        .first()
+        .evaluate(
+          (element) =>
+            getComputedStyle(element).gridTemplateColumns.split(" ")[0],
+        ),
+      logo: Math.round(
+        (await hero.getByRole("img").locator("xpath=..").boundingBox())!.width,
+      ),
+      title: await hero
+        .locator("h1")
+        .evaluate((element) => getComputedStyle(element).fontSize),
+    };
+  };
+  expect(await measures()).toEqual({
+    figures: 4,
+    essentials: 2,
+    thirdFilet: "1px",
+    figureSize: "20px",
+    rangeLabel: "144px",
+    logo: 120,
+    title: "36px",
+  });
+
+  // The reading layout: the box beside the content, 19 rem at least.
+  const layout = component("reading-layout").locator("[data-reading-layout]");
+  const main = (await layout.locator(":scope > div").boundingBox())!;
+  const box = (await layout.locator(":scope > aside").boundingBox())!;
+  expect(box.x - (main.x + main.width)).toBeCloseTo(64, 0);
+  expect(box.width).toBeGreaterThanOrEqual(304);
+
+  // Line 33: the box sticks 32 px under the top, with its shadow; its bar is away.
+  expect(await placed(aside)).toMatchObject({
+    position: "sticky",
+    top: "32px",
+    shadow: true,
+  });
+  expect((await placed(bar)).display).toBe("none");
+
+  // Line 10: a visual of the mosaic dims on hover.
+  await picture.scrollIntoViewIfNeeded();
+  await page.mouse.move(0, 0);
+  expect(await motion(picture)).toMatchObject({
+    duration: "0.12s",
+    timing: STANDARD,
+    properties: "filter",
+    filter: "none",
+  });
+  await picture.hover();
+  await expect
+    .poll(async () => (await motion(picture)).filter)
+    .toBe("brightness(0.85)");
+
+  // Line 9: closed, the dialog leaves over 120 ms on `exit`; open, it came over 200 ms, by its opacity, unscaled.
+  const EXIT = "cubic-bezier(0.4, 0, 1, 1)";
+  const closed = await motion(dialog);
+  expect(closed.duration.split(", ")[0]).toBe("0.12s");
+  expect(closed.timing.startsWith(EXIT)).toBe(true);
+  await gallery.locator("[data-gallery-all]").click();
+  const opened = await motion(dialog);
+  expect(opened.duration.split(", ")[0]).toBe("0.2s");
+  expect(opened.timing.startsWith(STANDARD)).toBe(true);
+  expect(opened.properties).toContain("opacity");
+  expect(opened.scale).toBe("none");
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+
+  // Reduced motion: every duration is zero (AN-1).
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  expect((await motion(picture)).duration).toBe("0s");
+  expect((await motion(dialog)).duration.split(", ")[0]).toBe("0s");
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+
+  // At 375 px: two columns and one, the smaller steps, and the bar fixed over the bottom bar in place of the box.
+  await page.setViewportSize({ width: 375, height: 812 });
+  expect(await measures()).toEqual({
+    figures: 2,
+    essentials: 1,
+    thirdFilet: "0px",
+    figureSize: "18px",
+    rangeLabel: "104px",
+    logo: 72,
+    title: "28px",
+  });
+  expect((await placed(aside)).display).toBe("none");
+  expect(await placed(bar)).toMatchObject({
+    display: "flex",
+    position: "fixed",
+    bottom: "56px",
+    shadow: false,
+  });
+  await expect(
+    board.getByRole("region", { name: "Ajout à ma sélection" }),
+  ).toBeVisible();
 });

@@ -15,7 +15,7 @@
 | 07 | 07.md | commit | sonnet | high | dev-react-node | fait | C27, C28, C30, C32 livrés ; Dialog natif, sans padding : cible = voile ; FiltersDialog : corps rekeyé ; chevron au repos ; TermsDialog non migré ; SHARED +4 |
 | 08 | 08.md | commit | sonnet | high | dev-react-node | fait | C41, C42, C49, C51 livrés ; Wizard porte son h1 à 700 (EC-RUB-01-3), 2 SaveStatus, pied fixe ; cellules page-header-wizard-* ; SHARED +1 (OtpField) |
 | 09a | 09a.md | commit | opus | high | dev-react-node | fait | C31, C48 livrés ; PHOTO_EFFECT_READERS par front (web : photo-card-classes) ; cœur jamais vert ; icône vérifiée + texte ; planche sans image vitrine |
-| 09b | 09b.md | commit | sonnet | high | dev-react-node | à faire | |
+| 09b | 09b.md | commit | sonnet | high | dev-react-node | fait | C34-C37, C39, C40, C66, C68 livrés ; flèches 09a remises sur la photo ; bande en SVG (CSP) ; « Lire la suite » et halo C68 non faits (EC) ; SHARED = 38 |
 | 10 | 10.md | commit | sonnet | high | dev-react-node | à faire | |
 | 11 | 11.md | commit | opus | high | testeur | à faire | |
 | U | ux.md | ux | sonnet | high | expert-ux | à faire | |

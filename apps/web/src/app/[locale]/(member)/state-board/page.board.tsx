@@ -10,6 +10,7 @@ import { DialogBoard } from "./dialog.board";
 import { FieldBoard } from "./field.board";
 import { ListBoard } from "./list.board";
 import { NoticeBoard } from "./notice.board";
+import { ReadingBoard } from "./reading.board";
 import { StructureBoard } from "./structure.board";
 import { SurfaceBoard } from "./surface.board";
 import { WizardBoard } from "./wizard.board";
@@ -58,6 +59,7 @@ export default function StateBoardPage() {
         <WizardBoard />
         <ListBoard />
         <CardBoard />
+        <ReadingBoard />
       </AnnouncerProvider>
     </main>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { cn } from "@/components/ui/class-names";
 import {
   BadgeCheckIcon,
@@ -35,6 +35,7 @@ import {
   photoHeartIconClasses,
   type PhotoBadgeTone,
 } from "./photo-card-classes";
+import { useSlideInView } from "./use-slide-in-view";
 
 /** One visual: its source (absent while it is missing or not yet signed) and what it shows, never who (02b C31). */
 type PhotoCardMedia = { src?: string; alt: string };
@@ -126,37 +127,7 @@ function Track({
   media: readonly PhotoCardMedia[];
   carousel: PhotoCardSearchProps["carousel"];
 }) {
-  const track = useRef<HTMLDivElement>(null);
-  const [current, setCurrent] = useState(0);
-  useEffect(() => {
-    const element = track.current;
-    if (element === null || typeof IntersectionObserver === "undefined") {
-      return;
-    }
-    const slides = [...element.children];
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setCurrent(slides.indexOf(entry.target));
-          }
-        }
-      },
-      { root: element, threshold: 0.6 },
-    );
-    for (const slide of slides) {
-      observer.observe(slide);
-    }
-    return () => observer.disconnect();
-  }, [media.length]);
-
-  function show(index: number) {
-    const slide = track.current?.children[index];
-    if (track.current !== null && slide instanceof HTMLElement) {
-      // smooth under motion-safe: only, by the class of the track
-      track.current.scrollTo({ left: slide.offsetLeft });
-    }
-  }
+  const { track, current, show } = useSlideInView(media.length);
 
   return (
     <>
