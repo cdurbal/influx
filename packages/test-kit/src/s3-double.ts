@@ -5,8 +5,8 @@
 //   `SignatureDoesNotMatch`.
 // - Implements path-style `PUT` (`If-None-Match: "*"` -> 412 `PreconditionFailed` on existing key,
 //   otherwise 200), `GET` (200 or 404 `NoSuchKey`), and `DELETE` (204, idempotent).
-// - Exposes `/_double/state` (GET) and `/_double/reset` (POST) without SigV4 for out-of-process
-//   Playwright journeys, plus `queue()` for fault/delay/disconnect injection.
+// - Exposes `/_double/state` (GET), `/_double/delete` (POST), and `/_double/reset` (POST)
+//   without SigV4 for out-of-process Playwright journeys, plus `queue()` for fault/delay/disconnect injection.
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingHttpHeaders, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -17,6 +17,8 @@ export const S3_DOUBLE_DEFAULT_SERVICE = "s3";
 export const S3_DOUBLE_DEFAULT_ACCESS_KEY_ID = "influx-s3-double-access-key";
 export const S3_DOUBLE_DEFAULT_SECRET_ACCESS_KEY =
   "influx-s3-double-secret-key-0123456789abcdef";
+/** Upper bound on request bodies read by the S3 double (matches the 8 MiB bucket ceiling). */
+export const S3_DOUBLE_MAX_BODY_BYTES = 8 * 1024 * 1024;
 
 const REQUIRED_SIGNED_HEADERS = [
   "host",
@@ -340,16 +342,47 @@ function parseBucketAndKey(
   };
 }
 
-function readRawBody(request: NodeJS.ReadableStream): Promise<Uint8Array> {
+class PayloadTooLargeError extends Error {}
+
+function readRawBody(
+  request: NodeJS.ReadableStream,
+  maxBytes: number,
+): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    request.on("data", (chunk: Buffer) => {
+    let totalBytes = 0;
+    let settled = false;
+    const cleanup = () => {
+      request.off("data", onData);
+      request.off("end", onEnd);
+      request.off("error", onError);
+    };
+    const onData = (chunk: Buffer) => {
+      if (settled) return;
+      totalBytes += chunk.byteLength;
+      if (totalBytes > maxBytes) {
+        settled = true;
+        cleanup();
+        reject(new PayloadTooLargeError("Request body exceeds maximum size."));
+        return;
+      }
       chunks.push(chunk);
-    });
-    request.on("end", () => {
+    };
+    const onEnd = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(new Uint8Array(Buffer.concat(chunks)));
-    });
-    request.on("error", reject);
+    };
+    const onError = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+    request.on("data", onData);
+    request.on("end", onEnd);
+    request.on("error", onError);
   });
 }
 
@@ -447,70 +480,130 @@ export async function startS3Double(
 
   const server: Server = createServer((request, response) => {
     void (async () => {
-      const method = (request.method ?? "GET").toUpperCase();
-      const rawUrl = request.url ?? "/";
-      const qIndex = rawUrl.indexOf("?");
-      const rawPathname = qIndex === -1 ? rawUrl : rawUrl.slice(0, qIndex);
+      try {
+        const method = (request.method ?? "GET").toUpperCase();
+        const rawUrl = request.url ?? "/";
+        const qIndex = rawUrl.indexOf("?");
+        const rawPathname = qIndex === -1 ? rawUrl : rawUrl.slice(0, qIndex);
 
-      if (method === "GET" && rawPathname === "/_double/state") {
-        const state: S3DoubleState = {
-          ok: true,
-          objectCount: objects.size,
-          keys: [...objects.keys()],
-          requestCount: requests.length,
-          queuedCount: pending.length,
+        if (method === "GET" && rawPathname === "/_double/state") {
+          const state: S3DoubleState = {
+            ok: true,
+            objectCount: objects.size,
+            keys: [...objects.keys()],
+            requestCount: requests.length,
+            queuedCount: pending.length,
+          };
+          response.writeHead(200, { "content-type": "application/json" });
+          response.end(JSON.stringify(state));
+          return;
+        }
+
+        if (method === "POST" && rawPathname === "/_double/reset") {
+          reset();
+          response.writeHead(200, { "content-type": "application/json" });
+          response.end(JSON.stringify({ ok: true }));
+          return;
+        }
+
+        if (method === "POST" && rawPathname === "/_double/delete") {
+          const raw = await readRawBody(request, S3_DOUBLE_MAX_BODY_BYTES);
+          let key: unknown;
+          try {
+            const parsed: unknown = JSON.parse(
+              Buffer.from(raw).toString("utf8"),
+            );
+            key =
+              typeof parsed === "object" && parsed !== null && "key" in parsed
+                ? parsed.key
+                : undefined;
+          } catch {
+            key = undefined;
+          }
+          if (typeof key !== "string" || key.length === 0) {
+            response.writeHead(400, { "content-type": "application/json" });
+            response.end(JSON.stringify({ ok: false, error: "invalid_key" }));
+            return;
+          }
+          const deleted = objects.delete(key);
+          response.writeHead(200, { "content-type": "application/json" });
+          response.end(JSON.stringify({ ok: true, deleted }));
+          return;
+        }
+
+        const body = await readRawBody(request, S3_DOUBLE_MAX_BODY_BYTES);
+        const queued = pending.shift();
+        const answer =
+          queued ??
+          verifySigV4(method, rawUrl, request.headers, body, sigConfig) ??
+          handleS3(method, rawPathname, request.headers, body);
+
+        requests.push({
+          method,
+          path: rawUrl,
+          headers: request.headers,
+          body,
+          answeredStatus: answer.destroy === true ? 0 : answer.status,
+          errorCode: answer.errorCode ?? null,
+        });
+
+        const send = () => {
+          if (answer.destroy === true) {
+            request.socket.destroy();
+            return;
+          }
+          response.writeHead(answer.status, answer.headers ?? {});
+          if (answer.body === undefined || answer.status === 204) {
+            response.end();
+            return;
+          }
+          response.end(
+            typeof answer.body === "string"
+              ? answer.body
+              : Buffer.from(answer.body),
+          );
         };
-        response.writeHead(200, { "content-type": "application/json" });
-        response.end(JSON.stringify(state));
-        return;
-      }
 
-      if (method === "POST" && rawPathname === "/_double/reset") {
-        reset();
-        response.writeHead(200, { "content-type": "application/json" });
-        response.end(JSON.stringify({ ok: true }));
-        return;
-      }
-
-      const body = await readRawBody(request);
-      const queued = pending.shift();
-      const answer =
-        queued ??
-        verifySigV4(method, rawUrl, request.headers, body, sigConfig) ??
-        handleS3(method, rawPathname, request.headers, body);
-
-      requests.push({
-        method,
-        path: rawUrl,
-        headers: request.headers,
-        body,
-        answeredStatus: answer.destroy === true ? 0 : answer.status,
-        errorCode: answer.errorCode ?? null,
-      });
-
-      const send = () => {
-        if (answer.destroy === true) {
-          request.socket.destroy();
-          return;
+        const delay =
+          answer.delayMs ?? (queued === undefined ? defaultDelayMs : 0);
+        if (delay > 0) {
+          setTimeout(send, delay);
+        } else {
+          send();
         }
-        response.writeHead(answer.status, answer.headers ?? {});
-        if (answer.body === undefined || answer.status === 204) {
-          response.end();
-          return;
+      } catch (error) {
+        if (
+          !response.headersSent &&
+          !response.writableEnded &&
+          !response.destroyed
+        ) {
+          if (error instanceof PayloadTooLargeError) {
+            request.resume();
+            response.writeHead(413, {
+              "content-type": "application/xml",
+              connection: "close",
+            });
+            response.end(
+              xmlError(
+                413,
+                "EntityTooLarge",
+                "Your proposed upload exceeds the maximum allowed size.",
+              ).body,
+            );
+            return;
+          }
+          response.writeHead(400, {
+            "content-type": "application/xml",
+            connection: "close",
+          });
+          response.end(
+            xmlError(
+              400,
+              "InvalidRequest",
+              "The request body could not be read.",
+            ).body,
+          );
         }
-        response.end(
-          typeof answer.body === "string"
-            ? answer.body
-            : Buffer.from(answer.body),
-        );
-      };
-
-      const delay =
-        answer.delayMs ?? (queued === undefined ? defaultDelayMs : 0);
-      if (delay > 0) {
-        setTimeout(send, delay);
-      } else {
-        send();
       }
     })();
   });

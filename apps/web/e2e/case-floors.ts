@@ -19,7 +19,7 @@ export const CASE_FLOORS: Readonly<Record<string, number>> = {
   "e2e/brand-creator-search.spec.ts": 4,
   "e2e/brand-creator-shortlists.spec.ts": 3,
   "e2e/brand-campaign-states.spec.ts": 3,
-  "e2e/brand-profile.spec.ts": 8,
+  "e2e/brand-profile.spec.ts": 10,
   "e2e/campaign-record.spec.ts": 2,
   "e2e/campaign-review.spec.ts": 4,
   "e2e/charter-cascade.spec.ts": 15,

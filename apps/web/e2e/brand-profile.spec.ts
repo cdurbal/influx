@@ -17,6 +17,7 @@ import frMember from "@/locales/fr/member.json" with { type: "json" };
 import { seedMember } from "./support/account";
 import { expectNoAxeViolation } from "./support/axe";
 import { expect, open, reload, test, title } from "./support/journey";
+import { S3_DOUBLE_ORIGIN } from "./support/servers";
 
 const COPY = { fr: frBrandProfile, en: enBrandProfile } as const;
 
@@ -701,6 +702,7 @@ test("a published brand in French at 1 440 px: changes waiting for review shown 
   ).toBeVisible();
   await expect(page.getByText(copy.status.pendingWithPublished)).toHaveCount(0);
   await expect(page.getByText(copy.logo.review.set)).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
 });
 
 test("a refused then a suspended brand in English at 375 px: the typed reason and the agent's text, the same words on the home, a suspended profile read-only (06 RG10, RG84)", async ({
@@ -744,4 +746,136 @@ test("a refused then a suspended brand in English at 375 px: the typed reason an
   await expect(page.getByText(copy.statusText.suspended)).toBeVisible();
   await expect(page.getByLabel(/^Main sector/)).toBeDisabled();
   await expect(page.getByText(refusedText)).toHaveCount(0);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+});
+
+const FORBIDDEN_R2_PATTERNS = [
+  /r2\.cloudflarestorage\.com/i,
+  /\.r2\.dev/i,
+  /:4111/,
+  /x-amz-/i,
+] as const;
+
+type S3DoubleStateSnapshot = {
+  ok: boolean;
+  objectCount: number;
+  keys: string[];
+};
+
+async function doubleLogoKeysOf(
+  page: Page,
+  accountId: string,
+): Promise<string[]> {
+  const stateRes = await page.request.get(`${S3_DOUBLE_ORIGIN}/_double/state`);
+  expect(stateRes.status()).toBe(200);
+  const state = (await stateRes.json()) as S3DoubleStateSnapshot;
+  const prefix = `e2e-brand-logo/${accountId}/`;
+  return state.keys.filter(
+    (key) => key.startsWith(prefix) && key.endsWith(".webp"),
+  );
+}
+
+function assertNoR2Leak(text: string, where: string): void {
+  for (const pattern of FORBIDDEN_R2_PATTERNS) {
+    expect(text, `${where}: unexpected R2 match ${pattern}`).not.toMatch(
+      pattern,
+    );
+  }
+}
+
+test("R2B-T6: uploading a brand logo stores a WebP under e2e-brand-logo/ in s3-double with zero R2 host or header in DOM or network", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  const traffic: string[] = [];
+  page.on("request", (request) => {
+    traffic.push(request.url());
+    void request.allHeaders().then((headers) => {
+      traffic.push(JSON.stringify(headers));
+    });
+  });
+
+  await open(page, "/fr/compte/profil");
+  await page.locator("input[type=file]").setInputFiles(LOGO_FIXTURE);
+  const preview = page.getByRole("img", { name: copy.logo.alt });
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveAttribute("src", /^data:image\/webp;base64,/);
+
+  const keys = await doubleLogoKeysOf(page, member.accountId);
+  expect(keys).toHaveLength(1);
+  expect(keys[0]).toMatch(
+    new RegExp(`^e2e-brand-logo/${member.accountId}/[0-9a-f-]+\\.webp$`),
+  );
+
+  const html = await page.evaluate(() => document.documentElement.outerHTML);
+  assertNoR2Leak(html, "DOM");
+  assertNoR2Leak(traffic.join("\n"), "network");
+});
+
+test("R2B-T6: when the logo object is missing from R2, the profile shows the no-logo fallback without broken image or 500 (CA5)", async ({
+  page,
+}) => {
+  const copy = COPY.fr;
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const member = await seedMember(page, {
+    role: "advertiser",
+    language: "fr",
+    acceptTerms: true,
+    sessions: ["chrome.windows"],
+  });
+  await open(page, "/fr/compte/profil");
+  await page.locator("input[type=file]").setInputFiles(LOGO_FIXTURE);
+  const preview = page.getByRole("img", { name: copy.logo.alt });
+  await expect(preview).toBeVisible();
+
+  const keys = await doubleLogoKeysOf(page, member.accountId);
+  expect(keys).toHaveLength(1);
+  const deleteRes = await page.request.post(
+    `${S3_DOUBLE_ORIGIN}/_double/delete`,
+    { data: { key: keys[0] } },
+  );
+  expect(deleteRes.status()).toBe(200);
+  expect(await deleteRes.json()).toEqual({ ok: true, deleted: true });
+
+  const logoStatuses: number[] = [];
+  const serverErrors: string[] = [];
+  const traffic: string[] = [];
+  page.on("request", (request) => {
+    traffic.push(request.url());
+    void request.allHeaders().then((headers) => {
+      traffic.push(JSON.stringify(headers));
+    });
+  });
+  page.on("response", (response) => {
+    if (response.url().includes("/api/v1/me/brand-profile/logo")) {
+      logoStatuses.push(response.status());
+    }
+    if (response.status() >= 500) {
+      serverErrors.push(`${response.status()} ${response.url()}`);
+    }
+  });
+
+  await reload(page);
+  await expect(page.getByText(copy.logo.none)).toBeVisible();
+  await expect(preview).toHaveCount(0);
+  expect(logoStatuses).toEqual([200]);
+  expect(serverErrors).toEqual([]);
+  const brokenImages = await page.evaluate(
+    () =>
+      Array.from(document.querySelectorAll("img")).filter(
+        (img) => !img.complete || img.naturalWidth === 0,
+      ).length,
+  );
+  expect(brokenImages).toBe(0);
+
+  const html = await page.evaluate(() => document.documentElement.outerHTML);
+  assertNoR2Leak(html, "DOM after missing object");
+  assertNoR2Leak(traffic.join("\n"), "network after missing object");
 });

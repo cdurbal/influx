@@ -1,10 +1,12 @@
 // R2A-T1 (docs/mvp/jalons/r2a/annexe.md, CA12): local S3 SigV4 double checks.
 import { createHash, createHmac } from "node:crypto";
+import { createConnection } from "node:net";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   S3_DOUBLE_DEFAULT_ACCESS_KEY_ID,
   S3_DOUBLE_DEFAULT_SECRET_ACCESS_KEY,
   S3_DOUBLE_HOST,
+  S3_DOUBLE_MAX_BODY_BYTES,
   startS3Double,
   type S3Double,
 } from "../src/s3-double.ts";
@@ -420,5 +422,95 @@ describe("R2A-T1: startS3Double (CA12)", () => {
       headers: signRequest({ method: "GET", url }),
     });
     expect(res3.status).toBe(404);
+  });
+
+  it("deletes a single object via POST /_double/delete without SigV4 or clearing siblings", async () => {
+    const keyA = "e2e-brand-logo/a/keep.webp";
+    const keyB = "e2e-brand-logo/b/remove.webp";
+    for (const key of [keyA, keyB]) {
+      const url = `${s3.endpoint}/${key}`;
+      const body = new Uint8Array([1, 2, 3]);
+      const put = await fetch(url, {
+        method: "PUT",
+        headers: signRequest({
+          method: "PUT",
+          url,
+          headers: { "content-type": "image/webp" },
+          body,
+        }),
+        body,
+      });
+      expect(put.status).toBe(200);
+    }
+
+    const delRes = await fetch(`${s3.endpoint}/_double/delete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: keyB }),
+    });
+    expect(delRes.status).toBe(200);
+    expect(await delRes.json()).toEqual({ ok: true, deleted: true });
+
+    const missingRes = await fetch(`${s3.endpoint}/_double/delete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: keyB }),
+    });
+    expect(missingRes.status).toBe(200);
+    expect(await missingRes.json()).toEqual({ ok: true, deleted: false });
+
+    const badRes = await fetch(`${s3.endpoint}/_double/delete`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: "" }),
+    });
+    expect(badRes.status).toBe(400);
+
+    const stateRes = await fetch(`${s3.endpoint}/_double/state`);
+    expect(await stateRes.json()).toEqual({
+      ok: true,
+      objectCount: 1,
+      keys: [keyA],
+      requestCount: 2,
+      queuedCount: 0,
+    });
+  });
+
+  it("rejects bodies exceeding S3_DOUBLE_MAX_BODY_BYTES with 413 EntityTooLarge (R2AS-5)", async () => {
+    const url = `${s3.endpoint}/e2e-portfolio/a/oversize.webp`;
+    const oversized = new Uint8Array(S3_DOUBLE_MAX_BODY_BYTES + 1);
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "content-type": "image/webp",
+        "x-amz-content-sha256":
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "x-amz-date": "20261126T120000Z",
+        authorization: `AWS4-HMAC-SHA256 Credential=${S3_DOUBLE_DEFAULT_ACCESS_KEY_ID}/20261126/auto/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date, Signature=${"0".repeat(64)}`,
+      },
+      body: oversized,
+    });
+    expect(res.status).toBe(413);
+    expect(await res.text()).toContain("<Code>EntityTooLarge</Code>");
+    expect(s3.objects.size).toBe(0);
+  });
+
+  it("catches request stream errors during readRawBody without crashing (R2AT-2)", async () => {
+    await new Promise<void>((resolve, reject) => {
+      const socket = createConnection(s3.port, S3_DOUBLE_HOST, () => {
+        socket.write(
+          `PUT /e2e-brand-logo/a/abort.webp HTTP/1.1\r\nHost: 127.0.0.1:${s3.port}\r\nContent-Length: 1024\r\n\r\npartial`,
+        );
+        setTimeout(() => {
+          socket.resetAndDestroy();
+          resolve();
+        }, 15);
+      });
+      socket.on("error", reject);
+    });
+
+    const stateRes = await fetch(`${s3.endpoint}/_double/state`);
+    expect(stateRes.status).toBe(200);
+    expect(await stateRes.json()).toMatchObject({ ok: true, objectCount: 0 });
   });
 });
