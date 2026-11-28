@@ -1995,7 +1995,7 @@ dialogues, filtres, pagination (C27, C28, C30, C32) · **T8** assistant, récapi
 1 024 et 1 440 · **T11** coquille contre sa maquette, N1 à N3, local sous `E2E_VISUAL=app` · **RUB-AN2** : par ligne « À
 créer » de `04` §3 portée, durée, courbe et propriété calculées à 1 440, puis AN-1 sous mouvement réduit · **RUB-AX** :
 axe 0 et aucun débordement par section à 375 et 1 440 ; `forcedColors: "active"` à 1 440 (AP1 : contour tracé sur l'état
-actif, `none` sur l'inactif). Budget e2e : 20 s au plus par jalon, 0 s pour T11 (local). Un écran non migré ne change que
+actif, `none` sur l'inactif). Budget e2e : 20 s au plus par jalon, sauf décision (RUB : 46,5 s mesurées, D89), 0 s pour T11 (local). Un écran non migré ne change que
 des effets listés par `jalons/rub/modele-archi.md` §1 : cas `RUB-E` (balisage statique d'un appel existant par variante
 employée, égal au littéral relevé avant la ligne).
 

@@ -22,8 +22,18 @@ focus, mouvement et styles calculés sur la planche, en e2e, sans API ni compte.
 | RUB-AN2 | e2e | `state-board.spec.ts` | `R04` §3 : durée, courbe, propriété des lignes portées ; AN-1 | 1 par commit porteur | 02 à 09b |
 | RUB-AX | e2e | `state-board.spec.ts` | axe 0, aucun débordement de chaque section à 375 et 1 440 | cas existant étendu | 01 à 09b |
 
-**Budget e2e** (mesuré en CI) : 20 s au plus pour le jalon. 01 à 06 : 1 s chacun ; 07 : 3 s ; 08 : 2 s ; 09a : 2 s ;
-09b : 3 s ; 10 : 4 s ; total prévu 20 s, aucune marge. 11 : 0 s (local). Base : aucun test.
+**Budget e2e** (mesuré en CI ; réécrit par fix-10b, D89 complément du 2026-11-28) : **46,5 s pour le jalon**, au chiffre
+du run 46080423290 (`f7c87697`), qui fait foi : aucun commit de code ne reste à RUB ; un commit de code ajouté remesure et
+tient ce chiffre. Par ligne, prévu → mesuré (s) : 01 et RUA-T8 étendu (RUB-AX, 01 à 09b) 1 → 3,2 (cas de 1,3 à 4,5) ;
+02 1 → 2,4 (AN2 02) ; 03 1 → 2,2 (AN2 17) ; 04 1 → 2,4 (AN2 04 et 32) ; 05 1 → 2,1 (AN2 05) ; 06 1 → 4,7 (AN2 06) ;
+07 3 → 9,4 (T7 7,6, AN2 07 1,8) ; 08 2 → 4,3 (T8 3,3, AN2 08 1,0) ; 09a 2 → 5,7 (T9 2,2, AN2 09a 3,5) ; 09b 3 → 4,9
+(T9 09b 3,4, AN2 09b 1,5) ; 10 4 → 5,2 (T10 2,4 et 2,8) ; soit cas neufs 43,3 (planche 38,1, T10 5,2) et RUA-T8 + 3,2.
+Prévu 20 s ; ≈ 80 s avant fix-10a (run 46062007755). Cause : chaque cas ouvrait la planche entière, une page de
+≈ 648 000 caractères, hydratation et passes axe comprises ; fix-10a n'ouvre que la famille du cas, axe et débordement à
+375 et 1 440 une fois par famille ; le reste est le coût propre des cas (ouverture, hydratation, axe aux deux largeurs,
+mouvement mesuré puis réduit). Plafonds inchangés, tenus au même run : éclats 299, 202 et 253 s (≤ 7 min 30) ; job
+5 min 24 s, éclat le plus long et fusion (≤ 8 min). Service (A §4, annotations `served` de RUA-T8) : index 388 ms,
+familles 204 à 283 ms. 11 : 0 s (local). Base : aucun test.
 
 ## Critère de fin
 - [ ] F0 répondue, mot pour mot (`run.md`) ; A, B, 00 avant tout code ; D89 écrite ; `06a` à jour (SHA)
@@ -35,7 +45,7 @@ focus, mouvement et styles calculés sur la planche, en e2e, sans API ni compte.
 - [ ] Coquille : E01.0-CA01 à CA08 (T10) ; N1 à N3 (T11), écarts corrigés ou inscrits en `06b` §7 avec accord
 - [ ] F1 : coquille validée par le fondateur sur `staging`
 - [ ] Vitrine inchangée ; planche absente de la production (RUA-T8) ; JavaScript de première visite ≤ +5 % par route
-- [ ] R soldée ; `pnpm check`, `pnpm test:e2e` verts ; e2e ≤ +20 s
+- [ ] R soldée ; `pnpm check`, `pnpm test:e2e` verts ; e2e ≤ budget de RUB (46,5 s, § Tests), éclats ≤ 7 min 30, job ≤ 8 min
 - [ ] Diff vide sur `apps/api`, `supabase`, `packages/contracts`, `packages/domain`, `apps/backoffice/src`
 - [ ] Vélocité mesurée (jours par commit) pour relire la charge du lot (`08` l. 220)
 

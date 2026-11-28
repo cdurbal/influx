@@ -34,7 +34,8 @@ nouveaux modules n'ont pas d'appelant produit avant RUE, sauf la coquille et les
     sans écran (D74).
 15. Une image de référence n'est jamais committée ni mise à jour ; masques de `R05` §3 seuls ; un écart est corrigé ou
     inscrit en `R06b` §7 avec l'accord du fondateur.
-16. e2e : +20 s au plus pour le jalon ; éclats ≤ 7 min 30, job ≤ 8 min.
+16. e2e : +20 s au plus pour le jalon, sauf décision (D89, 2026-11-28 : 46,5 s mesurées, annexe § Tests) ; éclats
+    ≤ 7 min 30, job ≤ 8 min.
 
 ## Lectures
 Commun : cette fiche, puis `rub/modele-archi.md` (A) et `rub/modele-ux.md` (B) dès leur ligne faite. `R02a`, `R02b`,
