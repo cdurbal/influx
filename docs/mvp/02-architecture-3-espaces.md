@@ -2382,7 +2382,7 @@ exact des `.tsx` de `apps/web/src/components/member/ui/` (catalogue, contrôles 
 `findTransitionalCopies` : les copies d'écran en sursis (`role="status"`, `SaveStatus`, `ErrorNotice` non annoncée,
 `<details`, `<dialog`) ne se trouvent que dans les fichiers listés ; une entrée périmée est signalée, le jalon qui migre
 l'écran la retire. Un écran non migré ne change que de mesures, de messages de champ et de coquille (effets listés par
-`jalons/rub/modele-archi.md` §1).
+`archives/jalons/rub/modele-archi.md` §1).
 
 ### 21.3 Tokens : un fichier, deux chartes, un attribut
 

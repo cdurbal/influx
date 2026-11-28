@@ -1,4 +1,4 @@
-// The data of the catalogue guards of the member components (RUB, D89; docs/mvp/jalons/rub/
+// The data of the catalogue guards of the member components (RUB, D89; docs/mvp/archives/jalons/rub/
 // modele-archi.md §1, §2, §7): what the guards of tests/guards.test.ts decide nothing about. Each line
 // of RUB edits it in its own commit: it adds the modules it creates, drops the name a rename retires,
 // and removes the entry of a screen that it migrates (a stale entry fails the guard).

@@ -703,7 +703,7 @@ describe("G8: the KEO charter stays inside the member pages, the vitrine outside
     ).toEqual([]);
   });
 
-  // RUB (D89; jalons/rub/modele-archi.md §1, §7): the folder of the components is the set of the catalogue, with
+  // RUB (D89; archives/jalons/rub/modele-archi.md §1, §7): the folder of the components is the set of the catalogue, with
   // no barrel, and the modules of RUB that no screen calls yet are imported by the folder and the board alone.
   // The detector is self-tested in the test-kit.
   it("keeps the member components to the modules of the catalogue, with no barrel and no import of an uncalled module", () => {

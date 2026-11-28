@@ -1,4 +1,4 @@
-// RUB-T5 (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02a C18 to C21): the field and its layout, the message
+// RUB-T5 (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02a C18 to C21): the field and its layout, the message
 // under a field, the summary of the errors and the list of what is missing, the group of choices. Server
 // rendering, no browser: what each one writes, the ids a control is described by, the roles a screen reader
 // reads, the classes that carry the measures. The focus, the keyboard and the pixels are the board's (e2e).

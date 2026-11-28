@@ -36,18 +36,36 @@ mouvement mesuré puis réduit). Plafonds inchangés, tenus au même run : écla
 familles 204 à 283 ms. 11 : 0 s (local). Base : aucun test.
 
 ## Critère de fin
-- [ ] F0 répondue, mot pour mot (`run.md`) ; A, B, 00 avant tout code ; D89 écrite ; `06a` à jour (SHA)
-- [ ] X1 : RUAT-2 soldé avec cas négatifs (T0)
-- [ ] 49 composants : module, `NomProps`, section de planche, tests (table composant → fichier → SHA)
-- [ ] `02b` §4 : trois `SaveStatus` et base de `TermsDialog` traités selon A, ou report nommé
-- [ ] AN-1 à AN-4 ; AN-2 par ligne portée ; `package.json` et `pnpm-lock.yaml` intacts
-- [ ] Planche : axe 0 à 375 et 1 440, validée par `expert-ux` (U, 0 bloquant)
-- [ ] Coquille : E01.0-CA01 à CA08 (T10) ; N1 à N3 (T11), écarts corrigés ou inscrits en `06b` §7 avec accord
-- [ ] F1 : coquille validée par le fondateur sur `staging`
-- [ ] Vitrine inchangée ; planche absente de la production (RUA-T8) ; JavaScript de première visite ≤ +5 % par route
-- [ ] R soldée ; `pnpm check`, `pnpm test:e2e` verts ; e2e ≤ budget de RUB (46,5 s, § Tests), éclats ≤ 7 min 30, job ≤ 8 min
-- [ ] Diff vide sur `apps/api`, `supabase`, `packages/contracts`, `packages/domain`, `apps/backoffice/src`
-- [ ] Vélocité mesurée (jours par commit) pour relire la charge du lot (`08` l. 220)
+Preuves relevées à la clôture (2026-11-28). « Local » : `54a7a064` plus 5 fichiers non committés d'une autre session (R2B), pile Supabase locale.
+- [x] F0 répondue, mot pour mot (`run.md`) ; A, B, 00 avant tout code ; D89 écrite ; `06a` à jour : `02577f3`, `9bab6ef`, `8426101`, puis `b18f00e` (premier code)
+- [x] X1 : RUAT-2 soldé avec cas négatifs (T0) : `b18f00e`
+- [x] 49 composants : module, `NomProps`, section de planche, tests (table § Composants) ; C56 à part (EC-RUB-C-1)
+- [x] `02b` §4 : report nommé selon A : `SaveStatus` (RUF, RUG), `TermsDialog` (RUE) ; reliquat `21` §8
+- [x] AN-1 à AN-4 ; AN-2 par ligne portée (cas `RUB-AN2` 02 à 09b, e2e vert) ; AN-4 : garde `TRANSITION_ALL_PATTERN` ; aucune dépendance : aucun commit RUB ne touche un `package.json` ni `pnpm-lock.yaml`
+- [x] Planche : axe 0 à 375 et 1 440 (RUB-AX, e2e vert) ; validée par `expert-ux` (`f2661fe`, 0 bloquant ; U-1 à U-7 : `323c80b` à `6ccc097`)
+- [x] Coquille : E01.0-CA01 à CA08 (T10, `b5e38db`) ; N1 à N3 (T11, `ee7e206` : 0 écart N3 ; rejoué à la clôture, `E2E_VISUAL=app` 6/6) ; D1 à D4 en `06b` §7 avec accord (`8b469cf`)
+- [x] F1 : coquille validée par le fondateur sur `staging` : « 1 oui, 2 accordés, 3 acceptés » (2026-11-27, `8b469cf`)
+- [x] Vitrine inchangée (aucun `vitrine-*.json` touché ; `vitrine-unchanged` vert) ; planche absente de la production (RUA-T8, `test:artifacts` web 56/56) ; JavaScript de première visite : +2,13 % au plus (`run.md` § Mesures de clôture)
+- [x] R soldée (`fix-6` à `fix-10b`) ; `pnpm check` et `pnpm test:e2e` (317/317) verts en local ; CI 46080423290 (`f7c8769`) verte à la tentative 2 ; e2e 46,5 s pour 46,5 s, éclats 299, 202, 253 s, job 5 min 24 s
+- [x] Diff vide sur `apps/api`, `supabase`, `packages/contracts`, `packages/domain`, `apps/backoffice/src` : lu sur les 33 commits RUB entre l'ouverture et la clôture (les diff `api` de la plage sont ceux de R2A et R2B) ; `packages/ui` : aucun `.tsx`, le seul token de B §1
+- [x] Vélocité mesurée : ≈ 0,11 jour calendaire par commit (35 commits, 4 jours) ; `lot3bis-plan.md`
+
+## Composants
+Modules : `apps/web/src/components/member/ui/<nom>.tsx`, chacun avec `export type <nom>Props` et sa place sur la planche ; attributs transmis : `member-pass-through.test.ts` (`34dd340`). Tests : `apps/web/tests/<nom>.test.ts`.
+| Ligne, SHA | Composants (module) | Test |
+|---|---|---|
+| 01, `6170891` | C01 `PageFrame`, C02 `PageHeader`, C03 `Section`, C29 `Announcer` | `member-structure` |
+| 02, `49a3b9f` | C04 `Card`, C05 `InnerPanel`, C10 `Button`, C11 `ActionLink`, C12 `CardActions` | `member-ui` |
+| 03, `223d4af` | C13 `StatusBadge`, C14 `LayerBadge`, C15 `RoleBadge`, C16 `CounterBadge`, C17 `Notice`, C33 `LogoPlate`, C38 `ChipList` | `member-ui` |
+| 04, `518b23e` | C06 `RowList`, C07 `PropertyList`, C08 `EmptyState`, C09 `Skeleton` | `member-lists` |
+| 05, `07072a5` | C18 `Field`, C19 `FieldMessage`, C20 `ErrorSummary`, C21 `ChoiceGroup` | `member-fields` |
+| 06, `336db6e` | C22 `SegmentedControl`, C23 `TagPicker`, C24 `InternalZone`, C25 `SaveStatus`, C26 `Disclosure`, C47 `DateField` | `member-choices` |
+| 07, `b778798` | C27 `Dialog`, C28 `FiltersDialog`, C30 `FilterBar`, C32 `Pager` | `member-dialogs` |
+| 08, `ea70396` | C41 `Wizard`, C42 `Recap`, C49 `OtpField`, C51 `NumberedSteps` | `member-wizard` |
+| 09a, `8b6d3e3` | C31 `PhotoCard`, C48 `FeedCard` | `member-cards` |
+| 09b, `15123b7` | C34 `MediaGallery`, C35 `KeyFigures`, C36 `ReasonList`, C37 `RangeBar`, C39 `StickyAside`, C40 `ReadingLayout`, C66 `PreviewFrame`, C68 `BrandHero` | `member-reading` |
+| 10, `b5e38db` | C56 `MemberShell` (dans `member/`) | e2e `member-shell`, `visual/app` |
+- **EC-RUB-C-1** : C56 reste la coquille existante de `member/` (A §1), avec sa logique : ni `MemberShellProps` ni section de planche ; preuve : T10, T11, F1.
 
 ## Écarts, décisions ouvertes, risques
 - **EC-RUB-1** : `08` place toute la ligne 09 derrière RU-02, ouverte (juriste D34) : scindée en 09a (cartes, réserve

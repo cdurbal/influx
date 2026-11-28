@@ -1,7 +1,7 @@
 # RUB-B — `docs(mvp): RUB arbitration, UX`
 Grille `expert-ux`. Skill : `design-system-influx`. Type `arbitrage`.
 **Lire :** fiche ; Lectures, ligne B ; `modele-archi.md` ; questions citées, par `Grep` de l'identifiant dans `ecrans/`.
-**Livrer :** `jalons/rub/modele-ux.md`, 10 Ko au plus, une réponse par point :
+**Livrer :** `archives/jalons/rub/modele-ux.md`, 10 Ko au plus, une réponse par point :
 - E01-Q8 : place du bloc d'état (`aside` nommé ou `header`), langue en lien ; E01-Q4 laissée à RUE ;
 - RU-36 : pied de C41 sous 480 px (E03-Q9, E07-Q13) ; RU-32 : segments navigables de C41 ;
 - E07-Q11 (part UX), E07-Q14, E10-Q13 : dates FR et EN de C47, cibles de 44 px sans effet de dessin ;

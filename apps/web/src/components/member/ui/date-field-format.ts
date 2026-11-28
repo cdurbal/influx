@@ -1,4 +1,4 @@
-// The writing of a civil date in the field of a date (C47; docs/mvp/jalons/rub/modele-ux.md §3): the order of the
+// The writing of a civil date in the field of a date (C47; docs/mvp/archives/jalons/rub/modele-ux.md §3): the order of the
 // parts follows the language (day, month, year for `fr` and `en`, month then day for `en-US` alone), the
 // separators typed are `/`, `.` or `-`, eight digits alone are read too (a numeric keypad has no `/`), the year has
 // four digits and an impossible date (31/02) is refused. What leaves is an ISO civil date or nothing. Pure

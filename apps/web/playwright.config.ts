@@ -107,7 +107,7 @@ export default defineConfig({
       ? [
           {
             name: "visual",
-            // `mockup` ignores app.spec.ts, `app` runs it alone (jalons/rub/modele-archi.md §6).
+            // `mockup` ignores app.spec.ts, `app` runs it alone (archives/jalons/rub/modele-archi.md §6).
             testMatch:
               VISUAL === "app"
                 ? /visual\/app\.spec\.ts$/

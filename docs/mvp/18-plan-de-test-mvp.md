@@ -1921,7 +1921,7 @@ de la phrase, la ligne le dit et renvoie le reste à la recette humaine, avec so
 `04-animations.md` (catalogue et critères AN) ; ce plan n'en reprend que les identifiants et les gardes. Tests du
 jalon RUA : `archives/jalons/rua/annexe.md` (RUA-T1 à RUA-T8). Planchers (`case-floors.ts`, `artifact-floors.ts`,
 `packages/test-kit/tests`) relevés avec les cas livrés, jamais baissés ; **+20 s au plus par jalon** en e2e (EC-RUB-6 : aligné sur `22-refonte-ux-ui/05` §7),
-éclats ≤ 7 min 30, job ≤ 8 min. Tests du jalon RUB : `jalons/rub/annexe.md` (RUB-T0 à RUB-T11, RUB-AN2, RUB-AX).
+éclats ≤ 7 min 30, job ≤ 8 min. Tests du jalon RUB : `archives/jalons/rub/annexe.md` (RUB-T0 à RUB-T11, RUB-AN2, RUB-AX).
 
 **Familles `E..-T..`.** Chaque écran a, dans sa fiche `22-refonte-ux-ui/ecrans/E…`, des cas `E<écran>.<n>-T<nn>`
 rattachés à ses lignes `S` et à ses critères `CA` : états montrés ou non par la maquette (chargement, vide, vide filtré,
@@ -1986,7 +1986,7 @@ motivée et prouvée par son cas négatif) :
 | 11.8 | Avatar uni (RU-07), cases du code (RU-08), désactivé sans opacité (RU-09), accessibilité sans effet visuel (RU-12) | axe à 0 (TD7) ; N1 à N3 avec l'écran |
 | 11.8 | Petite fenêtre du backoffice : aucune page montée, page tenue masquée (RU-20) | Garde de `small-window.ts`, `mountDecision` testée seule, e2e avec `RUC-08` |
 
-**Familles du jalon RUB (D89).** Détail, fichiers et planchers : `jalons/rub/annexe.md`. **RUB-T0** : garde de planche
+**Familles du jalon RUB (D89).** Détail, fichiers et planchers : `archives/jalons/rub/annexe.md`. **RUB-T0** : garde de planche
 étendue et plancher `visual` lu (X1) · **T1** structure et annonceur (C01 à C03, C29) · **T2** surfaces et actions (C04, C05,
 C10 à C12) · **T3** badges, notices, plaque de logo (C13 à C17, C33, C38) · **T4** listes, propriétés, états (C06 à C09) ·
 **T5** champs et messages (C18 à C21) · **T6** choix, déroulant, état d'enregistrement, dates (C22 à C26, C47) · **T7**
@@ -1996,7 +1996,7 @@ dialogues, filtres, pagination (C27, C28, C30, C32) · **T8** assistant, récapi
 créer » de `04` §3 portée, durée, courbe et propriété calculées à 1 440, puis AN-1 sous mouvement réduit · **RUB-AX** :
 axe 0 et aucun débordement par section à 375 et 1 440 ; `forcedColors: "active"` à 1 440 (AP1 : contour tracé sur l'état
 actif, `none` sur l'inactif). Budget e2e : 20 s au plus par jalon, sauf décision (RUB : 46,5 s mesurées, D89), 0 s pour T11 (local). Un écran non migré ne change que
-des effets listés par `jalons/rub/modele-archi.md` §1 : cas `RUB-E` (balisage statique d'un appel existant par variante
+des effets listés par `archives/jalons/rub/modele-archi.md` §1 : cas `RUB-E` (balisage statique d'un appel existant par variante
 employée, égal au littéral relevé avant la ligne).
 
 | § | Règle | Preuve |

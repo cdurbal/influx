@@ -3,8 +3,9 @@
 
 Sources : `../22-refonte-ux-ui.md` et son dossier (fiches d'écran, composants, tokens, matrice, décisions).
 Détail des 105 tâches : `../22-refonte-ux-ui/08-plan-de-developpement.md` (une tâche = une ligne de jalon).
-Identifiants `RUA` à `RUL` (lot hors numérotation entière, comme DS, SN, RK) ; fiches `archives/jalons/rua-fiche.md`…
-**Avancement** : RUA ✅ clos le 2026-11-25 (archivé : `archives/jalons/rua-fiche.md`) ; RUB suivant.
+Identifiants `RUA` à `RUL` (lot hors numérotation entière, comme DS, SN, RK) ; fiches `archives/jalons/rua-fiche.md`, `archives/jalons/rub-fiche.md`…
+**Avancement** : RUA ✅ clos le 2026-11-25 (archivé : `archives/jalons/rua-fiche.md`) ; RUB ✅ clos le 2026-11-28 (archivé : `archives/jalons/rub-fiche.md`) ; RUC suivant.
+**Charge relue (RUB)** : 35 commits pour 10 estimés : 13 de lignes de code (X1 à 11), 13 de correction (11 `fix` et 2 correctifs de test), 9 de documents, en 4 jours calendaires (2026-11-25 à 2026-11-28), soit ≈ 0,11 jour par commit ; les arrêts du fondateur (F0, F1, validation des `fix`) bornent la durée. L'estimation en jours de `08` §16 reste à relire avec un premier jalon d'écran (RUE).
 
 ## Préalables
 | Décision ou question | Arbitre | Bloque quel jalon | État |
@@ -22,7 +23,7 @@ Identifiants `RUA` à `RUL` (lot hors numérotation entière, comme DS, SN, RK) 
 | ID | Objectif (une phrase) | Spécifications (tranches) | Migrations | Écrans | Tests porteurs | Dépend de | Commits estimés | Critère de fin |
 |---|---|---|---|---|---|---|---|---|
 | **RUA** | Spécifications amendées, tokens, gardes, outillage de comparaison et jeu de recette | `22` `03`, `04`, `05`, `06b` §4 | — | — | `guards`, `keo-tokens`, `vitrine-unchanged` ; N1 à N3 sur la maquette elle-même | RU-00 à RU-20 | 8 | Maquette contre maquette : 0 écart ; vitrine inchangée |
-| **RUB** | Composants membres et coquille | `22` `02a`, `02b` ; E01.0 | — | Coquille membres | `member-primitives`, `member-shell`, `charter-*`, AN-2 | RUA | 10 | Planche d'états validée par `expert-ux` ; axe 0 |
+| **RUB** ✅ | Composants membres et coquille | `22` `02a`, `02b` ; E01.0 | — | Coquille membres | `member-primitives`, `member-shell`, `charter-*`, AN-2 | RUA | 10 | Planche d'états validée par `expert-ux` ; axe 0 |
 | **RUC** | Composants, coquille et cadres du backoffice | `02a`, `02b` ; E04 (coquille) ; `17b` §1.7, §2 | — | Coquille BO, E19.1 | `bo-nav*`, `claimed-entry-view`, `backoffice-queue` | RUA ; RUB-07, RUB-09 pour RUC-07 | 9 | Cadre unique de décision sans changement de verrou ni de journal |
 | **RUD** | Lectures d'API additives que les maquettes affichent (si RU-21 = B) | `06b` §5 ; §8 des fiches | `0335`… si RU-22 | — | T1, T2, T9, T14, TM11, TM12, suite base | RUA ; RU-21 à RU-25 | 9 | Aucun champ retiré ; droits et journal prouvés |
 | **RUE** | Entrée, accueils, compte | E11, E01, E20 | — | 16 | `signup-*`, `journey-*`, `account*` | RUB ; RU-29, RU-30, RU-38 | 9 | Inscription à l'accueil, FR et EN, validée sur `staging` |

@@ -1,5 +1,5 @@
 // Self-checks of the catalogue guards of the member components (RUB, D89; docs/mvp/18-plan-de-test-mvp.md
-// §12.8, RUB-T0; jalons/rub/modele-archi.md §1, §2, §3, §7): a detector that no longer detects is a guard
+// §12.8, RUB-T0; archives/jalons/rub/modele-archi.md §1, §2, §3, §7): a detector that no longer detects is a guard
 // that lies. Each guard has its accepted case and its negative cases.
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";

@@ -3,7 +3,7 @@ import { BoardHeader, boardTitle } from "../board-section.board";
 import { ButtonBoard } from "../button.board";
 import { SurfaceBoard } from "../surface.board";
 
-// The family `surface` of the component state board (RUB-fix-10a; jalons/rub/modele-archi.md §4): its page alone,
+// The family `surface` of the component state board (RUB-fix-10a; archives/jalons/rub/modele-archi.md §4): its page alone,
 // served like the index only when the `board.tsx` page extension is on (src/config/state-board.ts).
 
 const INTRO =

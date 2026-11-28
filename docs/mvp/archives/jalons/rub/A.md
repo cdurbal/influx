@@ -3,7 +3,7 @@ Grille `architecte`. Type `arbitrage`.
 **Lire :** fiche ; Lectures, ligne A ; F0 (note) ; `annexe.md` § Écarts ; code : `U` (`ls`),
 `packages/test-kit/src/charter-data.ts` l. 110-140, `apps/web/tests/guards.test.ts` l. 640-661,
 `apps/web/tests/keo-tokens.artifacts.ts` l. 20-75, `apps/web/playwright.config.ts` l. 44-130.
-**Livrer :** `jalons/rub/modele-archi.md`, 10 Ko au plus :
+**Livrer :** `archives/jalons/rub/modele-archi.md`, 10 Ko au plus :
 - table des composants E : importeurs, changement visible sur un écran non migré, « tout de suite » ou « variante
   facultative » (EC-RUB-4) ; sort des trois `SaveStatus`, de `TermsDialog`, d'`ErrorNotice` sous un champ ;
 - `SHARED_CATALOGUE` avant RUC : forme qui accepte un seul front sans s'affaiblir, échéance, ligne qui la code ;

@@ -71,7 +71,7 @@ const VIEWPORTS = [
 ] as const;
 
 /**
- * The families of the board, one page each at `/fr/state-board/<family>` (RUB-fix-10a; jalons/rub/modele-archi.md §4):
+ * The families of the board, one page each at `/fr/state-board/<family>` (RUB-fix-10a; archives/jalons/rub/modele-archi.md §4):
  * the sections of one line of RUB, in the order of the page. Every entry of COMPONENTS is on one page exactly.
  */
 const FAMILIES = {
@@ -259,7 +259,7 @@ test("RUA-T8: the state board is served in the e2e environment, its index and on
   expect(headerCells, "header cells").toBeGreaterThan(0);
 });
 
-// RUB-AN2, line 02 (R04 lines 2, 3, 16 and 21; docs/mvp/jalons/rub/modele-ux.md §3): at 1 440 px the card
+// RUB-AN2, line 02 (R04 lines 2, 3, 16 and 21; docs/mvp/archives/jalons/rub/modele-ux.md §3): at 1 440 px the card
 // of a link lifts 2 px and lights its border over 120 ms on the curve `standard`, the chevron of a `go` link
 // nudges 2 px, the check of an added button fades in over 120 ms and the inner panel rises in over 200 ms;
 // under reduced motion the lift, the nudge and the durations are gone (AN-1). RUB-AX: the two small buttons
@@ -420,7 +420,7 @@ test("RUB-AN2 02: the surfaces and the actions, their motion and its absence und
   expect(readonlyFaults, "inner-panel-readonly at 375 px").toEqual([]);
 });
 
-// RUB-AN2, line 17 (R04 line 17: the counter, C16), and RUB-AX for line 03 (docs/mvp/jalons/rub/modele-ux.md §5):
+// RUB-AN2, line 17 (R04 line 17: the counter, C16), and RUB-AX for line 03 (docs/mvp/archives/jalons/rub/modele-ux.md §5):
 // at 1 440 px a counter whose value changes flashes its container once, 320 ms on the curve `standard`, and
 // not before the change; under reduced motion the duration is zero (AN-1). The badges keep the measures of
 // `02a` (8 px between an icon and its word, 4 px in the `text` form, 12 px and 16 px in a notice), the role
@@ -593,7 +593,7 @@ test("RUB-AN2 17: the counter flashes when its value changes, and not under redu
 });
 
 // RUB-AN2, lines 04 and 32 (R04 lines 4 and 32: the row, C06; the skeleton, C09), and RUB-AX for line 04
-// (docs/mvp/jalons/rub/modele-ux.md §5): at 1 440 px a linked row lights its ground over 120 ms on the curve
+// (docs/mvp/archives/jalons/rub/modele-ux.md §5): at 1 440 px a linked row lights its ground over 120 ms on the curve
 // `standard` and the sheen of a skeleton crosses it in 1,2 s, linear and infinite; under reduced motion the
 // durations are zero and the sheen is gone (AN-1). A row is 60 px at least, the ring of its link is drawn
 // inside it, the current row has its contour (drawn by the system under forced colours, AP1), the list of
@@ -737,7 +737,7 @@ test("RUB-AN2 04 and 32: the row lights its ground and the skeleton shows its sh
 
 // RUB-AN2, line 05 (R04 lines 21 and 30: the field, C18, enters by `rise-in` when it is conditional, and its outline
 // goes from 1 to 2 px by its colour alone), RUB-AX for C18 to C21 and the keyboard of the summary
-// (docs/mvp/jalons/rub/modele-ux.md §5, PT1): at 1 440 px an error does not move the text of a field (the padding
+// (docs/mvp/archives/jalons/rub/modele-ux.md §5, PT1): at 1 440 px an error does not move the text of a field (the padding
 // grows back the outline, the height stays), a text area keeps its height, the unit sits after a control of 128 px,
 // the grid has four columns at 1 440 px and one at 375, a link of the summary opens the field that a closed step
 // hides and focuses it, and a group of boxes refuses a choice over its cap without unticking another one.
@@ -882,7 +882,7 @@ test("RUB-AN2 05: the field enters by rise-in and its error moves nothing, and n
 
 // RUB-AN2, line 06 (R04 lines 6, 19, 20 and 29: the segment changes its ground over 120 ms, the fold shows its content
 // by `rise-in` over 200 ms and turns its chevron over 200 ms (the panel of the rare gestures, 120 ms), the save status
-// turns its icon for 1 s; AN-1 under reduced motion) and RUB-AX for C22 to C26 and C47 (docs/mvp/jalons/rub/
+// turns its icon for 1 s; AN-1 under reduced motion) and RUB-AX for C22 to C26 and C47 (docs/mvp/archives/jalons/rub/
 // modele-ux.md §3, §5, §6): the contour of the active segment is drawn by forced colours and by them alone, the ring is
 // on a pseudo-element, the radios answer to the arrows, the tabs loop and take Home and End, the cross of a tag has a
 // zone of 44 px and the focus goes to the next tag, then to the list, a failure is announced once, a fold opens on an
@@ -1174,7 +1174,7 @@ async function expectPagerClear(cell: Locator, label: string): Promise<void> {
   expect.soft(faults, label).toEqual([]);
 }
 
-// RUB-T7 (docs/mvp/jalons/rub/annexe.md; 02a C27, C28, C30, C32), with the axe check of the open dialog: the dialog is
+// RUB-T7 (docs/mvp/archives/jalons/rub/annexe.md; 02a C27, C28, C30, C32), with the axe check of the open dialog: the dialog is
 // modal, names itself, puts the focus on the title or on the element asked for and gives it back to its opener; `Échap`
 // and the backdrop ask it to close, unless a request runs; the dialog of the filters gives its draft up when it is
 // closed without « Voir les … » and keeps what was applied; it fills the screen at 375 px; the bar toggles, opens and
@@ -1442,7 +1442,7 @@ test("RUB-T7: the dialogs keep and give back the focus, close by Échap and by t
 // RUB-AN2, lines 06 (C30), 07 and 08 (R04 lines 6, 7 and 8: the pill changes its contour and its ground over 120 ms on
 // the curve `standard`; the dialog comes in over 200 ms on the same curve, by `opacity` and by a `scale` of 0.98 to 1,
 // and goes out over 120 ms on the curve `exit`; the scrim fades with it; under reduced motion the fade is instant and
-// nothing scales: AN-1) and RUB-AX for C27 to C32 (docs/mvp/jalons/rub/modele-ux.md §5 PT4: the chevron of a pill with a
+// nothing scales: AN-1) and RUB-AX for C27 to C32 (docs/mvp/archives/jalons/rub/modele-ux.md §5 PT4: the chevron of a pill with a
 // menu turns over by 180 degrees; AP1: the active pill keeps its contour under forced colours).
 test("RUB-AN2 07: the pills, the dialog and its scrim, their motion and its absence under reduced motion, the chevron that turns over and the contour under forced colours", async ({
   page,
@@ -1600,7 +1600,7 @@ test("RUB-AN2 07: the pills, the dialog and its scrim, their motion and its abse
   await page.emulateMedia({ reducedMotion: "no-preference" });
 });
 
-// RUB-T8 (docs/mvp/jalons/rub/annexe.md; 02b C41, C42, C49, C51; RUB-B §2): the segments of the wizard are links that the
+// RUB-T8 (docs/mvp/archives/jalons/rub/annexe.md; 02b C41, C42, C49, C51; RUB-B §2): the segments of the wizard are links that the
 // keyboard goes through and follows, whatever their state; « Continue » and « Previous » change the step and the focus
 // goes to the `h2` of the new one, which draws no ring; « Continue » is never unavailable; the touch zone of a segment is
 // 26 px; under 480 px « Previous » is its chevron, 44 px wide and still named; the save status shows once, in the foot
@@ -1898,7 +1898,7 @@ test("RUB-AN2 08: the step fades in, the segments and the boxes of the code chan
   );
 });
 
-// RUB-T9 (docs/mvp/jalons/rub/annexe.md; 02b C31, C48): the track of a photo card is reached and scrolled by the
+// RUB-T9 (docs/mvp/archives/jalons/rub/annexe.md; 02b C31, C48): the track of a photo card is reached and scrolled by the
 // keyboard, one visual at a time, the dots following; the arrows show on the hover of the photo and move it too; the
 // heart is pressed by the mouse and by the keyboard, named by the screen, and takes the double ring at focus (RUB-B §5,
 // AP2); a heart whose request runs is not pressed again; no amount is written on a card.
@@ -2168,7 +2168,7 @@ test("RUB-AN2 09a: the feed card lifts, the track scrolls smoothly, the arrows f
   await page.emulateMedia({ reducedMotion: "no-preference" });
 });
 
-// RUB-T9, line 09b (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C34 to C40, C66, C68, 02c; RUB-B §4): at
+// RUB-T9, line 09b (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C34 to C40, C66, C68, 02c; RUB-B §4): at
 // 1 440 px the mosaic alone, without an empty cell from one visual to five; each visual and « see them all » open the
 // whole-screen dialog on the visual asked for, the focus on the chevron, the body reached by the keyboard, `Échap` and
 // the chevron closing and giving the focus back; axe finds nothing in the open dialog. At 375 px the carousel alone,

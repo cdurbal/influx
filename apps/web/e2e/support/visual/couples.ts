@@ -1,5 +1,5 @@
 // The couples mockup ↔ application of the visual acceptance (docs/mvp/22-refonte-ux-ui/05 §3 and §8;
-// RUA-03, jalons/rub/modele-archi.md §6): one per screen and state of its mockup (`E01.0:marque-neuve`),
+// RUA-03, archives/jalons/rub/modele-archi.md §6): one per screen and state of its mockup (`E01.0:marque-neuve`),
 // the lines of its N2 matrix named after the sheet (`E01.0-S07`, `E01a` §3), with the selectors of each
 // side. Each screen jalon (RUB and after) adds its couples with its screen, and runs them under
 // E2E_VISUAL=app (e2e/visual/app.spec.ts). A couple never names a backoffice window from 768 to

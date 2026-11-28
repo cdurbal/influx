@@ -1,4 +1,4 @@
-// RUB-T4 (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02a C06 to C09): the list of rows, the list of
+// RUB-T4 (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02a C06 to C09): the list of rows, the list of
 // properties, the state message and the skeleton. Server rendering, no browser: what each one writes, the
 // roles and names a screen reader reads, the classes that carry the measures (the e2e look at pixels).
 import { createElement } from "react";

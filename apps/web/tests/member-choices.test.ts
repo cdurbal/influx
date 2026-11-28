@@ -1,4 +1,4 @@
-// RUB-T6 (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02a C22 to C26, 02b C47): the segmented control, the tag
+// RUB-T6 (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02a C22 to C26, 02b C47): the segmented control, the tag
 // picker, the internal zone, the save status, the disclosure and the date field. Server rendering, no browser: what
 // each one writes, the roles and the names a screen reader reads, the classes that carry the measures, the writing
 // of a date in French and in English, and that none of them acts on its own (a gesture only calls `onChange`).

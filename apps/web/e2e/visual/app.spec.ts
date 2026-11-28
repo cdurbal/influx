@@ -1,4 +1,4 @@
-// RUB-T11, the member shell compared with its mockup (docs/mvp/22-refonte-ux-ui/05 §3, §8; jalons/rub/
+// RUB-T11, the member shell compared with its mockup (docs/mvp/22-refonte-ux-ui/05 §3, §8; archives/jalons/rub/
 // 11.md, modele-archi.md §6): each couple of e2e/support/visual/couples.ts, the application signed in by
 // a loader of the acceptance data set (05 §4) then opened on the mockups' frozen clock (RUAT-8), against
 // the state of its mockup, at N1 (structure and texts of the shell), N2 (the lines of the matrix) and N3

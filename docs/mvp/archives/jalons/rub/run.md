@@ -33,4 +33,13 @@
 | fix-9 | fix-9.md | fix | sonnet | high | integrateur | fait | RUBT-5 : échec d’écriture jugé par la lecture ; Chromium lit le 413 ; « valider fix-6 fix-7 fix-8a fix-9 fix-10a » (fondateur, 2026-11-27) |
 | fix-10a | fix-10a.md | fix | opus | high | testeur | fait | RUBT-1 : 10 pages de famille, axe 375/1 440 une par famille ; local : cas RUB 32,0 s, RUA-T8 3,3 s (avant 53,8 et 13,4) > 20 s → fix-10b ; CI à relever |
 | fix-10b | fix-10b.md | fix | opus | xhigh | architecte + chef-de-projet | fait | RUBT-1 : budget RUB 46,5 s (run 46080423290), plafonds tenus, A §4 maintenue (≤ 388 ms) ; D89 ; « valider fix-10b » (fondateur, 2026-11-28) |
-| C | cloture.md | cloture | sonnet | medium | testeur | à faire | |
+| C | cloture.md | cloture | sonnet | medium | testeur | fait | critère coché ; check et e2e 317 verts en local (autre session présente) ; CI 46080423290 ; JS ≤ +2,13 % ; archivé ; RU-02 ouverte |
+
+## Mesures de clôture
+- Local (2026-11-28, `54a7a064` plus 5 fichiers non committés d'une autre session, R2B ; pile Supabase locale) : premier `pnpm check` rouge sur le seul délai de 5 s du cas SHA-256 des maquettes (5,96 s, web 1 097 / 1 098), sans écart de contenu ; rejeu intégral vert : domain 217, contracts 190, test-kit 309, backoffice 458, web 1 098, api 2 096 unitaires et 3 956 en base, artefacts 42 et 56. `pnpm test:e2e` : 317 / 317 en 5,5 min, planchers tenus (2 cas de l'autre session compris).
+- T11, ligne 11 : exécution locale consignée (`ee7e206` : 0 écart N3) ; rejouée à la clôture : `E2E_VISUAL=app` 6 / 6 en 1,1 min ; `E2E_VISUAL=mockup` 112 / 112 en 7,5 min (plancher non relu par script : `--reporter=line` remplace le rapport JSON).
+- CI du dernier push : run 46080423290 (`f7c87697`) : e2e vert à la tentative 1, run vert à la tentative 2 après relance de « Database tests (2/2) » (RUB-CI-1, `21` §8) ; « Migrate staging » vert. `54a7a064` (documents) et la clôture : à pousser.
+- Éclats e2e 299, 202 et 253 s (≤ 7 min 30) ; job, éclat le plus long et fusion, 5 min 24 s (≤ 8 min). Secondes ajoutées par le jalon : 46,5 s (budget 46,5 s, D89).
+- JavaScript de première visite, 58 routes, gzip des morceaux de `route-bundle-stats.json`, `5ced42b8` contre la tête, constructions sans planche : maximum +2,13 % (`/compte/profil/marque-verifiee`, 298,4 → 304,8 Kio ; brut +2,04 %). Accueils +1,77 % ; compte +1,71 à +1,75 % ; profil +1,86 % ; connexion et inscription +1,48 % ; recherche et sélections +1,83 à +2,04 % ; campagnes +1,67 à +2,01 % ; vérifications +1,70 à +2,13 % ; pages légales +1,01 % ; accueil public +1,02 %.
+- I-4 : `check-security-review.ts 5ced42b8~1 HEAD` « ok » ; aucune attestation requise.
+- Vélocité : 35 commits en 4 jours calendaires, ≈ 0,11 jour par commit (13 de lignes de code, 13 de correction, 9 de documents).

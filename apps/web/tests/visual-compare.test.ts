@@ -762,7 +762,7 @@ describe("no image under apps/web/e2e (05 §3: a reference is never committed)",
   });
 });
 
-// RUAT-4 (jalons/rub/modele-archi.md §6): the floors of the visual specs are read by a test, not only
+// RUAT-4 (archives/jalons/rub/modele-archi.md §6): the floors of the visual specs are read by a test, not only
 // by a script run by hand after a local run. A floor names a spec that exists, is a positive integer,
 // and every spec of e2e/visual has its floor (the mockups' or the `app` project's).
 function floorProblems(

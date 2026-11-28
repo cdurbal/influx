@@ -96,7 +96,7 @@ describe("findStateBoardInBuild (RUA-T8)", () => {
     ]);
   });
 
-  // RUB-fix-10a (jalons/rub/modele-archi.md §4): a page of one family, in a folder under the route of the board.
+  // RUB-fix-10a (archives/jalons/rub/modele-archi.md §4): a page of one family, in a folder under the route of the board.
   it("finds a family page of the board: its path, its marked chunk and its route in a manifest (RUB-fix-10a)", () => {
     writeArtifact(
       "server/app/[locale]/(member)/state-board/dialog/page.js",

@@ -1,4 +1,4 @@
-// Floor of executed cases of the `app` project of the visual tool (RUB-X1; jalons/rub/modele-archi.md
+// Floor of executed cases of the `app` project of the visual tool (RUB-X1; archives/jalons/rub/modele-archi.md
 // §6; 18 §3 rule 2), read after a local run under E2E_VISUAL=app (playwright.config.ts):
 // `node ../../packages/test-kit/scripts/check-case-floors.ts e2e/visual/app-case-floors.ts
 // test-results/e2e-report.json`. A module of its own: the floor of the mockups (case-floors.ts) is

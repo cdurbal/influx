@@ -1,4 +1,4 @@
-// RUB-T9 (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C31, C48, 02c; RUB-B §5): the photo card and the card of
+// RUB-T9 (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C31, C48, 02c; RUB-B §5): the photo card and the card of
 // the feed. Server rendering, no browser: the names a screen reader reads, the one link of each card, the heart that is
 // pressed and never green, the verified mark of the photo card in words only (RU-02, D88) and the dated badge elsewhere,
 // no amount and no button on the feed card (D78), and the classes that carry the motion, the double ring and the

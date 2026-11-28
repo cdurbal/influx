@@ -1,4 +1,4 @@
-// RUB-T9 (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C34 to C37, C39, C40, C66, C68, 02c; RUB-B §4): the
+// RUB-T9 (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C34 to C37, C39, C40, C66, C68, 02c; RUB-B §4): the
 // gallery and the components of a reading page. Server rendering, no browser: the visuals named by what they show,
 // the mosaic without an empty cell, the valid lists of terms, the written value of a range, the named landmarks, the
 // one `h1` of the head of a brand page, and no score. The dialog, the focus, the track, the widths and the pixels are

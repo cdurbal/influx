@@ -8,7 +8,7 @@
 > avec `Grep` (exemple : `RG113` dans le fichier concerné).
 >
 > **Session de jalon : lire d'abord sa fiche**, qui cite déjà les tranches utiles :
-> `jalons/r2b-fiche.md`, `jalons/r2c-fiche.md`, `jalons/rub-fiche.md`.
+> `jalons/r2b-fiche.md`, `jalons/r2c-fiche.md`.
 
 ## 00-cadrage-mvp-v2.md (~16k tokens)
 
@@ -689,7 +689,7 @@
 | 96 | 25 | 5. Lot 1 — le premier usage (J5 à J9) | RG9–RG164 |
 | 121 | 10 | 6. Configuration des services externes |  |
 | 131 | 19 | 7. Après le Lot 1 : la feuille de route (Lots 2 à 6bis) |  |
-| 150 | 142 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
+| 150 | 147 | 8. Lot 2 — entrée et jalon actif | RG9–RG158 |
 
 ## 22-refonte-ux-ui.md (~2k tokens)
 

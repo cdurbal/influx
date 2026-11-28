@@ -100,7 +100,7 @@ export async function openMockupState(
 export type AppFindings = MockupFindings;
 
 /**
- * The application's side of a couple (RUB-11; jalons/rub/modele-archi.md §6), from now on: every
+ * The application's side of a couple (RUB-11; archives/jalons/rub/modele-archi.md §6), from now on: every
  * request out of `origin` (the front of the couple) and every WebSocket is refused and counted, and
  * the script errors are collected. Call it once per page, before the session is written: the clock
  * is not touched here, the sign-in runs in real time.

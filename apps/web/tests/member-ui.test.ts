@@ -260,7 +260,7 @@ describe("locked fields (L3C-X3)", () => {
   });
 });
 
-// RUB-T2 (docs/mvp/jalons/rub/annexe.md; line 02): C04, C05, C10, C11 and C12, by what they render. Server
+// RUB-T2 (docs/mvp/archives/jalons/rub/annexe.md; line 02): C04, C05, C10, C11 and C12, by what they render. Server
 // rendering; the handlers are called as functions, the pixels, the hover and the motion are the board's (RUB-AN2).
 describe("RUB-T2: the button, its sizes and its states (C10)", () => {
   it("draws the four sizes by their height token, the two small ones reaching 44 px by a transparent pseudo-element, the text button keeping its own", () => {
@@ -513,7 +513,7 @@ describe("RUB-T2: the link of action (C11)", () => {
   });
 });
 
-// RUB-T3 (docs/mvp/jalons/rub/annexe.md; line 03): C13 to C17, C33 and C38, by what they render. Server rendering;
+// RUB-T3 (docs/mvp/archives/jalons/rub/annexe.md; line 03): C13 to C17, C33 and C38, by what they render. Server rendering;
 // the pixels, the gaps as computed and the flash are the board's (RUB-AN2 17, RUB-AX).
 
 /** The classes of the first element of a markup, as a set: what a call draws, whatever the order they come in. */

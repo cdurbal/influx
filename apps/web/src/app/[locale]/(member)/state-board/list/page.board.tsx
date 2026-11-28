@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BoardHeader, boardTitle } from "../board-section.board";
 import { ListBoard } from "../list.board";
 
-// The family `list` of the component state board (RUB-fix-10a; jalons/rub/modele-archi.md §4): its page alone,
+// The family `list` of the component state board (RUB-fix-10a; archives/jalons/rub/modele-archi.md §4): its page alone,
 // served like the index only when the `board.tsx` page extension is on (src/config/state-board.ts).
 
 const INTRO =

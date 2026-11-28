@@ -514,7 +514,7 @@ describe("RUA-T8: G8, the state board kept out of the product", () => {
     ]);
   });
 
-  // RUB-fix-10a (jalons/rub/modele-archi.md §4): one page per family, `state-board/<family>/page.board.tsx`.
+  // RUB-fix-10a (archives/jalons/rub/modele-archi.md §4): one page per family, `state-board/<family>/page.board.tsx`.
   it("follows the family pages into their folders: the expected ones, a missing or an unexpected one, their imports (RUB-fix-10a)", () => {
     writeBoard();
     const FAMILY = `${BOARD_DIRECTORY}/surface/page.board.tsx`;

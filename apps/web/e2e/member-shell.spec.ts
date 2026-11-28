@@ -811,7 +811,7 @@ for (const [locale, role] of [
   });
 }
 
-// RUB-T10 (jalons/rub/annexe.md; E01.0-CA01 to CA08): the shell of the Lot 3bis. CA05 (skip link,
+// RUB-T10 (archives/jalons/rub/annexe.md; E01.0-CA01 to CA08): the shell of the Lot 3bis. CA05 (skip link,
 // focus on the h1) stays with TD5.3 and TD5.5, the single `nav` and `aria-current` with TD5.1.
 
 /** The aside of the account, after the navigation, from lg only (RUB-B §1). */

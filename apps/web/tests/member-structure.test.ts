@@ -1,4 +1,4 @@
-// RUB-T1 (jalons/rub/annexe.md): the structure components of the member spaces, C01 PageFrame, C02
+// RUB-T1 (archives/jalons/rub/annexe.md): the structure components of the member spaces, C01 PageFrame, C02
 // PageHeader, C03 Section and C29 Announcer, as they render: one `h1`, the levels, the sections named by
 // their heading, one live region. Server rendering, no browser, no jsdom (the e2e of the state board look
 // at the pixels, the focus and the axe).

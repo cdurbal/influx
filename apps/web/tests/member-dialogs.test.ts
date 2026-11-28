@@ -1,4 +1,4 @@
-// RUB-T7 (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02a C27, C28, C30, C32): the dialog, the dialog of the filters,
+// RUB-T7 (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02a C27, C28, C30, C32): the dialog, the dialog of the filters,
 // the filter bar and the pager. Server rendering, no browser: what each one writes, the roles and the names a screen
 // reader reads, the classes that carry the motion and the measures, and that none of them acts while it is drawn.
 // The focus given back, `Échap`, the backdrop and the draft given up are the board's (e2e, RUB-T7 and RUB-AN2 07).

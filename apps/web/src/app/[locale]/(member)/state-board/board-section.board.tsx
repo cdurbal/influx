@@ -8,7 +8,7 @@ import {
 import { PAGE_TITLE_CLASSES } from "@/components/member/ui/page-header-classes";
 
 /**
- * The families of the board (RUB-fix-10a; jalons/rub/modele-archi.md §4), one page each at `state-board/<family>`,
+ * The families of the board (RUB-fix-10a; archives/jalons/rub/modele-archi.md §4), one page each at `state-board/<family>`,
  * in the order of the index: a family is the components of one line of RUB.
  */
 export const BOARD_FAMILIES = {

@@ -1,4 +1,4 @@
-// RUB-T12 (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02c, head; RUBT-4): every module of the catalogue takes
+// RUB-T12 (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02c, head; RUBT-4): every module of the catalogue takes
 // `id`, `data-*` and `aria-*` and sets them on its root, a field `id` and `aria-*` on its control and `data-*` on its
 // root, and nothing else goes through. Server rendering, no browser. `CATALOGUE_MODULES` is read as it is: a module
 // without a rendering here fails.

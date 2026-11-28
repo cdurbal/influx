@@ -1,4 +1,4 @@
-// RUB-T8 (docs/mvp/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C41, C42, C49, C51): the wizard, the recap, the code field and
+// RUB-T8 (docs/mvp/archives/jalons/rub/annexe.md; 22-refonte-ux-ui/02b C41, C42, C49, C51): the wizard, the recap, the code field and
 // the numbered steps. Server rendering, no browser: what each one writes, the roles and the names a screen reader reads,
 // that « Continue » never blocks, that the code is ONE input, and the classes that carry the measures and the
 // forced-colours contours. The keyboard, the paste, the focus and the pixels are the board's (e2e, RUB-T8 and RUB-AN2 08).

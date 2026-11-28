@@ -1764,7 +1764,7 @@ export function findStateBoardViolations(
 // ---------------------------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------------------------
-// G8, the catalogue of the member components (RUB, D89; jalons/rub/modele-archi.md §1, §2, §3, §7)
+// G8, the catalogue of the member components (RUB, D89; archives/jalons/rub/modele-archi.md §1, §2, §3, §7)
 // ---------------------------------------------------------------------------------------------
 
 export type CatalogueRules = {
